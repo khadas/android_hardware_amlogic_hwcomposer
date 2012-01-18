@@ -79,16 +79,6 @@ static int hwc_prepare(hwc_composer_device_t *dev, hwc_layer_list_t* list) {
         for (size_t i=0 ; i<list->numHwLayers ; i++) {
             hwc_layer_t* l = &list->hwLayers[i];
             //dump_layer(l);
-
-            if (l->handle) {
-                private_handle_t const* hnd = reinterpret_cast<private_handle_t const*>(l->handle);
-                if (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_HOLE) {
-                    l->hints |= HWC_HINT_CLEAR_FB;
-                    l->compositionType = HWC_OVERLAY;
-                    //LOGD("hnd=%#x flags=%d l->hints |= HWC_HINT_CLEAR_FB", hnd, hnd->flags);
-                    return 0;
-                }
-            }
             l->compositionType = HWC_FRAMEBUFFER;
         }
     }
