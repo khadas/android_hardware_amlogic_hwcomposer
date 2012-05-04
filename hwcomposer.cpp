@@ -28,8 +28,11 @@
 
 #include <EGL/egl.h>
 
-// for private_handle_t and PRIV_FLAGS_VIDEO_HOLE
+// for private_handle_t
 #include "../../libhardware/modules/gralloc/gralloc_priv.h"
+
+#include <Amavutils.h>
+#include <system/graphics.h>
 
 /*****************************************************************************/
 
@@ -61,6 +64,32 @@ hwc_module_t HAL_MODULE_INFO_SYM = {
 
 /*****************************************************************************/
 
+static void hwc_overlay_compose(hwc_layer_t const* l) {
+    int angle;
+    switch (l->transform) {
+        case 0:
+            angle = 0;
+            break;
+        case HAL_TRANSFORM_ROT_90:
+            angle = 90;
+            break;
+        case HAL_TRANSFORM_ROT_180:
+            angle = 180;
+            break;
+        case HAL_TRANSFORM_ROT_270:
+            angle = 270;
+            break;
+        default:
+            return;
+    }
+
+    amvideo_utils_set_virtual_position(l->displayFrame.left,
+                                       l->displayFrame.top,
+                                       l->displayFrame.right - l->displayFrame.left + 1,
+                                       l->displayFrame.bottom - l->displayFrame.top + 1,
+                                       angle);
+}
+
 static void dump_layer(hwc_layer_t const* l) {
     LOGD("\ttype=%d, flags=%08x, handle=%p, tr=%02x, blend=%04x, {%d,%d,%d,%d}, {%d,%d,%d,%d}",
             l->compositionType, l->flags, l->handle, l->transform, l->blending,
@@ -79,6 +108,14 @@ static int hwc_prepare(hwc_composer_device_t *dev, hwc_layer_list_t* list) {
         for (size_t i=0 ; i<list->numHwLayers ; i++) {
             hwc_layer_t* l = &list->hwLayers[i];
             //dump_layer(l);
+            if (l->handle) {
+                private_handle_t const* hnd = reinterpret_cast<private_handle_t const*>(l->handle);
+                if (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OVERLAY) {
+                    l->hints = HWC_HINT_CLEAR_FB;
+                    l->compositionType = HWC_OVERLAY;
+                    continue;
+                }
+            }
             l->compositionType = HWC_FRAMEBUFFER;
         }
     }
@@ -90,9 +127,13 @@ static int hwc_set(hwc_composer_device_t *dev,
         hwc_surface_t sur,
         hwc_layer_list_t* list)
 {
-    //for (size_t i=0 ; i<list->numHwLayers ; i++) {
-    //    dump_layer(&list->hwLayers[i]);
-    //}
+    for (size_t i=0 ; i<list->numHwLayers ; i++) {
+        hwc_layer_t* l = &list->hwLayers[i];
+        if (l->compositionType == HWC_OVERLAY) {
+            dump_layer(l);
+            hwc_overlay_compose(l);
+        }
+    }
 
     EGLBoolean sucess = eglSwapBuffers((EGLDisplay)dpy, (EGLSurface)sur);
     if (!sucess) {
