@@ -151,10 +151,14 @@ static int hwc_set(hwc_composer_device_t *dev,
         hwc_surface_t sur,
         hwc_layer_list_t* list)
 {
+    if (list == NULL) {
+        return 0;
+    }
+
     for (size_t i=0 ; i<list->numHwLayers ; i++) {
         hwc_layer_t* l = &list->hwLayers[i];
         if (l->compositionType == HWC_OVERLAY) {
-            dump_layer(l);
+            //dump_layer(l);
             hwc_overlay_compose(dev, l);
         }
     }
