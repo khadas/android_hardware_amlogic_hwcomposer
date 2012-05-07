@@ -39,6 +39,12 @@
 struct hwc_context_t {
     hwc_composer_device_t device;
     /* our private state goes below here */
+    hwc_layer_t const* saved_layer;
+    int saved_transform;
+    int saved_left;
+    int saved_top;
+    int saved_right;
+    int saved_bottom;
 };
 
 static int hwc_device_open(const struct hw_module_t* module, const char* name,
@@ -64,8 +70,19 @@ hwc_module_t HAL_MODULE_INFO_SYM = {
 
 /*****************************************************************************/
 
-static void hwc_overlay_compose(hwc_layer_t const* l) {
+static void hwc_overlay_compose(hwc_composer_device_t *dev, hwc_layer_t const* l) {
     int angle;
+    struct hwc_context_t* ctx = (struct hwc_context_t*)dev;
+
+    if ((ctx->saved_layer == l) &&
+        (ctx->saved_transform == l->transform) &&
+        (ctx->saved_left == l->displayFrame.left) &&
+        (ctx->saved_top == l->displayFrame.top) &&
+        (ctx->saved_right == l->displayFrame.right) &&
+        (ctx->saved_bottom = l->displayFrame.bottom)) {
+        return;
+    }
+
     switch (l->transform) {
         case 0:
             angle = 0;
@@ -88,6 +105,13 @@ static void hwc_overlay_compose(hwc_layer_t const* l) {
                                        l->displayFrame.right - l->displayFrame.left + 1,
                                        l->displayFrame.bottom - l->displayFrame.top + 1,
                                        angle);
+
+    ctx->saved_layer = l;
+    ctx->saved_transform = l->transform;
+    ctx->saved_left = l->displayFrame.left;
+    ctx->saved_top = l->displayFrame.top;
+    ctx->saved_right = l->displayFrame.right;
+    ctx->saved_bottom = l->displayFrame.bottom;
 }
 
 static void dump_layer(hwc_layer_t const* l) {
@@ -131,7 +155,7 @@ static int hwc_set(hwc_composer_device_t *dev,
         hwc_layer_t* l = &list->hwLayers[i];
         if (l->compositionType == HWC_OVERLAY) {
             dump_layer(l);
-            hwc_overlay_compose(l);
+            hwc_overlay_compose(dev, l);
         }
     }
 
