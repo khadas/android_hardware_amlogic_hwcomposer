@@ -40,7 +40,7 @@ struct hwc_context_t {
     hwc_composer_device_t device;
     /* our private state goes below here */
     hwc_layer_t const* saved_layer;
-    int saved_transform;
+    unsigned saved_transform;
     int saved_left;
     int saved_top;
     int saved_right;
@@ -131,6 +131,7 @@ static int hwc_prepare(hwc_composer_device_t *dev, hwc_layer_list_t* list) {
     if (list && (list->flags & HWC_GEOMETRY_CHANGED)) {
         for (size_t i=0 ; i<list->numHwLayers ; i++) {
             hwc_layer_t* l = &list->hwLayers[i];
+#if 0
             //dump_layer(l);
             if (l->handle) {
                 private_handle_t const* hnd = reinterpret_cast<private_handle_t const*>(l->handle);
@@ -140,6 +141,7 @@ static int hwc_prepare(hwc_composer_device_t *dev, hwc_layer_list_t* list) {
                     continue;
                 }
             }
+#endif
             l->compositionType = HWC_FRAMEBUFFER;
         }
     }
@@ -157,10 +159,19 @@ static int hwc_set(hwc_composer_device_t *dev,
 
     for (size_t i=0 ; i<list->numHwLayers ; i++) {
         hwc_layer_t* l = &list->hwLayers[i];
+#if 0
         if (l->compositionType == HWC_OVERLAY) {
             //dump_layer(l);
             hwc_overlay_compose(dev, l);
         }
+#else
+        if (l->handle) {
+            private_handle_t const* hnd = reinterpret_cast<private_handle_t const*>(l->handle);
+            if (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OVERLAY) {
+                hwc_overlay_compose(dev, l);
+            }
+        }
+#endif
     }
 
     EGLBoolean sucess = eglSwapBuffers((EGLDisplay)dpy, (EGLSurface)sur);
