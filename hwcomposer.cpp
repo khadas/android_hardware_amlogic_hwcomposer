@@ -106,6 +106,11 @@ static void hwc_overlay_compose(hwc_composer_device_t *dev, hwc_layer_t const* l
                                        l->displayFrame.bottom - l->displayFrame.top + 1,
                                        angle);
 
+    /* the screen mode from Android framework should always be set to normal mode
+     * to match the relationship between the UI and video overlay window position.
+     */
+    amvideo_utils_set_screen_mode(0);
+
     ctx->saved_layer = l;
     ctx->saved_transform = l->transform;
     ctx->saved_left = l->displayFrame.left;
