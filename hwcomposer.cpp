@@ -33,6 +33,9 @@
 
 #include <Amavutils.h>
 #include <system/graphics.h>
+#ifndef LOGD
+#define LOGD ALOGD
+#endif
 
 /*****************************************************************************/
 
