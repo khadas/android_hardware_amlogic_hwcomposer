@@ -39,10 +39,10 @@
 
 /*****************************************************************************/
 
-struct hwc_context_t {
-    hwc_composer_device_t device;
+struct hwc_context_1_t {
+    hwc_composer_device_1_t device;
     /* our private state goes below here */
-    hwc_layer_t const* saved_layer;
+    hwc_layer_1_t const* saved_layer;
     unsigned saved_transform;
     int saved_left;
     int saved_top;
@@ -73,9 +73,9 @@ hwc_module_t HAL_MODULE_INFO_SYM = {
 
 /*****************************************************************************/
 
-static void hwc_overlay_compose(hwc_composer_device_t *dev, hwc_layer_t const* l) {
+static void hwc_overlay_compose(hwc_composer_device_1_t *dev, hwc_layer_1_t const* l) {
     int angle;
-    struct hwc_context_t* ctx = (struct hwc_context_t*)dev;
+    struct hwc_context_1_t* ctx = (struct hwc_context_1_t*)dev;
 
     if ((ctx->saved_layer == l) &&
         (ctx->saved_transform == l->transform) &&
@@ -135,57 +135,57 @@ static void dump_layer(hwc_layer_t const* l) {
             l->displayFrame.bottom);
 }
 
-static int hwc_prepare(hwc_composer_device_t *dev, hwc_layer_list_t* list) {
-    if (list && (list->flags & HWC_GEOMETRY_CHANGED)) {
-        for (size_t i=0 ; i<list->numHwLayers ; i++) {
-            hwc_layer_t* l = &list->hwLayers[i];
-#if 0
-            //dump_layer(l);
-            if (l->handle) {
-                private_handle_t const* hnd = reinterpret_cast<private_handle_t const*>(l->handle);
-                if (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OVERLAY) {
-                    l->hints = HWC_HINT_CLEAR_FB;
-                    l->compositionType = HWC_OVERLAY;
-                    continue;
-                }
-            }
-#endif
-            l->compositionType = HWC_FRAMEBUFFER;
-        }
-    }
+static int hwc_blank(struct hwc_composer_device_1* dev,
+                     int disp,
+                     int blank)
+{
     return 0;
 }
 
-static int hwc_set(hwc_composer_device_t *dev,
-        hwc_display_t dpy,
-        hwc_surface_t sur,
-        hwc_layer_list_t* list)
+static int hwc_eventControl(struct hwc_composer_device_1* dev,
+                            int disp,
+                            int event,
+                            int enabled)
 {
-    if (list == NULL) {
+    return 0;
+}
+
+static int hwc_prepare(struct hwc_composer_device_1 *dev,
+                       size_t numDisplays,
+                       hwc_display_contents_1_t** displays)
+{
+    return 0;
+}
+
+static int hwc_set(struct hwc_composer_device_1 *dev,
+                   size_t numDisplays,
+                   hwc_display_contents_1_t** displays)
+{
+    // On version 1.0(HWC_DEVICE_API_VERSION_1_0), the OpenGL ES target surface is communicated
+    // by the (dpy, sur) fields and we are guaranteed to have only
+    // a single display.
+    if (numDisplays != 1) {
         return 0;
     }
 
+    hwc_display_contents_1_t *list = displays[0];
     for (size_t i=0 ; i<list->numHwLayers ; i++) {
-        hwc_layer_t* l = &list->hwLayers[i];
-#if 0
-        if (l->compositionType == HWC_OVERLAY) {
-            //dump_layer(l);
-            hwc_overlay_compose(dev, l);
-        }
-#else
+        hwc_layer_1_t* l = &list->hwLayers[i];
         if (l->handle) {
             private_handle_t const* hnd = reinterpret_cast<private_handle_t const*>(l->handle);
             if (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OVERLAY) {
                 hwc_overlay_compose(dev, l);
             }
         }
-#endif
     }
 
-    EGLBoolean sucess = eglSwapBuffers((EGLDisplay)dpy, (EGLSurface)sur);
-    if (!sucess) {
+//TODO: revert this after ARM has official Mali driver release for Android 4.2
+#if 0
+    EGLBoolean success = eglSwapBuffers(displays[0]->dpy, displays[0]->sur);
+    if (!success) {
         return HWC_EGL_ERROR;
     }
+#endif
     return 0;
 }
 
@@ -205,18 +205,20 @@ static int hwc_device_open(const struct hw_module_t* module, const char* name,
 {
     int status = -EINVAL;
     if (!strcmp(name, HWC_HARDWARE_COMPOSER)) {
-        struct hwc_context_t *dev;
-        dev = (hwc_context_t*)malloc(sizeof(*dev));
+        struct hwc_context_1_t *dev;
+        dev = (hwc_context_1_t*)malloc(sizeof(*dev));
 
         /* initialize our state here */
         memset(dev, 0, sizeof(*dev));
 
         /* initialize the procs */
         dev->device.common.tag = HARDWARE_DEVICE_TAG;
-        dev->device.common.version = 0;
+        dev->device.common.version = HWC_DEVICE_API_VERSION_1_0;
         dev->device.common.module = const_cast<hw_module_t*>(module);
         dev->device.common.close = hwc_device_close;
 
+        dev->device.blank = hwc_blank;
+        dev->device.eventControl = hwc_eventControl;
         dev->device.prepare = hwc_prepare;
         dev->device.set = hwc_set;
 
