@@ -23,6 +23,7 @@
 
 #include <cutils/log.h>
 #include <cutils/atomic.h>
+#include <cutils/properties.h>
 
 #include <hardware/hwcomposer.h>
 
@@ -73,16 +74,46 @@ hwc_module_t HAL_MODULE_INFO_SYM = {
 
 /*****************************************************************************/
 
+int video_on_vpp2_enabled(void)
+{
+    int ret = 0;
+    
+    // ro.vout.dualdisplay4
+    char val[32];
+    memset(val, 0, sizeof(val));
+    if (property_get("ro.vout.dualdisplay4", val, "false")
+        && strcmp(val, "true") == 0) {       
+        ret = 1;
+    }
+
+    return ret;
+}
+
 static void hwc_overlay_compose(hwc_composer_device_1_t *dev, hwc_layer_1_t const* l) {
     int angle;
     struct hwc_context_1_t* ctx = (struct hwc_context_1_t*)dev;
+
+    static char last_val[32] = "0";
+    int vpp_changed = 0;
+    
+    if (video_on_vpp2_enabled()) {
+        char val[32];
+        memset(val, 0, sizeof(val));    
+        if (amsysfs_get_sysfs_str("/sys/module/amvideo/parameters/cur_dev_idx", val, sizeof(val)) == 0) {        
+            if ((strncmp(val, last_val, 1) != 0)) {
+                strcpy(last_val, val);
+                vpp_changed = 1;
+            }
+        }
+    }
 
     if ((ctx->saved_layer == l) &&
         (ctx->saved_transform == l->transform) &&
         (ctx->saved_left == l->displayFrame.left) &&
         (ctx->saved_top == l->displayFrame.top) &&
         (ctx->saved_right == l->displayFrame.right) &&
-        (ctx->saved_bottom = l->displayFrame.bottom)) {
+        (ctx->saved_bottom == l->displayFrame.bottom) &&
+        !vpp_changed) {
         return;
     }
 
