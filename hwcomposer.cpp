@@ -124,7 +124,7 @@ static void hwc_overlay_compose(hwc_composer_device_1_t *dev, hwc_layer_1_t cons
 
     static char last_val[32] = "0";
     int vpp_changed = 0;
-    
+    char buf[40] = {0};
     if (video_on_vpp2_enabled()) {
         char val[32];
         memset(val, 0, sizeof(val));    
@@ -162,23 +162,36 @@ static void hwc_overlay_compose(hwc_composer_device_1_t *dev, hwc_layer_1_t cons
         default:
             return;
     }
-    char buf[40];
-    memset(buf, 0, 40);
-    property_get("const.window.w", buf, "1280") ;
-    int disp_w = atoi(buf)>0? atoi(buf): disp_w; 
-    memset(buf, 0, 40);
-    property_get("const.window.h", buf, "720") ;
-    int disp_h = atoi(buf)>0? atoi(buf): disp_h;
-    int x = l->displayFrame.left;
-    int y = l->displayFrame.top;
-    int w = l->displayFrame.right - l->displayFrame.left + 1;
-    int h = l->displayFrame.bottom - l->displayFrame.top + 1;
-    if(w > disp_w)
-        w = disp_w;
-    if(h > disp_h)
-        h = disp_h;
-    amvideo_utils_set_virtual_position(x, y, w, h, angle);
+    
+    property_get("media.p2pplay.enable", buf, "false");
 
+    if (!strncmp(buf, "true", 4)){
+    
+        memset(buf, 0, 40);
+        property_get("const.window.w", buf, "1280") ;
+        int disp_w = atoi(buf)>0? atoi(buf): disp_w; 
+        memset(buf, 0, 40);
+        property_get("const.window.h", buf, "720") ;
+        int disp_h = atoi(buf)>0? atoi(buf): disp_h;
+        int x = l->displayFrame.left;
+        int y = l->displayFrame.top;
+        int w = l->displayFrame.right - l->displayFrame.left + 1;
+        int h = l->displayFrame.bottom - l->displayFrame.top + 1;
+        if(w > disp_w)
+            w = disp_w;
+        if(h > disp_h)
+            h = disp_h;
+        amvideo_utils_set_virtual_position(x, y, w, h, angle);
+    }
+    else
+    {
+        amvideo_utils_set_virtual_position(l->displayFrame.left,
+                                           l->displayFrame.top,
+                                           l->displayFrame.right - l->displayFrame.left + 1,
+                                           l->displayFrame.bottom - l->displayFrame.top + 1,
+                                           angle);
+
+    }
     /* the screen mode from Android framework should always be set to normal mode
      * to match the relationship between the UI and video overlay window position.
      */
