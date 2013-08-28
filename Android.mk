@@ -11,9 +11,16 @@ LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
 LOCAL_SHARED_LIBRARIES := liblog libEGL libutils libamavutils libcutils
 LOCAL_SRC_FILES := hwcomposer.cpp
 
+ifneq (,$(wildcard hardware/amlogic/gralloc))
+GRALLOC_DIR := hardware/amlogic/gralloc 
+else 
+GRALLOC_DIR := hardware/libhardware/modules/gralloc
+endif
+
 AMPLAYER_APK_DIR=$(TOP)/packages/amlogic/LibPlayer/
 LOCAL_C_INCLUDES +=\
-        $(AMPLAYER_APK_DIR)/amavutils/include
+        $(AMPLAYER_APK_DIR)/amavutils/include \
+        $(GRALLOC_DIR) \
 
 LOCAL_MODULE := hwcomposer.amlogic
 LOCAL_CFLAGS:= -DLOG_TAG=\"hwcomposer\"

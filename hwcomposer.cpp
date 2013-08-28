@@ -48,7 +48,7 @@
 #include <utils/Vector.h>
 #include <utils/Timers.h>
 // for private_handle_t
-#include "../../libhardware/modules/gralloc/gralloc_priv.h"
+#include <gralloc_priv.h>
 
 #include <Amavutils.h>
 #include <system/graphics.h>
