@@ -284,7 +284,8 @@ static void *hwc_vsync_thread(void *data)
         }
         pthread_mutex_unlock(&hwc_mutex);
 
-        const nsecs_t period = 20000000; //50Hz
+      //const nsecs_t period = 20000000; //50Hz
+        const nsecs_t period = 16666666; //60Hz
         const nsecs_t now = systemTime(CLOCK_MONOTONIC);
         nsecs_t next_vsync = nextFakeVSync;
         nsecs_t sleep = next_vsync - now;
