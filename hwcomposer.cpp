@@ -136,13 +136,24 @@ static void hwc_overlay_compose(hwc_composer_device_1_t *dev, hwc_layer_1_t cons
         }
     }
 
+    static char last_mode[32] = {0};
+    int mode_changed = 0;
+    char mode[32];
+    memset(mode, 0, sizeof(mode));
+    if (amsysfs_get_sysfs_str("/sys/class/display/mode", mode, sizeof(mode)) == 0) {
+        if ((strcmp(mode, last_mode) != 0)) {
+            strcpy(last_mode, mode);
+            mode_changed = 1;
+        }
+    }
+
     if ((ctx->saved_layer == l) &&
         (ctx->saved_transform == l->transform) &&
         (ctx->saved_left == l->displayFrame.left) &&
         (ctx->saved_top == l->displayFrame.top) &&
         (ctx->saved_right == l->displayFrame.right) &&
         (ctx->saved_bottom == l->displayFrame.bottom) &&
-        !vpp_changed) {
+        !vpp_changed && !mode_changed) {
         return;
     }
 
