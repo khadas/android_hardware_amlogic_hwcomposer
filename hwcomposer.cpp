@@ -50,7 +50,10 @@
 // for private_handle_t
 #include <gralloc_priv.h>
 
+#if WITH_LIBPLAYER_MODULE
 #include <Amavutils.h>
+#endif
+
 #include <system/graphics.h>
 #ifndef LOGD
 #define LOGD ALOGD
@@ -122,9 +125,9 @@ static void hwc_overlay_compose(hwc_composer_device_1_t *dev, hwc_layer_1_t cons
     int angle;
     struct hwc_context_1_t* ctx = (struct hwc_context_1_t*)dev;
 
+#if WITH_LIBPLAYER_MODULE
     static char last_val[32] = "0";
     int vpp_changed = 0;
-    char buf[40] = {0};
     if (video_on_vpp2_enabled()) {
         char val[32];
         memset(val, 0, sizeof(val));    
@@ -173,6 +176,7 @@ static void hwc_overlay_compose(hwc_composer_device_1_t *dev, hwc_layer_1_t cons
      * to match the relationship between the UI and video overlay window position.
      */
     amvideo_utils_set_screen_mode(0);
+#endif
 
     ctx->saved_layer = l;
     ctx->saved_transform = l->transform;
@@ -238,6 +242,7 @@ static int hwc_set(struct hwc_composer_device_1 *dev,
         return 0;
     }
 
+#if WITH_LIBPLAYER_MODULE
     hwc_display_contents_1_t *list = displays[0];
     for (size_t i=0 ; i<list->numHwLayers ; i++) {
         hwc_layer_1_t* l = &list->hwLayers[i];
@@ -248,6 +253,7 @@ static int hwc_set(struct hwc_composer_device_1 *dev,
             }
         }
     }
+#endif
 
 
     EGLBoolean success = eglSwapBuffers(displays[0]->dpy, displays[0]->sur);
