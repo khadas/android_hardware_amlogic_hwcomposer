@@ -108,7 +108,7 @@ int video_on_vpp2_enabled(void)
     int ret = 0;
     
     // ro.vout.dualdisplay4
-    char val[32];
+    char val[PROPERTY_VALUE_MAX];
     memset(val, 0, sizeof(val));
     if (property_get("ro.vout.dualdisplay4", val, "false")
         && strcmp(val, "true") == 0) {       
