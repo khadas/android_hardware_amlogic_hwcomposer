@@ -123,6 +123,8 @@ static void hwc_overlay_compose(hwc_composer_device_1_t *dev, hwc_layer_1_t cons
     struct hwc_context_1_t* ctx = (struct hwc_context_1_t*)dev;
 
     static char last_val[32] = "0";
+    static char last_axis[32] = "0";
+    int axis_changed = 0;
     int vpp_changed = 0;
     char buf[40] = {0};
     if (video_on_vpp2_enabled()) {
@@ -146,6 +148,13 @@ static void hwc_overlay_compose(hwc_composer_device_1_t *dev, hwc_layer_1_t cons
             mode_changed = 1;
         }
     }
+    char axis[32]= {0};
+    if (amsysfs_get_sysfs_str("/sys/class/video/axis", axis, sizeof(axis)) == 0) {
+        if ((strcmp(axis, last_axis) != 0)) {
+            axis_changed = 1;
+        }
+   
+    }
 
     if ((ctx->saved_layer == l) &&
         (ctx->saved_transform == l->transform) &&
@@ -153,7 +162,7 @@ static void hwc_overlay_compose(hwc_composer_device_1_t *dev, hwc_layer_1_t cons
         (ctx->saved_top == l->displayFrame.top) &&
         (ctx->saved_right == l->displayFrame.right) &&
         (ctx->saved_bottom == l->displayFrame.bottom) &&
-        !vpp_changed && !mode_changed) {
+        !vpp_changed && !mode_changed && !axis_changed) {
         return;
     }
 
@@ -191,6 +200,13 @@ static void hwc_overlay_compose(hwc_composer_device_1_t *dev, hwc_layer_1_t cons
     ctx->saved_top = l->displayFrame.top;
     ctx->saved_right = l->displayFrame.right;
     ctx->saved_bottom = l->displayFrame.bottom;
+
+
+    memset(axis, 0, sizeof(axis));
+    
+    if (amsysfs_get_sysfs_str("/sys/class/video/axis", axis, sizeof(axis)) == 0){
+        strcpy(last_axis, axis);
+    }
 }
 
 /*static void dump_layer(hwc_layer_t const* l) {
