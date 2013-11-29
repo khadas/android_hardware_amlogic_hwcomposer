@@ -148,6 +148,18 @@ static void hwc_overlay_compose(hwc_composer_device_1_t *dev, hwc_layer_1_t cons
             mode_changed = 1;
         }
     }
+	
+	static char last_free_scale[32] = {0};
+    int free_scale_changed = 0;
+    char free_scale[32];
+    memset(free_scale, 0, sizeof(free_scale));
+    if (amsysfs_get_sysfs_str("/sys/class/graphics/fb0/free_scale", free_scale, sizeof(free_scale)) == 0) {
+        if ((strcmp(free_scale, last_free_scale) != 0)) {
+            strcpy(last_free_scale, free_scale);
+            free_scale_changed = 1;
+        }
+    }
+	
     char axis[32]= {0};
     if (amsysfs_get_sysfs_str("/sys/class/video/axis", axis, sizeof(axis)) == 0) {
         if ((strcmp(axis, last_axis) != 0)) {
@@ -162,7 +174,7 @@ static void hwc_overlay_compose(hwc_composer_device_1_t *dev, hwc_layer_1_t cons
         (ctx->saved_top == l->displayFrame.top) &&
         (ctx->saved_right == l->displayFrame.right) &&
         (ctx->saved_bottom == l->displayFrame.bottom) &&
-        !vpp_changed && !mode_changed && !axis_changed) {
+        !vpp_changed && !mode_changed && !axis_changed && !free_scale_changed) {
         return;
     }
 
