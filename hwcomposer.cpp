@@ -127,6 +127,8 @@ static void hwc_overlay_compose(hwc_composer_device_1_t *dev, hwc_layer_1_t cons
 
 #if WITH_LIBPLAYER_MODULE
     static char last_val[32] = "0";
+    static char last_axis[32] = "0";
+    int axis_changed = 0;
     int vpp_changed = 0;
     if (video_on_vpp2_enabled()) {
         char val[32];
@@ -139,13 +141,43 @@ static void hwc_overlay_compose(hwc_composer_device_1_t *dev, hwc_layer_1_t cons
         }
     }
 
+    static char last_mode[32] = {0};
+    int mode_changed = 0;
+    char mode[32];
+    memset(mode, 0, sizeof(mode));
+    if (amsysfs_get_sysfs_str("/sys/class/display/mode", mode, sizeof(mode)) == 0) {
+        if ((strcmp(mode, last_mode) != 0)) {
+            strcpy(last_mode, mode);
+            mode_changed = 1;
+        }
+    }
+	
+	static char last_free_scale[32] = {0};
+    int free_scale_changed = 0;
+    char free_scale[32];
+    memset(free_scale, 0, sizeof(free_scale));
+    if (amsysfs_get_sysfs_str("/sys/class/graphics/fb0/free_scale", free_scale, sizeof(free_scale)) == 0) {
+        if ((strcmp(free_scale, last_free_scale) != 0)) {
+            strcpy(last_free_scale, free_scale);
+            free_scale_changed = 1;
+        }
+    }
+	
+    char axis[32]= {0};
+    if (amsysfs_get_sysfs_str("/sys/class/video/axis", axis, sizeof(axis)) == 0) {
+        if ((strcmp(axis, last_axis) != 0)) {
+            axis_changed = 1;
+        }
+   
+    }
+
     if ((ctx->saved_layer == l) &&
         (ctx->saved_transform == l->transform) &&
         (ctx->saved_left == l->displayFrame.left) &&
         (ctx->saved_top == l->displayFrame.top) &&
         (ctx->saved_right == l->displayFrame.right) &&
         (ctx->saved_bottom == l->displayFrame.bottom) &&
-        !vpp_changed) {
+        !vpp_changed && !mode_changed && !axis_changed && !free_scale_changed) {
         return;
     }
 
@@ -184,6 +216,13 @@ static void hwc_overlay_compose(hwc_composer_device_1_t *dev, hwc_layer_1_t cons
     ctx->saved_top = l->displayFrame.top;
     ctx->saved_right = l->displayFrame.right;
     ctx->saved_bottom = l->displayFrame.bottom;
+
+
+    memset(axis, 0, sizeof(axis));
+    
+    if (amsysfs_get_sysfs_str("/sys/class/video/axis", axis, sizeof(axis)) == 0){
+        strcpy(last_axis, axis);
+    }
 }
 
 /*static void dump_layer(hwc_layer_t const* l) {
