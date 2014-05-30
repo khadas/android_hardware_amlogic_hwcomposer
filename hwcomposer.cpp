@@ -268,6 +268,18 @@ static int hwc_prepare(struct hwc_composer_device_1 *dev,
                        size_t numDisplays,
                        hwc_display_contents_1_t** displays)
 {
+    hwc_display_contents_1_t *list = displays[0];
+    for (size_t i=0 ; i<list->numHwLayers ; i++) {
+        hwc_layer_1_t* l = &list->hwLayers[i];
+        if (l->handle) {
+            private_handle_t const* hnd = reinterpret_cast<private_handle_t const*>(l->handle);
+            if (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OVERLAY) {
+                l->hints = HWC_HINT_CLEAR_FB;
+                l->compositionType = HWC_OVERLAY;
+                continue;
+            }
+        }
+    }
     return 0;
 }
 
