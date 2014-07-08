@@ -10,6 +10,7 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
 LOCAL_SHARED_LIBRARIES := liblog libEGL libutils libcutils
+LOCAL_STATIC_LIBRARIES := libomxutil
 LOCAL_SRC_FILES := hwcomposer.cpp
 
 ifneq (,$(wildcard hardware/amlogic/gralloc))
@@ -33,3 +34,4 @@ LOCAL_MODULE := hwcomposer.amlogic
 LOCAL_CFLAGS += -DLOG_TAG=\"hwcomposer\"
 LOCAL_MODULE_TAGS := optional
 include $(BUILD_SHARED_LIBRARY)
+include $(call all-makefiles-under,$(LOCAL_PATH))
