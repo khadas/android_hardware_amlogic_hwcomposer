@@ -11,5 +11,7 @@ int openamvideo();
 void closeamvideo();
 int setomxdisplaymode();
 int setomxpts(int time_video);
+void set_omx_pts(char* data, int* handle);
+
 
 

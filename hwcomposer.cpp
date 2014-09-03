@@ -60,8 +60,6 @@
 #endif
 #include "tvp/OmxUtil.h"
 
-#define TVP_SECRET "amlogic_omx_decoder,pts="
-#define TVP_SECRET_RENDER "is rendered = true"
 static int Amvideo_Handle = 0;
 
 extern "C" int clock_nanosleep(clockid_t clock_id, int flags,
@@ -307,27 +305,8 @@ static int hwc_set(struct hwc_composer_device_1 *dev,
         if (l->handle) {
             private_handle_t const* hnd = reinterpret_cast<private_handle_t const*>(l->handle);
             if (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OMX) {
-                if (strncmp((char*)hnd->base, TVP_SECRET, strlen(TVP_SECRET))==0) {
-                    hwc_overlay_compose(dev, l);
-                    char* data = (char*)hnd->base;
-                    if (Amvideo_Handle==0 && istvp==false) {
-                        Amvideo_Handle = openamvideo();
-                        if (Amvideo_Handle == 0)
-                            ALOGW("can not open amvideo");  
-                    }
-                    if (strncmp((char*)hnd->base+sizeof(TVP_SECRET)+sizeof(signed long long), TVP_SECRET_RENDER, strlen(TVP_SECRET_RENDER))!=0) {
-                        signed long long time;
-                        memcpy(&time, (char*)data+sizeof(TVP_SECRET), sizeof(signed long long));
-                        int time_video = time * 9 / 100 + 1;
-                        //ALOGW("render____time=%lld,time_video=%d",time,time_video);
-                        int ret = setomxpts(time_video);
-                        if (ret < 0) {
-                            ALOGW("setomxpts error, ret =%d",ret);
-                        }
-                    }
-                    memcpy((char*)data+sizeof(TVP_SECRET)+sizeof(signed long long), TVP_SECRET_RENDER, sizeof(TVP_SECRET_RENDER)); 
-                    istvp = true;
-                }
+                set_omx_pts((char*)hnd->base, &Amvideo_Handle);
+                istvp = true;
             }
             if (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OVERLAY) {
                 hwc_overlay_compose(dev, l);
