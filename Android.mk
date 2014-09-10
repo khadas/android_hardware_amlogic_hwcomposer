@@ -22,6 +22,9 @@ endif
 LOCAL_C_INCLUDES += \
     $(GRALLOC_DIR)
 
+LOCAL_C_INCLUDES += system/core/libion/include/ \
+                system/core/libion/kernel-headers
+
 ifneq ($(WITH_LIBPLAYER_MODULE),false)
 LOCAL_SHARED_LIBRARIES += libamavutils
 AMPLAYER_APK_DIR=$(TOP)/packages/amlogic/LibPlayer/
