@@ -9,7 +9,7 @@ LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE_PATH := $(TARGET_OUT_SHARED_LIBRARIES)/hw
-LOCAL_SHARED_LIBRARIES := liblog libEGL libutils libcutils
+LOCAL_SHARED_LIBRARIES := liblog libEGL libutils libcutils libhardware libsync libfbcnf
 LOCAL_STATIC_LIBRARIES := libomxutil
 LOCAL_SRC_FILES := hwcomposer.cpp
 
@@ -28,6 +28,11 @@ AMPLAYER_APK_DIR=$(TOP)/packages/amlogic/LibPlayer/
 LOCAL_C_INCLUDES += \
     $(AMPLAYER_APK_DIR)/amavutils/include
 LOCAL_CFLAGS += -DWITH_LIBPLAYER_MODULE=1
+endif
+
+ifeq ($(TARGET_EXTERNAL_DISPLAY),true)
+#LOCAL_CFLAGS += -DDEBUG_EXTERNAL_DISPLAY_ON_PANEL
+LOCAL_CFLAGS += -DWITH_EXTERNAL_DISPLAY
 endif
 
 LOCAL_MODULE := hwcomposer.amlogic
