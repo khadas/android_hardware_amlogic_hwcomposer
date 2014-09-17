@@ -239,6 +239,20 @@ inline int HEIGHT(const hwc_rect &rect) { return rect.bottom - rect.top; }
 template<typename T> inline T max(T a, T b) { return (a > b) ? a : b; }
 template<typename T> inline T min(T a, T b) { return (a < b) ? a : b; }
 #endif
+
+/*bool is_m8_single_display()
+{
+    bool ret = false;
+    
+    char val[PROPERTY_VALUE_MAX];
+    memset(val, 0, sizeof(val));
+    if (property_get("ro.module.dualscaler", val, "false") && strcmp(val, "true") == 0
+        && property_get("ro.module.singleoutput", val, "false") && strcmp(val, "true") == 0) {       
+        ret = true;
+    }
+
+    return ret;
+}*/
 /*****************************************************************************/
 
 int video_on_vpp2_enabled(void)
@@ -289,13 +303,22 @@ static void hwc_overlay_compose(hwc_context_1_t *dev, hwc_layer_1_t const* l) {
 	
     static char last_free_scale[32] = {0};
     int free_scale_changed = 0;
+    int suc=-1;
     char free_scale[32];
     memset(free_scale, 0, sizeof(free_scale));
-    if (amsysfs_get_sysfs_str("/sys/class/graphics/fb0/free_scale", free_scale, sizeof(free_scale)) == 0) {
-        if ((strcmp(free_scale, last_free_scale) != 0)) {
-            strcpy(last_free_scale, free_scale);
-            free_scale_changed = 1;
-        }
+    
+#ifdef SINGLE_EXTERNAL_DISPLAY_USE_FB1
+    if (!(ctx->display_ctxs[HWC_DISPLAY_EXTERNAL].connected/* && is_m8_single_display()*/)){
+#endif
+        suc=amsysfs_get_sysfs_str("/sys/class/graphics/fb0/free_scale", free_scale, sizeof(free_scale));
+#ifdef SINGLE_EXTERNAL_DISPLAY_USE_FB1
+    }else{
+        suc=amsysfs_get_sysfs_str("/sys/class/graphics/fb1/free_scale", free_scale, sizeof(free_scale));
+    }
+#endif
+    if ((suc == 0) && (strcmp(free_scale, last_free_scale) != 0)) {
+        strcpy(last_free_scale, free_scale);
+        free_scale_changed = 1;
     }
 	
     char axis[32]= {0};
@@ -507,6 +530,14 @@ static int hwc_prepare(struct hwc_composer_device_1 *dev,
     LOG_FUNCTION_NAME
     //retireFenceFd will close in surfaceflinger, just reset it.
     for(i=0;i<numDisplays;i++){
+        
+#ifdef SINGLE_EXTERNAL_DISPLAY_USE_FB1
+        if (pdev->display_ctxs[HWC_DISPLAY_EXTERNAL].connected 
+             && i==HWC_DISPLAY_PRIMARY /*&& is_m8_single_display()*/){
+            continue;
+        }
+#endif
+
         display_content = displays[i];
         if( display_content ){
             display_content->retireFenceFd = -1;
@@ -594,27 +625,46 @@ static int hwc_set(struct hwc_composer_device_1 *dev,
     //TODO: need improve the way to set video axis.
 #if WITH_LIBPLAYER_MODULE
     bool istvp = false;
-    hwc_display_contents_1_t *list = displays[0];
-    for (i=0 ; i<list->numHwLayers ; i++) {
-        hwc_layer_1_t* l = &list->hwLayers[i];
-        if (l->handle) {
-            private_handle_t const* hnd = reinterpret_cast<private_handle_t const*>(l->handle);
-            if (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OMX) {
+    for(i=0;i<numDisplays;i++){
+#ifdef SINGLE_EXTERNAL_DISPLAY_USE_FB1
+        if (pdev->display_ctxs[HWC_DISPLAY_EXTERNAL].connected 
+             && i==HWC_DISPLAY_PRIMARY /*&& is_m8_single_display()*/){
+            continue;
+        }
+#endif
+        display_content = displays[i];
+        if( display_content ){
+            for (i=0 ; i<display_content->numHwLayers ; i++) {
+                hwc_layer_1_t* l = &display_content->hwLayers[i];
+                if (l->handle) {
+                    private_handle_t const* hnd = reinterpret_cast<private_handle_t const*>(l->handle);
+                    if (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OMX) {
                 set_omx_pts((char*)hnd->base, &Amvideo_Handle);
-                istvp = true;
+                            istvp = true;
+                    }
+                    if (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OVERLAY) {
+                        hwc_overlay_compose(pdev, l);
+                    }
+                }
             }
-            if (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OVERLAY) {
-                hwc_overlay_compose(pdev, l);
+            if (istvp == false && Amvideo_Handle!=0) {
+                closeamvideo();
+                Amvideo_Handle = 0;
             }
         }
     }
-    if (istvp == false && Amvideo_Handle!=0) {
-        closeamvideo();
-        Amvideo_Handle = 0;
-    }
+    
 #endif
 
     for(i=0;i<numDisplays;i++){
+        
+#ifdef SINGLE_EXTERNAL_DISPLAY_USE_FB1
+        if (pdev->display_ctxs[HWC_DISPLAY_EXTERNAL].connected 
+             && i==HWC_DISPLAY_PRIMARY /*&& is_m8_single_display()*/){
+            continue;
+        }
+#endif
+
         display_content = displays[i];
         if(display_content){
             if(i <= HWC_DISPLAY_EXTERNAL){
@@ -752,7 +802,7 @@ static void *hwc_vsync_thread(void *data)
 
 #ifdef WITH_EXTERNAL_DISPLAY
 
-#define SIMULATE_HOT_PLUG 1
+//#define SIMULATE_HOT_PLUG 1
 static bool chkExternalConnected(){
     LOG_FUNCTION_NAME
         
@@ -765,10 +815,15 @@ static bool chkExternalConnected(){
 #else
     //TODO:need to check hotplug callback for different device.
     //Should consider different device.
+    char buf[PROPERTY_VALUE_MAX];
+    memset(buf, 0, sizeof(buf));
+    property_get("sys.sf.hotplug", buf, "false");
 
-    //use uevent.
-    HWC_LOGDA("hot plug is not implemented!!alwasy return true now.");
-    return true;
+    HWC_LOGDB("sys.sf.hotplug is %s", buf);
+    if(strcmp(buf, "true")==0)
+        return true;
+    else
+        return false;
 #endif
 
     LOG_FUNCTION_NAME_EXIT
@@ -786,7 +841,7 @@ static void *hwc_hotplug_thread(void *data)
             getDisplayInfo(ctx,HWC_DISPLAY_EXTERNAL);
             if(display_ctx->connected != connect ){
                 HWC_LOGDB("external new state : %d",connect);
-                if(display_ctx->connected == false ){
+                if(!display_ctx->connected){
                     init_display(ctx,HWC_DISPLAY_EXTERNAL);
                 } else {
                     uninit_display(ctx,HWC_DISPLAY_EXTERNAL);
@@ -970,6 +1025,7 @@ int init_display(hwc_context_1_t* context,int displayType){
         fbinfo->fbIdx = getOsdIdx(fbinfo->displayType);
     	int err = init_frame_buffer_locked(fbinfo);
         int bufferSize = fbinfo->finfo.line_length * fbinfo->info.yres;
+        HWC_LOGDB("init_frame_buffer get fbinfo->fbIdx (%d) fbinfo->info.xres (%d) fbinfo->info.yres (%d)",fbinfo->fbIdx, fbinfo->info.xres,fbinfo->info.yres);
         int usage = 0; 
         if(displayType > 0) 
             usage |= GRALLOC_USAGE_EXTERNAL_DISP ;
@@ -989,7 +1045,7 @@ int init_display(hwc_context_1_t* context,int displayType){
 int uninit_display(hwc_context_1_t* context,int displayType){
     getDisplayInfo(context, displayType);
 
-    if(display_ctx->connected == false){
+    if(!display_ctx->connected){
         return 0;
     }
 
