@@ -960,7 +960,7 @@ static int hwc_device_open(const struct hw_module_t* module, const char* name,
     dev->vsync_period  = 16666666;
 
     dev->base.common.tag = HARDWARE_DEVICE_TAG;
-    dev->base.common.version = HWC_DEVICE_API_VERSION_1_1;
+    dev->base.common.version = HWC_DEVICE_API_VERSION_1_3;
     dev->base.common.module = const_cast<hw_module_t *>(module);
     dev->base.common.close = hwc_close;
 
