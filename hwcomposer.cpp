@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-//#define LOG_NDEBUG 0
-#define LOG_TAG "hwcomposer"
+#define LOG_NDEBUG 0
+#define LOG_TAG "HWComposer"
 #include <hardware/hardware.h>
 
 #include <fcntl.h>
@@ -42,44 +42,143 @@
 #include <cutils/properties.h>
 
 #include <utils/String8.h>
+#include <hardware/gralloc.h>
 #include <hardware/hwcomposer.h>
+#include <hardware_legacy/uevent.h>
+#include <utils/String8.h>
 
 #include <EGL/egl.h>
 #include <utils/Vector.h>
 #include <utils/Timers.h>
 // for private_handle_t
 #include <gralloc_priv.h>
+#include <gralloc_helper.h>
 
 #if WITH_LIBPLAYER_MODULE
 #include <Amavutils.h>
 #endif
 
 #include <system/graphics.h>
+
+#include <sync/sync.h>
+
 #ifndef LOGD
 #define LOGD ALOGD
 #endif
+
+#define LogLevel 3
+///Defines for debug statements - Macro LOG_TAG needs to be defined in the respective files                                                  
+#define HWC_LOGVA(str)         ALOGV_IF(LogLevel >=6,"%5d %s - " str, __LINE__,__FUNCTION__);
+#define HWC_LOGVB(str,...)     ALOGV_IF(LogLevel >=6,"%5d %s - " str, __LINE__, __FUNCTION__, __VA_ARGS__);
+#define HWC_LOGDA(str)         ALOGD_IF(LogLevel >=5,"%5d %s - " str, __LINE__,__FUNCTION__);
+#define HWC_LOGDB(str, ...)    ALOGD_IF(LogLevel >=5,"%5d %s - " str, __LINE__, __FUNCTION__, __VA_ARGS__);
+#define HWC_LOGIA(str)         ALOGI_IF(LogLevel >=4,"%5d %s - " str, __LINE__, __FUNCTION__);
+#define HWC_LOGIB(str, ...)    ALOGI_IF(LogLevel >=4,"%5d %s - " str, __LINE__,__FUNCTION__, __VA_ARGS__);
+#define HWC_LOGWA(str)         ALOGW_IF(LogLevel >=3,"%5d %s - " str, __LINE__, __FUNCTION__);
+#define HWC_LOGWB(str, ...)    ALOGW_IF(LogLevel >=3,"%5d %s - " str, __LINE__,__FUNCTION__, __VA_ARGS__);
+#define HWC_LOGEA(str)         ALOGE_IF(LogLevel >=2,"%5d %s - " str, __LINE__, __FUNCTION__);
+#define HWC_LOGEB(str, ...)    ALOGE_IF(LogLevel >=2,"%5d %s - " str, __LINE__,__FUNCTION__, __VA_ARGS__);
+
+#define LOG_FUNCTION_NAME         HWC_LOGVA("ENTER");
+#define LOG_FUNCTION_NAME_EXIT    HWC_LOGVA("EXIT");
+#define DBG_LOGA(str)             ALOGI_IF(LogLevel >=4,"%10s-%5d %s - " str, HWC_BUILD_NAME, __LINE__,__FUNCTION__)
+#define DBG_LOGB(str, ...)        ALOGI_IF(LogLevel >=4,"%10s-%5d %s - " str, HWC_BUILD_NAME, __LINE__,__FUNCTION__, __VA_ARGS__);
+
 #include "tvp/OmxUtil.h"
 
 static int Amvideo_Handle = 0;
+
 
 extern "C" int clock_nanosleep(clockid_t clock_id, int flags,
                            const struct timespec *request,
                            struct timespec *remain);
 /*****************************************************************************/
+static int chk_and_dup(int fence)
+{
+    if (fence < 0){
+        HWC_LOGWB("not a vliad fence %d",fence);
+        return -1;
+    }
+
+    int dup_fence = dup(fence);
+    if(dup_fence < 0){
+        HWC_LOGWB("fence dup failed: %s", strerror(errno));
+    }
+        
+    return dup_fence;
+}
+
+
+#define MAX_SUPPORT_DISPLAYS HWC_NUM_PHYSICAL_DISPLAY_TYPES
+
+typedef struct display_context_t{
+    bool connected;
+    struct framebuffer_info_t fb_info;
+    struct private_handle_t*  fb_hnd;
+}display_context_t;
+struct hwc_context_1_t;
+
+int init_display(hwc_context_1_t* context,int displayType);
+int uninit_display(hwc_context_1_t* context,int displayType);
+
+#define getDisplayInfo(ctx,disp) \
+    display_context_t * display_ctx = &(ctx->display_ctxs[disp]);\
+    framebuffer_info_t* fbinfo = &(display_ctx->fb_info); 
 
 
 struct hwc_context_1_t {
-    hwc_composer_device_1_t device;
+    hwc_composer_device_1_t base;
+
     /* our private state goes below here */
-		hwc_layer_1_t const* saved_layer;
+    hwc_layer_1_t const* saved_layer;
     unsigned saved_transform;
     int saved_left;
     int saved_top;
     int saved_right;
     int saved_bottom;
-	int vsync_enable;
+    
+    //int                     vsync_fd;
+    //hwc_post_data_t         bufs;
+
+
+#if 0
+    //alloc_device_t          *alloc_device;
+    int                     force_gpu;
+    int                     fd;
+    int32_t                 xres;
+    int32_t                 yres;
+    int32_t                 xdpi;
+    int32_t                 ydpi;
+
+    bool external_hpd;
+    bool external_fb_needed;
+    int  external_w;
+    int  external_h;
+    int  external_mixer0;
+    bool external_enabled;
+    bool external_blanked;
+    //external_layer_t            external_layers[2];
+    //hwc_gsc_data_t      gsc[NUM_GSC_UNITS];
+    //struct s3c_fb_win_config last_config[NUM_HW_WINDOWS];
+    //size_t                  last_fb_window;
+    //const void              *last_handles[NUM_HW_WINDOWS];
+
+#endif
+
+
+    //vsync.
+    int32_t     vsync_period;
+    int           vsync_enable;
+    bool         blank_status;
+
+
     const hwc_procs_t       *procs;
     pthread_t               vsync_thread;
+    pthread_t            hotplug_thread;
+
+
+    private_module_t        *gralloc_module;
+    display_context_t display_ctxs[MAX_SUPPORT_DISPLAYS];
 };
 
 static int hwc_device_open(const struct hw_module_t* module, const char* name,
@@ -90,23 +189,70 @@ static struct hw_module_methods_t hwc_module_methods = {
 };
 
 hwc_module_t HAL_MODULE_INFO_SYM = {
-    common: {
-        tag: HARDWARE_MODULE_TAG,
-        version_major: 1,
-        version_minor: 0,
-        id: HWC_HARDWARE_MODULE_ID,
-        name: "hwcomposer module",
-        author: "Amlogic",
-        methods: &hwc_module_methods,
-        dso : NULL,
-        reserved : {0},
-    }
-};
+     common: {
+         tag: HARDWARE_MODULE_TAG,
+         version_major: 1,
+         version_minor: 0,
+         id: HWC_HARDWARE_MODULE_ID,
+         name: "hwcomposer module",
+         author: "Amlogic",
+         methods: &hwc_module_methods,
+         dso : NULL,
+         reserved : {0},
+     }
+ };
+
 
 static pthread_cond_t hwc_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t hwc_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
+/*****************************************************************************/
+
+static void dump_handle(private_handle_t *h)
+{
+    //ALOGV("\t\tformat = %d, width = %u, height = %u, stride = %u, vstride = %u",
+      //      h->format, h->width, h->height, h->stride, h->vstride);
+}
+
+static void dump_layer(hwc_layer_1_t const *l)
+{
+    HWC_LOGVB("\ttype=%d, flags=%08x, handle=%p, tr=%02x, blend=%04x, "
+            "{%d,%d,%d,%d}, {%d,%d,%d,%d}",
+            l->compositionType, l->flags, l->handle, l->transform,
+            l->blending,
+            l->sourceCrop.left,
+            l->sourceCrop.top,
+            l->sourceCrop.right,
+            l->sourceCrop.bottom,
+            l->displayFrame.left,
+            l->displayFrame.top,
+            l->displayFrame.right,
+            l->displayFrame.bottom);
+
+    if(l->handle && !(l->flags & HWC_SKIP_LAYER))
+        dump_handle(private_handle_t::dynamicCast(l->handle));
+}
+#if 0
+inline int WIDTH(const hwc_rect &rect) { return rect.right - rect.left; }
+inline int HEIGHT(const hwc_rect &rect) { return rect.bottom - rect.top; }
+template<typename T> inline T max(T a, T b) { return (a > b) ? a : b; }
+template<typename T> inline T min(T a, T b) { return (a < b) ? a : b; }
+#endif
+
+/*bool is_m8_single_display()
+{
+    bool ret = false;
+    
+    char val[PROPERTY_VALUE_MAX];
+    memset(val, 0, sizeof(val));
+    if (property_get("ro.module.dualscaler", val, "false") && strcmp(val, "true") == 0
+        && property_get("ro.module.singleoutput", val, "false") && strcmp(val, "true") == 0) {       
+        ret = true;
+    }
+
+    return ret;
+}*/
 /*****************************************************************************/
 
 int video_on_vpp2_enabled(void)
@@ -124,7 +270,7 @@ int video_on_vpp2_enabled(void)
     return ret;
 }
 
-static void hwc_overlay_compose(hwc_composer_device_1_t *dev, hwc_layer_1_t const* l) {
+static void hwc_overlay_compose(hwc_context_1_t *dev, hwc_layer_1_t const* l) {
     int angle;
     struct hwc_context_1_t* ctx = (struct hwc_context_1_t*)dev;
 
@@ -155,15 +301,24 @@ static void hwc_overlay_compose(hwc_composer_device_1_t *dev, hwc_layer_1_t cons
         }
     }
 	
-	static char last_free_scale[32] = {0};
+    static char last_free_scale[32] = {0};
     int free_scale_changed = 0;
+    int suc=-1;
     char free_scale[32];
     memset(free_scale, 0, sizeof(free_scale));
-    if (amsysfs_get_sysfs_str("/sys/class/graphics/fb0/free_scale", free_scale, sizeof(free_scale)) == 0) {
-        if ((strcmp(free_scale, last_free_scale) != 0)) {
-            strcpy(last_free_scale, free_scale);
-            free_scale_changed = 1;
-        }
+    
+#ifdef SINGLE_EXTERNAL_DISPLAY_USE_FB1
+    if (!(ctx->display_ctxs[HWC_DISPLAY_EXTERNAL].connected/* && is_m8_single_display()*/)){
+#endif
+        suc=amsysfs_get_sysfs_str("/sys/class/graphics/fb0/free_scale", free_scale, sizeof(free_scale));
+#ifdef SINGLE_EXTERNAL_DISPLAY_USE_FB1
+    }else{
+        suc=amsysfs_get_sysfs_str("/sys/class/graphics/fb1/free_scale", free_scale, sizeof(free_scale));
+    }
+#endif
+    if ((suc == 0) && (strcmp(free_scale, last_free_scale) != 0)) {
+        strcpy(last_free_scale, free_scale);
+        free_scale_changed = 1;
     }
 	
     char axis[32]= {0};
@@ -229,23 +384,95 @@ static void hwc_overlay_compose(hwc_composer_device_1_t *dev, hwc_layer_1_t cons
     }
 }
 
-/*static void dump_layer(hwc_layer_t const* l) {
-    LOGD("\ttype=%d, flags=%08x, handle=%p, tr=%02x, blend=%04x, {%d,%d,%d,%d}, {%d,%d,%d,%d}",
-            l->compositionType, l->flags, l->handle, l->transform, l->blending,
-            l->sourceCrop.left,
-            l->sourceCrop.top,
-            l->sourceCrop.right,
-            l->sourceCrop.bottom,
-            l->displayFrame.left,
-            l->displayFrame.top,
-            l->displayFrame.right,
-            l->displayFrame.bottom);
-}*/
-
-static int hwc_blank(struct hwc_composer_device_1* dev,
-                     int disp,
-                     int blank)
+static void hwc_dump(hwc_composer_device_1* dev, char *buff, int buff_len)
 {
+    if (buff_len <= 0)
+        return;
+
+    struct hwc_context_1_t *pdev = (struct hwc_context_1_t *)dev;
+
+#if 0
+#ifdef HWC_BASIC_INFO
+ HWC_LOGDB("\n--------------------------------\n"
+               "branch name:   %s\n"
+               "git version:   %s \n"
+               "last changed:  %s\n"                                                                                                      
+               "build-time:    %s\n"
+               "build-name:    %s\n"
+               "uncommitted-file-num:%d\n"
+               "ssh user@%s, cd %s\n"
+               "hostname %s\n"
+               "--------------------------------\n",
+               HWC_BRANCH_NAME,
+               HWC_GIT_VERSION,
+               HWC_LAST_CHANGED,
+               HWC_BUILD_TIME,
+               HWC_BUILD_NAME,
+               HWC_GIT_UNCOMMIT_FILE_NUM,
+               HWC_IP, HWC_PATH, HWC_HOSTNAME
+               );
+#endif
+#endif
+
+    android::String8 result;
+    
+    for (int i = 0; i < MAX_SUPPORT_DISPLAYS; i++)
+    {
+        getDisplayInfo(pdev,i);
+        
+        if (display_ctx->connected){
+            result.appendFormat("  %8s Display connected: %3s\n", 
+                HWC_DISPLAY_EXTERNAL == i ? "External":"Primiary", display_ctx->connected ? "Yes" : "No");
+            result.appendFormat("    w=%u, h=%u, xdpi=%f, ydpi=%f, osdIdx=%d\n", 
+                fbinfo->info.xres, 
+                fbinfo->info.yres, 
+                fbinfo->xdpi, 
+                fbinfo->ydpi,
+                fbinfo->fbIdx);
+        }
+    }
+
+    //result.append(
+    //        "   type   |  handle  |  color   | blend | format |   position    |     size      | gsc \n"
+    //        "----------+----------|----------+-------+--------+---------------+---------------------\n");
+    //        8_______ | 8_______ | 8_______ | 5____ | 6_____ | [5____,5____] | [5____,5____] | 3__ \n"
+
+    result.append("\n");
+
+    strlcpy(buff, result.string(), buff_len);
+}
+
+static int hwc_blank(struct hwc_composer_device_1 *dev, int disp, int blank)
+{
+    struct hwc_context_1_t *pdev =
+            (struct hwc_context_1_t *)dev;
+    
+    //TODO: need impl
+    if (disp == HWC_DISPLAY_PRIMARY){
+        pdev->blank_status = ( blank ? true : false);
+    }
+    
+    return 0;
+}
+
+static int hwc_query(struct hwc_composer_device_1* dev, int what, int *value)
+{
+    struct hwc_context_1_t *pdev =
+            (struct hwc_context_1_t *)dev;
+
+    switch (what) {
+    case HWC_BACKGROUND_LAYER_SUPPORTED:
+        // we support the background layer
+        value[0] = 1;
+        break;
+    case HWC_VSYNC_PERIOD:
+        // vsync period in nanosecond
+        value[0] = pdev->vsync_period;
+        break;
+    default:
+        // unsupported query
+        return -EINVAL;
+    }
     return 0;
 }
 
@@ -258,7 +485,7 @@ static int hwc_eventControl(struct hwc_composer_device_1* dev,
     switch (event) 
     {
         case HWC_EVENT_VSYNC:
-            ctx->vsync_enable =enabled;
+            ctx->vsync_enable = enabled;
             pthread_mutex_lock(&hwc_mutex);
             pthread_cond_signal(&hwc_cond);
             pthread_mutex_unlock(&hwc_mutex);
@@ -267,117 +494,305 @@ static int hwc_eventControl(struct hwc_composer_device_1* dev,
 	return -EINVAL;
 }
 
+#if 0
+inline bool intersect(const hwc_rect &r1, const hwc_rect &r2)
+{
+    return !(r1.left > r2.right ||
+        r1.right < r2.left ||
+        r1.top > r2.bottom ||
+        r1.bottom < r2.top);
+}
+
+inline hwc_rect intersection(const hwc_rect &r1, const hwc_rect &r2)
+{
+    hwc_rect i;
+    i.top = max(r1.top, r2.top);
+    i.bottom = min(r1.bottom, r2.bottom);
+    i.left = max(r1.left, r2.left);
+    i.right = min(r1.right, r2.right);
+    return i;
+}
+
+#endif
+
+
 static int hwc_prepare(struct hwc_composer_device_1 *dev,
                        size_t numDisplays,
                        hwc_display_contents_1_t** displays)
 {
-    hwc_display_contents_1_t *list = displays[0];
-    for (size_t i=0 ; i<list->numHwLayers ; i++) {
-        hwc_layer_1_t* l = &list->hwLayers[i];
-        if (l->handle) {
-            private_handle_t const* hnd = reinterpret_cast<private_handle_t const*>(l->handle);
-            if (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OVERLAY) {
-                l->hints = HWC_HINT_CLEAR_FB;
-                l->compositionType = HWC_OVERLAY;
-                continue;
-            }
-        }
-    }
-    return 0;
-}
+    int err = 0, i = 0;
+    hwc_context_1_t *pdev =  (hwc_context_1_t *)dev;
+    hwc_display_contents_1_t *display_content = NULL;
 
-static int hwc_set(struct hwc_composer_device_1 *dev,
-                   size_t numDisplays,
-                   hwc_display_contents_1_t** displays)
-{
-    // On version 1.0(HWC_DEVICE_API_VERSION_1_0), the OpenGL ES target surface is communicated
-    // by the (dpy, sur) fields and we are guaranteed to have only
-    // a single display.
-    if (numDisplays != 1) {
+    if (!numDisplays || !displays)
         return 0;
-    }
-    bool istvp = false;
 
-#if WITH_LIBPLAYER_MODULE
-    hwc_display_contents_1_t *list = displays[0];
-    for (size_t i=0 ; i<list->numHwLayers ; i++) {
-        hwc_layer_1_t* l = &list->hwLayers[i];
-        if (l->handle) {
-            private_handle_t const* hnd = reinterpret_cast<private_handle_t const*>(l->handle);
-            if (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OMX) {
-                set_omx_pts((char*)hnd->base, &Amvideo_Handle);
-                istvp = true;
-            }
-            if (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OVERLAY) {
-                hwc_overlay_compose(dev, l);
-            }
+    LOG_FUNCTION_NAME
+    //retireFenceFd will close in surfaceflinger, just reset it.
+    for(i=0;i<numDisplays;i++){
+        
+#ifdef SINGLE_EXTERNAL_DISPLAY_USE_FB1
+        if (pdev->display_ctxs[HWC_DISPLAY_EXTERNAL].connected 
+             && i==HWC_DISPLAY_PRIMARY /*&& is_m8_single_display()*/){
+            continue;
         }
-    }
-    if (istvp == false && Amvideo_Handle!=0) {
-        closeamvideo();
-        Amvideo_Handle = 0;
-    }
 #endif
 
-
-    EGLBoolean success = eglSwapBuffers(displays[0]->dpy, displays[0]->sur);
-    if (!success) {
-        return HWC_EGL_ERROR;
-    }
+        display_content = displays[i];
+        if( display_content ){
+            display_content->retireFenceFd = -1;
+            for (size_t i=0 ; i< display_content->numHwLayers ; i++) {
+                hwc_layer_1_t* l = &display_content->hwLayers[i];
+                if (l->handle) {
+                    private_handle_t const* hnd = reinterpret_cast<private_handle_t const*>(l->handle);
+                    if (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OVERLAY) {
+                        l->hints = HWC_HINT_CLEAR_FB;
+                        l->compositionType = HWC_OVERLAY;
+                        continue;
+                    }
+                }
+            }
+        }
+    }  
+    LOG_FUNCTION_NAME_EXIT
     return 0;
 }
+static int fb_post(hwc_context_1_t *pdev,
+        hwc_display_contents_1_t* contents, int display_type){
+    int err = 0;
+    size_t i = 0;
+    for (i = 0; i < contents->numHwLayers; i++) {
+        if (contents->hwLayers[i].compositionType == HWC_FRAMEBUFFER_TARGET){
+            hwc_layer_1_t *layer = &(contents->hwLayers[i]);
+            if (private_handle_t::validate(layer->handle) < 0) {
+                break;
+            }
+            getDisplayInfo(pdev, display_type);
 
-static int hwc_device_close(struct hw_device_t *dev)
+            #ifdef DEBUG_EXTERNAL_DISPLAY_ON_PANEL
+            int acquireFence = layer->acquireFenceFd;
+            if(display_type != displayWho()){
+                close(acquireFence);
+                acquireFence = -1;
+                continue;
+            }
+            #endif
+
+            layer->releaseFenceFd = fb_post_with_fence_locked(fbinfo,layer->handle,layer->acquireFenceFd);
+	    
+            if(layer->releaseFenceFd >= 0){
+                //layer->releaseFenceFd = releaseFence;
+                contents->retireFenceFd = chk_and_dup(layer->releaseFenceFd);
+                HWC_LOGDB("Get release fence %d, retire fence %d",layer->releaseFenceFd,contents->retireFenceFd);
+            }else{
+                HWC_LOGEB("No valid release_fence returned. %d ",layer->releaseFenceFd);
+                if(layer->releaseFenceFd < -1)//-1 means no fence, less than -1 is some error
+                    err = layer->releaseFenceFd;
+
+                contents->retireFenceFd = layer->releaseFenceFd = -1;
+            }
+        }
+    }
+    return err;
+}
+
+
+#ifdef DEBUG_EXTERNAL_DISPLAY_ON_PANEL
+int displayWho(){
+	int ret = 0;
+    char val[PROPERTY_VALUE_MAX];
+    memset(val, 0, sizeof(val));
+    if (property_get("debug.display_external", val, "0")
+        && strcmp(val, "1") == 0) {       
+        ret = 1;
+    }
+
+	return ret;
+}
+#endif
+
+static int hwc_set(struct hwc_composer_device_1 *dev,
+        size_t numDisplays, hwc_display_contents_1_t** displays)
 {
-    struct hwc_context_1_t* ctx = (struct hwc_context_1_t*)dev;
-    if (ctx) {
-        free(ctx);
+    int err = 0, i = 0;;
+    hwc_context_1_t *pdev =  (hwc_context_1_t *)dev;
+    hwc_display_contents_1_t *display_content = NULL;
+
+    if (!numDisplays || !displays)
+        return 0;
+    
+    LOG_FUNCTION_NAME
+    //TODO: need improve the way to set video axis.
+#if WITH_LIBPLAYER_MODULE
+    bool istvp = false;
+    for(i=0;i<numDisplays;i++){
+#ifdef SINGLE_EXTERNAL_DISPLAY_USE_FB1
+        if (pdev->display_ctxs[HWC_DISPLAY_EXTERNAL].connected 
+             && i==HWC_DISPLAY_PRIMARY /*&& is_m8_single_display()*/){
+            continue;
+        }
+#endif
+        display_content = displays[i];
+        if( display_content ){
+            for (i=0 ; i<display_content->numHwLayers ; i++) {
+                hwc_layer_1_t* l = &display_content->hwLayers[i];
+                if (l->handle) {
+                    private_handle_t const* hnd = reinterpret_cast<private_handle_t const*>(l->handle);
+                    if (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OMX) {
+                set_omx_pts((char*)hnd->base, &Amvideo_Handle);
+                            istvp = true;
+                    }
+                    if (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OVERLAY) {
+                        hwc_overlay_compose(pdev, l);
+                    }
+                }
+            }
+            if (istvp == false && Amvideo_Handle!=0) {
+                closeamvideo();
+                Amvideo_Handle = 0;
+            }
+        }
     }
+    
+#endif
+
+    for(i=0;i<numDisplays;i++){
+        
+#ifdef SINGLE_EXTERNAL_DISPLAY_USE_FB1
+        if (pdev->display_ctxs[HWC_DISPLAY_EXTERNAL].connected 
+             && i==HWC_DISPLAY_PRIMARY /*&& is_m8_single_display()*/){
+            continue;
+        }
+#endif
+
+        display_content = displays[i];
+        if(display_content){
+            if(i <= HWC_DISPLAY_EXTERNAL){
+                //physic display
+                err = fb_post(pdev,display_content,i);
+            } else {
+                HWC_LOGEB("display %d is not supported",i);
+            }
+        }
+    }
+    
+    LOG_FUNCTION_NAME_EXIT
+    return err;
+}
+
+static int hwc_close(hw_device_t *device)
+{
+    struct hwc_context_1_t *dev = (struct hwc_context_1_t *)device;
+
+    LOG_FUNCTION_NAME
+        
+    pthread_kill(dev->vsync_thread, SIGTERM);
+    pthread_join(dev->vsync_thread, NULL);
+
+    uninit_display(dev,HWC_DISPLAY_PRIMARY);
+    uninit_display(dev,HWC_DISPLAY_EXTERNAL);
+
+    if (dev) {
+        free(dev);
+    }
+
+    LOG_FUNCTION_NAME_EXIT
     return 0;
 }
 
+//#define USE_HW_VSYNC
+#ifdef USE_HW_VSYNC
+/*
+Still have bugs, don't use it.
+*/
+int wait_next_vsync(struct hwc_context_1_t* ctx, nsecs_t* vsync_timestamp){
+    static nsecs_t previewTime = 0;
+    nsecs_t vsyncDiff=0;
+    const nsecs_t period = ctx->vsync_period;
+    //we will delay hw vsync if missing one vsync interrupt isr.
+    int ret = 0;
+    
+    if (ioctl(ctx->display_ctxs[0].fb_info.fd, FBIO_WAITFORVSYNC, &ret) == -1){
+        HWC_LOGEB("ioctrl error %d",ctx->display_ctxs[0].fb_info.fd);
+	ret=-1;
+    }else {
+        if(ret == 1){
+            *vsync_timestamp = systemTime(CLOCK_MONOTONIC);
+	    vsyncDiff=*vsync_timestamp - previewTime;   
+            if(previewTime != 0)
+                HWC_LOGEB("wait for vsync success %lld",vsyncDiff);
+	    vsyncDiff%=period;
+	    if(vsyncDiff > 500000) 
+	    {
+		nsecs_t sleep ;
+		sleep = (period - vsyncDiff);
+		*vsync_timestamp+=sleep;
+		struct timespec spec;
+    		spec.tv_sec  = *vsync_timestamp / 1000000000;
+    		spec.tv_nsec = *vsync_timestamp % 1000000000;
+		clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &spec, NULL);
+	    }	    	    	
+            previewTime = *vsync_timestamp;
+            ret=0;
+        }else{
+            HWC_LOGEA("wait for vsync fail");
+	    ret=-1;
+        }
+    }
+    return ret;
+}
 
+#else
+
+//software
+int wait_next_vsync(struct hwc_context_1_t* ctx , nsecs_t* vsync_timestamp){
+    static nsecs_t nextFakeVSync = 0;
+
+    const nsecs_t period = ctx->vsync_period;
+    const nsecs_t now = systemTime(CLOCK_MONOTONIC);
+    nsecs_t next_vsync = nextFakeVSync;
+    nsecs_t sleep = next_vsync - now;
+    if (sleep < 0) {
+        // we missed, find where the next vsync should be
+        sleep = (period - ((now - next_vsync) % period));
+        next_vsync = now + sleep;
+    }
+    nextFakeVSync = next_vsync + period;
+
+    struct timespec spec;
+    spec.tv_sec  = next_vsync / 1000000000;
+    spec.tv_nsec = next_vsync % 1000000000;
+
+    int err;
+    do {
+        err = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &spec, NULL);
+    } while (err<0 && errno == EINTR);
+    *vsync_timestamp = next_vsync;
+
+    return err;
+}
+
+#endif
 
 static void *hwc_vsync_thread(void *data)
 {
     struct hwc_context_1_t* ctx = (struct hwc_context_1_t*)data;
     nsecs_t nextFakeVSync = 0;
+    nsecs_t timestamp;
 
     setpriority(PRIO_PROCESS, 0, HAL_PRIORITY_URGENT_DISPLAY-1);
 	sleep(2);
 
     while (true) {
         pthread_mutex_lock(&hwc_mutex);
-        while(ctx->vsync_enable==false)
-        {
+        while(ctx->vsync_enable==false) {
             pthread_cond_wait(&hwc_cond, &hwc_mutex);
         }
         pthread_mutex_unlock(&hwc_mutex);
 
-      //const nsecs_t period = 20000000; //50Hz
-        const nsecs_t period = 16666666; //60Hz
-        const nsecs_t now = systemTime(CLOCK_MONOTONIC);
-        nsecs_t next_vsync = nextFakeVSync;
-        nsecs_t sleep = next_vsync - now;
-        if (sleep < 0) {
-            // we missed, find where the next vsync should be
-            sleep = (period - ((now - next_vsync) % period));
-            next_vsync = now + sleep;
-        }
-        nextFakeVSync = next_vsync + period;
-
-        struct timespec spec;
-        spec.tv_sec  = next_vsync / 1000000000;
-        spec.tv_nsec = next_vsync % 1000000000;
-
-        int err;
-        do {
-            err = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &spec, NULL);
-        } while (err<0 && errno == EINTR);
-
-        if (err == 0) {
+        if (wait_next_vsync(ctx,&timestamp) == 0) {
             if (ctx->procs) {
-                ctx->procs->vsync(ctx->procs, 0, next_vsync);
+                ctx->procs->vsync(ctx->procs, 0, timestamp);
             }
         }
     }
@@ -385,49 +800,273 @@ static void *hwc_vsync_thread(void *data)
     return NULL;
 }
 
+#ifdef WITH_EXTERNAL_DISPLAY
 
+//#define SIMULATE_HOT_PLUG 1
+static bool chkExternalConnected(){
+    LOG_FUNCTION_NAME
+        
+#ifdef SIMULATE_HOT_PLUG
+    HWC_LOGDA("Simulate hot plug");
+    char val[PROPERTY_VALUE_MAX];
+    memset(val, 0, sizeof(val));
+    property_get("debug.connect_external", val, "0");
+    return (atoi(val)>0) ? true : false;
+#else
+    //TODO:need to check hotplug callback for different device.
+    //Should consider different device.
+    char buf[PROPERTY_VALUE_MAX];
+    memset(buf, 0, sizeof(buf));
+    property_get("sys.sf.hotplug", buf, "false");
 
-static void hwc_registerProcs(hwc_composer_device_1_t *dev,
+    HWC_LOGDB("sys.sf.hotplug is %s", buf);
+    if(strcmp(buf, "true")==0)
+        return true;
+    else
+        return false;
+#endif
+
+    LOG_FUNCTION_NAME_EXIT
+}
+
+static void *hwc_hotplug_thread(void *data)
+{
+    struct hwc_context_1_t* ctx = (struct hwc_context_1_t*)data;
+
+    while (true) {
+        sleep(2);//sleep 1 s.
+
+    	if (ctx->procs) {
+            bool connect = chkExternalConnected();
+            getDisplayInfo(ctx,HWC_DISPLAY_EXTERNAL);
+            if(display_ctx->connected != connect ){
+                HWC_LOGDB("external new state : %d",connect);
+                if(!display_ctx->connected){
+                    init_display(ctx,HWC_DISPLAY_EXTERNAL);
+                } else {
+                    uninit_display(ctx,HWC_DISPLAY_EXTERNAL);
+                }
+                ctx->procs->hotplug(ctx->procs, HWC_DISPLAY_EXTERNAL, connect);
+            } 
+        }
+    }
+
+    return NULL;
+}
+#endif
+
+static void hwc_registerProcs(hwc_composer_device_1 *dev,
             hwc_procs_t const* procs)
 {
     struct hwc_context_1_t* ctx = (struct hwc_context_1_t*)dev;
-    if (ctx) {
+    if (ctx) 
         ctx->procs = procs;
-    }
 }
 
-/*****************************************************************************/
+static int hwc_getDisplayConfigs(hwc_composer_device_1_t *dev,
+            int disp ,uint32_t *config ,size_t *numConfigs)
+{
+    struct hwc_context_1_t* ctx = (struct hwc_context_1_t*)dev;
+
+    if(*numConfigs == 0)
+        return 0;
+    
+    LOG_FUNCTION_NAME
+        
+    getDisplayInfo(ctx,disp);
+
+    if(disp == HWC_DISPLAY_PRIMARY){
+        config[0] = 0;
+        *numConfigs = 1;
+        return 0;
+    } else if(disp == HWC_DISPLAY_EXTERNAL) {
+        HWC_LOGEB("hwc_getDisplayConfigs:connect =  %d",display_ctx->connected);
+        if(!display_ctx->connected){
+            return -EINVAL;
+        }
+
+        config[0] = 0;
+        *numConfigs = 1;
+        return 0;
+    }
+    
+    LOG_FUNCTION_NAME_EXIT
+    return -EINVAL;
+}
+
+static int hwc_getDisplayAttributes(hwc_composer_device_1_t *dev,
+            int disp, uint32_t config, const uint32_t *attributes, int32_t *values)
+{
+    struct hwc_context_1_t* ctx = (struct hwc_context_1_t*)dev;
+    
+    LOG_FUNCTION_NAME
+        
+    getDisplayInfo(ctx,disp);
+
+    for (int i = 0; attributes[i] != HWC_DISPLAY_NO_ATTRIBUTE; i++) {
+        switch(attributes[i]) {		
+        	case HWC_DISPLAY_VSYNC_PERIOD:			
+        		values[i] = ctx->vsync_period;
+                break;
+        	case HWC_DISPLAY_WIDTH:			
+        		values[i] = fbinfo->info.xres;
+                break;
+        	case HWC_DISPLAY_HEIGHT:			
+        		values[i] = fbinfo->info.yres;
+                break;
+        	case HWC_DISPLAY_DPI_X:			
+        		values[i] = fbinfo->xdpi*1000;	
+                break;
+        	case HWC_DISPLAY_DPI_Y:			
+        		values[i] = fbinfo->ydpi*1000;
+                break;
+        	default:			
+        		HWC_LOGEB("unknown display attribute %u", attributes[i]);
+                values[i] = -EINVAL;
+                break;
+        }
+    }
+    
+    LOG_FUNCTION_NAME_EXIT
+        
+    return 0;
+}
 
 static int hwc_device_open(const struct hw_module_t* module, const char* name,
         struct hw_device_t** device)
 {
-    int status = -EINVAL;
-    if (!strcmp(name, HWC_HARDWARE_COMPOSER)) {
-        struct hwc_context_1_t *dev;
-        dev = (hwc_context_1_t*)malloc(sizeof(*dev));
+    int ret;
 
-        /* initialize our state here */
-        memset(dev, 0, sizeof(*dev));
-
-        /* initialize the procs */
-        dev->device.common.tag = HARDWARE_DEVICE_TAG;
-        dev->device.common.version = HWC_DEVICE_API_VERSION_1_0;
-        dev->device.common.module = const_cast<hw_module_t*>(module);
-        dev->device.common.close = hwc_device_close;
-
-        dev->device.blank = hwc_blank;
-        dev->device.eventControl = hwc_eventControl;
-        dev->device.registerProcs = hwc_registerProcs;
-        dev->device.prepare = hwc_prepare;
-        dev->device.set = hwc_set;
-        dev->vsync_enable = false;
-        *device = &dev->device.common;
-        status = 0;
-        
-        status = pthread_create(&dev->vsync_thread, NULL, hwc_vsync_thread, dev);
-        if (status) {
-            ALOGE("failed to start vsync thread: %s", strerror(status));
-        }
+    if (strcmp(name, HWC_HARDWARE_COMPOSER)) {
+        return -EINVAL;
     }
-    return status;
+
+    struct hwc_context_1_t *dev;
+    dev = (struct hwc_context_1_t *)malloc(sizeof(*dev));
+    memset(dev, 0, sizeof(*dev));
+
+    if (hw_get_module(GRALLOC_HARDWARE_MODULE_ID,
+        (const struct hw_module_t **)&dev->gralloc_module)) {
+        HWC_LOGEA("failed to get gralloc hw module");
+        ret = -EINVAL;
+        goto err_get_module;
+    }
+
+    //init primiary display
+    //default is alwasy false,will check it in hot plug.
+    init_display(dev,HWC_DISPLAY_PRIMARY);
+
+    //60HZ, willchanged to use hw vsync.
+    dev->vsync_period  = 16666666;
+
+    dev->base.common.tag = HARDWARE_DEVICE_TAG;
+    dev->base.common.version = HWC_DEVICE_API_VERSION_1_3;
+    dev->base.common.module = const_cast<hw_module_t *>(module);
+    dev->base.common.close = hwc_close;
+
+    dev->base.prepare = hwc_prepare;
+    dev->base.set = hwc_set;
+    dev->base.eventControl = hwc_eventControl;
+    dev->base.blank = hwc_blank;
+    dev->base.query = hwc_query;
+    dev->base.registerProcs = hwc_registerProcs;
+
+    dev->base.dump = hwc_dump;
+    dev->base.getDisplayConfigs = hwc_getDisplayConfigs;
+    dev->base.getDisplayAttributes = hwc_getDisplayAttributes;
+    dev->vsync_enable = false;
+    dev->blank_status = false;
+    *device = &dev->base.common;
+
+    ret = pthread_create(&dev->vsync_thread, NULL, hwc_vsync_thread, dev);
+    if (ret) {
+        HWC_LOGEB("failed to start vsync thread: %s", strerror(ret));
+        ret = -ret;
+        goto err_vsync;
+    }
+	
+#ifdef WITH_EXTERNAL_DISPLAY
+	//temp solution, will change to use uevnet from kernel
+	ret = pthread_create(&dev->hotplug_thread, NULL, hwc_hotplug_thread, dev);
+    if (ret) {
+        HWC_LOGEB("failed to start hotplug thread: %s", strerror(ret));
+        ret = -ret;
+        goto err_vsync;
+    }
+#endif
+
+    return 0;
+
+err_vsync:
+    uninit_display(dev,HWC_DISPLAY_PRIMARY);
+err_get_module:
+    if (dev)
+        free(dev);
+    return ret;
 }
+
+
+
+/*
+Operater of framebuffer
+*/
+int init_display(hwc_context_1_t* context,int displayType){
+    getDisplayInfo(context, displayType);
+
+    if(display_ctx->connected){
+        return 0;
+    }
+
+    pthread_mutex_lock(&hwc_mutex);
+
+    if( !display_ctx->fb_hnd ){
+        //init information from osd.
+        fbinfo->displayType = displayType;
+        fbinfo->fbIdx = getOsdIdx(fbinfo->displayType);
+    	int err = init_frame_buffer_locked(fbinfo);
+        int bufferSize = fbinfo->finfo.line_length * fbinfo->info.yres;
+        HWC_LOGDB("init_frame_buffer get fbinfo->fbIdx (%d) fbinfo->info.xres (%d) fbinfo->info.yres (%d)",fbinfo->fbIdx, fbinfo->info.xres,fbinfo->info.yres);
+        int usage = 0; 
+        if(displayType > 0) 
+            usage |= GRALLOC_USAGE_EXTERNAL_DISP ;
+
+        //Register the framebuffer to gralloc module
+        display_ctx->fb_hnd = new private_handle_t(private_handle_t::PRIV_FLAGS_FRAMEBUFFER, usage, fbinfo->fbSize, 0,
+                                               0, fbinfo->fd, bufferSize);
+        context->gralloc_module->base.registerBuffer(&(context->gralloc_module->base),display_ctx->fb_hnd);
+        HWC_LOGDB("init_frame_buffer get frame size %d usage %d",bufferSize,usage);
+ 	}
+
+    display_ctx->connected = true;
+    pthread_mutex_unlock(&hwc_mutex);
+    return 0;
+}
+
+int uninit_display(hwc_context_1_t* context,int displayType){
+    getDisplayInfo(context, displayType);
+
+    if(!display_ctx->connected){
+        return 0;
+    }
+
+    pthread_mutex_lock(&hwc_mutex);
+    #if 0
+    //un-register the framebuffer in gralloc module
+    if(display->fb_hnd){
+        context->gralloc_module->base.unregisterBuffer(&(context->gralloc_module->base),display->fb_hnd);
+        delete display->fb_hnd;
+        display->fb_hnd = NULL;
+        
+        if(fbinfo->fd >= 0){
+            close(fbinfo->fd);
+            fbinfo->fd= -1;
+        }
+ 	}
+    #endif
+
+    display_ctx->connected = false;
+    pthread_mutex_unlock(&hwc_mutex);
+
+    return 0;
+}
+
