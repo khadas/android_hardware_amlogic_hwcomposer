@@ -62,10 +62,6 @@
 
 #include <sync/sync.h>
 
-#ifndef LOGD
-#define LOGD ALOGD
-#endif
-
 #define LogLevel 3
 ///Defines for debug statements - Macro LOG_TAG needs to be defined in the respective files                                                  
 #define HWC_LOGVA(str)         ALOGV_IF(LogLevel >=6,"%5d %s - " str, __LINE__,__FUNCTION__);
@@ -116,10 +112,18 @@ typedef struct display_context_t{
     struct framebuffer_info_t fb_info;
     struct private_handle_t*  fb_hnd;
 }display_context_t;
+
+typedef struct cursor_context_t{
+    struct framebuffer_info_t cb_info;
+    void *cbuffer;
+}cursor_context_t;
+
 struct hwc_context_1_t;
 
 int init_display(hwc_context_1_t* context,int displayType);
 int uninit_display(hwc_context_1_t* context,int displayType);
+
+static int init_cursorbuffer(hwc_context_1_t* context,int cbIdx);
 
 #define getDisplayInfo(ctx,disp) \
     display_context_t * display_ctx = &(ctx->display_ctxs[disp]);\
@@ -179,6 +183,7 @@ struct hwc_context_1_t {
 
     private_module_t        *gralloc_module;
     display_context_t display_ctxs[MAX_SUPPORT_DISPLAYS];
+    cursor_context_t cursor_ctxs;
 };
 
 static int hwc_device_open(const struct hw_module_t* module, const char* name,
@@ -444,6 +449,8 @@ static void hwc_dump(hwc_composer_device_1* dev, char *buff, int buff_len)
 
 static int hwc_blank(struct hwc_composer_device_1 *dev, int disp, int blank)
 {
+    LOG_FUNCTION_NAME
+        
     struct hwc_context_1_t *pdev =
             (struct hwc_context_1_t *)dev;
     
@@ -451,12 +458,30 @@ static int hwc_blank(struct hwc_composer_device_1 *dev, int disp, int blank)
     if (disp == HWC_DISPLAY_PRIMARY){
         pdev->blank_status = ( blank ? true : false);
     }
+
+    LOG_FUNCTION_NAME_EXIT
+    return 0;
+}
+
+static int hwc_setPowerMode(struct hwc_composer_device_1* dev, int disp,
+                int mode)
+{
+    LOG_FUNCTION_NAME
+        
+    struct hwc_context_1_t *pdev =
+            (struct hwc_context_1_t *)dev;
     
+    //TODO:
+
+    
+    LOG_FUNCTION_NAME_EXIT
     return 0;
 }
 
 static int hwc_query(struct hwc_composer_device_1* dev, int what, int *value)
 {
+    LOG_FUNCTION_NAME
+        
     struct hwc_context_1_t *pdev =
             (struct hwc_context_1_t *)dev;
 
@@ -473,6 +498,8 @@ static int hwc_query(struct hwc_composer_device_1* dev, int what, int *value)
         // unsupported query
         return -EINVAL;
     }
+    
+    LOG_FUNCTION_NAME_EXIT
     return 0;
 }
 
@@ -481,6 +508,9 @@ static int hwc_eventControl(struct hwc_composer_device_1* dev,
                             int event,
                             int enabled)
 {
+    LOG_FUNCTION_NAME
+        
+    int ret = 0;
     struct hwc_context_1_t* ctx = (struct hwc_context_1_t *)dev;
     switch (event) 
     {
@@ -489,37 +519,19 @@ static int hwc_eventControl(struct hwc_composer_device_1* dev,
             pthread_mutex_lock(&hwc_mutex);
             pthread_cond_signal(&hwc_cond);
             pthread_mutex_unlock(&hwc_mutex);
-            return 0;    
+            ret = 0;
+            LOG_FUNCTION_NAME_EXIT
+            return 0;
     }    
-	return -EINVAL;
+    return -EINVAL;
 }
-
-#if 0
-inline bool intersect(const hwc_rect &r1, const hwc_rect &r2)
-{
-    return !(r1.left > r2.right ||
-        r1.right < r2.left ||
-        r1.top > r2.bottom ||
-        r1.bottom < r2.top);
-}
-
-inline hwc_rect intersection(const hwc_rect &r1, const hwc_rect &r2)
-{
-    hwc_rect i;
-    i.top = max(r1.top, r2.top);
-    i.bottom = min(r1.bottom, r2.bottom);
-    i.left = max(r1.left, r2.left);
-    i.right = min(r1.right, r2.right);
-    return i;
-}
-
-#endif
-
 
 static int hwc_prepare(struct hwc_composer_device_1 *dev,
                        size_t numDisplays,
                        hwc_display_contents_1_t** displays)
 {
+    LOG_FUNCTION_NAME
+        
     int err = 0, i = 0;
     hwc_context_1_t *pdev =  (hwc_context_1_t *)dev;
     hwc_display_contents_1_t *display_content = NULL;
@@ -527,7 +539,6 @@ static int hwc_prepare(struct hwc_composer_device_1 *dev,
     if (!numDisplays || !displays)
         return 0;
 
-    LOG_FUNCTION_NAME
     //retireFenceFd will close in surfaceflinger, just reset it.
     for(i=0;i<numDisplays;i++){
         
@@ -543,6 +554,12 @@ static int hwc_prepare(struct hwc_composer_device_1 *dev,
             display_content->retireFenceFd = -1;
             for (size_t i=0 ; i< display_content->numHwLayers ; i++) {
                 hwc_layer_1_t* l = &display_content->hwLayers[i];
+                if (l->flags & HWC_IS_CURSOR_LAYER) {
+                    //l->hints = HWC_HINT_CLEAR_FB;
+                    HWC_LOGDA("This is a Sprite layer");
+                    l->compositionType = HWC_CURSOR_OVERLAY;
+                    continue;
+                }
                 if (l->handle) {
                     private_handle_t const* hnd = reinterpret_cast<private_handle_t const*>(l->handle);
                     if (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OVERLAY) {
@@ -561,7 +578,33 @@ static int fb_post(hwc_context_1_t *pdev,
         hwc_display_contents_1_t* contents, int display_type){
     int err = 0;
     size_t i = 0;
+    int csblkflg = 0;
     for (i = 0; i < contents->numHwLayers; i++) {
+        if (contents->hwLayers[i].flags & HWC_IS_CURSOR_LAYER){
+            hwc_layer_1_t *layer = &(contents->hwLayers[i]);
+            if (private_handle_t::validate(layer->handle) < 0) {
+                break;
+            }
+            private_handle_t *hnd = (private_handle_t *)layer->handle;
+            cursor_context_t * cursor_ctx = &(pdev->cursor_ctxs);
+            framebuffer_info_t* cbinfo = &(cursor_ctx->cb_info); 
+
+            HWC_LOGDB("This is a Sprite hnd->stride is %d, hnd->height is %d", hnd->stride, hnd->height);
+            if (cbinfo->info.xres != hnd->stride || cbinfo->info.yres != hnd->height){
+                HWC_LOGDA("Cursor need to redrew");
+                update_cursor_buffer_locked(cbinfo, hnd->stride, hnd->height);
+                cursor_ctx->cbuffer = mmap(NULL, hnd->size, PROT_READ|PROT_WRITE, MAP_SHARED, cbinfo->fd, 0);
+                if (cursor_ctx->cbuffer != MAP_FAILED) {
+                    /* draw */
+                    memcpy(cursor_ctx->cbuffer, hnd->base, hnd->size); 
+                    munmap(cursor_ctx->cbuffer, hnd->size);
+                    HWC_LOGDA("setCursor ok");
+                }
+                else
+                    HWC_LOGEA("buffer mmap fail");
+            }
+            csblkflg = 1;
+        }
         if (contents->hwLayers[i].compositionType == HWC_FRAMEBUFFER_TARGET){
             hwc_layer_1_t *layer = &(contents->hwLayers[i]);
             if (private_handle_t::validate(layer->handle) < 0) {
@@ -593,6 +636,10 @@ static int fb_post(hwc_context_1_t *pdev,
             }
         }
     }
+
+    //finally we need to update cursor's blank status
+    ioctl(pdev->cursor_ctxs.cb_info.fd, FBIOBLANK, !csblkflg);
+    
     return err;
 }
 
@@ -614,6 +661,8 @@ int displayWho(){
 static int hwc_set(struct hwc_composer_device_1 *dev,
         size_t numDisplays, hwc_display_contents_1_t** displays)
 {
+    LOG_FUNCTION_NAME
+        
     int err = 0, i = 0;;
     hwc_context_1_t *pdev =  (hwc_context_1_t *)dev;
     hwc_display_contents_1_t *display_content = NULL;
@@ -621,7 +670,6 @@ static int hwc_set(struct hwc_composer_device_1 *dev,
     if (!numDisplays || !displays)
         return 0;
     
-    LOG_FUNCTION_NAME
     //TODO: need improve the way to set video axis.
 #if WITH_LIBPLAYER_MODULE
     bool istvp = false;
@@ -682,9 +730,9 @@ static int hwc_set(struct hwc_composer_device_1 *dev,
 
 static int hwc_close(hw_device_t *device)
 {
-    struct hwc_context_1_t *dev = (struct hwc_context_1_t *)device;
-
     LOG_FUNCTION_NAME
+        
+    struct hwc_context_1_t *dev = (struct hwc_context_1_t *)device;
         
     pthread_kill(dev->vsync_thread, SIGTERM);
     pthread_join(dev->vsync_thread, NULL);
@@ -866,12 +914,11 @@ static void hwc_registerProcs(hwc_composer_device_1 *dev,
 static int hwc_getDisplayConfigs(hwc_composer_device_1_t *dev,
             int disp ,uint32_t *config ,size_t *numConfigs)
 {
+    LOG_FUNCTION_NAME
     struct hwc_context_1_t* ctx = (struct hwc_context_1_t*)dev;
 
     if(*numConfigs == 0)
         return 0;
-    
-    LOG_FUNCTION_NAME
         
     getDisplayInfo(ctx,disp);
 
@@ -932,6 +979,59 @@ static int hwc_getDisplayAttributes(hwc_composer_device_1_t *dev,
     return 0;
 }
 
+
+static int hwc_getActiveConfig(struct hwc_composer_device_1* dev, int disp)
+{
+    struct hwc_context_1_t *pdev =
+            (struct hwc_context_1_t *)dev;
+
+    //TODO: 
+
+    LOG_FUNCTION_NAME_EXIT
+    return 0;
+}
+
+static int hwc_setActiveConfig(struct hwc_composer_device_1* dev, int disp,
+            int index)
+{
+    LOG_FUNCTION_NAME
+    struct hwc_context_1_t *pdev =
+            (struct hwc_context_1_t *)dev;
+
+    //TODO: 
+    LOG_FUNCTION_NAME_EXIT
+    return 0;
+}
+
+static int hwc_setCursorPositionAsync(struct hwc_composer_device_1 *dev, int disp, 
+    int x_pos, int y_pos)
+{
+    LOG_FUNCTION_NAME
+        
+    int err = 0, i = 0;
+    struct fb_cursor cinfo;
+    struct hwc_context_1_t* ctx = (struct hwc_context_1_t*)dev;
+    cursor_context_t * cursor_ctx = &(ctx->cursor_ctxs);
+    framebuffer_info_t* cbinfo = &(cursor_ctx->cb_info); 
+
+    if (cbinfo->fd < 0){
+        HWC_LOGEB("hwc_setCursorPositionAsync fd=%d", cbinfo->fd );
+    }else {
+        cinfo.hot.x = x_pos;
+        cinfo.hot.y = y_pos;
+        if(disp == HWC_DISPLAY_PRIMARY){
+            HWC_LOGDB("hwc_setCursorPositionAsync x_pos=%d, y_pos=%d", cinfo.hot.x, cinfo.hot.y);
+            ioctl(cbinfo->fd, FBIO_CURSOR, &cinfo);
+        } else if(disp == HWC_DISPLAY_EXTERNAL) {
+            //TODO:
+            HWC_LOGDA("hwc_setCursorPositionAsync external display need show cursor too! ");
+        }
+    }
+    
+    LOG_FUNCTION_NAME_EXIT
+    return 0;
+}
+
 static int hwc_device_open(const struct hw_module_t* module, const char* name,
         struct hw_device_t** device)
 {
@@ -955,12 +1055,13 @@ static int hwc_device_open(const struct hw_module_t* module, const char* name,
     //init primiary display
     //default is alwasy false,will check it in hot plug.
     init_display(dev,HWC_DISPLAY_PRIMARY);
+    init_cursorbuffer(dev, 1);
 
     //60HZ, willchanged to use hw vsync.
     dev->vsync_period  = 16666666;
 
     dev->base.common.tag = HARDWARE_DEVICE_TAG;
-    dev->base.common.version = HWC_DEVICE_API_VERSION_1_3;
+    dev->base.common.version = HWC_DEVICE_API_VERSION_1_4;
     dev->base.common.module = const_cast<hw_module_t *>(module);
     dev->base.common.close = hwc_close;
 
@@ -974,6 +1075,10 @@ static int hwc_device_open(const struct hw_module_t* module, const char* name,
     dev->base.dump = hwc_dump;
     dev->base.getDisplayConfigs = hwc_getDisplayConfigs;
     dev->base.getDisplayAttributes = hwc_getDisplayAttributes;
+    dev->base.setPowerMode = hwc_setPowerMode;
+    dev->base.getActiveConfig = hwc_getActiveConfig;
+    dev->base.setActiveConfig = hwc_setActiveConfig;
+    dev->base.setCursorPositionAsync = hwc_setCursorPositionAsync;
     dev->vsync_enable = false;
     dev->blank_status = false;
     *device = &dev->base.common;
@@ -1005,6 +1110,21 @@ err_get_module:
     return ret;
 }
 
+static int init_cursorbuffer(hwc_context_1_t* context,int cbIdx)
+{
+    cursor_context_t * cursor_ctx = &(context->cursor_ctxs);
+    framebuffer_info_t* cbinfo = &(cursor_ctx->cb_info); 
+
+    if( cbinfo->fd <= 0){
+        //init information from osd.
+        cbinfo->fbIdx = cbIdx;
+        int err = init_cursor_buffer_locked(cbinfo);
+        HWC_LOGDB("init_cursor_buffer get cbinfo->fbIdx (%d) cbinfo->info.xres (%d) cbinfo->info.yres (%d)",cbinfo->fbIdx, cbinfo->info.xres,cbinfo->info.yres);
+    }else{
+        HWC_LOGDA("already init_cursor_buffer!!!");
+    }
+    return 0;
+}
 
 
 /*
