@@ -107,23 +107,23 @@ static int chk_and_dup(int fence)
 
 #define MAX_SUPPORT_DISPLAYS HWC_NUM_PHYSICAL_DISPLAY_TYPES
 
+typedef struct cursor_context_t{
+    bool blank;
+    struct framebuffer_info_t cb_info;
+    void *cbuffer;
+}cursor_context_t;
+
 typedef struct display_context_t{
     bool connected;
     struct framebuffer_info_t fb_info;
     struct private_handle_t*  fb_hnd;
+    struct cursor_context_t cursor_ctx;
 }display_context_t;
-
-typedef struct cursor_context_t{
-    struct framebuffer_info_t cb_info;
-    void *cbuffer;
-}cursor_context_t;
 
 struct hwc_context_1_t;
 
 int init_display(hwc_context_1_t* context,int displayType);
 int uninit_display(hwc_context_1_t* context,int displayType);
-
-static int init_cursorbuffer(hwc_context_1_t* context,int cbIdx);
 
 #define getDisplayInfo(ctx,disp) \
     display_context_t * display_ctx = &(ctx->display_ctxs[disp]);\
@@ -141,35 +141,6 @@ struct hwc_context_1_t {
     int saved_right;
     int saved_bottom;
     
-    //int                     vsync_fd;
-    //hwc_post_data_t         bufs;
-
-
-#if 0
-    //alloc_device_t          *alloc_device;
-    int                     force_gpu;
-    int                     fd;
-    int32_t                 xres;
-    int32_t                 yres;
-    int32_t                 xdpi;
-    int32_t                 ydpi;
-
-    bool external_hpd;
-    bool external_fb_needed;
-    int  external_w;
-    int  external_h;
-    int  external_mixer0;
-    bool external_enabled;
-    bool external_blanked;
-    //external_layer_t            external_layers[2];
-    //hwc_gsc_data_t      gsc[NUM_GSC_UNITS];
-    //struct s3c_fb_win_config last_config[NUM_HW_WINDOWS];
-    //size_t                  last_fb_window;
-    //const void              *last_handles[NUM_HW_WINDOWS];
-
-#endif
-
-
     //vsync.
     int32_t     vsync_period;
     int           vsync_enable;
@@ -183,7 +154,6 @@ struct hwc_context_1_t {
 
     private_module_t        *gralloc_module;
     display_context_t display_ctxs[MAX_SUPPORT_DISPLAYS];
-    cursor_context_t cursor_ctxs;
 };
 
 static int hwc_device_open(const struct hw_module_t* module, const char* name,
@@ -578,24 +548,25 @@ static int fb_post(hwc_context_1_t *pdev,
         hwc_display_contents_1_t* contents, int display_type){
     int err = 0;
     size_t i = 0;
-    int csblkflg = 0;
+    cursor_context_t * cursor_ctx = &(pdev->display_ctxs[display_type].cursor_ctx);
+    framebuffer_info_t* cbinfo = &(cursor_ctx->cb_info); 
+
+    cursor_ctx->blank = false;
     for (i = 0; i < contents->numHwLayers; i++) {
+        //deal cursor layer
         if (contents->hwLayers[i].flags & HWC_IS_CURSOR_LAYER){
             hwc_layer_1_t *layer = &(contents->hwLayers[i]);
             if (private_handle_t::validate(layer->handle) < 0) {
                 break;
             }
             private_handle_t *hnd = (private_handle_t *)layer->handle;
-            cursor_context_t * cursor_ctx = &(pdev->cursor_ctxs);
-            framebuffer_info_t* cbinfo = &(cursor_ctx->cb_info); 
 
-            HWC_LOGDB("This is a Sprite hnd->stride is %d, hnd->height is %d", hnd->stride, hnd->height);
+            HWC_LOGDB("This is a Sprite, hnd->stride is %d, hnd->height is %d", hnd->stride, hnd->height);
             if (cbinfo->info.xres != hnd->stride || cbinfo->info.yres != hnd->height){
-                HWC_LOGDA("Cursor need to redrew");
+                HWC_LOGDB("disp: %d cursor need to redrew", display_type);
                 update_cursor_buffer_locked(cbinfo, hnd->stride, hnd->height);
                 cursor_ctx->cbuffer = mmap(NULL, hnd->size, PROT_READ|PROT_WRITE, MAP_SHARED, cbinfo->fd, 0);
                 if (cursor_ctx->cbuffer != MAP_FAILED) {
-                    /* draw */
                     memcpy(cursor_ctx->cbuffer, hnd->base, hnd->size); 
                     munmap(cursor_ctx->cbuffer, hnd->size);
                     HWC_LOGDA("setCursor ok");
@@ -603,8 +574,10 @@ static int fb_post(hwc_context_1_t *pdev,
                 else
                     HWC_LOGEA("buffer mmap fail");
             }
-            csblkflg = 1;
+            cursor_ctx->blank = true;
         }
+
+        //deal framebuffer target layer
         if (contents->hwLayers[i].compositionType == HWC_FRAMEBUFFER_TARGET){
             hwc_layer_1_t *layer = &(contents->hwLayers[i]);
             if (private_handle_t::validate(layer->handle) < 0) {
@@ -626,7 +599,10 @@ static int fb_post(hwc_context_1_t *pdev,
             if(layer->releaseFenceFd >= 0){
                 //layer->releaseFenceFd = releaseFence;
                 contents->retireFenceFd = chk_and_dup(layer->releaseFenceFd);
-                HWC_LOGDB("Get release fence %d, retire fence %d",layer->releaseFenceFd,contents->retireFenceFd);
+                
+                HWC_LOGDB("Get release fence %d, retire fence %d",
+                    layer->releaseFenceFd,
+                    contents->retireFenceFd);
             }else{
                 HWC_LOGEB("No valid release_fence returned. %d ",layer->releaseFenceFd);
                 if(layer->releaseFenceFd < -1)//-1 means no fence, less than -1 is some error
@@ -638,8 +614,10 @@ static int fb_post(hwc_context_1_t *pdev,
     }
 
     //finally we need to update cursor's blank status
-    ioctl(pdev->cursor_ctxs.cb_info.fd, FBIOBLANK, !csblkflg);
-    
+    if (cbinfo->fd > 0){
+        ioctl(cbinfo->fd, FBIOBLANK, !cursor_ctx->blank);
+    }
+
     return err;
 }
 
@@ -1011,7 +989,7 @@ static int hwc_setCursorPositionAsync(struct hwc_composer_device_1 *dev, int dis
     int err = 0, i = 0;
     struct fb_cursor cinfo;
     struct hwc_context_1_t* ctx = (struct hwc_context_1_t*)dev;
-    cursor_context_t * cursor_ctx = &(ctx->cursor_ctxs);
+    cursor_context_t * cursor_ctx = &(ctx->display_ctxs[disp].cursor_ctx);
     framebuffer_info_t* cbinfo = &(cursor_ctx->cb_info); 
 
     if (cbinfo->fd < 0){
@@ -1025,6 +1003,7 @@ static int hwc_setCursorPositionAsync(struct hwc_composer_device_1 *dev, int dis
         } else if(disp == HWC_DISPLAY_EXTERNAL) {
             //TODO:
             HWC_LOGDA("hwc_setCursorPositionAsync external display need show cursor too! ");
+            //ioctl(cbinfo->fd, FBIO_CURSOR, &cinfo);
         }
     }
     
@@ -1055,7 +1034,6 @@ static int hwc_device_open(const struct hw_module_t* module, const char* name,
     //init primiary display
     //default is alwasy false,will check it in hot plug.
     init_display(dev,HWC_DISPLAY_PRIMARY);
-    init_cursorbuffer(dev, 1);
 
     //60HZ, willchanged to use hw vsync.
     dev->vsync_period  = 16666666;
@@ -1110,23 +1088,6 @@ err_get_module:
     return ret;
 }
 
-static int init_cursorbuffer(hwc_context_1_t* context,int cbIdx)
-{
-    cursor_context_t * cursor_ctx = &(context->cursor_ctxs);
-    framebuffer_info_t* cbinfo = &(cursor_ctx->cb_info); 
-
-    if( cbinfo->fd <= 0){
-        //init information from osd.
-        cbinfo->fbIdx = cbIdx;
-        int err = init_cursor_buffer_locked(cbinfo);
-        HWC_LOGDB("init_cursor_buffer get cbinfo->fbIdx (%d) cbinfo->info.xres (%d) cbinfo->info.yres (%d)",cbinfo->fbIdx, cbinfo->info.xres,cbinfo->info.yres);
-    }else{
-        HWC_LOGDA("already init_cursor_buffer!!!");
-    }
-    return 0;
-}
-
-
 /*
 Operater of framebuffer
 */
@@ -1143,7 +1104,7 @@ int init_display(hwc_context_1_t* context,int displayType){
         //init information from osd.
         fbinfo->displayType = displayType;
         fbinfo->fbIdx = getOsdIdx(fbinfo->displayType);
-    	int err = init_frame_buffer_locked(fbinfo);
+        int err = init_frame_buffer_locked(fbinfo);
         int bufferSize = fbinfo->finfo.line_length * fbinfo->info.yres;
         HWC_LOGDB("init_frame_buffer get fbinfo->fbIdx (%d) fbinfo->info.xres (%d) fbinfo->info.yres (%d)",fbinfo->fbIdx, fbinfo->info.xres,fbinfo->info.yres);
         int usage = 0; 
@@ -1155,10 +1116,31 @@ int init_display(hwc_context_1_t* context,int displayType){
                                                0, fbinfo->fd, bufferSize);
         context->gralloc_module->base.registerBuffer(&(context->gralloc_module->base),display_ctx->fb_hnd);
         HWC_LOGDB("init_frame_buffer get frame size %d usage %d",bufferSize,usage);
- 	}
+    }
 
     display_ctx->connected = true;
     pthread_mutex_unlock(&hwc_mutex);
+
+
+    // init cursor framebuffer
+    cursor_context_t* cursor_ctx = &(display_ctx->cursor_ctx);
+    framebuffer_info_t* cbinfo = &(cursor_ctx->cb_info); 
+    if( cbinfo->fd <= 0){
+        //init information from cursor framebuffer.
+        cbinfo->fbIdx = displayType*2+1;
+        if (1 != cbinfo->fbIdx && 3 != cbinfo->fbIdx){
+            HWC_LOGEB("invalid fb indx: %d, need to check!",cbinfo->fbIdx);
+            return 0;
+        }
+        init_cursor_buffer_locked(cbinfo);
+        HWC_LOGDB("init_cursor_buffer get cbinfo->fbIdx (%d) cbinfo->info.xres (%d) cbinfo->info.yres (%d)",
+                                    cbinfo->fbIdx, 
+                                    cbinfo->info.xres,
+                                    cbinfo->info.yres);
+    }else{
+        HWC_LOGDA("already init_cursor_buffer!!!");
+    }
+
     return 0;
 }
 
