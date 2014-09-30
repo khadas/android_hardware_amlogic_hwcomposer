@@ -107,17 +107,23 @@ static int chk_and_dup(int fence)
 
 #define MAX_SUPPORT_DISPLAYS HWC_NUM_PHYSICAL_DISPLAY_TYPES
 
+#ifndef SINGLE_EXTERNAL_DISPLAY_USE_FB1
 typedef struct cursor_context_t{
     bool blank;
     struct framebuffer_info_t cb_info;
     void *cbuffer;
 }cursor_context_t;
+#endif
 
 typedef struct display_context_t{
     bool connected;
     struct framebuffer_info_t fb_info;
     struct private_handle_t*  fb_hnd;
+    
+#ifndef SINGLE_EXTERNAL_DISPLAY_USE_FB1
     struct cursor_context_t cursor_ctx;
+#endif
+
 }display_context_t;
 
 struct hwc_context_1_t;
@@ -524,12 +530,15 @@ static int hwc_prepare(struct hwc_composer_device_1 *dev,
             display_content->retireFenceFd = -1;
             for (size_t i=0 ; i< display_content->numHwLayers ; i++) {
                 hwc_layer_1_t* l = &display_content->hwLayers[i];
+                
+#ifndef SINGLE_EXTERNAL_DISPLAY_USE_FB1
                 if (l->flags & HWC_IS_CURSOR_LAYER) {
-                    //l->hints = HWC_HINT_CLEAR_FB;
+                    l->hints = HWC_HINT_CLEAR_FB;
                     HWC_LOGDA("This is a Sprite layer");
                     l->compositionType = HWC_CURSOR_OVERLAY;
                     continue;
                 }
+#endif
                 if (l->handle) {
                     private_handle_t const* hnd = reinterpret_cast<private_handle_t const*>(l->handle);
                     if (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OVERLAY) {
@@ -548,11 +557,17 @@ static int fb_post(hwc_context_1_t *pdev,
         hwc_display_contents_1_t* contents, int display_type){
     int err = 0;
     size_t i = 0;
+    
+#ifndef SINGLE_EXTERNAL_DISPLAY_USE_FB1
     cursor_context_t * cursor_ctx = &(pdev->display_ctxs[display_type].cursor_ctx);
     framebuffer_info_t* cbinfo = &(cursor_ctx->cb_info); 
 
     cursor_ctx->blank = false;
+#endif
+
     for (i = 0; i < contents->numHwLayers; i++) {
+
+#ifndef SINGLE_EXTERNAL_DISPLAY_USE_FB1
         //deal cursor layer
         if (contents->hwLayers[i].flags & HWC_IS_CURSOR_LAYER){
             hwc_layer_1_t *layer = &(contents->hwLayers[i]);
@@ -576,6 +591,7 @@ static int fb_post(hwc_context_1_t *pdev,
             }
             cursor_ctx->blank = true;
         }
+#endif
 
         //deal framebuffer target layer
         if (contents->hwLayers[i].compositionType == HWC_FRAMEBUFFER_TARGET){
@@ -613,10 +629,12 @@ static int fb_post(hwc_context_1_t *pdev,
         }
     }
 
+#ifndef SINGLE_EXTERNAL_DISPLAY_USE_FB1
     //finally we need to update cursor's blank status
     if (cbinfo->fd > 0){
         ioctl(cbinfo->fd, FBIOBLANK, !cursor_ctx->blank);
     }
+#endif
 
     return err;
 }
@@ -985,7 +1003,8 @@ static int hwc_setCursorPositionAsync(struct hwc_composer_device_1 *dev, int dis
     int x_pos, int y_pos)
 {
     LOG_FUNCTION_NAME
-        
+
+#ifndef SINGLE_EXTERNAL_DISPLAY_USE_FB1
     int err = 0, i = 0;
     struct fb_cursor cinfo;
     struct hwc_context_1_t* ctx = (struct hwc_context_1_t*)dev;
@@ -1006,7 +1025,8 @@ static int hwc_setCursorPositionAsync(struct hwc_composer_device_1 *dev, int dis
             //ioctl(cbinfo->fd, FBIO_CURSOR, &cinfo);
         }
     }
-    
+#endif
+
     LOG_FUNCTION_NAME_EXIT
     return 0;
 }
@@ -1121,7 +1141,7 @@ int init_display(hwc_context_1_t* context,int displayType){
     display_ctx->connected = true;
     pthread_mutex_unlock(&hwc_mutex);
 
-
+#ifndef SINGLE_EXTERNAL_DISPLAY_USE_FB1
     // init cursor framebuffer
     cursor_context_t* cursor_ctx = &(display_ctx->cursor_ctx);
     framebuffer_info_t* cbinfo = &(cursor_ctx->cb_info); 
@@ -1140,6 +1160,7 @@ int init_display(hwc_context_1_t* context,int displayType){
     }else{
         HWC_LOGDA("already init_cursor_buffer!!!");
     }
+#endif
 
     return 0;
 }
