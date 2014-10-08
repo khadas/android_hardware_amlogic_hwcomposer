@@ -107,6 +107,7 @@ static int chk_and_dup(int fence)
 
 #define MAX_SUPPORT_DISPLAYS HWC_NUM_PHYSICAL_DISPLAY_TYPES
 
+//++hwc 1.4
 #ifndef SINGLE_EXTERNAL_DISPLAY_USE_FB1
 typedef struct cursor_context_t{
     bool blank;
@@ -114,15 +115,18 @@ typedef struct cursor_context_t{
     void *cbuffer;
 }cursor_context_t;
 #endif
+//--hwc 1.4
 
 typedef struct display_context_t{
     bool connected;
     struct framebuffer_info_t fb_info;
     struct private_handle_t*  fb_hnd;
     
+//++hwc 1.4
 #ifndef SINGLE_EXTERNAL_DISPLAY_USE_FB1
     struct cursor_context_t cursor_ctx;
 #endif
+//--hwc 1.4
 
 }display_context_t;
 
@@ -530,7 +534,7 @@ static int hwc_prepare(struct hwc_composer_device_1 *dev,
             display_content->retireFenceFd = -1;
             for (size_t i=0 ; i< display_content->numHwLayers ; i++) {
                 hwc_layer_1_t* l = &display_content->hwLayers[i];
-                
+//++hwc 1.4
 #ifndef SINGLE_EXTERNAL_DISPLAY_USE_FB1
                 if (l->flags & HWC_IS_CURSOR_LAYER) {
                     l->hints = HWC_HINT_CLEAR_FB;
@@ -539,6 +543,7 @@ static int hwc_prepare(struct hwc_composer_device_1 *dev,
                     continue;
                 }
 #endif
+//--hwc 1.4
                 if (l->handle) {
                     private_handle_t const* hnd = reinterpret_cast<private_handle_t const*>(l->handle);
                     if (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OVERLAY) {
@@ -553,20 +558,24 @@ static int hwc_prepare(struct hwc_composer_device_1 *dev,
     LOG_FUNCTION_NAME_EXIT
     return 0;
 }
+
 static int fb_post(hwc_context_1_t *pdev,
         hwc_display_contents_1_t* contents, int display_type){
     int err = 0;
     size_t i = 0;
-    
+
+//++hwc 1.4
 #ifndef SINGLE_EXTERNAL_DISPLAY_USE_FB1
     cursor_context_t * cursor_ctx = &(pdev->display_ctxs[display_type].cursor_ctx);
     framebuffer_info_t* cbinfo = &(cursor_ctx->cb_info); 
 
     cursor_ctx->blank = false;
 #endif
+//--hwc 1.4
 
     for (i = 0; i < contents->numHwLayers; i++) {
 
+//++hwc 1.4
 #ifndef SINGLE_EXTERNAL_DISPLAY_USE_FB1
         //deal cursor layer
         if (contents->hwLayers[i].flags & HWC_IS_CURSOR_LAYER){
@@ -592,6 +601,7 @@ static int fb_post(hwc_context_1_t *pdev,
             cursor_ctx->blank = true;
         }
 #endif
+//--hwc 1.4
 
         //deal framebuffer target layer
         if (contents->hwLayers[i].compositionType == HWC_FRAMEBUFFER_TARGET){
@@ -629,12 +639,14 @@ static int fb_post(hwc_context_1_t *pdev,
         }
     }
 
+//++hwc 1.4
 #ifndef SINGLE_EXTERNAL_DISPLAY_USE_FB1
     //finally we need to update cursor's blank status
     if (cbinfo->fd > 0){
         ioctl(cbinfo->fd, FBIOBLANK, !cursor_ctx->blank);
     }
 #endif
+//--hwc 1.4
 
     return err;
 }
@@ -670,12 +682,14 @@ static int hwc_set(struct hwc_composer_device_1 *dev,
 #if WITH_LIBPLAYER_MODULE
     bool istvp = false;
     for(i=0;i<numDisplays;i++){
+        
 #ifdef SINGLE_EXTERNAL_DISPLAY_USE_FB1
         if (pdev->display_ctxs[HWC_DISPLAY_EXTERNAL].connected 
              && i==HWC_DISPLAY_PRIMARY /*&& is_m8_single_display()*/){
             continue;
         }
 #endif
+
         display_content = displays[i];
         if( display_content ){
             for (i=0 ; i<display_content->numHwLayers ; i++) {
@@ -976,6 +990,7 @@ static int hwc_getDisplayAttributes(hwc_composer_device_1_t *dev,
 }
 
 
+//++hwc 1.4
 static int hwc_getActiveConfig(struct hwc_composer_device_1* dev, int disp)
 {
     struct hwc_context_1_t *pdev =
@@ -1031,6 +1046,14 @@ static int hwc_setCursorPositionAsync(struct hwc_composer_device_1 *dev, int dis
     return 0;
 }
 
+#if 0
+static inline bool hwcHasApiVersion(const hwc_composer_device_1_t* hwc,
+        uint32_t version) {
+    return hwcApiVersion(hwc) >= (version & HARDWARE_API_VERSION_2_MAJ_MIN_MASK);
+}
+#endif
+//--hwc 1.4
+
 static int hwc_device_open(const struct hw_module_t* module, const char* name,
         struct hw_device_t** device)
 {
@@ -1066,17 +1089,21 @@ static int hwc_device_open(const struct hw_module_t* module, const char* name,
     dev->base.prepare = hwc_prepare;
     dev->base.set = hwc_set;
     dev->base.eventControl = hwc_eventControl;
+    //++hwc 1.4 abandon api
     dev->base.blank = hwc_blank;
+    //--hwc 1.4 abandon api
     dev->base.query = hwc_query;
     dev->base.registerProcs = hwc_registerProcs;
 
     dev->base.dump = hwc_dump;
     dev->base.getDisplayConfigs = hwc_getDisplayConfigs;
     dev->base.getDisplayAttributes = hwc_getDisplayAttributes;
-    dev->base.setPowerMode = hwc_setPowerMode;
+    //++hwc 1.4 new apis
+    dev->base.setPowerMode = hwc_setPowerMode; 
     dev->base.getActiveConfig = hwc_getActiveConfig;
     dev->base.setActiveConfig = hwc_setActiveConfig;
     dev->base.setCursorPositionAsync = hwc_setCursorPositionAsync;
+    //--hwc 1.4 new apis
     dev->vsync_enable = false;
     dev->blank_status = false;
     *device = &dev->base.common;
@@ -1141,26 +1168,36 @@ int init_display(hwc_context_1_t* context,int displayType){
     display_ctx->connected = true;
     pthread_mutex_unlock(&hwc_mutex);
 
+//++hwc 1.4
 #ifndef SINGLE_EXTERNAL_DISPLAY_USE_FB1
     // init cursor framebuffer
     cursor_context_t* cursor_ctx = &(display_ctx->cursor_ctx);
     framebuffer_info_t* cbinfo = &(cursor_ctx->cb_info); 
-    if( cbinfo->fd <= 0){
-        //init information from cursor framebuffer.
-        cbinfo->fbIdx = displayType*2+1;
-        if (1 != cbinfo->fbIdx && 3 != cbinfo->fbIdx){
-            HWC_LOGEB("invalid fb indx: %d, need to check!",cbinfo->fbIdx);
-            return 0;
-        }
-        init_cursor_buffer_locked(cbinfo);
-        HWC_LOGDB("init_cursor_buffer get cbinfo->fbIdx (%d) cbinfo->info.xres (%d) cbinfo->info.yres (%d)",
-                                    cbinfo->fbIdx, 
-                                    cbinfo->info.xres,
-                                    cbinfo->info.yres);
+    cbinfo->fd = -1;
+
+    //init information from cursor framebuffer.
+    cbinfo->fbIdx = displayType*2+1;
+    if (1 != cbinfo->fbIdx && 3 != cbinfo->fbIdx){
+        HWC_LOGEB("invalid fb index: %d, need to check!",cbinfo->fbIdx);
+        return 0;
+    }
+    int err = init_cursor_buffer_locked(cbinfo);
+    if (err != 0){
+        HWC_LOGEA("init_cursor_buffer_locked failed, need to check!");
+        return 0;
+    }
+    HWC_LOGDB("init_cursor_buffer get cbinfo->fbIdx (%d) cbinfo->info.xres (%d) cbinfo->info.yres (%d)",
+                                cbinfo->fbIdx, 
+                                cbinfo->info.xres,
+                                cbinfo->info.yres);
+    
+    if( cbinfo->fd >= 0){
+        HWC_LOGDA("init_cursor_buffer success!");
     }else{
-        HWC_LOGDA("already init_cursor_buffer!!!");
+        HWC_LOGEA("init_cursor_buffer fail!");
     }
 #endif
+//--hwc 1.4
 
     return 0;
 }
