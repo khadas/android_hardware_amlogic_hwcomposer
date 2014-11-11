@@ -361,12 +361,14 @@ static void hwc_overlay_compose(hwc_context_1_t *dev, hwc_layer_1_t const* l) {
     ctx->saved_right = l->displayFrame.right;
     ctx->saved_bottom = l->displayFrame.bottom;
 
-
+#if WITH_LIBPLAYER_MODULE
     memset(axis, 0, sizeof(axis));
     
     if (amsysfs_get_sysfs_str("/sys/class/video/axis", axis, sizeof(axis)) == 0){
         strcpy(last_axis, axis);
     }
+#endif
+
 }
 
 static void hwc_dump(hwc_composer_device_1* dev, char *buff, int buff_len)
