@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#define LOG_NDEBUG 0
+//#define LOG_NDEBUG 0
 #define LOG_TAG "HWComposer"
 #include <hardware/hardware.h>
 
@@ -203,7 +203,7 @@ static bool chk_sysfs_status(const char* sysfstr, char* lastr, int size){
 
     memset(val, 0, sizeof(val));
     if (amsysfs_get_sysfs_str(sysfstr, val, sizeof(val)) == 0) {
-        HWC_LOGEB("val: %s, lastr: %s",val, p);
+        HWC_LOGVB("val: %s, lastr: %s",val, p);
         if ((strcmp(val, p) != 0)) {
             memset(p, 0, size);
             strcpy(p, val);
