@@ -115,6 +115,7 @@ static int Amvideo_Handle = 0;
 #define SYSFS_FB1_FREE_SCALE        "/sys/class/graphics/fb0/free_scale"
 #define SYSFS_VIDEO_AXIS               "/sys/class/video/axis"
 #define SYSFS_VIDEOBUFUSED          "/sys/class/amstream/videobufused"
+#define SYSFS_WINDOW_AXIS           "/sys/class/graphics/fb0/window_axis"
 
 extern "C" int clock_nanosleep(clockid_t clock_id, int flags,
                            const struct timespec *request,
@@ -300,10 +301,12 @@ static void hwc_overlay_compose(hwc_context_1_t *dev, hwc_layer_1_t const* l)
     static char last_axis[32] = "0";
     static char last_mode[32] = {0};
     static char last_free_scale[32] = {0};
+    static char last_window_axis[50] = {0};
     bool vpp_changed = false;
     bool axis_changed = false;
     bool mode_changed = false;
     bool free_scale_changed = false;
+    bool window_axis_changed =false;
 
     if (chk_bool_prop("ro.vout.dualdisplay4")) {
         vpp_changed = chk_sysfs_status(SYSFS_AMVIDEO_CURIDX, last_val, 32);
@@ -321,6 +324,7 @@ static void hwc_overlay_compose(hwc_context_1_t *dev, hwc_layer_1_t const* l)
     }
 #endif
     axis_changed = chk_sysfs_status(SYSFS_VIDEO_AXIS, last_axis, 32);
+    window_axis_changed = chk_sysfs_status(SYSFS_WINDOW_AXIS, last_window_axis, 50);
 
     if ((ctx->saved_layer == l) &&
         (ctx->saved_transform == l->transform) &&
@@ -328,7 +332,7 @@ static void hwc_overlay_compose(hwc_context_1_t *dev, hwc_layer_1_t const* l)
         (ctx->saved_top == l->displayFrame.top) &&
         (ctx->saved_right == l->displayFrame.right) &&
         (ctx->saved_bottom == l->displayFrame.bottom) &&
-        !vpp_changed && !mode_changed && !axis_changed && !free_scale_changed) {
+        !vpp_changed && !mode_changed && !axis_changed && !free_scale_changed && !window_axis_changed) {
         return;
     }
 
