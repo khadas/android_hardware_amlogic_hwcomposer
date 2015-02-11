@@ -470,7 +470,7 @@ static int hwc_prepare(struct hwc_composer_device_1 *dev,
     for (i=0;i<numDisplays;i++) {
 
 #ifdef SINGLE_EXTERNAL_DISPLAY_USE_FB1
-        if (pdev->display_ctxs[HWC_DISPLAY_EXTERNAL].connected 
+        if (pdev->display_ctxs[HWC_DISPLAY_EXTERNAL].connected
             && i==HWC_DISPLAY_PRIMARY /*&& is_m8_single_display()*/) {
             continue;
         }
@@ -479,8 +479,8 @@ static int hwc_prepare(struct hwc_composer_device_1 *dev,
         display_content = displays[i];
         if ( display_content ) {
             display_content->retireFenceFd = -1;
-            for (size_t i=0 ; i< display_content->numHwLayers ; i++) {
-                hwc_layer_1_t* l = &display_content->hwLayers[i];
+            for (size_t j=0 ; j< display_content->numHwLayers ; j++) {
+                hwc_layer_1_t* l = &display_content->hwLayers[j];
                 //++hwc 1.4
 #ifndef SINGLE_EXTERNAL_DISPLAY_USE_FB1
                 if (l->flags & HWC_IS_CURSOR_LAYER) {
@@ -553,6 +553,18 @@ static int fb_post(hwc_context_1_t *pdev,
         if (contents->hwLayers[i].compositionType == HWC_FRAMEBUFFER_TARGET) {
             hwc_layer_1_t *layer = &(contents->hwLayers[i]);
             if (private_handle_t::validate(layer->handle) < 0) break;
+
+            //deal with virtural display fence
+            if (display_type == HWC_DISPLAY_VIRTUAL) {
+                layer->releaseFenceFd = layer->acquireFenceFd;
+                contents->retireFenceFd = contents->outbufAcquireFenceFd;
+
+                HWC_LOGVB("HWC_DISPLAY_VIRTUAL Get release fence %d, retire fence %d, outbufAcquireFenceFd %d",
+                        layer->releaseFenceFd,
+                        contents->retireFenceFd, contents->outbufAcquireFenceFd);
+                continue;
+            }
+
             get_display_info(pdev, display_type);
 
 #ifdef DEBUG_EXTERNAL_DISPLAY_ON_PANEL
@@ -570,7 +582,7 @@ static int fb_post(hwc_context_1_t *pdev,
                 //layer->releaseFenceFd = releaseFence;
                 contents->retireFenceFd = chk_and_dup(layer->releaseFenceFd);
 
-                HWC_LOGDB("Get release fence %d, retire fence %d",
+                HWC_LOGVB("Get release fence %d, retire fence %d",
                         layer->releaseFenceFd,
                         contents->retireFenceFd);
             } else {
@@ -606,7 +618,7 @@ int displayWho(){
 static int hwc_set(struct hwc_composer_device_1 *dev,
         size_t numDisplays, hwc_display_contents_1_t** displays)
 {
-    int err = 0, i = 0;;
+    int err = 0, i = 0, j =0;
     hwc_context_1_t *pdev =  (hwc_context_1_t *)dev;
     hwc_display_contents_1_t *display_content = NULL;
 
@@ -618,15 +630,16 @@ static int hwc_set(struct hwc_composer_device_1 *dev,
     bool istvp = false;
     for (i = 0;i<numDisplays;i++) {
 #ifdef SINGLE_EXTERNAL_DISPLAY_USE_FB1
-        if (pdev->display_ctxs[HWC_DISPLAY_EXTERNAL].connected 
+        if (pdev->display_ctxs[HWC_DISPLAY_EXTERNAL].connected
             && i==HWC_DISPLAY_PRIMARY /*&& is_m8_single_display()*/) {
-        continue;
+            continue;
         }
 #endif
+
         display_content = displays[i];
         if ( display_content ) {
-            for (i=0 ; i<display_content->numHwLayers ; i++) {
-                hwc_layer_1_t* l = &display_content->hwLayers[i];
+            for (j=0 ; j<display_content->numHwLayers ; j++) {
+                hwc_layer_1_t* l = &display_content->hwLayers[j];
                 if (l->handle) {
                     private_handle_t const* hnd = reinterpret_cast<private_handle_t const*>(l->handle);
                     if (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OMX) {
@@ -652,13 +665,12 @@ static int hwc_set(struct hwc_composer_device_1 *dev,
 #ifdef SINGLE_EXTERNAL_DISPLAY_USE_FB1
         if (pdev->display_ctxs[HWC_DISPLAY_EXTERNAL].connected
                 && i==HWC_DISPLAY_PRIMARY /*&& is_m8_single_display()*/) {
-        continue;
+            continue;
         }
 #endif
-
         display_content = displays[i];
         if (display_content) {
-            if (i <= HWC_DISPLAY_EXTERNAL) {
+            if (i <= HWC_DISPLAY_VIRTUAL) {
                  //physic display
                  err = fb_post(pdev,display_content,i);
             } else {
