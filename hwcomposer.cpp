@@ -143,6 +143,7 @@ typedef struct cursor_context_t{
     bool blank;
     struct framebuffer_info_t cb_info;
     void *cbuffer;
+    bool show;
 }cursor_context_t;
 #endif
 //--hwc 1.4
@@ -517,7 +518,7 @@ static int fb_post(hwc_context_1_t *pdev,
     cursor_context_t * cursor_ctx = &(pdev->display_ctxs[display_type].cursor_ctx);
     framebuffer_info_t* cbinfo = &(cursor_ctx->cb_info); 
 
-    cursor_ctx->blank = false;
+    bool cursor_show = false;
 #endif
     //--hwc 1.4
 
@@ -544,7 +545,7 @@ static int fb_post(hwc_context_1_t *pdev,
                     HWC_LOGEA("buffer mmap fail");
                 }
             }
-            cursor_ctx->blank = true;
+            cursor_show = true;
         }
 #endif
         //--hwc 1.4
@@ -597,7 +598,11 @@ static int fb_post(hwc_context_1_t *pdev,
     //++hwc 1.4
 #ifndef SINGLE_EXTERNAL_DISPLAY_USE_FB1
     //finally we need to update cursor's blank status
-    if (cbinfo->fd > 0) ioctl(cbinfo->fd, FBIOBLANK, !cursor_ctx->blank);
+    if (cbinfo->fd > 0 && (cursor_show != cursor_ctx->show) ) {
+        cursor_ctx->show = cursor_show;
+        HWC_LOGVB("UPDATE FB1 status to %d ",cursor_show);
+        ioctl(cbinfo->fd, FBIOBLANK, !cursor_ctx->show);
+    }
 #endif
     //--hwc 1.4
 
@@ -1090,6 +1095,7 @@ int init_display(hwc_context_1_t* context,int displayType)
 #ifndef SINGLE_EXTERNAL_DISPLAY_USE_FB1
     // init cursor framebuffer
     cursor_context_t* cursor_ctx = &(display_ctx->cursor_ctx);
+    cursor_ctx->show = false;
     framebuffer_info_t* cbinfo = &(cursor_ctx->cb_info);
     cbinfo->fd = -1;
 
