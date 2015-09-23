@@ -182,12 +182,14 @@ struct hwc_context_1_t {
     int saved_bottom;
 
     //vsync.
-    int32_t     vsync_period;
-    int           vsync_enable;
+    int32_t      vsync_period;
+    int          vsync_enable;
     bool         blank_status;
 
     //video buf is used flag
     char         video_buf_used[32];
+    //hdmi output mode
+    char         mode[32];
 
     const hwc_procs_t       *procs;
     pthread_t               vsync_thread;
@@ -215,6 +217,24 @@ static bool chk_sysfs_status(const char* sysfstr, char* lastr, int size){
     return false;
 }
 #endif
+
+static int32_t chk_output_mode(char* mode) {
+    int32_t period = 16666666;
+
+    HWC_LOGEB("mode is : %s ", mode);
+    if (strstr(mode, "50hz") != NULL) {
+        period = (int32_t)(1e9 / 50);
+    } else if (strstr(mode, "30hz") != NULL) {
+        period = (int32_t)(1e9 / 30);
+    } else if (strstr(mode, "25hz") != NULL) {
+        period = (int32_t)(1e9 / 25);
+    } else if ((strstr(mode, "24hz") != NULL) || (strstr(mode, "smpte") != NULL)) {
+        period = (int32_t)(1e9 / 24);
+    }
+    HWC_LOGEB("period is : %ld ", period);
+
+    return period;
+}
 
 static int hwc_device_open(const struct hw_module_t* module, const char* name,
         struct hw_device_t** device);
@@ -370,14 +390,16 @@ static void hwc_dump(hwc_composer_device_1* dev, char *buff, int buff_len)
         get_display_info(pdev,i);
 
         if (display_ctx->connected) {
-            result.appendFormat("  %8s Display connected: %3s\n", 
+            result.appendFormat("  %8s Display connected: %3s\n",
                 HWC_DISPLAY_EXTERNAL == i ? "External":"Primiary", display_ctx->connected ? "Yes" : "No");
-                result.appendFormat("    w=%u, h=%u, xdpi=%f, ydpi=%f, osdIdx=%d\n", 
-                fbinfo->info.xres, 
-                fbinfo->info.yres, 
-                fbinfo->xdpi, 
+                result.appendFormat("    w=%u, h=%u, xdpi=%f, ydpi=%f, osdIdx=%d, vsync_period=%ld, video_buf_used: %s\n",
+                fbinfo->info.xres,
+                fbinfo->info.yres,
+                fbinfo->xdpi,
                 fbinfo->ydpi,
-                fbinfo->fbIdx);
+                fbinfo->fbIdx,
+                pdev->vsync_period,
+                pdev->video_buf_used);
         }
     }
 
@@ -843,6 +865,9 @@ static void *hwc_hotplug_thread(void *data)
                 ctx->procs->invalidate(ctx->procs);
             }
 #endif
+            if (chk_sysfs_status(SYSFS_DISPLAY_MODE, ctx->mode, 32)) {
+                ctx->vsync_period = chk_output_mode(ctx->mode);
+            }
         }
     }
 
