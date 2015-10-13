@@ -494,6 +494,9 @@ static int hwc_prepare(struct hwc_composer_device_1 *dev,
                 //--hwc 1.4
                 if (l->handle) {
                     private_handle_t const* hnd = reinterpret_cast<private_handle_t const*>(l->handle);
+                    if (hnd->flags & private_handle_t::PRIV_FLAGS_OSD_VIDEO_OMX) {
+                        l->hints = HWC_HINT_OSD_VIDEO_OMX;
+                    }
                     if (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OVERLAY) {
                         l->hints = HWC_HINT_CLEAR_FB;
                         l->compositionType = HWC_OVERLAY;
