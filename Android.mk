@@ -13,14 +13,15 @@ LOCAL_SHARED_LIBRARIES := liblog libEGL libutils libcutils libhardware libsync l
 LOCAL_STATIC_LIBRARIES := libomxutil
 LOCAL_SRC_FILES := hwcomposer.cpp
 
-ifneq (,$(wildcard hardware/amlogic/gralloc))
-GRALLOC_DIR := hardware/amlogic/gralloc
-else
-GRALLOC_DIR := hardware/libhardware/modules/gralloc
+ifneq ($(MESON_GRALLOC_DIR),)
+LOCAL_CFLAGS += -DGRALLOC_T83X
+WITH_LIBPLAYER_MODULE := false
 endif
 
+MESON_GRALLOC_DIR ?= hardware/amlogic/gralloc
+
 LOCAL_C_INCLUDES += \
-    $(GRALLOC_DIR)
+    $(MESON_GRALLOC_DIR)
 
 LOCAL_C_INCLUDES += system/core/libion/include/ \
                 system/core/libion/kernel-headers
