@@ -13,7 +13,7 @@ LOCAL_SHARED_LIBRARIES := liblog libEGL libutils libcutils libhardware libsync l
 LOCAL_STATIC_LIBRARIES := libomxutil
 LOCAL_SRC_FILES := hwcomposer.cpp
 
-ifneq ($(MESON_GRALLOC_DIR),)
+ifeq ($(GPU_TYPE),t83x)
 LOCAL_CFLAGS += -DGRALLOC_T83X
 WITH_LIBPLAYER_MODULE := false
 endif
