@@ -50,6 +50,8 @@
 #include <EGL/egl.h>
 #include <utils/Vector.h>
 #include <utils/Timers.h>
+#include <system/graphics.h>
+#include <sync/sync.h>
 // for private_handle_t
 #include <gralloc_priv.h>
 #include <gralloc_helper.h>
@@ -59,38 +61,11 @@
 #endif
 #include "tvp/OmxUtil.h"
 
-#include <system/graphics.h>
-
-#include <sync/sync.h>
-
 #ifndef LOGD
 #define LOGD ALOGD
 #endif
 
-static bool chk_bool_prop(const char* prop){
-    char val[PROPERTY_VALUE_MAX];
-
-    memset(val, 0, sizeof(val));
-    if (property_get(prop, val, "false") && strcmp(val, "true") == 0) {
-        ALOGD("prop: %s is %s",prop, val);
-        return true;
-    }
-
-    return false;
-}
-
-static int chk_int_prop(const char* prop){
-    char val[PROPERTY_VALUE_MAX];
-
-    memset(val, 0, sizeof(val));
-    if (property_get(prop, val, "2")) {
-        //ALOGV("prop: %s is %s",prop, val);
-        return atoi(val);
-    }
-    return 0;
-}
-
-///Defines for debug statements - Macro LOG_TAG needs to be defined in the respective files                                                  
+///Defines for debug statements - Macro LOG_TAG needs to be defined in the respective files
 #define HWC_LOGVA(str)              ALOGV_IF(chk_int_prop("sys.hwc.debuglevel") >=6,"%5d %s - " str, __LINE__,__FUNCTION__);
 #define HWC_LOGVB(str,...)          ALOGV_IF(chk_int_prop("sys.hwc.debuglevel") >=6,"%5d %s - " str, __LINE__, __FUNCTION__, __VA_ARGS__);
 #define HWC_LOGDA(str)              ALOGD_IF(chk_int_prop("sys.hwc.debuglevel") >=5,"%5d %s - " str, __LINE__,__FUNCTION__);
@@ -107,8 +82,6 @@ static int chk_int_prop(const char* prop){
 #define DBG_LOGA(str)             ALOGI_IF(chk_int_prop("sys.hwc.debuglevel")  >=4,"%10s-%5d %s - " str, HWC_BUILD_NAME, __LINE__,__FUNCTION__)
 #define DBG_LOGB(str, ...)        ALOGI_IF(chk_int_prop("sys.hwc.debuglevel")  >=4,"%10s-%5d %s - " str, HWC_BUILD_NAME, __LINE__,__FUNCTION__, __VA_ARGS__);
 
-static int Amvideo_Handle = 0;
-
 #define SYSFS_AMVIDEO_CURIDX      "/sys/module/amvideo/parameters/cur_dev_idx"
 #define SYSFS_DISPLAY_MODE          "/sys/class/display/mode"
 #define SYSFS_FB0_FREE_SCALE        "/sys/class/graphics/fb0/free_scale"
@@ -117,59 +90,39 @@ static int Amvideo_Handle = 0;
 #define SYSFS_VIDEOBUFUSED          "/sys/class/amstream/videobufused"
 #define SYSFS_WINDOW_AXIS           "/sys/class/graphics/fb0/window_axis"
 
-extern "C" int clock_nanosleep(clockid_t clock_id, int flags,
-                           const struct timespec *request,
-                           struct timespec *remain);
-/*****************************************************************************/
-static int chk_and_dup(int fence)
-{
-    if (fence < 0) {
-        HWC_LOGWB("not a vliad fence %d",fence);
-        return -1;
-    }
-
-    int dup_fence = dup(fence);
-    if (dup_fence < 0) {
-        HWC_LOGWB("fence dup failed: %s", strerror(errno));
-    }
-
-    return dup_fence;
-}
-
 #define MAX_SUPPORT_DISPLAYS HWC_NUM_PHYSICAL_DISPLAY_TYPES
 
-    //++hwc 1.4
-#ifndef SINGLE_EXTERNAL_DISPLAY_USE_FB1
+#ifdef SINGLE_EXTERNAL_DISPLAY_USE_FB1
+#undef ENABLE_CURSOR_LAYER
+#define CHK_SKIP_DISPLAY_FB0(dispIdx) \
+        if (pdev->display_ctxs[HWC_DISPLAY_EXTERNAL].connected\
+            && dispIdx == HWC_DISPLAY_PRIMARY) {\
+            continue;\
+        }
+#else
+#define ENABLE_CURSOR_LAYER 1//cursor layer supported in hwc 1.4
+#define CHK_SKIP_DISPLAY_FB0(dispIdx)   //nothing to do
+#endif
+
+#define get_display_info(ctx,disp) \
+    display_context_t * display_ctx = &(ctx->display_ctxs[disp]);\
+    framebuffer_info_t* fbinfo = &(display_ctx->fb_info);
+
 typedef struct cursor_context_t{
     bool blank;
     struct framebuffer_info_t cb_info;
     void *cbuffer;
     bool show;
 }cursor_context_t;
-#endif
-//--hwc 1.4
 
 typedef struct display_context_t{
     bool connected;
     struct framebuffer_info_t fb_info;
     struct private_handle_t*  fb_hnd;
-
-    //++hwc 1.4
-#ifndef SINGLE_EXTERNAL_DISPLAY_USE_FB1
+#ifdef ENABLE_CURSOR_LAYER
     struct cursor_context_t cursor_ctx;
 #endif
-    //--hwc 1.4
 }display_context_t;
-
-struct hwc_context_1_t;
-
-int init_display(hwc_context_1_t* context,int displayType);
-int uninit_display(hwc_context_1_t* context,int displayType);
-
-#define get_display_info(ctx,disp) \
-    display_context_t * display_ctx = &(ctx->display_ctxs[disp]);\
-    framebuffer_info_t* fbinfo = &(display_ctx->fb_info); 
-
 
 struct hwc_context_1_t {
     hwc_composer_device_1_t base;
@@ -183,25 +136,72 @@ struct hwc_context_1_t {
     int saved_bottom;
 
     //vsync.
-    int32_t      vsync_period;
-    int          vsync_enable;
-    bool         blank_status;
+    int32_t vsync_period;
+    int vsync_enable;
+    pthread_t vsync_thread;
+
+    bool blank_status;
 
     //video buf is used flag
-    char         video_buf_used[32];
+    char video_buf_used[32];
     //hdmi output mode
-    char         mode[32];
+    char mode[32];
 
-    const hwc_procs_t       *procs;
-    pthread_t               vsync_thread;
-    pthread_t            hotplug_thread;
+    const hwc_procs_t *procs;
+    pthread_t hotplug_thread;
 
-    private_module_t        *gralloc_module;
+    private_module_t *gralloc_module;
     display_context_t display_ctxs[MAX_SUPPORT_DISPLAYS];
 };
 
+static int Amvideo_Handle = 0;
+static pthread_cond_t hwc_cond = PTHREAD_COND_INITIALIZER;
+static pthread_mutex_t hwc_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+extern "C" int clock_nanosleep(clockid_t clock_id, int flags,
+                           const struct timespec *request, struct timespec *remain);
+int init_display(hwc_context_1_t* context,int displayType);
+int uninit_display(hwc_context_1_t* context,int displayType);
+
+static bool chk_bool_prop(const char* prop) {
+    char val[PROPERTY_VALUE_MAX];
+
+    memset(val, 0, sizeof(val));
+    if (property_get(prop, val, "false") && strcmp(val, "true") == 0) {
+        ALOGD("prop: %s is %s",prop, val);
+        return true;
+    }
+
+    return false;
+}
+
+static int chk_int_prop(const char* prop) {
+    char val[PROPERTY_VALUE_MAX];
+
+    memset(val, 0, sizeof(val));
+    if (property_get(prop, val, "2")) {
+        //ALOGV("prop: %s is %s",prop, val);
+        return atoi(val);
+    }
+    return 0;
+}
+
+static int chk_and_dup(int fence) {
+    if (fence < 0) {
+        HWC_LOGWB("not a vliad fence %d",fence);
+        return -1;
+    }
+
+    int dup_fence = dup(fence);
+    if (dup_fence < 0) {
+        HWC_LOGWB("fence dup failed: %s", strerror(errno));
+    }
+
+    return dup_fence;
+}
+
 #if WITH_LIBPLAYER_MODULE
-static bool chk_sysfs_status(const char* sysfstr, char* lastr, int size){
+static bool chk_sysfs_status(const char* sysfstr, char* lastr, int size) {
     char val[32];
     char *p = lastr;
 
@@ -219,21 +219,39 @@ static bool chk_sysfs_status(const char* sysfstr, char* lastr, int size){
 }
 #endif
 
-static int32_t chk_output_mode(char* mode) {
-    int32_t period = 16666666;
-
-    HWC_LOGEB("mode is : %s ", mode);
-    if (strstr(mode, "50hz") != NULL) {
-        period = (int32_t)(1e9 / 50);
-    } else if (strstr(mode, "30hz") != NULL) {
-        period = (int32_t)(1e9 / 30);
-    } else if (strstr(mode, "25hz") != NULL) {
-        period = (int32_t)(1e9 / 25);
-    } else if ((strstr(mode, "24hz") != NULL) || (strstr(mode, "smpte") != NULL)) {
-        period = (int32_t)(1e9 / 24);
+static int32_t chk_output_mode(char* curmode) {
+    int modefd = open(SYSFS_DISPLAY_MODE, O_RDONLY);
+    if (modefd < 0) {
+        HWC_LOGEB("open (%s) fail", SYSFS_DISPLAY_MODE);
+        return -1;
     }
-    HWC_LOGEB("period is : %ld ", period);
 
+    char outputmode[32] = {0};
+    read(modefd, outputmode, 31);
+    close(modefd);
+    modefd = -1;
+
+    //check if need update vsync.
+    if (strcmp(outputmode, curmode) == 0) {
+        HWC_LOGVB("outputmode didn't change %s", curmode);
+        return 0;
+    }
+
+    strcpy(curmode, outputmode);
+
+    int32_t period = 16666666;
+    if (strstr(outputmode, "50hz") != NULL) {
+        period = (int32_t)(1e9 / 50);
+    } else if (strstr(outputmode, "30hz") != NULL) {
+        period = (int32_t)(1e9 / 30);
+    } else if (strstr(outputmode, "25hz") != NULL) {
+        period = (int32_t)(1e9 / 25);
+    } else if ((strstr(outputmode, "24hz") != NULL) || (strstr(outputmode, "smpte") != NULL)) {
+        period = (int32_t)(1e9 / 24);
+    } else
+        HWC_LOGDB("displaymode (%s) doesn't  specify HZ", curmode);
+
+    HWC_LOGVB("get new outputmode (%s) new period (%ld)", curmode, period);
     return period;
 }
 
@@ -258,21 +276,13 @@ hwc_module_t HAL_MODULE_INFO_SYM = {
     }
  };
 
-
-static pthread_cond_t hwc_cond = PTHREAD_COND_INITIALIZER;
-static pthread_mutex_t hwc_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-
-/*****************************************************************************/
-
-static void dump_handle(private_handle_t *h)
-{
+#if 0
+static void dump_handle(private_handle_t *h) {
     //ALOGV("\t\tformat = %d, width = %u, height = %u, stride = %u, vstride = %u",
         //      h->format, h->width, h->height, h->stride, h->vstride);
 }
 
-static void dump_layer(hwc_layer_1_t const *l)
-{
+static void dump_layer(hwc_layer_1_t const *l) {
     HWC_LOGVB("\ttype=%d, flags=%08x, handle=%p, tr=%02x, blend=%04x, "
         "{%d,%d,%d,%d}, {%d,%d,%d,%d}",
         l->compositionType, l->flags, l->handle, l->transform,
@@ -288,11 +298,9 @@ static void dump_layer(hwc_layer_1_t const *l)
 
     if (l->handle && !(l->flags & HWC_SKIP_LAYER)) dump_handle(private_handle_t::dynamicCast(l->handle));
 }
+#endif
 
-/*****************************************************************************/
-
-static void hwc_overlay_compose(hwc_context_1_t *dev, hwc_layer_1_t const* l)
-{
+static void hwc_overlay_compose(hwc_context_1_t *dev, hwc_layer_1_t const* l) {
     int angle;
     struct hwc_context_1_t* ctx = (struct hwc_context_1_t*)dev;
 
@@ -314,15 +322,12 @@ static void hwc_overlay_compose(hwc_context_1_t *dev, hwc_layer_1_t const* l)
 
     mode_changed = chk_sysfs_status(SYSFS_DISPLAY_MODE, last_mode, 32);
 
+    free_scale_changed = chk_sysfs_status(SYSFS_FB0_FREE_SCALE, last_free_scale, 32);
 #ifdef SINGLE_EXTERNAL_DISPLAY_USE_FB1
-    if (!(ctx->display_ctxs[HWC_DISPLAY_EXTERNAL].connected/* && is_m8_single_display()*/)) {
-#endif
-        free_scale_changed = chk_sysfs_status(SYSFS_FB0_FREE_SCALE, last_free_scale, 32);
-#ifdef SINGLE_EXTERNAL_DISPLAY_USE_FB1
-    }else{
+    if (ctx->display_ctxs[HWC_DISPLAY_EXTERNAL].connected)
         free_scale_changed = chk_sysfs_status(SYSFS_FB1_FREE_SCALE, last_free_scale, 32);
-    }
 #endif
+
     axis_changed = chk_sysfs_status(SYSFS_VIDEO_AXIS, last_axis, 32);
     window_axis_changed = chk_sysfs_status(SYSFS_WINDOW_AXIS, last_window_axis, 50);
 
@@ -382,8 +387,7 @@ static void hwc_overlay_compose(hwc_context_1_t *dev, hwc_layer_1_t const* l)
 #endif
 }
 
-static void hwc_dump(hwc_composer_device_1* dev, char *buff, int buff_len)
-{
+static void hwc_dump(hwc_composer_device_1* dev, char *buff, int buff_len) {
     if (buff_len <= 0) return;
 
     struct hwc_context_1_t *pdev = (struct hwc_context_1_t *)dev;
@@ -396,7 +400,7 @@ static void hwc_dump(hwc_composer_device_1* dev, char *buff, int buff_len)
         if (display_ctx->connected) {
             result.appendFormat("  %8s Display connected: %3s\n",
                 HWC_DISPLAY_EXTERNAL == i ? "External":"Primiary", display_ctx->connected ? "Yes" : "No");
-                result.appendFormat("    w=%u, h=%u, xdpi=%f, ydpi=%f, osdIdx=%d, vsync_period=%ld, video_buf_used: %s\n",
+                result.appendFormat("    w=%u, h=%u, xdpi=%f, ydpi=%f, osdIdx=%d, vsync_period=%d, video_buf_used: %s\n",
                 fbinfo->info.xres,
                 fbinfo->info.yres,
                 fbinfo->xdpi,
@@ -417,8 +421,7 @@ static void hwc_dump(hwc_composer_device_1* dev, char *buff, int buff_len)
     strlcpy(buff, result.string(), buff_len);
 }
 
-static int hwc_blank(struct hwc_composer_device_1 *dev, int disp, int blank)
-{
+static int hwc_blank(struct hwc_composer_device_1 *dev, int disp, int blank) {
     struct hwc_context_1_t *pdev = (struct hwc_context_1_t *)dev;
 
     //TODO: need impl
@@ -427,21 +430,14 @@ static int hwc_blank(struct hwc_composer_device_1 *dev, int disp, int blank)
     return 0;
 }
 
-static int hwc_setPowerMode(struct hwc_composer_device_1* dev, int disp,
-                int mode)
-{
+static int hwc_setPowerMode(struct hwc_composer_device_1*, int, int) {
     LOG_FUNCTION_NAME
-
-    struct hwc_context_1_t *pdev = (struct hwc_context_1_t *)dev;
-
     //TODO:
-
     LOG_FUNCTION_NAME_EXIT
     return 0;
 }
 
-static int hwc_query(struct hwc_composer_device_1* dev, int what, int *value)
-{
+static int hwc_query(struct hwc_composer_device_1* dev, int what, int *value) {
     LOG_FUNCTION_NAME
 
     struct hwc_context_1_t *pdev = (struct hwc_context_1_t *)dev;
@@ -465,11 +461,11 @@ static int hwc_query(struct hwc_composer_device_1* dev, int what, int *value)
 }
 
 static int hwc_eventControl(struct hwc_composer_device_1* dev,
-                            int disp,
+                            int,
                             int event,
-                            int enabled)
-{
+                            int enabled) {
     struct hwc_context_1_t* ctx = (struct hwc_context_1_t *)dev;
+
     switch (event)
     {
         case HWC_EVENT_VSYNC:
@@ -484,9 +480,9 @@ static int hwc_eventControl(struct hwc_composer_device_1* dev,
 
 static int hwc_prepare(struct hwc_composer_device_1 *dev,
                        size_t numDisplays,
-                       hwc_display_contents_1_t** displays)
-{
-    int err = 0, i = 0;
+                       hwc_display_contents_1_t** displays) {
+    int err = 0;
+    size_t i = 0;
     hwc_context_1_t *pdev =  (hwc_context_1_t *)dev;
     hwc_display_contents_1_t *display_content = NULL;
 
@@ -494,30 +490,24 @@ static int hwc_prepare(struct hwc_composer_device_1 *dev,
 
     LOG_FUNCTION_NAME
     //retireFenceFd will close in surfaceflinger, just reset it.
-    for (i=0;i<numDisplays;i++) {
-
-#ifdef SINGLE_EXTERNAL_DISPLAY_USE_FB1
-        if (pdev->display_ctxs[HWC_DISPLAY_EXTERNAL].connected
-            && i==HWC_DISPLAY_PRIMARY /*&& is_m8_single_display()*/) {
-            continue;
-        }
-#endif
+    for (i = 0; i < numDisplays; i++) {
+        CHK_SKIP_DISPLAY_FB0();
 
         display_content = displays[i];
         if ( display_content ) {
             display_content->retireFenceFd = -1;
             for (size_t j=0 ; j< display_content->numHwLayers ; j++) {
                 hwc_layer_1_t* l = &display_content->hwLayers[j];
-                //++hwc 1.4
-#ifndef SINGLE_EXTERNAL_DISPLAY_USE_FB1
+
+#ifdef ENABLE_CURSOR_LAYER
                 if (l->flags & HWC_IS_CURSOR_LAYER) {
                     l->hints = HWC_HINT_CLEAR_FB;
-                    HWC_LOGDA("This is a Sprite layer");
+                    HWC_LOGDA("This is a Cursor layer");
                     l->compositionType = HWC_CURSOR_OVERLAY;
                     continue;
                 }
 #endif
-                //--hwc 1.4
+
                 if (l->handle) {
                     private_handle_t const* hnd = reinterpret_cast<private_handle_t const*>(l->handle);
                     if (hnd->flags & private_handle_t::PRIV_FLAGS_OSD_VIDEO_OMX) {
@@ -538,23 +528,18 @@ static int hwc_prepare(struct hwc_composer_device_1 *dev,
 }
 
 static int fb_post(hwc_context_1_t *pdev,
-        hwc_display_contents_1_t* contents, int display_type){
+        hwc_display_contents_1_t* contents, int display_type) {
     int err = 0;
     size_t i = 0;
 
-    //++hwc 1.4
-#ifndef SINGLE_EXTERNAL_DISPLAY_USE_FB1
+#ifdef ENABLE_CURSOR_LAYER
     cursor_context_t * cursor_ctx = &(pdev->display_ctxs[display_type].cursor_ctx);
-    framebuffer_info_t* cbinfo = &(cursor_ctx->cb_info); 
-
+    framebuffer_info_t* cbinfo = &(cursor_ctx->cb_info);
     bool cursor_show = false;
 #endif
-    //--hwc 1.4
 
     for (i = 0; i < contents->numHwLayers; i++) {
-
-        //++hwc 1.4
-#ifndef SINGLE_EXTERNAL_DISPLAY_USE_FB1
+#ifdef ENABLE_CURSOR_LAYER
         //deal cursor layer
         if (contents->hwLayers[i].flags & HWC_IS_CURSOR_LAYER) {
             hwc_layer_1_t *layer = &(contents->hwLayers[i]);
@@ -562,12 +547,12 @@ static int fb_post(hwc_context_1_t *pdev,
             private_handle_t *hnd = (private_handle_t *)layer->handle;
 
             HWC_LOGDB("This is a Sprite, hnd->stride is %d, hnd->height is %d", hnd->stride, hnd->height);
-            if (cbinfo->info.xres != hnd->stride || cbinfo->info.yres != hnd->height) {
+            if (cbinfo->info.xres != (unsigned int)hnd->stride || cbinfo->info.yres != (unsigned int)hnd->height) {
                 HWC_LOGDB("disp: %d cursor need to redrew", display_type);
                 update_cursor_buffer_locked(cbinfo, hnd->stride, hnd->height);
                 cursor_ctx->cbuffer = mmap(NULL, hnd->size, PROT_READ|PROT_WRITE, MAP_SHARED, cbinfo->fd, 0);
                 if (cursor_ctx->cbuffer != MAP_FAILED) {
-                    memcpy(cursor_ctx->cbuffer, hnd->base, hnd->size); 
+                    memcpy(cursor_ctx->cbuffer, hnd->base, hnd->size);
                     munmap(cursor_ctx->cbuffer, hnd->size);
                     HWC_LOGDA("setCursor ok");
                 } else {
@@ -577,7 +562,6 @@ static int fb_post(hwc_context_1_t *pdev,
             cursor_show = true;
         }
 #endif
-        //--hwc 1.4
 
         //deal framebuffer target layer
         if (contents->hwLayers[i].compositionType == HWC_FRAMEBUFFER_TARGET) {
@@ -596,16 +580,6 @@ static int fb_post(hwc_context_1_t *pdev,
             }
 
             get_display_info(pdev, display_type);
-
-#ifdef DEBUG_EXTERNAL_DISPLAY_ON_PANEL
-            int acquireFence = layer->acquireFenceFd;
-            if (display_type != displayWho()) {
-                close(acquireFence);
-                acquireFence = -1;
-                continue;
-            }
-#endif
-
             layer->releaseFenceFd = fb_post_with_fence_locked(fbinfo,layer->handle,layer->acquireFenceFd);
 
             if (layer->releaseFenceFd >= 0) {
@@ -624,8 +598,7 @@ static int fb_post(hwc_context_1_t *pdev,
         }
     }
 
-    //++hwc 1.4
-#ifndef SINGLE_EXTERNAL_DISPLAY_USE_FB1
+#ifdef ENABLE_CURSOR_LAYER
     //finally we need to update cursor's blank status
     if (cbinfo->fd > 0 && (cursor_show != cursor_ctx->show) ) {
         cursor_ctx->show = cursor_show;
@@ -633,26 +606,15 @@ static int fb_post(hwc_context_1_t *pdev,
         ioctl(cbinfo->fd, FBIOBLANK, !cursor_ctx->show);
     }
 #endif
-    //--hwc 1.4
 
     return err;
 }
 
 
-#ifdef DEBUG_EXTERNAL_DISPLAY_ON_PANEL
-int displayWho(){
-    if (chk_bool_prop("debug.display_external")) {
-        return 1;
-    }else{
-        return 0;
-    }
-}
-#endif
-
 static int hwc_set(struct hwc_composer_device_1 *dev,
-        size_t numDisplays, hwc_display_contents_1_t** displays)
-{
-    int err = 0, i = 0, j =0;
+        size_t numDisplays, hwc_display_contents_1_t** displays) {
+    int err = 0;
+    size_t i = 0, j = 0;
     hwc_context_1_t *pdev =  (hwc_context_1_t *)dev;
     hwc_display_contents_1_t *display_content = NULL;
 
@@ -662,17 +624,11 @@ static int hwc_set(struct hwc_composer_device_1 *dev,
     //TODO: need improve the way to set video axis.
 #if WITH_LIBPLAYER_MODULE
     bool istvp = false;
-    for (i = 0;i<numDisplays;i++) {
-#ifdef SINGLE_EXTERNAL_DISPLAY_USE_FB1
-        if (pdev->display_ctxs[HWC_DISPLAY_EXTERNAL].connected
-            && i==HWC_DISPLAY_PRIMARY /*&& is_m8_single_display()*/) {
-            continue;
-        }
-#endif
-
+    for (i = 0; i < numDisplays; i++) {
+        CHK_SKIP_DISPLAY_FB0();
         display_content = displays[i];
-        if ( display_content ) {
-            for (j=0 ; j<display_content->numHwLayers ; j++) {
+        if (display_content) {
+            for (j = 0; j < display_content->numHwLayers; j++) {
                 hwc_layer_1_t* l = &display_content->hwLayers[j];
                 if (l->handle) {
                     private_handle_t const* hnd = reinterpret_cast<private_handle_t const*>(l->handle);
@@ -695,13 +651,7 @@ static int hwc_set(struct hwc_composer_device_1 *dev,
 #endif
 
     for (i=0;i<numDisplays;i++) {
-
-#ifdef SINGLE_EXTERNAL_DISPLAY_USE_FB1
-        if (pdev->display_ctxs[HWC_DISPLAY_EXTERNAL].connected
-                && i==HWC_DISPLAY_PRIMARY /*&& is_m8_single_display()*/) {
-            continue;
-        }
-#endif
+        CHK_SKIP_DISPLAY_FB0();
         display_content = displays[i];
         if (display_content) {
             if (i <= HWC_DISPLAY_VIRTUAL) {
@@ -717,8 +667,7 @@ static int hwc_set(struct hwc_composer_device_1 *dev,
     return err;
 }
 
-static int hwc_close(hw_device_t *device)
-{
+static int hwc_close(hw_device_t *device) {
     struct hwc_context_1_t *dev = (struct hwc_context_1_t *)device;
 
     LOG_FUNCTION_NAME
@@ -740,7 +689,7 @@ static int hwc_close(hw_device_t *device)
 /*
 Still have bugs, don't use it.
 */
-int wait_next_vsync(struct hwc_context_1_t* ctx, nsecs_t* vsync_timestamp){
+int wait_next_vsync(struct hwc_context_1_t* ctx, nsecs_t* vsync_timestamp) {
     static nsecs_t previewTime = 0;
     nsecs_t vsyncDiff=0;
     const nsecs_t period = ctx->vsync_period;
@@ -753,11 +702,10 @@ int wait_next_vsync(struct hwc_context_1_t* ctx, nsecs_t* vsync_timestamp){
     } else {
         if (ret == 1) {
             *vsync_timestamp = systemTime(CLOCK_MONOTONIC);
-            vsyncDiff=*vsync_timestamp - previewTime;   
+            vsyncDiff=*vsync_timestamp - previewTime;
             if (previewTime != 0) HWC_LOGEB("wait for vsync success %lld",vsyncDiff);
             vsyncDiff%=period;
-            if(vsyncDiff > 500000) 
-            {
+            if (vsyncDiff > 500000) {
                 nsecs_t sleep ;
                 sleep = (period - vsyncDiff);
                 *vsync_timestamp+=sleep;
@@ -765,7 +713,7 @@ int wait_next_vsync(struct hwc_context_1_t* ctx, nsecs_t* vsync_timestamp){
                 spec.tv_sec  = *vsync_timestamp / 1000000000;
                 spec.tv_nsec = *vsync_timestamp % 1000000000;
                 clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &spec, NULL);
-            }	    	    	
+            }
             previewTime = *vsync_timestamp;
             ret=0;
         } else {
@@ -779,39 +727,44 @@ int wait_next_vsync(struct hwc_context_1_t* ctx, nsecs_t* vsync_timestamp){
 #else
 
 //software
-int wait_next_vsync(struct hwc_context_1_t* ctx , nsecs_t* vsync_timestamp)
-{
-    static nsecs_t nextFakeVSync = 0;
+int wait_next_vsync(struct hwc_context_1_t* ctx, nsecs_t* vsync_timestamp) {
+    static nsecs_t vsync_time = 0;
+    nsecs_t sleep;
+    nsecs_t newperiod = chk_output_mode(ctx->mode);
+    nsecs_t now = systemTime(CLOCK_MONOTONIC);
 
-    const nsecs_t period = ctx->vsync_period;
-    const nsecs_t now = systemTime(CLOCK_MONOTONIC);
-    nsecs_t next_vsync = nextFakeVSync;
-    nsecs_t sleep = next_vsync - now;
-    if (sleep < 0) {
-        // we missed, find where the next vsync should be
-        sleep = (period - ((now - next_vsync) % period));
-        next_vsync = now + sleep;
+    //cal the last vsync time with old period
+    if (newperiod > 0 && newperiod != ctx->vsync_period) {
+        vsync_time = vsync_time +
+                ((now - vsync_time) / ctx->vsync_period) * ctx->vsync_period;
+        ctx->vsync_period = newperiod;
     }
-    nextFakeVSync = next_vsync + period;
+
+    //set to next vsync time
+    vsync_time +=ctx->vsync_period;
+
+    // we missed, find where the next vsync should be
+    if (vsync_time - now < 0) {
+        vsync_time = now + (ctx->vsync_period -
+                 ((now - vsync_time) % ctx->vsync_period));
+    }
 
     struct timespec spec;
-    spec.tv_sec  = next_vsync / 1000000000;
-    spec.tv_nsec = next_vsync % 1000000000;
+    spec.tv_sec  = vsync_time / 1000000000;
+    spec.tv_nsec = vsync_time % 1000000000;
 
     int err;
     do {
         err = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &spec, NULL);
     } while (err<0 && errno == EINTR);
-    *vsync_timestamp = next_vsync;
+    *vsync_timestamp = vsync_time;
 
     return err;
 }
 #endif
 
-static void *hwc_vsync_thread(void *data)
-{
+static void *hwc_vsync_thread(void *data) {
     struct hwc_context_1_t* ctx = (struct hwc_context_1_t*)data;
-    nsecs_t nextFakeVSync = 0;
     nsecs_t timestamp;
 
     setpriority(PRIO_PROCESS, 0, HAL_PRIORITY_URGENT_DISPLAY-1);
@@ -819,7 +772,7 @@ static void *hwc_vsync_thread(void *data)
 
     while (true) {
         pthread_mutex_lock(&hwc_mutex);
-        while(ctx->vsync_enable==false) {
+        while (ctx->vsync_enable == false) {
             pthread_cond_wait(&hwc_cond, &hwc_mutex);
         }
         pthread_mutex_unlock(&hwc_mutex);
@@ -833,10 +786,8 @@ static void *hwc_vsync_thread(void *data)
 }
 
 #ifdef WITH_EXTERNAL_DISPLAY
-
 //#define SIMULATE_HOT_PLUG 1
-static bool chk_external_conect()
-{
+static bool chk_external_conect() {
 #ifdef SIMULATE_HOT_PLUG
     HWC_LOGDA("Simulate hot plug");
     return chk_bool_prop("debug.connect_external");
@@ -847,12 +798,11 @@ static bool chk_external_conect()
 #endif
 }
 
-static void *hwc_hotplug_thread(void *data)
-{
+static void *hwc_hotplug_thread(void *data) {
     struct hwc_context_1_t* ctx = (struct hwc_context_1_t*)data;
 
     while (true) {
-        usleep(500*1000);//sleep 200 ms.
+        usleep(500*1000);//sleep 500 ms.
 
         if (ctx->procs) {
             bool connect = chk_external_conect();
@@ -866,15 +816,6 @@ static void *hwc_hotplug_thread(void *data)
                 }
                 ctx->procs->hotplug(ctx->procs, HWC_DISPLAY_EXTERNAL, connect);
             }
-#if WITH_LIBPLAYER_MODULE
-            //we should refresh screen when video buf used flag changed
-            if (chk_sysfs_status(SYSFS_VIDEOBUFUSED, ctx->video_buf_used, 32)) {
-                ctx->procs->invalidate(ctx->procs);
-            }
-#endif
-            if (chk_sysfs_status(SYSFS_DISPLAY_MODE, ctx->mode, 32)) {
-                ctx->vsync_period = chk_output_mode(ctx->mode);
-            }
         }
     }
 
@@ -883,16 +824,14 @@ static void *hwc_hotplug_thread(void *data)
 #endif
 
 static void hwc_registerProcs(hwc_composer_device_1 *dev,
-            hwc_procs_t const* procs)
-{
+            hwc_procs_t const* procs) {
     struct hwc_context_1_t* ctx = (struct hwc_context_1_t*)dev;
 
     if (ctx) ctx->procs = procs;
 }
 
 static int hwc_getDisplayConfigs(hwc_composer_device_1_t *dev,
-            int disp ,uint32_t *config ,size_t *numConfigs)
-{
+            int disp ,uint32_t *config ,size_t *numConfigs) {
     struct hwc_context_1_t* ctx = (struct hwc_context_1_t*)dev;
 
     if (*numConfigs == 0) return 0;
@@ -919,8 +858,7 @@ static int hwc_getDisplayConfigs(hwc_composer_device_1_t *dev,
 }
 
 static int hwc_getDisplayAttributes(hwc_composer_device_1_t *dev,
-            int disp, uint32_t config, const uint32_t *attributes, int32_t *values)
-{
+            int disp, uint32_t, const uint32_t *attributes, int32_t *values) {
     struct hwc_context_1_t* ctx = (struct hwc_context_1_t*)dev;
 
     LOG_FUNCTION_NAME
@@ -928,7 +866,7 @@ static int hwc_getDisplayAttributes(hwc_composer_device_1_t *dev,
     get_display_info(ctx,disp);
 
     for (int i = 0; attributes[i] != HWC_DISPLAY_NO_ATTRIBUTE; i++) {
-        switch(attributes[i]) {	
+        switch (attributes[i]) {
             case HWC_DISPLAY_VSYNC_PERIOD:
                 values[i] = ctx->vsync_period;
             break;
@@ -957,34 +895,25 @@ static int hwc_getDisplayAttributes(hwc_composer_device_1_t *dev,
 }
 
 
-//++hwc 1.4
-static int hwc_getActiveConfig(struct hwc_composer_device_1* dev, int disp)
-{
-    struct hwc_context_1_t *pdev = (struct hwc_context_1_t *)dev;
-
-    //TODO:
-
-    LOG_FUNCTION_NAME_EXIT
-    return 0;
-}
-
-static int hwc_setActiveConfig(struct hwc_composer_device_1* dev, int disp,
-            int index)
-{
+static int hwc_getActiveConfig(struct hwc_composer_device_1*, int) {
     LOG_FUNCTION_NAME
-    struct hwc_context_1_t *pdev = (struct hwc_context_1_t *)dev;
-
     //TODO:
     LOG_FUNCTION_NAME_EXIT
     return 0;
 }
 
-static int hwc_setCursorPositionAsync(struct hwc_composer_device_1 *dev, int disp, 
-    int x_pos, int y_pos)
-{
+static int hwc_setActiveConfig(struct hwc_composer_device_1*, int, int) {
+    LOG_FUNCTION_NAME
+    //TODO:
+    LOG_FUNCTION_NAME_EXIT
+    return 0;
+}
+
+static int hwc_setCursorPositionAsync(struct hwc_composer_device_1 *dev, int disp,
+    int x_pos, int y_pos) {
     LOG_FUNCTION_NAME
 
-#ifndef SINGLE_EXTERNAL_DISPLAY_USE_FB1
+#ifdef ENABLE_CURSOR_LAYER
     int err = 0, i = 0;
     struct fb_cursor cinfo;
     struct hwc_context_1_t* ctx = (struct hwc_context_1_t*)dev;
@@ -1011,11 +940,9 @@ static int hwc_setCursorPositionAsync(struct hwc_composer_device_1 *dev, int dis
     return 0;
 }
 
-//--hwc 1.4
 
 static int hwc_device_open(const struct hw_module_t* module, const char* name,
-        struct hw_device_t** device)
-{
+        struct hw_device_t** device) {
     int ret;
 
     if (strcmp(name, HWC_HARDWARE_COMPOSER)) return -EINVAL;
@@ -1095,8 +1022,7 @@ err_get_module:
 /*
 Operater of framebuffer
 */
-int init_display(hwc_context_1_t* context,int displayType)
-{
+int init_display(hwc_context_1_t* context,int displayType) {
     get_display_info(context, displayType);
 
     if (display_ctx->connected) return 0;
@@ -1128,8 +1054,7 @@ int init_display(hwc_context_1_t* context,int displayType)
     display_ctx->connected = true;
     pthread_mutex_unlock(&hwc_mutex);
 
-    //++hwc 1.4
-#ifndef SINGLE_EXTERNAL_DISPLAY_USE_FB1
+#ifdef ENABLE_CURSOR_LAYER
     // init cursor framebuffer
     cursor_context_t* cursor_ctx = &(display_ctx->cursor_ctx);
     cursor_ctx->show = false;
@@ -1158,13 +1083,12 @@ int init_display(hwc_context_1_t* context,int displayType)
         HWC_LOGEA("init_cursor_buffer fail!");
     }
 #endif
-    //--hwc 1.4
+
 
     return 0;
 }
 
-int uninit_display(hwc_context_1_t* context,int displayType)
-{
+int uninit_display(hwc_context_1_t* context, int displayType) {
     get_display_info(context, displayType);
 
     if (!display_ctx->connected) {
@@ -1172,7 +1096,6 @@ int uninit_display(hwc_context_1_t* context,int displayType)
     }
 
     pthread_mutex_lock(&hwc_mutex);
-
     display_ctx->connected = false;
     pthread_mutex_unlock(&hwc_mutex);
 
