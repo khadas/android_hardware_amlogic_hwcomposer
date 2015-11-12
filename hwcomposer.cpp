@@ -154,7 +154,6 @@ struct hwc_context_1_t {
     display_context_t display_ctxs[MAX_SUPPORT_DISPLAYS];
 };
 
-static int Amvideo_Handle = 0;
 static pthread_cond_t hwc_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t hwc_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -508,6 +507,14 @@ static int hwc_prepare(struct hwc_composer_device_1 *dev,
                 }
 #endif
 
+                if (l->compositionType == HWC_SIDEBAND && l->sidebandStream) {
+                    //TODO: we just transact SIDEBAND to OVERLAY now;
+                    HWC_LOGVA("get HWC_SIDEBAND layer, just change to overlay");
+                    l->hints = HWC_HINT_CLEAR_FB;
+                    l->compositionType = HWC_OVERLAY;
+                    continue;
+                }
+
                 if (l->handle) {
                     private_handle_t const* hnd = reinterpret_cast<private_handle_t const*>(l->handle);
                     if (hnd->flags & private_handle_t::PRIV_FLAGS_OSD_VIDEO_OMX) {
@@ -623,27 +630,15 @@ static int hwc_set(struct hwc_composer_device_1 *dev,
     LOG_FUNCTION_NAME
     //TODO: need improve the way to set video axis.
 #if WITH_LIBPLAYER_MODULE
-    bool istvp = false;
     for (i = 0; i < numDisplays; i++) {
         CHK_SKIP_DISPLAY_FB0();
         display_content = displays[i];
         if (display_content) {
             for (j = 0; j < display_content->numHwLayers; j++) {
                 hwc_layer_1_t* l = &display_content->hwLayers[j];
-                if (l->handle) {
-                    private_handle_t const* hnd = reinterpret_cast<private_handle_t const*>(l->handle);
-                    if (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OMX) {
-                        set_omx_pts((char*)hnd->base, &Amvideo_Handle);
-                        istvp = true;
-                    }
-                    if (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OVERLAY) {
-                        hwc_overlay_compose(pdev, l);
-                    }
+                if (l->compositionType == HWC_OVERLAY) {
+                    hwc_overlay_compose(pdev, l);
                 }
-            }
-            if (istvp == false && Amvideo_Handle!=0) {
-                closeamvideo();
-                Amvideo_Handle = 0;
             }
         }
     }
