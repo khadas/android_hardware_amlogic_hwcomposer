@@ -15,7 +15,6 @@ LOCAL_SRC_FILES := hwcomposer.cpp
 
 ifeq ($(GPU_TYPE),t83x)
 LOCAL_CFLAGS += -DGRALLOC_T83X
-WITH_LIBPLAYER_MODULE := false
 endif
 
 MESON_GRALLOC_DIR ?= hardware/amlogic/gralloc
