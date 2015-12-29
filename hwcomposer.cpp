@@ -1035,13 +1035,8 @@ int init_display(hwc_context_1_t* context,int displayType) {
         if (displayType > 0) usage |= GRALLOC_USAGE_EXTERNAL_DISP;
 
         //Register the framebuffer to gralloc module
-#ifndef GRALLOC_T83X
-        display_ctx->fb_hnd = new private_handle_t(private_handle_t::PRIV_FLAGS_FRAMEBUFFER, usage, fbinfo->fbSize, 0,
-                                                                    0, fbinfo->fd, bufferSize);
-#else
         display_ctx->fb_hnd = new private_handle_t(private_handle_t::PRIV_FLAGS_FRAMEBUFFER, usage, fbinfo->fbSize, 0,
                                                                     0, fbinfo->fd, bufferSize, 0);
-#endif
         context->gralloc_module->base.registerBuffer(&(context->gralloc_module->base),display_ctx->fb_hnd);
         HWC_LOGDB("init_frame_buffer get frame size %d usage %d",bufferSize,usage);
     }
