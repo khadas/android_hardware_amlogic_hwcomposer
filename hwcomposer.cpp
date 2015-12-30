@@ -359,8 +359,8 @@ static void hwc_overlay_compose(hwc_context_1_t *dev, hwc_layer_1_t const* l) {
 
     amvideo_utils_set_virtual_position(l->displayFrame.left,
                    l->displayFrame.top,
-                   l->displayFrame.right - l->displayFrame.left + 1,
-                   l->displayFrame.bottom - l->displayFrame.top + 1,
+                   l->displayFrame.right - l->displayFrame.left,
+                   l->displayFrame.bottom - l->displayFrame.top,
                    angle);
 
     /* the screen mode from Android framework should always be set to normal mode
