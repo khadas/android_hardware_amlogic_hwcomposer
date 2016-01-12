@@ -13,6 +13,12 @@ LOCAL_SHARED_LIBRARIES := liblog libEGL libutils libcutils libhardware libsync l
 LOCAL_STATIC_LIBRARIES := libomxutil
 LOCAL_SRC_FILES := hwcomposer.cpp
 
+ifeq ($(GPU_TYPE),t83x)
+	LOCAL_CFLAGS += -DMALI_AFBC_GRALLOC=1
+else
+	LOCAL_CFLAGS += -DMALI_AFBC_GRALLOC=0
+endif
+
 MESON_GRALLOC_DIR ?= hardware/amlogic/gralloc
 
 LOCAL_C_INCLUDES += \
