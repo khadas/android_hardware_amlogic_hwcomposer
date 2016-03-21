@@ -48,7 +48,7 @@ int setomxpts(int time_video) {
 
 void set_omx_pts(char* data, int* handle) {
     if (strncmp(data, TVP_SECRET, strlen(TVP_SECRET))==0) {
-        if (*handle==0) {
+        if (*handle == 0 || amvideo_handle == 0) {
              *handle = openamvideo();
             if (*handle == 0)
                 ALOGW("can not open amvideo");
