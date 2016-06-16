@@ -154,6 +154,13 @@ struct hwc_context_1_t {
     display_context_t display_ctxs[MAX_SUPPORT_DISPLAYS];
 };
 
+typedef struct hwc_uevent_data {
+    int len;
+    char buf[1024];
+    char name[128];
+    char state[128];
+} hwc_uevent_data_t;
+
 static pthread_cond_t hwc_cond = PTHREAD_COND_INITIALIZER;
 static pthread_mutex_t hwc_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -252,6 +259,40 @@ static int32_t chk_output_mode(char* curmode) {
 
     HWC_LOGVB("get new outputmode (%s) new period (%ld)", curmode, period);
     return period;
+}
+
+static bool chk_vinfo(hwc_context_1_t* ctx, int disp) {
+    get_display_info(ctx, disp);
+    if (fbinfo != NULL && fbinfo->fd >= 0) {
+        struct fb_var_screeninfo vinfo;
+        if (ioctl(fbinfo->fd, FBIOGET_VSCREENINFO, &vinfo) == -1)
+        {
+            ALOGE("FBIOGET_VSCREENINFO error!!!");
+            return -errno;
+        }
+
+        if (vinfo.xres != fbinfo->info.xres
+            || vinfo.yres != fbinfo->info.yres
+            || vinfo.width != fbinfo->info.width
+            || vinfo.height != fbinfo->info.height) {
+            if (int(vinfo.width) <= 16 || int(vinfo.height) <= 9) {
+                // the driver doesn't return that information
+                // default to 160 dpi
+                vinfo.width  = ((vinfo.xres * 25.4f)/160.0f + 0.5f);
+                vinfo.height = ((vinfo.yres * 25.4f)/160.0f + 0.5f);
+            }
+            fbinfo->xdpi = (vinfo.xres * 25.4f) / vinfo.width;
+            fbinfo->ydpi = (vinfo.yres * 25.4f) / vinfo.height;
+
+            fbinfo->info.xres = vinfo.xres;
+            fbinfo->info.yres = vinfo.yres;
+            fbinfo->info.width = vinfo.width;
+            fbinfo->info.height = vinfo.height;
+
+            return true;
+        }
+    }
+    return false;
 }
 
 static int hwc_device_open(const struct hw_module_t* module, const char* name,
@@ -724,15 +765,17 @@ int wait_next_vsync(struct hwc_context_1_t* ctx, nsecs_t* vsync_timestamp) {
 //software
 int wait_next_vsync(struct hwc_context_1_t* ctx, nsecs_t* vsync_timestamp) {
     static nsecs_t vsync_time = 0;
+    static nsecs_t old_vsync_period = 0;
     nsecs_t sleep;
-    nsecs_t newperiod = chk_output_mode(ctx->mode);
     nsecs_t now = systemTime(CLOCK_MONOTONIC);
 
     //cal the last vsync time with old period
-    if (newperiod > 0 && newperiod != ctx->vsync_period) {
-        vsync_time = vsync_time +
-                ((now - vsync_time) / ctx->vsync_period) * ctx->vsync_period;
-        ctx->vsync_period = newperiod;
+    if (ctx->vsync_period != old_vsync_period) {
+        if (old_vsync_period > 0) {
+            vsync_time = vsync_time +
+                    ((now - vsync_time) / old_vsync_period) * old_vsync_period;
+        }
+        old_vsync_period = ctx->vsync_period;
     }
 
     //set to next vsync time
@@ -780,8 +823,34 @@ static void *hwc_vsync_thread(void *data) {
     return NULL;
 }
 
-#ifdef WITH_EXTERNAL_DISPLAY
+//#ifdef WITH_EXTERNAL_DISPLAY
 //#define SIMULATE_HOT_PLUG 1
+#define HDMI_UEVENT                     "DEVPATH=/devices/virtual/switch/hdmi_audio"
+#define HDMI_POWER_UEVENT               "DEVPATH=/devices/virtual/switch/hdmi_power"
+
+static bool isMatch(hwc_uevent_data_t* ueventData, const char* matchName) {
+    bool matched = false;
+    // Consider all zero-delimited fields of the buffer.
+    const char* field = ueventData->buf;
+    const char* end = ueventData->buf + ueventData->len + 1;
+    do {
+        if (strstr(field, matchName)) {
+            HWC_LOGEB("Matched uevent message with pattern: %s", matchName);
+            matched = true;
+        }
+        //SWITCH_STATE=1, SWITCH_NAME=hdmi
+        else if (strstr(field, "SWITCH_STATE=")) {
+            strcpy(ueventData->state, field + strlen("SWITCH_STATE="));
+        }
+        else if (strstr(field, "SWITCH_NAME=")) {
+            strcpy(ueventData->name, field + strlen("SWITCH_NAME="));
+        }
+        field += strlen(field) + 1;
+    } while (field != end);
+
+    return matched;
+}
+
 static bool chk_external_conect() {
 #ifdef SIMULATE_HOT_PLUG
     HWC_LOGDA("Simulate hot plug");
@@ -795,28 +864,55 @@ static bool chk_external_conect() {
 
 static void *hwc_hotplug_thread(void *data) {
     struct hwc_context_1_t* ctx = (struct hwc_context_1_t*)data;
+    bool fpsChanged = false, sizeChanged = false;
+    //use uevent instead of usleep, because it has some delay
+    hwc_uevent_data_t u_data;
+    memset(&u_data, 0, sizeof(hwc_uevent_data_t));
+    int fd = uevent_init();
 
-    while (true) {
-        usleep(500*1000);//sleep 500 ms.
-
+    while (fd > 0) {
         if (ctx->procs) {
-            bool connect = chk_external_conect();
-            get_display_info(ctx,HWC_DISPLAY_EXTERNAL);
-            if (display_ctx->connected != connect ) {
-                HWC_LOGDB("external new state : %d",connect);
-                if (!display_ctx->connected) {
-                    init_display(ctx,HWC_DISPLAY_EXTERNAL);
-                } else {
-                    uninit_display(ctx,HWC_DISPLAY_EXTERNAL);
+            fpsChanged = false;
+            sizeChanged = false;
+            u_data.len= uevent_next_event(u_data.buf, sizeof(u_data.buf) - 1);
+            if (u_data.len <= 0)
+                continue;
+
+            u_data.buf[u_data.len] = '\0';
+#if 0
+            //change@/devices/virtual/switch/hdmi ACTION=change DEVPATH=/devices/virtual/switch/hdmi
+            //SUBSYSTEM=switch SWITCH_NAME=hdmi SWITCH_STATE=0 SEQNUM=2791
+            char printBuf[1024] = {0};
+            memcpy(printBuf, u_data.buf, u_data.len);
+            for (int i = 0; i < u_data.len; i++) {
+                if (printBuf[i] == 0x0)
+                    printBuf[i] = ' ';
+            }
+            HWC_LOGEB("Received uevent message: %s", printBuf);
+#endif
+            if (isMatch(&u_data, HDMI_UEVENT)) {
+                //HWC_LOGEB("HDMI switch_state: %s switch_name: %s\n", u_data.state, u_data.name);
+                if ((!strcmp(u_data.name, "hdmi_audio")) &&
+                    (!strcmp(u_data.state, "1"))) {
+                    // update vsync period if neccessry
+                    nsecs_t newperiod = chk_output_mode(ctx->mode);
+                    // check if vsync period is changed
+                    if (newperiod > 0 && newperiod != ctx->vsync_period) {
+                        ctx->vsync_period = newperiod;
+                        fpsChanged = true;
+                    }
+                    sizeChanged = chk_vinfo(ctx, HWC_DISPLAY_PRIMARY);
+                    if (fpsChanged || sizeChanged) {
+                        ctx->procs->hotplug(ctx->procs, HWC_DISPLAY_PRIMARY, 1);
+                    }
                 }
-                ctx->procs->hotplug(ctx->procs, HWC_DISPLAY_EXTERNAL, connect);
             }
         }
     }
 
     return NULL;
 }
-#endif
+//#endif
 
 static void hwc_registerProcs(hwc_composer_device_1 *dev,
             hwc_procs_t const* procs) {
@@ -957,8 +1053,8 @@ static int hwc_device_open(const struct hw_module_t* module, const char* name,
     //default is alwasy false,will check it in hot plug.
     init_display(dev,HWC_DISPLAY_PRIMARY);
 
-    //60HZ, willchanged to use hw vsync.
-    dev->vsync_period  = 16666666;
+    // willchanged to use hw vsync.
+    dev->vsync_period = chk_output_mode(dev->mode);
 
     dev->base.common.tag = HARDWARE_DEVICE_TAG;
     dev->base.common.version = HWC_DEVICE_API_VERSION_1_4;
@@ -994,7 +1090,7 @@ static int hwc_device_open(const struct hw_module_t* module, const char* name,
         goto err_vsync;
     }
 
-#ifdef WITH_EXTERNAL_DISPLAY
+//#ifdef WITH_EXTERNAL_DISPLAY
     //temp solution, will change to use uevnet from kernel
     ret = pthread_create(&dev->hotplug_thread, NULL, hwc_hotplug_thread, dev);
     if (ret) {
@@ -1002,7 +1098,7 @@ static int hwc_device_open(const struct hw_module_t* module, const char* name,
         ret = -ret;
         goto err_vsync;
     }
-#endif
+//#endif
 
     return 0;
 
