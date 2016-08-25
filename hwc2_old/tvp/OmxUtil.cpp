@@ -47,13 +47,13 @@ int setomxpts(int time_video) {
 }
 
 void set_omx_pts(char* data, int* handle) {
-    if (strncmp(data, TVP_SECRET, strlen(TVP_SECRET))==0) {
+    if (strncmp(data, TVP_SECRET, strlen(TVP_SECRET)) == 0) {
         if (*handle == 0 || amvideo_handle == 0) {
              *handle = openamvideo();
             if (*handle == 0)
                 ALOGW("can not open amvideo");
         }
-        if (strncmp(data+sizeof(TVP_SECRET)+sizeof(signed long long), TVP_SECRET_RENDER, strlen(TVP_SECRET_RENDER))!=0) {
+        if (strncmp(data+sizeof(TVP_SECRET)+sizeof(signed long long), TVP_SECRET_RENDER, strlen(TVP_SECRET_RENDER)) != 0) {
             signed long long time;
             memcpy(&time, (char*)data+sizeof(TVP_SECRET), sizeof(signed long long));
             int time_video = time * 9 / 100 + 1;
@@ -63,7 +63,7 @@ void set_omx_pts(char* data, int* handle) {
                 ALOGW("setomxpts error, ret =%d",ret);
             }
         }
-        memcpy((char*)data+sizeof(TVP_SECRET)+sizeof(signed long long), TVP_SECRET_RENDER, sizeof(TVP_SECRET_RENDER)); 
+        memcpy((char*)data + sizeof(TVP_SECRET) + sizeof(signed long long), TVP_SECRET_RENDER, sizeof(TVP_SECRET_RENDER));
     }
 }
 

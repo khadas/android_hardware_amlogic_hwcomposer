@@ -1,56 +1,24 @@
-# Copyright (C) 2011 Amlogic
+# Copyright (C) 2008 The Android Open Source Project
 #
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
 #
+#      http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 LOCAL_PATH := $(call my-dir)
+LOCAL_ROOT_PATH := $(call my-dir)
 
-# HAL module implemenation, not prelinked and stored in
-# /system/lib/hw/hwcomposer.amlogic.so
-include $(CLEAR_VARS)
+USE_HWC2_CPP := true
 
-LOCAL_MODULE_RELATIVE_PATH := hw
-LOCAL_SHARED_LIBRARIES := liblog libEGL libutils libcutils libhardware libsync libfbcnf libhardware_legacy
-LOCAL_STATIC_LIBRARIES := libomxutil
-LOCAL_SRC_FILES := hwcomposer.cpp
-
-LOCAL_KK=0
-ifeq ($(GPU_TYPE),t83x)
-LOCAL_KK:=1
-endif
-ifeq ($(GPU_ARCH),midgard)
-LOCAL_KK:=1
-endif
-ifeq ($(LOCAL_KK),1)
-	LOCAL_CFLAGS += -DMALI_AFBC_GRALLOC=1
+ifeq ($(USE_HWC2_CPP),true)
+    include $(LOCAL_PATH)/hwc2/platforms/Android.mk
 else
-	LOCAL_CFLAGS += -DMALI_AFBC_GRALLOC=0
+    include $(LOCAL_PATH)/hwc2_old/Android.mk
 endif
-
-MESON_GRALLOC_DIR ?= hardware/amlogic/gralloc
-
-LOCAL_C_INCLUDES += \
-    $(MESON_GRALLOC_DIR)
-
-LOCAL_C_INCLUDES += system/core/libion/include/ \
-                system/core/libion/kernel-headers
-
-ifneq ($(WITH_LIBPLAYER_MODULE),false)
-LOCAL_SHARED_LIBRARIES += libamavutils_alsa
-AMPLAYER_APK_DIR=$(TOP)/vendor/amlogic/frameworks/av/LibPlayer/
-LOCAL_C_INCLUDES += \
-    $(AMPLAYER_APK_DIR)/amavutils/include
-LOCAL_CFLAGS += -DWITH_LIBPLAYER_MODULE=1
-endif
-
-ifeq ($(TARGET_EXTERNAL_DISPLAY),true)
-LOCAL_CFLAGS += -DWITH_EXTERNAL_DISPLAY
-ifeq ($(TARGET_SINGLE_EXTERNAL_DISPLAY_USE_FB1),true)
-LOCAL_CFLAGS += -DSINGLE_EXTERNAL_DISPLAY_USE_FB1
-endif
-endif
-
-LOCAL_MODULE := hwcomposer.amlogic
-LOCAL_CFLAGS += -DLOG_TAG=\"hwcomposer\"
-LOCAL_MODULE_TAGS := optional
-include $(BUILD_SHARED_LIBRARY)
-include $(call all-makefiles-under,$(LOCAL_PATH))
