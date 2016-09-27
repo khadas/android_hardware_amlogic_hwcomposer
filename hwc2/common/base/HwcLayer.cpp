@@ -63,7 +63,7 @@ int32_t HwcLayer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) {
         //mBufferHnd = buffer;
         // if (-1 != acquireFence) mAcquireFence = acquireFence;
     //} else {
-        ETRACE("Layer buffer is null! no need to update this layer.");
+        DTRACE("Layer buffer is null! no need to update this layer.");
     }
     mBufferHnd = buffer;
     mAcquireFence =acquireFence ;

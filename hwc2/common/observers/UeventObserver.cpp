@@ -175,7 +175,7 @@ void UeventObserver::onUevent()
 {
     char *msg = mUeventMessage;
     const char *envelope = Utils::getUeventEnvelope();
-    ETRACE("onUevent: %s", mUeventMessage);
+    DTRACE("onUevent: %s", mUeventMessage);
     if (strncmp(msg, envelope, strlen(envelope)) != 0)
         return;
 
@@ -185,7 +185,7 @@ void UeventObserver::onUevent()
     String8 key;
     while (*msg) {
         key = String8(msg);
-        ETRACE("received Uevent: %s", msg);
+        DTRACE("received Uevent: %s", msg);
         if (mListeners.indexOfKey(key) >= 0) {
             DTRACE("received Uevent: %s", msg);
             listener = mListeners.valueFor(key);
