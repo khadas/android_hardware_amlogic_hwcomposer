@@ -45,7 +45,8 @@ LOCAL_C_INCLUDES += \
     $(MESON_GRALLOC_DIR)
 
 LOCAL_C_INCLUDES += system/core/libion/include/ \
-                system/core/libion/kernel-headers
+                system/core/libion/kernel-headers \
+                $(LOCAL_PATH)/..
 
 ifneq ($(WITH_LIBPLAYER_MODULE),false)
 LOCAL_SHARED_LIBRARIES += libamavutils_alsa
