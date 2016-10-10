@@ -188,8 +188,13 @@ void HwcLayer::presentOverlay() {
     axis_changed            = Utils::checkSysfsStatus(SYSFS_VIDEO_AXIS, mLastAxis, 32);
     window_axis_changed     = Utils::checkSysfsStatus(SYSFS_WINDOW_AXIS, mLastWindowaxis, 50);
 
-    if (!vpp_changed && !mode_changed && !axis_changed && !free_scale_changed
-        && !window_axis_changed) {
+    if (mLastTransform == mTransform
+        && mLastDisplayFrame.left == mDisplayFrame.left
+        && mLastDisplayFrame.top == mDisplayFrame.top
+        && mLastDisplayFrame.right == mDisplayFrame.right
+        && mLastDisplayFrame.bottom== mDisplayFrame.bottom
+        && !vpp_changed && !mode_changed && !axis_changed
+        && !free_scale_changed && !window_axis_changed) {
         return;
     }
 
@@ -220,6 +225,11 @@ void HwcLayer::presentOverlay() {
     */
     /*set screen_mode in amvideo_utils_set_virtual_position(),pls check in libplayer*/
     //amvideo_utils_set_screen_mode(0);
+    mLastTransform = mTransform;
+    mLastDisplayFrame.left = mDisplayFrame.left;
+    mLastDisplayFrame.top = mDisplayFrame.top;
+    mLastDisplayFrame.right = mDisplayFrame.right;
+    mLastDisplayFrame.bottom = mDisplayFrame.bottom;
 
     memset(mLastAxis, 0, sizeof(mLastAxis));
     if (amsysfs_get_sysfs_str(SYSFS_VIDEO_AXIS, mLastAxis, sizeof(mLastAxis)) == 0) {

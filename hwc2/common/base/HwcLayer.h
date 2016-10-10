@@ -61,9 +61,11 @@ class HwcLayer {
         int32_t mDataSpace;
         float mPlaneAlpha;
         int32_t mTransform;
+        int32_t mLastTransform;
         uint32_t mZ;
         hwc_frect_t mSourceCrop;
         hwc_rect_t mDisplayFrame;
+        hwc_rect_t mLastDisplayFrame;
         hwc_region_t mDamageRegion;
         hwc_region_t mVisibleRegion;
 
