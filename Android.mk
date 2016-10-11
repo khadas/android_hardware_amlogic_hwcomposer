@@ -22,3 +22,5 @@ ifeq ($(USE_HWC2_CPP),true)
 else
     include $(LOCAL_PATH)/hwc2_old/Android.mk
 endif
+
+include $(LOCAL_ROOT_PATH)/tvp/Android.mk

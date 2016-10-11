@@ -36,6 +36,8 @@ LOCAL_SHARED_LIBRARIES := \
     libsync \
     libfbcnf
 
+LOCAL_STATIC_LIBRARIES := libomxutil
+
 LOCAL_C_INCLUDES := \
     system/core \
     system/core/libsync/include
@@ -48,6 +50,7 @@ LOCAL_C_INCLUDES += $(LOCAL_PATH) \
     $(LOCAL_PATH)/../common/observers \
     $(LOCAL_PATH)/../common/planes \
     $(LOCAL_PATH)/../common/utils \
+    $(LOCAL_PATH)/../.. \
     $(LOCAL_PATH)/
 
 LOCAL_KK=0

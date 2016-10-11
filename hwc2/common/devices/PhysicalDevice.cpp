@@ -7,6 +7,10 @@
 #include <sys/ioctl.h>
 #include <Utils.h>
 
+#include <tvp/OmxUtil.h>
+
+static int Amvideo_Handle = 0;
+
 namespace android {
 namespace amlogic {
 
@@ -549,6 +553,7 @@ bool PhysicalDevice::vsyncControl(bool enabled) {
 int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
     uint32_t* outNumRequests) {
     HwcLayer* layer = NULL;
+    bool istvp = false;
 
     for (uint32_t i=0; i<mHwcLayers.size(); i++) {
         hwc2_layer_t layerId = mHwcLayers.keyAt(i);
@@ -560,6 +565,10 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
                 if (layer->getBufferHandle()) {
                     private_handle_t const* hnd =
                         reinterpret_cast<private_handle_t const*>(layer->getBufferHandle());
+                    if (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OMX) {
+                        set_omx_pts((char*)hnd->base, &Amvideo_Handle);
+                        istvp = true;
+                    }
                     if (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OVERLAY) {
                         mHwcLayersChangeRequest.add(layerId, layer);
                         continue;
@@ -596,6 +605,11 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
                 continue;
             }
         }
+    }
+
+    if (istvp == false && Amvideo_Handle!=0) {
+        closeamvideo();
+        Amvideo_Handle = 0;
     }
 
     if (mHwcLayersChangeRequest.size() > 0) {
