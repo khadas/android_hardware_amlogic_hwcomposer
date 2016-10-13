@@ -143,6 +143,8 @@ private:
 
     int32_t /*android_color_mode_t*/ mColorMode;
 
+    int32_t /*hwc2_power_mode_t*/ mPowerMode;
+
     // client target layer.
     buffer_handle_t mClientTargetHnd;
     hwc_region_t mClientTargetDamageRegion;

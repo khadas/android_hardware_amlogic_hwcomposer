@@ -5,6 +5,7 @@
 #include <PhysicalDevice.h>
 #include <Hwcomposer.h>
 #include <sys/ioctl.h>
+#include <sync/sync.h>
 #include <Utils.h>
 
 #include <tvp/OmxUtil.h>
@@ -127,7 +128,6 @@ bool PhysicalDevice::createLayer(hwc2_layer_t* outLayer) {
 }
 
 bool PhysicalDevice::destroyLayer(hwc2_layer_t layerId) {
-    //HwcLayer* layer = reinterpret_cast<HwcLayer*>(layerId);
     HwcLayer* layer = mHwcLayers.valueFor(layerId);
 
     if (layer == NULL) {
@@ -389,10 +389,15 @@ int32_t PhysicalDevice::getReleaseFences(
             hwc2_layer_t layerId = mHwcLayers.keyAt(i);
             layer = mHwcLayers.valueAt(i);
             if (layer/* && layer->getAcquireFence() > -1*/) {
+                DTRACE("outFences: %d", layer->getAcquireFence());
                 outLayers[num_layer] = layerId;
+                if (layer->getAcquireFence() > -1) {
+                    close(layer->getAcquireFence());
+                    layer->resetAcquireFence();
+                }
+
                 outFences[num_layer++] = layer->getAcquireFence();
                 // TODO: ?
-                layer->resetAcquireFence();
             }
         }
     }
@@ -442,14 +447,20 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence) {
         }
     }
 
-    if (!mClientTargetHnd) {
-        ETRACE("target handle is null.");
+    if (!mClientTargetHnd || private_handle_t::validate(mClientTargetHnd) < 0 || mPowerMode == HWC2_POWER_MODE_OFF) {
+        DTRACE("mClientTargetHnd is null or Enter suspend state, mTargetAcquireFence: %d", mTargetAcquireFence);
+        if (mTargetAcquireFence > -1) {
+            sync_wait(mTargetAcquireFence, 5000);
+            close(mTargetAcquireFence);
+            mTargetAcquireFence = -1;
+        }
         *outRetireFence = -1;
-        return HWC2_ERROR_NONE;
-    }
-    if (private_handle_t::validate(mClientTargetHnd) < 0) {
-        *outRetireFence = -1;
-        return HWC2_ERROR_NOT_VALIDATED;
+        if (private_handle_t::validate(mClientTargetHnd) < 0) {
+            ETRACE("mClientTargetHnd is not validate!");
+            return HWC2_ERROR_NOT_VALIDATED;
+        } else {
+            return HWC2_ERROR_NONE;
+        }
     }
 
     *outRetireFence = fb_post_with_fence_locked(mFramebufferInfo, mClientTargetHnd, mTargetAcquireFence);
@@ -464,11 +475,11 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence) {
     }
 
     // finally we need to update cursor's blank status
-    if (cbinfo->fd > 0 && (cursorShow != mCursorContext->getCursorStatus()) ) {
+    if (cbinfo->fd > 0 && cursorShow != mCursorContext->getCursorStatus()) {
         mCursorContext->setCursorStatus(cursorShow);
 
-        DTRACE("UPDATE FB1 status to %d ",cursorShow);
-        ioctl(cbinfo->fd, FBIOBLANK, !mCursorContext->getCursorStatus());
+        DTRACE("UPDATE FB1 status to %d", !cursorShow);
+        ioctl(cbinfo->fd, FBIOBLANK, !cursorShow);
     }
 
     return err;
@@ -518,6 +529,7 @@ int32_t PhysicalDevice::setClientTarget(
         mClientTargetDamageRegion = damage;
         if (-1 != acquireFence) {
             mTargetAcquireFence = acquireFence;
+            //sync_wait(mTargetAcquireFence, 3000);
         }
         // TODO: HWC2_ERROR_BAD_PARAMETER && dataspace && damage.
     } else {
@@ -540,6 +552,8 @@ int32_t PhysicalDevice::setColorTransform(
 
 int32_t PhysicalDevice::setPowerMode(
     int32_t /*hwc2_power_mode_t*/ mode){
+
+    mPowerMode = mode;
     return HWC2_ERROR_NONE;
 }
 
