@@ -607,6 +607,12 @@ void hwc2_getCapabilities(struct hwc2_device* device,
                                 uint32_t* outCount,
                                 int32_t* /*hwc2_capability_t*/ outCapabilities) {
     GET_HWC_RETURN_VOID_IF_NULL();
+    if (NULL == outCapabilities) {
+        *outCount = 1;
+    } else {
+        *outCount = 1;
+        outCapabilities[0] = HWC2_CAPABILITY_SIDEBAND_STREAM;
+    }
 }
 
 //------------------------------------------------------------------------------
