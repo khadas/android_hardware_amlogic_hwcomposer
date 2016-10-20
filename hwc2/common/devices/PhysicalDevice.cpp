@@ -473,6 +473,7 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence) {
         if (*outRetireFence < -1) err = HWC2_ERROR_NOT_VALIDATED;
         *outRetireFence -1;
     }
+    mTargetAcquireFence = -1;
 
     // finally we need to update cursor's blank status
     if (cbinfo->fd > 0 && cursorShow != mCursorContext->getCursorStatus()) {
