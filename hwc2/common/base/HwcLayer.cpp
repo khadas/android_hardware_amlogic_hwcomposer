@@ -8,6 +8,8 @@
 #include <Hwcomposer.h>
 #include <IDisplayDevice.h>
 #include <cutils/properties.h>
+#include <sync/sync.h>
+
 #include <Utils.h>
 
 namespace android {
@@ -66,7 +68,10 @@ int32_t HwcLayer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) {
         DTRACE("Layer buffer is null! no need to update this layer.");
     }
     mBufferHnd = buffer;
-    mAcquireFence =acquireFence ;
+    mAcquireFence = acquireFence;
+    if (mAcquireFence > -1) {
+        sync_wait(mAcquireFence, 4000);
+    }
 
     return HWC2_ERROR_NONE;
 }
