@@ -149,6 +149,8 @@ private:
     buffer_handle_t mClientTargetHnd;
     hwc_region_t mClientTargetDamageRegion;
     int32_t mTargetAcquireFence;
+    int32_t mPriorFrameRetireFence;
+    bool mIsValidated;
 
     // num of composition type changed layer.
     uint32_t mNumLayersChangetype;

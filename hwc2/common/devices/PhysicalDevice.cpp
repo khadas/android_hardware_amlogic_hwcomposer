@@ -21,9 +21,12 @@ PhysicalDevice::PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc)
       mActiveDisplayConfig(-1),
       mVsyncObserver(NULL),
       mIsConnected(false),
-      mInitialized(false),
       mFramebufferHnd(NULL),
-      mFramebufferInfo(NULL)
+      mFramebufferInfo(NULL),
+      mPriorFrameRetireFence(-1),
+      mTargetAcquireFence(-1),
+      mIsValidated(false),
+      mInitialized(false)
 {
     CTRACE();
 
@@ -382,21 +385,24 @@ int32_t PhysicalDevice::getReleaseFences(
         for (uint32_t i=0; i<mHwcLayers.size(); i++) {
             hwc2_layer_t layerId = mHwcLayers.keyAt(i);
             layer = mHwcLayers.valueAt(i);
-            if (layer/* && layer->getAcquireFence() > -1*/) num_layer++;
+            if (layer) num_layer++;
         }
     } else {
         for (uint32_t i=0; i<mHwcLayers.size(); i++) {
             hwc2_layer_t layerId = mHwcLayers.keyAt(i);
             layer = mHwcLayers.valueAt(i);
-            if (layer/* && layer->getAcquireFence() > -1*/) {
+            if (layer) {
                 DTRACE("outFences: %d", layer->getAcquireFence());
-                outLayers[num_layer] = layerId;
-                if (layer->getAcquireFence() > -1) {
+                /*if (layer->getAcquireFence() > -1) {
                     close(layer->getAcquireFence());
-                    layer->resetAcquireFence();
+                }*/
+                if (layer->getAcquireFence() > -1) {
+                    outFences[num_layer] = layer->getAcquireFence();
+                } else {
+                    outFences[num_layer] = -1;
                 }
-
-                outFences[num_layer++] = layer->getAcquireFence();
+                outLayers[num_layer++] = layerId;
+                layer->resetAcquireFence();
                 // TODO: ?
             }
         }
@@ -457,28 +463,26 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence) {
         *outRetireFence = -1;
         if (private_handle_t::validate(mClientTargetHnd) < 0) {
             ETRACE("mClientTargetHnd is not validate!");
-            return HWC2_ERROR_NOT_VALIDATED;
-        } else {
             return HWC2_ERROR_NONE;
         }
     }
 
-    *outRetireFence = fb_post_with_fence_locked(mFramebufferInfo, mClientTargetHnd, mTargetAcquireFence);
+    *outRetireFence = mPriorFrameRetireFence;
 
     if (*outRetireFence >= 0) {
-        DTRACE("Get retire fence %d", *outRetireFence);
+        DTRACE("Get prior frame's retire fence %d", *outRetireFence);
     } else {
-        ETRACE("No valid retire returned. %d ", *outRetireFence);
-        //-1 means no fence, less than -1 is some error
-        if (*outRetireFence < -1) err = HWC2_ERROR_NOT_VALIDATED;
-        *outRetireFence -1;
+        ETRACE("No valid prior frame's retire returned. %d ", *outRetireFence);
+        // -1 means no fence, less than -1 is some error
+        *outRetireFence = -1;
     }
+
+    mPriorFrameRetireFence = fb_post_with_fence_locked(mFramebufferInfo, mClientTargetHnd, mTargetAcquireFence);
     mTargetAcquireFence = -1;
 
     // finally we need to update cursor's blank status
     if (cbinfo->fd > 0 && cursorShow != mCursorContext->getCursorStatus()) {
         mCursorContext->setCursorStatus(cursorShow);
-
         DTRACE("UPDATE FB1 status to %d", !cursorShow);
         ioctl(cbinfo->fd, FBIOBLANK, !cursorShow);
     }
@@ -492,20 +496,24 @@ int32_t PhysicalDevice::presentDisplay(
     int32_t err = HWC2_ERROR_NONE;
     HwcLayer* layer = NULL;
 
-    // TODO: need improve the way to set video axis.
+    if (mIsValidated) {
+        // TODO: need improve the way to set video axis.
 #if WITH_LIBPLAYER_MODULE
-    for (uint32_t i=0; i<mHwcLayers.size(); i++) {
-        hwc2_layer_t layerId = mHwcLayers.keyAt(i);
-        layer = mHwcLayers.valueAt(i);
+        for (uint32_t i=0; i<mHwcLayers.size(); i++) {
+            hwc2_layer_t layerId = mHwcLayers.keyAt(i);
+            layer = mHwcLayers.valueAt(i);
 
-        if (layer && layer->getCompositionType()== HWC2_COMPOSITION_DEVICE) {
-            //hwc2_overlay_compose(ctx, display, hwclayer);
-            layer->presentOverlay();
-            break;
+            if (layer && layer->getCompositionType()== HWC2_COMPOSITION_DEVICE) {
+                layer->presentOverlay();
+                break;
+            }
         }
-    }
 #endif
-    err = postFramebuffer(outRetireFence);
+        err = postFramebuffer(outRetireFence);
+        mIsValidated = false;
+    } else { // display not validate yet.
+        err = HWC2_ERROR_NOT_VALIDATED;
+    }
 
     return err;
 }
@@ -633,7 +641,7 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
     }
 
     // mark the validate function is called.(???)
-    // dctx->validated = true;
+    mIsValidated = true;
     if (mHwcLayersChangeType.size() > 0) {
         DTRACE("there are %d layer types has changed.", mHwcLayersChangeType.size());
         *outNumTypes = mHwcLayersChangeType.size();
