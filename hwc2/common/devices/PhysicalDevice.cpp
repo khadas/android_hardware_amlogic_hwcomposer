@@ -731,7 +731,7 @@ int32_t PhysicalDevice::initDisplay() {
         ETRACE("init_cursor_buffer_locked failed, need to check!");
         return 0;
     }
-    ETRACE("init_cursor_buffer get cbinfo->fbIdx (%d) "
+    ITRACE("init_cursor_buffer get cbinfo->fbIdx (%d) "
         "cbinfo->info.xres (%d) cbinfo->info.yres (%d)",
                         cbinfo->fbIdx,
                         cbinfo->info.xres,

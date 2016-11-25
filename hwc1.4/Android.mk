@@ -9,22 +9,9 @@ LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE_RELATIVE_PATH := hw
-
-LOCAL_SRC_FILES := hwcomposer.cpp
-LOCAL_CFLAGS := -DLOG_TAG=\"Hwcomposer\"
-
-LOCAL_SHARED_LIBRARIES := \
-    libcutils \
-    liblog \
-	libEGL \
-    libdl \
-    libhardware \
-    libutils \
-	libsync \
-	libfbcnf \
-	libhardware_legacy
-
+LOCAL_SHARED_LIBRARIES := liblog libEGL libutils libcutils libhardware libsync libfbcnf libhardware_legacy
 LOCAL_STATIC_LIBRARIES := libomxutil
+LOCAL_SRC_FILES := hwcomposer.cpp
 
 LOCAL_KK=0
 ifeq ($(GPU_TYPE),t83x)
@@ -45,8 +32,7 @@ LOCAL_C_INCLUDES += \
     $(MESON_GRALLOC_DIR)
 
 LOCAL_C_INCLUDES += system/core/libion/include/ \
-                system/core/libion/kernel-headers \
-                $(LOCAL_PATH)/..
+                system/core/libion/kernel-headers
 
 ifneq ($(WITH_LIBPLAYER_MODULE),false)
 LOCAL_SHARED_LIBRARIES += libamavutils_alsa
@@ -64,6 +50,7 @@ endif
 endif
 
 LOCAL_MODULE := hwcomposer.amlogic
+LOCAL_CFLAGS += -DLOG_TAG=\"hwcomposer\"
 LOCAL_MODULE_TAGS := optional
 include $(BUILD_SHARED_LIBRARY)
-include $(call all-makefiles-under,$(LOCAL_PATH))
+

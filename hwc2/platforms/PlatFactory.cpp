@@ -39,7 +39,7 @@ IDisplayDevice* PlatFactory::createDisplayDevice(int disp)
         case IDisplayDevice::DEVICE_EXTERNAL:
             // return new ExternalDevice(hwc, new PlatDeviceControlFactory());
         default:
-            ETRACE("invalid display device %d", disp);
+            WTRACE("invalid display device %d", disp);
             return NULL;
     }
 }

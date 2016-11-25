@@ -15,12 +15,21 @@
 LOCAL_PATH := $(call my-dir)
 LOCAL_ROOT_PATH := $(call my-dir)
 
-USE_HWC2_CPP := true
+# USE_HWC2_CPP := true
 
-ifeq ($(USE_HWC2_CPP),true)
+# ifeq ($(USE_HWC2_CPP),true)
+#     include $(LOCAL_PATH)/hwc2/platforms/Android.mk
+# else
+#     include $(LOCAL_PATH)/hwc2_old/Android.mk
+# endif
+
+USE_HWC2 := true
+ifeq ($(USE_HWC2),true)
     include $(LOCAL_PATH)/hwc2/platforms/Android.mk
 else
-    include $(LOCAL_PATH)/hwc2_old/Android.mk
+    include $(LOCAL_PATH)/hwc1.4/Android.mk
 endif
+
+# include $(LOCAL_PATH)/hwc2/platforms/Android.mk
 
 include $(LOCAL_ROOT_PATH)/tvp/Android.mk

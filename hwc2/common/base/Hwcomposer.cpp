@@ -929,7 +929,7 @@ bool Hwcomposer::initialize(private_module_t *grallocModule) {
         IDisplayDevice *device = mPlatFactory->createDisplayDevice(i);
         if (!device || !device->initialize()) {
             DEINIT_AND_DELETE_OBJ(device);
-            ETRACE("failed to create device %d", i);
+            WTRACE("failed to create device %d", i);
         }
         // add this device
         DTRACE("HWC devices initialize device is %p at %d", device, i);
