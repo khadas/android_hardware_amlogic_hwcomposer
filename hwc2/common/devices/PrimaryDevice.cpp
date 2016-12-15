@@ -30,8 +30,13 @@ bool PrimaryDevice::initialize()
     UeventObserver *observer = Hwcomposer::getInstance().getUeventObserver();
     if (observer) {
         observer->registerListener(
-            Utils::getHotplugString(),
-            hotplugEventListener,
+            Utils::getHotplugInString(),
+            hotplugInEventListener,
+            this);
+
+        observer->registerListener(
+            Utils::getHotplugOutString(),
+            hotplugOutEventListener,
             this);
     } else {
         ETRACE("Uevent observer is NULL");
@@ -45,30 +50,37 @@ void PrimaryDevice::deinitialize()
     PhysicalDevice::deinitialize();
 }
 
-void PrimaryDevice::hotplugEventListener(void *data)
+void PrimaryDevice::hotplugInEventListener(void *data)
 {
     PrimaryDevice *pThis = (PrimaryDevice*)data;
     if (pThis) {
-        pThis->hotplugListener();
+        pThis->hotplugListener(true);
     }
 }
 
-void PrimaryDevice::hotplugListener()
+void PrimaryDevice::hotplugOutEventListener(void *data)
 {
-    bool ret;
+    PrimaryDevice *pThis = (PrimaryDevice*)data;
+    if (pThis) {
+        pThis->hotplugListener(false);
+    }
+}
 
+void PrimaryDevice::hotplugListener(bool connected)
+{
     CTRACE();
 
+    ETRACE("hotpug event: %d", connected);
+
+    updateHotplugState(connected);
     // update display configs
-    ret = updateDisplayConfigs();
-    if (ret == false) {
+    if (connected && !updateDisplayConfigs()) {
         ETRACE("failed to update display config");
         return;
     }
 
-    DTRACE("hotpug event: %d", isConnected());
-
-    getDevice().hotplug(getDisplayId(), isConnected());
+    if (connected)
+        getDevice().hotplug(getDisplayId(), connected);
 }
 
 } // namespace amlogic

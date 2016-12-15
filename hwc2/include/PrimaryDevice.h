@@ -20,8 +20,9 @@ public:
     virtual void deinitialize();
 
 private:
-    static void hotplugEventListener(void *data);
-    void hotplugListener();
+    static void hotplugInEventListener(void *data);
+    static void hotplugOutEventListener(void *data);
+    void hotplugListener(bool connected);
 };
 
 }

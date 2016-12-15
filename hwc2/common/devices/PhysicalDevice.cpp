@@ -1,6 +1,7 @@
 /*
 // Copyright(c) 2016 Amlogic Corporation
 */
+#include <fcntl.h>
 #include <HwcTrace.h>
 #include <PhysicalDevice.h>
 #include <Hwcomposer.h>
@@ -41,6 +42,7 @@ PhysicalDevice::PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc)
         mName = "Unknown";
     }
 
+    mHdrCapabilities.init = false;
     // init Display here.
     initDisplay();
 
@@ -357,6 +359,8 @@ int32_t PhysicalDevice::getDisplayRequests(
 
 int32_t PhysicalDevice::getDisplayType(
     int32_t* /*hwc2_display_type_t*/ outType) {
+
+    *outType = HWC2_DISPLAY_TYPE_PHYSICAL;
     return HWC2_ERROR_NONE;
 }
 
@@ -371,6 +375,33 @@ int32_t PhysicalDevice::getHdrCapabilities(
         float* outMaxLuminance,
         float* outMaxAverageLuminance,
         float* outMinLuminance) {
+
+    Mutex::Autolock _l(mLock);
+    if (!mIsConnected) {
+        ETRACE("disp: %llu is not connected", mId);
+        return HWC2_ERROR_BAD_DISPLAY;
+    }
+
+    if (!mHdrCapabilities.init) {
+        parseHdrCapabilities();
+        mHdrCapabilities.init = true;
+    }
+
+    if (NULL == outTypes) {
+        int num = 0;
+        if (mHdrCapabilities.dvSupport) num++;
+        if (mHdrCapabilities.hdrSupport) num++;
+
+        *outNumTypes = num;
+    } else {
+        if (mHdrCapabilities.dvSupport) *outTypes++ = HAL_HDR_DOLBY_VISION;
+        if (mHdrCapabilities.hdrSupport) *outTypes++ = HAL_HDR_HDR10;
+
+        *outMaxLuminance = mHdrCapabilities.maxLuminance;
+        *outMaxAverageLuminance = mHdrCapabilities.avgLuminance;
+        *outMinLuminance = mHdrCapabilities.minLuminance;
+    }
+
     return HWC2_ERROR_NONE;
 }
 
@@ -766,7 +797,7 @@ bool PhysicalDevice::updateDisplayConfigs()
 
     if (!mIsConnected) {
         ETRACE("disp: %llu is not connected", mId);
-        return true;
+        return false;
     }
 
     ret = Utils::checkOutputMode(mDisplayMode, &rate);
@@ -830,6 +861,115 @@ int32_t PhysicalDevice::setOutputBuffer(
     return HWC2_ERROR_NONE;
 }
 
+void PhysicalDevice::updateHotplugState(bool connected) {
+    Mutex::Autolock _l(mLock);
+
+    mIsConnected = connected;
+    //if plug out, need reinit
+    if (!connected)
+        mHdrCapabilities.init = false;
+}
+
+int32_t PhysicalDevice::getLineValue(const char *lineStr, const char *magicStr) {
+    int len = 0;
+    char value[100] = {0};
+    char *pos = NULL;
+
+    if ((NULL == lineStr) || (NULL == magicStr)) {
+        ETRACE("line string: %s, magic string: %s\n", lineStr, magicStr);
+        return 0;
+    }
+
+    if (NULL != (pos = strstr(lineStr, magicStr))) {
+        pos = pos + strlen(magicStr);
+        char* start = pos;
+        while (*start != '\n' && (strlen(start) > 0))
+            start++;
+
+        len = start - pos;
+        strncpy(value, pos, len);
+        value[len] = '\0';
+        return atoi(value);
+    }
+
+    return 0;
+}
+
+/*
+cat /sys/class/amhdmitx/amhdmitx0/hdr_cap
+Supported EOTF:
+    Traditional SDR: 1
+    Traditional HDR: 0
+    SMPTE ST 2084: 1
+    Future EOTF: 0
+Supported SMD type1: 1
+Luminance Data
+    Max: 0
+    Avg: 0
+    Min: 0
+cat /sys/class/amhdmitx/amhdmitx0/dv_cap
+DolbyVision1 RX support list:
+    2160p30hz: 1
+    global dimming
+    colorimetry
+    IEEEOUI: 0x00d046
+    DM Ver: 1
+*/
+int32_t PhysicalDevice::parseHdrCapabilities() {
+    //DolbyVision1
+    const char *DV_PATH = "/sys/class/amhdmitx/amhdmitx0/dv_cap";
+    //HDR
+    const char *HDR_PATH = "/sys/class/amhdmitx/amhdmitx0/hdr_cap";
+
+    char buf[1024+1] = {0};
+    char* pos = buf;
+    int fd, len;
+
+    memset(&mHdrCapabilities, 0, sizeof(hdr_capabilities_t));
+    if ((fd = open(DV_PATH, O_RDONLY)) < 0) {
+        ETRACE("open %s fail.", DV_PATH);
+        goto exit;
+    }
+
+    len = read(fd, buf, 1024);
+    if (len < 0) {
+        ETRACE("read error: %s, %s\n", DV_PATH, strerror(errno));
+        goto exit;
+    }
+    close(fd);
+
+    if ((NULL != strstr(pos, "2160p30hz")) || (NULL != strstr(pos, "2160p60hz")))
+        mHdrCapabilities.dvSupport = true;
+    //dobly version parse end
+
+    memset(buf, 0, 1024);
+    if ((fd = open(HDR_PATH, O_RDONLY)) < 0) {
+        ETRACE("open %s fail.", HDR_PATH);
+        goto exit;
+    }
+
+    len = read(fd, buf, 1024);
+    if (len < 0) {
+        ETRACE("read error: %s, %s\n", HDR_PATH, strerror(errno));
+        goto exit;
+    }
+
+    pos = strstr(pos, "SMPTE ST 2084: ");
+    if ((NULL != pos) && ('1' == *(pos + strlen("SMPTE ST 2084: ")))) {
+        mHdrCapabilities.hdrSupport = true;
+
+        mHdrCapabilities.maxLuminance = getLineValue(pos, "Max: ");
+        mHdrCapabilities.avgLuminance = getLineValue(pos, "Avg: ");
+        mHdrCapabilities.minLuminance = getLineValue(pos, "Min: ");
+    }
+
+    ITRACE("dolby version support:%d, hdr support:%d max:%d, avg:%d, min:%d\n",
+        mHdrCapabilities.dvSupport?1:0, mHdrCapabilities.hdrSupport?1:0, mHdrCapabilities.maxLuminance, mHdrCapabilities.avgLuminance, mHdrCapabilities.minLuminance);
+exit:
+    close(fd);
+    return HWC2_ERROR_NONE;
+}
+
 void PhysicalDevice::dump(Dump& d) {
     Mutex::Autolock _l(mLock);
     d.append("-------------------------------------------------------------"
@@ -873,6 +1013,12 @@ void PhysicalDevice::dump(Dump& d) {
             if (layer) layer->dump(d);
         }
     }
+
+    // HDR info
+    d.append("  HDR Capabilities:\n");
+    d.append("    DolbyVision1=%zu\n", mHdrCapabilities.dvSupport?1:0);
+    d.append("    HDR10=%zu, maxLuminance=%zu, avgLuminance=%zu, minLuminance=%zu\n",
+        mHdrCapabilities.hdrSupport?1:0, mHdrCapabilities.maxLuminance, mHdrCapabilities.avgLuminance, mHdrCapabilities.minLuminance);
 }
 
 } // namespace amlogic

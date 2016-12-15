@@ -14,6 +14,15 @@ namespace amlogic {
 
 class IHdcpControl;
 
+typedef struct hdr_capabilities {
+    bool init;
+    bool dvSupport;
+    bool hdrSupport;
+    int maxLuminance;
+    int avgLuminance;
+    int minLuminance;
+} hdr_capabilities_t;
+
 class DeviceControlFactory {
 public:
     virtual ~DeviceControlFactory(){}
@@ -100,6 +109,7 @@ public:
     virtual Hwcomposer& getDevice() const { return mHwc; }
     virtual hwc2_display_t getId() const { return mId; }
     virtual bool isConnected() const { return mIsConnected; }
+    virtual void updateHotplugState(bool connected);
 
     // device related operations
     virtual bool initCheck() const { return mInitialized; }
@@ -121,6 +131,8 @@ private:
     // For use by Device
     int32_t initDisplay();
     int32_t postFramebuffer(int32_t* outRetireFence);
+    int32_t getLineValue(const char *lineStr, const char *magicStr);
+    int32_t parseHdrCapabilities();
 
     // Member variables
     hwc2_display_t mId;
@@ -160,6 +172,9 @@ private:
     KeyedVector<hwc2_layer_t, HwcLayer*> mHwcLayersChangeType;
     KeyedVector<hwc2_layer_t, HwcLayer*> mHwcLayersChangeRequest;
     KeyedVector<hwc2_layer_t, HwcLayer*> mHwcLayers;
+
+    //HDR Capabilities
+    hdr_capabilities_t mHdrCapabilities;
 
     // lock
     Mutex mLock;

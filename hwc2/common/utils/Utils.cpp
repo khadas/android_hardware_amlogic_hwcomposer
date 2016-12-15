@@ -108,7 +108,7 @@ bool Utils::checkOutputMode(char* curmode, int32_t* rate) {
 
     //check if need update vsync.
     if (strcmp(outputmode, curmode) == 0) {
-        DTRACE("outputmode didn't change %s", curmode);
+        ETRACE("outputmode didn't change %s", curmode);
         return false;
     }
 
@@ -156,7 +156,12 @@ const char* Utils::getUeventEnvelope()
     return "change@/devices/virtual/switch/hdmi_audio";
 }
 
-const char* Utils::getHotplugString()
+const char* Utils::getHotplugOutString()
+{
+    return "SWITCH_STATE=0";
+}
+
+const char* Utils::getHotplugInString()
 {
     return "SWITCH_STATE=1";
 }

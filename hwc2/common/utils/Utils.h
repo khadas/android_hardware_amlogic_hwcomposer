@@ -36,7 +36,8 @@ public:
     static bool checkVinfo(framebuffer_info_t *fbinfo);
 
     static const char* getUeventEnvelope();
-    static const char* getHotplugString();
+    static const char* getHotplugInString();
+    static const char* getHotplugOutString();
 
 };
 
