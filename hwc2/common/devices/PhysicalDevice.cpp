@@ -222,6 +222,13 @@ int32_t PhysicalDevice::getClientTargetSupport(
 int32_t PhysicalDevice::getColorModes(
     uint32_t* outNumModes,
     int32_t* /*android_color_mode_t*/ outModes) {
+
+    if (NULL == outModes) {
+        *outNumModes = 1;
+    } else {
+        *outModes = HAL_COLOR_MODE_NATIVE;
+    }
+
     return HWC2_ERROR_NONE;
 }
 
