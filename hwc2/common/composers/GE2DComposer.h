@@ -71,6 +71,8 @@ public:
     SlotInfo()
     : mSlot(-1),
       mFence(-1),
+      mVideoLayerId(0),
+      mClearBuffer(false),
       mLayersState() {
         mLayersState.setCapacity(GE2D_COMPOSE_MAX_LAYERS);
         mLayersState.clear();
@@ -85,6 +87,8 @@ public:
 
     int32_t mSlot;
     int32_t mFence;
+    hwc2_layer_t mVideoLayerId;
+    bool mClearBuffer;
     Vector< LayerState* > mLayersState;
 };
 

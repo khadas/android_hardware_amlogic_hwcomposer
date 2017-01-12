@@ -12,6 +12,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+//
+// This file is modified by Amlogic, Inc. 2017.01.17.
 */
 
 #include <inttypes.h>
@@ -91,8 +93,10 @@ bool HwcLayer::isCropped() {
         float widthCmp = (mSourceCrop.right - mSourceCrop.left) / buffer->width;
         float heightCmp = (mSourceCrop.bottom - mSourceCrop.top) / buffer->height;
 
-        if (widthCmp == 1.0f && heightCmp == 1.0f)
+        if (abs(widthCmp - 1.0f) <= 0.01f
+            && abs(heightCmp - 1.0f) <= 0.01f) {
             rtn = false;
+        }
     }
 
     DTRACE("chkIsCropped %d", rtn);
@@ -110,8 +114,10 @@ bool HwcLayer::isScaled() {
         float widthCmp = sourceWidth / displayWidth;
         float heightCmp = sourceHeight / displayHeight;
 
-        if (widthCmp == 1.0f && heightCmp == 1.0f)
+        if (abs(widthCmp - 1.0f) <= 0.01f
+            && abs(heightCmp - 1.0f) <= 0.01f) {
             rtn = false;
+        }
     }
 
     DTRACE("chkIsScaled %d", rtn);
