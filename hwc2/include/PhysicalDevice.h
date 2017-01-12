@@ -1,6 +1,19 @@
 /*
-// Copyright(c) 2016 Amlogic Corporation
+// Copyright (c) 2014 Intel Corporation
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 */
+
 #ifndef PHYSICAL_DEVICE_H
 #define PHYSICAL_DEVICE_H
 
@@ -8,11 +21,12 @@
 #include <SoftVsyncObserver.h>
 #include <IDisplayDevice.h>
 #include <HwcLayer.h>
+#include <IComposer.h>
 
 namespace android {
 namespace amlogic {
 
-class IHdcpControl;
+// class IHdcpControl;
 
 typedef struct hdr_capabilities {
     bool init;
@@ -27,23 +41,24 @@ class DeviceControlFactory {
 public:
     virtual ~DeviceControlFactory(){}
 public:
-    virtual IHdcpControl* createHdcpControl() = 0;
+    // virtual IHdcpControl* createHdcpControl() = 0;
+    virtual IComposer* createComposer(IDisplayDevice& disp) = 0;
 };
 
-class CursorContext {
+class FBContext {
 public:
-    CursorContext()
+    FBContext()
     : mStatus(false)
     {
-        mCursorInfo = new framebuffer_info_t();
+        mFBInfo = new framebuffer_info_t();
     }
-    virtual ~CursorContext(){}
+    virtual ~FBContext(){}
 
-    virtual framebuffer_info_t* getCursorInfo() { return mCursorInfo; }
-    virtual bool getCursorStatus() { return mStatus; }
-    virtual void setCursorStatus(bool status) { mStatus = status; }
+    virtual framebuffer_info_t* getInfo() { return mFBInfo; }
+    virtual bool getStatus() { return mStatus; }
+    virtual void setStatus(bool status) { mStatus = status; }
 private:
-    framebuffer_info_t *mCursorInfo;
+    framebuffer_info_t *mFBInfo;
     bool mStatus;
 };
 
@@ -51,13 +66,8 @@ class Hwcomposer;
 class SoftVsyncObserver;
 
 class PhysicalDevice : public IDisplayDevice {
-    enum {
-        LAYER_MAX_NUM_CHANGE_REQUEST = 8,
-        LAYER_MAX_NUM_CHANGE_TYPE = 16,
-        LAYER_MAX_NUM_SUPPORT = LAYER_MAX_NUM_CHANGE_TYPE,
-    };
 public:
-    PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc);
+    PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc, DeviceControlFactory* controlFactory);
     ~PhysicalDevice();
 
     friend class Hwcomposer;
@@ -101,9 +111,9 @@ public:
     virtual int32_t validateDisplay(uint32_t* outNumTypes, uint32_t* outNumRequests);
     virtual int32_t setCursorPosition(hwc2_layer_t layerId, int32_t x, int32_t y);
 
-    virtual int32_t createVirtualDisplay(uint32_t width, uint32_t height, int32_t* format, hwc2_display_t* outDisplay);
-    virtual int32_t destroyVirtualDisplay(hwc2_display_t display);
-    virtual int32_t setOutputBuffer(buffer_handle_t buffer, int32_t releaseFence);
+    virtual int32_t createVirtualDisplay(uint32_t width, uint32_t height, int32_t* format, hwc2_display_t* outDisplay) = 0;
+    virtual int32_t destroyVirtualDisplay(hwc2_display_t display) = 0;
+    virtual int32_t setOutputBuffer(buffer_handle_t buffer, int32_t releaseFence) = 0;
 
     // Other Display methods
     virtual Hwcomposer& getDevice() const { return mHwc; }
@@ -130,28 +140,58 @@ public:
 private:
     // For use by Device
     int32_t initDisplay();
-    int32_t postFramebuffer(int32_t* outRetireFence);
+    int32_t postFramebuffer(int32_t* outRetireFence,  bool hasVideoOverlay);
     int32_t getLineValue(const char *lineStr, const char *magicStr);
+
     int32_t parseHdrCapabilities();
+    void directCompose(framebuffer_info_t * fbInfo);
+    void ge2dCompose(framebuffer_info_t * fbInfo, bool hasVideoOverlay);
+    int32_t setOSD0Blank(bool blank);
+    bool layersStateCheck(int32_t renderMode, KeyedVector<hwc2_layer_t, HwcLayer*> & composeLayers);
+    int32_t composersFilter(KeyedVector<hwc2_layer_t, HwcLayer*>& composeLayers);
+
+    //swap the mHwcCurReleaseFence and mHwcPriorReleaseFence;
+    void swapReleaseFence();
+    //this function will take contorl of fencefd, if you need use it also, please dup it before call.
+    void addReleaseFence(hwc2_layer_t layerId, int32_t fenceFd);
+    void clearFenceList(KeyedVector<hwc2_layer_t, int32_t> * fenceList);
+    void dumpFenceList(KeyedVector<hwc2_layer_t, int32_t> * fenceList);
+    void dumpLayers(Vector < hwc2_layer_t > layerIds);
+    void dumpLayers(KeyedVector<hwc2_layer_t, HwcLayer*> layers);
+    void clearFramebuffer();
+
+    template <typename T, typename S>
+    static inline bool compareSize(T a, S b) {
+        if ((int32_t)(a.right - a.left) == (int32_t)(b.right - b.left)
+                && (int32_t)(a.bottom - a.top) == (int32_t)(b.bottom - b.top)) {
+            return true;
+        }
+        return false;
+    }
 
     // Member variables
     hwc2_display_t mId;
     const char *mName;
     bool mIsConnected;
     Hwcomposer& mHwc;
+    DeviceControlFactory *mControlFactory;
     char mDisplayMode[32];
+    bool mOSD0Blank;
 
     // display configs
     Vector<DisplayConfig*> mDisplayConfigs;
     int mActiveDisplayConfig;
 
     SoftVsyncObserver *mVsyncObserver;
+    IComposer *mComposer;
 
     // DeviceControlFactory *mControlFactory;
 
-    framebuffer_info_t *mFramebufferInfo;
+    // framebuffer_info_t *mFramebufferInfo;
     private_handle_t  *mFramebufferHnd;
-    CursorContext *mCursorContext;
+    FBContext *mCursorContext;
+    FBContext *mFramebufferContext;
+    int32_t mFbSlot;
 
     int32_t /*android_color_mode_t*/ mColorMode;
 
@@ -161,7 +201,9 @@ private:
     buffer_handle_t mClientTargetHnd;
     hwc_region_t mClientTargetDamageRegion;
     int32_t mTargetAcquireFence;
+    int32_t mGE2DComposeFrameCount;
     int32_t mPriorFrameRetireFence;
+    int32_t mRenderMode;
     bool mIsValidated;
 
     // num of composition type changed layer.
@@ -169,12 +211,22 @@ private:
     uint32_t mNumLayerChangerequest;
 
     // layer
+    hwc2_layer_t mDirectRenderLayerId;
+    hwc2_layer_t mVideoOverlayLayerId;
+    int32_t mGE2DClearVideoRegionCount;
+    Vector< hwc2_layer_t > mGE2DRenderSortedLayerIds;
     KeyedVector<hwc2_layer_t, HwcLayer*> mHwcLayersChangeType;
     KeyedVector<hwc2_layer_t, HwcLayer*> mHwcLayersChangeRequest;
+    KeyedVector<hwc2_layer_t, HwcLayer*> mHwcGlesLayers;
     KeyedVector<hwc2_layer_t, HwcLayer*> mHwcLayers;
 
-    //HDR Capabilities
+    // HDR Capabilities
     hdr_capabilities_t mHdrCapabilities;
+
+    // record the release fence of layer.
+    KeyedVector<hwc2_layer_t, int32_t> mLayerReleaseFences[2];
+    KeyedVector<hwc2_layer_t, int32_t> * mHwcCurReleaseFences;
+    KeyedVector<hwc2_layer_t, int32_t> * mHwcPriorReleaseFences;
 
     // lock
     Mutex mLock;

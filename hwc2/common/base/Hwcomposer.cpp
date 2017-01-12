@@ -1,10 +1,24 @@
 /*
-// Copyright(c) 2016 Amlogic Corporation
+// Copyright (c) 2014 Intel Corporation
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 */
+
 #include <HwcTrace.h>
 #include <Hwcomposer.h>
 #include <Dump.h>
 #include <UeventObserver.h>
+#include <inttypes.h>
 
 namespace android {
 namespace amlogic {
@@ -405,7 +419,8 @@ int32_t Hwcomposer::setClientTarget(
         int32_t acquireFence,
         int32_t /*android_dataspace_t*/ dataspace,
         hwc_region_t damage) {
-    DTRACE("setClientTarget disp = %d", (int32_t)display);
+    DTRACE("setClientTarget disp = %d, targetHnd = %" PRIxPTR ","
+        "acquireFence = %d, dataspace = %d", (int32_t)display, target, acquireFence, dataspace);
 
     IDisplayDevice *device = getDisplayDevice((int32_t)display);
     if (!device) {
@@ -420,7 +435,7 @@ int32_t Hwcomposer::setClientTarget(
 int32_t Hwcomposer::setColorMode(
         hwc2_display_t display,
         int32_t /*android_color_mode_t*/ mode) {
-    DTRACE("setColorMode disp = %d", (int32_t)display);
+    DTRACE("setColorMode disp = %d, mode = %d", (int32_t)display, mode);
 
     IDisplayDevice *device = getDisplayDevice((int32_t)display);
     if (!device) {
@@ -435,7 +450,7 @@ int32_t Hwcomposer::setColorTransform(
         hwc2_display_t display,
         const float* matrix,
         int32_t /*android_color_transform_t*/ hint) {
-    DTRACE("setColorTransform disp = %d", (int32_t)display);
+    DTRACE("setColorTransform disp = %d, hint = %d", (int32_t)display, hint);
 
     IDisplayDevice *device = getDisplayDevice((int32_t)display);
     if (!device) {
@@ -450,7 +465,7 @@ int32_t Hwcomposer::setOutputBuffer(
         hwc2_display_t display,
         buffer_handle_t buffer,
         int32_t releaseFence) {
-    DTRACE("setOutputBuffer disp = %d", (int32_t)display);
+    DTRACE("setOutputBuffer disp = %d, releaseFence = %d", (int32_t)display, releaseFence);
     if (display != HWC_DISPLAY_VIRTUAL) {
         ETRACE("Should be a virtual display: %d", (int32_t)display);
         return HWC2_ERROR_UNSUPPORTED;
@@ -468,7 +483,7 @@ int32_t Hwcomposer::setOutputBuffer(
 int32_t Hwcomposer::setPowerMode(
         hwc2_display_t display,
         int32_t /*hwc2_power_mode_t*/ mode) {
-    DTRACE("setPowerMode disp = %d", (int32_t)display);
+    DTRACE("setPowerMode disp = %d, mode = %d", (int32_t)display, mode);
 
     IDisplayDevice *device = getDisplayDevice((int32_t)display);
     if (!device) {

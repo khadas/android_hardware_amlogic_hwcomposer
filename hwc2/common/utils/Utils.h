@@ -27,7 +27,10 @@ public:
     ~Utils();
     static bool checkBoolProp(const char* prop);
     static int32_t checkIntProp(const char* prop);
-    static int32_t checkAndDupFence(int32_t fence);
+    static int32_t checkAndDupFd(int32_t fd);
+    static inline void closeFd(int32_t fd) {
+        if (fd > -1) close(fd);
+    }
 #if WITH_LIBPLAYER_MODULE
     static bool checkSysfsStatus(const char* sysfstr, char* lastr, int32_t size);
 #endif
@@ -38,6 +41,39 @@ public:
     static const char* getUeventEnvelope();
     static const char* getHotplugInString();
     static const char* getHotplugOutString();
+
+    template <typename T, typename S>
+    static inline bool compareRect(T a, S b) {
+        if ((int32_t)a.left == (int32_t)b.left
+                && (int32_t)a.top == (int32_t)b.top
+                && (int32_t)a.right == (int32_t)b.right
+                && (int32_t)a.bottom == (int32_t)b.bottom) {
+            return true;
+        }
+        return false;
+    }
+    template <typename T, typename S>
+    static inline bool compareSize(T a, S b) {
+        if ((int32_t)(a.right-a.left) == (int32_t)(b.right-b.left)
+                && (int32_t)(a.bottom-a.top) == (int32_t)(b.bottom-b.top)) {
+            return true;
+        }
+        return false;
+    }
+    template <typename T>
+    static inline T min(T a, T b) {
+        return a<b ? a : b;
+    }
+    template <typename T>
+    static inline T max(T a, T b) {
+        return a>b ? a : b;
+    }
+    template <typename T>
+    static inline void swap(T& a, T& b) {
+        T t = a;
+        a = b;
+        b = t;
+    }
 
 };
 
