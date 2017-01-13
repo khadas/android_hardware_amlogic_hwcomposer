@@ -17,7 +17,8 @@ VirtualDevice::VirtualDevice(Hwcomposer& hwc)
       mInitialized(false),
       mWidth(0),
       mHeight(0),
-      mFormat(0)
+      mFormat(0),
+      mRetireFence(-1)
 {
     CTRACE();
     mName = "Virtual";
@@ -37,12 +38,10 @@ bool VirtualDevice::initialize() {
 
     mInitialized = true;
     return true;
-
 }
 
 void VirtualDevice::deinitialize() {
     CTRACE();
-
     mInitialized = false;
 }
 
@@ -84,7 +83,6 @@ bool VirtualDevice::createLayer(hwc2_layer_t* outLayer) {
     hwc2_layer_t layerId = reinterpret_cast<hwc2_layer_t>(layer);
     mHwcLayers.add(layerId, layer);
     *outLayer = layerId;
-
     return true;
 }
 
@@ -175,16 +173,16 @@ int32_t VirtualDevice::getDisplayAttribute(
             ETRACE("refresh period: %d", *outValue);
         break;
         case HWC2_ATTRIBUTE_WIDTH:
-            *outValue = 1280;
+            *outValue = mWidth;
         break;
         case HWC2_ATTRIBUTE_HEIGHT:
-            *outValue = 720;
+            *outValue = mHeight;
         break;
         case HWC2_ATTRIBUTE_DPI_X:
-            *outValue = 0;
+            *outValue = 160;
         break;
         case HWC2_ATTRIBUTE_DPI_Y:
-            *outValue = 0;
+            *outValue = 160;
         break;
         default:
             ETRACE("unknown display attribute %u", attribute);
@@ -254,61 +252,60 @@ int32_t VirtualDevice::getReleaseFences(
         uint32_t* outNumElements,
         hwc2_layer_t* outLayers,
         int32_t* outFences) {
-    HwcLayer* layer = NULL;
-    uint32_t num_layer = 0;
 
-    if (NULL == outLayers || NULL == outFences) {
-        for (uint32_t i=0; i<mHwcLayers.size(); i++) {
-            hwc2_layer_t layerId = mHwcLayers.keyAt(i);
-            layer = mHwcLayers.valueAt(i);
-            if (layer) num_layer++;
-        }
-    } else {
-        for (uint32_t i=0; i<mHwcLayers.size(); i++) {
-            hwc2_layer_t layerId = mHwcLayers.keyAt(i);
-            layer = mHwcLayers.valueAt(i);
-            if (layer) {
-                outLayers[num_layer] = layerId;
-                outFences[num_layer++] = layer->getAcquireFence();
-                // TODO: ?
-                layer->resetAcquireFence();
-            }
-        }
-    }
-
-    if (num_layer > 0) {
-        DTRACE("There are %d layer requests.", num_layer);
-        *outNumElements = num_layer;
-    } else {
-        DTRACE("No layer have set buffer yet.");
-    }
-
+    //No hw compose for virtual display.
+    *outNumElements= 0;
     return HWC2_ERROR_NONE;
 }
 
 int32_t VirtualDevice::presentDisplay(
         int32_t* outRetireFence) {
-    int32_t err = HWC2_ERROR_NONE;
+    if (!mIsConnected)
+        return HWC2_ERROR_BAD_DISPLAY;
 
-    // deal virtual display.
-    if (mIsConnected) {
-        if (!mVirtualHnd) {
-            ETRACE("virtual display handle is null.");
-            *outRetireFence = -1;
-            return HWC2_ERROR_NO_RESOURCES;
-        }
-        if (private_handle_t::validate(mVirtualHnd) < 0)
-            return HWC2_ERROR_NO_RESOURCES;
-
-        if (mTargetAcquireFence > -1) {
-            sync_wait(mTargetAcquireFence, 500);
-            close(mTargetAcquireFence);
-            mTargetAcquireFence = -1;
-        }
-        *outRetireFence = mVirtualReleaseFence;
+    if (!mVirtualHnd) {
+        ETRACE("virtual display handle is null.");
+        return HWC2_ERROR_NO_RESOURCES;
     }
 
-    return err;
+    if (private_handle_t::validate(mVirtualHnd) < 0)
+        return HWC2_ERROR_NO_RESOURCES;
+
+    if (mTargetAcquireFence > -1 && mVirtualReleaseFence > -1) {
+        mRetireFence = sync_merge("VirtualDevice-2", mTargetAcquireFence, mVirtualReleaseFence);
+    } else if (mTargetAcquireFence > -1) {
+        mRetireFence = sync_merge("VirtualDevice-0", mTargetAcquireFence, mTargetAcquireFence);
+    } else if (mVirtualReleaseFence > -1) {
+        mRetireFence = sync_merge("VirtualDevice-1", mVirtualReleaseFence, mVirtualReleaseFence);
+    } else {
+        mRetireFence = -1;
+    }
+
+    *outRetireFence = mRetireFence;
+
+    DTRACE("VirtualDevice::presentDisplay retire fence %d", mRetireFence);
+
+    if (mTargetAcquireFence > -1) {
+        close(mTargetAcquireFence);
+        mTargetAcquireFence = -1;
+    }
+    if (mVirtualReleaseFence > -1) {
+        close(mVirtualReleaseFence);
+        mVirtualReleaseFence = -1;
+    }
+
+    //reset layers' acquire fence.
+    HwcLayer * layer = NULL;
+    for (uint32_t i=0; i<mHwcLayers.size(); i++) {
+        hwc2_layer_t layerId = mHwcLayers.keyAt(i);
+        layer = mHwcLayers.valueAt(i);
+        if (layer != NULL) {
+            close(layer->getAcquireFence());
+            layer->resetAcquireFence();
+        }
+    }
+
+    return HWC2_ERROR_NONE;
 }
 
 int32_t VirtualDevice::setActiveConfig(
@@ -322,17 +319,24 @@ int32_t VirtualDevice::setClientTarget(
         int32_t /*android_dataspace_t*/ dataspace,
         hwc_region_t damage) {
 
-	if (target && private_handle_t::validate(target) < 0) {
-		return HWC2_ERROR_BAD_PARAMETER;
-	}
+    DTRACE("VirtualDevice::setClientTarget %p, %d", target, acquireFence);
+
+    if (mTargetAcquireFence > -1) {
+        close(mTargetAcquireFence);
+        mTargetAcquireFence = -1;
+    }
+
+    if (!mIsConnected)
+        return HWC2_ERROR_BAD_DISPLAY;
+
+    if (target && private_handle_t::validate(target) < 0) {
+        return HWC2_ERROR_BAD_PARAMETER;
+    }
 
     if (NULL != target) {
         mClientTargetHnd = target;
         mClientTargetDamageRegion = damage;
-        if (-1 != acquireFence) {
-            mTargetAcquireFence = acquireFence;
-        }
-        // TODO: HWC2_ERROR_BAD_PARAMETER && dataspace && damage.
+        mTargetAcquireFence = acquireFence;
     } else {
         DTRACE("client target is null!, no need to update this frame.");
     }
@@ -419,6 +423,8 @@ int32_t VirtualDevice::createVirtualDisplay(
     mHeight = height;
     mFormat = *format;
     mVirtualReleaseFence= -1;
+    mRetireFence = -1;
+    mTargetAcquireFence = -1;
     *outDisplay = HWC_DISPLAY_VIRTUAL;
 
     return HWC2_ERROR_NONE;
@@ -433,34 +439,62 @@ int32_t VirtualDevice::destroyVirtualDisplay(
     mWidth = 0;
     mHeight = 0;
     mFormat = 0;
-    mVirtualReleaseFence = -1;
 
-    // TODO:
+    //release fence.
+    if (mRetireFence > -1) {
+        close(mRetireFence);
+        mRetireFence = -1;
+    }
+    if (mVirtualReleaseFence > -1) {
+        close(mVirtualReleaseFence);
+        mVirtualReleaseFence = -1;
+    }
+    if (mTargetAcquireFence > -1) {
+        close(mTargetAcquireFence);
+        mTargetAcquireFence = -1;
+    }
+
+    //release layers.
+    if (!mHwcLayers.isEmpty()) {
+        int i = 0;
+        HwcLayer* layer = NULL;
+        for (i = 0; i < mHwcLayers.size(); i++) {
+            layer = mHwcLayers[i];
+            DEINIT_AND_DELETE_OBJ(layer);
+        }
+        mHwcLayers.clear();
+    }
+
     return HWC2_ERROR_NONE;
 }
 
 int32_t VirtualDevice::setOutputBuffer(
         buffer_handle_t buffer, int32_t releaseFence) {
-    if (mIsConnected) {
-        if (buffer && private_handle_t::validate(buffer) < 0) {
-            ETRACE("buffer handle is invalid");
-            return HWC2_ERROR_BAD_PARAMETER;
-        }
+    DTRACE("VirtualDevice::setOutputBuffer");
 
-        if (NULL != buffer) {
-            /*mVirtualHnd = buffer;
-            mVirtualReleaseFence= releaseFence;
-        } else {*/
-            DTRACE("Virtual Display output buffer target is null!, no need to update this frame.");
-        }
+    if (mVirtualReleaseFence > -1) {
+        close(mVirtualReleaseFence);
+        mVirtualReleaseFence = -1;
+    }
+
+    if (!mIsConnected)
+        return HWC2_ERROR_BAD_DISPLAY;
+
+    if (NULL == buffer) {
+        ETRACE("Virtual Display output buffer target is null!, no need to update this frame.");
+        return HWC2_ERROR_BAD_PARAMETER;
+    }
+
+    if (buffer && private_handle_t::validate(buffer) < 0) {
+        ETRACE("buffer handle is invalid");
+        return HWC2_ERROR_BAD_PARAMETER;
     }
 
     mVirtualHnd = buffer;
-    mVirtualReleaseFence= releaseFence;
-    // TODO: do something?
+    mVirtualReleaseFence = releaseFence;
+    DTRACE("VirtualDevice setOutputBuffer %d, %p ", releaseFence, buffer);
     return HWC2_ERROR_NONE;
 }
-
 
 void VirtualDevice::dump(Dump& d) {
     Mutex::Autolock _l(mLock);

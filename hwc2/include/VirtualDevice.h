@@ -104,6 +104,8 @@ private:
     buffer_handle_t mVirtualHnd;
     int32_t mVirtualReleaseFence;
 
+    int32_t mRetireFence;
+
     // num of composition type changed layer.
     uint32_t mNumLayersChangetype;
     uint32_t mNumLayerChangerequest;
