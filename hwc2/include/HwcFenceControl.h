@@ -1,18 +1,6 @@
 /*
- * Copyright (C) 2012 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright(c) 2016 Amlogic Corporation
+*/
 
 #ifndef HWC_FENCE_H
 #define HWC_FENCE_H
@@ -99,19 +87,7 @@ public:
     static int32_t merge(const String8& name, const int32_t& f1,
             const int32_t& f2);
 
-    // Return a duplicate of the fence file descriptor. The caller is
-    // responsible for closing the returned file descriptor. On error, -1 will
-    // be returned and errno will indicate the problem.
-    int32_t dup() const;
     static int32_t dupFence(int32_t fence);
-
-    int32_t getFenceFd() const;
-
-    // getSignalTime returns the system monotonic clock time at which the
-    // fence transitioned to the signaled state.  If the fence is not signaled
-    // then INT64_MAX is returned.  If the fence is invalid or if an error
-    // occurs then -1 is returned.
-    nsecs_t getSignalTime() const;
 
 private:
     // Only allow instantiation using ref counting.

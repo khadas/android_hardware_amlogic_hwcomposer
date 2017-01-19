@@ -12,6 +12,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+//
+// This file is modified by Amlogic, Inc. 2017.01.17.
 */
 
 #include <HwcTrace.h>
@@ -944,7 +946,7 @@ bool Hwcomposer::initialize(private_module_t *grallocModule) {
         IDisplayDevice *device = mPlatFactory->createDisplayDevice(i);
         if (!device || !device->initialize()) {
             DEINIT_AND_DELETE_OBJ(device);
-            WTRACE("failed to create device %d", i);
+            ETRACE("failed to create device %d", i);
         }
         // add this device
         DTRACE("HWC devices initialize device is %p at %d", device, i);

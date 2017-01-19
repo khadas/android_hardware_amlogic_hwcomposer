@@ -302,29 +302,15 @@ int32_t GE2DComposer::startCompose(
     // find a free slot of fb.
     *offset = mFbSlot = findFreeFbSlot();
 
-    { // clear display region.
-        hwc_rect_t clipRect;
-
-        HwcLayer* videoLayer = mDisplayDevice.getLayerById(mVideoLayerId);
-        uint32_t addr = mBasePhyAddr + mFbSlot * mFbInfo->finfo.line_length;
-        if (videoLayer) {
-            clipRect = videoLayer->getDisplayFrame();
-            fillRectangle(clipRect, 0, addr);
-            mVideoLayerId = 0;
-        }
-
-        if (frameCount < 3) {
-            clipRect.left = 0;
-            clipRect.top = 0;
-            clipRect.right = mFbInfo->info.xres;
-            clipRect.bottom = mFbInfo->info.yres;
-            fillRectangle(clipRect, 0, addr);
-        }
-    }
-
     // add hwcLayers to work queue.
     int32_t index = mFbSlot / mFbInfo->info.yres;
     mSlots[index].mSlot = mFbSlot;
+    mSlots[index].mVideoLayerId = mVideoLayerId;
+    if (frameCount < 3) {
+        mSlots[index].mClearBuffer = true;
+    } else {
+        mSlots[index].mClearBuffer = false;
+    }
     mSlots[index].mLayersState.clear();
     for (uint32_t i=0; i<hwcLayers.size(); i++) {
         hwc2_layer_t layerId = hwcLayers.itemAt(i);
@@ -346,7 +332,10 @@ int32_t GE2DComposer::startCompose(
     // mSlots[index].mLayersState = layersState;
     android_atomic_inc(&mQueuedFrames);
     mQueueItems.push_back(mSlots[index]);
+
     mSlots[index].mFence = -1;
+    mSlots[index].mVideoLayerId = 0;
+    mVideoLayerId = 0;
 
     int32_t ge2dFence = HwcFenceControl::createFence(mSyncTimelineFd, "ge2d_flag_fence", mCurrentSyncTime++);
 
@@ -501,8 +490,9 @@ void GE2DComposer::runGE2DProcess(int32_t slot, Vector< LayerState* > &hwcLayers
             layer[i]->mColor.a, layer[i]->mDataSpace, i, hnd[i]->format);
     }
 
-#if 1 // TODO:2 same size layers case.
-    if (layerNum > GE2D_COMPOSE_ONE_LAYER) {
+    bool debugSameSize = Utils::checkBoolProp("sys.sf.debug.ss");
+    // TODO:2 same size layers case.
+    if (debugSameSize && layerNum > GE2D_COMPOSE_ONE_LAYER) {
         if (Utils::compareRect(sourceCrop[0], sourceCrop[1])
             && Utils::compareRect(sourceCrop[0], displayFrame[0])
             && Utils::compareRect(sourceCrop[1], displayFrame[1])) {
@@ -512,7 +502,6 @@ void GE2DComposer::runGE2DProcess(int32_t slot, Vector< LayerState* > &hwcLayers
             Utils::swap(hnd[0], hnd[1]);
         }
     }
-#endif
 
     if ((layerNum == GE2D_COMPOSE_TWO_LAYERS && !hnd[1])
             || (layerNum == GE2D_COMPOSE_MAX_LAYERS && (!hnd[1] || !hnd[2]))) {
@@ -559,7 +548,7 @@ void GE2DComposer::runGE2DProcess(int32_t slot, Vector< LayerState* > &hwcLayers
             tracer();
         }
 
-        if (sameSize && layerNum == GE2D_COMPOSE_TWO_LAYERS) return;
+        if (layerNum == GE2D_COMPOSE_TWO_LAYERS) return;
     }
 
     int32_t beginWith = 0;
@@ -587,15 +576,8 @@ void GE2DComposer::runGE2DProcess(int32_t slot, Vector< LayerState* > &hwcLayers
         mSrcBufferInfo->src_info[0].format = hnd[i]->format;
         mSrcBufferInfo->src_info[0].rect.x = (int32_t)sourceCrop[i].left;
         mSrcBufferInfo->src_info[0].rect.y = (int32_t)sourceCrop[i].top;
-        if (!canBlend
-            && (hnd[i]->format == HAL_PIXEL_FORMAT_YCrCb_420_SP
-            || hnd[i]->format == HAL_PIXEL_FORMAT_YV12)) {
-            mSrcBufferInfo->src_info[0].rect.w = (int32_t)(sourceCrop[i].right - sourceCrop[i].left);
-            mSrcBufferInfo->src_info[0].rect.h = (int32_t)(sourceCrop[i].bottom- sourceCrop[i].top);
-        } else {
-            mSrcBufferInfo->src_info[0].rect.w = (int32_t)(sourceCrop[i].right - sourceCrop[i].left);
-            mSrcBufferInfo->src_info[0].rect.h = (int32_t)(sourceCrop[i].bottom- sourceCrop[i].top);
-        }
+        mSrcBufferInfo->src_info[0].rect.w = (int32_t)(sourceCrop[i].right - sourceCrop[i].left);
+        mSrcBufferInfo->src_info[0].rect.h = (int32_t)(sourceCrop[i].bottom- sourceCrop[i].top);
         mSrcBufferInfo->src_info[0].canvas_w = hnd[i]->stride;
         mSrcBufferInfo->src_info[0].canvas_h = hnd[i]->height;
         mSrcBufferInfo->src_info[0].memtype = CANVAS_ALLOC;
@@ -663,6 +645,26 @@ bool GE2DComposer::threadLoop()
         int32_t slot = front->mSlot;
         int32_t mergedFence = front->mFence;
         Vector< LayerState* > layersState = front->mLayersState;
+
+        { // clear display region.
+            hwc2_layer_t videoLayerId = front->mVideoLayerId;
+            bool clearBuffer = front->mClearBuffer;
+            hwc_rect_t clipRect;
+            HwcLayer* videoLayer = mDisplayDevice.getLayerById(videoLayerId);
+            uint32_t addr = mBasePhyAddr + slot * mFbInfo->finfo.line_length;
+            if (videoLayer) {
+                clipRect = videoLayer->getDisplayFrame();
+                fillRectangle(clipRect, 0, addr);
+            }
+
+            if (clearBuffer) {
+                clipRect.left = 0;
+                clipRect.top = 0;
+                clipRect.right = mFbInfo->info.xres;
+                clipRect.bottom = mFbInfo->info.yres;
+                fillRectangle(clipRect, 0, addr);
+            }
+        }
 
         // wait all fence to be signaled here.
         HwcFenceControl::waitAndCloseFd(mergedFence, 2800);

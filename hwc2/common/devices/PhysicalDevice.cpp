@@ -12,6 +12,8 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+//
+// This file is modified by Amlogic, Inc. 2017.01.17.
 */
 
 #include <fcntl.h>
@@ -692,7 +694,11 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
 
         // real post framebuffer here.
         DTRACE("fbInfo->renderMode: %d", fbInfo.renderMode);
-        mPriorFrameRetireFence = fb_post_with_fence_locked(&fbInfo, mClientTargetHnd, mTargetAcquireFence);
+        if (mRenderMode == GLES_COMPOSE_MODE) {
+            mPriorFrameRetireFence = fb_post_with_fence_locked(&fbInfo, mClientTargetHnd, mTargetAcquireFence);
+        } else {
+            mPriorFrameRetireFence = hwc_fb_post_with_fence_locked(&fbInfo, mClientTargetHnd, mTargetAcquireFence);
+        }
         mTargetAcquireFence = -1;
 
         if (mRenderMode == GE2D_COMPOSE_MODE) {
@@ -869,6 +875,7 @@ bool PhysicalDevice::layersStateCheck(int32_t renderMode,
         sourceCrop[i] = layer[i]->getSourceCrop();
         displayFrame[i] = layer[i]->getDisplayFrame();
         hnd[i] = reinterpret_cast<private_handle_t const*>(layer[i]->getBufferHandle());
+        if (hnd[i] == NULL) return false; // no buffer to process.
         ALOGD("layer[%d] zorder: %d, blend: %d, PlaneAlpha: %f, "
             "mColor: [%d, %d, %d, %d], mDataSpace: %d, format hnd[%d]: %x",
             i, layer[i]->getZ(), layer[i]->getBlendMode(), layer[i]->getPlaneAlpha(),
@@ -929,7 +936,7 @@ bool PhysicalDevice::layersStateCheck(int32_t renderMode,
                 return false;
             }
         }
-
+#if 0
         if (yuv420Sp && GE2D_COMPOSE_TWO_LAYERS == layerNum) {
             if (Utils::compareRect(sourceCrop[0], sourceCrop[1])
                 && Utils::compareRect(sourceCrop[0], displayFrame[0])
@@ -937,8 +944,8 @@ bool PhysicalDevice::layersStateCheck(int32_t renderMode,
                 ALOGD("2 layers is same size and have yuv420sp format ge2d compose can not process!");
                 return false;
             }
-
         }
+#endif
     }
 
     return ret;
@@ -949,7 +956,7 @@ bool PhysicalDevice::layersStateCheck(int32_t renderMode,
  * 1) only support one layer.
  * 2) layer format: rgba, rgbx,rgb565,bgra;
  * 3) layer no need scale to display;
- * 4) layer has no offset to display; (will support later.)
+ * 4) layer has no offset to display;
 
  * For ge2d composer:
  * 1) support layer format that direct composer can't support.

@@ -1,23 +1,7 @@
 /*
- * Copyright (C) 2012 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+// Copyright(c) 2016 Amlogic Corporation
+*/
 
-//#define LOG_NDEBUG 0
-
-// We would eliminate the non-conforming zero-length array, but we can't since
-// this is effectively included from the Linux kernel
 #include <sync/sync.h>
 #include <sw_sync.h>
 
@@ -161,10 +145,6 @@ int32_t HwcFenceControl::merge(const String8& name, const int32_t& f1,
     return result;
 }
 
-int32_t HwcFenceControl::dup() const {
-    return ::dup(mFenceFd);
-}
-
 int32_t HwcFenceControl::dupFence(int32_t fence) {
     if (-1 == fence) {
         DTRACE("acquire fence already been signaled.");
@@ -177,37 +157,6 @@ int32_t HwcFenceControl::dupFence(int32_t fence) {
     }
 
     return dupFence;
-}
-
-int32_t HwcFenceControl::getFenceFd() const {
-    return mFenceFd;
-}
-
-nsecs_t HwcFenceControl::getSignalTime() const {
-    if (mFenceFd == -1) {
-        return -1;
-    }
-
-    struct sync_fence_info_data* finfo = sync_fence_info(mFenceFd);
-    if (finfo == NULL) {
-        ETRACE("sync_fence_info returned NULL for fd %d", mFenceFd);
-        return -1;
-    }
-    if (finfo->status != 1) {
-        sync_fence_info_free(finfo);
-        return INT64_MAX;
-    }
-
-    struct sync_pt_info* pinfo = NULL;
-    uint64_t timestamp = 0;
-    while ((pinfo = sync_pt_info(finfo, pinfo)) != NULL) {
-        if (pinfo->timestamp_ns > timestamp) {
-            timestamp = pinfo->timestamp_ns;
-        }
-    }
-    sync_fence_info_free(finfo);
-
-    return nsecs_t(timestamp);
 }
 
 } // namespace amlogic
