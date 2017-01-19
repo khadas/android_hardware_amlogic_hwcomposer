@@ -123,12 +123,6 @@ public:
     virtual void removeDisplayConfigs();
     virtual bool updateDisplayConfigs();
 
-    //this function will take contorl of fencefd, if you need use it also, please dup it before call.
-    void swapReleaseFence();
-    void addReleaseFence(hwc2_layer_t layerId, int32_t fenceFd);
-    void clearFenceList(KeyedVector<hwc2_layer_t, int32_t> * fenceList);
-    void dumpFenceList(KeyedVector<hwc2_layer_t, int32_t> * fenceList);
-
     //events
     virtual void onVsync(int64_t timestamp);
     virtual void dump(Dump& d);
@@ -181,11 +175,6 @@ private:
 
     //HDR Capabilities
     hdr_capabilities_t mHdrCapabilities;
-
-    // record the release fence of layer.
-    KeyedVector<hwc2_layer_t, int32_t> mLayerReleaseFences[2];
-    KeyedVector<hwc2_layer_t, int32_t> * mHwcCurReleaseFences;
-    KeyedVector<hwc2_layer_t, int32_t> * mHwcPriorReleaseFences;
 
     // lock
     Mutex mLock;

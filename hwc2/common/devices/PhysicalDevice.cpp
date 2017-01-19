@@ -53,15 +53,11 @@ PhysicalDevice::PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc)
 
     // set capacity of mDisplayConfigs
     mDisplayConfigs.setCapacity(DEVICE_COUNT);
-
-     mHwcCurReleaseFences = mHwcPriorReleaseFences = NULL;
 }
 
 PhysicalDevice::~PhysicalDevice()
 {
     WARN_IF_NOT_DEINIT();
-    clearFenceList(mHwcCurReleaseFences);
-    clearFenceList(mHwcPriorReleaseFences);
 }
 
 bool PhysicalDevice::initialize() {
@@ -142,18 +138,6 @@ bool PhysicalDevice::destroyLayer(hwc2_layer_t layerId) {
     if (layer == NULL) {
         ETRACE("destroyLayer: no Hwclayer found (%d)", layerId);
         return false;
-    }
-
-    for (int i = 0; i < 2; i++) {
-        ssize_t idx = mLayerReleaseFences[i].indexOfKey(layerId);
-        if (idx >= 0) {
-            int releaseFence = mLayerReleaseFences[i].valueAt(idx);
-            if (releaseFence > -1) {
-                close(releaseFence);
-            }
-            mLayerReleaseFences[i].removeItemsAt(idx);
-            DTRACE("destroyLayer remove layer %lld from cur release list %p\n", layerId, &(mLayerReleaseFences[i]));
-        }
     }
 
     mHwcLayers.removeItem(layerId);
@@ -428,100 +412,45 @@ int32_t PhysicalDevice::getHdrCapabilities(
     return HWC2_ERROR_NONE;
 }
 
-void PhysicalDevice::swapReleaseFence() {
-    //dumpFenceList(mHwcCurReleaseFences);
-
-    if (mHwcCurReleaseFences == NULL || mHwcPriorReleaseFences == NULL) {
-        if (mHwcCurReleaseFences) {
-            clearFenceList(mHwcPriorReleaseFences);
-        }
-
-        if (mHwcPriorReleaseFences) {
-            clearFenceList(mHwcPriorReleaseFences);
-        }
-
-        mHwcCurReleaseFences = &(mLayerReleaseFences[0]);
-        mHwcPriorReleaseFences = &(mLayerReleaseFences[1]);
-    } else {
-        KeyedVector<hwc2_layer_t, int32_t> * tmp =  mHwcCurReleaseFences;
-        clearFenceList(mHwcPriorReleaseFences);
-        mHwcCurReleaseFences = mHwcPriorReleaseFences;
-        mHwcPriorReleaseFences = tmp;
-    }
-}
-
-
-void PhysicalDevice::addReleaseFence(hwc2_layer_t layerId, int32_t fenceFd) {
-    ssize_t idx = mHwcCurReleaseFences->indexOfKey(layerId);
-    if (idx >= 0 && idx < mHwcCurReleaseFences->size()) {
-        int32_t oldFence = mHwcCurReleaseFences->valueAt(idx);
-        String8 mergeName("hwc-release");
-         int32_t newFence = -1;
-        if (oldFence > -1 && fenceFd > -1) {
-            newFence = sync_merge(mergeName, oldFence, fenceFd);
-        } else if (oldFence > -1) {
-            newFence = sync_merge(mergeName, oldFence, oldFence);
-        } else if (fenceFd > -1) {
-            newFence = sync_merge(mergeName, fenceFd, fenceFd);
-        }
-        mHwcCurReleaseFences->replaceValueAt(idx, newFence);
-        if (oldFence > -1)
-            close(oldFence);
-        if (fenceFd > -1)
-            close(fenceFd);
-        ETRACE("addReleaseFence:(%d, %d) + %d -> (%d,%d)\n", idx, oldFence, fenceFd, idx, newFence);
-        dumpFenceList(mHwcCurReleaseFences);
-    } else {
-        mHwcCurReleaseFences->add(layerId, fenceFd);
-    }
-}
-
-void PhysicalDevice::clearFenceList(KeyedVector<hwc2_layer_t, int32_t> * fenceList) {
-    if (!fenceList || !fenceList->size())
-        return;
-
-    for (int i = 0; i < fenceList->size(); i++) {
-        int32_t fenceFd = fenceList->valueAt(i);
-        if (fenceFd > -1) {
-            close(fenceFd);
-        }
-        DTRACE("clearFenceList close fd %d\n", fenceFd);
-        fenceList->replaceValueAt(i, -1);
-    }
-    fenceList->clear();
-}
-
-void PhysicalDevice::dumpFenceList(KeyedVector<hwc2_layer_t, int32_t> * fenceList) {
-    if (!fenceList || fenceList->isEmpty())
-        return;
-
-    String8 resultStr("dumpFenceList: ");
-    for (int i = 0; i < fenceList->size(); i++) {
-        hwc2_layer_t layerId = fenceList->keyAt(i);
-        int32_t fenceFd = fenceList->valueAt(i);
-        resultStr.appendFormat("(%lld, %d), ", layerId, fenceFd);
-    }
-
-    ETRACE("%s", resultStr.string());
-}
-
 int32_t PhysicalDevice::getReleaseFences(
         uint32_t* outNumElements,
         hwc2_layer_t* outLayers,
         int32_t* outFences) {
-    *outNumElements = mHwcPriorReleaseFences->size();
+    HwcLayer* layer = NULL;
+    uint32_t num_layer = 0;
 
-    if (outLayers && outFences) {
-        for (uint32_t i=0; i<mHwcPriorReleaseFences->size(); i++) {
-            outLayers[i] = mHwcPriorReleaseFences->keyAt(i);
-
-            int releaseFence = mHwcPriorReleaseFences->valueAt(i);
-            if (releaseFence > -1) {
-                outFences[i] = dup(releaseFence);
-            } else {
-                outFences[i] = -1;
+    if (NULL == outLayers || NULL == outFences) {
+        for (uint32_t i=0; i<mHwcLayers.size(); i++) {
+            hwc2_layer_t layerId = mHwcLayers.keyAt(i);
+            layer = mHwcLayers.valueAt(i);
+            if (layer) num_layer++;
+        }
+    } else {
+        for (uint32_t i=0; i<mHwcLayers.size(); i++) {
+            hwc2_layer_t layerId = mHwcLayers.keyAt(i);
+            layer = mHwcLayers.valueAt(i);
+            if (layer) {
+                DTRACE("outFences: %d", layer->getAcquireFence());
+                /*if (layer->getAcquireFence() > -1) {
+                    close(layer->getAcquireFence());
+                }*/
+                if (layer->getAcquireFence() > -1) {
+                    outFences[num_layer] = layer->getAcquireFence();
+                } else {
+                    outFences[num_layer] = -1;
+                }
+                outLayers[num_layer++] = layerId;
+                layer->resetAcquireFence();
+                // TODO: ?
             }
         }
+    }
+
+    if (num_layer > 0) {
+        DTRACE("There are %d layer requests.", num_layer);
+        *outNumElements = num_layer;
+    } else {
+        DTRACE("No layer have set buffer yet.");
     }
 
     return HWC2_ERROR_NONE;
@@ -563,35 +492,31 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence) {
     }
 
     if (!mClientTargetHnd || private_handle_t::validate(mClientTargetHnd) < 0 || mPowerMode == HWC2_POWER_MODE_OFF) {
-        if (mTargetAcquireFence > -1 && mPriorFrameRetireFence > -1) {
-            *outRetireFence = sync_merge("Layer-2", mTargetAcquireFence, mPriorFrameRetireFence);
-        } else if (mTargetAcquireFence > -1) {
-            *outRetireFence = sync_merge("Layer-0", mTargetAcquireFence, mTargetAcquireFence);
-        } else if (mPriorFrameRetireFence > -1) {
-            *outRetireFence = sync_merge("Layer-1", mPriorFrameRetireFence, mPriorFrameRetireFence);
-        } else {
-            *outRetireFence = -1;
-        }
-
-        if (mTargetAcquireFence > -1)
+        DTRACE("mClientTargetHnd is null or Enter suspend state, mTargetAcquireFence: %d", mTargetAcquireFence);
+        if (mTargetAcquireFence > -1) {
+            sync_wait(mTargetAcquireFence, 5000);
             close(mTargetAcquireFence);
-        mTargetAcquireFence = -1;
-        if (mPriorFrameRetireFence > -1)
-            close(mPriorFrameRetireFence);
-        mPriorFrameRetireFence = -1;
-    } else {
-        *outRetireFence = mPriorFrameRetireFence;
-        if (*outRetireFence >= 0) {
-            DTRACE("Get prior frame's retire fence %d", *outRetireFence);
-        } else {
-            ETRACE("No valid prior frame's retire returned. %d ", *outRetireFence);
-            // -1 means no fence, less than -1 is some error
-            *outRetireFence = -1;
+            mTargetAcquireFence = -1;
         }
-
-        mPriorFrameRetireFence = fb_post_with_fence_locked(mFramebufferInfo, mClientTargetHnd, mTargetAcquireFence);
-        mTargetAcquireFence = -1;
+        *outRetireFence = -1;
+        if (private_handle_t::validate(mClientTargetHnd) < 0) {
+            ETRACE("mClientTargetHnd is not validate!");
+            return HWC2_ERROR_NONE;
+        }
     }
+
+    *outRetireFence = mPriorFrameRetireFence;
+
+    if (*outRetireFence >= 0) {
+        DTRACE("Get prior frame's retire fence %d", *outRetireFence);
+    } else {
+        ETRACE("No valid prior frame's retire returned. %d ", *outRetireFence);
+        // -1 means no fence, less than -1 is some error
+        *outRetireFence = -1;
+    }
+
+    mPriorFrameRetireFence = fb_post_with_fence_locked(mFramebufferInfo, mClientTargetHnd, mTargetAcquireFence);
+    mTargetAcquireFence = -1;
 
     // finally we need to update cursor's blank status
     if (cbinfo->fd > 0 && cursorShow != mCursorContext->getCursorStatus()) {
@@ -599,7 +524,6 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence) {
         DTRACE("UPDATE FB1 status to %d", !cursorShow);
         ioctl(cbinfo->fd, FBIOBLANK, !cursorShow);
     }
-
 
     return err;
 }
@@ -629,16 +553,6 @@ int32_t PhysicalDevice::presentDisplay(
         err = HWC2_ERROR_NOT_VALIDATED;
     }
 
-    // reset layers' acquire fence.
-    for (uint32_t i=0; i<mHwcLayers.size(); i++) {
-        hwc2_layer_t layerId = mHwcLayers.keyAt(i);
-        layer = mHwcLayers.valueAt(i);
-        if (layer != NULL) {
-            close(layer->getAcquireFence());
-            layer->resetAcquireFence();
-        }
-    }
-
     return err;
 }
 
@@ -657,17 +571,16 @@ int32_t PhysicalDevice::setClientTarget(
         return HWC2_ERROR_BAD_PARAMETER;
     }
 
-    if (mTargetAcquireFence > -1) {
-        close(mTargetAcquireFence);
-        mTargetAcquireFence = -1;
-    }
-
     if (NULL != target) {
         mClientTargetHnd = target;
         mClientTargetDamageRegion = damage;
-        mTargetAcquireFence = acquireFence;
+        if (-1 != acquireFence) {
+            mTargetAcquireFence = acquireFence;
+            //sync_wait(mTargetAcquireFence, 3000);
+        }
+        // TODO: HWC2_ERROR_BAD_PARAMETER && dataspace && damage.
     } else {
-        ETRACE("client target is null!, no need to update this frame.");
+        DTRACE("client target is null!, no need to update this frame.");
     }
 
     return HWC2_ERROR_NONE;
@@ -702,8 +615,6 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
     uint32_t* outNumRequests) {
     HwcLayer* layer = NULL;
     bool istvp = false;
-
-    swapReleaseFence();
 
     for (uint32_t i=0; i<mHwcLayers.size(); i++) {
         hwc2_layer_t layerId = mHwcLayers.keyAt(i);
