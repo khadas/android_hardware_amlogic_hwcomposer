@@ -492,7 +492,7 @@ void GE2DComposer::runGE2DProcess(int32_t slot, Vector< LayerState* > &hwcLayers
 
     bool debugSameSize = Utils::checkBoolProp("sys.sf.debug.ss");
     // TODO:2 same size layers case.
-    if (debugSameSize && layerNum > GE2D_COMPOSE_ONE_LAYER) {
+    if (!debugSameSize && layerNum > GE2D_COMPOSE_ONE_LAYER) {
         if (Utils::compareRect(sourceCrop[0], sourceCrop[1])
             && Utils::compareRect(sourceCrop[0], displayFrame[0])
             && Utils::compareRect(sourceCrop[1], displayFrame[1])) {
