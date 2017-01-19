@@ -49,18 +49,18 @@ int32_t Utils::checkIntProp(const char* prop) {
     return 0;
 }
 
-int32_t Utils::checkAndDupFence(int32_t fence) {
-    if (fence < 0) {
-        ETRACE("not a vliad fence %d",fence);
+int32_t Utils::checkAndDupFd(int32_t fd) {
+    if (fd < 0) {
+        ETRACE("not a vliad fd %d", fd);
         return -1;
     }
 
-    int32_t dup_fence = dup(fence);
-    if (dup_fence < 0) {
-        ETRACE("fence dup failed: %s", strerror(errno));
+    int32_t dup_fd = ::dup(fd);
+    if (dup_fd < 0) {
+        ETRACE("fd dup failed: %s", strerror(errno));
     }
 
-    return dup_fence;
+    return dup_fd;
 }
 
 #if WITH_LIBPLAYER_MODULE
@@ -117,32 +117,32 @@ bool Utils::checkOutputMode(char* curmode, int32_t* rate) {
     return true;
 }
 
-bool Utils::checkVinfo(framebuffer_info_t *fbinfo) {
-    if (fbinfo != NULL && fbinfo->fd >= 0) {
+bool Utils::checkVinfo(framebuffer_info_t *fbInfo) {
+    if (fbInfo != NULL && fbInfo->fd >= 0) {
         struct fb_var_screeninfo vinfo;
-        if (ioctl(fbinfo->fd, FBIOGET_VSCREENINFO, &vinfo) == -1)
+        if (ioctl(fbInfo->fd, FBIOGET_VSCREENINFO, &vinfo) == -1)
         {
             ALOGE("FBIOGET_VSCREENINFO error!!!");
             return -errno;
         }
 
-        if (vinfo.xres != fbinfo->info.xres
-            || vinfo.yres != fbinfo->info.yres
-            || vinfo.width != fbinfo->info.width
-            || vinfo.height != fbinfo->info.height) {
+        if (vinfo.xres != fbInfo->info.xres
+            || vinfo.yres != fbInfo->info.yres
+            || vinfo.width != fbInfo->info.width
+            || vinfo.height != fbInfo->info.height) {
             if (int32_t(vinfo.width) <= 16 || int32_t(vinfo.height) <= 9) {
                 // the driver doesn't return that information
                 // default to 160 dpi
                 vinfo.width  = ((vinfo.xres * 25.4f)/160.0f + 0.5f);
                 vinfo.height = ((vinfo.yres * 25.4f)/160.0f + 0.5f);
             }
-            fbinfo->xdpi = (vinfo.xres * 25.4f) / vinfo.width;
-            fbinfo->ydpi = (vinfo.yres * 25.4f) / vinfo.height;
+            fbInfo->xdpi = (vinfo.xres * 25.4f) / vinfo.width;
+            fbInfo->ydpi = (vinfo.yres * 25.4f) / vinfo.height;
 
-            fbinfo->info.xres = vinfo.xres;
-            fbinfo->info.yres = vinfo.yres;
-            fbinfo->info.width = vinfo.width;
-            fbinfo->info.height = vinfo.height;
+            fbInfo->info.xres = vinfo.xres;
+            fbInfo->info.yres = vinfo.yres;
+            fbInfo->info.width = vinfo.width;
+            fbInfo->info.height = vinfo.height;
 
             return true;
         }

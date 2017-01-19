@@ -1,9 +1,23 @@
 /*
-// Copyright(c) 2016 Amlogic Corporation
+// Copyright (c) 2014 Intel Corporation
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 */
+
 #ifndef IDISPLAY_DEVICE_H
 #define IDISPLAY_DEVICE_H
 
+#include <utils/KeyedVector.h>
 #include <Dump.h>
 #include <hardware/hwcomposer2.h>
 #include <Hwcomposer.h>
@@ -11,6 +25,26 @@
 
 namespace android {
 namespace amlogic {
+
+enum {
+    LAYER_MAX_NUM_CHANGE_REQUEST = 8,
+    LAYER_MAX_NUM_CHANGE_TYPE = 16,
+    LAYER_MAX_NUM_SUPPORT = LAYER_MAX_NUM_CHANGE_TYPE,
+};
+
+enum {
+    GLES_COMPOSE_MODE = 0,
+    DIRECT_COMPOSE_MODE = 1,
+    GE2D_COMPOSE_MODE = 2,
+};
+
+enum {
+    GE2D_COMPOSE_NO_LAYER = 0,
+    GE2D_COMPOSE_ONE_LAYER = 1,
+    GE2D_COMPOSE_TWO_LAYERS = 2,
+    GE2D_COMPOSE_THREE_LAYERS = 3,
+    GE2D_COMPOSE_MAX_LAYERS = GE2D_COMPOSE_THREE_LAYERS,
+};
 
 // display config
 class DisplayConfig {

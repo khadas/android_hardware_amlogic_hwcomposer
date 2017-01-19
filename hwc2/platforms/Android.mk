@@ -12,6 +12,7 @@ LOCAL_MODULE_RELATIVE_PATH := hw
 
 LOCAL_SRC_FILES := \
     ../common/base/HwcLayer.cpp \
+	../common/base/HwcFenceControl.cpp \
     ../common/base/Hwcomposer.cpp \
     ../common/base/HwcModule.cpp \
     ../common/base/VsyncManager.cpp \
@@ -20,6 +21,8 @@ LOCAL_SRC_FILES := \
     ../common/devices/VirtualDevice.cpp \
     ../common/observers/SoftVsyncObserver.cpp \
     ../common/observers/UeventObserver.cpp \
+    ../common/composers/Composers.cpp \
+    ../common/composers/GE2DComposer.cpp \
     ../common/utils/Utils.cpp \
     ../common/utils/Dump.cpp
 
@@ -34,13 +37,19 @@ LOCAL_SHARED_LIBRARIES := \
     libhardware \
     libutils \
     libsync \
-    libfbcnf
+    libion \
+    libfbcnf \
+    libge2d
 
-LOCAL_STATIC_LIBRARIES := libomxutil
+LOCAL_STATIC_LIBRARIES := \
+	libomxutil
 
 LOCAL_C_INCLUDES := \
     system/core \
-    system/core/libsync/include
+    system/core/libsync \
+    system/core/libsync/include \
+    system/core/include \
+    vendor/amlogic/system/libge2d/inlcude
 
 LOCAL_C_INCLUDES += $(LOCAL_PATH) \
     $(LOCAL_PATH)/../include \
@@ -50,6 +59,7 @@ LOCAL_C_INCLUDES += $(LOCAL_PATH) \
     $(LOCAL_PATH)/../common/observers \
     $(LOCAL_PATH)/../common/planes \
     $(LOCAL_PATH)/../common/utils \
+    $(LOCAL_PATH)/../common/composers \
     $(LOCAL_PATH)/../.. \
     $(LOCAL_PATH)/
 
@@ -72,6 +82,10 @@ LOCAL_C_INCLUDES += $(MESON_GRALLOC_DIR)
 
 LOCAL_C_INCLUDES += system/core/libion/include/ \
                 system/core/libion/kernel-headers
+
+ifeq ($(TARGET_APP_LAYER_USE_CONTINUOUS_BUFFER),true)
+LOCAL_CFLAGS += -DUSE_CONTINOUS_BUFFER_COMPOSER
+endif
 
 # WITH_LIBPLAYER_MODULE := true
 ifneq ($(WITH_LIBPLAYER_MODULE),false)

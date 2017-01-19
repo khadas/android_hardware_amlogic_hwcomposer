@@ -1,5 +1,17 @@
 /*
-// Copyright(c) 2016 Amlogic Corporation
+// Copyright (c) 2014 Intel Corporation
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 */
 
 #include <inttypes.h>
@@ -10,7 +22,6 @@
 #include <cutils/properties.h>
 #include <sync/sync.h>
 
-#include <Utils.h>
 
 namespace android {
 namespace amlogic {
@@ -24,9 +35,27 @@ HwcLayer::HwcLayer(hwc2_display_t& dpy)
       mPlaneAlpha(0.0f),
       mTransform(HAL_TRANSFORM_RESERVED),
       mZ(0),
+      mBufferHnd(NULL),
       mInitialized(false)
 {
+    // initial layer's state.
+    mColor.r = 0;
+    mColor.g = 0;
+    mColor.b = 0;
+    mColor.a = 0;
 
+    mSourceCrop.left = 0.0f;
+    mSourceCrop.top = 0.0f;
+    mSourceCrop.right = 0.0f;
+    mSourceCrop.bottom = 0.0f;
+
+    mDisplayFrame.left = 0;
+    mDisplayFrame.top = 0;
+    mDisplayFrame.right = 0;
+    mDisplayFrame.bottom = 0;
+
+    mDamageRegion.numRects = 0;
+    mVisibleRegion.numRects = 0;
 }
 
 HwcLayer::~HwcLayer()
@@ -50,9 +79,73 @@ void HwcLayer::deinitialize() {
 void HwcLayer::resetAcquireFence() {
     Mutex::Autolock _l(mLock);
 
+    HwcFenceControl::closeFd(mAcquireFence);
     mAcquireFence = -1;
 }
 
+bool HwcLayer::isCropped() {
+    bool rtn = true;
+    private_handle_t const* buffer = reinterpret_cast<private_handle_t const*>(mBufferHnd);
+
+    if (buffer && buffer->width  && buffer->height) {
+        float widthCmp = (mSourceCrop.right - mSourceCrop.left) / buffer->width;
+        float heightCmp = (mSourceCrop.bottom - mSourceCrop.top) / buffer->height;
+
+        if (widthCmp == 1.0f && heightCmp == 1.0f)
+            rtn = false;
+    }
+
+    DTRACE("chkIsCropped %d", rtn);
+    return rtn;
+}
+
+bool HwcLayer::isScaled() {
+    bool rtn = true;
+    float sourceWidth = mSourceCrop.right - mSourceCrop.left;
+    float sourceHeight = mSourceCrop.bottom - mSourceCrop.top;
+    int displayWidth = mDisplayFrame.right - mDisplayFrame.left;
+    int displayHeight = mDisplayFrame.bottom - mDisplayFrame.top;
+
+    if (displayWidth > 0 && displayHeight > 0) {
+        float widthCmp = sourceWidth / displayWidth;
+        float heightCmp = sourceHeight / displayHeight;
+
+        if (widthCmp == 1.0f && heightCmp == 1.0f)
+            rtn = false;
+    }
+
+    DTRACE("chkIsScaled %d", rtn);
+    return rtn;
+}
+
+bool HwcLayer::isOffset() {
+    bool rtn = false;
+    if (mDisplayFrame.left != 0 || mDisplayFrame.top != 0)
+        rtn = true;
+
+    DTRACE("chkIsOffset %d", rtn);
+    return rtn;
+}
+
+bool HwcLayer::isBlended() {
+    DTRACE("chkIsBlended %d", mBlendMode);
+    return mBlendMode != HWC2_BLEND_MODE_INVALID;
+}
+
+bool HwcLayer::haveColor() {
+    DTRACE("[%d, %d, %d, %d]", mColor.r, mColor.g, mColor.b, mColor.a);
+    return !(0 == mColor.r && 0 == mColor.g && 0 == mColor.b && 0 == mColor.a);
+}
+
+bool HwcLayer::havePlaneAlpha() {
+    DTRACE("mPlaneAlpha: %d", mPlaneAlpha);
+    return mPlaneAlpha > 0.0f && mPlaneAlpha < 1.0f;
+}
+
+bool HwcLayer::haveDataspace() {
+    DTRACE("mDataSpace: %d", mDataSpace);
+    return mDataSpace != HAL_DATASPACE_UNKNOWN;
+}
 
 int32_t HwcLayer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) {
     Mutex::Autolock _l(mLock);
@@ -62,16 +155,10 @@ int32_t HwcLayer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) {
 		return HWC2_ERROR_BAD_PARAMETER;
 
     if (NULL == buffer) {
-        //mBufferHnd = buffer;
-        // if (-1 != acquireFence) mAcquireFence = acquireFence;
-    //} else {
         DTRACE("Layer buffer is null! no need to update this layer.");
     }
     mBufferHnd = buffer;
     mAcquireFence = acquireFence;
-    if (mAcquireFence > -1) {
-        sync_wait(mAcquireFence, 4000);
-    }
 
     return HWC2_ERROR_NONE;
 }
@@ -256,7 +343,7 @@ void HwcLayer::dump(Dump& d) {
                     "SIDEBAND"};
 
     d.append(
-            "   %11s | %08" PRIxPTR " | %10d | %02x | %1.2f | %02x | %04x |%7.1f,%7.1f,%7.1f,%7.1f |%5d,%5d,%5d,%5d \n",
+            "   %11s | %12" PRIxPTR " | %10d | %02x | %1.2f | %02x | %04x |%7.1f,%7.1f,%7.1f,%7.1f |%5d,%5d,%5d,%5d \n",
                     compositionTypeName[mCompositionType], intptr_t(mBufferHnd),
                     mZ, mDataSpace, mPlaneAlpha, mTransform, mBlendMode,
                     mSourceCrop.left, mSourceCrop.top, mSourceCrop.right, mSourceCrop.bottom,

@@ -1,6 +1,19 @@
 /*
-// Copyright(c) 2016 Amlogic Corporation
+// Copyright (c) 2014 Intel Corporation
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
 */
+
 #ifndef HWC_LAYER_H
 #define HWC_LAYER_H
 
@@ -8,7 +21,8 @@
 #include <utils/threads.h>
 #include <Dump.h>
 #include <utils/Vector.h>
-
+#include <Utils.h>
+#include <HwcFenceControl.h>
 
 namespace android {
 namespace amlogic {
@@ -38,15 +52,34 @@ class HwcLayer {
         int32_t setCompositionType(int32_t type);
         int32_t getCompositionType() const { return mCompositionType; }
 
+        // get HWC2 Layer state functions
         buffer_handle_t getBufferHandle() const { return mBufferHnd; }
         const native_handle_t* getSidebandStream() const { return mSidebandStream; }
         int32_t getAcquireFence() const { return mAcquireFence; }
+        int32_t getDuppedAcquireFence() { return HwcFenceControl::dupFence(mAcquireFence); }
+        hwc_region_t getSurfaceDamage() { return mDamageRegion; };
+        int32_t getBlendMode() { return mBlendMode; };
+        hwc_color_t getColor() { return mColor; };
+        int32_t getDataspace() { return mDataSpace; };
+        hwc_rect_t getDisplayFrame() { return mDisplayFrame;};
+        float getPlaneAlpha() { return mPlaneAlpha; };
+        hwc_frect_t getSourceCrop() { return mSourceCrop; };
+        int32_t getTransform() { return mTransform; };
+        hwc_region_t getVisibleRegion() { return mVisibleRegion; };
 
         bool initialize();
         void deinitialize();
         void dump(Dump& d);
 
         void resetAcquireFence();
+
+        bool isCropped();
+        bool isScaled();
+        bool isOffset();
+        bool isBlended();
+        bool haveColor();
+        bool havePlaneAlpha();
+        bool haveDataspace();
 
 #if WITH_LIBPLAYER_MODULE
         void presentOverlay();
