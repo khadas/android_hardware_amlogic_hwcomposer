@@ -178,7 +178,6 @@ private:
     Hwcomposer& mHwc;
     DeviceControlFactory *mControlFactory;
     char mDisplayMode[32];
-    bool mOSD0Blank;
 
     // display configs
     Vector<DisplayConfig*> mDisplayConfigs;
@@ -207,6 +206,7 @@ private:
     int32_t mPriorFrameRetireFence;
     int32_t mRenderMode;
     bool mIsValidated;
+    bool mIsContinuousBuf;
 
     // num of composition type changed layer.
     uint32_t mNumLayersChangetype;

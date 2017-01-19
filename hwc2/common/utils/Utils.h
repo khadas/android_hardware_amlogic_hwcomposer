@@ -60,6 +60,10 @@ public:
         }
         return false;
     }
+    template<typename T>
+    inline static T abs(const T& value) {
+        return value < 0 ? - value : value;
+    }
     template <typename T>
     static inline T min(T a, T b) {
         return a<b ? a : b;

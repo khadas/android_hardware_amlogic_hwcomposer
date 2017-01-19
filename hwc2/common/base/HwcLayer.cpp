@@ -93,8 +93,8 @@ bool HwcLayer::isCropped() {
         float widthCmp = (mSourceCrop.right - mSourceCrop.left) / buffer->width;
         float heightCmp = (mSourceCrop.bottom - mSourceCrop.top) / buffer->height;
 
-        if (abs(widthCmp - 1.0f) <= 0.01f
-            && abs(heightCmp - 1.0f) <= 0.01f) {
+        if (Utils::abs(widthCmp - 1.0f) <= 0.01f
+            && Utils::abs(heightCmp - 1.0f) <= 0.01f) {
             rtn = false;
         }
     }
@@ -114,8 +114,8 @@ bool HwcLayer::isScaled() {
         float widthCmp = sourceWidth / displayWidth;
         float heightCmp = sourceHeight / displayHeight;
 
-        if (abs(widthCmp - 1.0f) <= 0.01f
-            && abs(heightCmp - 1.0f) <= 0.01f) {
+        if (Utils::abs(widthCmp - 1.0f) <= 0.01f
+            && Utils::abs(heightCmp - 1.0f) <= 0.01f) {
             rtn = false;
         }
     }

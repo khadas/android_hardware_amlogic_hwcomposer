@@ -48,10 +48,10 @@ PhysicalDevice::PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc, DeviceControl
       mTargetAcquireFence(-1),
       mRenderMode(GLES_COMPOSE_MODE),
       mIsValidated(false),
+      mIsContinuousBuf(true),
       mDirectRenderLayerId(0),
       mVideoOverlayLayerId(0),
       mGE2DClearVideoRegionCount(0),
-      mOSD0Blank(false),
       mGE2DComposeFrameCount(0),
       mInitialized(false)
 {
@@ -656,18 +656,21 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
         }*/
     } else if (mRenderMode == DIRECT_COMPOSE_MODE) { // if only one layer exists, let hwc do her work.
         directCompose(&fbInfo);
-        /* if (mGE2DComposeFrameCount != 0) {
-            addReleaseFence(mDirectRenderLayerId, HwcFenceControl::dupFence(mPriorFrameRetireFence));
-        }*/
     } else if (mRenderMode == GE2D_COMPOSE_MODE) {
         ge2dCompose(&fbInfo, hasVideoOverlay);
     }
     fbInfo.renderMode = mRenderMode;
 
     if (hasVideoOverlay && mHwcLayers.size() == 1) {
-        fbInfo.op |= 0x00000001;
+        if (mIsContinuousBuf)
+            fbInfo.op |= 0x00000001;
+        else
+            setOSD0Blank(true);
     } else {
-        fbInfo.op &= ~0x00000001;
+        if (mIsContinuousBuf)
+            fbInfo.op &= ~0x00000001;
+        else
+            setOSD0Blank(false);
     }
 
     if (!mClientTargetHnd || private_handle_t::validate(mClientTargetHnd) < 0 || mPowerMode == HWC2_POWER_MODE_OFF) {
@@ -694,7 +697,7 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
 
         // real post framebuffer here.
         DTRACE("fbInfo->renderMode: %d", fbInfo.renderMode);
-        if (mRenderMode == GLES_COMPOSE_MODE) {
+        if (!mIsContinuousBuf) {
             mPriorFrameRetireFence = fb_post_with_fence_locked(&fbInfo, mClientTargetHnd, mTargetAcquireFence);
         } else {
             mPriorFrameRetireFence = hwc_fb_post_with_fence_locked(&fbInfo, mClientTargetHnd, mTargetAcquireFence);
@@ -723,6 +726,19 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
 
     if (mRenderMode != GE2D_COMPOSE_MODE) {
         mGE2DComposeFrameCount = 0;
+    }
+
+    return HWC2_ERROR_NONE;
+}
+
+// TODO: need add fence wait.
+int32_t PhysicalDevice::setOSD0Blank(bool blank) {
+    framebuffer_info_t* fbInfo = mFramebufferContext->getInfo();
+
+    if (fbInfo->fd > 0 && blank != mFramebufferContext->getStatus()) {
+        mFramebufferContext->setStatus(blank);
+        DTRACE("UPDATE FB0 status to %d", blank);
+        ioctl(fbInfo->fd, FBIOBLANK, blank);
     }
 
     return HWC2_ERROR_NONE;
@@ -1042,10 +1058,10 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
     HwcLayer* layer = NULL;
     bool istvp = false;
     bool glesCompose = false;
-    bool isContinuousBuf =  true;
 
     mRenderMode = GLES_COMPOSE_MODE;
     mVideoOverlayLayerId = 0;
+    mIsContinuousBuf = true;
     swapReleaseFence();
 
     for (uint32_t i=0; i<mHwcLayers.size(); i++) {
@@ -1058,7 +1074,7 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
             if (hnd) {
                 if (!(hnd->flags & private_handle_t::PRIV_FLAGS_CONTINUOUS_BUF)) {
                     DTRACE("continous buffer flag is not set!");
-                    isContinuousBuf = false;
+                    mIsContinuousBuf = false;
                 }
                 if (hnd && layer->getCompositionType() == HWC2_COMPOSITION_DEVICE) {
                     // video overlay.
@@ -1118,7 +1134,7 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
 #endif
 
     // dumpLayers(mHwcLayers);
-    if (isContinuousBuf && !glesCompose && !noDevComp) {
+    if (mIsContinuousBuf && !glesCompose && !noDevComp) {
         mRenderMode = composersFilter(mHwcGlesLayers);
     }
 

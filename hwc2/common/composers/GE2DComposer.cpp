@@ -32,7 +32,7 @@ GE2DComposer::GE2DComposer(IDisplayDevice& disp)
       mGe2dFd(-1),
       mVideoLayerId(0),
       mSrcBufferInfo(NULL),
-      mDebug(false),
+      mDebug(true),
       mExitThread(false),
       mInitialized(false)
 {
@@ -647,21 +647,21 @@ bool GE2DComposer::threadLoop()
         Vector< LayerState* > layersState = front->mLayersState;
 
         { // clear display region.
-            hwc2_layer_t videoLayerId = front->mVideoLayerId;
             bool clearBuffer = front->mClearBuffer;
             hwc_rect_t clipRect;
-            HwcLayer* videoLayer = mDisplayDevice.getLayerById(videoLayerId);
             uint32_t addr = mBasePhyAddr + slot * mFbInfo->finfo.line_length;
-            if (videoLayer) {
-                clipRect = videoLayer->getDisplayFrame();
-                fillRectangle(clipRect, 0, addr);
-            }
-
             if (clearBuffer) {
                 clipRect.left = 0;
                 clipRect.top = 0;
                 clipRect.right = mFbInfo->info.xres;
                 clipRect.bottom = mFbInfo->info.yres;
+                fillRectangle(clipRect, 0, addr);
+            }
+
+            hwc2_layer_t videoLayerId = front->mVideoLayerId;
+            HwcLayer* videoLayer = mDisplayDevice.getLayerById(videoLayerId);
+            if (!clearBuffer && videoLayer) {
+                clipRect = videoLayer->getDisplayFrame();
                 fillRectangle(clipRect, 0, addr);
             }
         }
