@@ -613,7 +613,7 @@ hwc2_function_pointer_t hwc2_getFunction(struct hwc2_device* device,
         case HWC2_FUNCTION_SET_LAYER_Z_ORDER:
             return reinterpret_cast<hwc2_function_pointer_t>(setLayerZOrder);
         default:
-            ALOGE("getFunction: Unknown function descriptor: %d", descriptor);
+            ETRACE("getFunction: Unknown function descriptor: %d", descriptor);
             return NULL;
     }
 }

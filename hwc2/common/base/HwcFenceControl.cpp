@@ -71,25 +71,25 @@ status_t HwcFenceControl::traceFenceInfo(int32_t fence) {
     err = sync_wait(fence, 10000);
 
     if (err < 0) {
-        ALOGI("wait %d failed: %s\n", fence, strerror(errno));
+        ITRACE("wait %d failed: %s\n", fence, strerror(errno));
     } else {
-        ALOGI("wait %d done\n", fence);
+        ITRACE("wait %d done\n", fence);
     }
     info = sync_fence_info(fence);
     if (info) {
         struct sync_pt_info *pt_info = NULL;
-        ALOGI("  fence %s %d\n", info->name, info->status);
+        ITRACE("  fence %s %d\n", info->name, info->status);
 
         while ((pt_info = sync_pt_info(info, pt_info))) {
             int ts_sec = pt_info->timestamp_ns / 1000000000LL;
             int ts_usec = (pt_info->timestamp_ns % 1000000000LL) / 1000LL;
-            ALOGI("    pt %s %s %d %d.%06d", pt_info->obj_name,
+            ITRACE("    pt %s %s %d %d.%06d", pt_info->obj_name,
                    pt_info->driver_name, pt_info->status,
                    ts_sec, ts_usec);
             if (!strcmp(pt_info->driver_name, "sw_sync"))
-                ALOGI(" val=%d\n", *(uint32_t *)pt_info->driver_data);
+                ITRACE(" val=%d\n", *(uint32_t *)pt_info->driver_data);
             else
-                ALOGI("\n");
+                ITRACE("\n");
         }
         sync_fence_info_free(info);
     }
@@ -113,7 +113,7 @@ status_t HwcFenceControl::waitForever(const char* logname) {
     int32_t warningTimeout = 3000;
     int32_t err = sync_wait(mFenceFd, warningTimeout);
     if (err < 0 && errno == ETIME) {
-        ALOGE("%s: fence %d didn't signal in %u ms", logname, mFenceFd,
+        ETRACE("%s: fence %d didn't signal in %u ms", logname, mFenceFd,
                 warningTimeout);
         err = sync_wait(mFenceFd, TIMEOUT_NEVER);
     }

@@ -31,10 +31,17 @@ extern "C" {
 // #define HWC_DEBUG
 #ifdef HWC_DEBUG
 // Helper to automatically preappend classname::functionname to the log message
+#if 0
 #define VTRACE(fmt,...)     ALOGV("%s: " fmt, __func__, ##__VA_ARGS__)
 #define DTRACE(fmt,...)     ALOGD("%s: " fmt, __func__, ##__VA_ARGS__)
 #define ITRACE(fmt,...)     ALOGI("%s: " fmt, __func__, ##__VA_ARGS__)
 #define WTRACE(fmt,...)     ALOGW("%s: " fmt, __func__, ##__VA_ARGS__)
+#else
+#define VTRACE(fmt,...)     ALOGV(fmt, ##__VA_ARGS__)
+#define DTRACE(fmt,...)     ALOGD(fmt, ##__VA_ARGS__)
+#define ITRACE(fmt,...)     ALOGI(fmt, ##__VA_ARGS__)
+#define WTRACE(fmt,...)     ALOGW(fmt, ##__VA_ARGS__)
+#endif
 #else
 #define VTRACE(fmt,...)     ((void)0)
 #define DTRACE(fmt,...)     ((void)0)

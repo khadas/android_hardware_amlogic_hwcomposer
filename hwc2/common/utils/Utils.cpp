@@ -31,7 +31,7 @@ bool Utils::checkBoolProp(const char* prop) {
 
     memset(val, 0, sizeof(val));
     if (property_get(prop, val, "false") && strcmp(val, "true") == 0) {
-        ALOGD("prop: %s is %s",prop, val);
+        DTRACE("prop: %s is %s",prop, val);
         return true;
     }
 
@@ -43,7 +43,7 @@ int32_t Utils::checkIntProp(const char* prop) {
 
     memset(val, 0, sizeof(val));
     if (property_get(prop, val, "2")) {
-        //ALOGV("prop: %s is %s",prop, val);
+        VTRACE("prop: %s is %s",prop, val);
         return atoi(val);
     }
     return 0;
@@ -122,7 +122,7 @@ bool Utils::checkVinfo(framebuffer_info_t *fbInfo) {
         struct fb_var_screeninfo vinfo;
         if (ioctl(fbInfo->fd, FBIOGET_VSCREENINFO, &vinfo) == -1)
         {
-            ALOGE("FBIOGET_VSCREENINFO error!!!");
+            ETRACE("FBIOGET_VSCREENINFO error!!!");
             return -errno;
         }
 

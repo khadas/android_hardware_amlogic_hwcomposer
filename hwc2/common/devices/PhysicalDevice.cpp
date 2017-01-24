@@ -789,7 +789,7 @@ int32_t PhysicalDevice::setClientTarget(
         mClientTargetHnd = target;
         mClientTargetDamageRegion = damage;
         mTargetAcquireFence = acquireFence;
-        ETRACE("setClientTarget %p, %d", target, acquireFence);
+        DTRACE("setClientTarget %p, %d", target, acquireFence);
         // TODO: HWC2_ERROR_BAD_PARAMETER && dataspace && damage.
     } else {
         DTRACE("client target is null!, no need to update this frame.");
@@ -833,7 +833,7 @@ void PhysicalDevice::dumpLayers(Vector < hwc2_layer_t > layerIds) {
                                     "SOLID",
                                     "HWC_CURSOR",
                                     "SIDEBAND"};
-        ALOGE("   %11s | %12" PRIxPTR " | %10d | %02x | %1.2f | %02x | %04x |%7.1f,%7.1f,%7.1f,%7.1f |%5d,%5d,%5d,%5d \n",
+        ETRACE("   %11s | %12" PRIxPTR " | %10d | %02x | %1.2f | %02x | %04x |%7.1f,%7.1f,%7.1f,%7.1f |%5d,%5d,%5d,%5d \n",
                         compositionTypeName[layer->getCompositionType()],
                         intptr_t(layer->getBufferHandle()), layer->getZ(), layer->getDataspace(),
                         layer->getPlaneAlpha(), layer->getTransform(), layer->getBlendMode(),
@@ -852,7 +852,7 @@ void PhysicalDevice::dumpLayers(KeyedVector<hwc2_layer_t, HwcLayer*> layers) {
                                     "SOLID",
                                     "HWC_CURSOR",
                                     "SIDEBAND"};
-        ALOGE("   %11s | %12" PRIxPTR " | %10d | %02x | %1.2f | %02x | %04x |%7.1f,%7.1f,%7.1f,%7.1f |%5d,%5d,%5d,%5d \n",
+        ETRACE("   %11s | %12" PRIxPTR " | %10d | %02x | %1.2f | %02x | %04x |%7.1f,%7.1f,%7.1f,%7.1f |%5d,%5d,%5d,%5d \n",
                         compositionTypeName[layer->getCompositionType()],
                         intptr_t(layer->getBufferHandle()), layer->getZ(), layer->getDataspace(),
                         layer->getPlaneAlpha(), layer->getTransform(), layer->getBlendMode(),
@@ -876,7 +876,7 @@ bool PhysicalDevice::layersStateCheck(int32_t renderMode,
         displayFrame[i] = layer[i]->getDisplayFrame();
         hnd[i] = reinterpret_cast<private_handle_t const*>(layer[i]->getBufferHandle());
         if (hnd[i] == NULL) return false; // no buffer to process.
-        ALOGD("layer[%d] zorder: %d, blend: %d, PlaneAlpha: %f, "
+        DTRACE("layer[%d] zorder: %d, blend: %d, PlaneAlpha: %f, "
             "mColor: [%d, %d, %d, %d], mDataSpace: %d, format hnd[%d]: %x",
             i, layer[i]->getZ(), layer[i]->getBlendMode(), layer[i]->getPlaneAlpha(),
             layer[i]->getColor().r, layer[i]->getColor().g, layer[i]->getColor().b,
@@ -890,18 +890,18 @@ bool PhysicalDevice::layersStateCheck(int32_t renderMode,
             case HAL_PIXEL_FORMAT_RGB_888:
             case HAL_PIXEL_FORMAT_RGB_565:
             case HAL_PIXEL_FORMAT_BGRA_8888:
-                ALOGD("Layer format match direct composer.");
+                DTRACE("Layer format match direct composer.");
                 ret = true;
             break;
             default:
-                ALOGD("Layer format not support by direct compose");
+                DTRACE("Layer format not support by direct compose");
                 return false;
             break;
         }
         if (layer[0]->isCropped()
             || layer[0]->isScaled()
             || layer[0]->isOffset()) {
-            ALOGD("direct compose can not process!");
+            DTRACE("direct compose can not process!");
             return false;
         }
     }else if (renderMode == GE2D_COMPOSE_MODE) {
@@ -919,11 +919,11 @@ bool PhysicalDevice::layersStateCheck(int32_t renderMode,
                 case HAL_PIXEL_FORMAT_Y8:
                 case HAL_PIXEL_FORMAT_YCbCr_422_SP:
                 case HAL_PIXEL_FORMAT_YCbCr_422_I:
-                    ALOGD("Layer format match ge2d composer.");
+                    DTRACE("Layer format match ge2d composer.");
                     ret = true;
                 break;
                 default:
-                    ALOGD("Layer format not support by ge2d");
+                    DTRACE("Layer format not support by ge2d");
                     return false;
                 break;
             }
@@ -932,7 +932,7 @@ bool PhysicalDevice::layersStateCheck(int32_t renderMode,
                 || layer[i]->haveDataspace()
                 || (layer[i]->isBlended()
                 && layer[i]->isScaled())) {
-                ALOGD("ge2d compose can not process!");
+                DTRACE("ge2d compose can not process!");
                 return false;
             }
         }
@@ -941,7 +941,7 @@ bool PhysicalDevice::layersStateCheck(int32_t renderMode,
             if (Utils::compareRect(sourceCrop[0], sourceCrop[1])
                 && Utils::compareRect(sourceCrop[0], displayFrame[0])
                 && Utils::compareRect(sourceCrop[1], displayFrame[1])) {
-                ALOGD("2 layers is same size and have yuv420sp format ge2d compose can not process!");
+                DTRACE("2 layers is same size and have yuv420sp format ge2d compose can not process!");
                 return false;
             }
         }
@@ -1057,7 +1057,7 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
                 reinterpret_cast<private_handle_t const*>(layer->getBufferHandle());
             if (hnd) {
                 if (!(hnd->flags & private_handle_t::PRIV_FLAGS_CONTINUOUS_BUF)) {
-                    ALOGE("continous buffer flag is not set!");
+                    ETRACE("continous buffer flag is not set!");
                     isContinuousBuf = false;
                 }
                 if (hnd && layer->getCompositionType() == HWC2_COMPOSITION_DEVICE) {
@@ -1113,7 +1113,7 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
 
     bool noDevComp = Utils::checkBoolProp("sys.sf.debug.nohwc");
 #ifndef USE_CONTINOUS_BUFFER_COMPOSER
-    ALOGE("No continous buffer composer!");
+    ETRACE("No continous buffer composer!");
     noDevComp = true;
 #endif
 

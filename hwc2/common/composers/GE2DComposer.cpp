@@ -397,27 +397,27 @@ void GE2DComposer::tracer()
                     "CANVAS_OSD1",
                     "CANVAS_ALLOC",
                     "CANVAS_INVALID"};
-    ALOGE("  OP: %22s", ge2dOp[mSrcBufferInfo->ge2d_op]);
-    ALOGE(
+    ETRACE("  OP: %22s", ge2dOp[mSrcBufferInfo->ge2d_op]);
+    ETRACE(
         "       addr     |     memtype     | canvas size | fmt | tr | blnd |"
         "     source crop (x,y,w,h)      |\n"
         "  --------------+-----------------+-------------+-----+----+------|"
         "--------------------------------+\n");
-    ALOGE(
+    ETRACE(
         "  SRC0:\n"
         "   %12x | %15s | %5dx%5d | %03x | %02s | %04s |%5d,%5d,%5d,%5d \n",
                 mSrcBufferInfo->src_info[0].paddr, memType[mSrcBufferInfo->src_info[0].memtype],
                 mSrcBufferInfo->src_info[0].canvas_w, mSrcBufferInfo->src_info[0].canvas_h, mSrcBufferInfo->src_info[0].format,
                 "no", "  no", mSrcBufferInfo->src_info[0].rect.x, mSrcBufferInfo->src_info[0].rect.y,
                 mSrcBufferInfo->src_info[0].rect.w, mSrcBufferInfo->src_info[0].rect.h);
-    ALOGE(
+    ETRACE(
         "  SRC1:\n"
         "   %12x | %15s | %5dx%5d | %03x | %02s | %04s |%5d,%5d,%5d,%5d \n",
                 mSrcBufferInfo->src_info[1].paddr, memType[mSrcBufferInfo->src_info[1].memtype],
                 mSrcBufferInfo->src_info[1].canvas_w, mSrcBufferInfo->src_info[1].canvas_h, mSrcBufferInfo->src_info[1].format,
                 "no", "  no", mSrcBufferInfo->src_info[1].rect.x, mSrcBufferInfo->src_info[1].rect.y,
                 mSrcBufferInfo->src_info[1].rect.w, mSrcBufferInfo->src_info[1].rect.h);
-    ALOGE(
+    ETRACE(
         "  DST:\n"
         "   %12x | %15s | %5dx%5d | %03x | %02x | %04x |%5d,%5d,%5d,%5d \n",
                 mSrcBufferInfo->dst_info.paddr, memType[mSrcBufferInfo->dst_info.memtype],
@@ -425,7 +425,7 @@ void GE2DComposer::tracer()
                 mSrcBufferInfo->dst_info.rotation, mSrcBufferInfo->blend_mode,
                 mSrcBufferInfo->dst_info.rect.x, mSrcBufferInfo->dst_info.rect.y,
                 mSrcBufferInfo->dst_info.rect.w, mSrcBufferInfo->dst_info.rect.h);
-    ALOGE(
+    ETRACE(
         "  --------------+-----------------+-------------+-----+----+------|"
         "--------------------------------+\n\n");
 }
@@ -440,7 +440,7 @@ void GE2DComposer::dumpLayers(
 #if 1
         int32_t base = 4 * (hnd->stride * (hnd->height / 2) + 10);
         char* tmp = (char*)layerBuffer + base;
-        ALOGD("[0x%x, 0x%x, 0x%x, 0x%x]\n"
+        DTRACE("[0x%x, 0x%x, 0x%x, 0x%x]\n"
             "[0x%x, 0x%x, 0x%x, 0x%x]\n"
             "[0x%x, 0x%x, 0x%x, 0x%x]\n"
             "[0x%x, 0x%x, 0x%x, 0x%x]\n",
@@ -455,17 +455,17 @@ void GE2DComposer::dumpLayers(
         sprintf(path, "/data/local/tmp/layer_%" PRId64 ".bin", systemTime(SYSTEM_TIME_MONOTONIC));
         fd = open(path, O_RDWR | O_CREAT);
         if (-1 == fd) {
-            ALOGE("Stark, open file failed!");
+            ETRACE("Stark, open file failed!");
             return;
         }
         write(fd, layerBuffer, hnd->size);
         sync();
         close(fd);
 #endif
-    munmap(layerBuffer, hnd->size);
-    ALOGD("dumpLayer ok");
+        munmap(layerBuffer, hnd->size);
+        DTRACE("dumpLayer ok");
     } else {
-        ALOGE("layerBuffer mmap fail");
+        ETRACE("layerBuffer mmap fail");
     }
 }
 
@@ -483,7 +483,7 @@ void GE2DComposer::runGE2DProcess(int32_t slot, Vector< LayerState* > &hwcLayers
         sourceCrop[i] = layer[i]->mSourceCrop;
         displayFrame[i] = layer[i]->mDisplayFrame;
         hnd[i] = reinterpret_cast<private_handle_t const*>(layer[i]->mBufferHnd);
-        ALOGD("layer[%d] zorder: %d, blend: %d, PlaneAlpha: %f, "
+        DTRACE("layer[%d] zorder: %d, blend: %d, PlaneAlpha: %f, "
             "mColor: [%d, %d, %d, %d], mDataSpace: %d, format hnd[%d]: %x",
             i, layer[i]->mZ, layer[i]->mBlendMode, layer[i]->mPlaneAlpha,
             layer[i]->mColor.r, layer[i]->mColor.g, layer[i]->mColor.b,
@@ -541,10 +541,10 @@ void GE2DComposer::runGE2DProcess(int32_t slot, Vector< LayerState* > &hwcLayers
         ge2d_process(mGe2dFd, mSrcBufferInfo);
 
         if (mDebug) {
-            // ALOGE("hnd[0]->format: 0x%x, hnd[1]->format: 0x%x", hnd[0]->format, hnd[1]->format);
+            // ETRACE("hnd[0]->format: 0x%x, hnd[1]->format: 0x%x", hnd[0]->format, hnd[1]->format);
             // dumpLayers(hnd[0]);
 
-            ALOGE("  same crop");
+            ETRACE("  same crop");
             tracer();
         }
 
@@ -619,7 +619,7 @@ void GE2DComposer::runGE2DProcess(int32_t slot, Vector< LayerState* > &hwcLayers
 
         ge2d_process(mGe2dFd, mSrcBufferInfo);
         if (mDebug) {
-            ALOGE("  layers sameSize is %d", sameSize);
+            ETRACE("  layers sameSize is %d", sameSize);
             tracer();
         }
     }
@@ -675,7 +675,7 @@ bool GE2DComposer::threadLoop()
         // ge2d finished process, make sure fd close here.
         for (int32_t i=0; i<layersState.size(); i++) {
             LayerState* layer = layersState.itemAt(i);
-            // ALOGE("close->layer:[%12" PRIxPTR ", %d]", layer->mBufferHnd, layer->mBufferFd);
+            // ETRACE("close->layer:[%12" PRIxPTR ", %d]", layer->mBufferHnd, layer->mBufferFd);
             if (layer != NULL) {
                 Utils::closeFd(layer->mBufferFd);
                 layer->mBufferFd = -1;
@@ -685,7 +685,7 @@ bool GE2DComposer::threadLoop()
 
 #ifdef GE2D_PORCESS_TIMESTAMP
         nsecs_t afterTimeStamp = systemTime(SYSTEM_TIME_MONOTONIC);
-        ALOGE("Ge2d process Period: %" PRId64 "", afterTimeStamp - beforeTimeStamp);
+        ETRACE("Ge2d process Period: %" PRId64 "", afterTimeStamp - beforeTimeStamp);
 #endif
         // usleep(1000*100);
         // signal ge2d's release fence.
