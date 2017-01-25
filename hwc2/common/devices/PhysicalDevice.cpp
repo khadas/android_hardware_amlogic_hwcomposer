@@ -1057,7 +1057,7 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
                 reinterpret_cast<private_handle_t const*>(layer->getBufferHandle());
             if (hnd) {
                 if (!(hnd->flags & private_handle_t::PRIV_FLAGS_CONTINUOUS_BUF)) {
-                    ETRACE("continous buffer flag is not set!");
+                    DTRACE("continous buffer flag is not set!");
                     isContinuousBuf = false;
                 }
                 if (hnd && layer->getCompositionType() == HWC2_COMPOSITION_DEVICE) {
@@ -1080,7 +1080,7 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
 
             // cursor layer.
             if (layer->getCompositionType() == HWC2_COMPOSITION_CURSOR) {
-                ETRACE("This is a Cursor layer!");
+                DTRACE("This is a Cursor layer!");
                 mHwcLayersChangeRequest.add(layerId, layer);
                 continue;
             }
@@ -1089,7 +1089,7 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
             if (layer->getCompositionType() == HWC2_COMPOSITION_SIDEBAND
                     && layer->getSidebandStream()) {
                 // TODO: we just transact SIDEBAND to OVERLAY for now;
-                ETRACE("get HWC_SIDEBAND layer, just change to overlay");
+                DTRACE("get HWC_SIDEBAND layer, just change to overlay");
                 mHwcLayersChangeRequest.add(layerId, layer);
                 mHwcLayersChangeType.add(layerId, layer);
                 continue;
@@ -1097,7 +1097,7 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
 
             // TODO: solid color.
             if (layer->getCompositionType() == HWC2_COMPOSITION_SOLID_COLOR) {
-                ETRACE("This is a Solid Color layer!");
+                DTRACE("This is a Solid Color layer!");
                 // mHwcLayersChangeRequest.add(layerId, layer);
                 // mHwcLayersChangeType.add(layerId, layer);
                 mHwcGlesLayers.add(layerId, layer);
@@ -1105,7 +1105,7 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
             }
 
             if (layer->getCompositionType() == HWC2_COMPOSITION_CLIENT) {
-                ETRACE("Meet a client layer!");
+                DTRACE("Meet a client layer!");
                 glesCompose = true;
             }
         }
@@ -1113,7 +1113,7 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
 
     bool noDevComp = Utils::checkBoolProp("sys.sf.debug.nohwc");
 #ifndef USE_CONTINOUS_BUFFER_COMPOSER
-    ETRACE("No continous buffer composer!");
+    DTRACE("No continous buffer composer!");
     noDevComp = true;
 #endif
 
@@ -1139,7 +1139,7 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
     }
 
     if (mHwcLayersChangeRequest.size() > 0) {
-        ETRACE("There are %d layer requests.", mHwcLayersChangeRequest.size());
+        DTRACE("There are %d layer requests.", mHwcLayersChangeRequest.size());
         *outNumRequests = mHwcLayersChangeRequest.size();
     }
 
@@ -1147,7 +1147,7 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
     mIsValidated = true;
 
     if (mHwcLayersChangeType.size() > 0) {
-        ETRACE("there are %d layer types has changed.", mHwcLayersChangeType.size());
+        DTRACE("there are %d layer types has changed.", mHwcLayersChangeType.size());
         *outNumTypes = mHwcLayersChangeType.size();
         return HWC2_ERROR_HAS_CHANGES;
     }

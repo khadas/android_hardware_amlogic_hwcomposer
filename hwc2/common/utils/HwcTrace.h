@@ -48,7 +48,7 @@ extern "C" {
 #define ITRACE(fmt,...)     ((void)0)
 #define WTRACE(fmt,...)     ((void)0)
 #endif
-#define ETRACE(fmt,...)     ALOGE("%s: " fmt, __func__, ##__VA_ARGS__)
+#define ETRACE(fmt,...)     ALOGE(fmt, ##__VA_ARGS__)
 
 
 // Function call tracing
