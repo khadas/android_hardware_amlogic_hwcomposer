@@ -35,12 +35,6 @@ enum {
 };
 
 enum {
-    GLES_COMPOSE_MODE = 0,
-    DIRECT_COMPOSE_MODE = 1,
-    GE2D_COMPOSE_MODE = 2,
-};
-
-enum {
     GE2D_COMPOSE_NO_LAYER = 0,
     GE2D_COMPOSE_ONE_LAYER = 1,
     GE2D_COMPOSE_TWO_LAYERS = 2,
