@@ -42,30 +42,6 @@ enum {
     GE2D_COMPOSE_MAX_LAYERS = GE2D_COMPOSE_THREE_LAYERS,
 };
 
-// display config
-class DisplayConfig {
-public:
-    DisplayConfig(int rr, int w, int h, int dpix, int dpiy)
-        : mRefreshRate(rr),
-          mWidth(w),
-          mHeight(h),
-          mDpiX(dpix),
-          mDpiY(dpiy)
-    {}
-public:
-    int getRefreshRate() const { return mRefreshRate; }
-    int getWidth() const { return mWidth; }
-    int getHeight() const { return mHeight; }
-    int getDpiX() const { return mDpiX; }
-    int getDpiY() const { return mDpiY; }
-private:
-    int mRefreshRate;
-    int mWidth;
-    int mHeight;
-    int mDpiX;
-    int mDpiY;
-};
-
 
 //  display device interface
 class IDisplayDevice {

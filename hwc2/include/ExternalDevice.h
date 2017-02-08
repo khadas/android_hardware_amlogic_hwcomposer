@@ -23,6 +23,8 @@
 #include <IHdcpControl.h>
 #include <SimpleThread.h>
 
+#include <DisplayHdmi.h>
+
 namespace android {
 namespace amlogic {
 
@@ -40,6 +42,7 @@ public:
     virtual int  getActiveConfig();
     virtual bool setActiveConfig(int index);
     int getRefreshRate();
+    DisplayHdmi* getDisplayHdmi()  const { return mDisplayHdmi; };
 
 private:
     static void HdcpLinkStatusListener(bool success, void *userData);
@@ -57,6 +60,7 @@ private:
     drmModeModeInfo mPendingDrmMode;
     bool mHotplugEventPending;
     int mExpectedRefreshRate;
+    DisplayHdmi* mDisplayHdmi;
 
 private:
     DECLARE_THREAD(ModeSettingThread, ExternalDevice);

@@ -84,19 +84,17 @@ void PrimaryDevice::hotplugListener(bool connected)
 {
     CTRACE();
 
-    if (getDisplayId() == HWC_DISPLAY_EXTERNAL) {
-        ETRACE("hotpug event: %d", connected);
+    ETRACE("hotpug event: %d", connected);
 
-        updateHotplugState(connected);
-        // update display configs
-        if (connected && !updateDisplayConfigs()) {
-            ETRACE("failed to update display config");
-            return;
-        }
-
-        if (connected)
-            getDevice().hotplug(getDisplayId(), connected);
+    updateHotplugState(connected);
+    // update display configs
+    if (connected && !updateDisplayConfigs()) {
+        ETRACE("failed to update display config");
+        return;
     }
+
+    if (connected)
+        getDevice().hotplug(getDisplayId(), connected);
 }
 
 } // namespace amlogic

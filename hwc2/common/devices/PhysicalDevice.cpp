@@ -37,7 +37,6 @@ PhysicalDevice::PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc, DeviceControl
     : mId(id),
       mHwc(hwc),
       mControlFactory(controlFactory),
-      mActiveDisplayConfig(-1),
       mVsyncObserver(NULL),
       mIsConnected(false),
       mFramebufferHnd(NULL),
@@ -77,9 +76,6 @@ PhysicalDevice::PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc, DeviceControl
     mHwcLayersChangeRequest.setCapacity(LAYER_MAX_NUM_CHANGE_REQUEST);
     mHwcLayers.setCapacity(LAYER_MAX_NUM_SUPPORT);
 
-    // set capacity of mDisplayConfigs
-    mDisplayConfigs.setCapacity(DEVICE_COUNT);
-
     mGE2DRenderSortedLayerIds.setCapacity(GE2D_COMPOSE_MAX_LAYERS);
     mGE2DRenderSortedLayerIds.clear();
 
@@ -107,6 +103,9 @@ bool PhysicalDevice::initialize() {
         DEINIT_AND_RETURN_FALSE("failed to create vsync observer");
     }
 
+    mDisplayHdmi = new DisplayHdmi(mId);
+    mDisplayHdmi->initialize();
+
     mInitialized = true;
     return true;
 }
@@ -115,6 +114,7 @@ void PhysicalDevice::deinitialize() {
     Mutex::Autolock _l(mLock);
 
     DEINIT_AND_DELETE_OBJ(mVsyncObserver);
+    DEINIT_AND_DELETE_OBJ(mDisplayHdmi);
     DEINIT_AND_DELETE_OBJ(mComposer);
 
     if (mFramebufferContext != NULL) {
@@ -206,8 +206,9 @@ bool PhysicalDevice::destroyLayer(hwc2_layer_t layerId) {
 
 int32_t PhysicalDevice::getActiveConfig(
     hwc2_config_t* outConfig) {
+    Mutex::Autolock _l(mLock);
 
-    return HWC2_ERROR_NONE;
+    return mDisplayHdmi->getActiveConfig(outConfig);
 }
 
 int32_t PhysicalDevice::getChangedCompositionTypes(
@@ -302,47 +303,9 @@ int32_t PhysicalDevice::getDisplayAttribute(
         ETRACE("display %d is not connected.", mId);
     }
 
-    // framebuffer_info_t* fbInfo = mFramebufferContext->getInfo();
-    DisplayConfig *configChosen = mDisplayConfigs.itemAt(config);
-    if  (!configChosen) {
-        ETRACE("failed to get display config: %ld", config);
+    int ret = mDisplayHdmi->getDisplayAttribute(config, attribute, outValue);
+    if (ret < 0)
         return HWC2_ERROR_BAD_CONFIG;
-    }
-
-    // TODO: HWC2_ERROR_BAD_CONFIG?
-    switch (attribute) {
-        case HWC2_ATTRIBUTE_VSYNC_PERIOD:
-            //*outValue = (int32_t)mVsyncObserver->getRefreshPeriod();
-            if (configChosen->getRefreshRate()) {
-                *outValue = 1e9 / configChosen->getRefreshRate();
-            } else {
-                ETRACE("refresh rate is 0, default to 60fps!!!");
-                *outValue = 1e9 / 60;
-            }
-
-            ETRACE("refresh period: %d", *outValue);
-        break;
-        case HWC2_ATTRIBUTE_WIDTH:
-            //*outValue = fbInfo->info.xres;
-            *outValue = configChosen->getWidth();
-        break;
-        case HWC2_ATTRIBUTE_HEIGHT:
-            //*outValue = fbInfo->info.yres;
-            *outValue = configChosen->getHeight();
-        break;
-        case HWC2_ATTRIBUTE_DPI_X:
-            //*outValue = fbInfo->xdpi*1000;
-            *outValue = configChosen->getDpiX() * 1000.0f;
-        break;
-        case HWC2_ATTRIBUTE_DPI_Y:
-            //*outValue = fbInfo->ydpi*1000;
-            *outValue = configChosen->getDpiY() * 1000.0f;
-        break;
-        default:
-            ETRACE("unknown display attribute %u", attribute);
-            *outValue = -1;
-        break;
-    }
 
     return HWC2_ERROR_NONE;
 }
@@ -352,22 +315,7 @@ int32_t PhysicalDevice::getDisplayConfigs(
         hwc2_config_t* outConfigs) {
     Mutex::Autolock _l(mLock);
 
-    if (!mIsConnected) {
-        ETRACE("display %d is not connected.", mId);
-    }
-
-    /* if (NULL != outConfigs) outConfigs[0] = 0;
-    *outNumConfigs = 1; */
-
-    // fill in all config handles
-    if (NULL != outConfigs) {
-        for (int i = 0; i < static_cast<int>(*outNumConfigs); i++) {
-            outConfigs[i] = i;
-        }
-    }
-    *outNumConfigs = mDisplayConfigs.size();
-
-    return HWC2_ERROR_NONE;
+    return mDisplayHdmi->getDisplayConfigs(outNumConfigs, outConfigs);
 }
 
 int32_t PhysicalDevice::getDisplayName(
@@ -788,7 +736,13 @@ int32_t PhysicalDevice::presentDisplay(
 
 int32_t PhysicalDevice::setActiveConfig(
     hwc2_config_t config) {
-    return HWC2_ERROR_NONE;
+    Mutex::Autolock _l(mLock);
+
+    int32_t err = mDisplayHdmi->setActiveConfig(config);
+    if (err == HWC2_ERROR_NONE)
+        mVsyncObserver->setRefreshRate(mDisplayHdmi->getActiveRefreshRate());
+
+    return err;
 }
 
 int32_t PhysicalDevice::setClientTarget(
@@ -1269,56 +1223,27 @@ int32_t PhysicalDevice::initDisplay() {
     return 0;
 }
 
-void PhysicalDevice::removeDisplayConfigs()
-{
-    for (size_t i = 0; i < mDisplayConfigs.size(); i++) {
-        DisplayConfig *config = mDisplayConfigs.itemAt(i);
-        delete config;
-    }
-
-    mDisplayConfigs.clear();
-    mActiveDisplayConfig = -1;
-}
-
-bool PhysicalDevice::updateDisplayConfigs()
-{
+bool PhysicalDevice::updateDisplayConfigs() {
     Mutex::Autolock _l(mLock);
-
     bool ret;
-    int32_t rate;
 
     if (!mIsConnected) {
         ETRACE("disp: %llu is not connected", mId);
         return false;
     }
 
-    ret = Utils::checkOutputMode(mDisplayMode, &rate);
-    if (ret) {
-        mVsyncObserver->setRefreshRate(rate);
-    }
-    ETRACE("output mode refresh rate: %d", rate);
-
     framebuffer_info_t* fbinfo = mFramebufferContext->getInfo();
-    ret |= Utils::checkVinfo(fbinfo);
-
-    if (ret) {
-        // reset display configs
-        removeDisplayConfigs();
-        // reset the number of display configs
-        mDisplayConfigs.setCapacity(1);
-
-        // use active fb dimension as config width/height
-        DisplayConfig *config = new DisplayConfig(rate,
-                                          fbinfo->info.xres,
-                                          fbinfo->info.yres,
-                                          fbinfo->xdpi,
-                                          fbinfo->ydpi);
-        // add it to the front of other configs
-        mDisplayConfigs.push_front(config);
-
-        // init the active display config
-        mActiveDisplayConfig = 0;
+    ret = Utils::checkVinfo(fbinfo);
+    if (!ret) {
+        ETRACE("checkVinfo fail");
+        return false;
     }
+
+    mDisplayHdmi->updateHotplug(mIsConnected, fbinfo, mFramebufferHnd);
+    if (mIsConnected)
+        mVsyncObserver->setRefreshRate(mDisplayHdmi->getActiveRefreshRate());
+    //ETRACE("updateDisplayConfigs rate:%d", mDisplayHdmi->getActiveRefreshRate());
+
     return true;
 }
 
@@ -1469,24 +1394,7 @@ void PhysicalDevice::dump(Dump& d) {
         "----------------------------------------------------------------\n");
     d.append("Device Name: %s (%s)\n", mName,
             mIsConnected ? "connected" : "disconnected");
-    d.append("   CONFIG   |   VSYNC_PERIOD   |   WIDTH   |   HEIGHT   |"
-        "   DPI_X   |   DPI_Y   \n");
-    d.append("------------+------------------+-----------+------------+"
-        "-----------+-----------\n");
-    for (size_t i = 0; i < mDisplayConfigs.size(); i++) {
-        DisplayConfig *config = mDisplayConfigs.itemAt(i);
-        if (config) {
-            d.append("%s %2d     |       %4d       |   %5d   |    %4d    |"
-                "    %3d    |    %3d    \n",
-                     (i == (size_t)mActiveDisplayConfig) ? "*   " : "    ",
-                     i,
-                     config->getRefreshRate(),
-                     config->getWidth(),
-                     config->getHeight(),
-                     config->getDpiX(),
-                     config->getDpiY());
-        }
-    }
+    mDisplayHdmi->dump(d);
 
     // dump layer list
     d.append("  Layers state:\n");
