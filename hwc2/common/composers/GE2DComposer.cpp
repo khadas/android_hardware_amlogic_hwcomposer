@@ -28,11 +28,11 @@ GE2DComposer::GE2DComposer(IDisplayDevice& disp)
       mCurGlesFbSlot(-1),
       mSingleFbSize(0),
       mGe2dBufHnd(NULL),
-      mBasePhyAddr(0),
       mGe2dFd(-1),
+      mSharedFd(-1),
       mVideoLayerId(0),
       mSrcBufferInfo(NULL),
-      mDebug(true),
+      mDebug(false),
       mExitThread(false),
       mInitialized(false)
 {
@@ -174,7 +174,10 @@ bool GE2DComposer::initialize(framebuffer_info_t* fbInfo)
             ETRACE("allocBuffer failed!");
             return false;
         }
-        mBasePhyAddr = getIonPhyAddr(mFbInfo, mGe2dBufHnd);
+        private_handle_t const *pHandle = reinterpret_cast<private_handle_t const*> (mGe2dBufHnd);
+        if (pHandle) {
+            mSharedFd = pHandle->share_fd;
+        }
     } else {
         DTRACE("Buffer alloced already.");
     }
@@ -343,9 +346,10 @@ int32_t GE2DComposer::startCompose(
     return ge2dFence;
 }
 
-void GE2DComposer::fillRectangle(hwc_rect_t clipRect, uint32_t color, uint32_t addr)
+void GE2DComposer::fillRectangle(hwc_rect_t clipRect, uint32_t color, uint32_t offset, int shared_fd)
 {
-    mSrcBufferInfo->src_info[0].paddr = addr;
+    mSrcBufferInfo->src_info[0].offset = offset;
+    mSrcBufferInfo->src_info[0].shared_fd = shared_fd;
     mSrcBufferInfo->src_info[0].format = HAL_PIXEL_FORMAT_RGBA_8888;
     mSrcBufferInfo->src_info[0].rect.x = clipRect.left;
     mSrcBufferInfo->src_info[0].rect.y = clipRect.top;
@@ -355,7 +359,8 @@ void GE2DComposer::fillRectangle(hwc_rect_t clipRect, uint32_t color, uint32_t a
     mSrcBufferInfo->src_info[0].canvas_h = clipRect.bottom - clipRect.top;
     mSrcBufferInfo->src_info[0].memtype = CANVAS_ALLOC;
 
-    mSrcBufferInfo->dst_info.paddr = addr;
+    mSrcBufferInfo->dst_info.offset = offset;
+    mSrcBufferInfo->dst_info.shared_fd = shared_fd;
     mSrcBufferInfo->dst_info.format = HAL_PIXEL_FORMAT_RGBA_8888;
     mSrcBufferInfo->color = color;
     mSrcBufferInfo->offset = 0;
@@ -406,21 +411,21 @@ void GE2DComposer::tracer()
     ETRACE(
         "  SRC0:\n"
         "   %12x | %15s | %5dx%5d | %03x | %02s | %04s |%5d,%5d,%5d,%5d \n",
-                mSrcBufferInfo->src_info[0].paddr, memType[mSrcBufferInfo->src_info[0].memtype],
+                mSrcBufferInfo->src_info[0].offset, memType[mSrcBufferInfo->src_info[0].memtype],
                 mSrcBufferInfo->src_info[0].canvas_w, mSrcBufferInfo->src_info[0].canvas_h, mSrcBufferInfo->src_info[0].format,
                 "no", "  no", mSrcBufferInfo->src_info[0].rect.x, mSrcBufferInfo->src_info[0].rect.y,
                 mSrcBufferInfo->src_info[0].rect.w, mSrcBufferInfo->src_info[0].rect.h);
     ETRACE(
         "  SRC1:\n"
         "   %12x | %15s | %5dx%5d | %03x | %02s | %04s |%5d,%5d,%5d,%5d \n",
-                mSrcBufferInfo->src_info[1].paddr, memType[mSrcBufferInfo->src_info[1].memtype],
+                mSrcBufferInfo->src_info[1].offset, memType[mSrcBufferInfo->src_info[1].memtype],
                 mSrcBufferInfo->src_info[1].canvas_w, mSrcBufferInfo->src_info[1].canvas_h, mSrcBufferInfo->src_info[1].format,
                 "no", "  no", mSrcBufferInfo->src_info[1].rect.x, mSrcBufferInfo->src_info[1].rect.y,
                 mSrcBufferInfo->src_info[1].rect.w, mSrcBufferInfo->src_info[1].rect.h);
     ETRACE(
         "  DST:\n"
         "   %12x | %15s | %5dx%5d | %03x | %02x | %04x |%5d,%5d,%5d,%5d \n",
-                mSrcBufferInfo->dst_info.paddr, memType[mSrcBufferInfo->dst_info.memtype],
+                mSrcBufferInfo->dst_info.offset, memType[mSrcBufferInfo->dst_info.memtype],
                 mSrcBufferInfo->dst_info.canvas_w, mSrcBufferInfo->dst_info.canvas_h, mSrcBufferInfo->dst_info.format,
                 mSrcBufferInfo->dst_info.rotation, mSrcBufferInfo->blend_mode,
                 mSrcBufferInfo->dst_info.rect.x, mSrcBufferInfo->dst_info.rect.y,
@@ -512,7 +517,8 @@ void GE2DComposer::runGE2DProcess(int32_t slot, Vector< LayerState* > &hwcLayers
     mSrcBufferInfo->offset = 0;
     if (sameSize) {
         for (int32_t i=0; i<GE2D_COMPOSE_TWO_LAYERS; i++) {
-            mSrcBufferInfo->src_info[i].paddr = getIonPhyAddr(mFbInfo, hnd[i]);
+            mSrcBufferInfo->src_info[i].offset = 0;
+            mSrcBufferInfo->src_info[i].shared_fd = hnd[i]->share_fd;
             mSrcBufferInfo->src_info[i].format = hnd[i]->format;
             mSrcBufferInfo->src_info[i].rect.x = (int32_t)sourceCrop[i].left;
             mSrcBufferInfo->src_info[i].rect.y = (int32_t)sourceCrop[i].top;
@@ -525,7 +531,8 @@ void GE2DComposer::runGE2DProcess(int32_t slot, Vector< LayerState* > &hwcLayers
 
         mSrcBufferInfo->blend_mode = layer[0]->mBlendMode;
 
-        mSrcBufferInfo->dst_info.paddr = mBasePhyAddr + slot * mFbInfo->finfo.line_length;
+        mSrcBufferInfo->dst_info.offset = slot * mFbInfo->finfo.line_length;
+        mSrcBufferInfo->dst_info.shared_fd = mSharedFd;
         mSrcBufferInfo->dst_info.format = HAL_PIXEL_FORMAT_RGBA_8888;
         mSrcBufferInfo->dst_info.rect.x = displayFrame[0].left;
         mSrcBufferInfo->dst_info.rect.y = displayFrame[0].top;
@@ -569,10 +576,11 @@ void GE2DComposer::runGE2DProcess(int32_t slot, Vector< LayerState* > &hwcLayers
             clipRect.top = 0;
             clipRect.right = mFbInfo->info.xres;
             clipRect.bottom = mFbInfo->info.yres;
-            fillRectangle(clipRect, 0, mBasePhyAddr + slot * mFbInfo->finfo.line_length);
+            fillRectangle(clipRect, 0, slot * mFbInfo->finfo.line_length, mSharedFd);
         }
 
-        mSrcBufferInfo->src_info[0].paddr = getIonPhyAddr(mFbInfo, hnd[i]);
+        mSrcBufferInfo->src_info[0].offset = 0;
+        mSrcBufferInfo->src_info[0].shared_fd = hnd[i]->share_fd;
         mSrcBufferInfo->src_info[0].format = hnd[i]->format;
         mSrcBufferInfo->src_info[0].rect.x = (int32_t)sourceCrop[i].left;
         mSrcBufferInfo->src_info[0].rect.y = (int32_t)sourceCrop[i].top;
@@ -583,7 +591,8 @@ void GE2DComposer::runGE2DProcess(int32_t slot, Vector< LayerState* > &hwcLayers
         mSrcBufferInfo->src_info[0].memtype = CANVAS_ALLOC;
 
         // SRC1 equals DST.
-        mSrcBufferInfo->src_info[1].paddr = mBasePhyAddr + slot * mFbInfo->finfo.line_length;
+        mSrcBufferInfo->src_info[1].offset = slot * mFbInfo->finfo.line_length;
+        mSrcBufferInfo->src_info[1].shared_fd = mSharedFd;
         mSrcBufferInfo->src_info[1].format = HAL_PIXEL_FORMAT_RGBA_8888;
         mSrcBufferInfo->src_info[1].rect.x = displayFrame[i].left;
         mSrcBufferInfo->src_info[1].rect.y = displayFrame[i].top;
@@ -593,7 +602,8 @@ void GE2DComposer::runGE2DProcess(int32_t slot, Vector< LayerState* > &hwcLayers
         mSrcBufferInfo->src_info[1].canvas_h = mFbInfo->info.yres;
         mSrcBufferInfo->src_info[1].memtype = CANVAS_ALLOC;
 
-        mSrcBufferInfo->dst_info.paddr = mBasePhyAddr + slot * mFbInfo->finfo.line_length;
+        mSrcBufferInfo->dst_info.offset = slot * mFbInfo->finfo.line_length;
+        mSrcBufferInfo->dst_info.shared_fd = mSharedFd;
         mSrcBufferInfo->dst_info.format = HAL_PIXEL_FORMAT_RGBA_8888;
         mSrcBufferInfo->dst_info.rect.x = displayFrame[i].left;
         mSrcBufferInfo->dst_info.rect.y = displayFrame[i].top;
@@ -614,7 +624,7 @@ void GE2DComposer::runGE2DProcess(int32_t slot, Vector< LayerState* > &hwcLayers
             mSrcBufferInfo->dst_info.rect.w = Utils::min(mSrcBufferInfo->src_info[0].rect.w, mSrcBufferInfo->src_info[1].rect.w);
             mSrcBufferInfo->dst_info.rect.h = Utils::min(mSrcBufferInfo->src_info[0].rect.h, mSrcBufferInfo->src_info[1].rect.h);
             mSrcBufferInfo->ge2d_op = AML_GE2D_BLEND;
-            if (mDebug) dumpLayers(hnd[i]);
+            // if (mDebug) dumpLayers(hnd[i]);
         }
 
         ge2d_process(mGe2dFd, mSrcBufferInfo);
@@ -649,20 +659,20 @@ bool GE2DComposer::threadLoop()
         { // clear display region.
             bool clearBuffer = front->mClearBuffer;
             hwc_rect_t clipRect;
-            uint32_t addr = mBasePhyAddr + slot * mFbInfo->finfo.line_length;
+            uint32_t offset = slot * mFbInfo->finfo.line_length;
             if (clearBuffer) {
                 clipRect.left = 0;
                 clipRect.top = 0;
                 clipRect.right = mFbInfo->info.xres;
                 clipRect.bottom = mFbInfo->info.yres;
-                fillRectangle(clipRect, 0, addr);
+                fillRectangle(clipRect, 0, offset, mSharedFd);
             }
 
             hwc2_layer_t videoLayerId = front->mVideoLayerId;
             HwcLayer* videoLayer = mDisplayDevice.getLayerById(videoLayerId);
             if (!clearBuffer && videoLayer) {
                 clipRect = videoLayer->getDisplayFrame();
-                fillRectangle(clipRect, 0, addr);
+                fillRectangle(clipRect, 0, offset, mSharedFd);
             }
         }
 

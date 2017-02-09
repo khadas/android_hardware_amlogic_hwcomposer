@@ -846,6 +846,7 @@ bool PhysicalDevice::layersStateCheck(int32_t renderMode,
         displayFrame[i] = layer[i]->getDisplayFrame();
         hnd[i] = reinterpret_cast<private_handle_t const*>(layer[i]->getBufferHandle());
         if (hnd[i] == NULL) return false; // no buffer to process.
+        if (hnd[i]->share_fd == -1) return false; // no buffer to process.
         DTRACE("layer[%d] zorder: %d, blend: %d, PlaneAlpha: %f, "
             "mColor: [%d, %d, %d, %d], mDataSpace: %d, format hnd[%d]: %x",
             i, layer[i]->getZ(), layer[i]->getBlendMode(), layer[i]->getPlaneAlpha(),
@@ -997,12 +998,12 @@ int32_t PhysicalDevice::composersFilter(
 void PhysicalDevice::clearFramebuffer() {
     hwc_rect_t clipRect;
     framebuffer_info_t* fbInfo = mFramebufferContext->getInfo();
-    uint32_t addr = getIonPhyAddr(fbInfo, mFramebufferHnd);
+    uint32_t offset = 0;
     clipRect.left = 0;
     clipRect.top = 0;
     clipRect.right = fbInfo->info.xres;
     clipRect.bottom = fbInfo->info.yres_virtual;
-    mComposer->fillRectangle(clipRect, 0, addr);
+    mComposer->fillRectangle(clipRect, 0, offset, mFramebufferHnd->share_fd);
 
     DTRACE("Composer mode: %d, %d layers", mRenderMode, mHwcLayers.size());
 }

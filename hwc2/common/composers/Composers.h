@@ -29,7 +29,7 @@ public:
     virtual void mergeRetireFence(int32_t slot, int32_t retireFence) = 0;
     virtual void removeRetireFence(int32_t slot) = 0;
     virtual void setVideoOverlayLayerId(hwc2_layer_t layerId) = 0;
-    virtual void fillRectangle(hwc_rect_t clipRect, uint32_t color, uint32_t addr) = 0;
+    virtual void fillRectangle(hwc_rect_t clipRect, uint32_t color, uint32_t offset, int shared_fd) = 0;
 
 private:
     IDisplayDevice& mDisplayDevice;

@@ -114,7 +114,7 @@ public:
     virtual void mergeRetireFence(int32_t slot, int32_t retireFence);
     virtual void removeRetireFence(int32_t slot);
     virtual void setVideoOverlayLayerId(hwc2_layer_t layerId);
-    virtual void fillRectangle(hwc_rect_t clipRect, uint32_t color, uint32_t addr);
+    virtual void fillRectangle(hwc_rect_t clipRect, uint32_t color, uint32_t offset, int shared_fd);
 private:
     uint32_t findFreeFbSlot();
     void runGE2DProcess(int32_t slot, Vector< LayerState* > &hwcLayersState);
@@ -148,7 +148,7 @@ private:
     int32_t mSingleFbSize;
 
     buffer_handle_t mGe2dBufHnd;
-    uint32_t mBasePhyAddr;
+    int mSharedFd;
     int32_t mGe2dFd;
 
     aml_ge2d_info_t *mSrcBufferInfo;
