@@ -1108,6 +1108,7 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
                 DTRACE("get HWC_SIDEBAND layer, just change to overlay");
                 mHwcLayersChangeRequest.add(layerId, layer);
                 mHwcLayersChangeType.add(layerId, layer);
+                mVideoOverlayLayerId = layerId;
                 continue;
             }
 
