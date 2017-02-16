@@ -44,13 +44,8 @@ bool PrimaryDevice::initialize()
     UeventObserver *observer = Hwcomposer::getInstance().getUeventObserver();
     if (observer) {
         observer->registerListener(
-            Utils::getHotplugInString(),
-            hotplugInEventListener,
-            this);
-
-        observer->registerListener(
-            Utils::getHotplugOutString(),
-            hotplugOutEventListener,
+            Utils::getHotplugUeventEnvelope(),
+            hotplugEventListener,
             this);
     } else {
         ETRACE("Uevent observer is NULL");
@@ -64,19 +59,11 @@ void PrimaryDevice::deinitialize()
     PhysicalDevice::deinitialize();
 }
 
-void PrimaryDevice::hotplugInEventListener(void *data)
+void PrimaryDevice::hotplugEventListener(void *data, bool status)
 {
     PrimaryDevice *pThis = (PrimaryDevice*)data;
     if (pThis) {
-        pThis->hotplugListener(true);
-    }
-}
-
-void PrimaryDevice::hotplugOutEventListener(void *data)
-{
-    PrimaryDevice *pThis = (PrimaryDevice*)data;
-    if (pThis) {
-        pThis->hotplugListener(false);
+        pThis->hotplugListener(status);
     }
 }
 
@@ -88,13 +75,16 @@ void PrimaryDevice::hotplugListener(bool connected)
 
     updateHotplugState(connected);
     // update display configs
-    if (connected && !updateDisplayConfigs()) {
-        ETRACE("failed to update display config");
-        return;
-    }
+    if (connected) {
+        if (!updateDisplayConfigs()) {
+            ETRACE("failed to update display config");
+            return;
+        }
 
-    if (connected)
-        getDevice().hotplug(getDisplayId(), connected);
+        if (getDisplayId() == HWC_DISPLAY_EXTERNAL) {
+            getDevice().hotplug(getDisplayId(), connected);
+        }
+    }
 }
 
 } // namespace amlogic

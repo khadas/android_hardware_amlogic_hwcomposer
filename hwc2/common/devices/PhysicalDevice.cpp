@@ -39,7 +39,9 @@ PhysicalDevice::PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc, DeviceControl
       mControlFactory(controlFactory),
       mVsyncObserver(NULL),
       mIsConnected(false),
+      mSecure(false),
       mFramebufferHnd(NULL),
+      mSystemControl(NULL),
       mFbSlot(0),
       mComposer(NULL),
       mPriorFrameRetireFence(-1),
@@ -74,7 +76,18 @@ PhysicalDevice::PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc, DeviceControl
     // set capacity of layers, layer's changed type, layer's changed request.
     mHwcLayersChangeType.setCapacity(LAYER_MAX_NUM_CHANGE_TYPE);
     mHwcLayersChangeRequest.setCapacity(LAYER_MAX_NUM_CHANGE_REQUEST);
+    mHwcGlesLayers.setCapacity(LAYER_MAX_NUM_CHANGE_TYPE);
     mHwcLayers.setCapacity(LAYER_MAX_NUM_SUPPORT);
+#ifdef HWC_ENABLE_SECURE_LAYER
+    mHwcSecureLayers.setCapacity(LAYER_MAX_NUM_SECURE_PROTECTED);
+    mHwcSecureLayers.clear();
+#endif
+
+    // clear layers vectors.
+    mHwcLayersChangeType.clear();
+    mHwcLayersChangeRequest.clear();
+    mHwcGlesLayers.clear();
+    mHwcLayers.clear();
 
     mGE2DRenderSortedLayerIds.setCapacity(GE2D_COMPOSE_MAX_LAYERS);
     mGE2DRenderSortedLayerIds.clear();
@@ -105,9 +118,32 @@ bool PhysicalDevice::initialize() {
 
     mDisplayHdmi = new DisplayHdmi(mId);
     mDisplayHdmi->initialize();
+    UeventObserver *observer = Hwcomposer::getInstance().getUeventObserver();
+    if (observer) {
+        observer->registerListener(
+            Utils::getHdcpUeventEnvelope(),
+            hdcpEventListener,
+            this);
+    } else {
+        ETRACE("PhysicalDevice::Uevent observer is NULL");
+    }
 
     mInitialized = true;
     return true;
+}
+
+void PhysicalDevice::hdcpEventListener(void *data, bool status)
+{
+    PhysicalDevice *pThis = (PhysicalDevice*)data;
+    if (pThis) {
+        pThis->setSecureStatus(status);
+    }
+}
+
+void PhysicalDevice::setSecureStatus(bool status)
+{
+    DTRACE("hdcp event: %d", status);
+    mSecure = status;
 }
 
 void PhysicalDevice::deinitialize() {
@@ -151,6 +187,23 @@ int32_t PhysicalDevice::acceptDisplayChanges() {
         hwc2_layer_t layerId = mHwcLayersChangeType.keyAt(i);
         layer = mHwcLayersChangeType.valueAt(i);
         if (layer) {
+#ifdef HWC_ENABLE_SECURE_LAYER
+            // deal non secure display.
+            if (!mSecure && !mHwcSecureLayers.isEmpty()) {
+                for (uint32_t j=0; j<mHwcSecureLayers.size(); j++) {
+                    hwc2_layer_t secureLayerId = mHwcSecureLayers.keyAt(j);
+                    HwcLayer* secureLayer = mHwcSecureLayers.valueAt(j);
+                    // deal secure layers release fence and composition type on non secure display.
+                    addReleaseFence(secureLayerId, secureLayer->getDuppedAcquireFence());
+                    if (layerId == secureLayerId) {
+                        if (layer->getCompositionType() != HWC2_COMPOSITION_DEVICE) {
+                            layer->setCompositionType(HWC2_COMPOSITION_DEVICE);
+                            continue;
+                        }
+                    }
+                }
+            }
+#endif
             if (layer->getCompositionType() == HWC2_COMPOSITION_DEVICE
                     || layer->getCompositionType() == HWC2_COMPOSITION_SOLID_COLOR) {
                 layer->setCompositionType(HWC2_COMPOSITION_CLIENT);
@@ -162,6 +215,13 @@ int32_t PhysicalDevice::acceptDisplayChanges() {
     // reset layer changed or requested size to zero.
     mHwcLayersChangeType.clear();
     mHwcLayersChangeRequest.clear();
+
+#ifdef HWC_ENABLE_SECURE_LAYER
+    // deal non secure display device.
+    if (!mHwcSecureLayers.isEmpty()) {
+        mHwcSecureLayers.clear();
+    }
+#endif
 
     return HWC2_ERROR_NONE;
 }
@@ -225,6 +285,22 @@ int32_t PhysicalDevice::getChangedCompositionTypes(
             hwc2_layer_t layerId = mHwcLayersChangeType.keyAt(i);
             layer = mHwcLayersChangeType.valueAt(i);
             if (layer) {
+#ifdef HWC_ENABLE_SECURE_LAYER
+                // deal non secure display.
+                if (!mSecure && !mHwcSecureLayers.isEmpty()) {
+                    for (uint32_t j=0; j<mHwcSecureLayers.size(); j++) {
+                        hwc2_layer_t secureLayerId = mHwcSecureLayers.keyAt(j);
+                        if (layerId == secureLayerId) {
+                            if (layer->getCompositionType() != HWC2_COMPOSITION_DEVICE) {
+                                outLayers[i] = layerId;
+                                outTypes[i] = HWC2_COMPOSITION_DEVICE;
+                                continue;
+                            }
+                        }
+                    }
+                }
+#endif
+
                 if (layer->getCompositionType() == HWC2_COMPOSITION_DEVICE
                     || layer->getCompositionType() == HWC2_COMPOSITION_SOLID_COLOR) {
                     // change all other device type to client.
@@ -1027,10 +1103,23 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
             private_handle_t const* hnd =
                 reinterpret_cast<private_handle_t const*>(layer->getBufferHandle());
             if (hnd) {
+                // continous buffer.
                 if (!(hnd->flags & private_handle_t::PRIV_FLAGS_CONTINUOUS_BUF)) {
                     DTRACE("continous buffer flag is not set!");
                     mIsContinuousBuf = false;
                 }
+
+#ifdef GRALLOC_ENABLE_SECURE_LAYER
+                // secure or protected layer.
+                if (!mSecure && (hnd->flags & private_handle_t::PRIV_FLAGS_SECURE_PROTECTED)) {
+                    ETRACE("layer's secure or protected buffer flag is set!");
+                    if (layer->getCompositionType() != HWC2_COMPOSITION_DEVICE) {
+                        mHwcLayersChangeType.add(layerId, layer);
+                    }
+                    mHwcSecureLayers.add(layerId, layer);
+                    continue;
+                }
+#endif
                 if (hnd && layer->getCompositionType() == HWC2_COMPOSITION_DEVICE) {
                     // video overlay.
                     if (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OMX) {
@@ -1246,7 +1335,36 @@ bool PhysicalDevice::updateDisplayConfigs() {
         mVsyncObserver->setRefreshRate(mDisplayHdmi->getActiveRefreshRate());
     //ETRACE("updateDisplayConfigs rate:%d", mDisplayHdmi->getActiveRefreshRate());
 
+    // check hdcp authentication status when hotplug is happen.
+    if (mSystemControl == NULL) {
+        mSystemControl = getSystemControlService();
+    } else {
+        DTRACE("already have system control instance.");
+    }
+    if (mSystemControl != NULL) {
+        // mSecure = Utils::checkHdcp();
+        int status = 0;
+        mSystemControl->isHDCPTxAuthSuccess(status);
+        DTRACE("hdcp status: %d", status);
+        mSecure = (status == 1) ? true : false;
+    } else {
+        ETRACE("can't get system control.");
+    }
+
     return true;
+}
+
+sp<ISystemControlService> PhysicalDevice::getSystemControlService()
+{
+    sp<IServiceManager> sm = defaultServiceManager();
+    if (sm == NULL) {
+        ETRACE("Couldn't get default ServiceManager\n");
+        return NULL;
+    }
+    sp<IBinder> binder = sm->getService(String16("system_control"));
+    sp<ISystemControlService> sc = interface_cast<ISystemControlService>(binder);
+
+    return sc;
 }
 
 void PhysicalDevice::onVsync(int64_t timestamp) {

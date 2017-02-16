@@ -26,7 +26,7 @@
 namespace android {
 namespace amlogic {
 
-typedef void (*UeventListenerFunc)(void *data);
+typedef void (*UeventListenerFunc)(void *data, bool status);
 
 class UeventObserver
 {
@@ -38,7 +38,7 @@ public:
     bool initialize();
     void deinitialize();
     void start();
-    void registerListener(const char *event, UeventListenerFunc func, void *data);
+    void registerListener(const char *key, UeventListenerFunc func, void *data);
 
 private:
     DECLARE_THREAD(UeventObserverThread, UeventObserver);

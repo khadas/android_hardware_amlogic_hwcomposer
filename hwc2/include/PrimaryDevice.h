@@ -39,8 +39,7 @@ public:
     virtual int32_t setOutputBuffer(buffer_handle_t buffer, int32_t releaseFence) { return HWC2_ERROR_NONE; }
 
 private:
-    static void hotplugInEventListener(void *data);
-    static void hotplugOutEventListener(void *data);
+    static void hotplugEventListener(void *data, bool status);
     void hotplugListener(bool connected);
 };
 

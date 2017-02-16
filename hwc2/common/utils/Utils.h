@@ -47,12 +47,13 @@ public:
 #if WITH_LIBPLAYER_MODULE
     static bool checkSysfsStatus(const char* sysfstr, char* lastr, int32_t size);
 #endif
-
+    static bool checkOutputMode(char* curmode, int32_t* rate);
     static bool checkVinfo(framebuffer_info_t *fbinfo);
 
-    static const char* getUeventEnvelope();
-    static const char* getHotplugInString();
-    static const char* getHotplugOutString();
+    static const char* getHotplugUeventEnvelope();
+    static const char* getHdcpUeventEnvelope();
+    static const char* getSwitchState0();
+    static const char* getSwitchState1();
 
     template <typename T, typename S>
     static inline bool compareRect(T a, S b) {

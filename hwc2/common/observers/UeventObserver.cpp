@@ -127,17 +127,16 @@ void UeventObserver::start()
     }
 }
 
-
-void UeventObserver::registerListener(const char *event, UeventListenerFunc func, void *data)
+void UeventObserver::registerListener(const char *envelope, UeventListenerFunc func, void *data)
 {
-    if (!event || !func) {
+    if (!envelope || !func) {
         ETRACE("invalid event string or listener to register");
         return;
     }
 
-    String8 key(event);
+    String8 key(envelope);
     if (mListeners.indexOfKey(key) >= 0) {
-        ETRACE("listener for uevent %s exists", event);
+        ETRACE("listener for uevent %s exists", envelope);
         return;
     }
 
@@ -188,26 +187,31 @@ bool UeventObserver::threadLoop()
 void UeventObserver::onUevent()
 {
     char *msg = mUeventMessage;
-    const char *envelope = Utils::getUeventEnvelope();
+    UeventListener *listener = NULL;
+
     DTRACE("onUevent: %s", mUeventMessage);
-    if (strncmp(msg, envelope, strlen(envelope)) != 0)
-        return;
+    for (uint32_t i=0; i<mListeners.size(); i++) {
+        const char *envelope = mListeners.keyAt(i).string();
+        if (strncmp(msg, envelope, strlen(envelope)) == 0) {
+            listener = mListeners.valueAt(i);
+            break;
+        } else {
+            continue;
+        }
+    }
+
+    if (!listener) return;
 
     msg += strlen(msg) + 1;
 
-    UeventListener *listener;
     String8 key;
     while (*msg) {
         key = String8(msg);
         DTRACE("received Uevent: %s", msg);
-        if (mListeners.indexOfKey(key) >= 0) {
-            DTRACE("received Uevent: %s", msg);
-            listener = mListeners.valueFor(key);
-            if (listener) {
-                listener->func(listener->data);
-            } else {
-                ETRACE("no listener for uevent %s", msg);
-            }
+        if (key.contains(Utils::getSwitchState1())) {
+            listener->func(listener->data, true);
+        } else if (key.contains(Utils::getSwitchState0())) {
+            listener->func(listener->data, false);
         }
         msg += strlen(msg) + 1;
     }

@@ -210,17 +210,22 @@ bool Utils::checkVinfo(framebuffer_info_t *fbInfo) {
     return false;
 }
 
-const char* Utils::getUeventEnvelope()
+const char* Utils::getHotplugUeventEnvelope()
 {
     return "change@/devices/virtual/switch/hdmi_audio";
 }
 
-const char* Utils::getHotplugOutString()
+const char* Utils::getHdcpUeventEnvelope()
+{
+    return "change@/devices/virtual/switch/hdcp";
+}
+
+const char* Utils::getSwitchState0()
 {
     return "SWITCH_STATE=0";
 }
 
-const char* Utils::getHotplugInString()
+const char* Utils::getSwitchState1()
 {
     return "SWITCH_STATE=1";
 }

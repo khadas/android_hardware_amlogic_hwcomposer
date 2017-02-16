@@ -26,6 +26,12 @@
 #include <IComposer.h>
 #include <DisplayHdmi.h>
 
+#include <systemcontrol/ISystemControlService.h>
+#include <systemcontrol/DisplayMode.h>
+#include <binder/Binder.h>
+#include <binder/IServiceManager.h>
+#include <utils/RefBase.h>
+
 namespace android {
 namespace amlogic {
 
@@ -75,6 +81,8 @@ public:
 
     friend class Hwcomposer;
     friend class HwcLayer;
+
+    // typedef sp<ISystemControlService> IScs;
 
     // Required by HWC2
     virtual int32_t acceptDisplayChanges();
@@ -163,6 +171,10 @@ private:
     void dumpLayers(KeyedVector<hwc2_layer_t, HwcLayer*> layers);
     void clearFramebuffer();
 
+    sp<ISystemControlService> getSystemControlService();
+    static void hdcpEventListener(void *data, bool status);
+    void setSecureStatus(bool status);
+
     template <typename T, typename S>
     static inline bool compareSize(T a, S b) {
         if ((int32_t)(a.right - a.left) == (int32_t)(b.right - b.left)
@@ -176,6 +188,7 @@ private:
     hwc2_display_t mId;
     const char *mName;
     bool mIsConnected;
+    bool mSecure;
     Hwcomposer& mHwc;
     DisplayHdmi* mDisplayHdmi;
     DeviceControlFactory *mControlFactory;
@@ -190,6 +203,8 @@ private:
     FBContext *mCursorContext;
     FBContext *mFramebufferContext;
     int32_t mFbSlot;
+
+    sp<ISystemControlService> mSystemControl;
 
     int32_t /*android_color_mode_t*/ mColorMode;
 
@@ -218,6 +233,9 @@ private:
     KeyedVector<hwc2_layer_t, HwcLayer*> mHwcLayersChangeRequest;
     KeyedVector<hwc2_layer_t, HwcLayer*> mHwcGlesLayers;
     KeyedVector<hwc2_layer_t, HwcLayer*> mHwcLayers;
+#ifdef HWC_ENABLE_SECURE_LAYER
+    KeyedVector<hwc2_layer_t, HwcLayer*> mHwcSecureLayers;
+#endif
 
     // HDR Capabilities
     hdr_capabilities_t mHdrCapabilities;

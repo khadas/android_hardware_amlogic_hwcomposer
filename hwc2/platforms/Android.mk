@@ -42,8 +42,8 @@ LOCAL_SHARED_LIBRARIES := \
     libfbcnf \
     libge2d \
     libbinder \
-    libsystemcontrolservice\
-    libgui\
+    libsystemcontrolservice \
+    libgui
 
 LOCAL_STATIC_LIBRARIES := \
 	libomxutil
@@ -53,7 +53,8 @@ LOCAL_C_INCLUDES := \
     system/core/libsync \
     system/core/libsync/include \
     system/core/include \
-    vendor/amlogic/system/libge2d/inlcude
+    vendor/amlogic/system/libge2d/inlcude \
+    vendor/amlogic/frameworks/services
 
 LOCAL_C_INCLUDES += $(LOCAL_PATH) \
     $(LOCAL_PATH)/../include \
@@ -91,6 +92,10 @@ LOCAL_C_INCLUDES += system/core/libion/include/ \
 
 ifeq ($(TARGET_APP_LAYER_USE_CONTINUOUS_BUFFER),true)
 LOCAL_CFLAGS += -DUSE_CONTINOUS_BUFFER_COMPOSER
+endif
+
+ifeq ($(TARGET_SUPPORT_SECURE_LAYER),true)
+LOCAL_CFLAGS += -DHWC_ENABLE_SECURE_LAYER
 endif
 
 # WITH_LIBPLAYER_MODULE := true
