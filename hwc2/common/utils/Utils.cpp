@@ -26,6 +26,100 @@ Utils::~Utils()
 
 }
 
+bool Utils::get_bool_prop(const char* prop) {
+    char val[PROPERTY_VALUE_MAX];
+    memset(val, 0, sizeof(val));
+    if (property_get(prop, val, "false") && strcmp(val, "true") == 0) {
+        //VTRACE("prop: %s is %s",prop, val);
+        return true;
+    }
+
+    return false;
+}
+
+int Utils::get_int_prop(const char* prop) {
+    char val[PROPERTY_VALUE_MAX];
+    memset(val, 0, sizeof(val));
+    if (property_get(prop, val, "2")) {
+        //VTRACE("prop: %s is %s",prop, val);
+        return atoi(val);
+    }
+    return 0;
+}
+
+int Utils::getSysfsInt(const char* syspath, int def) {
+    int val = def;
+    char valstr[64];
+    if (getSysfsStr(syspath, valstr, sizeof(valstr)) == 0) {
+        val = atoi(valstr);
+        //DTRACE("sysfs(%s) read int (%s)=(%d)", syspath, valstr, val);
+    }
+    return val;
+}
+
+int Utils::getSysfsStr(const char* syspath, char *valstr, int size,
+    bool needOriginalData) {
+
+    int fd, len;
+
+    if ( NULL == valstr ) {
+        ETRACE("buf is NULL");
+        return -1;
+    }
+
+    if ((fd = open(syspath, O_RDONLY)) < 0) {
+        ETRACE("readSysFs, open %s fail.", syspath);
+        return -1;
+    }
+
+    len = read(fd, valstr, size);
+    if (len < 0) {
+        ETRACE("read error: %s, %s\n", syspath, strerror(errno));
+        close(fd);
+        return -1;
+    }
+
+    if (!needOriginalData) {
+        int i , j;
+        for (i = 0, j = 0; i <= len -1; i++) {
+            /*change '\0' to 0x20(spacing), otherwise the string buffer will be cut off
+             * if the last char is '\0' should not replace it
+             */
+            if (0x0 == valstr[i] && i < len - 1) {
+                valstr[i] = 0x20;
+            }
+            //DTRACE("read buffer index:%d is a 0x0, replace to spacing \n", i);
+
+
+            /* delete all the character of '\n' */
+            if (0x0a != valstr[i]) {
+                valstr[j++] = valstr[i];
+            }
+        }
+
+        valstr[j] = 0x0;
+    }
+
+    //DTRACE("read %s, result length:%d, val:%s\n", syspath, len, valstr);
+
+    close(fd);
+    return 0;
+
+}
+
+int Utils::setSysfsStr(const char *path, const char *val) {
+    int bytes;
+    int fd = open(path, O_CREAT | O_RDWR | O_TRUNC, 0644);
+    if (fd >= 0) {
+        bytes = write(fd, val, strlen(val));
+        //DTRACE("setSysfsStr %s= %s\n", path,val);
+        close(fd);
+        return 0;
+    } else {
+        return -1;
+    }
+}
+
 bool Utils::checkBoolProp(const char* prop) {
     char val[PROPERTY_VALUE_MAX];
 
@@ -69,7 +163,7 @@ bool Utils::checkSysfsStatus(const char* sysfstr, char* lastr, int32_t size) {
     char *p = lastr;
 
     memset(val, 0, sizeof(val));
-    if (amsysfs_get_sysfs_str(sysfstr, val, sizeof(val)) == 0) {
+    if (getSysfsStr(sysfstr, val, sizeof(val)) == 0) {
         DTRACE("val: %s, lastr: %s",val, p);
         if ((strcmp(val, p) != 0)) {
             memset(p, 0, size);
@@ -81,41 +175,6 @@ bool Utils::checkSysfsStatus(const char* sysfstr, char* lastr, int32_t size) {
     return false;
 }
 #endif
-
-bool Utils::checkOutputMode(char* curmode, int32_t* rate) {
-    int32_t modefd = open(SYSFS_DISPLAY_MODE, O_RDONLY);
-    if (modefd < 0) {
-        ETRACE("open (%s) fail", SYSFS_DISPLAY_MODE);
-        return -1;
-    }
-
-    char outputmode[32] = {0};
-    read(modefd, outputmode, 31);
-    close(modefd);
-    modefd = -1;
-
-    *rate = 60;
-    if (strstr(outputmode, "50hz") != NULL) {
-        *rate = 50;
-    } else if (strstr(outputmode, "30hz") != NULL) {
-        *rate = 30;
-    } else if (strstr(outputmode, "25hz") != NULL) {
-        *rate = 25;
-    } else if ((strstr(outputmode, "24hz") != NULL) || (strstr(outputmode, "smpte") != NULL)) {
-        *rate = 24;
-    } else
-        DTRACE("displaymode (%s) doesn't  specify HZ", curmode);
-
-    //check if need update vsync.
-    if (strcmp(outputmode, curmode) == 0) {
-        ETRACE("outputmode didn't change %s", curmode);
-        return false;
-    }
-
-    strcpy(curmode, outputmode);
-    DTRACE("get new outputmode (%s) new period (%d)", curmode, rate);
-    return true;
-}
 
 bool Utils::checkVinfo(framebuffer_info_t *fbInfo) {
     if (fbInfo != NULL && fbInfo->fd >= 0) {

@@ -10,12 +10,16 @@
 #include <Amavutils.h>
 #endif
 
+#define DISPLAY_HPD_STATE               "/sys/class/amhdmitx/amhdmitx0/hpd_state"
+#define DISPLAY_HDMI_EDID               "/sys/class/amhdmitx/amhdmitx0/disp_cap"
 #define SYSFS_AMVIDEO_CURIDX            "/sys/module/amvideo/parameters/cur_dev_idx"
-#define SYSFS_DISPLAY_MODE              "/sys/class/display/mode"
-#define SYSFS_FB0_FREE_SCALE            "/sys/class/graphics/fb0/free_scale"
-#define SYSFS_FB1_FREE_SCALE            "/sys/class/graphics/fb0/free_scale"
-#define SYSFS_VIDEO_AXIS                "/sys/class/video/axis"
-#define SYSFS_VIDEOBUFUSED              "/sys/class/amstream/videobufused"
+#define SYSFS_DISPLAY_MODE                "/sys/class/display/mode"
+#define SYSFS_DISPLAY1_MODE              "/sys/class/display/mode"
+#define SYSFS_DISPLAY2_MODE              "/sys/class/display2/mode"
+#define SYSFS_FB0_FREE_SCALE              "/sys/class/graphics/fb0/free_scale"
+#define SYSFS_FB1_FREE_SCALE              "/sys/class/graphics/fb1/free_scale"
+#define SYSFS_VIDEO_AXIS                      "/sys/class/video/axis"
+#define SYSFS_VIDEOBUFUSED                 "/sys/class/amstream/videobufused"
 #define SYSFS_WINDOW_AXIS               "/sys/class/graphics/fb0/window_axis"
 
 namespace android {
@@ -25,6 +29,15 @@ class Utils {
 public:
     Utils();
     ~Utils();
+
+    static int get_int_prop(const char* prop);
+    static bool get_bool_prop(const char* prop);
+
+    static int getSysfsInt(const char* syspath, int def);
+    static int getSysfsStr(const char* syspath, char *valstr, int size,
+        bool needOriginalData = false);
+    static int setSysfsStr(const char *path, const char *val);
+
     static bool checkBoolProp(const char* prop);
     static int32_t checkIntProp(const char* prop);
     static int32_t checkAndDupFd(int32_t fd);
@@ -34,7 +47,6 @@ public:
 #if WITH_LIBPLAYER_MODULE
     static bool checkSysfsStatus(const char* sysfstr, char* lastr, int32_t size);
 #endif
-    static bool checkOutputMode(char* curmode, int32_t* rate);
 
     static bool checkVinfo(framebuffer_info_t *fbinfo);
 

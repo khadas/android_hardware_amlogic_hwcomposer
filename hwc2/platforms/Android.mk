@@ -19,6 +19,7 @@ LOCAL_SRC_FILES := \
     ../common/devices/PhysicalDevice.cpp \
     ../common/devices/PrimaryDevice.cpp \
     ../common/devices/VirtualDevice.cpp \
+    ../common/hdmi/DisplayHdmi.cpp \
     ../common/observers/SoftVsyncObserver.cpp \
     ../common/observers/UeventObserver.cpp \
     ../common/composers/Composers.cpp \
@@ -39,7 +40,10 @@ LOCAL_SHARED_LIBRARIES := \
     libsync \
     libion \
     libfbcnf \
-    libge2d
+    libge2d \
+    libbinder \
+    libsystemcontrolservice\
+    libgui\
 
 LOCAL_STATIC_LIBRARIES := \
 	libomxutil
@@ -54,14 +58,14 @@ LOCAL_C_INCLUDES := \
 LOCAL_C_INCLUDES += $(LOCAL_PATH) \
     $(LOCAL_PATH)/../include \
     $(LOCAL_PATH)/../common/base \
-    $(LOCAL_PATH)/../common/buffers \
     $(LOCAL_PATH)/../common/devices \
+    $(LOCAL_PATH)/../common/hdmi \
     $(LOCAL_PATH)/../common/observers \
-    $(LOCAL_PATH)/../common/planes \
     $(LOCAL_PATH)/../common/utils \
     $(LOCAL_PATH)/../common/composers \
     $(LOCAL_PATH)/../.. \
-    $(LOCAL_PATH)/
+    $(LOCAL_PATH)/ \
+    $(TOP)/vendor/amlogic/frameworks/services/systemcontrol \
 
 LOCAL_KK=0
 ifeq ($(GPU_TYPE),t83x)
@@ -75,6 +79,8 @@ ifeq ($(LOCAL_KK),1)
 else
 	LOCAL_CFLAGS += -DMALI_AFBC_GRALLOC=0
 endif
+
+LOCAL_CPPFLAGS += -std=c++14
 
 MESON_GRALLOC_DIR ?= hardware/amlogic/gralloc
 

@@ -24,6 +24,7 @@
 #include <IDisplayDevice.h>
 #include <HwcLayer.h>
 #include <IComposer.h>
+#include <DisplayHdmi.h>
 
 namespace android {
 namespace amlogic {
@@ -132,12 +133,12 @@ public:
     virtual HwcLayer* getLayerById(hwc2_layer_t layerId);
 
     // display config operations
-    virtual void removeDisplayConfigs();
     virtual bool updateDisplayConfigs();
 
     //events
     virtual void onVsync(int64_t timestamp);
     virtual void dump(Dump& d);
+    DisplayHdmi* getDisplayHdmi()  const { return mDisplayHdmi; };
 
 private:
     // For use by Device
@@ -176,12 +177,8 @@ private:
     const char *mName;
     bool mIsConnected;
     Hwcomposer& mHwc;
+    DisplayHdmi* mDisplayHdmi;
     DeviceControlFactory *mControlFactory;
-    char mDisplayMode[32];
-
-    // display configs
-    Vector<DisplayConfig*> mDisplayConfigs;
-    int mActiveDisplayConfig;
 
     SoftVsyncObserver *mVsyncObserver;
     IComposer *mComposer;

@@ -66,6 +66,10 @@ bool ExternalDevice::initialize()
     } else {
         ETRACE("Uevent observer is NULL");
     }
+
+    mDisplayHdmi = new DisplayHdmi(mId);
+    mDisplayHdmi->initialize();
+
     return true;
 }
 
@@ -85,6 +89,7 @@ void ExternalDevice::deinitialize()
     }
 
     mHotplugEventPending = false;
+    DEINIT_AND_DELETE_OBJ(mDisplayHdmi);
     PhysicalDevice::deinitialize();
 }
 
@@ -324,16 +329,13 @@ bool ExternalDevice::setActiveConfig(int index)
             return false;
     }
 
-    // for now we will only permit the frequency change.  In the future
-    // we may need to set mode as well.
-    if (index >= 0 && index < static_cast<int>(mDisplayConfigs.size())) {
-        DisplayConfig *config = mDisplayConfigs.itemAt(index);
-        setRefreshRate(config->getRefreshRate());
-        mActiveDisplayConfig = index;
-        return true;
-    } else {
+    int ret = mDisplayHdmi->setActiveConfig(index);
+    if (ret < 0)
         return false;
-    }
+
+    setRefreshRate(mDisplayHdmi->getActiveRefreshRate());
+    mActiveDisplayConfig = index;
+
     return true;
 }
 
