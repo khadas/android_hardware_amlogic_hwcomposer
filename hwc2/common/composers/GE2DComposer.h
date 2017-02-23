@@ -74,7 +74,7 @@ public:
       mVideoLayerId(0),
       mClearBuffer(false),
       mLayersState() {
-        mLayersState.setCapacity(GE2D_COMPOSE_MAX_LAYERS);
+        mLayersState.setCapacity(HWC2_MAX_LAYERS);
         mLayersState.clear();
     }
 

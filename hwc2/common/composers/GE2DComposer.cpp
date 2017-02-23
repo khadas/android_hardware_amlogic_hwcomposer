@@ -56,9 +56,9 @@ int32_t GE2DComposer::allocBuffer(private_module_t* module, size_t size, int32_t
     int32_t ion_flags = 0;
     int32_t lock_state = 0;
 
-    if (usage & GRALLOC_USAGE_AML_DMA_BUFFER)
+    if (usage & GRALLOC_USAGE_HW_COMPOSER)
     {
-        ret = ion_alloc(module->ion_client, size, 0, ION_HEAP_CARVEOUT_MASK,
+        ret = ion_alloc(module->ion_client, size, 0, 1<<ION_HEAP_TYPE_CHUNK,
                     ion_flags, &ion_hnd);
     }
 
@@ -168,7 +168,7 @@ bool GE2DComposer::initialize(framebuffer_info_t* fbInfo)
     mNumBuffers = fbInfo->fbSize / mSingleFbSize;
 
     if (!mGe2dBufHnd) {
-        int32_t usage = GRALLOC_USAGE_AML_DMA_BUFFER;
+        int32_t usage = GRALLOC_USAGE_HW_COMPOSER;
         int32_t ret = allocBuffer(mFbInfo->grallocModule, mFbInfo->fbSize, usage, &mGe2dBufHnd);
         if (ret < 0) {
             ETRACE("allocBuffer failed!");
@@ -477,11 +477,11 @@ void GE2DComposer::dumpLayers(
 void GE2DComposer::runGE2DProcess(int32_t slot, Vector< LayerState* > &hwcLayersState)
 {
     bool sameSize = false;
-    hwc_frect_t sourceCrop[GE2D_COMPOSE_MAX_LAYERS];
-    const LayerState* layer[GE2D_COMPOSE_MAX_LAYERS] = { NULL, NULL, NULL };
-    private_handle_t const* hnd[GE2D_COMPOSE_MAX_LAYERS] = { NULL, NULL, NULL };
+    hwc_frect_t sourceCrop[HWC2_MAX_LAYERS];
+    const LayerState* layer[HWC2_MAX_LAYERS] = { NULL };
+    private_handle_t const* hnd[HWC2_MAX_LAYERS] = { NULL };
     uint32_t layerNum = hwcLayersState.size();
-    hwc_rect_t displayFrame[GE2D_COMPOSE_MAX_LAYERS];
+    hwc_rect_t displayFrame[HWC2_MAX_LAYERS];
 
     for (int32_t i=0; i<layerNum; i++) {
         layer[i] = hwcLayersState.itemAt(i);
@@ -497,7 +497,7 @@ void GE2DComposer::runGE2DProcess(int32_t slot, Vector< LayerState* > &hwcLayers
 
     bool debugSameSize = Utils::checkBoolProp("sys.sf.debug.ss");
     // TODO:2 same size layers case.
-    if (!debugSameSize && layerNum > GE2D_COMPOSE_ONE_LAYER) {
+    if (!debugSameSize && layerNum > HWC2_ONE_LAYER) {
         if (Utils::compareRect(sourceCrop[0], sourceCrop[1])
             && Utils::compareRect(sourceCrop[0], displayFrame[0])
             && Utils::compareRect(sourceCrop[1], displayFrame[1])) {
@@ -508,15 +508,15 @@ void GE2DComposer::runGE2DProcess(int32_t slot, Vector< LayerState* > &hwcLayers
         }
     }
 
-    if ((layerNum == GE2D_COMPOSE_TWO_LAYERS && !hnd[1])
-            || (layerNum == GE2D_COMPOSE_MAX_LAYERS && (!hnd[1] || !hnd[2]))) {
+    if ((layerNum == HWC2_TWO_LAYERS && !hnd[1])
+            || (layerNum == HWC2_MAX_LAYERS && (!hnd[1] || !hnd[2]))) {
         ETRACE("%d layers compose, hnd should not be null", layerNum);
         return;
     }
 
     mSrcBufferInfo->offset = 0;
     if (sameSize) {
-        for (int32_t i=0; i<GE2D_COMPOSE_TWO_LAYERS; i++) {
+        for (int32_t i=0; i<HWC2_TWO_LAYERS; i++) {
             mSrcBufferInfo->src_info[i].offset = 0;
             mSrcBufferInfo->src_info[i].shared_fd = hnd[i]->share_fd;
             mSrcBufferInfo->src_info[i].format = hnd[i]->format;
@@ -555,13 +555,13 @@ void GE2DComposer::runGE2DProcess(int32_t slot, Vector< LayerState* > &hwcLayers
             tracer();
         }
 
-        if (layerNum == GE2D_COMPOSE_TWO_LAYERS) return;
+        if (layerNum == HWC2_TWO_LAYERS) return;
     }
 
     int32_t beginWith = 0;
     if (sameSize) {
-        if (layerNum == GE2D_COMPOSE_THREE_LAYERS) {
-            beginWith = GE2D_COMPOSE_THREE_LAYERS -1;
+        if (layerNum == HWC2_THREE_LAYERS) {
+            beginWith = HWC2_THREE_LAYERS -1;
         }
     }
 

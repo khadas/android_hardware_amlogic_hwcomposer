@@ -54,6 +54,7 @@ PhysicalDevice::PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc, DeviceControl
       mVideoOverlayLayerId(0),
       mGE2DClearVideoRegionCount(0),
       mGE2DComposeFrameCount(0),
+      mDirectComposeFrameCount(0),
       mInitialized(false)
 {
     CTRACE();
@@ -89,7 +90,7 @@ PhysicalDevice::PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc, DeviceControl
     mHwcGlesLayers.clear();
     mHwcLayers.clear();
 
-    mGE2DRenderSortedLayerIds.setCapacity(GE2D_COMPOSE_MAX_LAYERS);
+    mGE2DRenderSortedLayerIds.setCapacity(HWC2_MAX_LAYERS);
     mGE2DRenderSortedLayerIds.clear();
 
     mHwcCurReleaseFences = mHwcPriorReleaseFences = NULL;
@@ -598,15 +599,16 @@ void PhysicalDevice::directCompose(framebuffer_info_t * fbInfo) {
         DTRACE("Hit only one non video overlay layer, handle: %08" PRIxPTR ", fence: %d",
             intptr_t(mClientTargetHnd), mTargetAcquireFence);
 
-        hwc_rect_t displayframe = layer->getDisplayFrame();
+        /* hwc_rect_t displayframe = layer->getDisplayFrame();
         fbInfo->info.xoffset = displayframe.left;
-        fbInfo->info.yoffset = displayframe.top;
+        fbInfo->info.yoffset = displayframe.top; */
         return;
     }
 
     ETRACE("Didn't find direct compose layer!");
 }
 
+#ifdef ENABLE_AML_GE2D_COMPOSER
 void PhysicalDevice::ge2dCompose(framebuffer_info_t * fbInfo, bool hasVideoOverlay) {
     if (mGE2DRenderSortedLayerIds.size() > 0) {
         DTRACE("GE2D compose mFbSlot: %d", mFbSlot);
@@ -635,6 +637,7 @@ void PhysicalDevice::ge2dCompose(framebuffer_info_t * fbInfo, bool hasVideoOverl
 
     ETRACE("Didn't find ge2d compose layers!");
 }
+#endif
 
 int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOverlay) {
     HwcLayer* layer = NULL;
@@ -680,9 +683,12 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
         }*/
     } else if (mRenderMode == DIRECT_COMPOSE_MODE) { // if only one layer exists, let hwc do her work.
         directCompose(&fbInfo);
-    } else if (mRenderMode == GE2D_COMPOSE_MODE) {
+    }
+#ifdef ENABLE_AML_GE2D_COMPOSER
+    else if (mRenderMode == GE2D_COMPOSE_MODE) {
         ge2dCompose(&fbInfo, hasVideoOverlay);
     }
+#endif
     fbInfo.renderMode = mRenderMode;
 
     if (hasVideoOverlay && mHwcLayers.size() == 1) {
@@ -731,7 +737,7 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
         if (mRenderMode == GE2D_COMPOSE_MODE) {
             mComposer->mergeRetireFence(mFbSlot, HwcFenceControl::dupFence(mPriorFrameRetireFence));
         } else {
-            if (mGE2DComposeFrameCount != 0) {
+            if (mComposer && mGE2DComposeFrameCount != 0) {
                 mComposer->removeRetireFence(mFbSlot);
             }
 
@@ -911,10 +917,10 @@ bool PhysicalDevice::layersStateCheck(int32_t renderMode,
         KeyedVector<hwc2_layer_t, HwcLayer*> & composeLayers) {
     bool ret = false;
     uint32_t layerNum = composeLayers.size();
-    hwc_frect_t sourceCrop[GE2D_COMPOSE_MAX_LAYERS];
-    HwcLayer* layer[GE2D_COMPOSE_MAX_LAYERS] = { NULL, NULL, NULL };
-    private_handle_t const* hnd[GE2D_COMPOSE_MAX_LAYERS] = { NULL, NULL, NULL };
-    hwc_rect_t displayFrame[GE2D_COMPOSE_MAX_LAYERS];
+    hwc_frect_t sourceCrop[HWC2_MAX_LAYERS];
+    HwcLayer* layer[HWC2_MAX_LAYERS] = { NULL };
+    private_handle_t const* hnd[HWC2_MAX_LAYERS] = { NULL };
+    hwc_rect_t displayFrame[HWC2_MAX_LAYERS];
 
     for (int32_t i=0; i<layerNum; i++) {
         layer[i] = composeLayers.valueAt(i);
@@ -951,7 +957,9 @@ bool PhysicalDevice::layersStateCheck(int32_t renderMode,
             DTRACE("direct compose can not process!");
             return false;
         }
-    }else if (renderMode == GE2D_COMPOSE_MODE) {
+    }
+#ifdef ENABLE_AML_GE2D_COMPOSER
+    else if (renderMode == GE2D_COMPOSE_MODE) {
         bool yuv420Sp = false;
         for (int32_t i=0; i<layerNum; i++) {
             switch (hnd[i]->format) {
@@ -984,7 +992,7 @@ bool PhysicalDevice::layersStateCheck(int32_t renderMode,
             }
         }
 #if 0
-        if (yuv420Sp && GE2D_COMPOSE_TWO_LAYERS == layerNum) {
+        if (yuv420Sp && HWC2_TWO_LAYERS == layerNum) {
             if (Utils::compareRect(sourceCrop[0], sourceCrop[1])
                 && Utils::compareRect(sourceCrop[0], displayFrame[0])
                 && Utils::compareRect(sourceCrop[1], displayFrame[1])) {
@@ -994,6 +1002,7 @@ bool PhysicalDevice::layersStateCheck(int32_t renderMode,
         }
 #endif
     }
+#endif
 
     return ret;
 }
@@ -1014,20 +1023,25 @@ int32_t PhysicalDevice::composersFilter(
                 KeyedVector<hwc2_layer_t, HwcLayer*> & composeLayers) {
 
     // direct Composer.
-    if (composeLayers.size() == GE2D_COMPOSE_ONE_LAYER) {
+    if (composeLayers.size() == HWC2_ONE_LAYER) {
         // if only one layer exists, do direct framebuffer composer.
         bool directCompose = layersStateCheck(DIRECT_COMPOSE_MODE, composeLayers);
         if (directCompose) {
-            hwc2_layer_t layerGlesLayerId = composeLayers.keyAt(0);
-            composeLayers.clear();
-            mDirectRenderLayerId = layerGlesLayerId;
-            return DIRECT_COMPOSE_MODE;
+            if (mDirectComposeFrameCount >= 3) {
+                hwc2_layer_t layerGlesLayerId = composeLayers.keyAt(0);
+                composeLayers.clear();
+                mDirectRenderLayerId = layerGlesLayerId;
+                return DIRECT_COMPOSE_MODE;
+            }
+            mDirectComposeFrameCount++;
+            return GLES_COMPOSE_MODE;
         }
     }
 
+#ifdef ENABLE_AML_GE2D_COMPOSER
     // if direct composer can't work, try this.
-    if (composeLayers.size() > GE2D_COMPOSE_NO_LAYER
-        && composeLayers.size() < GE2D_COMPOSE_MAX_LAYERS) {
+    if (composeLayers.size() > HWC2_NO_LAYER
+        && composeLayers.size() < HWC2_MAX_LAYERS) {
         bool ge2dCompose = layersStateCheck(GE2D_COMPOSE_MODE, composeLayers);
         if (!ge2dCompose) return GLES_COMPOSE_MODE;
         mGE2DRenderSortedLayerIds.clear();
@@ -1067,6 +1081,7 @@ int32_t PhysicalDevice::composersFilter(
         composeLayers.clear();
         return GE2D_COMPOSE_MODE;
     }
+#endif
 
     return GLES_COMPOSE_MODE;
 }
@@ -1089,6 +1104,7 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
     HwcLayer* layer = NULL;
     bool istvp = false;
     bool glesCompose = false;
+    bool zeroLayer = false;
 
     mRenderMode = GLES_COMPOSE_MODE;
     mVideoOverlayLayerId = 0;
@@ -1104,11 +1120,11 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
                 reinterpret_cast<private_handle_t const*>(layer->getBufferHandle());
             if (hnd) {
                 // continous buffer.
-                if (!(hnd->flags & private_handle_t::PRIV_FLAGS_CONTINUOUS_BUF)) {
-                    DTRACE("continous buffer flag is not set!");
+                if (!(hnd->flags & private_handle_t::PRIV_FLAGS_CONTINUOUS_BUF
+                    || hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OVERLAY)) {
+                    DTRACE("continous buffer flag is not set, bufhnd: 0x%" PRIxPTR "", intptr_t(layer->getBufferHandle()));
                     mIsContinuousBuf = false;
                 }
-
 #ifdef GRALLOC_ENABLE_SECURE_LAYER
                 // secure or protected layer.
                 if (!mSecure && (hnd->flags & private_handle_t::PRIV_FLAGS_SECURE_PROTECTED)) {
@@ -1120,14 +1136,14 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
                     continue;
                 }
 #endif
-                if (hnd && layer->getCompositionType() == HWC2_COMPOSITION_DEVICE) {
+                if (layer->getCompositionType() == HWC2_COMPOSITION_DEVICE) {
                     // video overlay.
                     if (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OMX) {
                         set_omx_pts((char*)hnd->base, &Amvideo_Handle);
                         istvp = true;
                     }
                     if (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OVERLAY) {
-                        ETRACE("PRIV_FLAGS_VIDEO_OVERLAY!!!!");
+                        DTRACE("PRIV_FLAGS_VIDEO_OVERLAY!!!!");
                         mVideoOverlayLayerId = layerId;
                         mHwcLayersChangeRequest.add(layerId, layer);
                         continue;
@@ -1178,12 +1194,19 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
     noDevComp = true;
 #endif
 
+    if (mHwcLayers.size() == 0) {
+        zeroLayer = true;
+        mIsContinuousBuf = false;
+    }
+
     // dumpLayers(mHwcLayers);
     if (mIsContinuousBuf && !glesCompose && !noDevComp) {
         mRenderMode = composersFilter(mHwcGlesLayers);
+    } else {
+        mDirectComposeFrameCount = 0;
     }
 
-    if (mHwcLayers.size() == 0 && mComposer) {
+    if (mComposer && zeroLayer) {
         clearFramebuffer();
     }
 
@@ -1205,7 +1228,11 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
     }
 
     // mark the validate function is called.(???)
-    mIsValidated = true;
+    if (zeroLayer) {
+        mIsValidated = false;
+    } else {
+        mIsValidated = true;
+    }
 
     if (mHwcLayersChangeType.size() > 0) {
         DTRACE("there are %d layer types has changed.", mHwcLayersChangeType.size());

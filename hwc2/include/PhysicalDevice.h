@@ -215,6 +215,7 @@ private:
     hwc_region_t mClientTargetDamageRegion;
     int32_t mTargetAcquireFence;
     int32_t mGE2DComposeFrameCount;
+    int32_t mDirectComposeFrameCount;
     int32_t mPriorFrameRetireFence;
     int32_t mRenderMode;
     bool mIsValidated;
