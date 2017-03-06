@@ -691,16 +691,18 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
 #endif
     fbInfo.renderMode = mRenderMode;
 
-    if (hasVideoOverlay && mHwcLayers.size() == 1) {
-        if (mIsContinuousBuf)
+    bool onlyOneVideoLayer = false;
+    if (hasVideoOverlay && mHwcLayers.size() == 1) onlyOneVideoLayer = true;
+
+    if (mIsContinuousBuf) {
+        // bit 0 is osd blank flag.
+        fbInfo.op &= ~0x00000001;
+        if (onlyOneVideoLayer) {
             fbInfo.op |= 0x00000001;
-        else
-            setOSD0Blank(true);
+        }
+        mFramebufferContext->setStatus(onlyOneVideoLayer);
     } else {
-        if (mIsContinuousBuf)
-            fbInfo.op &= ~0x00000001;
-        else
-            setOSD0Blank(false);
+        setOSD0Blank(onlyOneVideoLayer);
     }
 
     if (!mClientTargetHnd || private_handle_t::validate(mClientTargetHnd) < 0 || mPowerMode == HWC2_POWER_MODE_OFF) {
@@ -1192,6 +1194,7 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
 #ifndef USE_CONTINOUS_BUFFER_COMPOSER
     DTRACE("No continous buffer composer!");
     noDevComp = true;
+    mIsContinuousBuf = false;
 #endif
 
     if (mHwcLayers.size() == 0) {
