@@ -202,9 +202,8 @@ bool Utils::checkVinfo(framebuffer_info_t *fbInfo) {
             fbInfo->info.yres = vinfo.yres;
             fbInfo->info.width = vinfo.width;
             fbInfo->info.height = vinfo.height;
-
-            return true;
         }
+        return true;
     }
 
     return false;
