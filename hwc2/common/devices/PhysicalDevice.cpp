@@ -599,9 +599,17 @@ void PhysicalDevice::directCompose(framebuffer_info_t * fbInfo) {
         DTRACE("Hit only one non video overlay layer, handle: %08" PRIxPTR ", fence: %d",
             intptr_t(mClientTargetHnd), mTargetAcquireFence);
 
-        /* hwc_rect_t displayframe = layer->getDisplayFrame();
-        fbInfo->info.xoffset = displayframe.left;
-        fbInfo->info.yoffset = displayframe.top; */
+        // fill up fb sync request struct.
+        hwc_frect_t srcCrop = layer->getSourceCrop();
+        hwc_rect_t displayFrame = layer->getDisplayFrame();
+        mFbSyncRequest.xoffset = (unsigned int)srcCrop.left;
+        mFbSyncRequest.yoffset = (unsigned int)srcCrop.top;
+        mFbSyncRequest.width = (unsigned int)(srcCrop.right - srcCrop.left);
+        mFbSyncRequest.height = (unsigned int)(srcCrop.bottom - srcCrop.top);
+        mFbSyncRequest.dst_x = displayFrame.left;
+        mFbSyncRequest.dst_y = displayFrame.top;
+        mFbSyncRequest.dst_w = displayFrame.right - displayFrame.left;
+        mFbSyncRequest.dst_h = displayFrame.bottom - displayFrame.top;
         return;
     }
 
@@ -677,12 +685,7 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
     }
 
     if (mRenderMode == GLES_COMPOSE_MODE) {
-        /*private_handle_t const* buffer = reinterpret_cast<private_handle_t const*>(mClientTargetHnd);
-        if (buffer && private_handle_t::validate(buffer) == 0) {
-            uint32_t slot = buffer->offset / fbInfo.finfo.line_length;
-            mComposer->setCurGlesFbSlot(slot);
-            DTRACE("GLES compose Slot: %d", slot);
-        }*/
+
     } else if (mRenderMode == DIRECT_COMPOSE_MODE) { // if only one layer exists, let hwc do her work.
         directCompose(&fbInfo);
     }
@@ -691,7 +694,8 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
         ge2dCompose(&fbInfo, hasVideoOverlay);
     }
 #endif
-    fbInfo.renderMode = mRenderMode;
+    // fbInfo.renderMode = mRenderMode;
+    mFbSyncRequest.type = mRenderMode;
 
     bool needBlankFb0 = false;
     uint32_t layerNum = mHwcLayers.size();
@@ -699,9 +703,9 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
 
     if (mIsContinuousBuf) {
         // bit 0 is osd blank flag.
-        fbInfo.op &= ~0x00000001;
+        mFbSyncRequest.op &= ~0x00000001;
         if (needBlankFb0) {
-            fbInfo.op |= 0x00000001;
+            mFbSyncRequest.op |= 0x00000001;
         }
         mFramebufferContext->setStatus(needBlankFb0);
     } else {
@@ -731,11 +735,13 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
         mPriorFrameRetireFence = -1;
 
         // real post framebuffer here.
-        DTRACE("fbInfo->renderMode: %d", fbInfo.renderMode);
+        DTRACE("render type: %d", mFbSyncRequest.type);
         if (!mIsContinuousBuf) {
             mPriorFrameRetireFence = fb_post_with_fence_locked(&fbInfo, mClientTargetHnd, mTargetAcquireFence);
         } else {
-            mPriorFrameRetireFence = hwc_fb_post_with_fence_locked(&fbInfo, mClientTargetHnd, mTargetAcquireFence);
+            // acquire fence.
+            mFbSyncRequest.in_fen_fd = mTargetAcquireFence;
+            mPriorFrameRetireFence = hwc_fb_post_with_fence_locked(&fbInfo, &mFbSyncRequest, mClientTargetHnd);
         }
         mTargetAcquireFence = -1;
 
@@ -1026,6 +1032,7 @@ bool PhysicalDevice::layersStateCheck(int32_t renderMode,
 **************************************************************/
 int32_t PhysicalDevice::composersFilter(
                 KeyedVector<hwc2_layer_t, HwcLayer*> & composeLayers) {
+    memset(&mFbSyncRequest, 0, sizeof(mFbSyncRequest));
 
     // direct Composer.
     if (composeLayers.size() == HWC2_ONE_LAYER) {
@@ -1130,7 +1137,7 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
                     DTRACE("continous buffer flag is not set, bufhnd: 0x%" PRIxPTR "", intptr_t(layer->getBufferHandle()));
                     mIsContinuousBuf = false;
                 }
-#ifdef GRALLOC_ENABLE_SECURE_LAYER
+#ifdef HWC_ENABLE_SECURE_LAYER
                 // secure or protected layer.
                 if (!mSecure && (hnd->flags & private_handle_t::PRIV_FLAGS_SECURE_PROTECTED)) {
                     ETRACE("layer's secure or protected buffer flag is set!");

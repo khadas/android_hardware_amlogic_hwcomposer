@@ -64,7 +64,7 @@ int32_t GE2DComposer::allocBuffer(private_module_t* module, size_t size, int32_t
 
     if ( ret != 0)
     {
-        ETRACE("Failed to ion_alloc from ion_client:%d", module->ion_client);
+        ETRACE("Failed to ion_alloc from ion_client:%d,size=%d", module->ion_client, size);
         return -1;
     }
 
@@ -140,11 +140,28 @@ void GE2DComposer::freeBuffer(private_handle_t const* hnd, private_module_t* m)
 
 bool GE2DComposer::initialize(framebuffer_info_t* fbInfo)
 {
-    Mutex::Autolock _l(mLock);
-
     if (mInitialized) {
         WTRACE("object has been initialized");
         return true;
+    }
+
+    // framebuffer stuff.
+    mFbInfo = fbInfo;
+    mSingleFbSize = fbInfo->finfo.line_length * fbInfo->info.yres;
+    mNumBuffers = fbInfo->fbSize / mSingleFbSize;
+
+    if (!mGe2dBufHnd) {
+        int32_t usage = GRALLOC_USAGE_HW_COMPOSER;
+        int32_t ret = allocBuffer(mFbInfo->grallocModule, mFbInfo->fbSize, usage, &mGe2dBufHnd);
+        if (ret < 0) {
+            DEINIT_AND_RETURN_FALSE("allocBuffer failed!");
+        }
+        private_handle_t const *pHandle = reinterpret_cast<private_handle_t const*> (mGe2dBufHnd);
+        if (pHandle) {
+            mSharedFd = pHandle->share_fd;
+        }
+    } else {
+        DTRACE("Buffer alloced already.");
     }
 
     // create a release fence timeline.
@@ -161,26 +178,6 @@ bool GE2DComposer::initialize(framebuffer_info_t* fbInfo)
         DEINIT_AND_RETURN_FALSE("failed to create ge2d composer thread.");
     }
     mThread->run("GE2DComposer", PRIORITY_URGENT_DISPLAY);
-
-    // framebuffer stuff.
-    mFbInfo = fbInfo;
-    mSingleFbSize = fbInfo->finfo.line_length * fbInfo->info.yres;
-    mNumBuffers = fbInfo->fbSize / mSingleFbSize;
-
-    if (!mGe2dBufHnd) {
-        int32_t usage = GRALLOC_USAGE_HW_COMPOSER;
-        int32_t ret = allocBuffer(mFbInfo->grallocModule, mFbInfo->fbSize, usage, &mGe2dBufHnd);
-        if (ret < 0) {
-            ETRACE("allocBuffer failed!");
-            return false;
-        }
-        private_handle_t const *pHandle = reinterpret_cast<private_handle_t const*> (mGe2dBufHnd);
-        if (pHandle) {
-            mSharedFd = pHandle->share_fd;
-        }
-    } else {
-        DTRACE("Buffer alloced already.");
-    }
 
     // ge2d info.
     mSrcBufferInfo = new aml_ge2d_info_t();
@@ -214,6 +211,11 @@ void GE2DComposer::deinitialize()
 
     // ge2d exit.
     ge2d_close(mGe2dFd);
+
+    if (mSyncTimelineFd != -1) {
+        close(mSyncTimelineFd);
+        mSyncTimelineFd = -1;
+    }
     mInitialized = false;
 }
 

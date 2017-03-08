@@ -241,6 +241,9 @@ private:
     // HDR Capabilities
     hdr_capabilities_t mHdrCapabilities;
 
+    // fb sync requests.
+    hwc_fb_sync_request_t mFbSyncRequest;
+
     // record the release fence of layer.
     KeyedVector<hwc2_layer_t, int32_t> mLayerReleaseFences[2];
     KeyedVector<hwc2_layer_t, int32_t> * mHwcCurReleaseFences;
