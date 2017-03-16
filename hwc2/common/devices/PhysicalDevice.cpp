@@ -647,6 +647,7 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
     framebuffer_info_t fbInfo = *(mFramebufferContext->getInfo());
     framebuffer_info_t* cbInfo = mCursorContext->getInfo();
     bool cursorShow = false;
+    bool haveCursorLayer = false;
     for (uint32_t i=0; i<mHwcLayers.size(); i++) {
         hwc2_layer_t layerId = mHwcLayers.keyAt(i);
         layer = mHwcLayers.valueAt(i);
@@ -656,6 +657,7 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
                 ETRACE("invalid cursor layer handle.");
                 break;
             }
+            haveCursorLayer = true;
             DTRACE("This is a Sprite, hnd->stride is %d, hnd->height is %d", hnd->stride, hnd->height);
             if (cbInfo->info.xres != (uint32_t)hnd->stride || cbInfo->info.yres != (uint32_t)hnd->height) {
                 ETRACE("disp: %d cursor need to redrew", mId);
@@ -691,18 +693,19 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
 #endif
     fbInfo.renderMode = mRenderMode;
 
-    bool onlyOneVideoLayer = false;
-    if (hasVideoOverlay && mHwcLayers.size() == 1) onlyOneVideoLayer = true;
+    bool needBlankFb0 = false;
+    uint32_t layerNum = mHwcLayers.size();
+    if (hasVideoOverlay && (layerNum == 1 || (layerNum == 2 && haveCursorLayer))) needBlankFb0 = true;
 
     if (mIsContinuousBuf) {
         // bit 0 is osd blank flag.
         fbInfo.op &= ~0x00000001;
-        if (onlyOneVideoLayer) {
+        if (needBlankFb0) {
             fbInfo.op |= 0x00000001;
         }
-        mFramebufferContext->setStatus(onlyOneVideoLayer);
+        mFramebufferContext->setStatus(needBlankFb0);
     } else {
-        setOSD0Blank(onlyOneVideoLayer);
+        setOSD0Blank(needBlankFb0);
     }
 
     if (!mClientTargetHnd || private_handle_t::validate(mClientTargetHnd) < 0 || mPowerMode == HWC2_POWER_MODE_OFF) {
