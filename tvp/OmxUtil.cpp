@@ -47,6 +47,10 @@ int setomxpts(int time_video) {
 }
 
 void set_omx_pts(char* data, int* handle) {
+    if (data == NULL) {
+        ALOGE("hnd->base is NULL!!!!");
+        return;
+    }
     if (strncmp(data, TVP_SECRET, strlen(TVP_SECRET)) == 0) {
         if (*handle == 0 || amvideo_handle == 0) {
              *handle = openamvideo();
