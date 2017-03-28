@@ -67,9 +67,6 @@ bool ExternalDevice::initialize()
         ETRACE("Uevent observer is NULL");
     }
 
-    mDisplayHdmi = new DisplayHdmi(mId);
-    mDisplayHdmi->initialize();
-
     return true;
 }
 
@@ -89,7 +86,6 @@ void ExternalDevice::deinitialize()
     }
 
     mHotplugEventPending = false;
-    DEINIT_AND_DELETE_OBJ(mDisplayHdmi);
     PhysicalDevice::deinitialize();
 }
 
@@ -148,7 +144,7 @@ void ExternalDevice::setDrmMode()
         // acknowledges hot unplug event.
         status_t err = mAbortModeSettingCond.waitRelative(mLock, milliseconds(20));
         if (err != -ETIMEDOUT) {
-            ITRACE("Mode settings is interrupted");
+            ETRACE("Mode settings is interrupted");
             mHwc.hotplug(mType, true);
             return;
         }
@@ -329,14 +325,16 @@ bool ExternalDevice::setActiveConfig(int index)
             return false;
     }
 
-    int ret = mDisplayHdmi->setActiveConfig(index);
-    if (ret < 0)
+    // for now we will only permit the frequency change.  In the future
+    // we may need to set mode as well.
+    if (index >= 0 && index < static_cast<int>(mDisplayConfigs.size())) {
+        DisplayConfig *config = mDisplayConfigs.itemAt(index);
+        setRefreshRate(config->getRefreshRate());
+        mActiveDisplayConfig = index;
+        return true;
+    } else {
         return false;
-
-    setRefreshRate(mDisplayHdmi->getActiveRefreshRate());
-    mActiveDisplayConfig = index;
-
-    return true;
+    }
 }
 
 } // namespace amlogic
