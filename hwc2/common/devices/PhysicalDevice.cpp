@@ -685,7 +685,10 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
     }
 
     if (mRenderMode == GLES_COMPOSE_MODE) {
-
+        //if no layers to compose, post blank op to osd.
+        if (mHwcGlesLayers.size() == 0) {
+            mClientTargetHnd = NULL;
+        }
     } else if (mRenderMode == DIRECT_COMPOSE_MODE) { // if only one layer exists, let hwc do her work.
         directCompose(&fbInfo);
     }
@@ -694,35 +697,34 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
         ge2dCompose(&fbInfo, hasVideoOverlay);
     }
 #endif
-    // fbInfo.renderMode = mRenderMode;
     mFbSyncRequest.type = mRenderMode;
 
     bool needBlankFb0 = false;
     uint32_t layerNum = mHwcLayers.size();
-    if (hasVideoOverlay && (layerNum == 1 || (layerNum == 2 && haveCursorLayer))) needBlankFb0 = true;
+    if (hasVideoOverlay && (layerNum == 1 || (layerNum == 2 && haveCursorLayer)))
+        needBlankFb0 = true;
 
-    if (mIsContinuousBuf) {
-        // bit 0 is osd blank flag.
-        mFbSyncRequest.op &= ~0x00000001;
-        if (needBlankFb0) {
-            mFbSyncRequest.op |= 0x00000001;
-        }
-        mFramebufferContext->setStatus(needBlankFb0);
+    if (needBlankFb0) {
+        mFbSyncRequest.op |= OSD_BLANK_OP_BIT;
     } else {
-        setOSD0Blank(needBlankFb0);
+        mFbSyncRequest.op &= ~(OSD_BLANK_OP_BIT);
     }
 
+    mFramebufferContext->setStatus(needBlankFb0);
+
     if (!mClientTargetHnd || private_handle_t::validate(mClientTargetHnd) < 0 || mPowerMode == HWC2_POWER_MODE_OFF) {
-        DTRACE("mClientTargetHnd is null or Enter suspend state, mTargetAcquireFence: %d", mTargetAcquireFence);
-        *outRetireFence = HwcFenceControl::merge(String8("Layer"), mPriorFrameRetireFence, mTargetAcquireFence);
+        ETRACE("Post blank to screen, mClientTargetHnd(%p, %d), mTargetAcquireFence(%d)",
+                    mClientTargetHnd, private_handle_t::validate(mClientTargetHnd), mTargetAcquireFence);
+        *outRetireFence = HwcFenceControl::merge(String8("ScreenBlank"), mPriorFrameRetireFence, mPriorFrameRetireFence);
         HwcFenceControl::closeFd(mTargetAcquireFence);
         mTargetAcquireFence = -1;
         HwcFenceControl::closeFd(mPriorFrameRetireFence);
         mPriorFrameRetireFence = -1;
-        if (private_handle_t::validate(mClientTargetHnd) < 0) {
-            ETRACE("mClientTargetHnd is not validate!");
-        }
-    } else {
+        //for nothing to display, post blank to osd which will signal the last retire fence.
+        mFbSyncRequest.type = DIRECT_COMPOSE_MODE;
+        mFbSyncRequest.op |= OSD_BLANK_OP_BIT;
+        mPriorFrameRetireFence = hwc_fb_post_with_fence_locked(&fbInfo, &mFbSyncRequest, NULL);
+     } else {
         *outRetireFence = HwcFenceControl::dupFence(mPriorFrameRetireFence);
         if (*outRetireFence >= 0) {
             DTRACE("Get prior frame's retire fence %d", *outRetireFence);
@@ -785,8 +787,7 @@ int32_t PhysicalDevice::setOSD0Blank(bool blank) {
     return HWC2_ERROR_NONE;
 }
 
-int32_t PhysicalDevice::presentDisplay(
-        int32_t* outRetireFence) {
+int32_t PhysicalDevice::presentDisplay(int32_t* outRetireFence) {
     int32_t err = HWC2_ERROR_NONE;
     HwcLayer* layer = NULL;
     bool hasVideoOverlay = false;
@@ -809,8 +810,6 @@ int32_t PhysicalDevice::presentDisplay(
         }
 #endif
         err = postFramebuffer(outRetireFence, hasVideoOverlay);
-
-        mIsValidated = false;
     } else { // display not validate yet.
         err = HWC2_ERROR_NOT_VALIDATED;
     }
@@ -823,6 +822,8 @@ int32_t PhysicalDevice::presentDisplay(
             layer->resetAcquireFence();
         }
     }
+
+    mClientTargetHnd = NULL;
 
     return err;
 }
@@ -1032,7 +1033,6 @@ bool PhysicalDevice::layersStateCheck(int32_t renderMode,
 **************************************************************/
 int32_t PhysicalDevice::composersFilter(
                 KeyedVector<hwc2_layer_t, HwcLayer*> & composeLayers) {
-    memset(&mFbSyncRequest, 0, sizeof(mFbSyncRequest));
 
     // direct Composer.
     if (composeLayers.size() == HWC2_ONE_LAYER) {
@@ -1098,30 +1098,20 @@ int32_t PhysicalDevice::composersFilter(
     return GLES_COMPOSE_MODE;
 }
 
-void PhysicalDevice::clearFramebuffer() {
-    hwc_rect_t clipRect;
-    framebuffer_info_t* fbInfo = mFramebufferContext->getInfo();
-    uint32_t offset = 0;
-    clipRect.left = 0;
-    clipRect.top = 0;
-    clipRect.right = fbInfo->info.xres;
-    clipRect.bottom = fbInfo->info.yres_virtual;
-    mComposer->fillRectangle(clipRect, 0, offset, mFramebufferHnd->share_fd);
-
-    DTRACE("Composer mode: %d, %d layers", mRenderMode, mHwcLayers.size());
-}
-
 int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
     uint32_t* outNumRequests) {
     HwcLayer* layer = NULL;
     bool istvp = false;
-    bool glesCompose = false;
-    bool zeroLayer = false;
+    KeyedVector<hwc2_layer_t, HwcLayer*> composeLayers;
+    composeLayers.clear();
 
     mRenderMode = GLES_COMPOSE_MODE;
     mVideoOverlayLayerId = 0;
     mIsContinuousBuf = true;
     swapReleaseFence();
+    memset(&mFbSyncRequest, 0, sizeof(mFbSyncRequest));
+    mHwcGlesLayers.clear();
+    mIsValidated = false;
 
     for (uint32_t i=0; i<mHwcLayers.size(); i++) {
         hwc2_layer_t layerId = mHwcLayers.keyAt(i);
@@ -1161,7 +1151,7 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
                         continue;
                     }
 
-                    mHwcGlesLayers.add(layerId, layer);
+                    composeLayers.add(layerId, layer);
                     continue;
                 }
             }
@@ -1184,18 +1174,18 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
                 continue;
             }
 
-            // TODO: solid color.
+            // solid color.
             if (layer->getCompositionType() == HWC2_COMPOSITION_SOLID_COLOR) {
                 DTRACE("This is a Solid Color layer!");
                 // mHwcLayersChangeRequest.add(layerId, layer);
                 // mHwcLayersChangeType.add(layerId, layer);
-                mHwcGlesLayers.add(layerId, layer);
+                composeLayers.add(layerId, layer);
                 continue;
             }
 
             if (layer->getCompositionType() == HWC2_COMPOSITION_CLIENT) {
+                mHwcGlesLayers.add(layerId, layer);
                 DTRACE("Meet a client layer!");
-                glesCompose = true;
             }
         }
     }
@@ -1208,26 +1198,20 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
 #endif
 
     if (mHwcLayers.size() == 0) {
-        zeroLayer = true;
         mIsContinuousBuf = false;
     }
 
     // dumpLayers(mHwcLayers);
-    if (mIsContinuousBuf && !glesCompose && !noDevComp) {
-        mRenderMode = composersFilter(mHwcGlesLayers);
+    if (mIsContinuousBuf && !noDevComp && (mHwcGlesLayers.size() == 0)) {
+        mRenderMode = composersFilter(composeLayers);
     } else {
         mDirectComposeFrameCount = 0;
     }
 
-    if (mComposer && zeroLayer) {
-        clearFramebuffer();
-    }
-
-    if (mHwcGlesLayers.size() > 0) {
-        for (int i=0;i<mHwcGlesLayers.size(); i++) {
-            mHwcLayersChangeType.add(mHwcGlesLayers.keyAt(i), mHwcGlesLayers.valueAt(i));
-        }
-        mHwcGlesLayers.clear();
+    //DEVICE_COMPOSE layers set to CLIENT_COMPOSE layers.
+    for (int i=0; i<composeLayers.size(); i++) {
+        mHwcLayersChangeType.add(composeLayers.keyAt(i), composeLayers.valueAt(i));
+        mHwcGlesLayers.add(composeLayers.keyAt(i), composeLayers.valueAt(i));
     }
 
     if (istvp == false && Amvideo_Handle!=0) {
@@ -1240,12 +1224,7 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
         *outNumRequests = mHwcLayersChangeRequest.size();
     }
 
-    // mark the validate function is called.(???)
-    if (zeroLayer) {
-        mIsValidated = false;
-    } else {
-        mIsValidated = true;
-    }
+    mIsValidated = true;
 
     if (mHwcLayersChangeType.size() > 0) {
         DTRACE("there are %d layer types has changed.", mHwcLayersChangeType.size());
