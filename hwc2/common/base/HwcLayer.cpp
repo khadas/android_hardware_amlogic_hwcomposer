@@ -195,7 +195,7 @@ int32_t HwcLayer::setColor(hwc_color_t color) {
 }
 
 int32_t HwcLayer::setCompositionType(int32_t type) {
-    Mutex::Autolock _l(mLock);
+    // Mutex::Autolock _l(mLock);
 
     mCompositionType = type;
     return HWC2_ERROR_NONE;
