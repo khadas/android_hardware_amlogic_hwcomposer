@@ -330,7 +330,7 @@ void HwcLayer::presentOverlay() {
     mLastDisplayFrame.bottom = mDisplayFrame.bottom;
 
     memset(mLastAxis, 0, sizeof(mLastAxis));
-    if (amsysfs_get_sysfs_str(SYSFS_VIDEO_AXIS, mLastAxis, sizeof(mLastAxis)) == 0) {
+    if (Utils::getSysfsStr(SYSFS_VIDEO_AXIS, mLastAxis, sizeof(mLastAxis)) == 0) {
         DTRACE("****last video axis is: %s", mLastAxis);
     }
 
