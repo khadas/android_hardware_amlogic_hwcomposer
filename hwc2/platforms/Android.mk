@@ -3,7 +3,7 @@
 #
 
 LOCAL_PATH := $(call my-dir)
-
+include $(TOP)/hardware/amlogic/media/media_base_config.mk
 # HAL module implemenation, not prelinked and stored in
 # hw/<OVERLAY_HARDWARE_MODULE_ID>.<ro.product.board>.so
 include $(CLEAR_VARS)
@@ -102,9 +102,7 @@ endif
 # WITH_LIBPLAYER_MODULE := true
 ifneq ($(WITH_LIBPLAYER_MODULE),false)
 LOCAL_SHARED_LIBRARIES += libamavutils_alsa
-AMPLAYER_APK_DIR := vendor/amlogic/frameworks/av/LibPlayer
-LOCAL_C_INCLUDES += $(AMPLAYER_APK_DIR)/amavutils/include
-$(info Libplayer is $(AMPLAYER_APK_DIR))
+LOCAL_C_INCLUDES += $(AMAVUTILS_PATH)/include
 LOCAL_CFLAGS += -DWITH_LIBPLAYER_MODULE=1
 endif
 
