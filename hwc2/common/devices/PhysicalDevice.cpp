@@ -75,12 +75,12 @@ PhysicalDevice::PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc, DeviceControl
     initDisplay();
 
     // set capacity of layers, layer's changed type, layer's changed request.
-    mHwcLayersChangeType.setCapacity(LAYER_MAX_NUM_CHANGE_TYPE);
-    mHwcLayersChangeRequest.setCapacity(LAYER_MAX_NUM_CHANGE_REQUEST);
-    mHwcGlesLayers.setCapacity(LAYER_MAX_NUM_CHANGE_TYPE);
-    mHwcLayers.setCapacity(LAYER_MAX_NUM_SUPPORT);
+    // mHwcLayersChangeType.setCapacity(LAYER_MAX_NUM_CHANGE_TYPE);
+    // mHwcLayersChangeRequest.setCapacity(LAYER_MAX_NUM_CHANGE_REQUEST);
+    // mHwcGlesLayers.setCapacity(LAYER_MAX_NUM_CHANGE_TYPE);
+    // mHwcLayers.setCapacity(LAYER_MAX_NUM_SUPPORT);
 #ifdef HWC_ENABLE_SECURE_LAYER
-    mHwcSecureLayers.setCapacity(LAYER_MAX_NUM_SECURE_PROTECTED);
+    // mHwcSecureLayers.setCapacity(LAYER_MAX_NUM_SECURE_PROTECTED);
     mHwcSecureLayers.clear();
 #endif
 
@@ -90,7 +90,7 @@ PhysicalDevice::PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc, DeviceControl
     mHwcGlesLayers.clear();
     mHwcLayers.clear();
 
-    mGE2DRenderSortedLayerIds.setCapacity(HWC2_MAX_LAYERS);
+    // mGE2DRenderSortedLayerIds.setCapacity(HWC2_MAX_LAYERS);
     mGE2DRenderSortedLayerIds.clear();
 
     mHwcCurReleaseFences = mHwcPriorReleaseFences = NULL;
@@ -238,13 +238,14 @@ bool PhysicalDevice::createLayer(hwc2_layer_t* outLayer) {
     hwc2_layer_t layerId = reinterpret_cast<hwc2_layer_t>(layer);
     mHwcLayers.add(layerId, layer);
     *outLayer = layerId;
-    ETRACE("layerId %lld.\n", layerId);
+    DTRACE("::createLayer layerId %lld, size: [%d].\n", layerId, mHwcLayers.size());
 
     return true;
 }
 
 bool PhysicalDevice::destroyLayer(hwc2_layer_t layerId) {
     HwcLayer* layer = mHwcLayers.valueFor(layerId);
+    DTRACE("::destroyLayer layerId %lld, size: [%d].\n", layerId, mHwcLayers.size());
 
     if (layer == NULL) {
         ETRACE("destroyLayer: no Hwclayer found (%d)", layerId);
