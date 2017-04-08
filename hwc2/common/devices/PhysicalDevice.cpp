@@ -53,8 +53,7 @@ PhysicalDevice::PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc, DeviceControl
       mGE2DClearVideoRegionCount(0),
       mGE2DComposeFrameCount(0),
       mDirectComposeFrameCount(0),
-      mInitialized(false)
-{
+      mInitialized(false) {
     CTRACE();
 
     switch (id) {
@@ -72,30 +71,18 @@ PhysicalDevice::PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc, DeviceControl
     // init Display here.
     initDisplay();
 
-    // set capacity of layers, layer's changed type, layer's changed request.
-    // mHwcLayersChangeType.setCapacity(LAYER_MAX_NUM_CHANGE_TYPE);
-    // mHwcLayersChangeRequest.setCapacity(LAYER_MAX_NUM_CHANGE_REQUEST);
-    // mHwcGlesLayers.setCapacity(LAYER_MAX_NUM_CHANGE_TYPE);
-    // mHwcLayers.setCapacity(LAYER_MAX_NUM_SUPPORT);
-#ifdef HWC_ENABLE_SECURE_LAYER
-    // mHwcSecureLayers.setCapacity(LAYER_MAX_NUM_SECURE_PROTECTED);
-    mHwcSecureLayers.clear();
-#endif
-
     // clear layers vectors.
+    mHwcSecureLayers.clear();
     mHwcLayersChangeType.clear();
     mHwcLayersChangeRequest.clear();
     mHwcGlesLayers.clear();
     mHwcLayers.clear();
-
-    // mGE2DRenderSortedLayerIds.setCapacity(HWC2_MAX_LAYERS);
     mGE2DRenderSortedLayerIds.clear();
 
     mHwcCurReleaseFences = mHwcPriorReleaseFences = NULL;
 }
 
-PhysicalDevice::~PhysicalDevice()
-{
+PhysicalDevice::~PhysicalDevice() {
     WARN_IF_NOT_DEINIT();
     clearFenceList(mHwcCurReleaseFences);
     clearFenceList(mHwcPriorReleaseFences);
@@ -131,16 +118,14 @@ bool PhysicalDevice::initialize() {
     return true;
 }
 
-void PhysicalDevice::hdcpEventListener(void *data, bool status)
-{
+void PhysicalDevice::hdcpEventListener(void *data, bool status) {
     PhysicalDevice *pThis = (PhysicalDevice*)data;
     if (pThis) {
         pThis->setSecureStatus(status);
     }
 }
 
-void PhysicalDevice::setSecureStatus(bool status)
-{
+void PhysicalDevice::setSecureStatus(bool status) {
     DTRACE("hdcp event: %d", status);
     mSecure = status;
 }
@@ -186,7 +171,6 @@ int32_t PhysicalDevice::acceptDisplayChanges() {
         hwc2_layer_t layerId = mHwcLayersChangeType.keyAt(i);
         layer = mHwcLayersChangeType.valueAt(i);
         if (layer) {
-#ifdef HWC_ENABLE_SECURE_LAYER
             // deal non secure display.
             if (!mSecure && !mHwcSecureLayers.isEmpty()) {
                 for (uint32_t j=0; j<mHwcSecureLayers.size(); j++) {
@@ -202,7 +186,7 @@ int32_t PhysicalDevice::acceptDisplayChanges() {
                     }
                 }
             }
-#endif
+
             if (layer->getCompositionType() == HWC2_COMPOSITION_DEVICE
                     || layer->getCompositionType() == HWC2_COMPOSITION_SOLID_COLOR) {
                 layer->setCompositionType(HWC2_COMPOSITION_CLIENT);
@@ -211,16 +195,6 @@ int32_t PhysicalDevice::acceptDisplayChanges() {
             }
         }
     }
-    // reset layer changed or requested size to zero.
-    mHwcLayersChangeType.clear();
-    mHwcLayersChangeRequest.clear();
-
-#ifdef HWC_ENABLE_SECURE_LAYER
-    // deal non secure display device.
-    if (!mHwcSecureLayers.isEmpty()) {
-        mHwcSecureLayers.clear();
-    }
-#endif
 
     return HWC2_ERROR_NONE;
 }
@@ -236,7 +210,7 @@ bool PhysicalDevice::createLayer(hwc2_layer_t* outLayer) {
     hwc2_layer_t layerId = reinterpret_cast<hwc2_layer_t>(layer);
     mHwcLayers.add(layerId, layer);
     *outLayer = layerId;
-    DTRACE("::createLayer layerId %lld, size: [%d].\n", layerId, mHwcLayers.size());
+    DTRACE("::createLayer layerId (%lld), size: [%d].\n", layerId, mHwcLayers.size());
 
     return true;
 }
@@ -255,7 +229,7 @@ bool PhysicalDevice::destroyLayer(hwc2_layer_t layerId) {
         if (idx >= 0) {
             HwcFenceControl::closeFd(mLayerReleaseFences[i].valueAt(idx));
             mLayerReleaseFences[i].removeItemsAt(idx);
-            DTRACE("destroyLayer remove layer %lld from cur release list %p\n", layerId, &(mLayerReleaseFences[i]));
+            DTRACE("destroyLayer layer(%lld) from cur release list (%p).\n", layerId, &(mLayerReleaseFences[i]));
         }
     }
 
@@ -285,7 +259,6 @@ int32_t PhysicalDevice::getChangedCompositionTypes(
             hwc2_layer_t layerId = mHwcLayersChangeType.keyAt(i);
             layer = mHwcLayersChangeType.valueAt(i);
             if (layer) {
-#ifdef HWC_ENABLE_SECURE_LAYER
                 // deal non secure display.
                 if (!mSecure && !mHwcSecureLayers.isEmpty()) {
                     for (uint32_t j=0; j<mHwcSecureLayers.size(); j++) {
@@ -299,7 +272,6 @@ int32_t PhysicalDevice::getChangedCompositionTypes(
                         }
                     }
                 }
-#endif
 
                 if (layer->getCompositionType() == HWC2_COMPOSITION_DEVICE
                     || layer->getCompositionType() == HWC2_COMPOSITION_SOLID_COLOR) {
@@ -531,7 +503,7 @@ void PhysicalDevice::addReleaseFence(hwc2_layer_t layerId, int32_t fenceFd) {
         mHwcCurReleaseFences->replaceValueAt(idx, newFence);
         HwcFenceControl::closeFd(oldFence);
         HwcFenceControl::closeFd(fenceFd);
-        ETRACE("addReleaseFence:(%d, %d) + %d -> (%d,%d)\n", idx, oldFence, fenceFd, idx, newFence);
+        DTRACE("addReleaseFence:(%d, %d) + %d -> (%d,%d)\n", idx, oldFence, fenceFd, idx, newFence);
         dumpFenceList(mHwcCurReleaseFences);
     } else {
         mHwcCurReleaseFences->add(layerId, fenceFd);
@@ -665,7 +637,7 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
             haveCursorLayer = true;
             DTRACE("This is a Sprite, hnd->stride is %d, hnd->height is %d", hnd->stride, hnd->height);
             if (cbInfo->info.xres != (uint32_t)hnd->stride || cbInfo->info.yres != (uint32_t)hnd->height) {
-                ETRACE("disp: %d cursor need to redrew", mId);
+                DTRACE("disp: %d cursor need to redrew", mId);
                 update_cursor_buffer_locked(cbInfo, hnd->stride, hnd->height);
                 cbuffer = mmap(NULL, hnd->size, PROT_READ|PROT_WRITE, MAP_SHARED, cbInfo->fd, 0);
                 if (cbuffer != MAP_FAILED) {
@@ -673,7 +645,7 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
                     munmap(cbuffer, hnd->size);
                     DTRACE("setCursor ok");
                 } else {
-                    ETRACE("buffer mmap fail");
+                   ETRACE("Cursor display buffer mmap fail!");
                 }
             }
             cursorShow = true;
@@ -796,11 +768,16 @@ int32_t PhysicalDevice::presentDisplay(int32_t* outRetireFence) {
     if (mIsValidated) {
         // TODO: need improve the way to set video axis.
 #if WITH_LIBPLAYER_MODULE
+        bool bPresent = true;
+        if (mHwcSecureLayers.indexOfKey(mVideoOverlayLayerId) >= 0) {
+            bPresent = false;
+        }
+
         ssize_t index = mHwcLayers.indexOfKey(mVideoOverlayLayerId);
         if (index >= 0) {
             layer = mHwcLayers.valueFor(mVideoOverlayLayerId);
             if (layer != NULL) {
-                layer->presentOverlay();
+                layer->presentOverlay(bPresent);
                 hasVideoOverlay = true;
                 if (mGE2DClearVideoRegionCount < 3) {
                     mGE2DClearVideoRegionCount++;
@@ -815,18 +792,7 @@ int32_t PhysicalDevice::presentDisplay(int32_t* outRetireFence) {
         err = HWC2_ERROR_NOT_VALIDATED;
     }
 
-    // reset layers' acquire fence.
-    for (uint32_t i=0; i<mHwcLayers.size(); i++) {
-        hwc2_layer_t layerId = mHwcLayers.keyAt(i);
-        layer = mHwcLayers.valueAt(i);
-        if (layer != NULL) {
-            layer->resetAcquireFence();
-        }
-    }
-
-    mClientTargetHnd = NULL;
-    mPreviousRenderMode = mRenderMode;
-
+    finishCompose();
     return err;
 }
 
@@ -1131,6 +1097,41 @@ int32_t PhysicalDevice::preValidate() {
     return HWC2_ERROR_NONE;
 }
 
+int32_t PhysicalDevice::beginCompose() {
+    swapReleaseFence();
+    // reset layer changed or requested size to zero.
+    mHwcLayersChangeType.clear();
+    mHwcLayersChangeRequest.clear();
+    mHwcGlesLayers.clear();
+    mHwcSecureLayers.clear();
+
+    memset(&mFbSyncRequest, 0, sizeof(mFbSyncRequest));
+    mFbSyncRequest.in_fen_fd = -1;
+
+    mVideoOverlayLayerId = 0;
+    mIsContinuousBuf = true;
+    mIsValidated = false;
+    mRenderMode = GLES_COMPOSE_MODE;
+
+    return HWC2_ERROR_NONE;
+}
+
+int32_t PhysicalDevice::finishCompose() {
+    HwcLayer* layer = NULL;
+    // reset layers' acquire fence.
+    for (uint32_t i=0; i<mHwcLayers.size(); i++) {
+        hwc2_layer_t layerId = mHwcLayers.keyAt(i);
+        layer = mHwcLayers.valueAt(i);
+        if (layer != NULL) {
+            layer->resetAcquireFence();
+        }
+    }
+
+    mClientTargetHnd = NULL;
+    mPreviousRenderMode = mRenderMode;
+    return HWC2_ERROR_NONE;
+}
+
 int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
     uint32_t* outNumRequests) {
     HwcLayer* layer = NULL, *videoLayer = NULL;
@@ -1138,14 +1139,7 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
     KeyedVector<hwc2_layer_t, HwcLayer*> composeLayers;
     composeLayers.clear();
 
-    mRenderMode = GLES_COMPOSE_MODE;
-    mVideoOverlayLayerId = 0;
-    mIsContinuousBuf = true;
-    swapReleaseFence();
-    memset(&mFbSyncRequest, 0, sizeof(mFbSyncRequest));
-    mFbSyncRequest.in_fen_fd = -1;
-    mHwcGlesLayers.clear();
-    mIsValidated = false;
+    beginCompose();
 
     if (preValidate() != HWC2_ERROR_NONE) {
         return HWC2_ERROR_BAD_LAYER;
@@ -1165,7 +1159,6 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
 
         private_handle_t const* hnd = private_handle_t::dynamicCast(layer->getBufferHandle());
 
-        #ifdef HWC_ENABLE_SECURE_LAYER
         // secure or protected layer.
         if (!mSecure && hnd && (hnd->flags & private_handle_t::PRIV_FLAGS_SECURE_PROTECTED)) {
             DTRACE("layer's secure or protected buffer flag is set!");
@@ -1175,7 +1168,6 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
             mHwcSecureLayers.add(layerId, layer);
             continue;
         }
-        #endif
 
         if (videoLayer && (layer->getZ() < mVideoOverlayLayerId)) {
             DTRACE("Layer covered by video layer.");
@@ -1378,7 +1370,7 @@ bool PhysicalDevice::updateDisplayConfigs() {
     mDisplayHdmi->updateHotplug(mIsConnected, fbinfo, mFramebufferHnd);
     if (mIsConnected)
         mVsyncObserver->setRefreshRate(mDisplayHdmi->getActiveRefreshRate());
-    //ETRACE("updateDisplayConfigs rate:%d", mDisplayHdmi->getActiveRefreshRate());
+    //DTRACE("updateDisplayConfigs rate:%d", mDisplayHdmi->getActiveRefreshRate());
 
     // check hdcp authentication status when hotplug is happen.
     if (mSystemControl == NULL) {
@@ -1387,7 +1379,6 @@ bool PhysicalDevice::updateDisplayConfigs() {
         DTRACE("already have system control instance.");
     }
     if (mSystemControl != NULL) {
-        // mSecure = Utils::checkHdcp();
         int status = 0;
         mSystemControl->isHDCPTxAuthSuccess(status);
         DTRACE("hdcp status: %d", status);
@@ -1399,8 +1390,7 @@ bool PhysicalDevice::updateDisplayConfigs() {
     return true;
 }
 
-sp<ISystemControlService> PhysicalDevice::getSystemControlService()
-{
+sp<ISystemControlService> PhysicalDevice::getSystemControlService() {
     sp<IServiceManager> sm = defaultServiceManager();
     if (sm == NULL) {
         ETRACE("Couldn't get default ServiceManager\n");
@@ -1559,6 +1549,8 @@ void PhysicalDevice::dump(Dump& d) {
         "----------------------------------------------------------------\n");
     d.append("Device Name: %s (%s)\n", mName,
             mIsConnected ? "connected" : "disconnected");
+    d.append("isSecure : %s\n", mSecure ? "TRUE" : "FALSE");
+
     mDisplayHdmi->dump(d);
 
     // dump layer list

@@ -34,7 +34,7 @@ int32_t HwcFenceControl::createFenceTimeline() {
 
     syncTimelineFd = sw_sync_timeline_create();
     if (syncTimelineFd < 0) {
-        ETRACE("Stark, can't create sw_sync_timeline:");
+        ETRACE("Create sw_sync_timeline failed!");
         return -1;
     }
 
@@ -46,7 +46,7 @@ int32_t HwcFenceControl::createFence(int32_t syncTimelineFd,
 
     int32_t fenceFd = sw_sync_fence_create(syncTimelineFd, str, val);
     if (fenceFd < 0) {
-        ETRACE("can't create sync pt %d: %s", val, strerror(errno));
+        ETRACE("Create fence %d failed, error(%s)", val, strerror(errno));
         return -1;
     }
 
@@ -58,7 +58,7 @@ status_t HwcFenceControl::syncTimelineInc(int32_t syncTimelineFd) {
 
     err = sw_sync_timeline_inc(syncTimelineFd, 1);
     if (err < 0) {
-        ETRACE("can't increment sync obj:");
+        ETRACE("can't increment timeline(%d)", syncTimelineFd);
         return -1;
     }
     return err;

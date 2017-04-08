@@ -29,13 +29,6 @@ namespace android {
 namespace amlogic {
 
 enum {
-    LAYER_MAX_NUM_SECURE_PROTECTED = 5,
-    LAYER_MAX_NUM_CHANGE_REQUEST = 8,
-    LAYER_MAX_NUM_CHANGE_TYPE = 16,
-    LAYER_MAX_NUM_SUPPORT = LAYER_MAX_NUM_CHANGE_TYPE,
-};
-
-enum {
     HWC2_NO_LAYER = 0,
     HWC2_ONE_LAYER = 1,
     HWC2_TWO_LAYERS = 2,

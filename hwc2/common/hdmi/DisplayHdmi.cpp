@@ -113,7 +113,7 @@ bool DisplayHdmi::updateHotplug(bool connected,
         updateDisplayConfigures();
         updateActiveDisplayConfigure();
 
-        ALOGD("updateHotplug setDisplayMode to %s", mActiveDisplaymode);
+        DTRACE("updateHotplug setDisplayMode to %s", mActiveDisplaymode);
         std::string strmode(mActiveDisplaymode);
         mSystemControlService->setActiveDispMode(strmode);
     }
@@ -135,7 +135,7 @@ int DisplayHdmi::updateDisplayModeList() {
     }
 
     if (!fullActiveMode) {
-        ALOGD("Simple Active Mode!!!");
+        DTRACE("Simple Active Mode!!!");
         return -1;
     }
 
@@ -143,17 +143,17 @@ int DisplayHdmi::updateDisplayModeList() {
     std::string::size_type pos;
     mSystemControlService->getSupportDispModeList(&getSupportDispModes);
     if (getSupportDispModes.size() == 0) {
-        ALOGD("SupportDispModeList null!!!");
+        DTRACE("SupportDispModeList null!!!");
         return -1;
     }
 
     for (size_t i = 0; i < getSupportDispModes.size(); i++) {
-        //ALOGD("get support display mode:%s", getSupportDispModes[i].c_str());
+        //DTRACE("get support display mode:%s", getSupportDispModes[i].c_str());
         while (!getSupportDispModes[i].empty()) {
             pos = getSupportDispModes[i].find('*');
             if (pos != std::string::npos) {
                 getSupportDispModes[i].erase(pos, 1);
-                //ALOGD("modify support display mode:%s", getSupportDispModes[i].c_str());
+                //DTRACE("modify support display mode:%s", getSupportDispModes[i].c_str());
             } else {
                 break;
             }
@@ -166,7 +166,7 @@ int DisplayHdmi::updateDisplayModeList() {
             if (!getSupportDispModes[j].empty()) {
                 if (mAllModes[k] == getSupportDispModes[j]) {
                     mSupportDispModes.push_back(getSupportDispModes[j]);
-                    ALOGD("support display mode:%s", getSupportDispModes[j].c_str());
+                    DTRACE("support display mode:%s", getSupportDispModes[j].c_str());
                 }
             }
         }
@@ -195,7 +195,7 @@ int DisplayHdmi::updateActiveDisplayMode() {
     } else
         ETRACE("displaymode (%s) doesn't  specify HZ", mActiveDisplaymode);
 
-    ALOGD("Active display mode: (%s), refresh rate: (%d)", mActiveDisplaymode, refreshRate);
+    DTRACE("Active display mode: (%s), refresh rate: (%d)", mActiveDisplaymode, refreshRate);
 
     mActiveRefreshRate = refreshRate;
 
@@ -203,7 +203,7 @@ int DisplayHdmi::updateActiveDisplayMode() {
 }
 
 int DisplayHdmi::setDisplayMode(const char* displaymode) {
-    ALOGD("setDisplayMode to %s", displaymode);
+    DTRACE("setDisplayMode to %s", displaymode);
 
     std::string strmode(displaymode);
     mSystemControlService->setActiveDispMode(strmode);
@@ -254,7 +254,7 @@ int DisplayHdmi::updateActiveDisplayConfigure() {
         if (0 == strncmp(mActiveDisplaymode, dispConfig->getDisplayMode(),
             HWC_DISPLAY_MODE_LENGTH-1)) {
             mActiveDisplayConfigItem = i;
-            ALOGD("updateActiveDisplayConfigure to config(%d)", mActiveDisplayConfigItem);
+            DTRACE("updateActiveDisplayConfigure to config(%d)", mActiveDisplayConfigItem);
             dispConfig->setDpi(mFramebufferInfo->xdpi, mFramebufferInfo->ydpi);
             break;
         }
@@ -267,7 +267,7 @@ int DisplayHdmi::getDisplayConfigs(uint32_t* outNumConfigs,
     size_t i;
 
     if (!isConnected()) {
-        //ETRACE("display %d is not connected.", (int32_t)mDisplayId);
+        ETRACE("display %d is not connected.", (int32_t)mDisplayId);
     }
 
     for (i = 0; i < mDisplayConfigs.size(); i++) {
@@ -285,7 +285,7 @@ int DisplayHdmi::getDisplayAttribute(hwc2_config_t config,
         int32_t* outValue) {
 
     if (!isConnected()) {
-        //ETRACE("display %d is not connected.", (int32_t)mDisplayId);
+        ETRACE("display %d is not connected.", (int32_t)mDisplayId);
     }
 
     DisplayConfig *configChosen = mDisplayConfigs[config];
@@ -323,9 +323,9 @@ int DisplayHdmi::getDisplayAttribute(hwc2_config_t config,
 
 int DisplayHdmi::getActiveConfig(hwc2_config_t* outConfig) {
     if (!isConnected()) {
-        //ETRACE("display %d is not connected.", (int32_t)mDisplayId);
+        ETRACE("display %d is not connected.", (int32_t)mDisplayId);
     }
-    //ALOGD("getActiveConfig to config(%d).", mActiveDisplayConfigItem);
+    //DTRACE("getActiveConfig to config(%d).", mActiveDisplayConfigItem);
     *outConfig = mActiveDisplayConfigItem;
 
     return HWC2_ERROR_NONE;
@@ -336,10 +336,10 @@ int DisplayHdmi::setActiveConfig(int id) {
     char *dispMode = NULL;
 
     if (!isConnected()) {
-        //ETRACE("display %d is not connected.", (int32_t)mDisplayId);
+        ETRACE("display %d is not connected.", (int32_t)mDisplayId);
     }
 
-    ALOGD("setActiveConfig to config(%d).", id);
+    DTRACE("setActiveConfig to config(%d).", id);
     mActiveDisplayConfigItem = id;
     dispConfig = mDisplayConfigs[id];
     if  (!dispConfig) {

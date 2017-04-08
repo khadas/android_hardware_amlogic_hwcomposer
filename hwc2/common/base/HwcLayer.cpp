@@ -23,6 +23,7 @@
 #include <IDisplayDevice.h>
 #include <cutils/properties.h>
 #include <sync/sync.h>
+#include <AmVideo.h>
 
 
 namespace android {
@@ -275,13 +276,16 @@ void HwcLayer::resetLayerBuffer() {
 }
 
 #if WITH_LIBPLAYER_MODULE
-void HwcLayer::presentOverlay() {
+void HwcLayer::presentOverlay(bool bPresent) {
     int32_t angle = 0;
     bool vpp_changed = false;
     bool axis_changed = false;
     bool mode_changed = false;
     bool free_scale_changed = false;
     bool window_axis_changed =false;
+    hwc_rect_t* displayframe = &mDisplayFrame;
+
+    AmVideo::getInstance()->presentVideo(bPresent);
 
     if (Utils::checkBoolProp("ro.vout.dualdisplay4")) {
         vpp_changed = Utils::checkSysfsStatus(
@@ -294,10 +298,10 @@ void HwcLayer::presentOverlay() {
     window_axis_changed     = Utils::checkSysfsStatus(SYSFS_WINDOW_AXIS, mLastWindowaxis, 50);
 
     if (mLastTransform == mTransform
-        && mLastDisplayFrame.left == mDisplayFrame.left
-        && mLastDisplayFrame.top == mDisplayFrame.top
-        && mLastDisplayFrame.right == mDisplayFrame.right
-        && mLastDisplayFrame.bottom== mDisplayFrame.bottom
+        && mLastDisplayFrame.left == displayframe->left
+        && mLastDisplayFrame.top == displayframe->top
+        && mLastDisplayFrame.right == displayframe->right
+        && mLastDisplayFrame.bottom== displayframe->bottom
         && !vpp_changed && !mode_changed && !axis_changed
         && !free_scale_changed && !window_axis_changed) {
         return;
@@ -320,9 +324,9 @@ void HwcLayer::presentOverlay() {
         return;
     }
 
-    amvideo_utils_set_virtual_position(mDisplayFrame.left, mDisplayFrame.top,
-        mDisplayFrame.right - mDisplayFrame.left,
-        mDisplayFrame.bottom - mDisplayFrame.top,
+    amvideo_utils_set_virtual_position(displayframe->left, displayframe->top,
+        displayframe->right - displayframe->left,
+        displayframe->bottom - displayframe->top,
         angle);
 
     /* the screen mode from Android framework should always be set to normal mode
@@ -331,10 +335,10 @@ void HwcLayer::presentOverlay() {
     /*set screen_mode in amvideo_utils_set_virtual_position(),pls check in libplayer*/
     //amvideo_utils_set_screen_mode(0);
     mLastTransform = mTransform;
-    mLastDisplayFrame.left = mDisplayFrame.left;
-    mLastDisplayFrame.top = mDisplayFrame.top;
-    mLastDisplayFrame.right = mDisplayFrame.right;
-    mLastDisplayFrame.bottom = mDisplayFrame.bottom;
+    mLastDisplayFrame.left = displayframe->left;
+    mLastDisplayFrame.top = displayframe->top;
+    mLastDisplayFrame.right = displayframe->right;
+    mLastDisplayFrame.bottom = displayframe->bottom;
 
     memset(mLastAxis, 0, sizeof(mLastAxis));
     if (Utils::getSysfsStr(SYSFS_VIDEO_AXIS, mLastAxis, sizeof(mLastAxis)) == 0) {

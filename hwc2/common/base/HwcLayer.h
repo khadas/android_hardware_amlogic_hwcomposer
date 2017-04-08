@@ -84,7 +84,7 @@ class HwcLayer {
         bool haveDataspace();
 
 #if WITH_LIBPLAYER_MODULE
-        void presentOverlay();
+        void presentOverlay(bool bPresent);
 #endif
 
     private:

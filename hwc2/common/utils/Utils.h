@@ -22,6 +22,7 @@
 #define SYSFS_VIDEO_AXIS                      "/sys/class/video/axis"
 #define SYSFS_VIDEOBUFUSED                 "/sys/class/amstream/videobufused"
 #define SYSFS_WINDOW_AXIS               "/sys/class/graphics/fb0/window_axis"
+#define SYSFS_VIDEO_BLANK               "/sys/class/video/disable_video"
 
 namespace android {
 namespace amlogic {

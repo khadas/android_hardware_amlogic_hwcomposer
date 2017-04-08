@@ -12,7 +12,7 @@ LOCAL_MODULE_RELATIVE_PATH := hw
 
 LOCAL_SRC_FILES := \
     ../common/base/HwcLayer.cpp \
-	../common/base/HwcFenceControl.cpp \
+    ../common/base/HwcFenceControl.cpp \
     ../common/base/Hwcomposer.cpp \
     ../common/base/HwcModule.cpp \
     ../common/base/VsyncManager.cpp \
@@ -25,7 +25,8 @@ LOCAL_SRC_FILES := \
     ../common/composers/Composers.cpp \
     ../common/composers/GE2DComposer.cpp \
     ../common/utils/Utils.cpp \
-    ../common/utils/Dump.cpp
+    ../common/utils/Dump.cpp \
+    ../common/utils/AmVideo.cpp
 
 LOCAL_SRC_FILES += \
     PlatFactory.cpp
@@ -33,7 +34,7 @@ LOCAL_SRC_FILES += \
 LOCAL_SHARED_LIBRARIES := \
     libcutils \
     liblog \
-	libEGL \
+    libEGL \
     libdl \
     libhardware \
     libutils \
@@ -90,10 +91,6 @@ LOCAL_C_INCLUDES += system/core/libion/include/ \
 ifeq ($(TARGET_APP_LAYER_USE_CONTINUOUS_BUFFER),true)
 LOCAL_CFLAGS += -DUSE_CONTINOUS_BUFFER_COMPOSER
 # LOCAL_CFLAGS += -DENABLE_AML_GE2D_COMPOSER
-endif
-
-ifeq ($(TARGET_SUPPORT_SECURE_LAYER),true)
-LOCAL_CFLAGS += -DHWC_ENABLE_SECURE_LAYER
 endif
 
 # WITH_LIBPLAYER_MODULE := true

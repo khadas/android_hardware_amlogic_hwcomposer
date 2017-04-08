@@ -163,6 +163,8 @@ private:
     bool layersStateCheck(int32_t renderMode, KeyedVector<hwc2_layer_t, HwcLayer*> & composeLayers);
     int32_t composersFilter(KeyedVector<hwc2_layer_t, HwcLayer*>& composeLayers);
 
+    int32_t beginCompose();
+    int32_t finishCompose();
     //swap the mHwcCurReleaseFence and mHwcPriorReleaseFence;
     void swapReleaseFence();
     //this function will take contorl of fencefd, if you need use it also, please dup it before call.
@@ -237,9 +239,7 @@ private:
     KeyedVector<hwc2_layer_t, HwcLayer*> mHwcLayersChangeRequest;
     KeyedVector<hwc2_layer_t, HwcLayer*> mHwcGlesLayers;
     KeyedVector<hwc2_layer_t, HwcLayer*> mHwcLayers;
-#ifdef HWC_ENABLE_SECURE_LAYER
     KeyedVector<hwc2_layer_t, HwcLayer*> mHwcSecureLayers;
-#endif
 
     // HDR Capabilities
     hdr_capabilities_t mHdrCapabilities;

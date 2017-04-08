@@ -447,7 +447,8 @@ void GE2DComposer::dumpLayers(
 #if 1
         int32_t base = 4 * (hnd->stride * (hnd->height / 2) + 10);
         char* tmp = (char*)layerBuffer + base;
-        DTRACE("[0x%x, 0x%x, 0x%x, 0x%x]\n"
+        ETRACE("GE2DComposer dump layer:\n"
+            "[0x%x, 0x%x, 0x%x, 0x%x]\n"
             "[0x%x, 0x%x, 0x%x, 0x%x]\n"
             "[0x%x, 0x%x, 0x%x, 0x%x]\n"
             "[0x%x, 0x%x, 0x%x, 0x%x]\n",
@@ -462,7 +463,7 @@ void GE2DComposer::dumpLayers(
         sprintf(path, "/data/local/tmp/layer_%" PRId64 ".bin", systemTime(SYSTEM_TIME_MONOTONIC));
         fd = open(path, O_RDWR | O_CREAT);
         if (-1 == fd) {
-            ETRACE("Stark, open file failed!");
+            ETRACE("open file failed!");
             return;
         }
         write(fd, layerBuffer, hnd->size);
@@ -470,7 +471,6 @@ void GE2DComposer::dumpLayers(
         close(fd);
 #endif
         munmap(layerBuffer, hnd->size);
-        DTRACE("dumpLayer ok");
     } else {
         ETRACE("layerBuffer mmap fail");
     }
@@ -687,7 +687,7 @@ bool GE2DComposer::threadLoop()
         // ge2d finished process, make sure fd close here.
         for (int32_t i=0; i<layersState.size(); i++) {
             LayerState* layer = layersState.itemAt(i);
-            // ETRACE("close->layer:[%12" PRIxPTR ", %d]", layer->mBufferHnd, layer->mBufferFd);
+            // DTRACE("close->layer:[%12" PRIxPTR ", %d]", layer->mBufferHnd, layer->mBufferFd);
             if (layer != NULL) {
                 Utils::closeFd(layer->mBufferFd);
                 layer->mBufferFd = -1;
