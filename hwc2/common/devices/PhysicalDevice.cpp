@@ -704,13 +704,17 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
     if (hasVideoOverlay && (layerNum == 1 || (layerNum == 2 && haveCursorLayer)))
         needBlankFb0 = true;
 
-    if (needBlankFb0) {
-        mFbSyncRequest.op |= OSD_BLANK_OP_BIT;
+    if (mIsContinuousBuf) {
+        // bit 0 is osd blank flag.
+        if (needBlankFb0) {
+            mFbSyncRequest.op |= OSD_BLANK_OP_BIT;
+        } else {
+            mFbSyncRequest.op &= ~(OSD_BLANK_OP_BIT);
+        }
+        mFramebufferContext->setStatus(needBlankFb0);
     } else {
-        mFbSyncRequest.op &= ~(OSD_BLANK_OP_BIT);
+        setOSD0Blank(needBlankFb0);
     }
-
-    mFramebufferContext->setStatus(needBlankFb0);
 
     if (!mClientTargetHnd || private_handle_t::validate(mClientTargetHnd) < 0 || mPowerMode == HWC2_POWER_MODE_OFF) {
         ETRACE("Post blank to screen, mClientTargetHnd(%p, %d), mTargetAcquireFence(%d)",
@@ -723,6 +727,7 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
         //for nothing to display, post blank to osd which will signal the last retire fence.
         mFbSyncRequest.type = DIRECT_COMPOSE_MODE;
         mFbSyncRequest.op |= OSD_BLANK_OP_BIT;
+        mFramebufferContext->setStatus(true);
         mPriorFrameRetireFence = hwc_fb_post_with_fence_locked(&fbInfo, &mFbSyncRequest, NULL);
      } else {
         *outRetireFence = HwcFenceControl::dupFence(mPriorFrameRetireFence);
