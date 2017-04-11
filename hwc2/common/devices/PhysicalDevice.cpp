@@ -1013,6 +1013,12 @@ bool PhysicalDevice::layersStateCheck(int32_t renderMode,
             }
         }
 #endif
+        if (HWC2_TWO_LAYERS == layerNum
+            && (!Utils::compareSize(sourceCrop[0], sourceCrop[1])
+            || !Utils::compareSize(displayFrame[0], displayFrame[1]))) {
+            DTRACE("when 2 layer's size is difference, ge2d compose can not process!");
+            return false;
+        }
     }
 #endif
 
