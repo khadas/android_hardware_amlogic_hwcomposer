@@ -156,7 +156,7 @@ bool GE2DComposer::initialize(framebuffer_info_t* fbInfo)
         if (ret < 0) {
             DEINIT_AND_RETURN_FALSE("allocBuffer failed!");
         }
-        private_handle_t const *pHandle = reinterpret_cast<private_handle_t const*> (mGe2dBufHnd);
+        private_handle_t const *pHandle = private_handle_t::dynamicCast(mGe2dBufHnd);
         if (pHandle) {
             mSharedFd = pHandle->share_fd;
         }
@@ -203,7 +203,7 @@ void GE2DComposer::deinitialize()
         mSrcBufferInfo = NULL;
     }
 
-    private_handle_t const* hnd = reinterpret_cast<private_handle_t const*>(mGe2dBufHnd);
+    private_handle_t const* hnd = private_handle_t::dynamicCast(mGe2dBufHnd);
     if (NULL != hnd) {
         freeBuffer(hnd, mFbInfo->grallocModule);
         mGe2dBufHnd = NULL;
@@ -489,12 +489,12 @@ void GE2DComposer::runGE2DProcess(int32_t slot, Vector< LayerState* > &hwcLayers
         layer[i] = hwcLayersState.itemAt(i);
         sourceCrop[i] = layer[i]->mSourceCrop;
         displayFrame[i] = layer[i]->mDisplayFrame;
-        hnd[i] = reinterpret_cast<private_handle_t const*>(layer[i]->mBufferHnd);
+        hnd[i] = private_handle_t::dynamicCast(layer[i]->mBufferHnd);
         DTRACE("layer[%d] zorder: %d, blend: %d, PlaneAlpha: %f, "
             "mColor: [%d, %d, %d, %d], mDataSpace: %d, format hnd[%d]: %x",
             i, layer[i]->mZ, layer[i]->mBlendMode, layer[i]->mPlaneAlpha,
             layer[i]->mColor.r, layer[i]->mColor.g, layer[i]->mColor.b,
-            layer[i]->mColor.a, layer[i]->mDataSpace, i, hnd[i]->format);
+            layer[i]->mColor.a, layer[i]->mDataSpace, i, hnd[i] ? hnd[i]->format : 0xff);
     }
 
     bool debugSameSize = Utils::checkBoolProp("sys.sf.debug.ss");

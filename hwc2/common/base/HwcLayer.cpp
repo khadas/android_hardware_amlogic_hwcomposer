@@ -87,9 +87,9 @@ void HwcLayer::resetAcquireFence() {
 
 bool HwcLayer::isCropped() {
     bool rtn = true;
-    private_handle_t const* buffer = reinterpret_cast<private_handle_t const*>(mBufferHnd);
+    private_handle_t const* buffer = private_handle_t::dynamicCast(mBufferHnd);
 
-    if (buffer && buffer->width  && buffer->height) {
+    if (buffer && buffer->width && buffer->height) {
         float widthCmp = (mSourceCrop.right - mSourceCrop.left) / buffer->width;
         float heightCmp = (mSourceCrop.bottom - mSourceCrop.top) / buffer->height;
 

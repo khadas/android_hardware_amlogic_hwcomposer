@@ -562,11 +562,11 @@ static int hwc_prepare(struct hwc_composer_device_1 *dev,
                 }
 
                 if (i == HWC_DISPLAY_PRIMARY && l->handle) {
-                    private_handle_t const* hnd = reinterpret_cast<private_handle_t const*>(l->handle);
-                    if (hnd->flags & private_handle_t::PRIV_FLAGS_OSD_VIDEO_OMX) {
+                    private_handle_t const* hnd = private_handle_t::dynamicCast(l->handle);
+                    if (hnd && (hnd->flags & private_handle_t::PRIV_FLAGS_OSD_VIDEO_OMX)) {
                         l->hints = HWC_HINT_OSD_VIDEO_OMX;
                     }
-                    if (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OVERLAY) {
+                    if (hnd && (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OVERLAY)) {
                         l->hints = HWC_HINT_CLEAR_FB;
                         l->compositionType = HWC_OVERLAY;
                         continue;
