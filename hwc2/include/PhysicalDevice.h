@@ -154,6 +154,8 @@ private:
     int32_t postFramebuffer(int32_t* outRetireFence,  bool hasVideoOverlay);
     int32_t getLineValue(const char *lineStr, const char *magicStr);
 
+    int32_t clearLayersStats();
+    int32_t preValidate();
     int32_t parseHdrCapabilities();
     void directCompose(framebuffer_info_t * fbInfo);
     void ge2dCompose(framebuffer_info_t * fbInfo, bool hasVideoOverlay);

@@ -88,6 +88,9 @@ class HwcLayer {
 #endif
 
     private:
+        void resetLayerBuffer();
+
+    private:
         hwc2_display_t mDisplayId;
         int32_t mBlendMode;
         hwc_color_t mColor;

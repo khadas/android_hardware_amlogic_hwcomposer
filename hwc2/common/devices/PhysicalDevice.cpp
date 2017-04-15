@@ -525,7 +525,6 @@ void PhysicalDevice::swapReleaseFence() {
     }
 }
 
-
 void PhysicalDevice::addReleaseFence(hwc2_layer_t layerId, int32_t fenceFd) {
     ssize_t idx = mHwcCurReleaseFences->indexOfKey(layerId);
     if (idx >= 0 && idx < mHwcCurReleaseFences->size()) {
@@ -1110,10 +1109,42 @@ int32_t PhysicalDevice::composersFilter(
     return GLES_COMPOSE_MODE;
 }
 
+int32_t PhysicalDevice::preValidate() {
+    HwcLayer* layer = NULL;
+    for (uint32_t i=0; i<mHwcLayers.size(); i++) {
+        hwc2_layer_t layerId = mHwcLayers.keyAt(i);
+        layer = mHwcLayers.valueAt(i);
+        if (!layer) {
+            ETRACE("Meet empty layer, id(%lld)", layerId);
+            continue;
+        }
+
+        private_handle_t const* hnd = private_handle_t::dynamicCast(layer->getBufferHandle());
+        if (hnd && !((hnd->flags & private_handle_t::PRIV_FLAGS_CONTINUOUS_BUF)
+            || (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OVERLAY))) {
+            mIsContinuousBuf = false;
+        }
+
+        if ((hnd && (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OVERLAY) &&
+                (layer->getCompositionType() == HWC2_COMPOSITION_DEVICE)) ||
+                (layer->getCompositionType() == HWC2_COMPOSITION_SIDEBAND
+                && layer->getSidebandStream())) {
+            if (mVideoOverlayLayerId != 0) {
+                ETRACE("ERROR: Find two video layer !!");
+                return HWC2_ERROR_BAD_LAYER;
+            }
+            mVideoOverlayLayerId = layerId;
+        }
+    }
+
+    return HWC2_ERROR_NONE;
+}
+
 int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
     uint32_t* outNumRequests) {
-    HwcLayer* layer = NULL;
+    HwcLayer* layer = NULL, *videoLayer = NULL;
     bool istvp = false;
+    hwc_rect_t videoRect;
     KeyedVector<hwc2_layer_t, HwcLayer*> composeLayers;
     composeLayers.clear();
 
@@ -1126,79 +1157,81 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
     mHwcGlesLayers.clear();
     mIsValidated = false;
 
+    if (preValidate() != HWC2_ERROR_NONE) {
+        return HWC2_ERROR_BAD_LAYER;
+    }
+
+    if (mVideoOverlayLayerId) {
+        videoLayer = mHwcLayers.valueFor(mVideoOverlayLayerId);
+        videoRect = videoLayer->getDisplayFrame();
+    }
+
     for (uint32_t i=0; i<mHwcLayers.size(); i++) {
+        int overlapType = Utils::OVERLAP_EMPTY;
         hwc2_layer_t layerId = mHwcLayers.keyAt(i);
         layer = mHwcLayers.valueAt(i);
-        if (layer != NULL) {
-            // Physical Display.
-            private_handle_t const* hnd = private_handle_t::dynamicCast(layer->getBufferHandle());
-            if (hnd) {
-                // continous buffer.
-                if (!(hnd->flags & private_handle_t::PRIV_FLAGS_CONTINUOUS_BUF
-                    || hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OVERLAY)) {
-                    DTRACE("continous buffer flag is not set, bufhnd: 0x%" PRIxPTR "", intptr_t(layer->getBufferHandle()));
-                    mIsContinuousBuf = false;
-                }
-#ifdef HWC_ENABLE_SECURE_LAYER
-                // secure or protected layer.
-                if (!mSecure && (hnd->flags & private_handle_t::PRIV_FLAGS_SECURE_PROTECTED)) {
-                    DTRACE("layer's secure or protected buffer flag is set!");
-                    if (layer->getCompositionType() != HWC2_COMPOSITION_DEVICE) {
-                        mHwcLayersChangeType.add(layerId, layer);
-                    }
-                    mHwcSecureLayers.add(layerId, layer);
-                    continue;
-                }
-#endif
-                if (layer->getCompositionType() == HWC2_COMPOSITION_DEVICE) {
-                    // video overlay.
-                    if (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OMX) {
+        if (!layer)
+            continue;
+
+        private_handle_t const* hnd = private_handle_t::dynamicCast(layer->getBufferHandle());
+
+        #ifdef HWC_ENABLE_SECURE_LAYER
+        // secure or protected layer.
+        if (!mSecure && hnd && (hnd->flags & private_handle_t::PRIV_FLAGS_SECURE_PROTECTED)) {
+            DTRACE("layer's secure or protected buffer flag is set!");
+            if (layer->getCompositionType() != HWC2_COMPOSITION_DEVICE) {
+                mHwcLayersChangeType.add(layerId, layer);
+            }
+            mHwcSecureLayers.add(layerId, layer);
+            continue;
+        }
+        #endif
+
+        if (videoLayer && (layer->getZ() < mVideoOverlayLayerId)) {
+            DTRACE("Layer covered by video layer.");
+            hwc_rect_t layerRect = layer->getDisplayFrame();
+            overlapType = Utils::rectOverlap(layerRect, videoRect);
+        }
+
+        switch (layer->getCompositionType()) {
+            case HWC2_COMPOSITION_CLIENT:
+                mHwcGlesLayers.add(layerId, layer);
+                DTRACE("Meet a client layer!");
+                break;
+            case HWC2_COMPOSITION_DEVICE:
+                if (layerId == mVideoOverlayLayerId) {
+                    if (hnd && hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OMX) {
                         set_omx_pts((char*)hnd->base, &Amvideo_Handle);
                         istvp = true;
                     }
-                    if (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OVERLAY) {
-                        DTRACE("PRIV_FLAGS_VIDEO_OVERLAY!!!!");
-                        mVideoOverlayLayerId = layerId;
-                        mHwcLayersChangeRequest.add(layerId, layer);
-                        continue;
-                    }
-
+                    mHwcLayersChangeRequest.add(layerId, layer);
+                } else {
                     composeLayers.add(layerId, layer);
-                    continue;
                 }
-            }
-
-            // cursor layer.
-            if (layer->getCompositionType() == HWC2_COMPOSITION_CURSOR) {
+                break;
+            case HWC2_COMPOSITION_SOLID_COLOR:
+                if (overlapType == Utils::OVERLAP_EMPTY) {
+                    composeLayers.add(layerId, layer);
+                } else if (overlapType == Utils::OVERLAP_PART) {
+                    mHwcGlesLayers.add(layerId, layer);
+                }
+                break;
+            case HWC2_COMPOSITION_CURSOR:
                 DTRACE("This is a Cursor layer!");
                 mHwcLayersChangeRequest.add(layerId, layer);
-                continue;
-            }
-
-            // sideband stream.
-            if (layer->getCompositionType() == HWC2_COMPOSITION_SIDEBAND
-                    && layer->getSidebandStream()) {
-                // TODO: we just transact SIDEBAND to OVERLAY for now;
-                DTRACE("get HWC_SIDEBAND layer, just change to overlay");
-                mHwcLayersChangeRequest.add(layerId, layer);
-                mHwcLayersChangeType.add(layerId, layer);
-                mVideoOverlayLayerId = layerId;
-                continue;
-            }
-
-            // solid color.
-            if (layer->getCompositionType() == HWC2_COMPOSITION_SOLID_COLOR) {
-                DTRACE("This is a Solid Color layer!");
-                // mHwcLayersChangeRequest.add(layerId, layer);
-                // mHwcLayersChangeType.add(layerId, layer);
-                composeLayers.add(layerId, layer);
-                continue;
-            }
-
-            if (layer->getCompositionType() == HWC2_COMPOSITION_CLIENT) {
-                mHwcGlesLayers.add(layerId, layer);
-                DTRACE("Meet a client layer!");
-            }
+                break;
+            case HWC2_COMPOSITION_SIDEBAND:
+                if (layerId == mVideoOverlayLayerId) {
+                    DTRACE("get HWC_SIDEBAND layer, just change to overlay");
+                    mHwcLayersChangeRequest.add(layerId, layer);
+                    mHwcLayersChangeType.add(layerId, layer);
+                } else {
+                    ETRACE("SIDEBAND not handled.");
+                }
+                break;
+            default:
+                ETRACE("get layer of unknown composition type (%d)", layer->getCompositionType());
+                break;
         }
     }
 

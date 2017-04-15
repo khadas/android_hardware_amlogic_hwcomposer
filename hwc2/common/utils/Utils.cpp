@@ -229,5 +229,33 @@ const char* Utils::getSwitchState1()
     return "SWITCH_STATE=1";
 }
 
+bool Utils::rectEmpty(hwc_rect_t& rect) {
+    if ((rect.right - rect.left <= 0) ||(rect.bottom - rect.top <= 0))
+        return true;
+    else
+        return false;
+}
+
+bool Utils::rectIntersect(hwc_rect_t& source, hwc_rect_t& dest, hwc_rect_t& result) {
+    result.left = max(source.left, dest.left);
+    result.top = max(source.top, dest.top);
+    result.right = min(source.right, dest.right);
+    result.bottom = min(source.bottom, dest.bottom);
+    return !rectEmpty(result);
+}
+
+Utils::OVERLAP_TYPE Utils::rectOverlap(hwc_rect_t& source, hwc_rect_t& dest) {
+    hwc_rect_t result;
+    if (!rectIntersect(source, dest, result)) {
+        return OVERLAP_EMPTY;
+    } else {
+        if (compareRect(result, dest) == true) {
+            return OVERLAP_FULL;
+        } else {
+            return OVERLAP_PART;
+        }
+    }
+}
+
 } // namespace amlogic
 } // namespace android

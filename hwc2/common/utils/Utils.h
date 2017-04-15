@@ -9,6 +9,7 @@
 #if WITH_LIBPLAYER_MODULE
 #include <Amavutils.h>
 #endif
+#include <hardware/hwcomposer_defs.h>
 
 #define DISPLAY_HPD_STATE               "/sys/class/amhdmitx/amhdmitx0/hpd_state"
 #define DISPLAY_HDMI_EDID               "/sys/class/amhdmitx/amhdmitx0/disp_cap"
@@ -92,6 +93,18 @@ public:
         b = t;
     }
 
+    /*
+    * hwc_rect_t operation
+    */
+    enum OVERLAP_TYPE{
+        OVERLAP_EMPTY = 0,
+        OVERLAP_PART,
+        OVERLAP_FULL
+    };
+
+    static bool rectEmpty(hwc_rect_t& rect);
+    static bool rectIntersect(hwc_rect_t& source, hwc_rect_t& dest, hwc_rect_t& result);
+    static OVERLAP_TYPE rectOverlap(hwc_rect_t& source, hwc_rect_t& dest);
 };
 
 } // namespace amlogic

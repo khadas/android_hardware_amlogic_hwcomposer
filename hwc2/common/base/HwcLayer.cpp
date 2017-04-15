@@ -155,17 +155,16 @@ bool HwcLayer::haveDataspace() {
 
 int32_t HwcLayer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) {
     Mutex::Autolock _l(mLock);
+    resetLayerBuffer();
 
     // Bad parameter
-	if (buffer && private_handle_t::validate(buffer) < 0)
-		return HWC2_ERROR_BAD_PARAMETER;
-
-    if (NULL == buffer) {
+    if (!buffer || private_handle_t::validate(buffer) < 0) {
         DTRACE("Layer buffer is null! no need to update this layer.");
+        return HWC2_ERROR_BAD_PARAMETER;
     }
+
     mBufferHnd = buffer;
     mAcquireFence = acquireFence;
-
     return HWC2_ERROR_NONE;
 }
 
@@ -227,6 +226,7 @@ int32_t HwcLayer::setPlaneAlpha(float alpha) {
 
 int32_t HwcLayer::setSidebandStream(const native_handle_t* stream) {
     Mutex::Autolock _l(mLock);
+    resetLayerBuffer();
 
     // Bad parameter.
     if (NULL == stream) {
@@ -265,6 +265,13 @@ int32_t HwcLayer::setZ(uint32_t z) {
     // TODO: still have some work to do.
     mZ = z;
     return HWC2_ERROR_NONE;
+}
+
+void HwcLayer::resetLayerBuffer() {
+   mSidebandStream = NULL;
+   mBufferHnd = NULL;
+   HwcFenceControl::closeFd(mAcquireFence);
+   mAcquireFence = -1;
 }
 
 #if WITH_LIBPLAYER_MODULE
