@@ -1122,6 +1122,7 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
     mIsContinuousBuf = true;
     swapReleaseFence();
     memset(&mFbSyncRequest, 0, sizeof(mFbSyncRequest));
+    mFbSyncRequest.in_fen_fd = -1;
     mHwcGlesLayers.clear();
     mIsValidated = false;
 
