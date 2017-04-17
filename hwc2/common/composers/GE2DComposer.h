@@ -22,7 +22,7 @@ public:
     LayerState()
     : mBufferHnd(NULL),
       mBlendMode(0),
-      mTransform(HAL_TRANSFORM_RESERVED),
+      mTransform(0),
       mBufferFd(-1) {
     }
 

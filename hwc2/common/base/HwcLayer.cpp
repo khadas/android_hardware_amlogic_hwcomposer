@@ -35,7 +35,7 @@ HwcLayer::HwcLayer(hwc2_display_t& dpy)
       mAcquireFence(-1),
       mDataSpace(HAL_DATASPACE_UNKNOWN),
       mPlaneAlpha(0.0f),
-      mTransform(HAL_TRANSFORM_RESERVED),
+      mTransform(0),
       mZ(0),
       mBufferHnd(NULL),
       mInitialized(false)
