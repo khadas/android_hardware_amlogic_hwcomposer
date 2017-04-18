@@ -700,25 +700,8 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
 #endif
     mFbSyncRequest.type = mRenderMode;
 
-    bool needBlankFb0 = false;
-    uint32_t layerNum = mHwcLayers.size();
-    if (hasVideoOverlay && (layerNum == 1 || (layerNum == 2 && haveCursorLayer)))
-        needBlankFb0 = true;
-
-    if (mIsContinuousBuf) {
-        // bit 0 is osd blank flag.
-        if (needBlankFb0) {
-            mFbSyncRequest.op |= OSD_BLANK_OP_BIT;
-        } else {
-            mFbSyncRequest.op &= ~(OSD_BLANK_OP_BIT);
-        }
-        mFramebufferContext->setStatus(needBlankFb0);
-    } else {
-        setOSD0Blank(needBlankFb0);
-    }
-
     if (!mClientTargetHnd || private_handle_t::validate(mClientTargetHnd) < 0 || mPowerMode == HWC2_POWER_MODE_OFF) {
-        ETRACE("Post blank to screen, mClientTargetHnd(%p, %d), mTargetAcquireFence(%d)",
+        DTRACE("Post blank to screen, mClientTargetHnd(%p, %d), mTargetAcquireFence(%d)",
                     mClientTargetHnd, private_handle_t::validate(mClientTargetHnd), mTargetAcquireFence);
         *outRetireFence = HwcFenceControl::merge(String8("ScreenBlank"), mPriorFrameRetireFence, mPriorFrameRetireFence);
         HwcFenceControl::closeFd(mTargetAcquireFence);
@@ -742,11 +725,27 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
         HwcFenceControl::closeFd(mPriorFrameRetireFence);
         mPriorFrameRetireFence = -1;
 
+        bool needBlankFb0 = false;
+        uint32_t layerNum = mHwcLayers.size();
+        if (hasVideoOverlay
+            && (layerNum == 1
+            || (layerNum == 2
+            && haveCursorLayer))) {
+            needBlankFb0 = true;
+        }
         // real post framebuffer here.
         DTRACE("render type: %d", mFbSyncRequest.type);
         if (!mIsContinuousBuf) {
+            setOSD0Blank(needBlankFb0);
             mPriorFrameRetireFence = fb_post_with_fence_locked(&fbInfo, mClientTargetHnd, mTargetAcquireFence);
         } else {
+            // bit 0 is osd blank flag.
+            if (needBlankFb0) {
+                mFbSyncRequest.op |= OSD_BLANK_OP_BIT;
+            } else {
+                mFbSyncRequest.op &= ~(OSD_BLANK_OP_BIT);
+            }
+            mFramebufferContext->setStatus(needBlankFb0);
             // acquire fence.
             mFbSyncRequest.in_fen_fd = mTargetAcquireFence;
             mPriorFrameRetireFence = hwc_fb_post_with_fence_locked(&fbInfo, &mFbSyncRequest, mClientTargetHnd);
@@ -1143,7 +1142,7 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
 #ifdef HWC_ENABLE_SECURE_LAYER
                 // secure or protected layer.
                 if (!mSecure && (hnd->flags & private_handle_t::PRIV_FLAGS_SECURE_PROTECTED)) {
-                    ETRACE("layer's secure or protected buffer flag is set!");
+                    DTRACE("layer's secure or protected buffer flag is set!");
                     if (layer->getCompositionType() != HWC2_COMPOSITION_DEVICE) {
                         mHwcLayersChangeType.add(layerId, layer);
                     }
