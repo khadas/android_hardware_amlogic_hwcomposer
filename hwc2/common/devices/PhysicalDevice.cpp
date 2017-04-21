@@ -48,6 +48,7 @@ PhysicalDevice::PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc, DeviceControl
       mClientTargetHnd(NULL),
       mTargetAcquireFence(-1),
       mRenderMode(GLES_COMPOSE_MODE),
+      mPreviousRenderMode(GLES_COMPOSE_MODE),
       mIsValidated(false),
       mIsContinuousBuf(true),
       mDirectRenderLayerId(0),
@@ -687,7 +688,7 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
 
     if (mRenderMode == GLES_COMPOSE_MODE) {
         //if no layers to compose, post blank op to osd.
-        if (mHwcGlesLayers.size() == 0) {
+        if (mPreviousRenderMode != GLES_COMPOSE_MODE && mHwcGlesLayers.size() == 0) {
             mClientTargetHnd = NULL;
         }
     } else if (mRenderMode == DIRECT_COMPOSE_MODE) { // if only one layer exists, let hwc do her work.
@@ -829,6 +830,7 @@ int32_t PhysicalDevice::presentDisplay(int32_t* outRetireFence) {
     }
 
     mClientTargetHnd = NULL;
+    mPreviousRenderMode = mRenderMode;
 
     return err;
 }
