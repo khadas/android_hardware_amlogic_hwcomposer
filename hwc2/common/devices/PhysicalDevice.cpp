@@ -422,9 +422,8 @@ int32_t PhysicalDevice::getDisplayRequests(
                     outLayerRequests[i] = HWC2_LAYER_REQUEST_CLEAR_CLIENT_TARGET;
                 }
                 /* if (layer->getBufferHandle()) {
-                    private_handle_t const* hnd =
-                        reinterpret_cast<private_handle_t const*>(layer->getBufferHandle());
-                    if (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OVERLAY) {
+                    private_handle_t const* hnd = private_handle_t::dynamicCast(layer->getBufferHandle());
+                    if (hnd && (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OVERLAY)) {
                         outLayers[i] = layerId;
                         outLayerRequests[i] = HWC2_LAYER_REQUEST_CLEAR_CLIENT_TARGET;
                         continue;
@@ -661,8 +660,8 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
         hwc2_layer_t layerId = mHwcLayers.keyAt(i);
         layer = mHwcLayers.valueAt(i);
         if (layer && layer->getCompositionType()== HWC2_COMPOSITION_CURSOR) {
-            private_handle_t *hnd = (private_handle_t *)(layer->getBufferHandle());
-            if (private_handle_t::validate(hnd) < 0) {
+            private_handle_t *hnd = private_handle_t::dynamicCast(layer->getBufferHandle());
+            if (!hnd) {
                 ETRACE("invalid cursor layer handle.");
                 break;
             }
@@ -943,7 +942,7 @@ bool PhysicalDevice::layersStateCheck(int32_t renderMode,
         layer[i] = composeLayers.valueAt(i);
         sourceCrop[i] = layer[i]->getSourceCrop();
         displayFrame[i] = layer[i]->getDisplayFrame();
-        hnd[i] = reinterpret_cast<private_handle_t const*>(layer[i]->getBufferHandle());
+        hnd[i] = private_handle_t::dynamicCast(layer[i]->getBufferHandle());
         if (hnd[i] == NULL) return false; // no buffer to process.
         if (hnd[i]->share_fd == -1) return false; // no buffer to process.
         DTRACE("layer[%d] zorder: %d, blend: %d, PlaneAlpha: %f, "
@@ -1130,8 +1129,7 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
         layer = mHwcLayers.valueAt(i);
         if (layer != NULL) {
             // Physical Display.
-            private_handle_t const* hnd =
-                reinterpret_cast<private_handle_t const*>(layer->getBufferHandle());
+            private_handle_t const* hnd = private_handle_t::dynamicCast(layer->getBufferHandle());
             if (hnd) {
                 // continous buffer.
                 if (!(hnd->flags & private_handle_t::PRIV_FLAGS_CONTINUOUS_BUF

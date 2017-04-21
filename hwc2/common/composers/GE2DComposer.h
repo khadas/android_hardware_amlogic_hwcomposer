@@ -43,8 +43,11 @@ public:
         mDisplayFrame = hwcLayer->getDisplayFrame();
         mBufferHnd = hwcLayer->getBufferHandle();
 
-        private_handle_t const* hnd = reinterpret_cast<private_handle_t const*>(mBufferHnd);
-        mBufferFd = Utils::checkAndDupFd(hnd->ion_hnd);
+        private_handle_t const* hnd = private_handle_t::dynamicCast(mBufferHnd);
+        if (hnd)
+            mBufferFd = Utils::checkAndDupFd(hnd->ion_hnd);
+        else
+            mBufferFd = -1;
     }
 
     int32_t mBlendMode;
