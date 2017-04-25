@@ -218,6 +218,7 @@ private:
     int32_t mDirectComposeFrameCount;
     int32_t mPriorFrameRetireFence;
     int32_t mRenderMode;
+    int32_t mPreviousRenderMode;
     bool mIsValidated;
     bool mIsContinuousBuf;
 
