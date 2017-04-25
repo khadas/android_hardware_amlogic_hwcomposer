@@ -26,9 +26,6 @@
 #include <Utils.h>
 #include <HwcFenceControl.h>
 #include <cutils/properties.h>
-#include <tvp/OmxUtil.h>
-
-static int Amvideo_Handle = 0;
 
 namespace android {
 namespace amlogic {
@@ -1137,7 +1134,6 @@ int32_t PhysicalDevice::preValidate() {
 int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
     uint32_t* outNumRequests) {
     HwcLayer* layer = NULL, *videoLayer = NULL;
-    bool istvp = false;
     hwc_rect_t videoRect;
     KeyedVector<hwc2_layer_t, HwcLayer*> composeLayers;
     composeLayers.clear();
@@ -1194,10 +1190,6 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
                 break;
             case HWC2_COMPOSITION_DEVICE:
                 if (layerId == mVideoOverlayLayerId) {
-                    if (hnd && hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OMX) {
-                        set_omx_pts((char*)hnd->base, &Amvideo_Handle);
-                        istvp = true;
-                    }
                     mHwcLayersChangeRequest.add(layerId, layer);
                 } else {
                     composeLayers.add(layerId, layer);
@@ -1251,11 +1243,6 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
     for (int i=0; i<composeLayers.size(); i++) {
         mHwcLayersChangeType.add(composeLayers.keyAt(i), composeLayers.valueAt(i));
         mHwcGlesLayers.add(composeLayers.keyAt(i), composeLayers.valueAt(i));
-    }
-
-    if (istvp == false && Amvideo_Handle!=0) {
-        closeamvideo();
-        Amvideo_Handle = 0;
     }
 
     if (mHwcLayersChangeRequest.size() > 0) {

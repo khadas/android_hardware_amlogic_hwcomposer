@@ -45,9 +45,6 @@ LOCAL_SHARED_LIBRARIES := \
     libsystemcontrolservice \
     libgui
 
-LOCAL_STATIC_LIBRARIES := \
-	libomxutil
-
 LOCAL_C_INCLUDES := \
     system/core \
     system/core/libsync \
