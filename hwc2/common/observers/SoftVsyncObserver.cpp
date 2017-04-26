@@ -31,7 +31,6 @@ namespace amlogic {
 SoftVsyncObserver::SoftVsyncObserver(IDisplayDevice& disp)
     : mDisplayDevice(disp),
       mEnabled(false),
-      mRefreshRate(60), // default 60 frames per second
       mRefreshPeriod(0),
       mLock(),
       mCondition(),
@@ -55,8 +54,7 @@ bool SoftVsyncObserver::initialize()
 
     mExitThread = false;
     mEnabled = false;
-    mRefreshRate = 60;
-    mRefreshPeriod = nsecs_t(1e9 / mRefreshRate);
+    mRefreshPeriod = nsecs_t(1e9 / 60);
     mThread = new VsyncEventPollThread(this);
     if (!mThread.get()) {
         DEINIT_AND_RETURN_FALSE("failed to create vsync event poll thread.");
@@ -83,16 +81,15 @@ void SoftVsyncObserver::deinitialize()
     mInitialized = false;
 }
 
-void SoftVsyncObserver::setRefreshRate(int rate)
+void SoftVsyncObserver::setRefreshPeriod(nsecs_t period)
 {
     Mutex::Autolock _l(mLock);
 
-    if (rate < 1 || rate > 120) {
-        WTRACE("invalid refresh rate %d", rate);
-    } else if (mRefreshRate != rate) {
-        mRefreshRate = rate;
+    if (period <= 0) {
+        WTRACE("invalid refresh period %lld", period);
+    } else if (mRefreshPeriod != period) {
+        mRefreshPeriod = period;
         if (mEnabled) {
-            mRefreshPeriod = nsecs_t(1e9 / mRefreshRate);
             mNextFakeVSync = systemTime(CLOCK_MONOTONIC) + mRefreshPeriod;
         }
     }
@@ -108,7 +105,6 @@ bool SoftVsyncObserver::control(bool enabled)
     }
 
     if (enabled) {
-        mRefreshPeriod = nsecs_t(1e9 / mRefreshRate);
         mNextFakeVSync = systemTime(CLOCK_MONOTONIC) + mRefreshPeriod;
     }
     mEnabled = enabled;
@@ -129,11 +125,11 @@ bool SoftVsyncObserver::threadLoop()
         }
     }
 
-
     const nsecs_t period = mRefreshPeriod;
     const nsecs_t now = systemTime(CLOCK_MONOTONIC);
     nsecs_t next_vsync = mNextFakeVSync;
     nsecs_t sleep = next_vsync - now;
+    //DTRACE("Softvync (%lld), refresh (%lld)", period, nsecs_t(1e9/period));
     if (sleep < 0) {
         // we missed, find where the next vsync should be
         sleep = (period - ((now - next_vsync) % period));

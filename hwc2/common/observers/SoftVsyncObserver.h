@@ -34,7 +34,7 @@ public:
 public:
     virtual bool initialize();
     virtual void deinitialize();
-    virtual void setRefreshRate(int rate);
+    virtual void setRefreshPeriod(nsecs_t period);
     virtual bool control(bool enabled);
     virtual nsecs_t getRefreshPeriod() const { return mRefreshPeriod; }
 
@@ -42,7 +42,6 @@ private:
     IDisplayDevice& mDisplayDevice;
     int  mDevice;
     bool mEnabled;
-    int mRefreshRate;
     nsecs_t mRefreshPeriod;
     mutable Mutex mLock;
     Condition mCondition;

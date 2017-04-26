@@ -1,8 +1,26 @@
+/*
+// Copyright (c) 2017 Amlogic
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+*/
+
 #ifndef AML_DISPLAY_HDMI_H
 #define AML_DISPLAY_HDMI_H
 
 #include <gralloc_priv.h>
 #include <utils/String8.h>
+#include <utils/Errors.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
 #include <sys/time.h>
@@ -11,14 +29,15 @@
 #include <linux/fb.h>
 #include <string>
 #include <vector>
+#include <pthread.h>
 
 #include <hardware/hardware.h>
 #include <hardware/hwcomposer.h>
 #include <Hwcomposer.h>
-#include <SoftVsyncObserver.h>
 #include <Utils.h>
 #include <ISystemControlService.h>
 #include <gui/SurfaceComposerClient.h>
+#include <AmVinfo.h>
 
 #define HWC_DISPLAY_MODE_LENGTH 32
 
@@ -27,6 +46,7 @@ namespace amlogic {
 
 // display config
 class DisplayConfig {
+friend class DisplayHdmi;
 public:
     DisplayConfig(const char* dm,
 		int rr,
@@ -66,56 +86,102 @@ private:
     int mDpiY;
 };
 
+typedef void (*DisplayNotify)(void*);
+
 class DisplayHdmi {
 public:
-    DisplayHdmi(hwc2_display_t id);
+    DisplayHdmi();
     ~DisplayHdmi();
 
-    void initialize();
+    void initialize(framebuffer_info_t& framebufferInfo, DisplayNotify notifyFn, void* notifyData);
     void deinitialize();
-    void reset();
-    bool updateHotplug(bool connected, framebuffer_info_t * framebufferInfo,
-        private_handle_t* framebufferHnd);
-    int updateDisplayModeList();
-    int updateActiveDisplayMode();
-    int setDisplayMode(const char* displaymode);
-    int updateDisplayConfigures();
-    int updateActiveDisplayConfigure();
+    bool updateHotplug(bool connected, framebuffer_info_t* framebufferInfo = NULL);
 
-    int getDisplayConfigs(uint32_t* outNumConfigs, hwc2_config_t* outConfigs);
-    int getDisplayAttribute(hwc2_config_t config, int32_t  attribute, int32_t* outValue);
-    int getActiveConfig(hwc2_config_t* outConfig);
-    int setActiveConfig(int id);
+    status_t getDisplayConfigs(uint32_t* outNumConfigs, hwc2_config_t* outConfigs);
+    status_t getDisplayAttribute(hwc2_config_t config, int32_t  attribute, int32_t* outValue);
+    status_t getActiveConfig(hwc2_config_t* outConfig);
+    status_t setActiveConfig(int modeId);
     //int setPowerMode(int power) {return 0;};
 
     inline bool isConnected() {return mConnected;};
-    int getActiveRefreshRate()  {return mActiveRefreshRate;};
-    bool calcMode2Config(const char *dispMode, int* refreshRate, int* width, int* height);
-    bool readConfigFile(const char* configPath, std::vector<std::string>* supportDispModes);
-    void setSurfaceFlingerActiveMode();
-    void initModes();
+    bool chkPresent();
 
     void dump(Dump& d);
 
+protected:
+    /* hdmi operations:
+      * TODO: need move all these operations to HAL.
+     */
+    sp<ISystemControlService> getSystemControlService();
+    status_t readEdidList(std::vector<std::string> &edidlist);
+    status_t writeHdmiDispMode(std::string &dispmode);
+    status_t readHdmiDispMode(std::string &dispmode);
+    status_t readHdmiPhySize(framebuffer_info_t& fbInfo);
+
+    void reset();
+
+    //operations on mSupportDispModes
+    status_t clearSupportedConfigs();
+    status_t updateSupportedConfigs();
+    status_t updateDisplayConfigs();
+    status_t readDisplayPhySize();
+    DisplayConfig* createConfigByModeStr(std::string & modeStr);
+
+    //ensure the active mode equals the current displaymode.
+    status_t chkActiveConfig(std::string& activeMode);
+    status_t updateActiveConfig(std::string& activeMode);
+
+    status_t setDisplayMode(const char* displaymode);
+    bool isDispModeValid(std::string & dispmode);
+    bool readConfigFile(const char* configPath, std::vector<std::string>* supportDispModes);
+    status_t calcDefaultMode(framebuffer_info_t& framebufferInfo, std::string& defaultMode);
+    status_t buildSingleConfigList(std::string& defaultMode);
+
+    bool checkVinfo(framebuffer_info_t *fbInfo);
+
+    //functions for NONE_ACTIVEMODE.
+    static void* monitorDisplayMode(void *param);
+    void monitorDisplayMode();
+    bool isHotplugComplete();
+
 private:
-    hwc2_display_t mDisplayId;   //0-primary 1-external
     bool mConnected;
-    sp<ISystemControlService> mSystemControlService;
-    sp<SurfaceComposerClient> mComposerClient;
 
-    //display outputmode as 4k20hz, 1080p60hz, panel. etc.
-    std::vector<std::string> mAllModes;
-    std::vector<std::string> mSupportDispModes;
-    char mActiveDisplaymode[HWC_DISPLAY_MODE_LENGTH];
-    int mActiveRefreshRate;
+    //for NONE_ACTIVEMODE, other module may set the displaymode, we need monitor if output mode changed.
+    pthread_t mDisplayMonitorThread;
+    //for NONE_ACTIVEMODE, displaymode update will later than hotplug event, need waiting the displaymode update again.
+    bool mHotPlugComplete;
+    DisplayNotify mNotifyFn;
+    void* mNotifyData;
+    bool mMonitorExit;
+    Mutex mUpdateLock;
 
-    std::vector<DisplayConfig*> mDisplayConfigs;
-    hwc2_config_t mActiveDisplayConfigItem;
+    //configures variables.
+    hwc2_config_t mActiveConfigId; //for amlogic, it is vmode_e.
+    std::string mActiveConfigStr;
+    KeyedVector<vmode_e, DisplayConfig*> mSupportDispConfigs;
 
-    framebuffer_info_t *mFramebufferInfo;
-    private_handle_t  *mFramebufferHnd;
+    //physical size in mm.
+    int mPhyWidth;
+    int mPhyHeight;
+    //framebuffer size.
+    int mFbWidth;
+    int mFbHeight;
+
+    /*
+     *work modes:
+     *REAL_ACTIVEMODE & LOGIC_ACTIVEMODE:
+     *    really get supported configs from driver. And hwc controlls the active config of system.
+     *NONE_ACTIVEMODE:
+     *    only one virtual mode(dpi, vsync are real, the resolution is the framebuffer size.)
+     */
+    enum {
+        REAL_ACTIVEMODE = 0,
+        LOGIC_ACTIVEMODE, //return the logic size which is framebuffer size.
+        NONE_ACTIVEMODE //no active mode list, always return a default config.
+    };
+    int mWorkMode;
 };
-
 } // namespace amlogic
 } // namespace android
 

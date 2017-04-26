@@ -50,7 +50,6 @@ public:
     static bool checkSysfsStatus(const char* sysfstr, char* lastr, int32_t size);
 #endif
     static bool checkOutputMode(char* curmode, int32_t* rate);
-    static bool checkVinfo(framebuffer_info_t *fbinfo);
 
     static const char* getHotplugUeventEnvelope();
     static const char* getHdcpUeventEnvelope();

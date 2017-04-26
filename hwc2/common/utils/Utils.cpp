@@ -176,39 +176,6 @@ bool Utils::checkSysfsStatus(const char* sysfstr, char* lastr, int32_t size) {
 }
 #endif
 
-bool Utils::checkVinfo(framebuffer_info_t *fbInfo) {
-    if (fbInfo != NULL && fbInfo->fd >= 0) {
-        struct fb_var_screeninfo vinfo;
-        if (ioctl(fbInfo->fd, FBIOGET_VSCREENINFO, &vinfo) == -1)
-        {
-            ETRACE("FBIOGET_VSCREENINFO error!!!");
-            return -errno;
-        }
-
-        if (vinfo.xres != fbInfo->info.xres
-            || vinfo.yres != fbInfo->info.yres
-            || vinfo.width != fbInfo->info.width
-            || vinfo.height != fbInfo->info.height) {
-            if (int32_t(vinfo.width) <= 16 || int32_t(vinfo.height) <= 9) {
-                // the driver doesn't return that information
-                // default to 160 dpi
-                vinfo.width  = ((vinfo.xres * 25.4f)/160.0f + 0.5f);
-                vinfo.height = ((vinfo.yres * 25.4f)/160.0f + 0.5f);
-            }
-            fbInfo->xdpi = (vinfo.xres * 25.4f) / vinfo.width;
-            fbInfo->ydpi = (vinfo.yres * 25.4f) / vinfo.height;
-
-            fbInfo->info.xres = vinfo.xres;
-            fbInfo->info.yres = vinfo.yres;
-            fbInfo->info.width = vinfo.width;
-            fbInfo->info.height = vinfo.height;
-        }
-        return true;
-    }
-
-    return false;
-}
-
 const char* Utils::getHotplugUeventEnvelope()
 {
     return "change@/devices/virtual/switch/hdmi_audio";

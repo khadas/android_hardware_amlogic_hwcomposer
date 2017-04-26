@@ -129,7 +129,7 @@ public:
     // Other Display methods
     virtual Hwcomposer& getDevice() const { return mHwc; }
     virtual hwc2_display_t getId() const { return mId; }
-    virtual bool isConnected() const { return mIsConnected; }
+    virtual bool isConnected() const { return mConnectorPresent; }
     virtual void updateHotplugState(bool connected);
 
     // device related operations
@@ -145,8 +145,12 @@ public:
 
     //events
     virtual void onVsync(int64_t timestamp);
+    virtual void updateVsyncPeriod();
     virtual void dump(Dump& d);
+
+    //connector
     DisplayHdmi* getDisplayHdmi()  const { return mDisplayHdmi; };
+    static void connectorNotify(void * data);
 
 private:
     // For use by Device
@@ -191,7 +195,6 @@ private:
     // Member variables
     hwc2_display_t mId;
     const char *mName;
-    bool mIsConnected;
     bool mSecure;
     Hwcomposer& mHwc;
     DisplayHdmi* mDisplayHdmi;
@@ -255,6 +258,9 @@ private:
     // lock
     Mutex mLock;
     bool mInitialized;
+
+    //status of display connector.(hdmi, cvbs, panel)
+    bool mConnectorPresent;
 };
 
 

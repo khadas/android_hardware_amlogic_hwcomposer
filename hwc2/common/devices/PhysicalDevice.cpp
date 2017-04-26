@@ -35,7 +35,7 @@ PhysicalDevice::PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc, DeviceControl
       mHwc(hwc),
       mControlFactory(controlFactory),
       mVsyncObserver(NULL),
-      mIsConnected(false),
+      mConnectorPresent(false),
       mSecure(false),
       mFramebufferHnd(NULL),
       mSystemControl(NULL),
@@ -68,8 +68,6 @@ PhysicalDevice::PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc, DeviceControl
     }
 
     mHdrCapabilities.init = false;
-    // init Display here.
-    initDisplay();
 
     // clear layers vectors.
     mHwcSecureLayers.clear();
@@ -96,14 +94,15 @@ bool PhysicalDevice::initialize() {
         return false;
     }
 
+    // init Display here.
+    initDisplay();
+
     // create vsync event observer, we only have soft vsync now...
     mVsyncObserver = new SoftVsyncObserver(*this);
     if (!mVsyncObserver || !mVsyncObserver->initialize()) {
         DEINIT_AND_RETURN_FALSE("failed to create vsync observer");
     }
 
-    mDisplayHdmi = new DisplayHdmi(mId);
-    mDisplayHdmi->initialize();
     UeventObserver *observer = Hwcomposer::getInstance().getUeventObserver();
     if (observer) {
         observer->registerListener(
@@ -112,6 +111,13 @@ bool PhysicalDevice::initialize() {
             this);
     } else {
         ETRACE("PhysicalDevice::Uevent observer is NULL");
+    }
+
+    mDisplayHdmi = new DisplayHdmi();
+    mDisplayHdmi->initialize(*(mFramebufferContext->getInfo()), connectorNotify, (void*)this);
+    if (mDisplayHdmi->chkPresent()) {
+        updateHotplugState(true);
+        updateDisplayConfigs();
     }
 
     mInitialized = true;
@@ -347,7 +353,7 @@ int32_t PhysicalDevice::getDisplayAttribute(
         int32_t* outValue) {
     Mutex::Autolock _l(mLock);
 
-    if (!mIsConnected) {
+    if (!mConnectorPresent) {
         ETRACE("display %d is not connected.", mId);
     }
 
@@ -444,7 +450,7 @@ int32_t PhysicalDevice::getHdrCapabilities(
         float* outMinLuminance) {
 
     Mutex::Autolock _l(mLock);
-    if (!mIsConnected) {
+    if (!mConnectorPresent) {
         ETRACE("disp: %llu is not connected", mId);
         return HWC2_ERROR_BAD_DISPLAY;
     }
@@ -801,9 +807,11 @@ int32_t PhysicalDevice::setActiveConfig(
     Mutex::Autolock _l(mLock);
 
     int32_t err = mDisplayHdmi->setActiveConfig(config);
-    if (err == HWC2_ERROR_NONE)
-        mVsyncObserver->setRefreshRate(mDisplayHdmi->getActiveRefreshRate());
-
+    if (err == HWC2_ERROR_NONE) {
+        int32_t period = 0;
+        mDisplayHdmi->getDisplayAttribute(config, HWC2_ATTRIBUTE_VSYNC_PERIOD, &period);
+        mVsyncObserver->setRefreshPeriod(period);
+    }
     return err;
 }
 
@@ -1281,8 +1289,6 @@ int32_t PhysicalDevice::setCursorPosition(hwc2_layer_t layerId, int32_t x, int32
 Operater of framebuffer
 */
 int32_t PhysicalDevice::initDisplay() {
-    if (mIsConnected) return 0;
-
     Mutex::Autolock _l(mLock);
 
     if (!mFramebufferHnd) {
@@ -1319,8 +1325,6 @@ int32_t PhysicalDevice::initDisplay() {
             bufferSize, usage);
     }
 
-    mIsConnected = true;
-
     // init cursor framebuffer
     mCursorContext = new FBContext();
     framebuffer_info_t* cbInfo = mCursorContext->getInfo();
@@ -1353,26 +1357,34 @@ int32_t PhysicalDevice::initDisplay() {
     return 0;
 }
 
+void PhysicalDevice::connectorNotify(void * data) {
+    if (data == NULL)
+        return;
+    PhysicalDevice* pObj = (PhysicalDevice*)data;
+    pObj->updateVsyncPeriod();
+}
+
+void PhysicalDevice::updateVsyncPeriod() {
+    hwc2_config_t config;
+    if (HWC2_ERROR_NONE == mDisplayHdmi->getActiveConfig(&config)) {
+        int32_t period = 0;
+        mDisplayHdmi->getDisplayAttribute(config, HWC2_ATTRIBUTE_VSYNC_PERIOD, &period);
+        mVsyncObserver->setRefreshPeriod(period);
+    }
+}
+
 bool PhysicalDevice::updateDisplayConfigs() {
     Mutex::Autolock _l(mLock);
     bool ret;
 
-    if (!mIsConnected) {
+    if (!mConnectorPresent) {
         ETRACE("disp: %llu is not connected", mId);
         return false;
     }
 
     framebuffer_info_t* fbinfo = mFramebufferContext->getInfo();
-    ret = Utils::checkVinfo(fbinfo);
-    if (!ret) {
-        ETRACE("checkVinfo fail");
-        return false;
-    }
-
-    mDisplayHdmi->updateHotplug(mIsConnected, fbinfo, mFramebufferHnd);
-    if (mIsConnected)
-        mVsyncObserver->setRefreshRate(mDisplayHdmi->getActiveRefreshRate());
-    //DTRACE("updateDisplayConfigs rate:%d", mDisplayHdmi->getActiveRefreshRate());
+    mDisplayHdmi->updateHotplug(mConnectorPresent, fbinfo);
+    updateVsyncPeriod();
 
     // check hdcp authentication status when hotplug is happen.
     if (mSystemControl == NULL) {
@@ -1408,7 +1420,7 @@ void PhysicalDevice::onVsync(int64_t timestamp) {
     RETURN_VOID_IF_NOT_INIT();
     ATRACE("timestamp = %lld", timestamp);
 
-    if (!mIsConnected)
+    if (!mConnectorPresent)
         return;
 
     // notify hwc
@@ -1439,7 +1451,7 @@ int32_t PhysicalDevice::setOutputBuffer(
 void PhysicalDevice::updateHotplugState(bool connected) {
     Mutex::Autolock _l(mLock);
 
-    mIsConnected = connected;
+    mConnectorPresent = connected;
     //if plug out, need reinit
     if (!connected)
         mHdrCapabilities.init = false;
@@ -1549,9 +1561,9 @@ void PhysicalDevice::dump(Dump& d) {
     Mutex::Autolock _l(mLock);
     d.append("-------------------------------------------------------------"
         "----------------------------------------------------------------\n");
-    d.append("Device Name: %s (%s)\n", mName,
-            mIsConnected ? "connected" : "disconnected");
-    d.append("isSecure : %s\n", mSecure ? "TRUE" : "FALSE");
+    d.append("Device Name: %s (%s, %s)\n", mName,
+            mConnectorPresent ? "connected" : "disconnected",
+            mSecure ? "Secure" : "NonSecure");
 
     mDisplayHdmi->dump(d);
 
