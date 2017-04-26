@@ -969,12 +969,6 @@ bool PhysicalDevice::layersStateCheck(int32_t renderMode,
                 return false;
             break;
         }
-        if (layer[0]->isCropped()
-            || layer[0]->isScaled()
-            || layer[0]->isOffset()) {
-            DTRACE("direct compose can not process!");
-            return false;
-        }
     }
 #ifdef ENABLE_AML_GE2D_COMPOSER
     else if (renderMode == GE2D_COMPOSE_MODE) {
