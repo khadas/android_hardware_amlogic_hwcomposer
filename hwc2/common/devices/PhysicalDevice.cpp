@@ -1087,8 +1087,7 @@ int32_t PhysicalDevice::preValidate() {
                 (layer->getCompositionType() == HWC2_COMPOSITION_SIDEBAND
                 && layer->getSidebandStream())) {
             if (mVideoOverlayLayerId != 0) {
-                ETRACE("ERROR: Find two video layer !!");
-                return HWC2_ERROR_BAD_LAYER;
+                ETRACE("ERROR: Find two video layer, should never get here !!");
             }
             mVideoOverlayLayerId = layerId;
         }
