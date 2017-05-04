@@ -931,6 +931,10 @@ bool PhysicalDevice::layersStateCheck(int32_t renderMode,
                 return false;
             break;
         }
+        if (layer[0]->getTransform() != 0) {
+            //DTRACE("Direct composer can NOT support rotation now.");
+            return false;
+        }
     }
 #ifdef ENABLE_AML_GE2D_COMPOSER
     else if (renderMode == GE2D_COMPOSE_MODE) {
@@ -991,8 +995,7 @@ bool PhysicalDevice::layersStateCheck(int32_t renderMode,
  * For direct framebuffer composer:
  * 1) only support one layer.
  * 2) layer format: rgba, rgbx,rgb565,bgra;
- * 3) layer no need scale to display;
- * 4) layer has no offset to display;
+ * 3) layer no rotation.
 
  * For ge2d composer:
  * 1) support layer format that direct composer can't support.
