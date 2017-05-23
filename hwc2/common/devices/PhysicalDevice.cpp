@@ -27,6 +27,8 @@
 #include <HwcFenceControl.h>
 #include <cutils/properties.h>
 #include <tvp/OmxUtil.h>
+#include <sys/utsname.h>
+#define FBIOPUT_OSD_CURSOR      0x451a
 
 static int Amvideo_Handle = 0;
 
@@ -94,6 +96,14 @@ PhysicalDevice::PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc, DeviceControl
     mGE2DRenderSortedLayerIds.clear();
 
     mHwcCurReleaseFences = mHwcPriorReleaseFences = NULL;
+
+    int major = 0, minor = 0;
+    struct utsname info;
+    if (uname(&info) || sscanf(info.release, "%d.%d", &major, &minor) <= 0) {
+        ETRACE("Could not get linux version: %s", strerror(errno));
+    }
+    // from kernel 4.9 use FBIOPUT_OSD_CURSOR instead of FBIO_CURSOR
+    mUsingPutCurosr = major > 4 || (major == 4 && minor >= 9);
 }
 
 PhysicalDevice::~PhysicalDevice()
@@ -1258,7 +1268,12 @@ int32_t PhysicalDevice::setCursorPosition(hwc2_layer_t layerId, int32_t x, int32
             cinfo.hot.x = x;
             cinfo.hot.y = y;
             DTRACE("setCursorPosition x_pos=%d, y_pos=%d", cinfo.hot.x, cinfo.hot.y);
-            ioctl(cbInfo->fd, FBIO_CURSOR, &cinfo);
+
+            // from kernel 4.9 use FBIOPUT_OSD_CURSOR instead of FBIO_CURSOR
+            if (mUsingPutCurosr)
+                ioctl(cbInfo->fd, FBIOPUT_OSD_CURSOR, &cinfo);
+            else
+                ioctl(cbInfo->fd, FBIO_CURSOR, &cinfo);
         }
     } else {
         ETRACE("setCursorPosition bad layer.");

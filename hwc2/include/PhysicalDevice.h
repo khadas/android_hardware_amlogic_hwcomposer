@@ -252,6 +252,7 @@ private:
     // lock
     Mutex mLock;
     bool mInitialized;
+    bool mUsingPutCurosr;
 };
 
 
