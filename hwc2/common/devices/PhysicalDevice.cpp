@@ -1449,7 +1449,7 @@ int32_t PhysicalDevice::getLineValue(const char *lineStr, const char *magicStr) 
         return 0;
     }
 
-    if (NULL != (pos = strstr(lineStr, magicStr))) {
+    if (NULL != (pos = strstr((char *)lineStr, magicStr))) {
         pos = pos + strlen(magicStr);
         char* start = pos;
         while (*start != '\n' && (strlen(start) > 0))

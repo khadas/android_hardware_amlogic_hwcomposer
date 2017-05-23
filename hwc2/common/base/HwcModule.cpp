@@ -544,6 +544,8 @@ hwc2_function_pointer_t hwc2_getFunction(struct hwc2_device* device,
             return reinterpret_cast<hwc2_function_pointer_t>(getActiveConfig);
         case HWC2_FUNCTION_GET_CHANGED_COMPOSITION_TYPES:
             return reinterpret_cast<hwc2_function_pointer_t>(getChangedCompositionTypes);
+        case HWC2_FUNCTION_GET_CLIENT_TARGET_SUPPORT:
+            return reinterpret_cast<hwc2_function_pointer_t>(getClientTargetSupport);
         case HWC2_FUNCTION_GET_COLOR_MODES:
             return reinterpret_cast<hwc2_function_pointer_t>(getColorModes);
         case HWC2_FUNCTION_GET_DISPLAY_ATTRIBUTE:

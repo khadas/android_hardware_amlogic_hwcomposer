@@ -10,6 +10,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/fcntl.h>
+#include <cutils/atomic.h>
 
 namespace android {
 namespace amlogic {
