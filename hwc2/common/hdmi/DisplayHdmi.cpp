@@ -20,15 +20,18 @@
 #include <binder/IServiceManager.h>
 #include <utils/Tokenizer.h>
 #include "DisplayHdmi.h"
-#include <pthread.h>
 
 namespace android {
 namespace amlogic {
 
+
 #define DEFAULT_DISPMODE "1080p60hz"
 #define DEFAULT_DISPLAY_DPI 160
 
-DisplayHdmi::DisplayHdmi() {
+DisplayHdmi::DisplayHdmi()
+    : mSC(NULL),
+    mFirstBootup(true)
+{
 #if 0 //debug only.
     //mAllModes.push_back("480p60hz");
     //mAllModes.push_back("576p50hz");
@@ -47,142 +50,87 @@ DisplayHdmi::DisplayHdmi() {
 #endif
 
     if (Utils::get_bool_prop("ro.sf.full_activemode")) {
-        mWorkMode = LOGIC_ACTIVEMODE;
+        mWorkMode = REAL_ACTIVEMODE;
     } else {
         mWorkMode = NONE_ACTIVEMODE;
     }
-    mActiveConfigId = VMODE_MAX;
 }
 
 DisplayHdmi::~DisplayHdmi() {
 }
 
-void DisplayHdmi::initialize(framebuffer_info_t& framebufferInfo,
-                                            DisplayNotify notifyFn, void* notifyData) {
+void DisplayHdmi::initialize(framebuffer_info_t& framebufferInfo) {
     reset();
     std::string dispMode;
     calcDefaultMode(framebufferInfo, dispMode);
     buildSingleConfigList(dispMode);
     updateActiveConfig(dispMode);
+
     mFbWidth = framebufferInfo.info.xres;
     mFbHeight = framebufferInfo.info.yres;
-    mNotifyFn = notifyFn;
-    mNotifyData = notifyData;
-
-    if (mWorkMode == NONE_ACTIVEMODE) {
-        if (0 != pthread_create(&mDisplayMonitorThread,
-                                                                NULL, monitorDisplayMode, (void*)this)) {
-            ALOGE("ERROR: Display monitor thread create failed.");
-        }
-        mMonitorExit = false;
-        mHotPlugComplete = false;
-    }
+    if (mSC == NULL) mSC = getSystemControlService();
 }
 
 void DisplayHdmi::deinitialize() {
-    if (mWorkMode == NONE_ACTIVEMODE) {
-        mMonitorExit = true;
-        pthread_join(mDisplayMonitorThread, NULL);
-    }
-
     reset();
 }
 
 void DisplayHdmi::reset() {
     clearSupportedConfigs();
     mActiveConfigStr.clear();
-    mNotifyFn = NULL;
     mConnected = false;
-    mActiveConfigId = VMODE_MAX;
+    mActiveConfigId = mRealActiveConfigId = VMODE_NULL;
     mPhyWidth = mPhyHeight = 0;
+    mSC = NULL;
 }
 
 bool DisplayHdmi::updateHotplug(bool connected,
-                                framebuffer_info_t* framebufferInfo) {
-    Mutex::Autolock _l(mUpdateLock);
+        framebuffer_info_t& framebufferInfo) {
     bool ret = true;
     int32_t rate;
     mConnected = connected;
 
     if (!connected) {
         DTRACE("hdmi disconnected, keep old display configs.");
-        mHotPlugComplete = true;
         return true;
     }
 
-    // update sink information.
-    readDisplayPhySize();
+    updateDisplayAttributes(framebufferInfo);
 
-    if (updateDisplayConfigs() == NO_ERROR)
-        mHotPlugComplete = true;
-    else
-        mHotPlugComplete = false;
+    std::string activemode;
+    if (readHdmiDispMode(activemode) != HWC2_ERROR_NONE) {
+        ETRACE("get active display mode failed.");
+        return false;
+    }
+
+    if (updateSupportedConfigs() != HWC2_ERROR_NONE) {
+        ETRACE("updateHotplug: No supported display list, set default configs.");
+        std::string dM (DEFAULT_DISPMODE);
+        buildSingleConfigList(dM);
+    }
+    updateActiveConfig(activemode);
+    // setBestDisplayMode();
 
     return true;
 }
 
-status_t DisplayHdmi::updateDisplayConfigs() {
-    // read current hdmi display config.
-    std::string activemode;
-    if (readHdmiDispMode(activemode) != NO_ERROR) {
-        //ETRACE("get active display mode failed.");
-        mHotPlugComplete = false;
-        return BAD_VALUE;
-    }
-
-    if (mActiveConfigStr.compare(activemode) != 0) {
-        //ETRACE("active mode display mode differs(%s, %s)",
-        //        mActiveConfigStr.c_str(), activemode.c_str());
-       /*
-        * TODO:
-        * For active mode ,should HWC to take care all of the display things.
-        * update Actvie config only happend when hwc::setactiveconfig called.
-        * Now called here for first plugin init, it's a temp solution.
-        */
-        updateActiveConfig(activemode);
-    }
-
-    // update output capacity of new sink.
-    if (updateSupportedConfigs() != NO_ERROR) {
-        ETRACE("updateHotplug: No supported configs, use default configs");
-        buildSingleConfigList(activemode);
-    }
-
-    return NO_ERROR;
-}
-
 int DisplayHdmi::updateSupportedConfigs() {
-    if (mWorkMode == NONE_ACTIVEMODE) {
-        /*
-         * NONE_ACTIVEMODE:
-         * Only one config, keep the size & mode id, update the dpi & vsync period.
-         */
-        DTRACE("Simple Active Mode!!!");
-        DisplayConfig* curConfig = mSupportDispConfigs.valueAt(0);
-        DisplayConfig* config = createConfigByModeStr(mActiveConfigStr);
-        if (config && curConfig) {
-            curConfig->mRefreshRate = config->mRefreshRate;
-            curConfig->mDpiX = config->mDpiX;
-            curConfig->mDpiY = config->mDpiY;
-        }
-        if (config)
-            delete config;
-        return NO_ERROR;
-    }
-
-    if (mWorkMode != REAL_ACTIVEMODE && mWorkMode != LOGIC_ACTIVEMODE)
-        return BAD_VALUE;
-
     // clear display modes
     clearSupportedConfigs();
 
     std::vector<std::string> supportDispModes;
     std::string::size_type pos;
+    std::string dM (DEFAULT_DISPMODE);
 
     bool isConfiged = readConfigFile("/system/etc/displayModeList.cfg", &supportDispModes);
     if (isConfiged) {
         DTRACE("Read supported modes from cfg file.");
     } else {
+        if (mWorkMode == NONE_ACTIVEMODE) {
+            DTRACE("Simple Active Mode!!!");
+            return BAD_VALUE;
+        }
+
         readEdidList(supportDispModes);
         if (supportDispModes.size() == 0) {
             ETRACE("SupportDispModeList null!!!");
@@ -198,36 +146,28 @@ int DisplayHdmi::updateSupportedConfigs() {
                 DTRACE("modify support display mode:%s", supportDispModes[i].c_str());
             }
 
-            DisplayConfig* config = createConfigByModeStr(supportDispModes[i]);
-            if (config) {
-                vmode_e vmode = vmode_name_to_mode(supportDispModes[i].c_str());
-                DTRACE("add display mode pair (%d, %s)", vmode, supportDispModes[i].c_str());
-                mSupportDispConfigs.add(vmode, config);
-            }
+            // skip default / fake active mode as we add it to the end
+            if (supportDispModes[i] != dM)
+                addSupportedConfig(supportDispModes[i]);
         }
     }
+
+    addSupportedConfig(dM);
     return NO_ERROR;
 }
 
 int DisplayHdmi::buildSingleConfigList(std::string& defaultMode) {
     if (!isDispModeValid(defaultMode)) {
         ETRACE("buildSingleConfigList with invalidate mode (%s)", defaultMode.c_str());
-        return BAD_VALUE;
+        return false;
     }
 
-    DisplayConfig* config = createConfigByModeStr(defaultMode);
-    if (config) {
-        vmode_e vmode = vmode_name_to_mode(defaultMode.c_str());
-        DTRACE("add display mode pair (%d, %s)", vmode, defaultMode.c_str());
-        mSupportDispConfigs.add(vmode, config);
-    }
-
-    return NO_ERROR;
+    return addSupportedConfig(defaultMode);
 }
 
 int DisplayHdmi::calcDefaultMode(framebuffer_info_t& framebufferInfo,
-    std::string& defaultMode) {
-    const struct vinfo_s* mode =
+        std::string& defaultMode) {
+    const struct vinfo_s * mode =
         findMatchedMode(framebufferInfo.info.xres, framebufferInfo.info.yres, 60);
     if (mode == NULL) {
         defaultMode = DEFAULT_DISPMODE;
@@ -235,16 +175,18 @@ int DisplayHdmi::calcDefaultMode(framebuffer_info_t& framebufferInfo,
         defaultMode = mode->name;
     }
 
+    defaultMode = DEFAULT_DISPMODE;
+
     DTRACE("calcDefaultMode %s", defaultMode.c_str());
     return NO_ERROR;
 }
 
-DisplayConfig* DisplayHdmi::createConfigByModeStr(std::string & modeStr) {
-    vmode_e vmode = vmode_name_to_mode(modeStr.c_str());
-    const struct vinfo_s * vinfo = get_tv_info(vmode);
+int DisplayHdmi::addSupportedConfig(std::string& mode) {
+    vmode_e vmode = vmode_name_to_mode(mode.c_str());
+    const struct vinfo_s* vinfo = get_tv_info(vmode);
     if (vmode == VMODE_MAX || vinfo == NULL) {
-        ETRACE("addSupportedConfigByModeStr meet error mode (%s, %d)", modeStr.c_str(), vmode);
-        return NULL;
+        ETRACE("addSupportedConfig meet error mode (%s, %d)", mode.c_str(), vmode);
+        return BAD_VALUE;
     }
 
     int dpiX  = DEFAULT_DISPLAY_DPI, dpiY = DEFAULT_DISPLAY_DPI;
@@ -253,49 +195,104 @@ DisplayConfig* DisplayHdmi::createConfigByModeStr(std::string & modeStr) {
         dpiY = (vinfo->height  * 25.4f) / mPhyHeight;
     }
 
-    DisplayConfig *config = new DisplayConfig(modeStr.c_str(),
-        vinfo->sync_duration_num,
-        vinfo->width,
-        vinfo->height,
-        dpiX,
-        dpiY);
+    DisplayConfig *config = new DisplayConfig(mode,
+                                            vinfo->sync_duration_num,
+                                            vinfo->width,
+                                            vinfo->height,
+                                            dpiX,
+                                            dpiY,
+                                            false);
 
-    return config;
+    // add normal refresh rate config, like 24hz, 30hz...
+    DTRACE("add display mode pair (%d, %s)", mSupportDispConfigs.size(), mode.c_str());
+    mSupportDispConfigs.add(mSupportDispConfigs.size(), config);
+
+    // add frac refresh rate config, like 23.976hz, 29.97hz...
+    if (vinfo->sync_duration_num == REFRESH_24kHZ
+        || vinfo->sync_duration_num == REFRESH_30kHZ
+        || vinfo->sync_duration_num == REFRESH_60kHZ
+        || vinfo->sync_duration_num == REFRESH_120kHZ
+        || vinfo->sync_duration_num == REFRESH_240kHZ) {
+        DisplayConfig *fracConfig = new DisplayConfig(mode,
+                                        vinfo->sync_duration_num,
+                                        vinfo->width,
+                                        vinfo->height,
+                                        dpiX,
+                                        dpiY,
+                                        true);
+        mSupportDispConfigs.add(mSupportDispConfigs.size(), fracConfig);
+    }
+
+    return NO_ERROR;
 }
 
 int DisplayHdmi::updateActiveConfig(std::string& activeMode) {
-   /*
-     * For NONE_ACTIVEMODE:
-     * 1) not update active config id(excpete first time), we use a fixed mode id.
-     * 2) always update active config string.
-     * For OTHER MODES:
-     * 1) always update active config string & active config id.
-     */
-    if (mActiveConfigId == VMODE_MAX || mWorkMode != NONE_ACTIVEMODE) {
-        mActiveConfigId = vmode_name_to_mode(activeMode.c_str());
+    mRealActiveConfigStr = activeMode;
+    for (size_t i = 0; i < mSupportDispConfigs.size(); i++) {
+        DisplayConfig * cfg = mSupportDispConfigs.valueAt(i);
+        if (activeMode == cfg->getDisplayMode()) {
+            mRealActiveConfigId = mSupportDispConfigs.keyAt(i);
+            DTRACE("updateRealActiveConfig to (%s, %d)", activeMode.c_str(), mRealActiveConfigId);
+        }
     }
-    mActiveConfigStr = activeMode;
-    DTRACE("updateActiveConfig to (%s, %d)", mActiveConfigStr.c_str(), mActiveConfigId);
+    mActiveConfigId = mSupportDispConfigs.size()-1;
     return NO_ERROR;
 }
 
-int DisplayHdmi::setDisplayMode(const char* displaymode) {
-    DTRACE("setDisplayMode to %s", displaymode);
-    std::string strmode(displaymode);
-    writeHdmiDispMode(strmode);
-    updateActiveConfig(strmode);
+status_t DisplayHdmi::setBestDisplayMode() {
+    std::string bM;
+
+    readBestHdmiOutputMode(bM);
+    if (mRealActiveConfigStr.compare(bM) || mFirstBootup) {
+        DTRACE("setBestDisplayMode to %s", bM.c_str());
+        setDisplayMode(bM);
+    }
+    // update real active config.
+    updateActiveConfig(bM);
+
+    if (mFirstBootup) mFirstBootup = false;
     return NO_ERROR;
 }
 
-status_t DisplayHdmi::readDisplayPhySize() {
-    struct vinfo_base_s info;
-    if (read_vout_info(&info) == 0) {
-        mPhyWidth = info.screen_real_width;
-        mPhyHeight = info.screen_real_height;
+void DisplayHdmi::switchRatePolicy(bool fracRatePolicy) {
+    if (fracRatePolicy) {
+        if (mSC.get() && mSC->writeSysfs(String16(HDMI_FRAC_RATE_POLICY), String16("1")))
+            ETRACE("Switch to frac rate policy SUCCESS.");
+        else
+            ETRACE("Switch to frac rate policy FAIL.");
     } else {
+        if (mSC.get() && mSC->writeSysfs(String16(HDMI_FRAC_RATE_POLICY), String16("0")))
+            ETRACE("Switch to normal rate policy SUCCESS.");
+        else
+            ETRACE("Switch to normal rate policy FAIL.");
+    }
+}
+
+int DisplayHdmi::setDisplayMode(std::string& dm, bool policy) {
+    DTRACE("setDisplayMode to %s", dm.c_str());
+    switchRatePolicy(policy);
+    writeHdmiDispMode(dm);
+    updateActiveConfig(dm);
+    return NO_ERROR;
+}
+
+status_t DisplayHdmi::readHdmiPhySize(framebuffer_info_t& fbInfo) {
+    struct fb_var_screeninfo vinfo;
+    if ((fbInfo.fd >= 0) && (ioctl(fbInfo.fd, FBIOGET_VSCREENINFO, &vinfo) == 0)) {
+        if (int32_t(vinfo.width) > 16 && int32_t(vinfo.height) > 9) {
+            mPhyWidth = vinfo.width;
+            mPhyHeight = vinfo.height;
+        }
+        return NO_ERROR;
+    }
+    return BAD_VALUE;
+}
+
+int DisplayHdmi::updateDisplayAttributes(framebuffer_info_t& framebufferInfo) {
+    if (readHdmiPhySize(framebufferInfo) != NO_ERROR) {
         mPhyWidth = mPhyHeight = 0;
     }
-    DTRACE("readDisplayPhySize physical size (%d x %d)", mPhyWidth, mPhyHeight);
+    DTRACE("updateDisplayAttributes physical size (%d x %d)", mPhyWidth, mPhyHeight);
     return NO_ERROR;
 }
 
@@ -307,10 +304,10 @@ int DisplayHdmi::getDisplayConfigs(uint32_t* outNumConfigs,
         ETRACE("hdmi is not connected.");
     }
 
-    *outNumConfigs = mSupportDispConfigs.size();
-
+    size_t configsNum = mSupportDispConfigs.size();
+    *outNumConfigs = configsNum;
     if (NULL != outConfigs) {
-        for (i = 0; i < mSupportDispConfigs.size(); i++) {
+        for (i = 0; i < configsNum; i++) {
             outConfigs[i] = mSupportDispConfigs.keyAt(i);
         }
     }
@@ -336,23 +333,28 @@ int DisplayHdmi::getDisplayAttribute(hwc2_config_t config,
 
     switch (attribute) {
         case HWC2_ATTRIBUTE_VSYNC_PERIOD:
-            if (configChosen->getRefreshRate()) {
-                *outValue = 1e9 / configChosen->getRefreshRate();
+            if (mWorkMode == REAL_ACTIVEMODE) {
+                if (configChosen->getRefreshRate()) {
+                    *outValue = 1e9 / configChosen->getRefreshRate();
+                }
+            } else if (mWorkMode == LOGIC_ACTIVEMODE ||
+                            mWorkMode == NONE_ACTIVEMODE) {
+                *outValue = 1e9 / 60;
             }
         break;
         case HWC2_ATTRIBUTE_WIDTH:
-            if (mWorkMode == REAL_ACTIVEMODE ||
-                        mWorkMode == NONE_ACTIVEMODE) {
+            if (mWorkMode == REAL_ACTIVEMODE) {
                 *outValue = configChosen->getWidth();
-            } else if (mWorkMode == LOGIC_ACTIVEMODE) {
+            } else if (mWorkMode == LOGIC_ACTIVEMODE ||
+                            mWorkMode == NONE_ACTIVEMODE) {
                 *outValue = mFbWidth;
             }
         break;
         case HWC2_ATTRIBUTE_HEIGHT:
-            if (mWorkMode == REAL_ACTIVEMODE ||
-                        mWorkMode == NONE_ACTIVEMODE) {
+            if (mWorkMode == REAL_ACTIVEMODE) {
                 *outValue = configChosen->getHeight();
-            } else if (mWorkMode == LOGIC_ACTIVEMODE) {
+            } else if (mWorkMode == LOGIC_ACTIVEMODE ||
+                            mWorkMode == NONE_ACTIVEMODE) {
                 *outValue = mFbHeight;
             }
         break;
@@ -375,17 +377,21 @@ int DisplayHdmi::getActiveConfig(hwc2_config_t* outConfig) {
     if (!isConnected()) {
         ETRACE("hdmi is not connected.");
     }
-    //DTRACE("getActiveConfig to config(%d).", mActiveConfigId);
+    // DTRACE("getActiveConfig to config(%d).", mActiveConfigId);
     *outConfig = mActiveConfigId;
     return NO_ERROR;
 }
 
-int DisplayHdmi::setActiveConfig(int modeId) {
-    if (mWorkMode == NONE_ACTIVEMODE) {
-        DTRACE("NONE_ACTVIEMODE, skip setactive config.");
-        return NO_ERROR;
+int DisplayHdmi::getRealActiveConfig(hwc2_config_t* outConfig) {
+    if (!isConnected()) {
+        ETRACE("hdmi is not connected.");
     }
+    // DTRACE("getActiveConfig to config(%d).", mActiveConfigId);
+    *outConfig = mRealActiveConfigId;
+    return NO_ERROR;
+}
 
+int DisplayHdmi::setActiveConfig(int modeId) {
     if (!isConnected()) {
         ETRACE("hdmi display is not connected.");
     }
@@ -393,10 +399,14 @@ int DisplayHdmi::setActiveConfig(int modeId) {
     DTRACE("setActiveConfig to mode(%d).", modeId);
     int modeIdx = mSupportDispConfigs.indexOfKey((const vmode_e)modeId);
     if (modeIdx >= 0) {
-        char *dispMode = NULL;
-        dispMode = mSupportDispConfigs.valueAt(modeIdx)->getDisplayMode();
-        DTRACE("setActiveConfig to (%d, %s).", modeId, dispMode);
-        setDisplayMode(dispMode);
+        DisplayConfig* cfg = mSupportDispConfigs.valueAt(modeIdx);
+        std::string dM = cfg->getDisplayMode();
+
+        DTRACE("setActiveConfig to (%d, %s).", modeId, dM.c_str());
+        setDisplayMode(dM, cfg->getFracRatePolicy());
+
+        // update real active config.
+        updateActiveConfig(dM);
         return NO_ERROR;
     } else {
         ETRACE("set invalild active config (%d)", modeId);
@@ -466,7 +476,7 @@ bool DisplayHdmi::isDispModeValid(std::string & dispmode){
         return false;
 
     vmode_e mode = vmode_name_to_mode(dispmode.c_str());
-    //DTRACE("isDispModeValid get mode (%d)", mode);
+    // DTRACE("isDispModeValid get mode (%d)", mode);
     if (mode == VMODE_MAX)
         return false;
 
@@ -474,43 +484,6 @@ bool DisplayHdmi::isDispModeValid(std::string & dispmode){
         return false;
 
     return true;
-}
-
-bool DisplayHdmi::isHotplugComplete() {
-    Mutex::Autolock _l(mUpdateLock);
-    return mHotPlugComplete;
-}
-
-/*
-  * ONLY FOR NONE_ACTIVEMODE. Monitor two cases:
-  * 1) hotplug not update complete, for the displaymode not set completed by other modules.
-  * 2) displaymode changed by other modules.
-  */
-void DisplayHdmi::monitorDisplayMode() {
-    do {
-        usleep(1000000);//1s
-        Mutex::Autolock _l(mUpdateLock);
-        std::string activemode;
-
-        if (isConnected() && readHdmiDispMode(activemode) == NO_ERROR &&
-                        (!mHotPlugComplete ||mActiveConfigStr.compare(activemode) != 0)) {
-            //DTRACE("monitorDisplayMode update display information.");
-            if (updateDisplayConfigs() == 0) {
-                mHotPlugComplete = true;
-                if (mNotifyFn)
-                    mNotifyFn(mNotifyData);
-            }
-        }
-    } while (!mMonitorExit);
-}
-
-void* DisplayHdmi::monitorDisplayMode(void *param) {
-    if (param) {
-        DisplayHdmi * pObj = (DisplayHdmi*)param;
-        pObj->monitorDisplayMode();
-    }
-
-    return NULL;
 }
 
 sp<ISystemControlService> DisplayHdmi::getSystemControlService() {
@@ -530,11 +503,10 @@ sp<ISystemControlService> DisplayHdmi::getSystemControlService() {
 }
 
 int DisplayHdmi::readHdmiDispMode(std::string &dispmode) {
-    sp<ISystemControlService> syscontrol = getSystemControlService();
-    if (syscontrol.get() && syscontrol->getActiveDispMode(&dispmode)) {
-        //DTRACE("get current displaymode %s", dispmode.c_str());
+    if (mSC.get() && mSC->getActiveDispMode(&dispmode)) {
+        DTRACE("get current displaymode %s", dispmode.c_str());
         if (!isDispModeValid(dispmode)) {
-            //DTRACE("active mode %s not valid", dispmode.c_str());
+            DTRACE("active mode %s not valid", dispmode.c_str());
             return BAD_VALUE;
         }
         return NO_ERROR;
@@ -545,8 +517,7 @@ int DisplayHdmi::readHdmiDispMode(std::string &dispmode) {
 }
 
 int DisplayHdmi::writeHdmiDispMode(std::string &dispmode) {
-    sp<ISystemControlService> syscontrol = getSystemControlService();
-    if (syscontrol.get() && syscontrol->setActiveDispMode(dispmode)) {
+    if (mSC.get() && mSC->setActiveDispMode(dispmode)) {
         return NO_ERROR;
     } else {
         ETRACE("syscontrol::setActiveDispMode FAIL.");
@@ -555,8 +526,7 @@ int DisplayHdmi::writeHdmiDispMode(std::string &dispmode) {
 }
 
 int DisplayHdmi::readEdidList(std::vector<std::string>& edidlist) {
-    sp<ISystemControlService> syscontrol = getSystemControlService();
-    if (syscontrol.get() && syscontrol->getSupportDispModeList(&edidlist)) {
+    if (mSC.get() && mSC->getSupportDispModeList(&edidlist)) {
         return NO_ERROR;
     } else {
         ETRACE("syscontrol::readEdidList FAIL.");
@@ -564,17 +534,36 @@ int DisplayHdmi::readEdidList(std::vector<std::string>& edidlist) {
     }
 }
 
+int DisplayHdmi::readBestHdmiOutputMode(std::string &dispmode) {
+    /* if (mSC.get() && mSC->getBestHdmiOutputMode(&dispmode)) {
+        DTRACE("get best displaymode %s", dispmode.c_str());
+        if (!isDispModeValid(dispmode)) {
+            ETRACE("best mode %s not valid", dispmode.c_str());
+            return BAD_VALUE;
+        }
+        return NO_ERROR;
+    } else {
+        ETRACE("syscontrol::getBestHdmiOutputMode FAIL.");
+        return FAILED_TRANSACTION;
+    } */
+
+    return NO_ERROR;
+}
+
 void DisplayHdmi::dump(Dump& d) {
-        d.append("Connector (HDMI, %s, %d, %d)\n", mActiveConfigStr.c_str(), mActiveConfigId, mWorkMode);
+        d.append("Connector (HDMI, %s, %d, %d)\n",
+                 mRealActiveConfigStr.c_str(),
+                 mRealActiveConfigId,
+                 mWorkMode);
         d.append("   CONFIG   |   VSYNC_PERIOD   |   WIDTH   |   HEIGHT   |"
             "   DPI_X   |   DPI_Y   \n");
         d.append("------------+------------------+-----------+------------+"
             "-----------+-----------\n");
         for (size_t i = 0; i < mSupportDispConfigs.size(); i++) {
-            vmode_e mode = mSupportDispConfigs.keyAt(i);
+            int mode = mSupportDispConfigs.keyAt(i);
             DisplayConfig *config = mSupportDispConfigs.valueAt(i);
             if (config) {
-                d.append("%s %2d     |       %4d       |   %5d   |    %5d    |"
+                d.append("%s %2d     |      %.3f      |   %5d   |   %5d    |"
                     "    %3d    |    %3d    \n",
                          (mode == (int)mActiveConfigId) ? "*   " : "    ",
                          mode,
@@ -589,3 +578,6 @@ void DisplayHdmi::dump(Dump& d) {
 
 } // namespace amlogic
 } // namespace android
+
+
+

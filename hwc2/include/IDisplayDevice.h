@@ -37,6 +37,9 @@ enum {
 };
 
 
+#define HWC2_HW_COMPOSE_WIDTH_MAX       (1920)
+#define HWC2_HW_COMPOSE_HEIGHT_MAX      (1080)
+
 //  display device interface
 class IDisplayDevice {
 public:
@@ -113,11 +116,9 @@ public:
 
     virtual HwcLayer* getLayerById(hwc2_layer_t layerId) = 0;
 
-    virtual bool updateDisplayConfigs() = 0;
-
-    //events
+    // events
     virtual void onVsync(int64_t timestamp) = 0;
-
+    virtual void onHotplug(int disp, bool connected) = 0;
     virtual void dump(Dump& d) = 0;
 
 };

@@ -70,21 +70,12 @@ void PrimaryDevice::hotplugEventListener(void *data, bool status)
 void PrimaryDevice::hotplugListener(bool connected)
 {
     CTRACE();
-
     ETRACE("hotpug event: %d", connected);
 
     updateHotplugState(connected);
-    // update display configs
-    if (connected) {
-        if (!updateDisplayConfigs()) {
-            ETRACE("failed to update display config");
-            return;
-        }
 
-        if (getDisplayId() == HWC_DISPLAY_EXTERNAL) {
-            getDevice().hotplug(getDisplayId(), connected);
-        }
-    }
+    // update display configs
+    onHotplug(getDisplayId(), connected);
 }
 
 } // namespace amlogic

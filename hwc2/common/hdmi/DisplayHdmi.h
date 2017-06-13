@@ -29,7 +29,6 @@
 #include <linux/fb.h>
 #include <string>
 #include <vector>
-#include <pthread.h>
 
 #include <hardware/hardware.h>
 #include <hardware/hwcomposer.h>
@@ -39,35 +38,52 @@
 #include <gui/SurfaceComposerClient.h>
 #include <AmVinfo.h>
 
-#define HWC_DISPLAY_MODE_LENGTH 32
+#define HDMI_FRAC_RATE_POLICY "/sys/class/amhdmitx/amhdmitx0/frac_rate_policy"
 
 namespace android {
 namespace amlogic {
 
+// refresh rates.
+enum {
+    REFRESH_24kHZ = 24,
+    REFRESH_30kHZ = 30,
+    REFRESH_60kHZ = 60,
+    REFRESH_120kHZ = 120,
+    REFRESH_240kHZ = 240
+};
+
 // display config
 class DisplayConfig {
-friend class DisplayHdmi;
 public:
-    DisplayConfig(const char* dm,
-		int rr,
-		int w = 0,
-		int h = 0,
-		int dpix = 0,
-		int dpiy = 0)
-        : mRefreshRate(rr),
+    DisplayConfig(const std::string dm,
+        int rr,
+        int w = 0,
+        int h = 0,
+        int dpix = 0,
+        int dpiy = 0,
+        bool frac = false)
+        : mDisplayMode(dm),
+          mRefreshRate(rr),
           mWidth(w),
           mHeight(h),
           mDpiX(dpix),
-          mDpiY(dpiy)
-    {
-        memset(mDisplayMode, 0, HWC_DISPLAY_MODE_LENGTH);
-        int length = strlen(dm);
-        length = (length <= HWC_DISPLAY_MODE_LENGTH-1)?length:(HWC_DISPLAY_MODE_LENGTH-1);
-        memcpy(mDisplayMode, dm, length);
-    }
+          mDpiY(dpiy),
+          mFracRate(frac)
+    {}
 public:
-    char* getDisplayMode() const { return (char*)(&mDisplayMode[0]); };
-    int getRefreshRate() const { return mRefreshRate; };
+    std::string getDisplayMode() const { return mDisplayMode; };
+    float getRefreshRate() const {
+        float actualRate = 0.0f;
+
+        if (mRefreshRate) {
+            if (mFracRate) {
+                actualRate = (mRefreshRate * 1000) / (float)1001;
+            } else {
+                actualRate = mRefreshRate;
+            }
+        }
+        return actualRate;
+    };
     int getWidth() const { return mWidth; };
     int getHeight() const { return mHeight; };
     int getDpiX() const { return mDpiX; };
@@ -76,32 +92,35 @@ public:
         mDpiX = dpix;
         mDpiY = dpiy;
     };
+    bool getFracRatePolicy() { return mFracRate; };
 
 private:
-    char mDisplayMode[HWC_DISPLAY_MODE_LENGTH];
+    std::string mDisplayMode;
     int mRefreshRate;
     int mWidth;
     int mHeight;
     int mDpiX;
     int mDpiY;
+    bool mFracRate;
 };
-
-typedef void (*DisplayNotify)(void*);
 
 class DisplayHdmi {
 public:
     DisplayHdmi();
     ~DisplayHdmi();
 
-    void initialize(framebuffer_info_t& framebufferInfo, DisplayNotify notifyFn, void* notifyData);
+    void initialize(framebuffer_info_t& framebufferInfo);
     void deinitialize();
-    bool updateHotplug(bool connected, framebuffer_info_t* framebufferInfo = NULL);
+    bool updateHotplug(bool connected, framebuffer_info_t& framebufferInfo);
+    status_t setBestDisplayMode();
 
     status_t getDisplayConfigs(uint32_t* outNumConfigs, hwc2_config_t* outConfigs);
     status_t getDisplayAttribute(hwc2_config_t config, int32_t  attribute, int32_t* outValue);
     status_t getActiveConfig(hwc2_config_t* outConfig);
+    status_t getRealActiveConfig(hwc2_config_t* outConfig);
     status_t setActiveConfig(int modeId);
-    //int setPowerMode(int power) {return 0;};
+    // int setPowerMode(int power) {return 0;};
+    int getDisplayWorkMode() const { return mWorkMode; };
 
     inline bool isConnected() {return mConnected;};
     bool chkPresent();
@@ -117,70 +136,57 @@ protected:
     status_t writeHdmiDispMode(std::string &dispmode);
     status_t readHdmiDispMode(std::string &dispmode);
     status_t readHdmiPhySize(framebuffer_info_t& fbInfo);
+    status_t readBestHdmiOutputMode(std::string &dispmode);
 
+    void switchRatePolicy(bool fracRatePolicy);
     void reset();
 
-    //operations on mSupportDispModes
+    // operations on mSupportDispModes
     status_t clearSupportedConfigs();
     status_t updateSupportedConfigs();
-    status_t updateDisplayConfigs();
-    status_t readDisplayPhySize();
-    DisplayConfig* createConfigByModeStr(std::string & modeStr);
+    status_t updateDisplayAttributes(framebuffer_info_t& framebufferInfo);
+    status_t addSupportedConfig(std::string& mode);
 
-    //ensure the active mode equals the current displaymode.
-    status_t chkActiveConfig(std::string& activeMode);
+    // ensure the active mode equals the current displaymode.
     status_t updateActiveConfig(std::string& activeMode);
 
-    status_t setDisplayMode(const char* displaymode);
-    bool isDispModeValid(std::string & dispmode);
+    status_t setDisplayMode(std::string& dispmode, bool policy = false);
+    bool isDispModeValid(std::string& dispmode);
+
     bool readConfigFile(const char* configPath, std::vector<std::string>* supportDispModes);
+
     status_t calcDefaultMode(framebuffer_info_t& framebufferInfo, std::string& defaultMode);
     status_t buildSingleConfigList(std::string& defaultMode);
 
     bool checkVinfo(framebuffer_info_t *fbInfo);
 
-    //functions for NONE_ACTIVEMODE.
-    static void* monitorDisplayMode(void *param);
-    void monitorDisplayMode();
-    bool isHotplugComplete();
-
 private:
     bool mConnected;
+    sp<ISystemControlService> mSC;
 
-    //for NONE_ACTIVEMODE, other module may set the displaymode, we need monitor if output mode changed.
-    pthread_t mDisplayMonitorThread;
-    //for NONE_ACTIVEMODE, displaymode update will later than hotplug event, need waiting the displaymode update again.
-    bool mHotPlugComplete;
-    DisplayNotify mNotifyFn;
-    void* mNotifyData;
-    bool mMonitorExit;
-    Mutex mUpdateLock;
-
-    //configures variables.
-    hwc2_config_t mActiveConfigId; //for amlogic, it is vmode_e.
+    // configures variables.
+    hwc2_config_t mActiveConfigId; // for amlogic, it is vmode_e.
     std::string mActiveConfigStr;
-    KeyedVector<vmode_e, DisplayConfig*> mSupportDispConfigs;
+    hwc2_config_t mRealActiveConfigId;
+    std::string mRealActiveConfigStr;
+    KeyedVector<int, DisplayConfig*> mSupportDispConfigs;
 
-    //physical size in mm.
+    // physical size in mm.
     int mPhyWidth;
     int mPhyHeight;
-    //framebuffer size.
+    // framebuffer size.
     int mFbWidth;
     int mFbHeight;
 
-    /*
-     *work modes:
-     *REAL_ACTIVEMODE & LOGIC_ACTIVEMODE:
-     *    really get supported configs from driver. And hwc controlls the active config of system.
-     *NONE_ACTIVEMODE:
-     *    only one virtual mode(dpi, vsync are real, the resolution is the framebuffer size.)
-     */
+    // work modes
     enum {
         REAL_ACTIVEMODE = 0,
-        LOGIC_ACTIVEMODE, //return the logic size which is framebuffer size.
-        NONE_ACTIVEMODE //no active mode list, always return a default config.
+        LOGIC_ACTIVEMODE, // return the logic size which is framebuffer size.
+        NONE_ACTIVEMODE // no active mode list, always return a default config.
     };
     int mWorkMode;
+    // first boot up flag.
+    bool mFirstBootup;
 };
 } // namespace amlogic
 } // namespace android

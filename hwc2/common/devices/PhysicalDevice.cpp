@@ -114,7 +114,7 @@ bool PhysicalDevice::initialize() {
     }
 
     mDisplayHdmi = new DisplayHdmi();
-    mDisplayHdmi->initialize(*(mFramebufferContext->getInfo()), connectorNotify, (void*)this);
+    mDisplayHdmi->initialize(*(mFramebufferContext->getInfo()));
     if (mDisplayHdmi->chkPresent()) {
         updateHotplugState(true);
         updateDisplayConfigs();
@@ -192,7 +192,6 @@ int32_t PhysicalDevice::acceptDisplayChanges() {
                     }
                 }
             }
-
             if (layer->getCompositionType() == HWC2_COMPOSITION_DEVICE
                     || layer->getCompositionType() == HWC2_COMPOSITION_SOLID_COLOR) {
                 layer->setCompositionType(HWC2_COMPOSITION_CLIENT);
@@ -398,8 +397,9 @@ int32_t PhysicalDevice::getDisplayRequests(
                     outLayerRequests[i] = HWC2_LAYER_REQUEST_CLEAR_CLIENT_TARGET;
                 }
                 /* if (layer->getBufferHandle()) {
-                    private_handle_t const* hnd = private_handle_t::dynamicCast(layer->getBufferHandle());
-                    if (hnd && (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OVERLAY)) {
+                    private_handle_t const* hnd =
+                        private_handle_t::dynamicCast(layer->getBufferHandle());
+                    if (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OVERLAY) {
                         outLayers[i] = layerId;
                         outLayerRequests[i] = HWC2_LAYER_REQUEST_CLEAR_CLIENT_TARGET;
                         continue;
@@ -409,7 +409,6 @@ int32_t PhysicalDevice::getDisplayRequests(
 
             // sideband stream.
             if ((layer->getCompositionType() == HWC2_COMPOSITION_SIDEBAND && layer->getSidebandStream())
-                //|| layer->getCompositionType() == HWC2_COMPOSITION_SOLID_COLOR
                 || layer->getCompositionType() == HWC2_COMPOSITION_CURSOR) {
                 // TODO: we just transact SIDEBAND to OVERLAY for now;
                 DTRACE("get HWC_SIDEBAND layer, just change to overlay");
@@ -456,8 +455,7 @@ int32_t PhysicalDevice::getHdrCapabilities(
     }
 
     if (!mHdrCapabilities.init) {
-        parseHdrCapabilities();
-        mHdrCapabilities.init = true;
+        ETRACE("HDRCapability not updated.");
     }
 
     if (NULL == outTypes) {
@@ -766,7 +764,8 @@ int32_t PhysicalDevice::setOSD0Blank(bool blank) {
     return HWC2_ERROR_NONE;
 }
 
-int32_t PhysicalDevice::presentDisplay(int32_t* outRetireFence) {
+int32_t PhysicalDevice::presentDisplay(
+        int32_t* outRetireFence) {
     int32_t err = HWC2_ERROR_NONE;
     HwcLayer* layer = NULL;
     bool hasVideoOverlay = false;
@@ -808,10 +807,9 @@ int32_t PhysicalDevice::setActiveConfig(
 
     int32_t err = mDisplayHdmi->setActiveConfig(config);
     if (err == HWC2_ERROR_NONE) {
-        int32_t period = 0;
-        mDisplayHdmi->getDisplayAttribute(config, HWC2_ATTRIBUTE_VSYNC_PERIOD, &period);
-        mVsyncObserver->setRefreshPeriod(period);
+        updateActiveDisplayAttribute();
     }
+
     return err;
 }
 
@@ -917,6 +915,10 @@ bool PhysicalDevice::layersStateCheck(int32_t renderMode,
         hnd[i] = private_handle_t::dynamicCast(layer[i]->getBufferHandle());
         if (hnd[i] == NULL) return false; // no buffer to process.
         if (hnd[i]->share_fd == -1) return false; // no buffer to process.
+        if ((sourceCrop[i].right - sourceCrop[i].left > HWC2_HW_COMPOSE_WIDTH_MAX) ||
+            (sourceCrop[i].bottom - sourceCrop[i].top > HWC2_HW_COMPOSE_HEIGHT_MAX)) {
+            return false;
+        }
         DTRACE("layer[%d] zorder: %d, blend: %d, PlaneAlpha: %f, "
             "mColor: [%d, %d, %d, %d], mDataSpace: %d, format hnd[%d]: %x",
             i, layer[i]->getZ(), layer[i]->getBlendMode(), layer[i]->getPlaneAlpha(),
@@ -988,8 +990,7 @@ bool PhysicalDevice::layersStateCheck(int32_t renderMode,
         }
 #endif
         if (HWC2_TWO_LAYERS == layerNum
-            && (!Utils::compareSize(sourceCrop[0], sourceCrop[1])
-            || !Utils::compareSize(displayFrame[0], displayFrame[1]))) {
+            && (layer[0]->isScaled() || layer[1]->isScaled())) {
             DTRACE("when 2 layer's size is difference, ge2d compose can not process!");
             return false;
         }
@@ -1077,8 +1078,41 @@ int32_t PhysicalDevice::composersFilter(
     return GLES_COMPOSE_MODE;
 }
 
+bool PhysicalDevice::calReverseScale() {
+    static float fb_w = 1920; // Query activeConfig for FB size?
+    static float fb_h = 1080; // Query activeConfig for FB size?
+
+    mReverseScaleX = mReverseScaleY = 0.0f;
+    if (fb_w <= 0.01f || fb_h <= 0.01f)
+        return false;
+
+    float display_w, display_h;
+    hwc2_config_t config;
+    if (HWC2_ERROR_NONE != mDisplayHdmi->getRealActiveConfig(&config))
+        return false;
+
+    int32_t tmpSize = 0.0f;
+    if ( mDisplayHdmi->getDisplayAttribute(config,
+                HWC2_ATTRIBUTE_WIDTH, &tmpSize) != NO_ERROR)
+        return false;
+    display_w = tmpSize;
+    if ( mDisplayHdmi->getDisplayAttribute(config,
+                HWC2_ATTRIBUTE_HEIGHT, &tmpSize) != NO_ERROR)
+        return false;
+    display_h = tmpSize;
+
+    if (display_w <= 0.01f || display_h <= 0.01f)
+        return false;
+
+    mReverseScaleX = fb_w / display_w;
+    mReverseScaleY = fb_h /display_h;
+    return false;
+}
+
 int32_t PhysicalDevice::preValidate() {
+    bool bScale = (mReverseScaleX >= 0.01f && mReverseScaleX >= 0.01f) ? true : false;
     HwcLayer* layer = NULL;
+    //find out video layer first.
     for (uint32_t i=0; i<mHwcLayers.size(); i++) {
         hwc2_layer_t layerId = mHwcLayers.keyAt(i);
         layer = mHwcLayers.valueAt(i);
@@ -1086,6 +1120,9 @@ int32_t PhysicalDevice::preValidate() {
             ETRACE("Meet empty layer, id(%lld)", layerId);
             continue;
         }
+
+        if (bScale && (layer->getDisplayFrame().right >= 3800))
+            layer->reverseScaledFrame(mReverseScaleX, mReverseScaleY);
 
         private_handle_t const* hnd = private_handle_t::dynamicCast(layer->getBufferHandle());
         if (hnd && !((hnd->flags & private_handle_t::PRIV_FLAGS_CONTINUOUS_BUF)
@@ -1113,6 +1150,7 @@ int32_t PhysicalDevice::beginCompose() {
     mHwcLayersChangeType.clear();
     mHwcLayersChangeRequest.clear();
     mHwcGlesLayers.clear();
+    // deal non secure display device.
     mHwcSecureLayers.clear();
 
     memset(&mFbSyncRequest, 0, sizeof(mFbSyncRequest));
@@ -1171,7 +1209,7 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
 
         // secure or protected layer.
         if (!mSecure && hnd && (hnd->flags & private_handle_t::PRIV_FLAGS_SECURE_PROTECTED)) {
-            DTRACE("layer's secure or protected buffer flag is set!");
+            DTRACE("layer's secure or protected buffer flag is set! usage (%x)", hnd->flags);
             if (layer->getCompositionType() != HWC2_COMPOSITION_DEVICE) {
                 mHwcLayersChangeType.add(layerId, layer);
             }
@@ -1179,7 +1217,7 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
             continue;
         }
 
-        if (videoLayer && (layer->getZ() < mVideoOverlayLayerId)) {
+        if (videoLayer && (layer->getZ() < videoLayer->getZ())) {
             DTRACE("Layer covered by video layer.");
             hwc_rect_t layerRect = layer->getDisplayFrame();
             overlapType = Utils::rectOverlap(layerRect, videoRect);
@@ -1198,10 +1236,9 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
                 }
                 break;
             case HWC2_COMPOSITION_SOLID_COLOR:
-                if (overlapType == Utils::OVERLAP_EMPTY) {
-                    composeLayers.add(layerId, layer);
-                } else if (overlapType == Utils::OVERLAP_PART) {
+                if (overlapType != Utils::OVERLAP_FULL) {
                     mHwcGlesLayers.add(layerId, layer);
+                    mHwcLayersChangeType.add(layerId, layer);
                 }
                 break;
             case HWC2_COMPOSITION_CURSOR:
@@ -1241,7 +1278,7 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
         mDirectComposeFrameCount = 0;
     }
 
-    //DEVICE_COMPOSE layers set to CLIENT_COMPOSE layers.
+    // DEVICE_COMPOSE layers set to CLIENT_COMPOSE layers.
     for (int i=0; i<composeLayers.size(); i++) {
         mHwcLayersChangeType.add(composeLayers.keyAt(i), composeLayers.valueAt(i));
         mHwcGlesLayers.add(composeLayers.keyAt(i), composeLayers.valueAt(i));
@@ -1357,34 +1394,36 @@ int32_t PhysicalDevice::initDisplay() {
     return 0;
 }
 
-void PhysicalDevice::connectorNotify(void * data) {
-    if (data == NULL)
-        return;
-    PhysicalDevice* pObj = (PhysicalDevice*)data;
-    pObj->updateVsyncPeriod();
-}
-
-void PhysicalDevice::updateVsyncPeriod() {
+void PhysicalDevice::updateActiveDisplayAttribute() {
     hwc2_config_t config;
-    if (HWC2_ERROR_NONE == mDisplayHdmi->getActiveConfig(&config)) {
+    if (HWC2_ERROR_NONE == mDisplayHdmi->getRealActiveConfig(&config)) {
         int32_t period = 0;
         mDisplayHdmi->getDisplayAttribute(config, HWC2_ATTRIBUTE_VSYNC_PERIOD, &period);
         mVsyncObserver->setRefreshPeriod(period);
     }
+
+    calReverseScale();
 }
 
 bool PhysicalDevice::updateDisplayConfigs() {
     Mutex::Autolock _l(mLock);
-    bool ret;
+    framebuffer_info_t* fbinfo = mFramebufferContext->getInfo();
+    mDisplayHdmi->updateHotplug(mConnectorPresent, *fbinfo);
 
-    if (!mConnectorPresent) {
-        ETRACE("disp: %llu is not connected", mId);
+    if (mConnectorPresent) {
+        updateActiveDisplayAttribute();
+    } else {
+        ETRACE("disp: %llu is not connected, should change mode to null", mId);
+        // mDisplayHdmi->setBestDisplayMode();
         return false;
     }
 
-    framebuffer_info_t* fbinfo = mFramebufferContext->getInfo();
-    mDisplayHdmi->updateHotplug(mConnectorPresent, fbinfo);
-    updateVsyncPeriod();
+    // update HDR info.
+    if (!mHdrCapabilities.init) {
+        ETRACE("update hdr infomation.");
+        parseHdrCapabilities();
+        mHdrCapabilities.init = true;
+    }
 
     // check hdcp authentication status when hotplug is happen.
     if (mSystemControl == NULL) {
@@ -1393,6 +1432,7 @@ bool PhysicalDevice::updateDisplayConfigs() {
         DTRACE("already have system control instance.");
     }
     if (mSystemControl != NULL) {
+        // mSecure = Utils::checkHdcp();
         int status = 0;
         mSystemControl->isHDCPTxAuthSuccess(status);
         DTRACE("hdcp status: %d", status);
@@ -1427,6 +1467,18 @@ void PhysicalDevice::onVsync(int64_t timestamp) {
     mHwc.vsync(mId, timestamp);
 }
 
+void PhysicalDevice::onHotplug(int disp, bool connected) {
+    RETURN_VOID_IF_NOT_INIT();
+    ETRACE("connect status = (%d)", connected);
+
+    if (!updateDisplayConfigs())
+        ETRACE("failed to update display config");
+
+    // notify hwc
+    if (connected)
+        mHwc.hotplug(disp, connected);
+}
+
 int32_t PhysicalDevice::createVirtualDisplay(
         uint32_t width,
         uint32_t height,
@@ -1452,9 +1504,9 @@ void PhysicalDevice::updateHotplugState(bool connected) {
     Mutex::Autolock _l(mLock);
 
     mConnectorPresent = connected;
-    //if plug out, need reinit
+    // if plug out, need reinit
     if (!connected)
-        mHdrCapabilities.init = false;
+        memset(&mHdrCapabilities, 0, sizeof(hdr_capabilities_t));
 }
 
 int32_t PhysicalDevice::getLineValue(const char *lineStr, const char *magicStr) {
@@ -1482,30 +1534,30 @@ int32_t PhysicalDevice::getLineValue(const char *lineStr, const char *magicStr) 
     return 0;
 }
 
-/*
-cat /sys/class/amhdmitx/amhdmitx0/hdr_cap
-Supported EOTF:
-    Traditional SDR: 1
-    Traditional HDR: 0
-    SMPTE ST 2084: 1
-    Future EOTF: 0
-Supported SMD type1: 1
-Luminance Data
-    Max: 0
-    Avg: 0
-    Min: 0
-cat /sys/class/amhdmitx/amhdmitx0/dv_cap
-DolbyVision1 RX support list:
-    2160p30hz: 1
-    global dimming
-    colorimetry
-    IEEEOUI: 0x00d046
-    DM Ver: 1
-*/
+/*******************************************
+* cat /sys/class/amhdmitx/amhdmitx0/hdr_cap
+* Supported EOTF:
+*     Traditional SDR: 1
+*     Traditional HDR: 0
+*     SMPTE ST 2084: 1
+*     Future EOTF: 0
+* Supported SMD type1: 1
+* Luminance Data
+*     Max: 0
+*     Avg: 0
+*     Min: 0
+* cat /sys/class/amhdmitx/amhdmitx0/dv_cap
+* DolbyVision1 RX support list:
+*     2160p30hz: 1
+*     global dimming
+*     colorimetry
+*     IEEEOUI: 0x00d046
+*     DM Ver: 1
+*******************************************/
 int32_t PhysicalDevice::parseHdrCapabilities() {
-    //DolbyVision1
+    // DolbyVision1
     const char *DV_PATH = "/sys/class/amhdmitx/amhdmitx0/dv_cap";
-    //HDR
+    // HDR
     const char *HDR_PATH = "/sys/class/amhdmitx/amhdmitx0/hdr_cap";
 
     char buf[1024+1] = {0};
@@ -1527,7 +1579,7 @@ int32_t PhysicalDevice::parseHdrCapabilities() {
 
     if ((NULL != strstr(pos, "2160p30hz")) || (NULL != strstr(pos, "2160p60hz")))
         mHdrCapabilities.dvSupport = true;
-    //dobly version parse end
+    // dobly version parse end
 
     memset(buf, 0, 1024);
     if ((fd = open(HDR_PATH, O_RDONLY)) < 0) {
@@ -1561,12 +1613,15 @@ void PhysicalDevice::dump(Dump& d) {
     Mutex::Autolock _l(mLock);
     d.append("-------------------------------------------------------------"
         "----------------------------------------------------------------\n");
-    d.append("Device Name: %s (%s, %s)\n", mName,
+    d.append("Device Name: %s (%s), (%f, %f)\n", mName,
             mConnectorPresent ? "connected" : "disconnected",
-            mSecure ? "Secure" : "NonSecure");
+            mReverseScaleX, mReverseScaleY);
+
+    d.append("isSecure : %s\n", mSecure ? "TRUE" : "FALSE");
 
     mDisplayHdmi->dump(d);
 
+#if 0 //all the info already dumped by SurfaceFlinger, comment it.
     // dump layer list
     d.append("  Layers state:\n");
     d.append("    numLayers=%zu\n", mHwcLayers.size());
@@ -1585,6 +1640,7 @@ void PhysicalDevice::dump(Dump& d) {
             if (layer) layer->dump(d);
         }
     }
+#endif
 
     // HDR info
     d.append("  HDR Capabilities:\n");

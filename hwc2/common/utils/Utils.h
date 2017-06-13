@@ -22,7 +22,6 @@
 #define SYSFS_VIDEO_AXIS                      "/sys/class/video/axis"
 #define SYSFS_VIDEOBUFUSED                 "/sys/class/amstream/videobufused"
 #define SYSFS_WINDOW_AXIS               "/sys/class/graphics/fb0/window_axis"
-#define SYSFS_VIDEO_BLANK               "/sys/class/video/disable_video"
 
 namespace android {
 namespace amlogic {
@@ -49,7 +48,6 @@ public:
 #if WITH_LIBPLAYER_MODULE
     static bool checkSysfsStatus(const char* sysfstr, char* lastr, int32_t size);
 #endif
-    static bool checkOutputMode(char* curmode, int32_t* rate);
 
     static const char* getHotplugUeventEnvelope();
     static const char* getHdcpUeventEnvelope();

@@ -82,6 +82,7 @@ class HwcLayer {
         bool haveColor();
         bool havePlaneAlpha();
         bool haveDataspace();
+        void reverseScaledFrame(const float& scaleX, const float& scaleY);
 
 #if WITH_LIBPLAYER_MODULE
         void presentOverlay(bool bPresent);
@@ -127,6 +128,7 @@ class HwcLayer {
         // lock
         Mutex mLock;
         bool mInitialized;
+        bool mScaleReversed;
 };
 
 } // namespace amlogic

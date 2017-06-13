@@ -15,29 +15,15 @@
 //
 */
 
-#define LOG_TAG "AmVinfo"
-//#define LOG_NDEBUG 0
-#include <cutils/log.h>
+/*
+* !!!ATTENTATION:
+* MOST COPY FROM KERNEL, DONT MODIFY.
+*/
+
 #include <AmVinfo.h>
 #include <string.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <errno.h>
-
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
-#define VOUT_DEV "/dev/display"
-
-/* vout_ioctl */
-#define VOUT_IOC_TYPE            'C'
-#define VOUT_IOC_NR_GET_VINFO    0x0
-#define VOUT_IOC_NR_SET_VINFO    0x1
-#define VOUT_IOC_CMD_GET_VINFO   \
-		_IOR(VOUT_IOC_TYPE, VOUT_IOC_NR_GET_VINFO, struct vinfo_base_s)
-#define VOUT_IOC_CMD_SET_VINFO   \
-		_IOW(VOUT_IOC_TYPE, VOUT_IOC_NR_SET_VINFO, struct vinfo_base_s)
-
-
 /*
 *                COPY FROM Vinfo.c
 */
@@ -926,13 +912,9 @@ int want_hdmi_mode(enum vmode_e mode)
 
 
 /*
-  * NEW ADDED FUNCTIONS.
-  */
-#define AMSTREAM_IOC_MAGIC  'S'
-#define AMSTREAM_IOC_GLOBAL_GET_VIDEO_OUTPUT  _IOR(AMSTREAM_IOC_MAGIC, 0x21, int)
-#define AMSTREAM_IOC_GLOBAL_SET_VIDEO_OUTPUT  _IOW(AMSTREAM_IOC_MAGIC, 0x22, int)
-
-
+*               NEW ADDED
+*/
+//search
 const struct vinfo_s * findMatchedMode(u32 width, u32 height, u32 refreshrate) {
 	int i = 0;
 	for (i = 0; i < ARRAY_SIZE(tv_info); i++) {
@@ -943,25 +925,4 @@ const struct vinfo_s * findMatchedMode(u32 width, u32 height, u32 refreshrate) {
 	}
 	return NULL;
 }
-
-int read_vout_info(struct vinfo_base_s * info) {
-    if (!info) {
-        return -ENOBUFS;
-    }
-    int voutdev = open(VOUT_DEV, O_RDONLY);
-    if (voutdev < 0) {
-        ALOGE("open %s failed.", VOUT_DEV);
-        return -EBADFD;
-    }
-
-    if (ioctl(voutdev, VOUT_IOC_CMD_GET_VINFO, (unsigned long)info) != 0) {
-        ALOGE("get vinfo failed.");
-        close(voutdev);
-        return -EINVAL;
-    }
-
-    close(voutdev);
-    return 0;
-}
-
 

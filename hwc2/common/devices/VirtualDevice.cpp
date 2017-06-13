@@ -390,10 +390,12 @@ int32_t VirtualDevice::validateDisplay(uint32_t* outNumTypes,
         layer = mHwcLayers.valueAt(i);
         if (layer) {
             // Virtual Display.
-            if (layer->getCompositionType() != HWC2_COMPOSITION_CLIENT) {
-                // change all other device type to client.
-                mHwcLayersChangeType.add(layerId, layer);
-                continue;
+            if (mVirtualHnd && private_handle_t::validate(mVirtualHnd) >=0) {
+                if (layer->getCompositionType() != HWC2_COMPOSITION_CLIENT) {
+                    // change all other device type to client.
+                    mHwcLayersChangeType.add(layerId, layer);
+                    continue;
+                }
             }
         }
     }
@@ -425,6 +427,10 @@ bool VirtualDevice::updateDisplayConfigs()
 }
 
 void VirtualDevice::onVsync(int64_t timestamp) {
+    // dont need implement now.
+}
+
+void VirtualDevice::onHotplug(int disp, bool connected) {
     // dont need implement now.
 }
 

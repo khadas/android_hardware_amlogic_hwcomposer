@@ -40,11 +40,11 @@ bool Utils::get_bool_prop(const char* prop) {
 int Utils::get_int_prop(const char* prop) {
     char val[PROPERTY_VALUE_MAX];
     memset(val, 0, sizeof(val));
-    if (property_get(prop, val, "2")) {
-        //VTRACE("prop: %s is %s",prop, val);
+    if (property_get(prop, val, "0")) {
+        VTRACE("prop: %s is %s",prop, val);
         return atoi(val);
     }
-    return 0;
+    return -1;
 }
 
 int Utils::getSysfsInt(const char* syspath, int def) {
@@ -52,7 +52,7 @@ int Utils::getSysfsInt(const char* syspath, int def) {
     char valstr[64];
     if (getSysfsStr(syspath, valstr, sizeof(valstr)) == 0) {
         val = atoi(valstr);
-        //DTRACE("sysfs(%s) read int (%s)=(%d)", syspath, valstr, val);
+        DTRACE("sysfs(%s) read int (%d)", syspath, val);
     }
     return val;
 }
@@ -178,7 +178,7 @@ bool Utils::checkSysfsStatus(const char* sysfstr, char* lastr, int32_t size) {
 
 const char* Utils::getHotplugUeventEnvelope()
 {
-    return "change@/devices/virtual/switch/hdmi_audio";
+    return "change@/devices/virtual/switch/hdmi_delay";
 }
 
 const char* Utils::getHdcpUeventEnvelope()
@@ -195,6 +195,7 @@ const char* Utils::getSwitchState1()
 {
     return "SWITCH_STATE=1";
 }
+
 
 bool Utils::rectEmpty(hwc_rect_t& rect) {
     if ((rect.right - rect.left <= 0) ||(rect.bottom - rect.top <= 0))
@@ -216,13 +217,14 @@ Utils::OVERLAP_TYPE Utils::rectOverlap(hwc_rect_t& source, hwc_rect_t& dest) {
     if (!rectIntersect(source, dest, result)) {
         return OVERLAP_EMPTY;
     } else {
-        if (compareRect(result, dest) == true) {
+        if (compareRect(result, source) == true) {
             return OVERLAP_FULL;
         } else {
             return OVERLAP_PART;
         }
     }
 }
+
 
 } // namespace amlogic
 } // namespace android

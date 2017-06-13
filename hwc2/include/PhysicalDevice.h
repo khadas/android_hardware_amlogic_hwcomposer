@@ -25,7 +25,6 @@
 #include <HwcLayer.h>
 #include <IComposer.h>
 #include <DisplayHdmi.h>
-
 #include <systemcontrol/ISystemControlService.h>
 #include <systemcontrol/DisplayMode.h>
 #include <binder/Binder.h>
@@ -81,8 +80,6 @@ public:
 
     friend class Hwcomposer;
     friend class HwcLayer;
-
-    // typedef sp<ISystemControlService> IScs;
 
     // Required by HWC2
     virtual int32_t acceptDisplayChanges();
@@ -142,15 +139,13 @@ public:
 
     // display config operations
     virtual bool updateDisplayConfigs();
+    virtual void updateActiveDisplayAttribute();
 
-    //events
+    // events
     virtual void onVsync(int64_t timestamp);
-    virtual void updateVsyncPeriod();
+    virtual void onHotplug(int disp, bool connected);
     virtual void dump(Dump& d);
-
-    //connector
     DisplayHdmi* getDisplayHdmi()  const { return mDisplayHdmi; };
-    static void connectorNotify(void * data);
 
 private:
     // For use by Device
@@ -169,6 +164,7 @@ private:
 
     int32_t beginCompose();
     int32_t finishCompose();
+
     //swap the mHwcCurReleaseFence and mHwcPriorReleaseFence;
     void swapReleaseFence();
     //this function will take contorl of fencefd, if you need use it also, please dup it before call.
@@ -182,6 +178,9 @@ private:
     sp<ISystemControlService> getSystemControlService();
     static void hdcpEventListener(void *data, bool status);
     void setSecureStatus(bool status);
+
+    // for vpp post scale.
+    bool calReverseScale();
 
     template <typename T, typename S>
     static inline bool compareSize(T a, S b) {
@@ -199,8 +198,8 @@ private:
     Hwcomposer& mHwc;
     DisplayHdmi* mDisplayHdmi;
     DeviceControlFactory *mControlFactory;
-
     SoftVsyncObserver *mVsyncObserver;
+
     IComposer *mComposer;
 
     // DeviceControlFactory *mControlFactory;
@@ -259,8 +258,12 @@ private:
     Mutex mLock;
     bool mInitialized;
 
-    //status of display connector.(hdmi, cvbs, panel)
+    // status of display connector.(hdmi, cvbs, panel)
     bool mConnectorPresent;
+
+    //rever the scaled displayframe, for we use the vpp scale.
+    float mReverseScaleX;
+    float mReverseScaleY;
 };
 
 

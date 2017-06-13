@@ -192,7 +192,7 @@ void UeventObserver::onUevent()
     DTRACE("onUevent: %s", mUeventMessage);
     for (uint32_t i=0; i<mListeners.size(); i++) {
         const char *envelope = mListeners.keyAt(i).string();
-        if (strncmp(msg, envelope, strlen(envelope)) == 0) {
+        if (strncmp(msg, envelope, UEVENT_MSG_LEN) == 0) {
             listener = mListeners.valueAt(i);
             break;
         } else {

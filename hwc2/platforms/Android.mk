@@ -26,8 +26,8 @@ LOCAL_SRC_FILES := \
     ../common/composers/GE2DComposer.cpp \
     ../common/utils/Utils.cpp \
     ../common/utils/Dump.cpp \
-    ../common/utils/AmVideo.cpp \
-    ../common/utils/AmVinfo.cpp
+    ../common/utils/AmVinfo.cpp \
+    ../common/utils/AmVideo.cpp
 
 LOCAL_SRC_FILES += \
     PlatFactory.cpp

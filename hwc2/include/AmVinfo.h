@@ -19,17 +19,14 @@
 #define AM_VINFO_H_
 #include <sys/types.h>
 
-typedef uint32_t u32;
-typedef unsigned char	   u8;
+/*
+  * !!!ATTENTATION:
+  * MOST COPY FROM KERNEL, DONT MODIFY.
+  */
 
 /*
- * !!!ATTENTATION:
- * COPY FROM KERNEL, DONT MODIFY.
- */
-
-/*
- * from kernel/include/driver/vout/vinfo.h
- */
+  * from kernel/include/driver/vout/vinfo.h
+  */
 enum vmode_e {
 	VMODE_480I  = 0,
 	VMODE_480I_RPT,
@@ -185,56 +182,11 @@ enum tvin_color_fmt_range_e {
 	TVIN_COLOR_FMT_RANGE_MAX,
 };
 
+typedef uint32_t u32;
 
-/* Refer ot DolbyVision 2.6, Page 35
- * For Explicit Switch Signaling Methods using.
- */
-enum eotf_type {
-	EOTF_T_NULL = 0,
-	EOTF_T_DOLBYVISION,
-	EOTF_T_HDR10,
-	EOTF_T_SDR,
-	EOTF_T_MAX,
-};
-
-
-#define SUPPORT_2020	0x01
-
-/* master_display_info for display device */
-struct master_display_info_s {
-	u32 present_flag;
-	u32 features;			/* feature bits bt2020/2084 */
-	u32 primaries[3][2];		/* normalized 50000 in G,B,R order */
-	u32 white_point[2];		/* normalized 50000 */
-	u32 luminance[2];		/* max/min lumin, normalized 10000 */
-	u32 max_content;		/* Maximum Content Light Level */
-	u32 max_frame_average;	/* Maximum Frame-average Light Level */
-};
-
-struct hdr_info {
-	u32 hdr_support; /* RX EDID hdr support types */
-	u32 lumi_max; /* RX EDID Lumi Max value */
-	u32 lumi_avg; /* RX EDID Lumi Avg value */
-	u32 lumi_min; /* RX EDID Lumi Min value */
-	u8 sink_flag; /*0 = hdmi, 1 = panel*/
-};
-
-struct vinfo_base_s {
-	enum vmode_e mode;
-	u32 width;
-	u32 height;
-	u32 field_height;
-	u32 aspect_ratio_num;
-	u32 aspect_ratio_den;
-	u32 sync_duration_num;
-	u32 sync_duration_den;
-	u32 screen_real_width;
-	u32 screen_real_height;
-	u32 video_clk;
-	enum tvin_color_fmt_e viu_color_fmt;
-	struct hdr_info hdr_info;
-};
-
+/*
+* The commented memebers are not need now.
+*/
 struct vinfo_s {
 	char *name;
 	enum vmode_e mode;
@@ -245,19 +197,19 @@ struct vinfo_s {
 	u32 aspect_ratio_den;
 	u32 sync_duration_num;
 	u32 sync_duration_den;
-	u32 screen_real_width;
-	u32 screen_real_height;
+//	u32 screen_real_width;
+//	u32 screen_real_height;
 	u32 video_clk;
-	enum tvin_color_fmt_e viu_color_fmt;
+    enum tvin_color_fmt_e viu_color_fmt;
 
-	struct hdr_info hdr_info;
-	struct master_display_info_s
-		master_display_info;
-	const struct dv_info *dv_info;
+//	struct hdr_info hdr_info;
+//	struct master_display_info_s
+//		master_display_info;
+//	const struct dv_info *dv_info;
 	/* update hdmitx hdr packet, if data is NULL, disalbe packet */
-	void (*fresh_tx_hdr_pkt)(struct master_display_info_s *data);
+//	void (*fresh_tx_hdr_pkt)(struct master_display_info_s *data);
 	/* tunnel_mode: 1: tunneling mode, RGB 8bit  0: YCbCr422 12bit mode */
-	void (*fresh_tx_vsif_pkt)(enum eotf_type type, uint8_t tunnel_mode);
+//	void (*fresh_tx_vsif_pkt)(enum eotf_type type, uint8_t tunnel_mode);
 };
 
 
@@ -265,6 +217,5 @@ enum vmode_e vmode_name_to_mode(const char *str);
 const struct vinfo_s *get_tv_info(enum vmode_e mode);
 int want_hdmi_mode(enum vmode_e mode);
 const struct vinfo_s * findMatchedMode(u32 width, u32 height, u32 refreshrate);
-int read_vout_info(struct vinfo_base_s * info);
 
 #endif //AML_VOUT_H_

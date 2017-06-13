@@ -154,12 +154,23 @@ bool HwcLayer::haveDataspace() {
     return mDataSpace != HAL_DATASPACE_UNKNOWN;
 }
 
+void HwcLayer::reverseScaledFrame(const float& scaleX, const float& scaleY) {
+    if (mScaleReversed)
+        return;
+
+    mDisplayFrame.left = mDisplayFrame.left * scaleX;
+    mDisplayFrame.top = mDisplayFrame.top * scaleY;
+    mDisplayFrame.right = mDisplayFrame.right * scaleX;
+    mDisplayFrame.bottom = mDisplayFrame.bottom * scaleY;
+    mScaleReversed = true;
+}
+
 int32_t HwcLayer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) {
     Mutex::Autolock _l(mLock);
     resetLayerBuffer();
 
     // Bad parameter
-    if (!buffer || private_handle_t::validate(buffer) < 0) {
+    if (!private_handle_t::dynamicCast(buffer)) {
         DTRACE("Layer buffer is null! no need to update this layer.");
         return HWC2_ERROR_BAD_PARAMETER;
     }
@@ -214,6 +225,7 @@ int32_t HwcLayer::setDisplayFrame(hwc_rect_t frame) {
 
     // TODO: still have some work to do.
     mDisplayFrame = frame;
+    mScaleReversed = false;
     return HWC2_ERROR_NONE;
 }
 
@@ -325,7 +337,7 @@ void HwcLayer::presentOverlay(bool bPresent) {
     }
 
     amvideo_utils_set_virtual_position(displayframe->left, displayframe->top,
-        displayframe->right - displayframe->left,
+        displayframe->right -displayframe->left,
         displayframe->bottom - displayframe->top,
         angle);
 
