@@ -69,6 +69,7 @@ LOCAL_C_INCLUDES += $(LOCAL_PATH) \
     $(LOCAL_PATH)/../common/utils \
     $(LOCAL_PATH)/../common/composers \
     $(LOCAL_PATH)/../.. \
+    $(TOP)/hardware/amlogic/media/amavutils/include \
     $(LOCAL_PATH)/ \
     $(TOP)/vendor/amlogic/frameworks/services/systemcontrol \
 
