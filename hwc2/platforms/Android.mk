@@ -3,12 +3,16 @@
 #
 
 LOCAL_PATH := $(call my-dir)
-include $(TOP)/hardware/amlogic/media/media_base_config.mk
+#include $(TOP)/hardware/amlogic/media/media_base_config.mk
 # HAL module implemenation, not prelinked and stored in
 # hw/<OVERLAY_HARDWARE_MODULE_ID>.<ro.product.board>.so
 include $(CLEAR_VARS)
 
 LOCAL_MODULE_RELATIVE_PATH := hw
+
+ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 26 && echo OK),OK)
+LOCAL_PROPRIETARY_MODULE := true
+endif
 
 LOCAL_SRC_FILES := \
     ../common/base/HwcLayer.cpp \
