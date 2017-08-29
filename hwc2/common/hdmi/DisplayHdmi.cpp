@@ -6,32 +6,59 @@
 #include <gui/SurfaceComposerClient.h>
 #include <gui/ISurfaceComposer.h>
 #include "DisplayHdmi.h"
+#include <cutils/properties.h>
 
 namespace android {
 namespace amlogic {
 
+void DisplayHdmi::SystemControlDeathRecipient::serviceDied(
+        uint64_t, const wp<::android::hidl::base::V1_0::IBase>&) {
+    ETRACE("system_control died, need reconnect it\n");
+}
+
 DisplayHdmi::DisplayHdmi(hwc2_display_t id) {
     mDisplayId = id;
 
-    sp<IServiceManager> sm = defaultServiceManager();
-    if (sm == NULL)
-    {
-        ETRACE("Couldn't get default ServiceManager\n");
-        return ;
-    }
-
-    mSystemControlService = interface_cast<ISystemControlService>(sm->getService(String16("system_control")));
-    if (mSystemControlService == NULL)
-    {
-        ETRACE("Couldn't get connection to SystemControlService\n");
-        return ;
-    }
+    mTrebleSystemControlEnable = property_get_bool("persist.system_control.treble", true);
 
     initModes();
 }
 
 DisplayHdmi::~DisplayHdmi() {
     mAllModes.clear();
+}
+
+void DisplayHdmi::initBinderService() {
+    mTrebleSystemControl = nullptr;
+    sp<ISystemControl> control = nullptr;
+
+    if (mTrebleSystemControlEnable) {
+        control = ISystemControl::getService();
+        mDeathRecipient = new SystemControlDeathRecipient();
+        Return<bool> linked = control->linkToDeath(mDeathRecipient, /*cookie*/ 0);
+        if (!linked.isOk()) {
+            ETRACE("Transaction error in linking to system service death: %s", linked.description().c_str());
+        } else if (!linked) {
+            ETRACE("Unable to link to system service death notifications");
+        } else {
+            ITRACE("Link to system service death notification successful");
+        }
+
+        mTrebleSystemControl = control;
+    }
+    else {
+        sp<IServiceManager> sm = defaultServiceManager();
+        if (sm == NULL) {
+            ETRACE("Couldn't get default ServiceManager\n");
+            return ;
+        }
+
+        mSystemControlService = interface_cast<ISystemControlService>(sm->getService(String16("system_control")));
+        if (mSystemControlService == NULL) {
+            ETRACE("Couldn't get connection to SystemControlService\n");
+            return ;
+        }
+    }
 }
 
 void DisplayHdmi::initialize() {
@@ -61,6 +88,7 @@ bool DisplayHdmi::updateHotplug(bool connected,
     private_handle_t* framebufferHnd) {
     bool ret = true;
     int32_t rate;
+    initBinderService();
 
     mConnected = connected;
 
@@ -76,7 +104,17 @@ bool DisplayHdmi::updateHotplug(bool connected,
          //hdmi plug out when system is starting up
         std::string dispMode;
         int width, height;
-        mSystemControlService->getActiveDispMode(&dispMode);
+        if (mTrebleSystemControlEnable) {
+            mTrebleSystemControl->getActiveDispMode([&dispMode](const Result &ret, const hidl_string& mode) {
+                if (Result::OK == ret) {
+                    dispMode = mode.c_str();
+                }
+            });
+        }
+        else {
+            mSystemControlService->getActiveDispMode(&dispMode);
+        }
+
         ret = calcMode2Config(dispMode.c_str(), &rate, &width, &height);
         if (!ret) {
             dispMode = std::string("1080p60hz");
@@ -113,9 +151,16 @@ bool DisplayHdmi::updateHotplug(bool connected,
         updateDisplayConfigures();
         updateActiveDisplayConfigure();
 
-        ALOGD("updateHotplug setDisplayMode to %s", mActiveDisplaymode);
         std::string strmode(mActiveDisplaymode);
-        mSystemControlService->setActiveDispMode(strmode);
+        if (mTrebleSystemControlEnable) {
+            hidl_string mode(strmode);
+            Result ret = mTrebleSystemControl->setActiveDispMode(mode);
+            if (Result::OK == ret) {
+            }
+        }
+        else {
+            mSystemControlService->setActiveDispMode(strmode);
+        }
     }
 
     std::thread t1(&DisplayHdmi::setSurfaceFlingerActiveMode, this);
@@ -129,7 +174,7 @@ int DisplayHdmi::updateDisplayModeList() {
     mSupportDispModes.clear();
 
     bool fullActiveMode = Utils::get_bool_prop("ro.sf.full_activemode");
-    bool isConfiged = readConfigFile("/system/etc/displayModeList.cfg", &mSupportDispModes);
+    bool isConfiged = readConfigFile("/vendor/etc/displayModeList.cfg", &mSupportDispModes);
     if (isConfiged) {
         return 0;
     }
@@ -141,7 +186,20 @@ int DisplayHdmi::updateDisplayModeList() {
 
     std::vector<std::string> getSupportDispModes;
     std::string::size_type pos;
-    mSystemControlService->getSupportDispModeList(&getSupportDispModes);
+    if (mTrebleSystemControlEnable) {
+        mTrebleSystemControl->getSupportDispModeList(
+            [&getSupportDispModes](const Result &ret, const hidl_vec<hidl_string>& modeList) {
+            if (Result::OK == ret) {
+                for (size_t i = 0; i < modeList.size(); i++) {
+                    getSupportDispModes.push_back(modeList[i]);
+                }
+            }
+        });
+    }
+    else {
+        mSystemControlService->getSupportDispModeList(&getSupportDispModes);
+    }
+
     if (getSupportDispModes.size() == 0) {
         ALOGD("SupportDispModeList null!!!");
         return -1;
@@ -177,7 +235,18 @@ int DisplayHdmi::updateDisplayModeList() {
 
 int DisplayHdmi::updateActiveDisplayMode() {
     std::string dispMode;
-    mSystemControlService->getActiveDispMode(&dispMode);
+
+    if (mTrebleSystemControlEnable) {
+        mTrebleSystemControl->getActiveDispMode([&dispMode](const Result &ret, const hidl_string& mode) {
+            if (Result::OK == ret) {
+                dispMode = mode.c_str();
+            }
+        });
+    }
+    else {
+        mSystemControlService->getActiveDispMode(&dispMode);
+    }
+
     strcpy(mActiveDisplaymode, dispMode.c_str());
 
     int refreshRate = 60;
@@ -206,7 +275,15 @@ int DisplayHdmi::setDisplayMode(const char* displaymode) {
     ALOGD("setDisplayMode to %s", displaymode);
 
     std::string strmode(displaymode);
-    mSystemControlService->setActiveDispMode(strmode);
+    if (mTrebleSystemControlEnable) {
+        hidl_string mode(strmode);
+        Result ret = mTrebleSystemControl->setActiveDispMode(mode);
+        if (Result::OK == ret) {
+        }
+    }
+    else {
+        mSystemControlService->setActiveDispMode(strmode);
+    }
 
     updateActiveDisplayMode();
 
@@ -446,12 +523,12 @@ bool DisplayHdmi::readConfigFile(const char* configPath, std::vector<std::string
 }
 
 void DisplayHdmi::setSurfaceFlingerActiveMode() {
+    /*
     sp<IBinder> dtoken(SurfaceComposerClient::getBuiltInDisplay(
         ISurfaceComposer::eDisplayIdMain));
 
     SurfaceComposerClient::setActiveConfig(dtoken, mDisplayConfigs.size()-mActiveDisplayConfigItem-1);
-
-    return;
+    */
 }
 
 void DisplayHdmi::initModes() {

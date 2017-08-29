@@ -16,7 +16,7 @@ endif
 
 LOCAL_SRC_FILES := \
     ../common/base/HwcLayer.cpp \
-	../common/base/HwcFenceControl.cpp \
+    ../common/base/HwcFenceControl.cpp \
     ../common/base/Hwcomposer.cpp \
     ../common/base/HwcModule.cpp \
     ../common/base/VsyncManager.cpp \
@@ -37,7 +37,7 @@ LOCAL_SRC_FILES += \
 LOCAL_SHARED_LIBRARIES := \
     libcutils \
     liblog \
-	libEGL \
+    libEGL \
     libdl \
     libhardware \
     libutils \
@@ -48,6 +48,13 @@ LOCAL_SHARED_LIBRARIES := \
     libbinder \
     libsystemcontrolservice \
     libgui
+
+# added for treble
+LOCAL_SHARED_LIBRARIES += \
+    vendor.amlogic.hardware.systemcontrol@1.0 \
+    libbase \
+    libhidlbase \
+    libhidltransport
 
 LOCAL_STATIC_LIBRARIES := \
 	libomxutil
@@ -94,6 +101,8 @@ LOCAL_C_INCLUDES += $(MESON_GRALLOC_DIR)
 
 LOCAL_C_INCLUDES += system/core/libion/include/ \
                 system/core/libion/kernel-headers
+
+LOCAL_CFLAGS += -DPLATFORM_SDK_VERSION=$(PLATFORM_SDK_VERSION)
 
 ifeq ($(TARGET_APP_LAYER_USE_CONTINUOUS_BUFFER),true)
 LOCAL_CFLAGS += -DUSE_CONTINOUS_BUFFER_COMPOSER

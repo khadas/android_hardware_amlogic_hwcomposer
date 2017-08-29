@@ -20,7 +20,15 @@
 #include <ISystemControlService.h>
 #include <gui/SurfaceComposerClient.h>
 
+#include <vendor/amlogic/hardware/systemcontrol/1.0/ISystemControl.h>
+
 #define HWC_DISPLAY_MODE_LENGTH 32
+
+using ::vendor::amlogic::hardware::systemcontrol::V1_0::ISystemControl;
+using ::vendor::amlogic::hardware::systemcontrol::V1_0::Result;
+using ::android::hardware::hidl_vec;
+using ::android::hardware::hidl_string;
+using ::android::hardware::Return;
 
 namespace android {
 namespace amlogic {
@@ -98,9 +106,20 @@ public:
     void dump(Dump& d);
 
 private:
+    void initBinderService();
+    struct SystemControlDeathRecipient : public android::hardware::hidl_death_recipient
+    {
+        // hidl_death_recipient interface
+        virtual void serviceDied(uint64_t cookie,
+                const ::android::wp<::android::hidl::base::V1_0::IBase>& who) override;
+    };
+
     hwc2_display_t mDisplayId;   //0-primary 1-external
     bool mConnected;
+    bool mTrebleSystemControlEnable;
     sp<ISystemControlService> mSystemControlService;
+    sp<ISystemControl> mTrebleSystemControl;
+    sp<SystemControlDeathRecipient> mDeathRecipient = nullptr;
     sp<SurfaceComposerClient> mComposerClient;
 
     //display outputmode as 4k20hz, 1080p60hz, panel. etc.

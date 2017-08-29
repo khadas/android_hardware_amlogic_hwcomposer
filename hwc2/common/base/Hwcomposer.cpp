@@ -928,12 +928,17 @@ bool Hwcomposer::release() {
 bool Hwcomposer::initialize(private_module_t *grallocModule) {
     CTRACE();
 
-    if (!mPlatFactory || !grallocModule) {
+    if (!mPlatFactory) {
         DEINIT_AND_RETURN_FALSE("failed to provide a PlatFactory");
     }
 
+#if PLATFORM_SDK_VERSION < 26
+    if ( !grallocModule) {
+        DEINIT_AND_RETURN_FALSE("failed to provide a grallocModule");
+    }
     // initial gralloc module.
     mGrallocModule = grallocModule;
+#endif
 
     mUeventObserver = new UeventObserver();
     if (!mUeventObserver || !mUeventObserver->initialize()) {

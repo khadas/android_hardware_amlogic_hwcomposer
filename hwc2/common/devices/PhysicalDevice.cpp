@@ -32,6 +32,11 @@
 
 static int Amvideo_Handle = 0;
 
+#include <vendor/amlogic/hardware/systemcontrol/1.0/ISystemControl.h>
+
+using ::vendor::amlogic::hardware::systemcontrol::V1_0::ISystemControl;
+using ::vendor::amlogic::hardware::systemcontrol::V1_0::Result;
+
 namespace android {
 namespace amlogic {
 
@@ -1325,6 +1330,8 @@ int32_t PhysicalDevice::initDisplay() {
             fbInfo->fbIdx, fbInfo->info.xres,
             fbInfo->info.yres);
         int32_t usage = 0;
+
+#if PLATFORM_SDK_VERSION < 26
         private_module_t *grallocModule = Hwcomposer::getInstance().getGrallocModule();
         if (mId == HWC_DISPLAY_PRIMARY) {
             grallocModule->fb_primary.fb_info = *(fbInfo);
@@ -1333,13 +1340,17 @@ int32_t PhysicalDevice::initDisplay() {
             usage |= GRALLOC_USAGE_EXTERNAL_DISP;
         }
         fbInfo->grallocModule = grallocModule;
+#endif
 
         //Register the framebuffer to gralloc module
         mFramebufferHnd = new private_handle_t(
                         private_handle_t::PRIV_FLAGS_FRAMEBUFFER,
                         usage, fbInfo->fbSize, 0,
                         0, fbInfo->fd, bufferSize, 0);
+#if PLATFORM_SDK_VERSION < 26
         grallocModule->base.registerBuffer(&(grallocModule->base), mFramebufferHnd);
+#endif
+
         DTRACE("init_frame_buffer get frame size %d usage %d",
             bufferSize, usage);
     }
@@ -1400,20 +1411,36 @@ bool PhysicalDevice::updateDisplayConfigs() {
     //ETRACE("updateDisplayConfigs rate:%d", mDisplayHdmi->getActiveRefreshRate());
 
     // check hdcp authentication status when hotplug is happen.
-    if (mSystemControl == NULL) {
-        mSystemControl = getSystemControlService();
-    } else {
-        DTRACE("already have system control instance.");
+    int status = 0;
+    bool trebleSystemControlEnable = property_get_bool("persist.system_control.treble", true);
+    sp<ISystemControl> trebleSystemControl;
+    if (trebleSystemControlEnable) {
+        ITRACE("ISystemControl::getService");
+        trebleSystemControl = ISystemControl::getService();
+        if (trebleSystemControl != NULL) {
+            ITRACE("Link to system service death notification successful");
+
+            Result ret = trebleSystemControl->isHDCPTxAuthSuccess();
+            if (Result::OK == ret) {
+                status = 1;
+            }
+        }
+        else
+            ETRACE("ISystemControl::getService fail");
     }
-    if (mSystemControl != NULL) {
-        // mSecure = Utils::checkHdcp();
-        int status = 0;
-        mSystemControl->isHDCPTxAuthSuccess(status);
-        DTRACE("hdcp status: %d", status);
-        mSecure = (status == 1) ? true : false;
-    } else {
-        ETRACE("can't get system control.");
+    else {
+        sp<IServiceManager> sm = defaultServiceManager();
+        if (sm == NULL) {
+            ETRACE("Couldn't get default ServiceManager\n");
+            return NULL;
+        }
+        sp<IBinder> binder = sm->getService(String16("system_control"));
+        sp<ISystemControlService> sc = interface_cast<ISystemControlService>(binder);
+        sc->isHDCPTxAuthSuccess(status);
     }
+
+    DTRACE("hdcp status: %d", status);
+    mSecure = (status == 1) ? true : false;
 
     return true;
 }
