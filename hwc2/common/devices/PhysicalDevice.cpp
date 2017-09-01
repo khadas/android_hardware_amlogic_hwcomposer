@@ -740,10 +740,20 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
         mFbSyncRequest.op |= OSD_BLANK_OP_BIT;
         mFramebufferContext->setStatus(true);
         mPriorFrameRetireFence = hwc_fb_post_with_fence_locked(&fbInfo, &mFbSyncRequest, NULL);
+#if PLATFORM_SDK_VERSION >= 26 //TEMP, will remove later.
+        HwcFenceControl::wait(*outRetireFence, -1);
+        HwcFenceControl::closeFd(*outRetireFence);
+        *outRetireFence = -1;
+#endif
      } else {
         *outRetireFence = HwcFenceControl::dupFence(mPriorFrameRetireFence);
         if (*outRetireFence >= 0) {
             DTRACE("Get prior frame's retire fence %d", *outRetireFence);
+#if PLATFORM_SDK_VERSION >= 26 //TEMP, will remove later.
+            HwcFenceControl::wait(*outRetireFence, -1);
+            HwcFenceControl::closeFd(*outRetireFence);
+            *outRetireFence = -1;
+#endif
         } else {
             ETRACE("No valid prior frame's retire returned. %d ", *outRetireFence);
             // -1 means no fence, less than -1 is some error
@@ -754,6 +764,13 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
 
         // real post framebuffer here.
         DTRACE("render type: %d", mFbSyncRequest.type);
+
+#if PLATFORM_SDK_VERSION >= 26 //TEMP, will remove later.
+        HwcFenceControl::wait(mTargetAcquireFence, -1);
+        HwcFenceControl::closeFd(mTargetAcquireFence);
+        mTargetAcquireFence = -1;
+#endif
+
         if (!mIsContinuousBuf) {
             mPriorFrameRetireFence = fb_post_with_fence_locked(&fbInfo, mClientTargetHnd, mTargetAcquireFence);
         } else {
@@ -841,6 +858,7 @@ int32_t PhysicalDevice::presentDisplay(int32_t* outRetireFence) {
 
     mClientTargetHnd = NULL;
 
+    ALOGE("presentDisplay return err %d", err);
     return err;
 }
 
