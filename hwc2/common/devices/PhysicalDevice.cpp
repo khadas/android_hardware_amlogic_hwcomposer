@@ -690,11 +690,6 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
         mFbSyncRequest.op |= OSD_BLANK_OP_BIT;
         mFramebufferContext->setStatus(true);
         mPriorFrameRetireFence = hwc_fb_post_with_fence_locked(&fbInfo, &mFbSyncRequest, NULL);
-#if PLATFORM_SDK_VERSION >= 26 //TEMP, will remove later.
-        HwcFenceControl::wait(*outRetireFence, -1);
-        HwcFenceControl::closeFd(*outRetireFence);
-        *outRetireFence = -1;
-#endif
      } else {
         *outRetireFence = HwcFenceControl::dupFence(mPriorFrameRetireFence);
         if (*outRetireFence >= 0) {
@@ -717,12 +712,6 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
         }
         // real post framebuffer here.
         DTRACE("render type: %d", mFbSyncRequest.type);
-
-#if PLATFORM_SDK_VERSION >= 26 //TEMP, will remove later.
-        HwcFenceControl::wait(mTargetAcquireFence, -1);
-        HwcFenceControl::closeFd(mTargetAcquireFence);
-        mTargetAcquireFence = -1;
-#endif
 
         if (!bUseHwcPost) {
             setOSD0Blank(needBlankFb0);
@@ -759,14 +748,6 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
             DTRACE("UPDATE FB1 status to %d", !cursorShow);
             ioctl(cbInfo->fd, FBIOBLANK, !cursorShow);
         }
-
-#if PLATFORM_SDK_VERSION >= 26 //TEMP, will remove later.
-        if (*outRetireFence >= 0) {
-            HwcFenceControl::wait(*outRetireFence, -1);
-            HwcFenceControl::closeFd(*outRetireFence);
-            *outRetireFence = -1;
-        }
-#endif
     }
 
     if (mRenderMode != GE2D_COMPOSE_MODE) {
