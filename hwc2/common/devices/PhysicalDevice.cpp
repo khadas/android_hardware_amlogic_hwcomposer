@@ -872,7 +872,6 @@ int32_t PhysicalDevice::presentDisplay(int32_t* outRetireFence) {
 
     mClientTargetHnd = NULL;
 
-    ALOGE("presentDisplay return err %d", err);
     return err;
 }
 
