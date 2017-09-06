@@ -264,6 +264,8 @@ private:
     //rever the scaled displayframe, for we use the vpp scale.
     float mReverseScaleX;
     float mReverseScaleY;
+
+    int mBootanimStatus;
 };
 
 

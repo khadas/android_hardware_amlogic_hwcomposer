@@ -53,6 +53,7 @@ PhysicalDevice::PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc, DeviceControl
       mGE2DClearVideoRegionCount(0),
       mGE2DComposeFrameCount(0),
       mDirectComposeFrameCount(0),
+      mBootanimStatus(0),
       mInitialized(false) {
     CTRACE();
 
@@ -671,6 +672,15 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
     }
 #endif
     mFbSyncRequest.type = mRenderMode;
+
+    if (mBootanimStatus == 0 && mSystemControl != NULL) {
+        mSystemControl->getBootanimStatus(mBootanimStatus);
+        if (mBootanimStatus == 0) {
+            HwcFenceControl::wait(mTargetAcquireFence, 3000);
+            *outRetireFence = -1;
+            return HWC2_ERROR_NONE;
+        }
+    }
 
     if (!mClientTargetHnd || private_handle_t::validate(mClientTargetHnd) < 0 || mPowerMode == HWC2_POWER_MODE_OFF) {
         DTRACE("Post blank to screen, mClientTargetHnd(%p, %d), mTargetAcquireFence(%d)",
