@@ -1,5 +1,18 @@
 /*
-// Copyright(c) 2016 Amlogic Corporation
+// Copyright (c) 2016 Amlogic
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
 */
 
 #ifndef UTILS_H_
@@ -9,6 +22,7 @@
 #if WITH_LIBPLAYER_MODULE
 #include <Amavutils.h>
 #endif
+#include <hardware/hwcomposer_defs.h>
 
 #define DISPLAY_HPD_STATE               "/sys/class/amhdmitx/amhdmitx0/hpd_state"
 #define DISPLAY_HDMI_EDID               "/sys/class/amhdmitx/amhdmitx0/disp_cap"
@@ -47,8 +61,6 @@ public:
 #if WITH_LIBPLAYER_MODULE
     static bool checkSysfsStatus(const char* sysfstr, char* lastr, int32_t size);
 #endif
-    static bool checkOutputMode(char* curmode, int32_t* rate);
-    static bool checkVinfo(framebuffer_info_t *fbinfo);
 
     static const char* getHotplugUeventEnvelope();
     static const char* getHdcpUeventEnvelope();
@@ -92,6 +104,18 @@ public:
         b = t;
     }
 
+    /*
+    * hwc_rect_t operation
+    */
+    enum OVERLAP_TYPE{
+        OVERLAP_EMPTY = 0,
+        OVERLAP_PART,
+        OVERLAP_FULL
+    };
+
+    static bool rectEmpty(hwc_rect_t& rect);
+    static bool rectIntersect(hwc_rect_t& source, hwc_rect_t& dest, hwc_rect_t& result);
+    static OVERLAP_TYPE rectOverlap(hwc_rect_t& source, hwc_rect_t& dest);
 };
 
 } // namespace amlogic

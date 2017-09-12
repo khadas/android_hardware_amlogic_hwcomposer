@@ -29,13 +29,6 @@ namespace android {
 namespace amlogic {
 
 enum {
-    LAYER_MAX_NUM_SECURE_PROTECTED = 5,
-    LAYER_MAX_NUM_CHANGE_REQUEST = 8,
-    LAYER_MAX_NUM_CHANGE_TYPE = 16,
-    LAYER_MAX_NUM_SUPPORT = LAYER_MAX_NUM_CHANGE_TYPE,
-};
-
-enum {
     HWC2_NO_LAYER = 0,
     HWC2_ONE_LAYER = 1,
     HWC2_TWO_LAYERS = 2,
@@ -43,6 +36,9 @@ enum {
     HWC2_MAX_LAYERS = HWC2_THREE_LAYERS,
 };
 
+
+#define HWC2_HW_COMPOSE_WIDTH_MAX       (1920)
+#define HWC2_HW_COMPOSE_HEIGHT_MAX      (1080)
 
 //  display device interface
 class IDisplayDevice {
@@ -120,11 +116,9 @@ public:
 
     virtual HwcLayer* getLayerById(hwc2_layer_t layerId) = 0;
 
-    virtual bool updateDisplayConfigs() = 0;
-
-    //events
+    // events
     virtual void onVsync(int64_t timestamp) = 0;
-
+    virtual void onHotplug(int disp, bool connected) = 0;
     virtual void dump(Dump& d) = 0;
 
 };

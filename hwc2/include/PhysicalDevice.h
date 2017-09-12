@@ -25,7 +25,6 @@
 #include <HwcLayer.h>
 #include <IComposer.h>
 #include <DisplayHdmi.h>
-
 #include <systemcontrol/ISystemControlService.h>
 #include <systemcontrol/DisplayMode.h>
 #include <binder/Binder.h>
@@ -82,8 +81,6 @@ public:
     friend class Hwcomposer;
     friend class HwcLayer;
 
-    // typedef sp<ISystemControlService> IScs;
-
     // Required by HWC2
     virtual int32_t acceptDisplayChanges();
     virtual bool createLayer(hwc2_layer_t* outLayer);
@@ -129,7 +126,7 @@ public:
     // Other Display methods
     virtual Hwcomposer& getDevice() const { return mHwc; }
     virtual hwc2_display_t getId() const { return mId; }
-    virtual bool isConnected() const { return mIsConnected; }
+    virtual bool isConnected() const { return mConnectorPresent; }
     virtual void updateHotplugState(bool connected);
 
     // device related operations
@@ -142,9 +139,11 @@ public:
 
     // display config operations
     virtual bool updateDisplayConfigs();
+    virtual void updateActiveDisplayAttribute();
 
-    //events
+    // events
     virtual void onVsync(int64_t timestamp);
+    virtual void onHotplug(int disp, bool connected);
     virtual void dump(Dump& d);
     DisplayHdmi* getDisplayHdmi()  const { return mDisplayHdmi; };
 
@@ -154,12 +153,17 @@ private:
     int32_t postFramebuffer(int32_t* outRetireFence,  bool hasVideoOverlay);
     int32_t getLineValue(const char *lineStr, const char *magicStr);
 
+    int32_t clearLayersStats();
+    int32_t preValidate();
     int32_t parseHdrCapabilities();
     void directCompose(framebuffer_info_t * fbInfo);
     void ge2dCompose(framebuffer_info_t * fbInfo, bool hasVideoOverlay);
     int32_t setOSD0Blank(bool blank);
     bool layersStateCheck(int32_t renderMode, KeyedVector<hwc2_layer_t, HwcLayer*> & composeLayers);
     int32_t composersFilter(KeyedVector<hwc2_layer_t, HwcLayer*>& composeLayers);
+
+    int32_t beginCompose();
+    int32_t finishCompose();
 
     //swap the mHwcCurReleaseFence and mHwcPriorReleaseFence;
     void swapReleaseFence();
@@ -171,9 +175,11 @@ private:
     void dumpLayers(KeyedVector<hwc2_layer_t, HwcLayer*> layers);
     void clearFramebuffer();
 
-    sp<ISystemControlService> getSystemControlService();
     static void hdcpEventListener(void *data, bool status);
     void setSecureStatus(bool status);
+
+    // for vpp post scale.
+    bool calReverseScale();
 
     template <typename T, typename S>
     static inline bool compareSize(T a, S b) {
@@ -187,13 +193,12 @@ private:
     // Member variables
     hwc2_display_t mId;
     const char *mName;
-    bool mIsConnected;
     bool mSecure;
     Hwcomposer& mHwc;
     DisplayHdmi* mDisplayHdmi;
     DeviceControlFactory *mControlFactory;
-
     SoftVsyncObserver *mVsyncObserver;
+
     IComposer *mComposer;
 
     // DeviceControlFactory *mControlFactory;
@@ -218,6 +223,7 @@ private:
     int32_t mDirectComposeFrameCount;
     int32_t mPriorFrameRetireFence;
     int32_t mRenderMode;
+    int32_t mPreviousRenderMode;
     bool mIsValidated;
     bool mIsContinuousBuf;
 
@@ -234,9 +240,7 @@ private:
     KeyedVector<hwc2_layer_t, HwcLayer*> mHwcLayersChangeRequest;
     KeyedVector<hwc2_layer_t, HwcLayer*> mHwcGlesLayers;
     KeyedVector<hwc2_layer_t, HwcLayer*> mHwcLayers;
-#ifdef HWC_ENABLE_SECURE_LAYER
     KeyedVector<hwc2_layer_t, HwcLayer*> mHwcSecureLayers;
-#endif
 
     // HDR Capabilities
     hdr_capabilities_t mHdrCapabilities;
@@ -252,7 +256,14 @@ private:
     // lock
     Mutex mLock;
     bool mInitialized;
-    bool mUsingPutCurosr;
+
+    // status of display connector.(hdmi, cvbs, panel)
+    bool mGetInitState;
+    bool mConnectorPresent;
+
+    //rever the scaled displayframe, for we use the vpp scale.
+    float mReverseScaleX;
+    float mReverseScaleY;
 };
 
 

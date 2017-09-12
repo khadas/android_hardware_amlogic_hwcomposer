@@ -1,6 +1,20 @@
 /*
-// Copyright(c) 2016 Amlogic Corporation
+// Copyright (c) 2016 Amlogic
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
 */
+
 
 #include <hardware/hardware.h>
 
@@ -40,11 +54,11 @@ bool Utils::get_bool_prop(const char* prop) {
 int Utils::get_int_prop(const char* prop) {
     char val[PROPERTY_VALUE_MAX];
     memset(val, 0, sizeof(val));
-    if (property_get(prop, val, "2")) {
-        //VTRACE("prop: %s is %s",prop, val);
+    if (property_get(prop, val, "0")) {
+        VTRACE("prop: %s is %s",prop, val);
         return atoi(val);
     }
-    return 0;
+    return -1;
 }
 
 int Utils::getSysfsInt(const char* syspath, int def) {
@@ -52,7 +66,7 @@ int Utils::getSysfsInt(const char* syspath, int def) {
     char valstr[64];
     if (getSysfsStr(syspath, valstr, sizeof(valstr)) == 0) {
         val = atoi(valstr);
-        //DTRACE("sysfs(%s) read int (%s)=(%d)", syspath, valstr, val);
+        DTRACE("sysfs(%s) read int (%d)", syspath, val);
     }
     return val;
 }
@@ -176,42 +190,9 @@ bool Utils::checkSysfsStatus(const char* sysfstr, char* lastr, int32_t size) {
 }
 #endif
 
-bool Utils::checkVinfo(framebuffer_info_t *fbInfo) {
-    if (fbInfo != NULL && fbInfo->fd >= 0) {
-        struct fb_var_screeninfo vinfo;
-        if (ioctl(fbInfo->fd, FBIOGET_VSCREENINFO, &vinfo) == -1)
-        {
-            ETRACE("FBIOGET_VSCREENINFO error!!!");
-            return -errno;
-        }
-
-        if (vinfo.xres != fbInfo->info.xres
-            || vinfo.yres != fbInfo->info.yres
-            || vinfo.width != fbInfo->info.width
-            || vinfo.height != fbInfo->info.height) {
-            if (int32_t(vinfo.width) <= 16 || int32_t(vinfo.height) <= 9) {
-                // the driver doesn't return that information
-                // default to 160 dpi
-                vinfo.width  = ((vinfo.xres * 25.4f)/160.0f + 0.5f);
-                vinfo.height = ((vinfo.yres * 25.4f)/160.0f + 0.5f);
-            }
-            fbInfo->xdpi = (vinfo.xres * 25.4f) / vinfo.width;
-            fbInfo->ydpi = (vinfo.yres * 25.4f) / vinfo.height;
-
-            fbInfo->info.xres = vinfo.xres;
-            fbInfo->info.yres = vinfo.yres;
-            fbInfo->info.width = vinfo.width;
-            fbInfo->info.height = vinfo.height;
-        }
-        return true;
-    }
-
-    return false;
-}
-
 const char* Utils::getHotplugUeventEnvelope()
 {
-    return "change@/devices/virtual/switch/hdmi_audio";
+    return "change@/devices/virtual/switch/hdmi_delay";
 }
 
 const char* Utils::getHdcpUeventEnvelope()
@@ -228,6 +209,36 @@ const char* Utils::getSwitchState1()
 {
     return "SWITCH_STATE=1";
 }
+
+
+bool Utils::rectEmpty(hwc_rect_t& rect) {
+    if ((rect.right - rect.left <= 0) ||(rect.bottom - rect.top <= 0))
+        return true;
+    else
+        return false;
+}
+
+bool Utils::rectIntersect(hwc_rect_t& source, hwc_rect_t& dest, hwc_rect_t& result) {
+    result.left = max(source.left, dest.left);
+    result.top = max(source.top, dest.top);
+    result.right = min(source.right, dest.right);
+    result.bottom = min(source.bottom, dest.bottom);
+    return !rectEmpty(result);
+}
+
+Utils::OVERLAP_TYPE Utils::rectOverlap(hwc_rect_t& source, hwc_rect_t& dest) {
+    hwc_rect_t result;
+    if (!rectIntersect(source, dest, result)) {
+        return OVERLAP_EMPTY;
+    } else {
+        if (compareRect(result, source) == true) {
+            return OVERLAP_FULL;
+        } else {
+            return OVERLAP_PART;
+        }
+    }
+}
+
 
 } // namespace amlogic
 } // namespace android

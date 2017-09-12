@@ -1,16 +1,19 @@
 /*
- * AMLOGIC IOCTL WRAPPER
+ * Copyright (c) 2014 Amlogic, Inc. All rights reserved.
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the BSD Licence, GNU General Public License
- * as published by the Free Software Foundation; either version 2 of the
- * License, or (at your option) any later version
+ * This source code is subject to the terms and conditions defined in the
+ * file 'LICENSE' which is part of this source code package.
+ *
+ * Description:
+ *     AMLOGIC OMX IOCTL WRAPPER
  */
+
 
 int openamvideo();
 void closeamvideo();
 int setomxdisplaymode();
 int setomxpts(int time_video);
+int setomxpts(uint32_t* omx_info);
 void set_omx_pts(char* data, int* handle);
 
 

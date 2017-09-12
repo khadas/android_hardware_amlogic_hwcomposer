@@ -1,6 +1,21 @@
 /*
-// Copyright(c) 2016 Amlogic Corporation
+// Copyright (c) 2016 Amlogic
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
 */
+
+
 #include <HwcTrace.h>
 #include <HwcFenceControl.h>
 #include <GE2DComposer.h>
@@ -157,7 +172,7 @@ bool GE2DComposer::initialize(framebuffer_info_t* fbInfo)
         if (ret < 0) {
             DEINIT_AND_RETURN_FALSE("allocBuffer failed!");
         }
-        private_handle_t const *pHandle = reinterpret_cast<private_handle_t const*> (mGe2dBufHnd);
+        private_handle_t const *pHandle = private_handle_t::dynamicCast(mGe2dBufHnd);
         if (pHandle) {
             mSharedFd = pHandle->share_fd;
         }
@@ -204,7 +219,7 @@ void GE2DComposer::deinitialize()
         mSrcBufferInfo = NULL;
     }
 
-    private_handle_t const* hnd = reinterpret_cast<private_handle_t const*>(mGe2dBufHnd);
+    private_handle_t const* hnd = private_handle_t::dynamicCast(mGe2dBufHnd);
     if (NULL != hnd) {
         freeBuffer(hnd, mFbInfo->grallocModule);
         mGe2dBufHnd = NULL;
@@ -448,7 +463,8 @@ void GE2DComposer::dumpLayers(
 #if 1
         int32_t base = 4 * (hnd->stride * (hnd->height / 2) + 10);
         char* tmp = (char*)layerBuffer + base;
-        DTRACE("[0x%x, 0x%x, 0x%x, 0x%x]\n"
+        ETRACE("GE2DComposer dump layer:\n"
+            "[0x%x, 0x%x, 0x%x, 0x%x]\n"
             "[0x%x, 0x%x, 0x%x, 0x%x]\n"
             "[0x%x, 0x%x, 0x%x, 0x%x]\n"
             "[0x%x, 0x%x, 0x%x, 0x%x]\n",
@@ -463,7 +479,7 @@ void GE2DComposer::dumpLayers(
         sprintf(path, "/data/local/tmp/layer_%" PRId64 ".bin", systemTime(SYSTEM_TIME_MONOTONIC));
         fd = open(path, O_RDWR | O_CREAT);
         if (-1 == fd) {
-            ETRACE("Stark, open file failed!");
+            ETRACE("open file failed!");
             return;
         }
         write(fd, layerBuffer, hnd->size);
@@ -471,7 +487,6 @@ void GE2DComposer::dumpLayers(
         close(fd);
 #endif
         munmap(layerBuffer, hnd->size);
-        DTRACE("dumpLayer ok");
     } else {
         ETRACE("layerBuffer mmap fail");
     }
@@ -490,12 +505,12 @@ void GE2DComposer::runGE2DProcess(int32_t slot, Vector< LayerState* > &hwcLayers
         layer[i] = hwcLayersState.itemAt(i);
         sourceCrop[i] = layer[i]->mSourceCrop;
         displayFrame[i] = layer[i]->mDisplayFrame;
-        hnd[i] = reinterpret_cast<private_handle_t const*>(layer[i]->mBufferHnd);
+        hnd[i] = private_handle_t::dynamicCast(layer[i]->mBufferHnd);
         DTRACE("layer[%d] zorder: %d, blend: %d, PlaneAlpha: %f, "
             "mColor: [%d, %d, %d, %d], mDataSpace: %d, format hnd[%d]: %x",
             i, layer[i]->mZ, layer[i]->mBlendMode, layer[i]->mPlaneAlpha,
             layer[i]->mColor.r, layer[i]->mColor.g, layer[i]->mColor.b,
-            layer[i]->mColor.a, layer[i]->mDataSpace, i, hnd[i]->format);
+            layer[i]->mColor.a, layer[i]->mDataSpace, i, hnd[i] ? hnd[i]->format : 0xff);
     }
 
     bool debugSameSize = Utils::checkBoolProp("sys.sf.debug.ss");
@@ -688,7 +703,7 @@ bool GE2DComposer::threadLoop()
         // ge2d finished process, make sure fd close here.
         for (int32_t i=0; i<layersState.size(); i++) {
             LayerState* layer = layersState.itemAt(i);
-            // ETRACE("close->layer:[%12" PRIxPTR ", %d]", layer->mBufferHnd, layer->mBufferFd);
+            // DTRACE("close->layer:[%12" PRIxPTR ", %d]", layer->mBufferHnd, layer->mBufferFd);
             if (layer != NULL) {
                 Utils::closeFd(layer->mBufferFd);
                 layer->mBufferFd = -1;

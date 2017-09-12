@@ -1,5 +1,5 @@
 /*
-// Copyright (c) 2016 Amlogic
+// Copyright (c) 2017 Amlogic
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,43 +14,32 @@
 // limitations under the License.
 //
 */
+#ifndef AML_VIDEO_H_
+#define AML_VIDEO_H_
 
-
-#include <HwcTrace.h>
-#include <Composers.h>
-#include <IDisplayDevice.h>
-
+#include <utils/Mutex.h>
 
 namespace android {
-namespace amlogic {
+class AmVideo {
+public:
+    static AmVideo* getInstance();
+    int presentVideo(bool bPresent);
+    bool isVideoPresent() {return mVideoPresent;}
 
-Composers::Composers(IDisplayDevice& disp)
-    : mDisplayDevice(disp),
-      mInitialized(false)
-{
+protected:
+    AmVideo();
+    ~AmVideo();
+
+    int getVideoPresent(bool& output);
+
+private:
+    static AmVideo* mInstance;
+    static Mutex mLock;
+
+    int mDevFd;
+    bool mVideoPresent;
+};
+
 }
-
-Composers::~Composers()
-{
-    WARN_IF_NOT_DEINIT();
-}
-
-bool Composers::initialize(framebuffer_info_t* fbInfo)
-{
-    if (mInitialized) {
-        WTRACE("object has been initialized");
-        return true;
-    }
-
-    mInitialized = true;
-    return true;
-}
-
-void Composers::deinitialize()
-{
-    mInitialized = false;
-}
-
-} // namespace amlogic
-} // namesapce android
+#endif//AML_VIDEO_H_
 

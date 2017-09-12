@@ -29,7 +29,9 @@ LOCAL_SRC_FILES := \
     ../common/composers/Composers.cpp \
     ../common/composers/GE2DComposer.cpp \
     ../common/utils/Utils.cpp \
-    ../common/utils/Dump.cpp
+    ../common/utils/Dump.cpp \
+    ../common/utils/AmVinfo.cpp \
+    ../common/utils/AmVideo.cpp
 
 LOCAL_SRC_FILES += \
     PlatFactory.cpp
@@ -110,7 +112,7 @@ LOCAL_CFLAGS += -DUSE_CONTINOUS_BUFFER_COMPOSER
 endif
 
 ifeq ($(TARGET_SUPPORT_SECURE_LAYER),true)
-LOCAL_CFLAGS += -DHWC_ENABLE_SECURE_LAYER
+LOCAL_CFLAGS += -DHWC_SUPPORT_SECURE_LAYER
 endif
 
 WITH_LIBPLAYER_MODULE := true

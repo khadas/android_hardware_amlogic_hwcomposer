@@ -23,6 +23,7 @@
 #include <IDisplayDevice.h>
 #include <cutils/properties.h>
 #include <sync/sync.h>
+#include <AmVideo.h>
 
 
 namespace android {
@@ -87,9 +88,9 @@ void HwcLayer::resetAcquireFence() {
 
 bool HwcLayer::isCropped() {
     bool rtn = true;
-    private_handle_t const* buffer = reinterpret_cast<private_handle_t const*>(mBufferHnd);
+    private_handle_t const* buffer = private_handle_t::dynamicCast(mBufferHnd);
 
-    if (buffer && buffer->width  && buffer->height) {
+    if (buffer && buffer->width && buffer->height) {
         float widthCmp = (mSourceCrop.right - mSourceCrop.left) / buffer->width;
         float heightCmp = (mSourceCrop.bottom - mSourceCrop.top) / buffer->height;
 
@@ -153,19 +154,29 @@ bool HwcLayer::haveDataspace() {
     return mDataSpace != HAL_DATASPACE_UNKNOWN;
 }
 
+void HwcLayer::reverseScaledFrame(const float& scaleX, const float& scaleY) {
+    if (mScaleReversed)
+        return;
+
+    mDisplayFrame.left = mDisplayFrame.left * scaleX;
+    mDisplayFrame.top = mDisplayFrame.top * scaleY;
+    mDisplayFrame.right = mDisplayFrame.right * scaleX;
+    mDisplayFrame.bottom = mDisplayFrame.bottom * scaleY;
+    mScaleReversed = true;
+}
+
 int32_t HwcLayer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) {
     Mutex::Autolock _l(mLock);
+    resetLayerBuffer();
 
     // Bad parameter
-	if (buffer && private_handle_t::validate(buffer) < 0)
-		return HWC2_ERROR_BAD_PARAMETER;
-
-    if (NULL == buffer) {
+    if (!private_handle_t::dynamicCast(buffer)) {
         DTRACE("Layer buffer is null! no need to update this layer.");
+        return HWC2_ERROR_BAD_PARAMETER;
     }
+
     mBufferHnd = buffer;
     mAcquireFence = acquireFence;
-
     return HWC2_ERROR_NONE;
 }
 
@@ -214,6 +225,7 @@ int32_t HwcLayer::setDisplayFrame(hwc_rect_t frame) {
 
     // TODO: still have some work to do.
     mDisplayFrame = frame;
+    mScaleReversed = false;
     return HWC2_ERROR_NONE;
 }
 
@@ -227,6 +239,7 @@ int32_t HwcLayer::setPlaneAlpha(float alpha) {
 
 int32_t HwcLayer::setSidebandStream(const native_handle_t* stream) {
     Mutex::Autolock _l(mLock);
+    resetLayerBuffer();
 
     // Bad parameter.
     if (NULL == stream) {
@@ -267,14 +280,24 @@ int32_t HwcLayer::setZ(uint32_t z) {
     return HWC2_ERROR_NONE;
 }
 
+void HwcLayer::resetLayerBuffer() {
+   mSidebandStream = NULL;
+   mBufferHnd = NULL;
+   HwcFenceControl::closeFd(mAcquireFence);
+   mAcquireFence = -1;
+}
+
 #if WITH_LIBPLAYER_MODULE
-void HwcLayer::presentOverlay() {
+void HwcLayer::presentOverlay(bool bPresent) {
     int32_t angle = 0;
     bool vpp_changed = false;
     bool axis_changed = false;
     bool mode_changed = false;
     bool free_scale_changed = false;
     bool window_axis_changed =false;
+    hwc_rect_t* displayframe = &mDisplayFrame;
+
+    AmVideo::getInstance()->presentVideo(bPresent);
 
     if (Utils::checkBoolProp("ro.vout.dualdisplay4")) {
         vpp_changed = Utils::checkSysfsStatus(
@@ -287,10 +310,10 @@ void HwcLayer::presentOverlay() {
     window_axis_changed     = Utils::checkSysfsStatus(SYSFS_WINDOW_AXIS, mLastWindowaxis, 50);
 
     if (mLastTransform == mTransform
-        && mLastDisplayFrame.left == mDisplayFrame.left
-        && mLastDisplayFrame.top == mDisplayFrame.top
-        && mLastDisplayFrame.right == mDisplayFrame.right
-        && mLastDisplayFrame.bottom== mDisplayFrame.bottom
+        && mLastDisplayFrame.left == displayframe->left
+        && mLastDisplayFrame.top == displayframe->top
+        && mLastDisplayFrame.right == displayframe->right
+        && mLastDisplayFrame.bottom== displayframe->bottom
         && !vpp_changed && !mode_changed && !axis_changed
         && !free_scale_changed && !window_axis_changed) {
         return;
@@ -313,9 +336,9 @@ void HwcLayer::presentOverlay() {
         return;
     }
 
-    amvideo_utils_set_virtual_position(mDisplayFrame.left, mDisplayFrame.top,
-        mDisplayFrame.right - mDisplayFrame.left,
-        mDisplayFrame.bottom - mDisplayFrame.top,
+    amvideo_utils_set_virtual_position(displayframe->left, displayframe->top,
+        displayframe->right -displayframe->left,
+        displayframe->bottom - displayframe->top,
         angle);
 
     /* the screen mode from Android framework should always be set to normal mode
@@ -324,10 +347,10 @@ void HwcLayer::presentOverlay() {
     /*set screen_mode in amvideo_utils_set_virtual_position(),pls check in libplayer*/
     //amvideo_utils_set_screen_mode(0);
     mLastTransform = mTransform;
-    mLastDisplayFrame.left = mDisplayFrame.left;
-    mLastDisplayFrame.top = mDisplayFrame.top;
-    mLastDisplayFrame.right = mDisplayFrame.right;
-    mLastDisplayFrame.bottom = mDisplayFrame.bottom;
+    mLastDisplayFrame.left = displayframe->left;
+    mLastDisplayFrame.top = displayframe->top;
+    mLastDisplayFrame.right = displayframe->right;
+    mLastDisplayFrame.bottom = displayframe->bottom;
 
     memset(mLastAxis, 0, sizeof(mLastAxis));
     if (Utils::getSysfsStr(SYSFS_VIDEO_AXIS, mLastAxis, sizeof(mLastAxis)) == 0) {

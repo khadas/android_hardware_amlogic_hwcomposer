@@ -1,6 +1,20 @@
 /*
-// Copyright(c) 2016 Amlogic Corporation
+// Copyright (c) 2016 Amlogic
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
 */
+
 
 #include <sync/sync.h>
 #include <sw_sync.h>
@@ -34,7 +48,7 @@ int32_t HwcFenceControl::createFenceTimeline() {
 
     syncTimelineFd = sw_sync_timeline_create();
     if (syncTimelineFd < 0) {
-        ETRACE("Stark, can't create sw_sync_timeline:");
+        ETRACE("Create sw_sync_timeline failed!");
         return -1;
     }
 
@@ -46,7 +60,7 @@ int32_t HwcFenceControl::createFence(int32_t syncTimelineFd,
 
     int32_t fenceFd = sw_sync_fence_create(syncTimelineFd, str, val);
     if (fenceFd < 0) {
-        ETRACE("can't create sync pt %d: %s", val, strerror(errno));
+        ETRACE("Create fence %d failed, error(%s)", val, strerror(errno));
         return -1;
     }
 
@@ -58,7 +72,7 @@ status_t HwcFenceControl::syncTimelineInc(int32_t syncTimelineFd) {
 
     err = sw_sync_timeline_inc(syncTimelineFd, 1);
     if (err < 0) {
-        ETRACE("can't increment sync obj:");
+        ETRACE("can't increment timeline(%d)", syncTimelineFd);
         return -1;
     }
     return err;

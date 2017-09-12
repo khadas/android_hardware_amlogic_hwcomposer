@@ -124,8 +124,7 @@ int32_t Hwcomposer::registerCallback(
                 if (!device) {
                     ETRACE("no device found");
                 }
-                device->updateDisplayConfigs();
-                pfnHotplug(hotplug_cb_data, HWC_DISPLAY_PRIMARY, 1);
+                device->onHotplug(HWC_DISPLAY_PRIMARY, true);
             }
             break;
         case HWC2_CALLBACK_REFRESH:
