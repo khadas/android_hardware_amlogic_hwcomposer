@@ -53,7 +53,7 @@ LOCAL_SHARED_LIBRARIES := \
 
 # added for treble
 LOCAL_SHARED_LIBRARIES += \
-    vendor.amlogic.hardware.systemcontrol@1.0 \
+    vendor.amlogic.hardware.systemcontrol@1.0_vendor \
     libbase \
     libhidlbase \
     libhidltransport
