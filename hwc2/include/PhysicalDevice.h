@@ -133,6 +133,7 @@ public:
     // display config operations
     virtual bool updateDisplayConfigs();
     virtual void updateActiveDisplayAttribute();
+    void updateDisplayInfo(char defaultMode[64]);
 
     // events
     virtual void onVsync(int64_t timestamp);
@@ -257,6 +258,9 @@ private:
     //rever the scaled displayframe, for we use the vpp scale.
     float mReverseScaleX;
     float mReverseScaleY;
+
+    int mDisplayWidth;
+    int mDisplayHeight;
 
     //omx handle for set omx pts
     int32_t mOmxVideoHandle;

@@ -124,10 +124,26 @@ bool PhysicalDevice::initialize() {
     }
 
     mDisplayHdmi = new DisplayHdmi();
-    mDisplayHdmi->initialize(*(mFramebufferContext->getInfo()));
+    framebuffer_info_t framebufferInfo = *(mFramebufferContext->getInfo());
+    framebufferInfo.info.xres = mDisplayWidth;
+    framebufferInfo.info.yres = mDisplayHeight;
+    mDisplayHdmi->initialize(framebufferInfo);
 
     mInitialized = true;
     return true;
+}
+
+void PhysicalDevice::updateDisplayInfo(char defaultMode[64]) {
+    if (!strncmp(defaultMode, "720", 3)) {
+        mDisplayWidth= FULL_WIDTH_720;
+        mDisplayHeight = FULL_HEIGHT_720;
+    } else if (!strncmp(defaultMode, "1080", 4)) {
+        mDisplayWidth = FULL_WIDTH_1080;
+        mDisplayHeight = FULL_HEIGHT_1080;
+    } else if (!strncmp(defaultMode, "4k2k", 4)) {
+        mDisplayWidth = FULL_WIDTH_4K2K;
+        mDisplayHeight = FULL_HEIGHT_4K2K;
+    }
 }
 
 void PhysicalDevice::hdcpEventListener(void *data, bool status) {

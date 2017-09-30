@@ -20,13 +20,19 @@
 #include <Hwcomposer.h>
 #include <PrimaryDevice.h>
 #include <Utils.h>
+#include <SysTokenizer.h>
+
 
 namespace android {
 namespace amlogic {
 
 PrimaryDevice::PrimaryDevice(Hwcomposer& hwc, IComposeDeviceFactory * controlFactory)
-    : PhysicalDevice(DEVICE_PRIMARY, hwc, controlFactory)
+    : PhysicalDevice(DEVICE_PRIMARY, hwc, controlFactory),
+    pConfigPath(DISPLAY_CFG_FILE),
+    mDisplayType(DISPLAY_TYPE_MBOX)
 {
+    DTRACE("display mode config path: %s", pConfigPath);
+
     CTRACE();
 }
 
@@ -37,6 +43,9 @@ PrimaryDevice::~PrimaryDevice()
 
 bool PrimaryDevice::initialize()
 {
+    parseConfigFile();
+    updateDisplayInfo(mDefaultMode);
+
     if (!PhysicalDevice::initialize()) {
         DEINIT_AND_RETURN_FALSE("failed to initialize physical device");
     }
@@ -76,6 +85,43 @@ void PrimaryDevice::hotplugListener(bool connected)
 
     // update display configs
     onHotplug(getDisplayId(), connected);
+}
+
+int PrimaryDevice::parseConfigFile()
+{
+    const char* WHITESPACE = " \t\r";
+
+    SysTokenizer* tokenizer;
+    int status = SysTokenizer::open(pConfigPath, &tokenizer);
+    if (status) {
+        ETRACE("Error %d opening display config file %s.", status, pConfigPath);
+    } else {
+        while (!tokenizer->isEof()) {
+            ITRACE("Parsing %s: %s", tokenizer->getLocation(), tokenizer->peekRemainderOfLine());
+
+            tokenizer->skipDelimiters(WHITESPACE);
+            if (!tokenizer->isEol() && tokenizer->peekChar() != '#') {
+
+                char *token = tokenizer->nextToken(WHITESPACE);
+                if (!strcmp(token, DEVICE_STR_MBOX)) {
+                    mDisplayType = DISPLAY_TYPE_MBOX;
+                } else if (!strcmp(token, DEVICE_STR_TV)) {
+                    mDisplayType = DISPLAY_TYPE_TV;
+                } else {
+                    DTRACE("%s: Expected keyword, got '%s'.", tokenizer->getLocation(), token);
+                    break;
+                }
+                tokenizer->skipDelimiters(WHITESPACE);
+                tokenizer->nextToken(WHITESPACE);
+                tokenizer->skipDelimiters(WHITESPACE);
+                strcpy(mDefaultMode, tokenizer->nextToken(WHITESPACE));
+            }
+
+            tokenizer->nextLine();
+        }
+        delete tokenizer;
+    }
+    return status;
 }
 
 } // namespace amlogic

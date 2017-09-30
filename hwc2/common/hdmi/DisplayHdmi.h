@@ -206,6 +206,7 @@ private:
     int mWorkMode;
     // first boot up flag.
     bool mFirstBootup;
+    std::string mDispMode;
 };
 } // namespace amlogic
 } // namespace android

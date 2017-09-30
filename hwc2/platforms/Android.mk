@@ -31,7 +31,8 @@ LOCAL_SRC_FILES := \
     ../common/utils/Utils.cpp \
     ../common/utils/Dump.cpp \
     ../common/utils/AmVinfo.cpp \
-    ../common/utils/AmVideo.cpp
+    ../common/utils/AmVideo.cpp \
+    ../common/utils/SysTokenizer.cpp \
 
 LOCAL_SRC_FILES += \
     PlatFactory.cpp

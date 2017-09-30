@@ -29,7 +29,8 @@ namespace amlogic {
 #define DEFAULT_DISPLAY_DPI 160
 
 DisplayHdmi::DisplayHdmi()
-    : mFirstBootup(true)
+    : mFirstBootup(true),
+    mDispMode(DEFAULT_DISPMODE)
 {
     if (Utils::get_bool_prop("ro.sf.full_activemode")) {
         mWorkMode = REAL_ACTIVEMODE;
@@ -84,10 +85,9 @@ auto DisplayHdmi::getSystemControlService() {
 
 void DisplayHdmi::initialize(framebuffer_info_t& framebufferInfo) {
     reset();
-    std::string dispMode;
-    calcDefaultMode(framebufferInfo, dispMode);
-    buildSingleConfigList(dispMode);
-    updateActiveConfig(dispMode);
+    calcDefaultMode(framebufferInfo, mDispMode);
+    buildSingleConfigList(mDispMode);
+    updateActiveConfig(mDispMode);
 
     mFbWidth = framebufferInfo.info.xres;
     mFbHeight = framebufferInfo.info.yres;
@@ -126,7 +126,7 @@ bool DisplayHdmi::updateHotplug(bool connected,
 
     if (updateSupportedConfigs() != HWC2_ERROR_NONE) {
         ETRACE("updateHotplug: No supported display list, set default configs.");
-        std::string dM (DEFAULT_DISPMODE);
+        std::string dM (mDispMode);
         buildSingleConfigList(dM);
     }
     updateActiveConfig(activemode);
@@ -141,7 +141,7 @@ int DisplayHdmi::updateSupportedConfigs() {
 
     std::vector<std::string> supportDispModes;
     std::string::size_type pos;
-    std::string dM (DEFAULT_DISPMODE);
+    std::string dM (mDispMode);
 
     bool isConfiged = readConfigFile("/system/etc/displayModeList.cfg", &supportDispModes);
     if (isConfiged) {
@@ -195,8 +195,6 @@ int DisplayHdmi::calcDefaultMode(framebuffer_info_t& framebufferInfo,
     } else {
         defaultMode = mode->name;
     }
-
-    defaultMode = DEFAULT_DISPMODE;
 
     DTRACE("calcDefaultMode %s", defaultMode.c_str());
     return NO_ERROR;

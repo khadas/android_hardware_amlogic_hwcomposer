@@ -23,6 +23,15 @@
 #include <PhysicalDevice.h>
 #include <IComposeDeviceFactory.h>
 
+#define DEVICE_STR_MBOX                 "MBOX"
+#define DEVICE_STR_TV                    "TV"
+
+#if PLATFORM_SDK_VERSION >= 26 //8.0
+#define DISPLAY_CFG_FILE                "/vendor/etc/mesondisplay.cfg"
+#else
+#define DISPLAY_CFG_FILE                "/system/etc/mesondisplay.cfg"
+#endif
+
 namespace android {
 namespace amlogic {
 
@@ -41,6 +50,11 @@ public:
 private:
     static void hotplugEventListener(void *data, bool status);
     void hotplugListener(bool connected);
+    int parseConfigFile();
+
+    const char* pConfigPath;
+    int mDisplayType;
+    char mDefaultMode[64];//this used for mbox
 };
 
 }
