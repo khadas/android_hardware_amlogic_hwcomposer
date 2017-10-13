@@ -33,6 +33,9 @@ using namespace android;
 #define AMSTREAM_IOC_MAGIC  'S'
 #define AMSTREAM_IOC_GLOBAL_GET_VIDEO_OUTPUT  _IOR(AMSTREAM_IOC_MAGIC, 0x21, int)
 #define AMSTREAM_IOC_GLOBAL_SET_VIDEO_OUTPUT  _IOW(AMSTREAM_IOC_MAGIC, 0x22, int)
+#define AMSTREAM_IOC_GET_VIDEO_DISABLE _IOR((AMSTREAM_IOC_MAGIC), 0x48, int)
+#define AMSTREAM_IOC_SET_VIDEO_DISABLE _IOW((AMSTREAM_IOC_MAGIC), 0x49, int)
+#define AMSTREAM_IOC_GET_OMX_INFO  _IOR((AMSTREAM_IOC_MAGIC), 0xb2, unsigned int)
 
 AmVideo* AmVideo::mInstance = NULL;
 Mutex AmVideo::mLock;
@@ -105,5 +108,44 @@ int AmVideo::getVideoPresent(bool& output) {
 
     output = (val ==0) ? false : true;
     return 0;
+}
+
+int AmVideo::getvideodisable(int* mode) {
+    if (mDevFd < 0)
+        return -EBADF;
+    int ret = ioctl(mDevFd, AMSTREAM_IOC_GET_VIDEO_DISABLE, mode);
+    if (ret < 0) {
+        ALOGE("getvideodisable error, ret=%d", ret);
+        return ret;
+    }
+    return 0;
+}
+
+int AmVideo::setvideodisable(int mode) {
+    if (mDevFd < 0)
+        return -EBADF;
+    int ret = ioctl(mDevFd, AMSTREAM_IOC_SET_VIDEO_DISABLE, &mode);
+    if (ret < 0) {
+        ALOGE("setvideodisable error, ret=%d", ret);
+        return ret;
+    }
+    return 0;
+}
+
+int AmVideo::getOmxKeepLastFrame(unsigned int *keepLastFrame) {
+    if (mDevFd < 0)
+        return -EBADF;
+    int omx_info = 0;
+    int ret = ioctl(mDevFd, AMSTREAM_IOC_GET_OMX_INFO, (unsigned long)&omx_info);
+    if (ret < 0) {
+        ALOGE("get omx info error, ret =%d", ret);
+        *keepLastFrame = 0;
+        return ret;
+    } else {
+        *keepLastFrame = omx_info & 0x1; //omx_info bit0: keep last frmame
+    }
+    //ALOGV("video layer keepLastFrame %d", *keepLastFrame);
+    return 0;
+
 }
 
