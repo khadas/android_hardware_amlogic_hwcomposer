@@ -924,20 +924,12 @@ bool Hwcomposer::release() {
     return true;
 }
 
-bool Hwcomposer::initialize(private_module_t *grallocModule) {
+bool Hwcomposer::initialize() {
     CTRACE();
 
     if (!mPlatFactory) {
         DEINIT_AND_RETURN_FALSE("failed to provide a PlatFactory");
     }
-
-#if PLATFORM_SDK_VERSION < 26
-    if ( !grallocModule) {
-        DEINIT_AND_RETURN_FALSE("failed to provide a grallocModule");
-    }
-    // initial gralloc module.
-    mGrallocModule = grallocModule;
-#endif
 
     mUeventObserver = new UeventObserver();
     if (!mUeventObserver || !mUeventObserver->initialize()) {
@@ -1003,10 +995,6 @@ VsyncManager* Hwcomposer::getVsyncManager() {
 UeventObserver* Hwcomposer::getUeventObserver()
 {
     return mUeventObserver;
-}
-
-private_module_t* Hwcomposer::getGrallocModule() {
-    return mGrallocModule;
 }
 
 } // namespace amlogic

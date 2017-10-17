@@ -18,10 +18,7 @@
 #ifndef UTILS_H_
 #define UTILS_H_
 
-#include <gralloc_priv.h>
-#if WITH_LIBPLAYER_MODULE
 #include <Amavutils.h>
-#endif
 #include <hardware/hwcomposer_defs.h>
 
 #define DISPLAY_HPD_STATE               "/sys/class/amhdmitx/amhdmitx0/hpd_state"
@@ -58,9 +55,7 @@ public:
     static inline void closeFd(int32_t fd) {
         if (fd > -1) close(fd);
     }
-#if WITH_LIBPLAYER_MODULE
     static bool checkSysfsStatus(const char* sysfstr, char* lastr, int32_t size);
-#endif
 
     static const char* getHotplugUeventEnvelope();
     static const char* getHdcpUeventEnvelope();

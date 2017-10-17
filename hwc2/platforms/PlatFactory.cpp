@@ -43,14 +43,14 @@ IDisplayDevice* PlatFactory::createDisplayDevice(int disp)
     //when createDisplayDevice is called, Hwcomposer has already finished construction.
     Hwcomposer &hwc = Hwcomposer::getInstance();
 
-    class PlatDeviceControlFactory: public DeviceControlFactory {
+    class PlatcComposerFactory: public IComposeDeviceFactory {
     public:
-        virtual IComposer* createComposer(IDisplayDevice& disp)       {return new GE2DComposer(disp);}
+        virtual IComposeDevice* createComposer(IDisplayDevice& disp)       {return new GE2DComposer(disp);}
     };
 
     switch (disp) {
         case IDisplayDevice::DEVICE_PRIMARY:
-            return new PrimaryDevice(hwc, new PlatDeviceControlFactory());
+            return new PrimaryDevice(hwc, new PlatcComposerFactory());
         case IDisplayDevice::DEVICE_VIRTUAL:
             return new VirtualDevice(hwc);
         case IDisplayDevice::DEVICE_EXTERNAL:

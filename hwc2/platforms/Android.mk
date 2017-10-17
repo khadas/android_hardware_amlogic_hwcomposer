@@ -26,7 +26,7 @@ LOCAL_SRC_FILES := \
     ../common/hdmi/DisplayHdmi.cpp \
     ../common/observers/SoftVsyncObserver.cpp \
     ../common/observers/UeventObserver.cpp \
-    ../common/composers/Composers.cpp \
+    ../common/composers/IComposeDevice.cpp \
     ../common/composers/GE2DComposer.cpp \
     ../common/utils/Utils.cpp \
     ../common/utils/Dump.cpp \
@@ -115,12 +115,8 @@ ifeq ($(TARGET_SUPPORT_SECURE_LAYER),true)
 LOCAL_CFLAGS += -DHWC_SUPPORT_SECURE_LAYER
 endif
 
-WITH_LIBPLAYER_MODULE := true
-ifneq ($(WITH_LIBPLAYER_MODULE),false)
 LOCAL_SHARED_LIBRARIES += libamavutils_alsa
 #LOCAL_C_INCLUDES += $(AMAVUTILS_PATH)/include
-LOCAL_CFLAGS += -DWITH_LIBPLAYER_MODULE=1
-endif
 
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := hwcomposer.amlogic

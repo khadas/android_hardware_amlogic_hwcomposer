@@ -18,7 +18,6 @@
 #ifndef AML_DISPLAY_HDMI_H
 #define AML_DISPLAY_HDMI_H
 
-#include <gralloc_priv.h>
 #include <utils/String8.h>
 #include <utils/Errors.h>
 #include <sys/ioctl.h>
@@ -37,6 +36,7 @@
 #include <ISystemControlService.h>
 #include <gui/SurfaceComposerClient.h>
 #include <AmVinfo.h>
+#include <framebuffer.h>
 
 #define HDMI_FRAC_RATE_POLICY "/sys/class/amhdmitx/amhdmitx0/frac_rate_policy"
 

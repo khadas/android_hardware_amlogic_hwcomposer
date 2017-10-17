@@ -24,7 +24,7 @@
 namespace android {
 namespace amlogic {
 
-PrimaryDevice::PrimaryDevice(Hwcomposer& hwc, DeviceControlFactory* controlFactory)
+PrimaryDevice::PrimaryDevice(Hwcomposer& hwc, IComposeDeviceFactory * controlFactory)
     : PhysicalDevice(DEVICE_PRIMARY, hwc, controlFactory)
 {
     CTRACE();

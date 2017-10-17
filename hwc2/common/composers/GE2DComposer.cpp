@@ -15,7 +15,6 @@
 //
 */
 
-
 #include <HwcTrace.h>
 #include <HwcFenceControl.h>
 #include <GE2DComposer.h>
@@ -31,7 +30,7 @@ namespace android {
 namespace amlogic {
 
 GE2DComposer::GE2DComposer(IDisplayDevice& disp)
-    : Composers(disp),
+    : IComposeDevice(disp),
       mDisplayDevice(disp),
       mLock(),
       mSyncTimelineFd(-1),

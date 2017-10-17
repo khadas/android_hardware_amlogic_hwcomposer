@@ -100,12 +100,11 @@ public:
     virtual bool release();
 
     virtual bool initCheck() const;
-    virtual bool initialize(private_module_t *grallocModule);
+    virtual bool initialize();
     virtual void deinitialize();
 
 public:
     VsyncManager* getVsyncManager();
-    private_module_t* getGrallocModule();
 
     IDisplayDevice* getDisplayDevice(int disp);
     UeventObserver* getUeventObserver();
@@ -142,7 +141,6 @@ private:
     // plugin through set
     IPlatFactory *mPlatFactory;
     VsyncManager *mVsyncManager;
-    private_module_t *mGrallocModule;
     UeventObserver *mUeventObserver;
 
     Vector<IDisplayDevice*> mDisplayDevices;

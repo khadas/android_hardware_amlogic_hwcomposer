@@ -650,16 +650,9 @@ static int hwc2_device_open(const struct hw_module_t* module,
         return -EINVAL;
     }
 
-    private_module_t *gralloc_module = NULL;
-    if (hw_get_module(GRALLOC_HARDWARE_MODULE_ID,
-        (const struct hw_module_t **)&gralloc_module)) {
-        ETRACE("failed to get gralloc hw module");
-        return -EINVAL;
-    }
-
     Hwcomposer& hwc = Hwcomposer::getInstance();
     // initialize our state here
-    if (hwc.initialize(gralloc_module) == false) {
+    if (hwc.initialize() == false) {
         ETRACE("failed to intialize HWComposer");
         Hwcomposer::releaseInstance();
         return -EINVAL;

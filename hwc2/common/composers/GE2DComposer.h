@@ -20,7 +20,7 @@
 
 #include <utils/KeyedVector.h>
 #include <SimpleThread.h>
-#include <Composers.h>
+#include <IComposeDevice.h>
 #include <IDisplayDevice.h>
 #include <inttypes.h>
 
@@ -56,7 +56,7 @@ public:
         mDisplayFrame = hwcLayer->getDisplayFrame();
         mBufferHnd = hwcLayer->getBufferHandle();
 
-        private_handle_t const* hnd = private_handle_t::dynamicCast(mBufferHnd);
+	private_handle_t const* hnd = private_handle_t::dynamicCast(mBufferHnd);
         if (hnd)
             mBufferFd = Utils::checkAndDupFd(hnd->ion_hnd);
         else
@@ -112,7 +112,7 @@ enum { NUM_GE2D_BUFFER_SLOTS = 3 };
 
 class IDisplayDevice;
 
-class GE2DComposer : public Composers {
+class GE2DComposer : public IComposeDevice {
 
 public:
     GE2DComposer(IDisplayDevice& disp);

@@ -27,13 +27,14 @@
 #include <HwcFenceControl.h>
 #include <cutils/properties.h>
 #include <tvp/OmxUtil.h>
+#include <framebuffer.h>
 
 #define FBIOPUT_OSD_CURSOR      0x451a
 
 namespace android {
 namespace amlogic {
 
-PhysicalDevice::PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc, DeviceControlFactory* controlFactory)
+PhysicalDevice::PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc, IComposeDeviceFactory* controlFactory)
     : mId(id),
       mHwc(hwc),
       mControlFactory(controlFactory),
@@ -628,12 +629,7 @@ void PhysicalDevice::ge2dCompose(framebuffer_info_t * fbInfo, bool hasVideoOverl
 int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOverlay) {
     HwcLayer* layer = NULL;
     void *cbuffer;
-
-#if PLATFORM_SDK_VERSION >= 26
     bool bUseHwcPost = true;
-#else
-    bool bUseHwcPost = mIsContinuousBuf;
-#endif
 
     // deal physical display's client target layer
     framebuffer_info_t fbInfo = *(mFramebufferContext->getInfo());
@@ -784,7 +780,6 @@ int32_t PhysicalDevice::presentDisplay(
 
     if (mIsValidated) {
         // TODO: need improve the way to set video axis.
-#if WITH_LIBPLAYER_MODULE
         bool bPresent = true;
         if (mHwcSecureLayers.indexOfKey(mVideoOverlayLayerId) >= 0) {
             bPresent = false;
@@ -803,7 +798,6 @@ int32_t PhysicalDevice::presentDisplay(
         } else {
             mGE2DClearVideoRegionCount = 0;
         }
-#endif
         err = postFramebuffer(outRetireFence, hasVideoOverlay);
     } else { // display not validate yet.
         err = HWC2_ERROR_NOT_VALIDATED;
@@ -1362,25 +1356,10 @@ int32_t PhysicalDevice::initDisplay() {
             fbInfo->info.yres);
         int32_t usage = 0;
 
-#if PLATFORM_SDK_VERSION < 26
-        private_module_t *grallocModule = Hwcomposer::getInstance().getGrallocModule();
-        if (mId == HWC_DISPLAY_PRIMARY) {
-            grallocModule->fb_primary.fb_info = *(fbInfo);
-        } else if (mId == HWC_DISPLAY_EXTERNAL) {
-            grallocModule->fb_external.fb_info = *(fbInfo);
-            usage |= GRALLOC_USAGE_EXTERNAL_DISP;
-        }
-        fbInfo->grallocModule = grallocModule;
-#endif
-
-        //Register the framebuffer to gralloc module
         mFramebufferHnd = new private_handle_t(
                         private_handle_t::PRIV_FLAGS_FRAMEBUFFER,
                         usage, fbInfo->fbSize, 0,
                         0, fbInfo->fd, bufferSize, 0);
-#if PLATFORM_SDK_VERSION < 26
-        grallocModule->base.registerBuffer(&(grallocModule->base), mFramebufferHnd);
-#endif
 
         DTRACE("init_frame_buffer get frame size %d usage %d",
             bufferSize, usage);

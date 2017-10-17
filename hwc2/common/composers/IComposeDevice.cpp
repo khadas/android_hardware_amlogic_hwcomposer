@@ -15,25 +15,42 @@
 //
 */
 
-#ifndef ICOMPOSER_FACTORY_H_
-#define ICOMPOSER_FACTORY_H_
 
+#include <HwcTrace.h>
+#include <IComposeDevice.h>
+#include <IDisplayDevice.h>
 
-#include <IComposer.h>
 
 namespace android {
 namespace amlogic {
 
+IComposeDevice::IComposeDevice(IDisplayDevice& disp)
+    : mDisplayDevice(disp),
+      mInitialized(false)
+{
+}
 
-class IComposerFactory {
+IComposeDevice::~IComposeDevice()
+{
+    WARN_IF_NOT_DEINIT();
+}
 
-public:
-    virtual ~IComposerFactory() {};
+bool IComposeDevice::initialize(framebuffer_info_t* fbInfo)
+{
+    if (mInitialized) {
+        WTRACE("object has been initialized");
+        return true;
+    }
 
-public:
-    virtual IComposer* createComposer(String8 key) = 0;
-};
+    mInitialized = true;
+    return true;
+}
+
+void IComposeDevice::deinitialize()
+{
+    mInitialized = false;
+}
+
 } // namespace amlogic
-} // namespace android
+} // namesapce android
 
-#endif /* ICOMPOSER_FACTORY_H_ */

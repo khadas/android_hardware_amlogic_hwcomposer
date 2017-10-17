@@ -171,7 +171,6 @@ int32_t Utils::checkAndDupFd(int32_t fd) {
     return dup_fd;
 }
 
-#if WITH_LIBPLAYER_MODULE
 bool Utils::checkSysfsStatus(const char* sysfstr, char* lastr, int32_t size) {
     char val[32];
     char *p = lastr;
@@ -188,7 +187,6 @@ bool Utils::checkSysfsStatus(const char* sysfstr, char* lastr, int32_t size) {
 
     return false;
 }
-#endif
 
 const char* Utils::getHotplugUeventEnvelope()
 {

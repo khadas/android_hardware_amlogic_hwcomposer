@@ -21,7 +21,7 @@
 
 #include <utils/KeyedVector.h>
 #include <PhysicalDevice.h>
-#include <IComposerFactory.h>
+#include <IComposeDeviceFactory.h>
 
 namespace android {
 namespace amlogic {
@@ -29,7 +29,7 @@ namespace amlogic {
 
 class PrimaryDevice : public PhysicalDevice {
 public:
-    PrimaryDevice(Hwcomposer& hwc, DeviceControlFactory *composer);
+    PrimaryDevice(Hwcomposer& hwc, IComposeDeviceFactory *composer);
     virtual ~PrimaryDevice();
 public:
     virtual bool initialize();

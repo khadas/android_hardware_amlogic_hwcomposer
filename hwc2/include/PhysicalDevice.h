@@ -23,7 +23,8 @@
 #include <SoftVsyncObserver.h>
 #include <IDisplayDevice.h>
 #include <HwcLayer.h>
-#include <IComposer.h>
+#include <IComposeDevice.h>
+#include <IComposeDeviceFactory.h>
 #include <DisplayHdmi.h>
 #include <systemcontrol/ISystemControlService.h>
 #include <systemcontrol/DisplayMode.h>
@@ -44,14 +45,6 @@ typedef struct hdr_capabilities {
     int avgLuminance;
     int minLuminance;
 } hdr_capabilities_t;
-
-class DeviceControlFactory {
-public:
-    virtual ~DeviceControlFactory(){}
-public:
-    // virtual IHdcpControl* createHdcpControl() = 0;
-    virtual IComposer* createComposer(IDisplayDevice& disp) = 0;
-};
 
 class FBContext {
 public:
@@ -75,7 +68,7 @@ class SoftVsyncObserver;
 
 class PhysicalDevice : public IDisplayDevice {
 public:
-    PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc, DeviceControlFactory* controlFactory);
+    PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc, IComposeDeviceFactory* controlFactory);
     ~PhysicalDevice();
 
     friend class Hwcomposer;
@@ -196,10 +189,10 @@ private:
     bool mSecure;
     Hwcomposer& mHwc;
     DisplayHdmi* mDisplayHdmi;
-    DeviceControlFactory *mControlFactory;
+    IComposeDeviceFactory *mControlFactory;
     SoftVsyncObserver *mVsyncObserver;
 
-    IComposer *mComposer;
+    IComposeDevice *mComposer;
 
     // DeviceControlFactory *mControlFactory;
 

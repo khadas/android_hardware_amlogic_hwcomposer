@@ -83,10 +83,7 @@ class HwcLayer {
         bool havePlaneAlpha();
         bool haveDataspace();
         void reverseScaledFrame(const float& scaleX, const float& scaleY);
-
-#if WITH_LIBPLAYER_MODULE
         void presentOverlay(bool bPresent);
-#endif
 
     private:
         void resetLayerBuffer();
@@ -117,14 +114,13 @@ class HwcLayer {
             const native_handle_t* mSidebandStream;
         };
 
-#if WITH_LIBPLAYER_MODULE
         // for store overlay layer's state.
         char mLastVal[32];
         char mLastAxis[32];
         char mLastMode[32];
         char mLastFreescale[32];
         char mLastWindowaxis[50];
-#endif
+
         // lock
         Mutex mLock;
         bool mInitialized;

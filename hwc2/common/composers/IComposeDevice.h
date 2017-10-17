@@ -15,21 +15,22 @@
 //
 */
 
-#ifndef COMPOSERS_H
-#define COMPOSERS_H
+#ifndef __AM_COMPOSER_H
+#define __AM_COMPOSER_H
 
-#include <IComposer.h>
+#include <gralloc_priv.h>
+#include <framebuffer.h>
+#include <HwcLayer.h>
 
 namespace android {
 namespace amlogic {
 
-// class IComposer;
 class IDisplayDevice;
 
-class Composers :public IComposer {
+class IComposeDevice {
 public:
-    Composers(IDisplayDevice& disp);
-    virtual ~Composers();
+    IComposeDevice(IDisplayDevice& disp);
+    virtual ~IComposeDevice();
 
 public:
 
@@ -54,5 +55,5 @@ private:
 } // namespace android
 
 
-#endif /* COMPOSERS_H */
+#endif /* __AM_COMPOSER_H */
 

@@ -287,7 +287,6 @@ void HwcLayer::resetLayerBuffer() {
    mAcquireFence = -1;
 }
 
-#if WITH_LIBPLAYER_MODULE
 void HwcLayer::presentOverlay(bool bPresent) {
     int32_t angle = 0;
     bool vpp_changed = false;
@@ -358,7 +357,6 @@ void HwcLayer::presentOverlay(bool bPresent) {
     }
 
 }
-#endif
 
 void HwcLayer::dump(Dump& d) {
     Mutex::Autolock _l(mLock);
