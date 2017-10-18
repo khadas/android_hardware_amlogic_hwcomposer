@@ -26,6 +26,7 @@
 #include <Utils.h>
 #include <HwcFenceControl.h>
 #include <cutils/properties.h>
+#include <tvp/OmxUtil.h>
 
 #define FBIOPUT_OSD_CURSOR      0x451a
 
@@ -56,7 +57,8 @@ PhysicalDevice::PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc, DeviceControl
       mGE2DComposeFrameCount(0),
       mDirectComposeFrameCount(0),
       mGetInitState(false),
-      mInitialized(false) {
+      mInitialized(false),
+      mOmxVideoHandle(0){
     CTRACE();
 
     switch (id) {
@@ -87,6 +89,10 @@ PhysicalDevice::~PhysicalDevice() {
     WARN_IF_NOT_DEINIT();
     clearFenceList(mHwcCurReleaseFences);
     clearFenceList(mHwcPriorReleaseFences);
+    if (mOmxVideoHandle != 0) {
+        closeamvideo();
+        mOmxVideoHandle  = 0;
+    }
 }
 
 bool PhysicalDevice::initialize() {
@@ -1224,6 +1230,9 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
             continue;
         }
 #endif
+        if (hnd && hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OMX) {
+            set_omx_pts((char*)hnd->base, &mOmxVideoHandle);
+        }
 
         if (videoLayer && (layer->getZ() < videoLayer->getZ())) {
             DTRACE("Layer covered by video layer.");
