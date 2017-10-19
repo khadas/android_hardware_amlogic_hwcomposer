@@ -294,7 +294,7 @@ int32_t PhysicalDevice::getChangedCompositionTypes(
 
                 // sideband stream.
                 if (layer->getCompositionType() == HWC2_COMPOSITION_SIDEBAND
-                    && layer->getSidebandStream()) {
+                   /* && layer->getSidebandStream()*/) {
                     // TODO: we just transact SIDEBAND to OVERLAY for now;
                     DTRACE("get HWC_SIDEBAND layer, just change to overlay");
                     outLayers[i] = layerId;
@@ -414,7 +414,7 @@ int32_t PhysicalDevice::getDisplayRequests(
             }
 
             // sideband stream.
-            if ((layer->getCompositionType() == HWC2_COMPOSITION_SIDEBAND && layer->getSidebandStream())
+            if ((layer->getCompositionType() == HWC2_COMPOSITION_SIDEBAND /*&& layer->getSidebandStream()*/)
                 || layer->getCompositionType() == HWC2_COMPOSITION_CURSOR) {
                 // TODO: we just transact SIDEBAND to OVERLAY for now;
                 DTRACE("get HWC_SIDEBAND layer, just change to overlay");
@@ -1139,7 +1139,7 @@ int32_t PhysicalDevice::preValidate() {
         if ((hnd && (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OVERLAY) &&
                 (layer->getCompositionType() == HWC2_COMPOSITION_DEVICE)) ||
                 (layer->getCompositionType() == HWC2_COMPOSITION_SIDEBAND
-                && layer->getSidebandStream())) {
+               /* && layer->getSidebandStream()*/)) {
             if (mVideoOverlayLayerId != 0) {
                 ETRACE("ERROR: Find two video layer, should never get here !!");
             }
