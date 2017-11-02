@@ -148,6 +148,7 @@ private:
     // For use by Device
     int32_t initDisplay();
     int32_t postFramebuffer(int32_t* outRetireFence,  bool hasVideoOverlay);
+    bool updateCursorBuffer();
     int32_t getLineValue(const char *lineStr, const char *magicStr);
 
     int32_t clearLayersStats();
@@ -155,6 +156,7 @@ private:
     int32_t parseHdrCapabilities();
     void directCompose(framebuffer_info_t * fbInfo);
     void ge2dCompose(framebuffer_info_t * fbInfo, bool hasVideoOverlay);
+    int32_t setOSD1Blank(bool cursorShow);
     int32_t setOSD0Blank(bool blank);
     bool layersStateCheck(int32_t renderMode, KeyedVector<hwc2_layer_t, HwcLayer*> & composeLayers);
     int32_t composersFilter(KeyedVector<hwc2_layer_t, HwcLayer*>& composeLayers);

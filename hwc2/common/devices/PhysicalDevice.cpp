@@ -644,42 +644,11 @@ void PhysicalDevice::ge2dCompose(framebuffer_info_t * fbInfo, bool hasVideoOverl
 #endif
 
 int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOverlay) {
-    HwcLayer* layer = NULL;
-    void *cbuffer;
     bool bUseHwcPost = true;
 
-    // deal physical display's client target layer
     framebuffer_info_t fbInfo = *(mFramebufferContext->getInfo());
-    framebuffer_info_t* cbInfo = mCursorContext->getInfo();
     bool cursorShow = false;
-    bool haveCursorLayer = false;
-    for (uint32_t i=0; i<mHwcLayers.size(); i++) {
-        hwc2_layer_t layerId = mHwcLayers.keyAt(i);
-        layer = mHwcLayers.valueAt(i);
-        if (layer && layer->getCompositionType()== HWC2_COMPOSITION_CURSOR) {
-            private_handle_t *hnd = private_handle_t::dynamicCast(layer->getBufferHandle());
-            if (!hnd) {
-                ETRACE("invalid cursor layer handle.");
-                break;
-            }
-            haveCursorLayer = true;
-            DTRACE("This is a Sprite, hnd->stride is %d, hnd->height is %d", hnd->stride, hnd->height);
-            if (cbInfo->info.xres != (uint32_t)hnd->stride || cbInfo->info.yres != (uint32_t)hnd->height) {
-                DTRACE("disp: %d cursor need to redrew", mId);
-                update_cursor_buffer_locked(cbInfo, hnd->stride, hnd->height);
-                cbuffer = mmap(NULL, hnd->size, PROT_READ|PROT_WRITE, MAP_SHARED, cbInfo->fd, 0);
-                if (cbuffer != MAP_FAILED) {
-                    memcpy(cbuffer, hnd->base, hnd->size);
-                    munmap(cbuffer, hnd->size);
-                    DTRACE("setCursor ok");
-                } else {
-                   ETRACE("Cursor display buffer mmap fail!");
-                }
-            }
-            cursorShow = true;
-            break;
-        }
-    }
+    cursorShow = updateCursorBuffer();
 
     if (mRenderMode == GLES_COMPOSE_MODE) {
         //if no layers to compose, post blank op to osd.
@@ -726,7 +695,7 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
         if (hasVideoOverlay
             && (layerNum == 1
             || (layerNum == 2
-            && haveCursorLayer))) {
+            && cursorShow))) {
             needBlankFb0 = true;
         }
 
@@ -771,15 +740,67 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
         }
 
         // finally we need to update cursor's blank status.
-        if (cbInfo->fd > 0 && cursorShow != mCursorContext->getStatus()) {
-            mCursorContext->setStatus(cursorShow);
-            DTRACE("UPDATE FB1 status to %d", !cursorShow);
-            ioctl(cbInfo->fd, FBIOBLANK, !cursorShow);
-        }
+        setOSD1Blank(cursorShow);
     }
 
     if (mRenderMode != GE2D_COMPOSE_MODE) {
         mGE2DComposeFrameCount = 0;
+    }
+
+    return HWC2_ERROR_NONE;
+}
+
+// deal physical display's client target layer
+bool PhysicalDevice::updateCursorBuffer() {
+    framebuffer_info_t* cbInfo = mCursorContext->getInfo();
+    HwcLayer* layer = NULL;
+    void *cbuffer;
+
+    for (uint32_t i=0; i<mHwcLayers.size(); i++) {
+        hwc2_layer_t layerId = mHwcLayers.keyAt(i);
+        layer = mHwcLayers.valueAt(i);
+        if (layer && layer->getCompositionType()== HWC2_COMPOSITION_CURSOR) {
+            private_handle_t *hnd = private_handle_t::dynamicCast(layer->getBufferHandle());
+            if (!hnd) {
+                ETRACE("invalid cursor layer handle.");
+                break;
+            }
+            DTRACE("This is a Sprite, hnd->width is %d(%d), hnd->height is %d",
+                        hnd->width, hnd->stride, hnd->height);
+            if (cbInfo->info.xres != (uint32_t)hnd->stride || cbInfo->info.yres != (uint32_t)hnd->height) {
+                DTRACE("disp: %d cursor need to redrew", mId);
+                update_cursor_buffer_locked(cbInfo, hnd->stride, hnd->height);
+                cbuffer = mmap(NULL, hnd->size, PROT_READ|PROT_WRITE, MAP_SHARED, cbInfo->fd, 0);
+                if (cbuffer != MAP_FAILED) {
+                    memset(cbuffer, 1, hnd->size);
+
+                    uint32_t irow = 0;
+                    char* cpyDst = (char*)cbuffer;
+                    char* cpySrc = (char*)hnd->base;
+                    for (irow = 0; irow < hnd->height; irow++) {
+                        memcpy(cpyDst, cpySrc, 4 * hnd->width);
+                        cpyDst += 4 * hnd->stride;
+                        cpySrc += 4 * hnd->stride;
+                    }
+                    munmap(cbuffer, hnd->size);
+                    DTRACE("setCursor ok");
+                } else {
+                   ETRACE("Cursor display buffer mmap fail!");
+                }
+            }
+            return true;
+        }
+    }
+    return false;
+}
+
+int32_t PhysicalDevice::setOSD1Blank(bool cursorShow) {
+    framebuffer_info_t* cbInfo = mCursorContext->getInfo();
+
+    if (cbInfo->fd > 0 && cursorShow != mCursorContext->getStatus()) {
+        mCursorContext->setStatus(cursorShow);
+        DTRACE("UPDATE FB1 status to %d", !cursorShow);
+        ioctl(cbInfo->fd, FBIOBLANK, !cursorShow);
     }
 
     return HWC2_ERROR_NONE;
