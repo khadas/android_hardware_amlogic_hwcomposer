@@ -43,6 +43,7 @@ public:
 
     static int get_int_prop(const char* prop);
     static bool get_bool_prop(const char* prop);
+    static bool get_str_prop(const char *key, char *value, const char *def);
 
     static int getSysfsInt(const char* syspath, int def);
     static int getSysfsStr(const char* syspath, char *valstr, int size,

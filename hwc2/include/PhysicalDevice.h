@@ -32,6 +32,9 @@
 #include <binder/IServiceManager.h>
 #include <utils/RefBase.h>
 
+#define DISPLAY_LOGO_INDEX              "/sys/module/fb/parameters/osd_logo_index"
+#define DISPLAY_FB0_FREESCALE_SWTICH    "/sys/class/graphics/fb0/free_scale_switch"
+
 namespace android {
 namespace amlogic {
 
@@ -261,6 +264,7 @@ private:
 
     int mDisplayWidth;
     int mDisplayHeight;
+    bool mFirstPostFb;
 
     //omx handle for set omx pts
     int32_t mOmxVideoHandle;

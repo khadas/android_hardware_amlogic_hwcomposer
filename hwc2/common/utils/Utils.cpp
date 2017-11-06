@@ -61,6 +61,11 @@ int Utils::get_int_prop(const char* prop) {
     return -1;
 }
 
+bool Utils::get_str_prop(const char *key, char *value,  const char *def){
+    property_get(key, value, def);
+    return true;
+}
+
 int Utils::getSysfsInt(const char* syspath, int def) {
     int val = def;
     char valstr[64];
@@ -123,13 +128,14 @@ int Utils::getSysfsStr(const char* syspath, char *valstr, int size,
 
 int Utils::setSysfsStr(const char *path, const char *val) {
     int bytes;
-    int fd = open(path, O_CREAT | O_RDWR | O_TRUNC, 0644);
+    int fd = open(path, O_RDWR);
     if (fd >= 0) {
         bytes = write(fd, val, strlen(val));
         //DTRACE("setSysfsStr %s= %s\n", path,val);
         close(fd);
         return 0;
     } else {
+        ETRACE(" open file error: [%s]", path);
         return -1;
     }
 }

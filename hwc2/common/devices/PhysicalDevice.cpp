@@ -59,7 +59,8 @@ PhysicalDevice::PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc, IComposeDevic
       mDirectComposeFrameCount(0),
       mGetInitState(false),
       mInitialized(false),
-      mOmxVideoHandle(0){
+      mOmxVideoHandle(0),
+      mFirstPostFb(true){
     CTRACE();
 
     switch (id) {
@@ -728,6 +729,15 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
             && haveCursorLayer))) {
             needBlankFb0 = true;
         }
+
+        //close uboot logo, if bootanim begin to show
+        if (mFirstPostFb) {
+            mFirstPostFb = false;
+
+            Utils::setSysfsStr(DISPLAY_LOGO_INDEX, "-1");
+            Utils::setSysfsStr(DISPLAY_FB0_FREESCALE_SWTICH, "0x10001");
+        }
+
         // real post framebuffer here.
         DTRACE("render type: %d", mFbSyncRequest.type);
 
