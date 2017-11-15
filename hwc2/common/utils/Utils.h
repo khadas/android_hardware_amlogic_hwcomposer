@@ -33,6 +33,8 @@
 #define SYSFS_VIDEOBUFUSED                 "/sys/class/amstream/videobufused"
 #define SYSFS_WINDOW_AXIS               "/sys/class/graphics/fb0/window_axis"
 
+#define MAX_STR_LEN         4096
+
 namespace android {
 namespace amlogic {
 
@@ -46,6 +48,7 @@ public:
     static bool get_str_prop(const char *key, char *value, const char *def);
 
     static int getSysfsInt(const char* syspath, int def);
+    static int getSysfsStr(const char *syspath, char *valstr);
     static int getSysfsStr(const char* syspath, char *valstr, int size,
         bool needOriginalData = false);
     static int setSysfsStr(const char *path, const char *val);
@@ -60,6 +63,7 @@ public:
 
     static const char* getHotplugUeventEnvelope();
     static const char* getHdcpUeventEnvelope();
+    static const char* getModeChangeUeventEnvelope();
     static const char* getSwitchState0();
     static const char* getSwitchState1();
 

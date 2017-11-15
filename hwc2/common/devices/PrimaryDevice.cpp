@@ -22,7 +22,6 @@
 #include <Utils.h>
 #include <SysTokenizer.h>
 
-
 namespace android {
 namespace amlogic {
 
@@ -56,6 +55,10 @@ bool PrimaryDevice::initialize()
             Utils::getHotplugUeventEnvelope(),
             hotplugEventListener,
             this);
+        observer->registerListener(
+            Utils::getModeChangeUeventEnvelope(),
+            modeChangeEventListener,
+            this);
     } else {
         ETRACE("Uevent observer is NULL");
     }
@@ -73,6 +76,15 @@ void PrimaryDevice::hotplugEventListener(void *data, bool status)
     PrimaryDevice *pThis = (PrimaryDevice*)data;
     if (pThis) {
         pThis->hotplugListener(status);
+    }
+}
+
+void PrimaryDevice::modeChangeEventListener(void *data, bool status)
+{
+    PrimaryDevice *pThis = (PrimaryDevice*)data;
+    DTRACE("mode change event: %d", status);
+    if (status && pThis) {
+        pThis->changeModeDetectThread();
     }
 }
 
@@ -122,6 +134,28 @@ int PrimaryDevice::parseConfigFile()
         delete tokenizer;
     }
     return status;
+}
+
+void PrimaryDevice::changeModeDetectThread()
+{
+    pthread_t id;
+    int ret = pthread_create(&id, NULL, changeModeDetect, this);
+    if (ret != 0)
+        ETRACE("Create changeModeDetect error!\n");
+}
+
+void* PrimaryDevice::changeModeDetect(void* data)
+{
+    PrimaryDevice *pThis = (PrimaryDevice*)data;
+    bool modeChanged = false;
+    char lastMode[32];
+    Utils::getSysfsStr(SYSFS_DISPLAY_MODE, lastMode);
+    do {
+        modeChanged = Utils::checkSysfsStatus(SYSFS_DISPLAY_MODE, lastMode, 32);
+        usleep(1000 * 1000);
+    } while (!modeChanged);
+    pThis->setOsdMouse();
+    return NULL;
 }
 
 } // namespace amlogic

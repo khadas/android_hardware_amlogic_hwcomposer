@@ -34,6 +34,9 @@
 
 #define DISPLAY_LOGO_INDEX              "/sys/module/fb/parameters/osd_logo_index"
 #define DISPLAY_FB0_FREESCALE_SWTICH    "/sys/class/graphics/fb0/free_scale_switch"
+#define SYSFS_DISPLAY_AXIS              "/sys/class/display/axis"
+#define DISPLAY_FB1_SCALE_AXIS          "/sys/class/graphics/fb1/scale_axis"
+#define DISPLAY_FB1_SCALE               "/sys/class/graphics/fb1/scale"
 
 namespace android {
 namespace amlogic {
@@ -144,11 +147,28 @@ public:
     virtual void dump(Dump& d);
     DisplayHdmi* getDisplayHdmi()  const { return mDisplayHdmi; };
 
+protected:
+    auto getSystemControlService();
+    void setOsdMouse();
+    char mDefaultMode[64];//this used for mbox
+
 private:
+
+#if PLATFORM_SDK_VERSION >= 26
+    struct SystemControlDeathRecipient : public android::hardware::hidl_death_recipient  {
+        // hidl_death_recipient interface
+        virtual void serviceDied(uint64_t cookie,
+        const ::android::wp<::android::hidl::base::V1_0::IBase>& who) override{};
+    };
+    sp<SystemControlDeathRecipient> mDeathRecipient = nullptr;
+#endif
+
     // For use by Device
     int32_t initDisplay();
     int32_t postFramebuffer(int32_t* outRetireFence,  bool hasVideoOverlay);
     bool updateCursorBuffer();
+    void setOsdMouse(int x, int y, int w, int h, const char* cur_mode);
+    int getOsdPosition(const char* curMode, int *position);
     int32_t getLineValue(const char *lineStr, const char *magicStr);
 
     int32_t clearLayersStats();

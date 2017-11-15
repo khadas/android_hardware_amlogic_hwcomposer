@@ -134,6 +134,27 @@ bool PhysicalDevice::initialize() {
     return true;
 }
 
+auto PhysicalDevice::getSystemControlService() {
+    static bool bGot = false;
+    static auto systemControl = ISystemControl::getService();
+    if (bGot) {
+        ETRACE("systemControl is already exist");
+        return systemControl;
+    }
+    mDeathRecipient = new SystemControlDeathRecipient();
+    Return<bool> linked = systemControl->linkToDeath(mDeathRecipient, /*cookie*/ 0);
+    if (!linked.isOk()) {
+        ETRACE("Transaction error in linking to system service death: %s",
+                    linked.description().c_str());
+    } else if (!linked) {
+        ETRACE("Unable to link to system service death notifications");
+    } else {
+        DTRACE("Link to system service death notification successful");
+    }
+    bGot = true;
+    return systemControl;
+}
+
 void PhysicalDevice::updateDisplayInfo(char defaultMode[64]) {
     if (!strncmp(defaultMode, "720", 3)) {
         mDisplayWidth= FULL_WIDTH_720;
@@ -705,6 +726,7 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
 
             Utils::setSysfsStr(DISPLAY_LOGO_INDEX, "-1");
             Utils::setSysfsStr(DISPLAY_FB0_FREESCALE_SWTICH, "0x10001");
+            setOsdMouse();
         }
 
         // real post framebuffer here.
@@ -792,6 +814,69 @@ bool PhysicalDevice::updateCursorBuffer() {
         }
     }
     return false;
+}
+
+void PhysicalDevice::setOsdMouse()
+{
+    bool ret = true;
+    char cur_mode[MODE_LEN] = {0};
+    Utils::getSysfsStr(SYSFS_DISPLAY_MODE, cur_mode);
+    DTRACE("set osd mouse mode: %s", cur_mode);
+    int position[4] = { 0, 0, 0, 0 };//x,y,w,h
+    getOsdPosition(cur_mode, position);
+    setOsdMouse(position[0], position[1], position[2], position[3], cur_mode);
+}
+
+void PhysicalDevice::setOsdMouse(int x, int y, int w, int h, const char* cur_mode)
+{
+    DTRACE("set osd mouse x:%d y:%d w:%d h:%d", x, y, w, h);
+    const char* displaySize = "1920 1080";
+    int display_w, display_h;
+    if (!strncmp(mDefaultMode, "720", 3)) {
+        displaySize = "1280 720";
+    } else if (!strncmp(mDefaultMode, "1080", 4)) {
+        displaySize = "1920 1080";
+    } else if (!strncmp(mDefaultMode, "4k2k", 4)) {
+        displaySize = "3840 2160";
+    }
+
+    if (!strcmp(cur_mode, MODE_480I) || !strcmp(cur_mode, MODE_576I) ||
+            !strcmp(cur_mode, MODE_480CVBS) || !strcmp(cur_mode, MODE_576CVBS) ||
+            !strcmp(cur_mode, MODE_1080I50HZ) || !strcmp(cur_mode, MODE_1080I)) {
+        y /= 2;
+        h /= 2;
+    }
+
+    char axis[512] = {0};
+    sprintf(axis, "%d %d %s %d %d 18 18", x, y, displaySize, x, y);
+    Utils::setSysfsStr(SYSFS_DISPLAY_AXIS, axis);
+
+    sprintf(axis, "%s %d %d", displaySize, w, h);
+    sscanf(displaySize,"%d %d",&display_w,&display_h);
+    Utils::setSysfsStr(DISPLAY_FB1_SCALE_AXIS, axis);
+    if ((display_w != w) || (display_h != h)) {
+        Utils::setSysfsStr(DISPLAY_FB1_SCALE, "0x10001");
+    } else {
+        Utils::setSysfsStr(DISPLAY_FB1_SCALE, "0");
+    }
+}
+
+int PhysicalDevice::getOsdPosition(const char* curMode, int *position) {
+    auto scs = getSystemControlService();
+    if (scs == NULL) {
+        ETRACE("syscontrol::getOsdPosition FAIL.");
+        return FAILED_TRANSACTION;
+    }
+    scs->getPosition(curMode, [&position](const Result &ret,
+                        int left, int top, int width, int height) {
+        if (ret == Result::OK) {
+            position[0] = left;
+            position[1] = top;
+            position[2] = width;
+            position[3] = height;
+        }
+    });
+    return NO_ERROR;
 }
 
 int32_t PhysicalDevice::setOSD1Blank(bool cursorShow) {

@@ -76,6 +76,13 @@ int Utils::getSysfsInt(const char* syspath, int def) {
     return val;
 }
 
+int Utils::getSysfsStr(const char *syspath, char *valstr){
+    char buf[MAX_STR_LEN+1] = {0};
+    getSysfsStr(syspath, (char*)buf, MAX_STR_LEN, false);
+    strcpy(valstr, buf);
+    return 0;
+}
+
 int Utils::getSysfsStr(const char* syspath, char *valstr, int size,
     bool needOriginalData) {
 
@@ -204,14 +211,19 @@ const char* Utils::getHdcpUeventEnvelope()
     return "change@/devices/virtual/switch/hdcp";
 }
 
+const char* Utils::getModeChangeUeventEnvelope()
+{
+    return "change@/devices/virtual/amhdmitx/amhdmitx0/setmode";
+}
+
 const char* Utils::getSwitchState0()
 {
-    return "SWITCH_STATE=0";
+    return "STATE=HDMI=0";
 }
 
 const char* Utils::getSwitchState1()
 {
-    return "SWITCH_STATE=1";
+    return "STATE=HDMI=1";
 }
 
 

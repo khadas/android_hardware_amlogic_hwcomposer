@@ -24,7 +24,7 @@
 #include <IComposeDeviceFactory.h>
 
 #define DEVICE_STR_MBOX                 "MBOX"
-#define DEVICE_STR_TV                    "TV"
+#define DEVICE_STR_TV                   "TV"
 
 #if PLATFORM_SDK_VERSION >= 26 //8.0
 #define DISPLAY_CFG_FILE                "/vendor/etc/mesondisplay.cfg"
@@ -48,13 +48,16 @@ public:
     virtual int32_t setOutputBuffer(buffer_handle_t buffer, int32_t releaseFence) { return HWC2_ERROR_NONE; }
 
 private:
+
     static void hotplugEventListener(void *data, bool status);
+    static void modeChangeEventListener(void *data, bool status);
     void hotplugListener(bool connected);
     int parseConfigFile();
+    void changeModeDetectThread();
+    static void* changeModeDetect(void * data);
 
     const char* pConfigPath;
     int mDisplayType;
-    char mDefaultMode[64];//this used for mbox
 };
 
 }
