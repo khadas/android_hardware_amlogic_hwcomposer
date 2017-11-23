@@ -270,6 +270,10 @@ private:
 
     //omx handle for set omx pts
     int32_t mOmxVideoHandle;
+    //for omx video layer status.
+    bool mOmxVideoPresent;
+    uint32_t mOmxKeepLastFrame;
+    bool mVideoLayerOpenByOMX;
 };
 
 
