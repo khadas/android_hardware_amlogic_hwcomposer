@@ -1292,21 +1292,24 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
         //ALOGD("is_disable_video %d, mOmxVideoPresent %d",is_disable_video,mOmxVideoPresent);
         if (mOmxVideoPresent) {
             //enable video layer
-            if (is_disable_video > 0) {
-                ALOGI("video layer present, enable video layer");
-                AmVideo::getInstance()->setvideodisable(0);
-                mVideoLayerOpenByOMX = true;
+            if (is_disable_video == 1) {
+                ALOGI("video layer is close, enable video layer");
+                AmVideo::getInstance()->setvideodisable(2);
             }
+            mVideoLayerOpenByOMX = true;
         } else {
-            //disable video layer.
-            if (is_disable_video == 0 && mVideoLayerOpenByOMX) {
-                ALOGI("no omx video layer, try to close video layer.");
-                mVideoLayerOpenByOMX = false;
-                if (mVideoOverlayLayerId == 0) {
-                    ALOGI("close video layer.");
-                    AmVideo::getInstance()->setvideodisable(1);
+            if (mVideoLayerOpenByOMX) {
+                //disable video layer.
+                if (is_disable_video == 0) {
+                    if (mVideoOverlayLayerId == 0) {
+                        AmVideo::getInstance()->setvideodisable(2);
+                        ALOGI("no omx video layer, no OVERLAY, set display_mode 2");
+                    } else {
+                        ALOGI("no omx video layer, but has OVERLAY, not set display_mode");
+                    }
                 }
             }
+            mVideoLayerOpenByOMX = false;
         }
     }
 
