@@ -28,7 +28,7 @@
 #include <cutils/properties.h>
 #include <tvp/OmxUtil.h>
 #include <framebuffer.h>
-
+#include <AmVideo.h>
 #define FBIOPUT_OSD_CURSOR      0x451a
 
 namespace android {
@@ -60,7 +60,8 @@ PhysicalDevice::PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc, IComposeDevic
       mGetInitState(false),
       mInitialized(false),
       mOmxVideoHandle(0),
-      mFirstPostFb(true){
+      mFirstPostFb(true),
+      mVideoLayerOpenByOMX(false) {
     CTRACE();
 
     switch (id) {
@@ -85,6 +86,8 @@ PhysicalDevice::PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc, IComposeDevic
     mGE2DRenderSortedLayerIds.clear();
 
     mHwcCurReleaseFences = mHwcPriorReleaseFences = NULL;
+    mOmxKeepLastFrame = 0;
+    AmVideo::getInstance()->getOmxKeepLastFrame(&mOmxKeepLastFrame);
 }
 
 PhysicalDevice::~PhysicalDevice() {
@@ -1250,6 +1253,8 @@ bool PhysicalDevice::calReverseScale() {
 int32_t PhysicalDevice::preValidate() {
     bool bScale = (mReverseScaleX >= 0.01f && mReverseScaleX >= 0.01f) ? true : false;
     HwcLayer* layer = NULL;
+    int videoPresentFlags = 0; //0: no video, 1: video presetn, 2: omx video present;
+
     //find out video layer first.
     for (uint32_t i=0; i<mHwcLayers.size(); i++) {
         hwc2_layer_t layerId = mHwcLayers.keyAt(i);
@@ -1277,8 +1282,19 @@ int32_t PhysicalDevice::preValidate() {
             }
             mVideoOverlayLayerId = layerId;
         }
+
+        if (hnd && (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OMX)) {
+             videoPresentFlags = 2;
+        } else if (hnd && (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OVERLAY)) {
+             videoPresentFlags = 1;
+        }
     }
 
+    if (videoPresentFlags == 2) {
+         mOmxVideoPresent = true;
+    } else {
+         mOmxVideoPresent = false;
+    }
     return HWC2_ERROR_NONE;
 }
 
@@ -1400,6 +1416,32 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
             default:
                 ETRACE("get layer of unknown composition type (%d)", layer->getCompositionType());
                 break;
+        }
+    }
+   if (mOmxKeepLastFrame == 1) {
+        int is_disable_video = -1;
+        AmVideo::getInstance()->getvideodisable(&is_disable_video);
+        //ALOGD("is_disable_video %d, mOmxVideoPresent %d",is_disable_video,mOmxVideoPresent);
+        if (mOmxVideoPresent) {
+            //enable video layer
+            if (is_disable_video == 1) {
+                ALOGI("video layer present, enable video layer");
+                AmVideo::getInstance()->setvideodisable(2);
+            }
+            mVideoLayerOpenByOMX = true;
+        } else {
+            //disable video layer.
+            if (mVideoLayerOpenByOMX) {
+                if (is_disable_video == 0) {
+                    if (mVideoOverlayLayerId == 0) {
+                        ALOGI("no omx video layer, no OVERLAY, set display_mode 2");
+                        AmVideo::getInstance()->setvideodisable(2);
+                    } else {
+                        ALOGI("no omx video layer, but has OVERLAY, not set display_mode");
+                    }
+                }
+                mVideoLayerOpenByOMX = false;
+            }
         }
     }
 

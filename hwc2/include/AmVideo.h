@@ -25,6 +25,9 @@ public:
     static AmVideo* getInstance();
     int presentVideo(bool bPresent);
     bool isVideoPresent() {return mVideoPresent;}
+    int getvideodisable(int* mode);
+    int setvideodisable(int mode);
+    int getOmxKeepLastFrame(unsigned int *keepLastFrame);
 
 protected:
     AmVideo();
