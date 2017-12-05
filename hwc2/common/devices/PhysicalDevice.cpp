@@ -1432,10 +1432,10 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
         } else {
             //disable video layer.
             if (mVideoLayerOpenByOMX) {
-                if (is_disable_video == 0) {
+                if (is_disable_video == 0 || is_disable_video == 2) {
                     if (mVideoOverlayLayerId == 0) {
-                        ALOGI("no omx video layer, no OVERLAY, set display_mode 2");
-                        AmVideo::getInstance()->setvideodisable(2);
+                        ALOGI("no omx video layer, no OVERLAY, set display_mode %d->1",is_disable_video);
+                        AmVideo::getInstance()->setvideodisable(1);
                     } else {
                         ALOGI("no omx video layer, but has OVERLAY, not set display_mode");
                     }
