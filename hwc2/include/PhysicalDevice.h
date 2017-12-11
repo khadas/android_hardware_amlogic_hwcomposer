@@ -37,6 +37,9 @@
 #define SYSFS_DISPLAY_AXIS              "/sys/class/display/axis"
 #define DISPLAY_FB1_SCALE_AXIS          "/sys/class/graphics/fb1/scale_axis"
 #define DISPLAY_FB1_SCALE               "/sys/class/graphics/fb1/scale"
+#define DISPLAY_FB0_FREESCALE_AXIS      "/sys/class/graphics/fb0/free_scale_axis"
+
+#define DISPLAY_HDMI_HDCP_KEY           "/sys/class/amhdmitx/amhdmitx0/hdcp_lstore"//TX have 22 or 14 or none key
 
 namespace android {
 namespace amlogic {
@@ -149,8 +152,13 @@ public:
 
 protected:
     auto getSystemControlService();
+    void updateFreescaleAxis();
     void setOsdMouse();
+    int32_t setOSD1Blank(bool blank);
+    int32_t setOSD0Blank(bool blank);
+
     char mDefaultMode[64];//this used for mbox
+    bool mStartBootanim;
 
 private:
 
@@ -166,6 +174,7 @@ private:
     // For use by Device
     int32_t initDisplay();
     int32_t postFramebuffer(int32_t* outRetireFence,  bool hasVideoOverlay);
+    void bootanimDetect();
     bool updateCursorBuffer();
     void setOsdMouse(int x, int y, int w, int h, const char* cur_mode);
     int getOsdPosition(const char* curMode, int *position);
@@ -176,8 +185,6 @@ private:
     int32_t parseHdrCapabilities();
     void directCompose(framebuffer_info_t * fbInfo);
     void ge2dCompose(framebuffer_info_t * fbInfo, bool hasVideoOverlay);
-    int32_t setOSD1Blank(bool cursorShow);
-    int32_t setOSD0Blank(bool blank);
     bool layersStateCheck(int32_t renderMode, KeyedVector<hwc2_layer_t, HwcLayer*> & composeLayers);
     int32_t composersFilter(KeyedVector<hwc2_layer_t, HwcLayer*>& composeLayers);
 
@@ -213,6 +220,7 @@ private:
     hwc2_display_t mId;
     const char *mName;
     bool mSecure;
+    bool mHDCPRegister;
     Hwcomposer& mHwc;
     DisplayHdmi* mDisplayHdmi;
     IComposeDeviceFactory *mControlFactory;
@@ -286,7 +294,6 @@ private:
 
     int mDisplayWidth;
     int mDisplayHeight;
-    bool mFirstPostFb;
 
     //omx handle for set omx pts
     int32_t mOmxVideoHandle;

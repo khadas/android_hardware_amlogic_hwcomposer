@@ -87,7 +87,17 @@ void PrimaryDevice::modeChangeEventListener(void *data, bool status)
     PrimaryDevice *pThis = (PrimaryDevice*)data;
     DTRACE("mode state: [%s] display mode.", status == true ? "Begin to change" : "Complete");
 
-    if (!status && pThis) {
+    if (status && pThis) {
+        if (pThis->mStartBootanim) {
+            //if change mode during the platform starts up,
+            //need close fb1 to avoid logo scaling wrong
+            pThis->setOSD0Blank(true);
+            pThis->setOSD1Blank(true);
+            Utils::setSysfsStr(DISPLAY_FB1_FREESCALE, "0");
+        }
+    } else if (!status && pThis) {
+        pThis->updateFreescaleAxis();
+        Utils::setSysfsStr(DISPLAY_FB0_FREESCALE, "0x10001");
         pThis->setOsdMouse();
         pThis->hotplugListener(pThis->mSignalHpd);
     }

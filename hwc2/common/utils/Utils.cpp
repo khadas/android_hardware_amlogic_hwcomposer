@@ -78,9 +78,10 @@ int Utils::getSysfsInt(const char* syspath, int def) {
 
 int Utils::getSysfsStr(const char *syspath, char *valstr){
     char buf[MAX_STR_LEN+1] = {0};
-    getSysfsStr(syspath, (char*)buf, MAX_STR_LEN, false);
-    strcpy(valstr, buf);
-    return 0;
+    int ret = getSysfsStr(syspath, (char*)buf, MAX_STR_LEN, false);
+    if (ret == 0)
+        strcpy(valstr, buf);
+    return ret;
 }
 
 int Utils::getSysfsStr(const char* syspath, char *valstr, int size,
@@ -208,7 +209,7 @@ const char* Utils::getHotplugUeventEnvelope()
 
 const char* Utils::getHdcpUeventEnvelope()
 {
-    return "change@/devices/virtual/switch/hdcp";
+    return "change@/devices/virtual/amhdmitx/amhdmitx0/hdcp";
 }
 
 const char* Utils::getModeChangeUeventEnvelope()

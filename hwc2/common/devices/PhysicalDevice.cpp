@@ -43,6 +43,7 @@ PhysicalDevice::PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc, IComposeDevic
       mVsyncObserver(NULL),
       mConnectorPresent(false),
       mSecure(false),
+      mHDCPRegister(true),
       mFramebufferHnd(NULL),
       mSystemControl(NULL),
       mFbSlot(0),
@@ -62,7 +63,7 @@ PhysicalDevice::PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc, IComposeDevic
       mGetInitState(false),
       mInitialized(false),
       mOmxVideoHandle(0),
-      mFirstPostFb(true),
+      mStartBootanim(true),
       mVideoLayerOpenByOMX(false) {
     CTRACE();
 
@@ -129,6 +130,13 @@ bool PhysicalDevice::initialize() {
         ETRACE("PhysicalDevice::Uevent observer is NULL");
     }
 
+    char hdcpTxKey[MODE_LEN] = {0};
+    if (Utils::getSysfsStr(DISPLAY_HDMI_HDCP_KEY, hdcpTxKey) == 0) {
+        //no need hdcp auth, if box have no key
+        if ((strlen(hdcpTxKey) == 0) || !(strcmp(hdcpTxKey, "00")))
+            mHDCPRegister = false;
+    }
+
     mDisplayHdmi = new DisplayHdmi();
     framebuffer_info_t framebufferInfo = *(mFramebufferContext->getInfo());
     framebufferInfo.info.xres = mDisplayWidth;
@@ -183,6 +191,9 @@ void PhysicalDevice::hdcpEventListener(void *data, bool status) {
 void PhysicalDevice::setSecureStatus(bool status) {
     DTRACE("hdcp event: %d", status);
     mSecure = status;
+
+    // notify sf to refresh.
+    getDevice().refresh(getDisplayId());
 }
 
 void PhysicalDevice::deinitialize() {
@@ -691,9 +702,23 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
 #endif
     mFbSyncRequest.type = mRenderMode;
 
+#ifdef HWC_SUPPORT_SECURE_LAYER
+    if (!mSecure && !mHwcSecureLayers.isEmpty())
+        mClientTargetHnd = NULL;
+#else
+    if (mHDCPRegister && !mSecure)
+        mClientTargetHnd = NULL;
+#endif
+
     if (!mClientTargetHnd || private_handle_t::validate(mClientTargetHnd) < 0 || mPowerMode == HWC2_POWER_MODE_OFF) {
         DTRACE("Post blank to screen, mClientTargetHnd(%p, %d), mTargetAcquireFence(%d)",
                     mClientTargetHnd, private_handle_t::validate(mClientTargetHnd), mTargetAcquireFence);
+        if (mHDCPRegister && !mSecure && mStartBootanim) {
+            //blank osd1, uboot logo show in osd1
+            mStartBootanim = false;
+            setOSD1Blank(false);
+            bootanimDetect();
+        }
         *outRetireFence = HwcFenceControl::merge(String8("ScreenBlank"), mPriorFrameRetireFence, mPriorFrameRetireFence);
         HwcFenceControl::closeFd(mTargetAcquireFence);
         mTargetAcquireFence = -1;
@@ -725,15 +750,10 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
             needBlankFb0 = true;
         }
 
-        //close uboot logo, if bootanim begin to show
-        if (mFirstPostFb) {
-            mFirstPostFb = false;
-
-            Utils::setSysfsStr(DISPLAY_LOGO_INDEX, "-1");
-            Utils::setSysfsStr(DISPLAY_FB0_FREESCALE_SWTICH, "0x10001");
-            setOsdMouse();
+        if (mStartBootanim) {
+            mStartBootanim = false;
+            bootanimDetect();
         }
-
         // real post framebuffer here.
         DTRACE("render type: %d", mFbSyncRequest.type);
 
@@ -775,6 +795,35 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
     }
 
     return HWC2_ERROR_NONE;
+}
+
+void PhysicalDevice::bootanimDetect() {
+    char bootvideo[64] = {0};
+
+    updateFreescaleAxis();
+
+    //close uboot logo, if bootanim begin to show
+    Utils::setSysfsStr(DISPLAY_LOGO_INDEX, "-1");
+    Utils::get_str_prop(PROP_BOOTVIDEO_SERVICE, bootvideo, "0");
+    ITRACE("boot animation detect boot video:%s\n", bootvideo);
+    if (!strcmp(bootvideo, "1")) {
+        //need close fb1, because uboot logo show in fb1
+        setOSD0Blank(true);
+        setOSD1Blank(true);
+        Utils::setSysfsStr(DISPLAY_FB1_FREESCALE, "0");
+        Utils::setSysfsStr(DISPLAY_FB0_FREESCALE, "0x10001");
+    } else {
+        Utils::setSysfsStr(DISPLAY_FB0_FREESCALE_SWTICH, "0x10001");
+    }
+    setOsdMouse();
+}
+
+void PhysicalDevice::updateFreescaleAxis()
+{
+    char axis[MAX_STR_LEN] = {0};
+    sprintf(axis, "%d %d %d %d",
+            0, 0, mDisplayWidth - 1, mDisplayHeight - 1);
+    Utils::setSysfsStr(DISPLAY_FB0_FREESCALE_AXIS, axis);
 }
 
 // deal physical display's client target layer
@@ -884,13 +933,13 @@ int PhysicalDevice::getOsdPosition(const char* curMode, int *position) {
     return NO_ERROR;
 }
 
-int32_t PhysicalDevice::setOSD1Blank(bool cursorShow) {
+int32_t PhysicalDevice::setOSD1Blank(bool blank) {
     framebuffer_info_t* cbInfo = mCursorContext->getInfo();
 
-    if (cbInfo->fd > 0 && cursorShow != mCursorContext->getStatus()) {
-        mCursorContext->setStatus(cursorShow);
-        DTRACE("UPDATE FB1 status to %d", !cursorShow);
-        ioctl(cbInfo->fd, FBIOBLANK, !cursorShow);
+    if (cbInfo->fd > 0 && blank != mCursorContext->getStatus()) {
+        mCursorContext->setStatus(blank);
+        DTRACE("UPDATE FB1 status to %d", !blank);
+        ioctl(cbInfo->fd, FBIOBLANK, !blank);
     }
 
     return HWC2_ERROR_NONE;
