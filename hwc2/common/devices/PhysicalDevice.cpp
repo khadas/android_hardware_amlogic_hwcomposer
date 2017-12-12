@@ -29,7 +29,9 @@
 #include <tvp/OmxUtil.h>
 #include <framebuffer.h>
 #include <AmVideo.h>
-#define FBIOPUT_OSD_CURSOR      0x451a
+
+#define FB_IOC_MAGIC   'O'
+#define FBIOPUT_OSD_CURSOR     _IOWR(FB_IOC_MAGIC, 0x0,  struct fb_cursor)
 
 namespace android {
 namespace amlogic {
