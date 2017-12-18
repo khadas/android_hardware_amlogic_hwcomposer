@@ -45,7 +45,13 @@ IDisplayDevice* PlatFactory::createDisplayDevice(int disp)
 
     class PlatcComposerFactory: public IComposeDeviceFactory {
     public:
-        virtual IComposeDevice* createComposer(IDisplayDevice& disp)       {return new GE2DComposer(disp);}
+        virtual IComposeDevice* createComposer(IDisplayDevice& disp) {
+        #ifdef ENABLE_AML_GE2D_COMPOSER
+            return new GE2DComposer(disp);
+        #else
+            return NULL;
+        #endif
+        }
     };
 
     switch (disp) {

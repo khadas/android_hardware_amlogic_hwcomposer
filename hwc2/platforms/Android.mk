@@ -27,7 +27,6 @@ LOCAL_SRC_FILES := \
     ../common/observers/SoftVsyncObserver.cpp \
     ../common/observers/UeventObserver.cpp \
     ../common/composers/IComposeDevice.cpp \
-    ../common/composers/GE2DComposer.cpp \
     ../common/utils/Utils.cpp \
     ../common/utils/Dump.cpp \
     ../common/utils/AmVinfo.cpp \
@@ -45,7 +44,6 @@ LOCAL_SHARED_LIBRARIES := \
     libhardware \
     libutils \
     libsync \
-    libion \
     libfbcnf \
     libge2d \
     libbinder \
@@ -110,6 +108,9 @@ LOCAL_CFLAGS += -DPLATFORM_SDK_VERSION=$(PLATFORM_SDK_VERSION)
 ifeq ($(TARGET_APP_LAYER_USE_CONTINUOUS_BUFFER),true)
 LOCAL_CFLAGS += -DUSE_CONTINOUS_BUFFER_COMPOSER
 # LOCAL_CFLAGS += -DENABLE_AML_GE2D_COMPOSER
+# LOCAL_SRC_FILES += ../common/composers/GE2DComposer.cpp
+# LOCAL_SHARED_LIBRARIES += libion
+
 endif
 
 ifeq ($(TARGET_SUPPORT_SECURE_LAYER),true)
