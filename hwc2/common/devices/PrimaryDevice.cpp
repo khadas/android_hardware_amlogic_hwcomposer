@@ -49,6 +49,8 @@ bool PrimaryDevice::initialize()
         DEINIT_AND_RETURN_FALSE("failed to initialize physical device");
     }
 
+    mSignalHpd = false;
+
     UeventObserver *observer = Hwcomposer::getInstance().getUeventObserver();
     if (observer) {
         observer->registerListener(
@@ -75,7 +77,8 @@ void PrimaryDevice::hotplugEventListener(void *data, bool status)
 {
     PrimaryDevice *pThis = (PrimaryDevice*)data;
     if (pThis) {
-        pThis->hotplugListener(status);
+        pThis->hotplugListener(0);
+        if (status) pThis->mSignalHpd = true;
     }
 }
 
@@ -83,6 +86,7 @@ void PrimaryDevice::modeChangeEventListener(void *data, bool status)
 {
     PrimaryDevice *pThis = (PrimaryDevice*)data;
     DTRACE("mode change event: %d", status);
+
     if (status && pThis) {
         pThis->changeModeDetectThread();
     }
@@ -96,7 +100,10 @@ void PrimaryDevice::hotplugListener(bool connected)
     updateHotplugState(connected);
 
     // update display configs
-    onHotplug(getDisplayId(), connected);
+    // onHotplug(getDisplayId(), connected);
+
+    // notify sf to refresh.
+    getDevice().refresh(getDisplayId());
 }
 
 int PrimaryDevice::parseConfigFile()
@@ -152,9 +159,14 @@ void* PrimaryDevice::changeModeDetect(void* data)
     Utils::getSysfsStr(SYSFS_DISPLAY_MODE, lastMode);
     do {
         modeChanged = Utils::checkSysfsStatus(SYSFS_DISPLAY_MODE, lastMode, 32);
-        usleep(1000 * 1000);
+        usleep(500 * 1000);
     } while (!modeChanged);
-    pThis->setOsdMouse();
+
+    if (pThis->mSignalHpd) {
+        pThis->setOsdMouse();
+        pThis->hotplugListener(1);
+        pThis->mSignalHpd = false;
+    }
     return NULL;
 }
 
