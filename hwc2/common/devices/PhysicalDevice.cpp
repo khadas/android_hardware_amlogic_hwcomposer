@@ -1127,7 +1127,7 @@ int32_t PhysicalDevice::preValidate() {
     bool bScale = (mReverseScaleX >= 0.01f && mReverseScaleX >= 0.01f) ? true : false;
     HwcLayer* layer = NULL;
     int videoPresentFlags = 0; //0: no video, 1: video presetn, 2: omx video present;
-
+    mOmxSideBandPresent = false;
     //find out video layer first.
     for (uint32_t i=0; i<mHwcLayers.size(); i++) {
         hwc2_layer_t layerId = mHwcLayers.keyAt(i);
@@ -1154,6 +1154,10 @@ int32_t PhysicalDevice::preValidate() {
                 ETRACE("ERROR: Find two video layer, should never get here !!");
             }
             mVideoOverlayLayerId = layerId;
+        }
+        if (layer->getCompositionType() == HWC2_COMPOSITION_SIDEBAND) {
+            //ALOGD("SIDEBAND");
+            mOmxSideBandPresent = true;
         }
 
         if (hnd && (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OMX)) {
@@ -1289,8 +1293,8 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
    if (mOmxKeepLastFrame == 1) {
         int is_disable_video = -1;
         AmVideo::getInstance()->getvideodisable(&is_disable_video);
-        //ALOGD("is_disable_video %d, mOmxVideoPresent %d",is_disable_video,mOmxVideoPresent);
-        if (mOmxVideoPresent) {
+        //ALOGD("is_disable_video %d, mOmxVideoPresent %d, mOmxSideBandPresent %d, mVideoLayerOpenByOMX %d",is_disable_video,mOmxVideoPresent,mOmxSideBandPresent,mVideoLayerOpenByOMX);
+        if (mOmxVideoPresent || mOmxSideBandPresent) {
             //enable video layer
             if (is_disable_video == 1) {
                 ALOGI("video layer is close, enable video layer");
@@ -1300,10 +1304,10 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
         } else {
             if (mVideoLayerOpenByOMX) {
                 //disable video layer.
-                if (is_disable_video == 0) {
+                if (is_disable_video == 0 || is_disable_video == 2) {
                     if (mVideoOverlayLayerId == 0) {
-                        AmVideo::getInstance()->setvideodisable(2);
-                        ALOGI("no omx video layer, no OVERLAY, set display_mode 2");
+                        AmVideo::getInstance()->setvideodisable(1);
+                        ALOGI("no omx video layer, no OVERLAY, set display_mode %d->1",is_disable_video);
                     } else {
                         ALOGI("no omx video layer, but has OVERLAY, not set display_mode");
                     }

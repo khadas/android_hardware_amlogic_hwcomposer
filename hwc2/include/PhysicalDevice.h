@@ -270,6 +270,7 @@ private:
     bool mOmxVideoPresent;
     uint32_t mOmxKeepLastFrame;
     bool mVideoLayerOpenByOMX;
+    bool mOmxSideBandPresent;
 };
 
 
