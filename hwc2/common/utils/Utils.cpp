@@ -203,7 +203,7 @@ bool Utils::checkSysfsStatus(const char* sysfstr, char* lastr, int32_t size) {
 
 const char* Utils::getHotplugUeventEnvelope()
 {
-    return "change@/devices/virtual/switch/hdmi_delay";
+    return "change@/devices/virtual/amhdmitx/amhdmitx0/hdmi";
 }
 
 const char* Utils::getHdcpUeventEnvelope()
