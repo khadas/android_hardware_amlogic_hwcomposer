@@ -66,6 +66,8 @@ public:
     static const char* getModeChangeUeventEnvelope();
     static const char* getSwitchState0();
     static const char* getSwitchState1();
+    static const char* getSwitchModeState0();
+    static const char* getSwitchModeState1();
 
     template <typename T, typename S>
     static inline bool compareRect(T a, S b) {

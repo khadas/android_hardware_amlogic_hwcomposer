@@ -49,7 +49,7 @@ bool PrimaryDevice::initialize()
         DEINIT_AND_RETURN_FALSE("failed to initialize physical device");
     }
 
-    mSignalHpd = false;
+    mSignalHpd = Utils::getSysfsInt(DISPLAY_HPD_STATE, 1) == 1 ? true : false;
 
     UeventObserver *observer = Hwcomposer::getInstance().getUeventObserver();
     if (observer) {
@@ -75,20 +75,21 @@ void PrimaryDevice::deinitialize()
 
 void PrimaryDevice::hotplugEventListener(void *data, bool status)
 {
+    DTRACE("HDMI Plug State[%s]", status == true ? "Plug" : "UnPlug");
     PrimaryDevice *pThis = (PrimaryDevice*)data;
     if (pThis) {
-        pThis->hotplugListener(0);
-        if (status) pThis->mSignalHpd = true;
+        pThis->mSignalHpd = status;
     }
 }
 
 void PrimaryDevice::modeChangeEventListener(void *data, bool status)
 {
     PrimaryDevice *pThis = (PrimaryDevice*)data;
-    DTRACE("mode change event: %d", status);
+    DTRACE("mode state: [%s] display mode.", status == true ? "Begin to change" : "Complete");
 
-    if (status && pThis) {
-        pThis->changeModeDetectThread();
+    if (!status && pThis) {
+        pThis->setOsdMouse();
+        pThis->hotplugListener(pThis->mSignalHpd);
     }
 }
 
@@ -141,33 +142,6 @@ int PrimaryDevice::parseConfigFile()
         delete tokenizer;
     }
     return status;
-}
-
-void PrimaryDevice::changeModeDetectThread()
-{
-    pthread_t id;
-    int ret = pthread_create(&id, NULL, changeModeDetect, this);
-    if (ret != 0)
-        ETRACE("Create changeModeDetect error!\n");
-}
-
-void* PrimaryDevice::changeModeDetect(void* data)
-{
-    PrimaryDevice *pThis = (PrimaryDevice*)data;
-    bool modeChanged = false;
-    char lastMode[32];
-    Utils::getSysfsStr(SYSFS_DISPLAY_MODE, lastMode);
-    do {
-        modeChanged = Utils::checkSysfsStatus(SYSFS_DISPLAY_MODE, lastMode, 32);
-        usleep(500 * 1000);
-    } while (!modeChanged);
-
-    if (pThis->mSignalHpd) {
-        pThis->setOsdMouse();
-        pThis->hotplugListener(1);
-        pThis->mSignalHpd = false;
-    }
-    return NULL;
 }
 
 } // namespace amlogic

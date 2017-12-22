@@ -213,7 +213,7 @@ const char* Utils::getHdcpUeventEnvelope()
 
 const char* Utils::getModeChangeUeventEnvelope()
 {
-    return "change@/devices/virtual/amhdmitx/amhdmitx0/setmode";
+    return "change@/devices/platform/vout/extcon/setmode";
 }
 
 const char* Utils::getSwitchState0()
@@ -226,6 +226,15 @@ const char* Utils::getSwitchState1()
     return "STATE=HDMI=1";
 }
 
+const char* Utils::getSwitchModeState0()
+{
+    return "STATE=ACA=0";
+}
+
+const char* Utils::getSwitchModeState1()
+{
+    return "STATE=ACA=1";
+}
 
 bool Utils::rectEmpty(hwc_rect_t& rect) {
     if ((rect.right - rect.left <= 0) ||(rect.bottom - rect.top <= 0))

@@ -212,6 +212,10 @@ void UeventObserver::onUevent()
             listener->func(listener->data, true);
         } else if (key.contains(Utils::getSwitchState0())) {
             listener->func(listener->data, false);
+        } else if (key.contains(Utils::getSwitchModeState1())) {
+            listener->func(listener->data, true);
+        } else if (key.contains(Utils::getSwitchModeState0())) {
+            listener->func(listener->data, false);
         }
         msg += strlen(msg) + 1;
     }

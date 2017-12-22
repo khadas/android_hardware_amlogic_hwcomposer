@@ -53,8 +53,6 @@ private:
     static void modeChangeEventListener(void *data, bool status);
     void hotplugListener(bool connected);
     int parseConfigFile();
-    void changeModeDetectThread();
-    static void* changeModeDetect(void * data);
 
     const char* pConfigPath;
     int mDisplayType;
