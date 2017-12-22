@@ -65,8 +65,8 @@ LOCAL_C_INCLUDES := \
     system/core/libsync \
     system/core/libsync/include \
     system/core/include \
-    vendor/amlogic/system/libge2d/inlcude \
-    vendor/amlogic/frameworks/services
+    $(BOARD_AML_VENDOR_PATH)/system/libge2d/inlcude \
+    $(BOARD_AML_VENDOR_PATH)/frameworks/services
 
 LOCAL_C_INCLUDES += $(LOCAL_PATH) \
     $(LOCAL_PATH)/../include \
@@ -79,7 +79,7 @@ LOCAL_C_INCLUDES += $(LOCAL_PATH) \
     $(LOCAL_PATH)/../.. \
     $(TOP)/hardware/amlogic/media/amavutils/include \
     $(LOCAL_PATH)/ \
-    $(TOP)/vendor/amlogic/frameworks/services/systemcontrol \
+    $(TOP)/$(BOARD_AML_VENDOR_PATH)/frameworks/services/systemcontrol \
 
 LOCAL_KK=0
 ifeq ($(GPU_TYPE),t83x)
