@@ -10,17 +10,16 @@
 #ifndef HW_DISPLAY_MANAGER_H
 #define HW_DISPLAY_MANAGER_H
 
-#include <mutex>
-#include <map>
 #include <time.h>
 
+#include <BasicTypes.h>
 #include <HwDisplayCrtc.h>
 #include <HwDisplayPlane.h>
 #include <HwDisplayConnector.h>
 #include <HwDisplayVsync.h>
-#include <utils/Singleton.h>
 #include <HwDisplayDefs.h>
 
+using namespace::android;
 
 class HwDisplayObserver {
 public:
@@ -65,7 +64,7 @@ public:
             HwDisplayObserver * observer);
     int32_t unregisterObserver(hw_display_id hwDisplayId);
 
-
+    void dump(String8 & dumpstr);
 protected:
     void onVsync(int64_t timestamp);
     int32_t buildDisplayPipes();

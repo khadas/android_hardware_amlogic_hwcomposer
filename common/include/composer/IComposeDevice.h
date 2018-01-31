@@ -9,8 +9,9 @@
 #ifndef ICOMPOSE_DEVICE_H
 #define ICOMPOSE_DEVICE_H
 
-#include <memory>
 #include <stdlib.h>
+
+#include <BasicTypes.h>
 #include <Composition.h>
 #include <DrmFramebuffer.h>
 

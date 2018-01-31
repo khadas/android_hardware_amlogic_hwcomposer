@@ -10,6 +10,7 @@
 #ifndef CONNECTOR_HDMI_H
 
 #include <HwDisplayConnector.h>
+#include <BasicTypes.h>
 
 #if 0
 #include <ISystemControlService.h>
@@ -124,6 +125,9 @@ public:
 
     virtual bool isConnected();
     virtual bool isSecure();
+
+    virtual void dump(String8 & dumpstr);
+
 };
 
 #endif/*CONNECTOR_HDMI_H*/

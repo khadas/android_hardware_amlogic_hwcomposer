@@ -157,8 +157,6 @@ int32_t hwc2_get_release_fences(
                     outLayers, outFences);
 }
 
-
-
 int32_t hwc2_present_display(
         hwc2_device_t* device, hwc2_display_t display, int32_t* outPresentFence) {
     GET_MESON_HWC();

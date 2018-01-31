@@ -9,11 +9,9 @@
 #ifndef DRM_FRAMEBUFFER_H
 #define DRM_FRAMEBUFFER_H
 
-#include <memory>
 #include <stdlib.h>
 
-#include <utils/NativeHandle.h>
-
+#include <BasicTypes.h>
 #include <Composition.h>
 #include <DrmSync.h>
 #include <DrmTypes.h>

@@ -29,4 +29,9 @@ int32_t VideoPlane::blank() {
     return 0;
 }
 
+void VideoPlane::dump(String8 & dumpstr) {
+    MESON_LOG_EMPTY_FUN();
+}
+
+
 

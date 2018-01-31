@@ -89,6 +89,8 @@ public:
     void onHotplug(bool connected);
     void onModeChanged();
 
+    void dump(String8 & dumpstr);
+
 protected:
     /* For compose. */
     hwc2_error_t collectLayersForPresent();

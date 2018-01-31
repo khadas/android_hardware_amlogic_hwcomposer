@@ -9,7 +9,7 @@
 #ifndef COMPOSITION_STRATEGY_FACTORY_H
 #define COMPOSITION_STRATEGY_FACTORY_H
 
-#include <memory>
+#include <BasicTypes.h>
 #include <ICompositionStrategy.h>
 
 enum {

@@ -14,6 +14,8 @@
 
 #include <DrmFramebuffer.h>
 
+using namespace android;
+
 class HwDisplayPlane {
 public:
     HwDisplayPlane(int32_t drvFd, uint32_t id);
@@ -27,6 +29,8 @@ public:
     virtual int32_t blank() = 0;
 
     virtual int32_t pageFlip(int32_t &outFence) = 0;
+
+    virtual void dump(String8 & dumpstr) = 0;
 
 protected:
     int32_t mDrvFd;

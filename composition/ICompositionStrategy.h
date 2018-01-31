@@ -10,9 +10,8 @@
 #define ICOMPOSITION_STRATEGY_H
 
 #include <stdlib.h>
-#include <memory>
-#include <vector>
 
+#include <BasicTypes.h>
 #include <DrmFramebuffer.h>
 #include <IComposeDevice.h>
 #include <HwDisplayPlane.h>
@@ -32,6 +31,8 @@ public:
 
     /*start composition, should set release fence to each Framebuffer.*/
     virtual int32_t commit() = 0;
+
+    virtual void dump(String8 & dumpstr) = 0;
 };
 
 #endif/*ICOMPOSITION_STRATEGY_H*/

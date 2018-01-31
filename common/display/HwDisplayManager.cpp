@@ -165,6 +165,10 @@ void HwDisplayManager::onVsync(int64_t timestamp) {
     }
 }
 
+void HwDisplayManager::dump(String8 & dumpstr) {
+    MESON_LOG_EMPTY_FUN();
+}
+
 /********************************************************************
  *   The following functions need update with drm.                  *
  *   Now is hard code for 1 crtc , 1 connector.                     *

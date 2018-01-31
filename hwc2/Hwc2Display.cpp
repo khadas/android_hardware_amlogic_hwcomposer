@@ -12,6 +12,7 @@
 #include "Hwc2Base.h"
 
 #include <MesonLog.h>
+#include <DebugHelper.h>
 #include <Composition.h>
 #include <IComposeDevice.h>
 #include <ComposerFactory.h>
@@ -483,5 +484,28 @@ hwc2_error_t Hwc2Display::setActiveConfig(
     hwc2_config_t config) {
     MESON_LOG_EMPTY_FUN();
     return HWC2_ERROR_NONE;
+}
+
+void Hwc2Display::dump(String8 & dumpstr) {
+    dumpstr.append("-------------------------------------------------------------"
+        "----------------------------------------------------------------\n");
+    dumpstr.appendFormat("Display (%s, %d) state:\n", getName(), mHwId);
+
+    mConnector->dump(dumpstr);
+
+    if (DebugHelper::getInstance().dumpDetailInfo()) {
+        std::vector<std::shared_ptr<HwDisplayPlane>>::iterator plane;
+        for (plane = mPlanes.begin(); plane != mPlanes.end(); plane++) {
+            (*plane)->dump(dumpstr);
+        }
+
+        std::unordered_map<hwc2_layer_t, std::shared_ptr<Hwc2Layer>>::iterator layer;
+        for (layer = mLayers.begin(); layer != mLayers.end(); layer++) {
+            layer->second->dump(dumpstr);
+        }
+
+        if (mCompositionStrategy != NULL)
+            mCompositionStrategy->dump(dumpstr);
+    }
 }
 

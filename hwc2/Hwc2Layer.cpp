@@ -163,4 +163,8 @@ bool Hwc2Layer::isContiguousBuf() {
     return false;
 }
 
+void Hwc2Layer::dump(String8 & dumpstr) {
+    MESON_LOG_EMPTY_FUN();
+}
+
 

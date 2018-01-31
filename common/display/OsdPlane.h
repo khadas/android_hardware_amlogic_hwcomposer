@@ -48,6 +48,8 @@ public:
 
     int32_t pageFlip(int32_t &outFence);
 
+    void dump(String8 & dumpstr);
+
 protected:
     int32_t getProperties();
 

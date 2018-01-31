@@ -44,6 +44,7 @@ LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/common/include/composer \
 	$(LOCAL_PATH)/common/include/base \
 	$(LOCAL_PATH)/common/include/utils \
+	$(LOCAL_PATH)/common/include/debug \
 	$(LOCAL_PATH)/composition \
 	system/core/libsync \
 	system/core/libsync/include \
@@ -79,6 +80,10 @@ LOCAL_COMMON_DISPLAY_FILES  := \
 	common/display/HwConnectorFactory.cpp \
 	common/display/ConnectorHdmi.cpp \
 	common/display/ConnectorPanel.cpp
+
+LOCAL_COMMON_UTILS_FILES  := \
+	common/utils/misc.cpp \
+	common/debug/DebugHelper.cpp
 
 LOCAL_COMPOSITION_FILES := \
 	composition/CompositionStrategyFactory.cpp \
@@ -129,6 +134,7 @@ LOCAL_SRC_FILES := \
 	$(LOCAL_COMMON_BASE_FILES) \
 	$(LOCAL_COMMON_COMPOSER_FILES) \
 	$(LOCAL_COMMON_DISPLAY_FILES) \
+	$(LOCAL_COMMON_UTILS_FILES) \
 	$(LOCAL_COMPOSITION_FILES) \
 	$(LOCAL_HWC_FILES)
 

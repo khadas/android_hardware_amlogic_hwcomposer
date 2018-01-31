@@ -9,10 +9,8 @@
 #ifndef HW_DISPLAY_CONNECTOR_H
 #define HW_DISPLAY_CONNECTOR_H
 
-#include <string>
-#include <vector>
-
 #include <DrmTypes.h>
+#include <BasicTypes.h>
 
 class HwDisplayConnector {
 public:
@@ -26,6 +24,9 @@ public:
 
     virtual bool isConnected() = 0;
     virtual bool isSecure() = 0;
+
+    virtual void dump(String8 & dumpstr) = 0;
+
 protected:
     int32_t mDrvFd;
     uint32_t mId;

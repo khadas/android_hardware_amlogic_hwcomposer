@@ -326,3 +326,8 @@ int32_t SimpleStrategy::commit() {
     }
     return 0;
 }
+
+void SimpleStrategy::dump(String8 & dumpstr) {
+
+}
+

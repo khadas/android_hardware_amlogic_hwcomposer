@@ -10,8 +10,8 @@
 #ifndef SIMPLE_STRATEGY_H
 #define SIMPLE_STRATEGY_H
 
+#include <BasicTypes.h>
 #include "ICompositionStrategy.h"
-#include <list>
 
 class SimpleStrategy : public ICompositionStrategy {
 public:
@@ -25,6 +25,8 @@ public:
     int32_t decideComposition();
 
     int32_t commit();
+
+    void dump(String8 & dumpstr);
 
 protected:
     void classifyLayers(std::vector<std::shared_ptr<DrmFramebuffer>> & layers);

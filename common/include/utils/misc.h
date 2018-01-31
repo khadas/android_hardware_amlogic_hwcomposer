@@ -7,18 +7,14 @@
  * Description:
  */
 
- #ifndef CONNECTOR_PANEL_H
- #define CONNECTOR_PANEL_H
+#ifndef MISC_H
+#define MISC_H
 
-#include <HwDisplayConnector.h>
+#include <stdlib.h>
 
-class ConnectorPanel {
-public:
+bool sys_get_bool_prop(const char* prop, bool defVal);
 
-
-};
+int32_t sys_get_string_prop(const char* prop, char * val);
 
 
- #endif/*CONNECTOR_PANEL_H*/
-
-
+#endif/*MISC_H*/

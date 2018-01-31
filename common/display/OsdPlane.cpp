@@ -98,4 +98,7 @@ void OsdPlane::dumpPlaneInfo() {
     MESON_LOGD("********************");
 }
 
+void OsdPlane::dump(String8 & dumpstr) {
+    MESON_LOG_EMPTY_FUN();
+}
 

@@ -10,10 +10,11 @@
 #ifndef HWC2_LAYER_H
 #define HWC2_LAYER_H
 
-#include <functional>
 #include <hardware/hwcomposer2.h>
 
+#include <BasicTypes.h>
 #include <DrmFramebuffer.h>
+
 
 class Hwc2Layer : public DrmFramebuffer {
 /*Interfaces for hwc2.0 api.*/
@@ -43,6 +44,8 @@ public:
     void setUniqueId(hwc2_layer_t id);
     hwc2_layer_t getUniqueId();
     int32_t commitCompositionType();
+
+    void dump(String8 & dumpstr);
 
 protected:
     bool isOverlayVideo();

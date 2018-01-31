@@ -7,7 +7,9 @@
  * Description:
  */
 
+#include <BasicTypes.h>
 #include <MesonLog.h>
+#include <DebugHelper.h>
 
 #include "MesonHwc2Defs.h"
 #include "MesonHwc2.h"
@@ -45,6 +47,25 @@
 /*                      Hal Interface
 /************************************************************/
 void MesonHwc2::dump(uint32_t* outSize, char* outBuffer) {
+    if (outBuffer == NULL) {
+        *outSize = 4096;
+        return ;
+    }
+
+    String8 dumpstr(outBuffer, (size_t)outSize);
+    DebugHelper::getInstance().resolveCmd();
+
+    if (DebugHelper::getInstance().dumpDetailInfo())
+        HwDisplayManager::getInstance().dump(dumpstr);
+
+    // dump composer status
+    dumpstr.appendFormat("MesonHwc2 state:\n");
+    std::map<hwc2_display_t, std::shared_ptr<Hwc2Display>>::iterator it;
+    for (it = mDisplays.begin(); it != mDisplays.end(); it++) {
+        it->second->dump(dumpstr);
+    }
+
+    DebugHelper::getInstance().dump(dumpstr);
 }
 
 void MesonHwc2::getCapabilities(uint32_t* outCount,
@@ -229,7 +250,7 @@ int32_t  MesonHwc2::getDisplayAttribute(hwc2_display_t display,
 /*************Virtual display api below*************/
 int32_t MesonHwc2::createVirtualDisplay(uint32_t width, uint32_t height,
     int32_t* format, hwc2_display_t* outDisplay) {
-    /*TODO: do it later.*/
+    MESON_LOG_EMPTY_FUN();
 
     *outDisplay = -1;
     return HWC2_ERROR_NONE;

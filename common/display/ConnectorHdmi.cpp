@@ -29,20 +29,30 @@ drm_connector_type_t ConnectorHdmi::getType() {
 }
 
 uint32_t ConnectorHdmi::getModesCount() {
+    MESON_LOG_EMPTY_FUN();
     return 0;
 }
 
 int32_t ConnectorHdmi::getDisplayModes(
     drm_mode_info_t * modes) {
+    MESON_LOG_EMPTY_FUN();
     return 0;
 }
 
 bool ConnectorHdmi::isConnected() {
+    MESON_LOG_EMPTY_FUN();
     return true;
 }
 
 bool ConnectorHdmi::isSecure() {
+    MESON_LOG_EMPTY_FUN();
     return false;
+}
+
+void ConnectorHdmi::dump(String8 & dumpstr) {
+    dumpstr.appendFormat("connector (%d, %s, %s):\n", getType(),
+        isConnected() ? "connected" : "disconnected",
+        isSecure() ? "secure" : "non-secure");
 }
 
 #if 0
@@ -60,7 +70,7 @@ HwDisplayConnector::~HwDisplayConnector() {
 int HwDisplayConnector::init() {
 
     reset();
-    std::string dispMode;
+    String8 dispMode;
     mFramebufferContext = new FBContext();
     framebuffer_info_t* fbInfo = mFramebufferContext->getInfo();
     calcDefaultMode(fbInfo, dispMode);
@@ -105,7 +115,7 @@ sp<ISystemControlService> HwDisplayConnector::getSystemControlService() {
 }
 
 
-bool HwDisplayConnector::readConfigFile(const char* configPath, std::vector<std::string>* supportDispModes) {
+bool HwDisplayConnector::readConfigFile(const char* configPath, std::vector<String8>* supportDispModes) {
     const char* WHITESPACE = " \t\r";
 
     Tokenizer* tokenizer;
@@ -122,7 +132,7 @@ bool HwDisplayConnector::readConfigFile(const char* configPath, std::vector<std:
                 const char* dispMode = token.string();
                 if (strstr(dispMode, "hz")) {
                     DTRACE("dispMode %s.", dispMode);
-                    (*supportDispModes).push_back(std::string(dispMode));
+                    (*supportDispModes).push_back(String8(dispMode));
                 }
             }
 
@@ -150,13 +160,13 @@ int HwDisplayConnector::setActiveConfig(int modeId) {
     int modeIdx = mSfSupportDispConfigs.indexOfKey((const vmode_e)modeId);
     if (modeIdx >= 0) {
         DisplayConfig* cfg = mSfSupportDispConfigs.valueAt(modeIdx);
-        std::string dM = cfg->getDisplayMode();
+        String8 dM = cfg->getDisplayMode();
 
         // It is possible that default mode is not supported by the sink
         // and it was only advertised to the FWK to force 1080p UI.
         // Trap this case and do nothing. FWK will keep thinking
         // 1080p is supported and set.
-        if (!mDefaultModeSupport && dM == std::string(DEFAULT_DISPMODE)) {
+        if (!mDefaultModeSupport && dM == String8(DEFAULT_DISPMODE)) {
             DTRACE("setActiveConfig default mode not supported");
             return NO_ERROR;
         }
@@ -200,7 +210,7 @@ int HwDisplayConnector::clearDispConfigs(KeyedVector<int, DisplayConfig*> &dispC
 }
 
 
-bool HwDisplayConnector::isDispModeValid(std::string & dispmode){
+bool HwDisplayConnector::isDispModeValid(String8 & dispmode){
     DTRACE("isDispModeValid %s", dispmode.c_str());
     if (dispmode.empty())
         return false;
@@ -218,7 +228,7 @@ bool HwDisplayConnector::isDispModeValid(std::string & dispmode){
 
 
 int HwDisplayConnector::calcDefaultMode(framebuffer_info_t& framebufferInfo,
-        std::string& defaultMode) {
+        String8& defaultMode) {
     const struct vinfo_s * mode =
         findMatchedMode(framebufferInfo.info.xres, framebufferInfo.info.yres, 60);
     if (mode == NULL) {
@@ -233,7 +243,7 @@ int HwDisplayConnector::calcDefaultMode(framebuffer_info_t& framebufferInfo,
     return NO_ERROR;
 }
 
-int HwDisplayConnector::buildSingleConfigList(std::string& defaultMode) {
+int HwDisplayConnector::buildSingleConfigList(String8& defaultMode) {
     if (!isDispModeValid(defaultMode)) {
         ETRACE("buildSingleConfigList with invalidate mode (%s)", defaultMode.c_str());
         return false;
@@ -244,7 +254,7 @@ int HwDisplayConnector::buildSingleConfigList(std::string& defaultMode) {
     return ret;
 }
 
-int HwDisplayConnector::addHwcDispConfigs(std::string& mode) {
+int HwDisplayConnector::addHwcDispConfigs(String8& mode) {
     vmode_e vmode = vmode_name_to_mode(mode.c_str());
     const struct vinfo_s* vinfo = get_tv_info(vmode);
     if (vmode == VMODE_MAX || vinfo == NULL) {
@@ -301,7 +311,7 @@ int HwDisplayConnector::addHwcDispConfigs(std::string& mode) {
     return NO_ERROR;
 }
 
-int HwDisplayConnector::readHdmiDispMode(std::string &dispmode) {
+int HwDisplayConnector::readHdmiDispMode(String8 &dispmode) {
     if (mSC.get() && mSC->getActiveDispMode(&dispmode)) {
         DTRACE("get current displaymode %s", dispmode.c_str());
         if (!isDispModeValid(dispmode)) {
@@ -329,7 +339,7 @@ status_t HwDisplayConnector::readHdmiPhySize(framebuffer_info_t& fbInfo) {
 
 bool HwDisplayConnector::chkPresent() {
     bool bConnect = false;
-    std::string dispMode;
+    String8 dispMode;
     if (!readHdmiDispMode(dispMode)) {
         bConnect = isDispModeValid(dispMode);
     }
@@ -338,7 +348,7 @@ bool HwDisplayConnector::chkPresent() {
     return bConnect;
 }
 
-int HwDisplayConnector::writeHdmiDispMode(std::string &dispmode) {
+int HwDisplayConnector::writeHdmiDispMode(String8 &dispmode) {
     if (mSC.get() && mSC->setActiveDispMode(dispmode)) {
         return NO_ERROR;
     } else {
@@ -347,7 +357,7 @@ int HwDisplayConnector::writeHdmiDispMode(std::string &dispmode) {
     }
 }
 
-int HwDisplayConnector::readEdidList(std::vector<std::string>& edidlist) {
+int HwDisplayConnector::readEdidList(std::vector<String8>& edidlist) {
     if (mSC.get() && mSC->getSupportDispModeList(&edidlist)) {
         return NO_ERROR;
     } else {
@@ -356,7 +366,7 @@ int HwDisplayConnector::readEdidList(std::vector<std::string>& edidlist) {
     }
 }
 
-int HwDisplayConnector::updateActiveConfig(std::string& activeMode) {
+int HwDisplayConnector::updateActiveConfig(String8& activeMode) {
     mActiveConfigStr = activeMode;
 
     for (size_t i = 0; i < mHwcSupportDispConfigs.size(); i++) {
@@ -399,13 +409,13 @@ bool HwDisplayConnector::updateHotplug(bool connected,
     //             provide a default mode when no display is connected.
     if (updateConfigs() != HWC2_ERROR_NONE) {
         ETRACE("updateHotplug: No supported display list, set default configs.");
-        std::string dM (DEFAULT_DISPMODE);
+        String8 dM (DEFAULT_DISPMODE);
         buildSingleConfigList(dM);
     }
 
-    std::string activemode;
+    String8 activemode;
     if (readHdmiDispMode(activemode) != HWC2_ERROR_NONE) {
-        std::string dM (DEFAULT_DISPMODE);
+        String8 dM (DEFAULT_DISPMODE);
         ETRACE("get active display mode failed.");
         updateActiveConfig(dM);
         return false;
@@ -419,9 +429,9 @@ int HwDisplayConnector::updateConfigs() {
     // clear display modes
     clearDispConfigs(mHwcSupportDispConfigs);
 
-    std::vector<std::string> supportDispModes;
-    std::string::size_type pos;
-    std::string dM (DEFAULT_DISPMODE);
+    std::vector<String8> supportDispModes;
+    String8::size_type pos;
+    String8 dM (DEFAULT_DISPMODE);
     mDefaultModeSupport = false;
 
     bool isConfiged = readConfigFile("/system/etc/displayModeList.cfg", &supportDispModes);
@@ -438,7 +448,7 @@ int HwDisplayConnector::updateConfigs() {
     for (size_t i = 0; i < supportDispModes.size(); i++) {
         if (!supportDispModes[i].empty()) {
             pos = supportDispModes[i].find('*');
-            if (pos != std::string::npos) {
+            if (pos != String8::npos) {
                 supportDispModes[i].erase(pos, 1);
                 VTRACE("modify support display mode:%s", supportDispModes[i].c_str());
             }
@@ -502,7 +512,7 @@ void HwDisplayConnector::switchRatePolicy(bool fracRatePolicy) {
 }
 
 
-int HwDisplayConnector::setDisplayMode(std::string& dm, bool policy) {
+int HwDisplayConnector::setDisplayMode(String8& dm, bool policy) {
     DTRACE("setDisplayMode to %s", dm.c_str());
     switchRatePolicy(policy);
     writeHdmiDispMode(dm);
@@ -597,7 +607,7 @@ int HwDisplayConnector::getDisplayAttribute(hwc2_config_t config,
 /*need define HwDisplayConnector as the DisplayConfig*/
 HwDisplayConnector * HwDisplayConnector::createConnector(
     int drvFd, int32_t id, int32_t type) {
-    std::string dispMode;
+    String8 dispMode;
     mFramebufferContext = new FBContext();
     framebuffer_info_t* fbInfo = mFramebufferContext->getInfo();
     calcDefaultMode(fbInfo,dispMode);

@@ -10,8 +10,8 @@
 #ifndef DRM_SYNC_H
 #define DRM_SYNC_H
 
-#include <memory>
 #include <stdlib.h>
+#include <BasicTypes.h>
 
 class DrmFence {
 public:
