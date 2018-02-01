@@ -12,6 +12,29 @@
 
 #include <HwDisplayPlane.h>
 
+typedef struct osd_plane_info_t {
+    unsigned int    xoffset;
+    unsigned int    yoffset;
+    int             in_fen_fd;
+    int             out_fen_fd;
+    int             width;
+    int             height;
+    int             format;
+    int             shared_fd;
+    unsigned int    op;
+    unsigned int    type; /*direct render or ge2d*/
+    unsigned int    dst_x;
+    unsigned int    dst_y;
+    unsigned int    dst_w;
+    unsigned int    dst_h;
+    int             byte_stride;
+    int             stride;
+    unsigned int    zorder;
+    unsigned int    blend_mode;
+    unsigned int    plane_alpha;
+    unsigned int    reserve;
+} osd_plane_info_t;
+
 class OsdPlane : public HwDisplayPlane {
 public:
     OsdPlane(int32_t drvFd, uint32_t id);
@@ -23,8 +46,15 @@ public:
 
     int32_t blank();
 
+    int32_t pageFlip(int32_t &outFence);
+
 protected:
     int32_t getProperties();
+
+    void dumpPlaneInfo();
+
+private:
+    osd_plane_info_t mPlaneInfo;
 };
 
 

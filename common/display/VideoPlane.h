@@ -24,6 +24,7 @@ public:
 
     int32_t blank();
 
+    int32_t pageFlip(int32_t &outFence) {return 0;}
 };
 
 

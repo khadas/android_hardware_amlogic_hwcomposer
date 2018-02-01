@@ -47,6 +47,11 @@ void DrmFramebuffer::reset() {
     mDataspace = 0;
 
     mAcquireFence = mReleaseFence = DrmFence::NO_FENCE;
+
+    mDisplayFrame.left   = mSourceCrop.left   = 0;
+    mDisplayFrame.top    = mSourceCrop.top    = 0;
+    mDisplayFrame.right  = mSourceCrop.right  = 1920;
+    mDisplayFrame.bottom = mSourceCrop.bottom = 1080;
 }
 
 void DrmFramebuffer::resetBufferInfo() {
@@ -54,5 +59,4 @@ void DrmFramebuffer::resetBufferInfo() {
     mBufferHandle = NULL;
     mFbType = DRM_FB_RENDER;
 }
-
 

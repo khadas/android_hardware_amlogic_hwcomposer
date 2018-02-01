@@ -26,7 +26,8 @@ bool isPlaneComposition(meson_compositon_t type) {
 }
 
 bool isComposerComposition(meson_compositon_t type) {
-    if (type == MESON_COMPOSITION_GE2D
+    if (type == MESON_COMPOSITION_CLIENT
+        || type == MESON_COMPOSITION_GE2D
         || type == MESON_COMPOSITION_DUMMY)
         return true;
     else

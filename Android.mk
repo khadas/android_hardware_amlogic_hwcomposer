@@ -51,7 +51,8 @@ LOCAL_C_INCLUDES := \
 	system/core/include/system \
 	vendor/amlogic/system/libge2d/inlcude \
 	system/core/libion/include/ \
-	system/core/libion/kernel-headers
+	system/core/libion/kernel-headers \
+	hardware/amlogic/gralloc/
 
 LOCAL_COMMON_BASE_FILES := \
 	common/base/DrmFramebuffer.cpp \
@@ -106,6 +107,9 @@ LOCAL_SHARED_LIBRARIES := \
 	libion \
 	libge2d \
 	libbinder
+
+LOCAL_STATIC_LIBRARIES := \
+	  libbhnd
 
 #For Android O,and later
 ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 26 && echo OK),OK)

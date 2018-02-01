@@ -160,15 +160,15 @@ std::shared_ptr<Hwc2Layer> Hwc2Display::getLayerById(hwc2_layer_t id) {
 
 hwc2_error_t Hwc2Display::collectLayersForPresent() {
     /*
-   * 1) add reference to Layers to keep it alive during display.
-   * 2) for special layer, update its composition type.
-   * 3) sort Layers by zorder for composition.
-   */
+    * 1) add reference to Layers to keep it alive during display.
+    * 2) for special layer, update its composition type.
+    * 3) sort Layers by zorder for composition.
+    */
     mPresentLayers.clear();
     mPresentLayers.reserve(10);
 
     std::unordered_map<hwc2_layer_t, std::shared_ptr<Hwc2Layer>>::iterator it;
-    for (it = mLayers.begin(); it!= mLayers.end(); it++) {
+    for (it = mLayers.begin(); it != mLayers.end(); it++) {
         std::shared_ptr<Hwc2Layer> layer = it->second;
 
          /*update expected internal composition type.*/
@@ -178,12 +178,12 @@ hwc2_error_t Hwc2Display::collectLayersForPresent() {
             layer->mCompositionType = MESON_COMPOSITION_CLIENT;
         } else {
             /*
-        * Other layers need further handle:
-        * 1) HWC2_COMPOSITION_DEVICE
-        * 2) HWC2_COMPOSITION_SOLID_COLOR
-        * 3) HWC2_COMPOSITION_CURSOR
-        * 4) HWC2_COMPOSITION_SIDEBAND
-        */
+            * Other layers need further handle:
+            * 1) HWC2_COMPOSITION_DEVICE
+            * 2) HWC2_COMPOSITION_SOLID_COLOR
+            * 3) HWC2_COMPOSITION_CURSOR
+            * 4) HWC2_COMPOSITION_SIDEBAND
+            */
             layer->mCompositionType = MESON_COMPOSITION_NONE;
         }
 
@@ -271,16 +271,15 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
     }
 
     /*collect changed dispplay, layer, compostiion.*/
-    collectCompositionRequest();
-
-    return HWC2_ERROR_NONE;
+    return collectCompositionRequest(outNumTypes, outNumRequests);
 }
 
-hwc2_error_t Hwc2Display::collectCompositionRequest() {
+hwc2_error_t Hwc2Display::collectCompositionRequest(uint32_t* outNumTypes,
+    uint32_t* outNumRequests) {
     mChangedLayers.clear();
     mOverlayLayers.clear();
 
-    Hwc2Layer * pLayer;
+    Hwc2Layer *layer;
     std::vector<std::shared_ptr<DrmFramebuffer>>::iterator firstClientLayer;
     std::vector<std::shared_ptr<DrmFramebuffer>>::iterator lastClientLayer;
     firstClientLayer = lastClientLayer = mPresentLayers.end();
@@ -288,17 +287,17 @@ hwc2_error_t Hwc2Display::collectCompositionRequest() {
     /*collect display requested, and changed composition type.*/
     std::vector<std::shared_ptr<DrmFramebuffer>>::iterator it;
     for (it = mPresentLayers.begin() ; it != mPresentLayers.end(); it++) {
-        pLayer = (Hwc2Layer*)(it->get());
+        layer = (Hwc2Layer*)(it->get());
 
         /*record composition changed layer.*/
         hwc2_composition_t expectedHwcComposition =
-            translateCompositionType(pLayer->mCompositionType);
-        if (expectedHwcComposition  != pLayer->mHwcCompositionType) {
-            mChangedLayers.push_back(pLayer->getUniqueId());
+            translateCompositionType(layer->mCompositionType);
+        if (expectedHwcComposition  != layer->mHwcCompositionType) {
+            mChangedLayers.push_back(layer->getUniqueId());
         }
 
         /*find first/last client layers.*/
-        if (pLayer->mCompositionType == MESON_COMPOSITION_CLIENT) {
+        if (layer->mCompositionType == MESON_COMPOSITION_CLIENT) {
             if (firstClientLayer == mPresentLayers.end()) {
                 firstClientLayer = it;
             }
@@ -309,14 +308,18 @@ hwc2_error_t Hwc2Display::collectCompositionRequest() {
     /*collect overlay layers between client layers.*/
     if (firstClientLayer != mPresentLayers.end()) {
         for (it = firstClientLayer; it != lastClientLayer; it++) {
-            pLayer = (Hwc2Layer*)(it->get());
-            if (isOverlayComposition(pLayer->mCompositionType)) {
-                mOverlayLayers.push_back(pLayer->getUniqueId());
+            layer = (Hwc2Layer*)(it->get());
+            if (isOverlayComposition(layer->mCompositionType)) {
+                mOverlayLayers.push_back(layer->getUniqueId());
             }
         }
     }
 
-    return HWC2_ERROR_NONE;
+    *outNumRequests = mOverlayLayers.size();
+    *outNumTypes    = mChangedLayers.size();
+    MESON_LOGV("layer requests: %d, type changed: %d", *outNumRequests, *outNumTypes);
+
+    return ((*outNumTypes) > 0) ? HWC2_ERROR_HAS_CHANGES : HWC2_ERROR_NONE;
 }
 
 hwc2_error_t Hwc2Display::getDisplayRequests(
@@ -355,13 +358,8 @@ hwc2_error_t Hwc2Display::acceptDisplayChanges() {
    /* commit composition type */
     std::vector<std::shared_ptr<DrmFramebuffer>>::iterator it;
     for (it = mPresentLayers.begin() ; it != mPresentLayers.end(); it++) {
-        Hwc2Layer * pLayer = (Hwc2Layer*)(it->get());
-        pLayer->commitCompositionType();
-    }
-
-    /*Start to compose, set up plane info.*/
-    if (mCompositionStrategy->commit() != 0) {
-        return HWC2_ERROR_NO_RESOURCES;
+        Hwc2Layer * layer = (Hwc2Layer*)(it->get());
+        layer->commitCompositionType();
     }
 
     return HWC2_ERROR_NONE;
@@ -370,10 +368,22 @@ hwc2_error_t Hwc2Display::acceptDisplayChanges() {
 hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
     int32_t outFence;
 
-    /*Page flip */
-    if (mCrtc->pageFlip(outFence) < 0)
-        return HWC2_ERROR_UNSUPPORTED;
+    /*Start to compose, set up plane info.*/
+    if (mCompositionStrategy->commit() != 0) {
+        return HWC2_ERROR_NOT_VALIDATED;
+    }
 
+    for (std::vector<std::shared_ptr<HwDisplayPlane>>::iterator it = mPresentPlanes.begin();
+            it != mPresentPlanes.end(); it++) {
+        if (it->get()->getPlaneType() == OSD_PLANE) it->get()->pageFlip(outFence);
+    }
+
+    /*Page flip */
+    // if (mCrtc->pageFlip(outFence) < 0) {
+    //     return HWC2_ERROR_UNSUPPORTED;
+    // }
+
+    MESON_LOGD("out fence (%d)", outFence);
     *outPresentFence = outFence;
     return HWC2_ERROR_NONE;
 }
@@ -387,12 +397,12 @@ hwc2_error_t Hwc2Display::getReleaseFences(uint32_t* outNumElements,
 
     std::vector<std::shared_ptr<DrmFramebuffer>>::iterator it;
     for (it = mPresentLayers.begin(); it != mPresentLayers.end(); it++) {
-        Hwc2Layer * pLayer = (Hwc2Layer*)(it->get());
-        int32_t releaseFence = pLayer->getReleaseFence();
+        Hwc2Layer * layer = (Hwc2Layer*)(it->get());
+        int32_t releaseFence = layer->getReleaseFence();
         if (releaseFence >= 0) {
             num++;
             if (needInfo) {
-                *outLayers = pLayer->getUniqueId();
+                *outLayers = layer->getUniqueId();
                 *outFences = releaseFence;
                 outLayers ++;
                 outFences++;

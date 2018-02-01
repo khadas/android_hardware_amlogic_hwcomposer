@@ -32,7 +32,7 @@ public:
 };
 
 class HwDisplayManager : public android::Singleton<HwDisplayManager>,
-                                                                public HwVsyncObserver {
+                         public HwVsyncObserver {
 friend class HwDisplayCrtc;
 friend class HwDisplayConnector;
 friend class HwDisplayPlane;
@@ -75,7 +75,7 @@ protected:
     public:
         uint32_t crtc_id;
         uint32_t connector_id;
-        uint32_t * plane_ids;
+        uint32_t *plane_ids;
         uint32_t planes_num;
     };
 

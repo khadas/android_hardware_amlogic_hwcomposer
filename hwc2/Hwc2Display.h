@@ -94,7 +94,8 @@ protected:
     hwc2_error_t collectLayersForPresent();
     hwc2_error_t collectComposersForPresent();
     hwc2_error_t collectPlanesForPresent();
-    hwc2_error_t collectCompositionRequest();
+    hwc2_error_t collectCompositionRequest(
+            uint32_t* outNumTypes, uint32_t* outNumRequests);
 
     void dumpPresentComponents();
 

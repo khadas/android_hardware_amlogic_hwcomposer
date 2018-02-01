@@ -18,8 +18,8 @@ public:
     HwDisplayCrtc(int drvFd, int32_t id);
     ~HwDisplayCrtc();
 
-    int32_t setMode(drm_mode_info_t & mode);
-    int32_t pageFlip(int32_t & out_fence);
+    int32_t setMode(drm_mode_info_t &mode);
+    int32_t pageFlip(int32_t &out_fence);
 
 
 protected:

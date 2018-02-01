@@ -8,6 +8,7 @@
  */
 
 #include <MesonLog.h>
+#include <math.h>
 
 #include "Hwc2Layer.h"
 #include "Hwc2Base.h"
@@ -67,15 +68,17 @@ hwc2_error_t Hwc2Layer::setColor(hwc_color_t color) {
 }
 
 hwc2_error_t Hwc2Layer::setSourceCrop(hwc_frect_t crop) {
-    mSourceCrop.left = crop.left;
-    mSourceCrop.top = crop.top;
-    mSourceCrop.right = crop.right;
-    mSourceCrop.bottom = crop.bottom;
+
+    mSourceCrop.left = (int) ceilf(crop.left);
+    mSourceCrop.top = (int) ceilf(crop.top);
+    mSourceCrop.right = (int) floorf(crop.right);
+    mSourceCrop.bottom = (int) floorf(crop.bottom);
 
     return HWC2_ERROR_NONE;
 }
 
 hwc2_error_t Hwc2Layer::setDisplayFrame(hwc_rect_t frame) {
+
     mDisplayFrame.left = frame.left;
     mDisplayFrame.top = frame.top;
     mDisplayFrame.right = frame.right;

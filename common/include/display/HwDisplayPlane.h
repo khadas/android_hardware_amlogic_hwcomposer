@@ -26,6 +26,8 @@ public:
 
     virtual int32_t blank() = 0;
 
+    virtual int32_t pageFlip(int32_t &outFence) = 0;
+
 protected:
     int32_t mDrvFd;
     uint32_t mId;

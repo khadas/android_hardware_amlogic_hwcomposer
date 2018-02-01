@@ -32,7 +32,7 @@ public:
     hwc2_error_t setSurfaceDamage(hwc_region_t damage);
     hwc2_error_t setCompositionType(hwc2_composition_t type);
     hwc2_error_t setDataspace(android_dataspace_t dataspace);
-    hwc2_error_t  setZorder(uint32_t z);
+    hwc2_error_t setZorder(uint32_t z);
 
 /*Extend api.*/
 public:

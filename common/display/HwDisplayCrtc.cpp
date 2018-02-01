@@ -17,12 +17,12 @@ HwDisplayCrtc::HwDisplayCrtc(int drvFd, int32_t id) {
 HwDisplayCrtc::~HwDisplayCrtc() {
 }
 
-int32_t HwDisplayCrtc::setMode(drm_mode_info_t & mode) {
+int32_t HwDisplayCrtc::setMode(drm_mode_info_t &mode) {
     MESON_LOG_EMPTY_FUN();
     return 0;
 }
 
-int32_t HwDisplayCrtc::pageFlip(int32_t & out_fence) {
+int32_t HwDisplayCrtc::pageFlip(int32_t &out_fence) {
     MESON_LOG_EMPTY_FUN();
     out_fence = -1;
     return 0;

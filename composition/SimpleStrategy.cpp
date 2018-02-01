@@ -191,9 +191,9 @@ int32_t SimpleStrategy::decideComposition() {
     firstUiLayer = lastUiLayer = mUiLayers.end();
 
     /*
-   * DRM_FB_RENDER, cannot consumed by plane,
-   * should consumed by composer.
-   */
+    * DRM_FB_RENDER, cannot consumed by plane,
+    * should consumed by composer.
+    */
     std::vector<std::shared_ptr<DrmFramebuffer>>::iterator it;
     for (it = mUiLayers.begin(); it != mUiLayers.end(); ++it) {
         layer = *it;
@@ -209,7 +209,7 @@ int32_t SimpleStrategy::decideComposition() {
                 firstUiLayer = it;
             }
             lastUiLayer = it;
-            composedLayers ++;
+            composedLayers++;
         }
     }
 
@@ -224,7 +224,7 @@ int32_t SimpleStrategy::decideComposition() {
 
     /*If layer num > plane num, need compose more.*/
     int needComposedLayers =
-        mOsdPlanes.size() - (mUiLayers.size() - composedLayers + 1);
+        (mUiLayers.size() - composedLayers + 1) - mOsdPlanes.size();
     if (needComposedLayers > 0) {
         it = lastUiLayer;
         it ++;
@@ -240,7 +240,7 @@ int32_t SimpleStrategy::decideComposition() {
 
         it = firstUiLayer;
         while (needComposedLayers > 0 && it != mUiLayers.begin()) {
-            it --;
+            it--;
             layer = *it;
             if (layer->mCompositionType == MESON_COMPOSITION_NONE) {
                 layer->mCompositionType = mUiComposer->getCompostionType(layer);
@@ -267,7 +267,6 @@ int32_t SimpleStrategy::decideComposition() {
 }
 
 int32_t SimpleStrategy::commit() {
-    bool setComposerPlane = false;
     std::shared_ptr<DrmFramebuffer> layer;
     std::list<std::shared_ptr<HwDisplayPlane>>::iterator videoPlane =
         mVideoPlanes.begin();
@@ -277,6 +276,7 @@ int32_t SimpleStrategy::commit() {
         mCursorPlanes.begin();
 
     if (!mLayers.empty()) {
+        bool setComposerPlane = false;
         std::vector<std::shared_ptr<DrmFramebuffer>>::iterator it;
         for (it = mLayers.begin(); it != mLayers.end(); ++it) {
             layer = *it;
@@ -291,25 +291,21 @@ int32_t SimpleStrategy::commit() {
                         std::shared_ptr<DrmFramebuffer> fb = mUiComposer->getOutput();
                         if (fb.get()) {
                             fb->mZorder = layer->mZorder;
-                            (*osdPlane)->setPlane(fb);
-                            osdPlane++;
+                            (*osdPlane++)->setPlane(fb);
                             setComposerPlane = true;
                         }
                     }
                     break;
                 case MESON_COMPOSITION_PLANE_VIDEO:
                 case MESON_COMPOSITION_PLANE_VIDEO_SIDEBAND:
-                    (*videoPlane)->setPlane(layer);
-                    videoPlane++;
+                    (*videoPlane++)->setPlane(layer);
                     break;
                 case MESON_COMPOSITION_PLANE_OSD:
                 case MESON_COMPOSITION_PLANE_OSD_COLOR:
-                    (*osdPlane)->setPlane(layer);
-                    osdPlane++;
+                    (*osdPlane++)->setPlane(layer);
                     break;
                 case MESON_COMPOSITION_PLANE_CURSOR:
-                    (*cursorPlane)->setPlane(layer);
-                    cursorPlane++;
+                    (*cursorPlane++)->setPlane(layer);
                     break;
             }
         }
@@ -320,16 +316,13 @@ int32_t SimpleStrategy::commit() {
 
     /*Set blank framebuffer to */
     while (videoPlane != mVideoPlanes.end()) {
-        (*videoPlane)->blank();
-        videoPlane ++;
+        (*videoPlane++)->blank();
     }
     while (osdPlane != mOsdPlanes.end()) {
-        (*osdPlane)->blank();
-        osdPlane ++;
+        (*osdPlane++)->blank();
     }
     while (cursorPlane != mCursorPlanes.end()) {
-        (*cursorPlane)->blank();
-        cursorPlane ++;
+        (*cursorPlane++)->blank();
     }
     return 0;
 }

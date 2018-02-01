@@ -18,6 +18,8 @@
 #include <DrmSync.h>
 #include <DrmTypes.h>
 
+#include "PrivateHandle.h"
+
 /*buffer for display or render.*/
 class DrmFramebuffer {
 public:
@@ -30,7 +32,6 @@ public:
     int32_t setReleaseFence(int32_t fenceFd);
     /*dup current release fence.*/
     int32_t getReleaseFence();
-
 
 protected:
     void reset();
