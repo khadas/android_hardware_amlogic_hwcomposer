@@ -16,7 +16,7 @@
 #include <DrmSync.h>
 #include <DrmTypes.h>
 
-#include "PrivateHandle.h"
+#include <PrivHandle.h>
 
 /*buffer for display or render.*/
 class DrmFramebuffer {

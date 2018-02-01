@@ -52,10 +52,10 @@ int OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
 
     mPlaneInfo.in_fen_fd     = fb->getAcquireFence()->dup();
     mPlaneInfo.out_fen_fd    = -1;
-    mPlaneInfo.format        = PrivateHandle::getHndFormat(fb->mBufferHandle);
-    mPlaneInfo.shared_fd     = PrivateHandle::getHndSharedFd(fb->mBufferHandle);
-    mPlaneInfo.byte_stride   = PrivateHandle::getHndByteStride(fb->mBufferHandle);
-    mPlaneInfo.stride        = PrivateHandle::getHndPixelStride(fb->mBufferHandle);
+    mPlaneInfo.format        = PrivHandle::getHndFormat(fb->mBufferHandle);
+    mPlaneInfo.shared_fd     = PrivHandle::getHndSharedFd(fb->mBufferHandle);
+    mPlaneInfo.byte_stride   = PrivHandle::getHndByteStride(fb->mBufferHandle);
+    mPlaneInfo.stride        = PrivHandle::getHndPixelStride(fb->mBufferHandle);
     mPlaneInfo.zorder        = fb->mZorder;
     mPlaneInfo.blend_mode    = fb->mBlendMode;
     mPlaneInfo.plane_alpha   = fb->mPlaneAlpha;

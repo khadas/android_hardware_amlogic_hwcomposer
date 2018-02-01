@@ -11,8 +11,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 LOCAL_PATH := $(call my-dir)
+
+include $(LOCAL_PATH)/common/priv/Android.mk
+
 include $(CLEAR_VARS)
 
 LOCAL_MODULE_RELATIVE_PATH := hw
@@ -45,6 +47,7 @@ LOCAL_C_INCLUDES := \
 	$(LOCAL_PATH)/common/include/base \
 	$(LOCAL_PATH)/common/include/utils \
 	$(LOCAL_PATH)/common/include/debug \
+	$(LOCAL_PATH)/common/include/priv \
 	$(LOCAL_PATH)/composition \
 	system/core/libsync \
 	system/core/libsync/include \
@@ -53,7 +56,7 @@ LOCAL_C_INCLUDES := \
 	vendor/amlogic/system/libge2d/inlcude \
 	system/core/libion/include/ \
 	system/core/libion/kernel-headers \
-	hardware/amlogic/gralloc/
+	hardware/amlogic/gralloc
 
 LOCAL_COMMON_BASE_FILES := \
 	common/base/DrmFramebuffer.cpp \
