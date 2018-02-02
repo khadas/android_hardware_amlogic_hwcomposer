@@ -14,7 +14,8 @@
 
 OsdPlane::OsdPlane(int32_t drvFd, uint32_t id)
     : HwDisplayPlane (drvFd, id),
-      mPriorFrameRetireFence(-1) {
+      mPriorFrameRetireFd(-1) {
+      // mRetireFence(DrmFence::NO_FENCE) {
     getProperties();
     mPlaneInfo.out_fen_fd = -1;
 }
@@ -36,11 +37,11 @@ int32_t OsdPlane::getProperties() {
 }
 
 int OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
-    mPriorFrameRetireFence   = mPlaneInfo.out_fen_fd;
+    mPriorFrameRetireFd      = (mPlaneInfo.out_fen_fd);
 
-    drm_rect_t srcCrop      = fb->mSourceCrop;
-    drm_rect_t disFrame     = fb->mDisplayFrame;
-    buffer_handle_t buf     = fb->mBufferHandle;
+    drm_rect_t srcCrop       = fb->mSourceCrop;
+    drm_rect_t disFrame      = fb->mDisplayFrame;
+    buffer_handle_t buf      = fb->mBufferHandle;
 
     mPlaneInfo.type          = DIRECT_COMPOSE_MODE;
 
@@ -55,7 +56,6 @@ int OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
     mPlaneInfo.dst_h         = disFrame.bottom - disFrame.top;
 
     mPlaneInfo.in_fen_fd     = fb->getAcquireFence()->dup();
-    // mPlaneInfo.out_fen_fd    = -1;
     mPlaneInfo.format        = PrivHandle::getFormat(buf);
     mPlaneInfo.shared_fd     = PrivHandle::getFd(buf);
     mPlaneInfo.byte_stride   = PrivHandle::getBStride(buf);
@@ -67,6 +67,7 @@ int OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
 
     fb->setReleaseFence(mPlaneInfo.out_fen_fd);
     ioctl(mDrvFd, FBIOPUT_OSD_SYNC_RENDER_ADD, &mPlaneInfo);
+    // mRetireFence.reset(new DrmFence(mPlaneInfo.out_fen_fd));
     dumpPlaneInfo();
 
     mPlaneInfo.in_fen_fd     = -1;
@@ -80,8 +81,8 @@ int32_t OsdPlane::blank() {
 }
 
 int32_t OsdPlane::pageFlip(int32_t &outFence) {
-    outFence = mPriorFrameRetireFence;
-    mPriorFrameRetireFence = -1;
+    outFence = mPriorFrameRetireFd;
+    mPriorFrameRetireFd = -1;
     return 0;
 }
 

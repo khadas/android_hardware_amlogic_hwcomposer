@@ -56,8 +56,10 @@ protected:
     void dumpPlaneInfo();
 
 private:
+    int32_t mPriorFrameRetireFd;
+
     osd_plane_info_t mPlaneInfo;
-    int32_t mPriorFrameRetireFence;
+    // std::shared_ptr<DrmFence> mRetireFence;
 };
 
 

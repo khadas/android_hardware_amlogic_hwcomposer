@@ -223,9 +223,13 @@ int32_t SimpleStrategy::decideComposition() {
     }
 
     /*If layer num > plane num, need compose more.*/
-    int preComposed = (composedLayers == 0 ? composedLayers : composedLayers - 1);
-    int needComposedLayers =
-        (mUiLayers.size() - preComposed) - mOsdPlanes.size();
+    int numUiLayers = mUiLayers.size(), numOsdPlanes = mOsdPlanes.size();
+    int needComposedLayers = 0;
+    /* When layers > planes num, we need use composer to conume more layers.*/
+    if ((numUiLayers - composedLayers) > (numOsdPlanes - (composedLayers ? 1 : 0))) {
+        needComposedLayers = (numUiLayers - composedLayers) - (numOsdPlanes - 1);
+    }
+
     if (needComposedLayers > 0) {
         if (lastUiLayer != mUiLayers.end()) {
             for (it = ++lastUiLayer; needComposedLayers > 0 && it != mUiLayers.end(); it++) {
