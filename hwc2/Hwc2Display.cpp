@@ -405,7 +405,7 @@ hwc2_error_t Hwc2Display::getReleaseFences(uint32_t* outNumElements,
             if (needInfo) {
                 *outLayers = layer->getUniqueId();
                 *outFences = releaseFence;
-                outLayers ++;
+                outLayers++;
                 outFences++;
             }
         }

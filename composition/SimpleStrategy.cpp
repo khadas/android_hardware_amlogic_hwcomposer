@@ -223,29 +223,24 @@ int32_t SimpleStrategy::decideComposition() {
     }
 
     /*If layer num > plane num, need compose more.*/
+    int preComposed = (composedLayers == 0 ? composedLayers : composedLayers - 1);
     int needComposedLayers =
-        (mUiLayers.size() - composedLayers + 1) - mOsdPlanes.size();
+        (mUiLayers.size() - preComposed) - mOsdPlanes.size();
     if (needComposedLayers > 0) {
-        it = lastUiLayer;
-        it ++;
-        while (needComposedLayers > 0 && it != mUiLayers.end()) {
-            layer = *it;
-            if (layer->mCompositionType == MESON_COMPOSITION_NONE) {
-                layer->mCompositionType = mUiComposer->getCompostionType(layer);
-                lastUiLayer = it;
-                composedLayers++;
-                needComposedLayers--;
+        if (lastUiLayer != mUiLayers.end()) {
+            for (it = ++lastUiLayer; needComposedLayers > 0 && it != mUiLayers.end(); it++) {
+                layer = *it;
+                if (layer->mCompositionType == MESON_COMPOSITION_NONE) {
+                    layer->mCompositionType = mUiComposer->getCompostionType(layer);
+                    needComposedLayers--;
+                }
             }
         }
 
-        it = firstUiLayer;
-        while (needComposedLayers > 0 && it != mUiLayers.begin()) {
-            it--;
-            layer = *it;
+        for (it = firstUiLayer; needComposedLayers > 0 && it != mUiLayers.begin();) {
+            it--; layer = *it;
             if (layer->mCompositionType == MESON_COMPOSITION_NONE) {
                 layer->mCompositionType = mUiComposer->getCompostionType(layer);
-                firstUiLayer = it;
-                composedLayers++;
                 needComposedLayers--;
             }
         }

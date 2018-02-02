@@ -18,10 +18,14 @@ public:
 
     virtual ~PrivHandle();
 
-    static int getHndFormat(const native_handle_t *bufferhnd);
-    static int getHndSharedFd(const native_handle_t *bufferhnd);
-    static int getHndByteStride(const native_handle_t *bufferhnd);
-    static int getHndPixelStride(const native_handle_t *bufferhnd);
+    static int getFormat(const native_handle_t *bufferhnd);
+    static int getFd(const native_handle_t *bufferhnd);
+    static int getBStride(const native_handle_t *bufferhnd);
+    static int getPStride(const native_handle_t *bufferhnd);
+
+    static bool isContinuous(const native_handle_t *nativeHnd);
+    static bool isOverlayVideo(const native_handle_t *nativeHnd);
+    static bool isOmxVideo(const native_handle_t *nativeHnd);
 };
 
 #endif/*PRIVATE_HANDLE_H*/

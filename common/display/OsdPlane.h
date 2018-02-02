@@ -57,6 +57,7 @@ protected:
 
 private:
     osd_plane_info_t mPlaneInfo;
+    int32_t mPriorFrameRetireFence;
 };
 
 

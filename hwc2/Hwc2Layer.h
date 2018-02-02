@@ -48,10 +48,9 @@ public:
     void dump(String8 & dumpstr);
 
 protected:
-    bool isOverlayVideo();
-    bool isOmxVideo();
-    bool isContiguousBuf();
-
+    bool isOverlayVideo()  { return PrivHandle::isOverlayVideo(mBufferHandle); }
+    bool isOmxVideo()      { return PrivHandle::isOmxVideo(mBufferHandle); }
+    bool isContiguousBuf() { return PrivHandle::isContinuous(mBufferHandle); }
 
 public:
     android_dataspace_t mDataSpace;

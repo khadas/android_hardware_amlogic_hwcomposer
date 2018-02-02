@@ -44,6 +44,7 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
         mFbType = DRM_FB_RENDER;
     }
 
+    MESON_LOGD("layer setBuffer [%p]", (void*)buffer);
     return HWC2_ERROR_NONE;
 }
 
@@ -146,21 +147,6 @@ void Hwc2Layer::setUniqueId(hwc2_layer_t id) {
 
 hwc2_layer_t Hwc2Layer::getUniqueId() {
     return mId;
-}
-
-bool Hwc2Layer::isOverlayVideo() {
-    MESON_LOG_EMPTY_FUN();
-    return false;
-}
-
-bool Hwc2Layer::isOmxVideo() {
-    MESON_LOG_EMPTY_FUN();
-    return false;
-}
-
-bool Hwc2Layer::isContiguousBuf() {
-    MESON_LOG_EMPTY_FUN();
-    return false;
 }
 
 void Hwc2Layer::dump(String8 & dumpstr) {
