@@ -13,7 +13,8 @@
 #define FBIOPUT_OSD_SYNC_RENDER_ADD  0x4519
 
 OsdPlane::OsdPlane(int32_t drvFd, uint32_t id)
-    : HwDisplayPlane (drvFd, id) {
+    : HwDisplayPlane (drvFd, id),
+      mPriorFrameRetireFence(-1) {
     getProperties();
     mPlaneInfo.out_fen_fd = -1;
 }
@@ -35,8 +36,11 @@ int32_t OsdPlane::getProperties() {
 }
 
 int OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
+    mPriorFrameRetireFence   = mPlaneInfo.out_fen_fd;
+
     drm_rect_t srcCrop      = fb->mSourceCrop;
     drm_rect_t disFrame     = fb->mDisplayFrame;
+    buffer_handle_t buf     = fb->mBufferHandle;
 
     mPlaneInfo.type          = DIRECT_COMPOSE_MODE;
 
@@ -51,21 +55,21 @@ int OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
     mPlaneInfo.dst_h         = disFrame.bottom - disFrame.top;
 
     mPlaneInfo.in_fen_fd     = fb->getAcquireFence()->dup();
-    mPlaneInfo.out_fen_fd    = -1;
-    mPlaneInfo.format        = PrivHandle::getHndFormat(fb->mBufferHandle);
-    mPlaneInfo.shared_fd     = PrivHandle::getHndSharedFd(fb->mBufferHandle);
-    mPlaneInfo.byte_stride   = PrivHandle::getHndByteStride(fb->mBufferHandle);
-    mPlaneInfo.stride        = PrivHandle::getHndPixelStride(fb->mBufferHandle);
+    // mPlaneInfo.out_fen_fd    = -1;
+    mPlaneInfo.format        = PrivHandle::getFormat(buf);
+    mPlaneInfo.shared_fd     = PrivHandle::getFd(buf);
+    mPlaneInfo.byte_stride   = PrivHandle::getBStride(buf);
+    mPlaneInfo.stride        = PrivHandle::getPStride(buf);
     mPlaneInfo.zorder        = fb->mZorder;
     mPlaneInfo.blend_mode    = fb->mBlendMode;
     mPlaneInfo.plane_alpha   = fb->mPlaneAlpha;
-    MESON_LOGD("osdPlane [%p]", (void*)(fb->mBufferHandle));
+    MESON_LOGD("osdPlane [%p]", (void*)buf);
 
-    if (mPlaneInfo.in_fen_fd)
+    fb->setReleaseFence(mPlaneInfo.out_fen_fd);
     ioctl(mDrvFd, FBIOPUT_OSD_SYNC_RENDER_ADD, &mPlaneInfo);
     dumpPlaneInfo();
-    mPlaneInfo.in_fen_fd = -1;
 
+    mPlaneInfo.in_fen_fd     = -1;
     return 0;
 }
 
@@ -76,8 +80,8 @@ int32_t OsdPlane::blank() {
 }
 
 int32_t OsdPlane::pageFlip(int32_t &outFence) {
-    outFence = mPlaneInfo.out_fen_fd;
-    mPlaneInfo.out_fen_fd = -1;
+    outFence = mPriorFrameRetireFence;
+    mPriorFrameRetireFence = -1;
     return 0;
 }
 
@@ -99,6 +103,5 @@ void OsdPlane::dumpPlaneInfo() {
 }
 
 void OsdPlane::dump(String8 & dumpstr) {
-    MESON_LOG_EMPTY_FUN();
 }
 

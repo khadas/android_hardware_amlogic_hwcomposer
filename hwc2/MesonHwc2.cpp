@@ -43,23 +43,23 @@
     }
 
 
-/************************************************************/
-/*                      Hal Interface
-/************************************************************/
+/************************************************************
+*                        Hal Interface
+************************************************************/
 void MesonHwc2::dump(uint32_t* outSize, char* outBuffer) {
     if (outBuffer == NULL) {
         *outSize = 4096;
         return ;
     }
 
-    String8 dumpstr(outBuffer, (size_t)outSize);
+    String8 dumpstr(outBuffer, *outSize);
     DebugHelper::getInstance().resolveCmd();
 
     if (DebugHelper::getInstance().dumpDetailInfo())
         HwDisplayManager::getInstance().dump(dumpstr);
 
     // dump composer status
-    dumpstr.appendFormat("MesonHwc2 state:\n");
+    dumpstr.appendFormat("MesonHwc2 state:");
     std::map<hwc2_display_t, std::shared_ptr<Hwc2Display>>::iterator it;
     for (it = mDisplays.begin(); it != mDisplays.end(); it++) {
         it->second->dump(dumpstr);

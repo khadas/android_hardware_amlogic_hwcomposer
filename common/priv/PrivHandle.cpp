@@ -15,7 +15,7 @@ PrivHandle::PrivHandle() {
 PrivHandle::~PrivHandle() {
 }
 
-int PrivHandle::getHndFormat(const native_handle_t *nativeHnd) {
+int PrivHandle::getFormat(const native_handle_t *nativeHnd) {
     int format = HAL_PIXEL_FORMAT_RGBA_8888;
     private_handle_t const* buffer = private_handle_t::dynamicCast(nativeHnd);
 
@@ -23,7 +23,7 @@ int PrivHandle::getHndFormat(const native_handle_t *nativeHnd) {
     return format;
 }
 
-int PrivHandle::getHndSharedFd(const native_handle_t *nativeHnd) {
+int PrivHandle::getFd(const native_handle_t *nativeHnd) {
     int fd = -1;
     private_handle_t const* buffer = private_handle_t::dynamicCast(nativeHnd);
 
@@ -31,7 +31,7 @@ int PrivHandle::getHndSharedFd(const native_handle_t *nativeHnd) {
     return fd;
 }
 
-int PrivHandle::getHndByteStride(const native_handle_t *nativeHnd) {
+int PrivHandle::getBStride(const native_handle_t *nativeHnd) {
     int byteStride = 64;
     private_handle_t const* buffer = private_handle_t::dynamicCast(nativeHnd);
 
@@ -39,10 +39,43 @@ int PrivHandle::getHndByteStride(const native_handle_t *nativeHnd) {
     return byteStride;
 }
 
-int PrivHandle::getHndPixelStride(const native_handle_t *nativeHnd) {
+int PrivHandle::getPStride(const native_handle_t *nativeHnd) {
     int pixelStride = 4;
     private_handle_t const* buffer = private_handle_t::dynamicCast(nativeHnd);
 
     if (buffer) pixelStride = buffer->stride;
     return pixelStride;
+}
+
+bool PrivHandle::isContinuous(const native_handle_t *nativeHnd) {
+    private_handle_t const* buffer = private_handle_t::dynamicCast(nativeHnd);
+
+    if (NULL == buffer) return true;
+
+    if (buffer->flags & private_handle_t::PRIV_FLAGS_CONTINUOUS_BUF)
+        return true;
+
+    return false;
+}
+
+bool PrivHandle::isOverlayVideo(const native_handle_t *nativeHnd) {
+    private_handle_t const* buffer = private_handle_t::dynamicCast(nativeHnd);
+
+    if (NULL == buffer) return false;
+
+    if (buffer->flags & private_handle_t::PRIV_FLAGS_VIDEO_OVERLAY)
+        return true;
+
+    return false;
+}
+
+bool PrivHandle::isOmxVideo(const native_handle_t *nativeHnd) {
+    private_handle_t const* buffer = private_handle_t::dynamicCast(nativeHnd);
+
+    if (NULL == buffer) return false;
+
+    if (buffer->flags & private_handle_t::PRIV_FLAGS_VIDEO_OMX)
+        return true;
+
+    return false;
 }
