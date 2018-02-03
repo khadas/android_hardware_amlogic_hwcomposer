@@ -9,13 +9,15 @@
 
 #include "OsdPlane.h"
 #include <MesonLog.h>
+#include <misc.h>
 
 #define FBIOPUT_OSD_SYNC_RENDER_ADD  0x4519
 
 OsdPlane::OsdPlane(int32_t drvFd, uint32_t id)
     : HwDisplayPlane (drvFd, id),
-      mPriorFrameRetireFd(-1) {
-      // mRetireFence(DrmFence::NO_FENCE) {
+      mPriorFrameRetireFd(-1),
+      mFirstPresentDisplay(true),
+      mRetireFence(DrmFence::NO_FENCE) {
     getProperties();
     mPlaneInfo.out_fen_fd = -1;
 }
@@ -37,7 +39,16 @@ int32_t OsdPlane::getProperties() {
 }
 
 int OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
-    mPriorFrameRetireFd      = (mPlaneInfo.out_fen_fd);
+    // close uboot logo, if bootanim begin to show
+    if (mFirstPresentDisplay) {
+        // TODO: will move this in plane info op, and do this in the driver with
+        // one vsync.
+        mFirstPresentDisplay = false;
+        sysfs_set_string(DISPLAY_LOGO_INDEX, "-1");
+        sysfs_set_string(DISPLAY_FB0_FREESCALE_SWTICH, "0x10001");
+    }
+
+    mPriorFrameRetireFd      = mRetireFence->dup();
 
     drm_rect_t srcCrop       = fb->mSourceCrop;
     drm_rect_t disFrame      = fb->mDisplayFrame;
@@ -63,11 +74,12 @@ int OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
     mPlaneInfo.zorder        = fb->mZorder;
     mPlaneInfo.blend_mode    = fb->mBlendMode;
     mPlaneInfo.plane_alpha   = fb->mPlaneAlpha;
+    mPlaneInfo.op            &= ~(OSD_BLANK_OP_BIT);
     MESON_LOGD("osdPlane [%p]", (void*)buf);
 
-    fb->setReleaseFence(mPlaneInfo.out_fen_fd);
+    fb->setReleaseFence(mRetireFence->dup());
     ioctl(mDrvFd, FBIOPUT_OSD_SYNC_RENDER_ADD, &mPlaneInfo);
-    // mRetireFence.reset(new DrmFence(mPlaneInfo.out_fen_fd));
+    mRetireFence.reset(new DrmFence(mPlaneInfo.out_fen_fd));
     dumpPlaneInfo();
 
     mPlaneInfo.in_fen_fd     = -1;
@@ -76,6 +88,8 @@ int OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
 
 int32_t OsdPlane::blank() {
     MESON_LOG_EMPTY_FUN();
+    mPlaneInfo.op |= OSD_BLANK_OP_BIT;
+    // ioctl(mDrvFd, FBIOPUT_OSD_SYNC_RENDER_ADD, &mPlaneInfo);
 
     return 0;
 }

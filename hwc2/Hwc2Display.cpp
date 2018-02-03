@@ -384,7 +384,6 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
     //     return HWC2_ERROR_UNSUPPORTED;
     // }
 
-    MESON_LOGD("out fence (%d)", outFence);
     *outPresentFence = outFence;
     return HWC2_ERROR_NONE;
 }
@@ -398,11 +397,11 @@ hwc2_error_t Hwc2Display::getReleaseFences(uint32_t* outNumElements,
 
     std::vector<std::shared_ptr<DrmFramebuffer>>::iterator it;
     for (it = mPresentLayers.begin(); it != mPresentLayers.end(); it++) {
-        Hwc2Layer * layer = (Hwc2Layer*)(it->get());
-        int32_t releaseFence = layer->getReleaseFence();
-        if (releaseFence >= 0) {
+        Hwc2Layer *layer = (Hwc2Layer*)(it->get());
+        if (HWC2_COMPOSITION_DEVICE == layer->mHwcCompositionType) {
             num++;
             if (needInfo) {
+                int32_t releaseFence = layer->getReleaseFence();
                 *outLayers = layer->getUniqueId();
                 *outFences = releaseFence;
                 outLayers++;

@@ -12,6 +12,9 @@
 
 #include <HwDisplayPlane.h>
 
+#define DISPLAY_LOGO_INDEX              "/sys/module/fb/parameters/osd_logo_index"
+#define DISPLAY_FB0_FREESCALE_SWTICH    "/sys/class/graphics/fb0/free_scale_switch"
+
 typedef struct osd_plane_info_t {
     unsigned int    xoffset;
     unsigned int    yoffset;
@@ -35,6 +38,10 @@ typedef struct osd_plane_info_t {
     unsigned int    reserve;
 } osd_plane_info_t;
 
+/* enum {
+    OSD_BLANK_OP_BIT = 0x00000001,
+};*/
+
 class OsdPlane : public HwDisplayPlane {
 public:
     OsdPlane(int32_t drvFd, uint32_t id);
@@ -56,10 +63,13 @@ protected:
     void dumpPlaneInfo();
 
 private:
+    bool mFirstPresentDisplay;
+
     int32_t mPriorFrameRetireFd;
 
     osd_plane_info_t mPlaneInfo;
-    // std::shared_ptr<DrmFence> mRetireFence;
+
+    std::shared_ptr<DrmFence> mRetireFence;
 };
 
 

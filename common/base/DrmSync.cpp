@@ -80,7 +80,17 @@ std::shared_ptr<DrmFence> DrmFence::merge(const char * name,
 }
 
 int32_t DrmFence::dup() const{
-    return ::dup(mFenceFd);
+    if (-1 == mFenceFd) {
+        MESON_LOGD("fence already been signaled.");
+        return -1;
+    }
+
+    int32_t dupFence = ::dup(mFenceFd);
+    if (dupFence < 0) {
+        MESON_LOGE("fence dup failed! please check it immeditely!");
+    }
+
+    return dupFence;
 }
 
 

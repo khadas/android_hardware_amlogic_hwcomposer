@@ -8,6 +8,7 @@
  */
 
 #include <DrmFramebuffer.h>
+#include <MesonLog.h>
 
 DrmFramebuffer::DrmFramebuffer() {
     reset();
@@ -17,7 +18,7 @@ DrmFramebuffer::DrmFramebuffer(
     const native_handle_t * bufferhnd, int32_t acquireFence) {
     reset();
     mBufferHandle = bufferhnd;
-    if (acquireFence >=0)
+    if (acquireFence >= 0)
         mAcquireFence = std::make_shared<DrmFence>(acquireFence);
 }
 
