@@ -43,9 +43,12 @@ public:
 
 protected:
     bool isEnabled();
-    void clearDebugFlags();
+    void clearOnePassCmd();
+    void clearPersistCmd();
 
 protected:
+
+    bool mEnabled;
     bool mDumpUsage;
     bool mDumpDetail;
 

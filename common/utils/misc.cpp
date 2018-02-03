@@ -18,12 +18,16 @@
 
 #define MAX_STR_LEN         512
 
-bool sys_get_bool_prop(const char* prop, bool defVal) {
+bool sys_get_bool_prop(const char *prop, bool defVal) {
     return property_get_bool(prop, defVal);
 }
 
-int32_t sys_get_string_prop(const char* prop, char* val) {
+int32_t sys_get_string_prop(const char *prop, char *val) {
     return property_get(prop, val, NULL);
+}
+
+int32_t sys_set_prop(const char *prop, char *val) {
+    return property_set(prop, val);
 }
 
 int32_t sysfs_get_string_ex(const char* path, char *str, int32_t size,

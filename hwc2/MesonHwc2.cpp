@@ -52,14 +52,15 @@ void MesonHwc2::dump(uint32_t* outSize, char* outBuffer) {
         return ;
     }
 
-    String8 dumpstr(outBuffer, *outSize);
+    String8 dumpstr;
     DebugHelper::getInstance().resolveCmd();
+
+    dumpstr.append("MesonHwc2 state:\n");
 
     if (DebugHelper::getInstance().dumpDetailInfo())
         HwDisplayManager::getInstance().dump(dumpstr);
 
     // dump composer status
-    dumpstr.appendFormat("MesonHwc2 state:");
     std::map<hwc2_display_t, std::shared_ptr<Hwc2Display>>::iterator it;
     for (it = mDisplays.begin(); it != mDisplays.end(); it++) {
         it->second->dump(dumpstr);
@@ -67,7 +68,7 @@ void MesonHwc2::dump(uint32_t* outSize, char* outBuffer) {
 
     DebugHelper::getInstance().dump(dumpstr);
 
-    strncpy(outBuffer, dumpstr.string(), dumpstr.size() > 4096 ? 4096 : dumpstr.size());
+    strncpy(outBuffer, dumpstr.string(), dumpstr.size() > 4096 ? 4095 : dumpstr.size());
 }
 
 void MesonHwc2::getCapabilities(uint32_t* outCount,
