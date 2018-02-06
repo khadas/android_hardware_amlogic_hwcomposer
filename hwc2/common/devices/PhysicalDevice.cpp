@@ -348,7 +348,12 @@ int32_t PhysicalDevice::getChangedCompositionTypes(
                 }
 
                 if (layer->getCompositionType() == HWC2_COMPOSITION_DEVICE
+#ifdef ENABLE_SOFT_CURSOR
+                    || layer->getCompositionType() == HWC2_COMPOSITION_SOLID_COLOR
+                    || layer->getCompositionType() == HWC2_COMPOSITION_CURSOR) {
+#else
                     || layer->getCompositionType() == HWC2_COMPOSITION_SOLID_COLOR) {
+#endif
                     // change all other device type to client.
                     outLayers[i] = layerId;
                     outTypes[i] = HWC2_COMPOSITION_CLIENT;
@@ -694,7 +699,12 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
 
     framebuffer_info_t fbInfo = *(mFramebufferContext->getInfo());
     bool cursorShow = false;
+
+#ifdef ENABLE_SOFT_CURSOR
+    //cursorShow = updateCursorBuffer();
+#else
     cursorShow = updateCursorBuffer();
+#endif
 
     if (mRenderMode == GLES_COMPOSE_MODE) {
         //if no layers to compose, post blank op to osd.
@@ -1466,7 +1476,12 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
                 break;
             case HWC2_COMPOSITION_CURSOR:
                 DTRACE("This is a Cursor layer!");
+#ifdef ENABLE_SOFT_CURSOR
+                mHwcGlesLayers.add(layerId, layer);
+                mHwcLayersChangeType.add(layerId, layer);
+#else
                 mHwcLayersChangeRequest.add(layerId, layer);
+#endif
                 break;
             case HWC2_COMPOSITION_SIDEBAND:
                 if (layerId == mVideoOverlayLayerId) {
