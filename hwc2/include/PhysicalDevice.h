@@ -40,6 +40,7 @@
 #define DISPLAY_FB0_FREESCALE_AXIS      "/sys/class/graphics/fb0/free_scale_axis"
 
 #define DISPLAY_HDMI_HDCP_KEY           "/sys/class/amhdmitx/amhdmitx0/hdcp_lstore"//TX have 22 or 14 or none key
+#define DISPLAY_HDMI_PLUG               "/sys/class/amhdmitx/amhdmitx0/hpd_state"//HDMI PLUG:1 UNPLUG:0
 
 namespace android {
 namespace amlogic {

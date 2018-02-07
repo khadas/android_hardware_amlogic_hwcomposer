@@ -31,6 +31,7 @@
 #include <AmVideo.h>
 
 #define FB_IOC_MAGIC   'O'
+//#define HWC_SUPPORT_SECURE_DISPLAY 1
 #define FBIOPUT_OSD_CURSOR     _IOWR(FB_IOC_MAGIC, 0x0,  struct fb_cursor)
 
 namespace android {
@@ -132,9 +133,16 @@ bool PhysicalDevice::initialize() {
 
     char hdcpTxKey[MODE_LEN] = {0};
     if (Utils::getSysfsStr(DISPLAY_HDMI_HDCP_KEY, hdcpTxKey) == 0) {
-        //no need hdcp auth, if box have no key
-        if ((strlen(hdcpTxKey) == 0) || !(strcmp(hdcpTxKey, "00")))
+        //no need hdcp auth, if box have no key or hdmi unplug
+        char hdmi_state[MODE_LEN] = {0};
+        Utils::getSysfsStr(DISPLAY_HDMI_PLUG, hdmi_state);
+        if ((strlen(hdmi_state) == 0) || strstr(hdmi_state, "0"))
             mHDCPRegister = false;
+        else if ((strlen(hdcpTxKey) == 0) || !(strcmp(hdcpTxKey, "00")))
+            mHDCPRegister = false;
+    } else {
+        //for tv, dont need hdcp auth
+        mHDCPRegister = false;
     }
 
     mDisplayHdmi = new DisplayHdmi();
@@ -702,10 +710,7 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
 #endif
     mFbSyncRequest.type = mRenderMode;
 
-#ifdef HWC_SUPPORT_SECURE_LAYER
-    if (!mSecure && !mHwcSecureLayers.isEmpty())
-        mClientTargetHnd = NULL;
-#else
+#ifdef HWC_SUPPORT_SECURE_DISPLAY
     if (mHDCPRegister && !mSecure)
         mClientTargetHnd = NULL;
 #endif
@@ -713,12 +718,16 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
     if (!mClientTargetHnd || private_handle_t::validate(mClientTargetHnd) < 0 || mPowerMode == HWC2_POWER_MODE_OFF) {
         DTRACE("Post blank to screen, mClientTargetHnd(%p, %d), mTargetAcquireFence(%d)",
                     mClientTargetHnd, private_handle_t::validate(mClientTargetHnd), mTargetAcquireFence);
+
+#ifdef HWC_SUPPORT_SECURE_DISPLAY
         if (mHDCPRegister && !mSecure && mStartBootanim) {
             //blank osd1, uboot logo show in osd1
             mStartBootanim = false;
             setOSD1Blank(false);
             bootanimDetect();
         }
+#endif
+
         *outRetireFence = HwcFenceControl::merge(String8("ScreenBlank"), mPriorFrameRetireFence, mPriorFrameRetireFence);
         HwcFenceControl::closeFd(mTargetAcquireFence);
         mTargetAcquireFence = -1;
@@ -1829,6 +1838,7 @@ void PhysicalDevice::dump(Dump& d) {
             mReverseScaleX, mReverseScaleY);
 
     d.append("isSecure : %s\n", mSecure ? "TRUE" : "FALSE");
+    d.append("HDCPRegister : %s\n", mHDCPRegister ? "TRUE" : "FALSE");
 
     mDisplayHdmi->dump(d);
 
