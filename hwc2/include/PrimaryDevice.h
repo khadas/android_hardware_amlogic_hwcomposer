@@ -26,11 +26,11 @@
 #define DEVICE_STR_MBOX                 "MBOX"
 #define DEVICE_STR_TV                   "TV"
 
-#if PLATFORM_SDK_VERSION >= 26 //8.0
-#define DISPLAY_CFG_FILE                "/vendor/etc/mesondisplay.cfg"
-#else
-#define DISPLAY_CFG_FILE                "/system/etc/mesondisplay.cfg"
-#endif
+//#if PLATFORM_SDK_VERSION >= 26 //8.0
+//#define DISPLAY_CFG_FILE                "/vendor/etc/mesondisplay.cfg"
+//#else
+//#define DISPLAY_CFG_FILE                "/system/etc/mesondisplay.cfg"
+//#endif
 
 namespace android {
 namespace amlogic {
@@ -43,9 +43,9 @@ public:
 public:
     virtual bool initialize();
     virtual void deinitialize();
-    virtual int32_t createVirtualDisplay(uint32_t width, uint32_t height, int32_t* format, hwc2_display_t* outDisplay){ return HWC2_ERROR_NONE; }
-    virtual int32_t destroyVirtualDisplay(hwc2_display_t display) { return HWC2_ERROR_NONE; }
-    virtual int32_t setOutputBuffer(buffer_handle_t buffer, int32_t releaseFence) { return HWC2_ERROR_NONE; }
+    virtual int32_t createVirtualDisplay(uint32_t width __unused, uint32_t height __unused, int32_t* format __unused, hwc2_display_t* outDisplay __unused){ return HWC2_ERROR_NONE; }
+    virtual int32_t destroyVirtualDisplay(hwc2_display_t display __unused) { return HWC2_ERROR_NONE; }
+    virtual int32_t setOutputBuffer(buffer_handle_t buffer __unused, int32_t releaseFence __unused) { return HWC2_ERROR_NONE; }
 
 private:
 

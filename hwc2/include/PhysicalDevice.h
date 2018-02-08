@@ -26,8 +26,8 @@
 #include <IComposeDevice.h>
 #include <IComposeDeviceFactory.h>
 #include <DisplayHdmi.h>
-#include <systemcontrol/ISystemControlService.h>
-#include <systemcontrol/DisplayMode.h>
+//#include <systemcontrol/ISystemControlService.h>
+//#include <systemcontrol/DisplayMode.h>
 #include <binder/Binder.h>
 #include <binder/IServiceManager.h>
 #include <utils/RefBase.h>
@@ -165,8 +165,8 @@ private:
 #if PLATFORM_SDK_VERSION >= 26
     struct SystemControlDeathRecipient : public android::hardware::hidl_death_recipient  {
         // hidl_death_recipient interface
-        virtual void serviceDied(uint64_t cookie,
-        const ::android::wp<::android::hidl::base::V1_0::IBase>& who) override{};
+        virtual void serviceDied(uint64_t cookie __unused,
+        const ::android::wp<::android::hidl::base::V1_0::IBase>& who __unused) override{};
     };
     sp<SystemControlDeathRecipient> mDeathRecipient = nullptr;
 #endif
@@ -236,7 +236,7 @@ private:
     FBContext *mFramebufferContext;
     int32_t mFbSlot;
 
-    sp<ISystemControlService> mSystemControl;
+    //sp<ISystemControlService> mSystemControl;
 
     int32_t /*android_color_mode_t*/ mColorMode;
 
