@@ -45,7 +45,7 @@ IDisplayDevice* PlatFactory::createDisplayDevice(int disp)
 
     class PlatcComposerFactory: public IComposeDeviceFactory {
     public:
-        virtual IComposeDevice* createComposer(IDisplayDevice& disp) {
+        virtual IComposeDevice* createComposer(IDisplayDevice& disp __unused) {
         #ifdef ENABLE_AML_GE2D_COMPOSER
             return new GE2DComposer(disp);
         #else

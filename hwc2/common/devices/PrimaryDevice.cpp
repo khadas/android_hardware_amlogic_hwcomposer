@@ -21,6 +21,7 @@
 #include <PrimaryDevice.h>
 #include <Utils.h>
 #include <SysTokenizer.h>
+#include <systemcontrol/DisplayMode.h>
 
 namespace android {
 namespace amlogic {

@@ -52,7 +52,7 @@ LOCAL_SHARED_LIBRARIES := \
 
 # added for treble
 LOCAL_SHARED_LIBRARIES += \
-    vendor.amlogic.hardware.systemcontrol@1.0_vendor \
+    vendor.amlogic.hardware.systemcontrol@1.0 \
     libbase \
     libhidlbase \
     libhidltransport
@@ -119,6 +119,8 @@ endif
 ifeq ($(TARGET_SUPPORT_SECURE_LAYER),true)
 LOCAL_CFLAGS += -DHWC_SUPPORT_SECURE_LAYER
 endif
+
+LOCAL_CFLAGS += -Werror -Wignored-qualifiers
 
 LOCAL_SHARED_LIBRARIES += libamavutils_alsa
 #LOCAL_C_INCLUDES += $(AMAVUTILS_PATH)/include
