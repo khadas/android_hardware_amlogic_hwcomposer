@@ -7,127 +7,105 @@
  * Description:
  */
 
-#ifndef CONNECTOR_HDMI_H
-
+#ifndef _CONNECTORHDMI_H
+#define _CONNECTORHDMI_H
 #include <HwDisplayConnector.h>
-#include <BasicTypes.h>
 
-#if 0
+#include <hardware/hardware.h>
 #include <ISystemControlService.h>
-
+#include "AmVinfo.h"
 #define HDMI_FRAC_RATE_POLICY "/sys/class/amhdmitx/amhdmitx0/frac_rate_policy"
 
-enum {
-    REFRESH_24kHZ = 24,
-    REFRESH_30kHZ = 30,
-    REFRESH_60kHZ = 60,
-    REFRESH_120kHZ = 120,
-    REFRESH_240kHZ = 240
-};
+using namespace android;
+class FBContext;
 
-class FBContext {
-public:
-    FBContext()
-    : mStatus(false)
-    {
-        mFBInfo = new framebuffer_info_t();
-    }
-    virtual ~FBContext(){}
+class DisplayConfig;
 
-    virtual framebuffer_info_t* getInfo() { return mFBInfo; }
-    virtual bool getStatus() { return mStatus; }
-    virtual void setStatus(bool status) { mStatus = status; }
-private:
-    framebuffer_info_t *mFBInfo;
-    bool mStatus;
-};
+typedef struct hdr_capabilities {
+    bool init;
+    bool dvSupport;
+    bool hdrSupport;
+    int maxLuminance;
+    int avgLuminance;
+    int minLuminance;
+} hdr_capabilities_t;
+
+class ConnectorHdmi : public
+                      HwDisplayConnector {
 
 public:
-    //std::string getDisplayMode() const { return mDisplayMode; };
-    float getFracRefreshRate() const {
-        float actualRate = 0.0f;
+    ConnectorHdmi(/*int32_t ConnectorDrv,uint32_t ConnectorId*/);
+    virtual ~ConnectorHdmi();
 
-        if (mRefreshRate) {
-            if (mFracRate) {
-                actualRate = (mRefreshRate * 1000) / (float)1001;
-            } else {
-                actualRate = mRefreshRate;
-            }
-        }
-        return actualRate;
-    };
-    int getRefreshRate() const { return mRefreshRate; };
-    int getWidth() const { return mWidth; };
-    int getHeight() const { return mHeight; };
-    int getDpiX() const { return mDpiX; };
-    int getDpiY() const { return mDpiY; };
-    void setDpi(int dpix, int dpiy) {
-        mDpiX = dpix;
-        mDpiY = dpiy;
-    };
-    bool getFracRatePolicy() { return mFracRate; };
-    sp<ISystemControlService>getSystemControlService();
-    bool readConfigFile(const char* configpath, std::vector<std::
-            string>* supportDispModes);
-    int setActiveConfig(int modeId);
-    int getActiveConfig(hwc2_config_t* outConfig);
-    int clearDispConfigs(KeyedVector<int ,DisplayConfig*>&dispConfigs);
-    bool isDispModeValid(std::string &dispmode);
-    int calcDefaultMode(framebuffer_info_t&framebufferInfo,std::string& defaultMode);
-    int buildSingleConfigList(std::string& defaultMode);
-    int addHwcDispConfigs(std::string& mode);
-    int readHdmiDispMode(std::string &dispmode);
-    status_t readHdmiPhySize(framebuffer_info_t& fbInfo);
-    bool chkPresent();
-    int writeHdmiDispMode(std::string &dispmode);
-    int readEdidList(std::vector<std::string>&edidlist);
-    int updateActiveConfig(std::string& activeMode);
-    bool updateHotplug(bool connected ,framebuffer_info_t&             framebufferInfo);
-    int updateConfigs();
-    int updateSfDispConfigs();
-    void switchRatePolicy(bool fracRatePolicy);
-    int setDisplayMode(std::string& dm,bool policy);
-    int getDisplayAttribute(hwc2_config_t config,
-            int32_t attribute,
-            int32_t* outValue,
-            int32_t caller);
-    static HwDisplayConnector * createConnector(int drvFd, int32_t id, int32_t type);
-    int parseConfigFile();
-    virtual ~HwDisplayConnector();
-    int init();
-    void deinitialize();
-    void reset();
-    void dump(dump& d);
+public:
+    virtual int init();
+    virtual drm_connector_type_t getType();
+    virtual uint32_t getModesCount();
+    virtual bool isConnected();
+    virtual bool isSecure() ;
+    virtual KeyedVector<int,DisplayConfig*>  updateConnectedConfigs();
+    virtual void dump(String8& dumpstr);
+
 protected:
-    HwDisplayConnector(int drvFd, int32_t id, int32_t type);
-    int mDrvFd;
+
+ bool isDispModeValid(std::string& dispmode);
+ bool updateHotplug(bool connected, framebuffer_info_t& framebufferInfo);
+#if PLATFORM_SDK_VERSION >= 26
+    struct SystemControlDeathRecipient : public android::hardware::hidl_death_recipient  {
+        // hidl_death_recipient interface
+        virtual void serviceDied(uint64_t cookie,
+        const ::android::wp<::android::hidl::base::V1_0::IBase>& who) override{};
+    };
+    sp<SystemControlDeathRecipient> mDeathRecipient = nullptr;
+#endif
+
+     auto getSystemControlService();
+     sp<ISystemControlService> mSC;
+     status_t readEdidList(std::vector<std::string> &edidlist);
+     status_t writeHdmiDispMode(std::string &dispmode);
+     status_t readHdmiDispMode(std::string &dispmode);
+     status_t readHdmiPhySize(framebuffer_info_t& fbInfo);
+
+
+    // operations on mSupportDispModes
+    status_t clearSupportedConfigs();
+    status_t updateSupportedConfigs();
+    status_t addSupportedConfig(std::string& mode);
+    // ensure the active mode equals the current displaymode.
+
+    bool readConfigFile(const char* configPath, std::vector<std::string>* supportDispModes);
+
+    status_t calcDefaultMode(framebuffer_info_t& framebufferInfo, std::string& defaultMode);
+    status_t buildSingleConfigList(std::string& defaultMode);
+    int updateDisplayAttributes(framebuffer_info_t &framebufferInfo);
+    int32_t parseHdrCapabilities();
+    int32_t getLineValue(const char *lineStr, const char *magicStr);
 
 private:
-    std::string mDisplayMode;
-    int mRefreshRate;
+    // configures variables.
+    KeyedVector<int, DisplayConfig*> mSupportDispConfigs;
+    DisplayConfig *mconfig;
+    FBContext* mFramebufferContext;
+    sp<ISystemControlService> mSystemControl;
+    // physical size in mm.
+    int mPhyWidth;
+    int mPhyHeight;
+    // framebuffer size.
     int mWidth;
     int mHeight;
     int mDpiX;
     int mDpiY;
     bool mFracRate;
+    int mRefreshRate;
+    bool mConnected;
+    bool mSecure;
+
+    std::string mDisplayMode;
+    std::string mDefaultDispMode;
+
+    hdr_capabilities_t mHdrCapabilities;
 };
+
 #endif
 
-class ConnectorHdmi : public HwDisplayConnector{
-public:
-    ConnectorHdmi(int32_t drvFd, uint32_t id);
-    virtual ~ConnectorHdmi();
 
-    virtual drm_connector_type_t getType();
-
-    virtual uint32_t getModesCount();
-    virtual int32_t getDisplayModes(drm_mode_info_t * modes);
-
-    virtual bool isConnected();
-    virtual bool isSecure();
-
-    virtual void dump(String8 & dumpstr);
-
-};
-
-#endif/*CONNECTOR_HDMI_H*/

@@ -8,10 +8,21 @@
  */
 #include <HwDisplayManager.h>
 #include <MesonLog.h>
-
+#include <HwDisplayConnector.h>
 #include "HwConnectorFactory.h"
 #include "OsdPlane.h"
 #include "VideoPlane.h"
+#include <utils/Tokenizer.h>
+#include <DisplayMode.h>
+#define DEVICE_STR_MBOX                 "MBOX"
+#define DEVICE_STR_TV                   "TV"
+
+#if PLATFORM_SDK_VERSION >= 26 //8.0
+#define pConfigPath "/vendor/etc/mesondisplay.cfg"
+#else
+#define pConfigPath "/system/etc/mesondisplay.cfg"
+#endif
+using namespace android;
 
 
 ANDROID_SINGLETON_STATIC_INSTANCE(HwDisplayManager)
@@ -203,8 +214,41 @@ int32_t HwDisplayManager::getConnector(uint32_t connector_id) {
     *and get connector type by connetor id.
     */
     drm_connector_type_t connector_type = DRM_MODE_CONNECTOR_HDMI;
-    HwDisplayConnector * connector = HwConnectorFactory::create(
-            connector_type, -1, connector_id);
+    const char* WHITESPACE = " \t\r";
+    char mDefaultModeSink[64];
+   // SysTokenizer* tokenizer;
+      Tokenizer* tokenizer;
+    int status = Tokenizer::open(String8(pConfigPath), &tokenizer);
+    if (status) {
+        MESON_LOGE("Error %d opening display config file %s.", status, pConfigPath);
+    } else {
+        while (!tokenizer->isEof()) {
+            MESON_LOGE("Parsing %s: %s", (tokenizer->getLocation()).string(), (tokenizer->peekRemainderOfLine()).string());
+
+            tokenizer->skipDelimiters(WHITESPACE);
+            if (!tokenizer->isEol() && tokenizer->peekChar() != '#') {
+
+                const char *token = (tokenizer->nextToken(WHITESPACE)).string();
+                if (!strcmp(token, DEVICE_STR_MBOX)) {
+                    connector_type = DRM_MODE_CONNECTOR_HDMI;
+                } else if (!strcmp(token, DEVICE_STR_TV)) {
+                    connector_type = DRM_MODE_CONNECTOR_PANEL;
+                } else {
+                    MESON_LOGE("%s: Expected keyword, got '%s'.", (tokenizer->getLocation()).string(), token);
+                    break;
+                }
+                tokenizer->skipDelimiters(WHITESPACE);
+                tokenizer->nextToken(WHITESPACE);
+                tokenizer->skipDelimiters(WHITESPACE);
+                strcpy(mDefaultModeSink, tokenizer->nextToken(WHITESPACE));
+            }
+
+            tokenizer->nextLine();
+        }
+        delete tokenizer;
+    }
+   HwDisplayConnector* connector = HwConnectorFactory::create(
+            connector_type/*, -1, connector_id*/);
 
     mConnectors.emplace(connector_id, std::move(connector));
     return 0;

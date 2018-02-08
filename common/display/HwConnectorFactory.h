@@ -15,9 +15,9 @@
 class HwConnectorFactory {
 public:
     static HwDisplayConnector* create(
-        drm_connector_type_t connectorType,
+        drm_connector_type_t connectorType/*,
         int32_t connectorDrv,
-        uint32_t connectorId);
+        uint32_t connectorId*/);
 };
 
 

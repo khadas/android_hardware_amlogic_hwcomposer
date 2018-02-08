@@ -56,7 +56,9 @@ LOCAL_C_INCLUDES := \
 	vendor/amlogic/system/libge2d/inlcude \
 	system/core/libion/include/ \
 	system/core/libion/kernel-headers \
-	hardware/amlogic/gralloc
+	hardware/amlogic/gralloc \
+    $(TOP)/hardware/amlogic/media/amavutils/include \
+    $(TOP)/vendor/amlogic/frameworks/services/systemcontrol
 
 LOCAL_COMMON_BASE_FILES := \
 	common/base/DrmFramebuffer.cpp \
@@ -82,11 +84,14 @@ LOCAL_COMMON_DISPLAY_FILES  := \
 	common/display/VideoPlane.cpp \
 	common/display/HwConnectorFactory.cpp \
 	common/display/ConnectorHdmi.cpp \
-	common/display/ConnectorPanel.cpp
+	common/display/ConnectorPanel.cpp \
+	common/display/AmVideo.cpp \
+	common/display/AmVinfo.cpp
 
 LOCAL_COMMON_UTILS_FILES  := \
 	common/utils/misc.cpp \
-	common/debug/DebugHelper.cpp
+	common/debug/DebugHelper.cpp \
+	common/utils/SysTokenizer.cpp
 
 LOCAL_COMPOSITION_FILES := \
 	composition/CompositionStrategyFactory.cpp \
@@ -114,7 +119,8 @@ LOCAL_SHARED_LIBRARIES := \
 	libsync \
 	libion \
 	libge2d \
-	libbinder
+	libbinder\
+	libsystemcontrolservice
 
 LOCAL_STATIC_LIBRARIES := \
 	  libbhnd
@@ -140,7 +146,7 @@ LOCAL_SRC_FILES := \
 	$(LOCAL_COMMON_UTILS_FILES) \
 	$(LOCAL_COMPOSITION_FILES) \
 	$(LOCAL_HWC_FILES)
-
+#LOCAL_ALLOW_UNDEFINED_SYMBOLS:=true;
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := hwcomposer.amlogic
 
