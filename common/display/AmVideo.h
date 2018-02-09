@@ -18,8 +18,9 @@
 #define AML_VIDEO_H_
 
 #include <utils/Mutex.h>
+#include <BasicTypes.h>
 
-namespace android {
+
 class AmVideo {
 public:
     static AmVideo* getInstance();
@@ -43,6 +44,5 @@ private:
     bool mVideoPresent;
 };
 
-}
 #endif//AML_VIDEO_H_
 

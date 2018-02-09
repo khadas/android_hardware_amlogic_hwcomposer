@@ -22,7 +22,6 @@
 #else
 #define pConfigPath "/system/etc/mesondisplay.cfg"
 #endif
-using namespace android;
 
 
 ANDROID_SINGLETON_STATIC_INSTANCE(HwDisplayManager)

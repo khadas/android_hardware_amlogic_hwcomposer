@@ -15,14 +15,10 @@
 #include <HwDisplayConnector.h>
 #define HDMI_FRAC_RATE_POLICY "/sys/class/amhdmitx/amhdmitx0/frac_rate_policy"
 
-using namespace android;
 
-class DisplayConfig;
-class FBContext;
 
 class ConnectorPanel :public HwDisplayConnector {
 public:
-
    ConnectorPanel();
    virtual ~ConnectorPanel();
    virtual int init();
@@ -30,35 +26,14 @@ public:
    virtual uint32_t getModesCount();
    virtual bool isConnected();
    virtual bool isSecure();
-   virtual KeyedVector<int,DisplayConfig*>updateConnectedConfigs();
+   virtual KeyedVector<int,DisplayConfig*>getModesInfo();
    virtual void dump(String8 & dumpstr);
 
 protected:
 
-    status_t readPhySize(framebuffer_info_t& fbInfo);
-    int calcDefaultMode(framebuffer_info_t& framebufferInfo,std::     string& defaultMode);
-    bool  isDispModeValid(std::string& dispmode);
-
 private:
     sp<ISystemControlService> mSC;
-    std::string mDisplayMode;
     KeyedVector<int, DisplayConfig*> mSupportDispConfigs;
-    DisplayConfig *mconfig;
-
-    int mRefreshRate;
-    int mWidth;
-    int mHeight;
-    int mDpiX;
-    int mDpiY;
-    bool mFracRate;
-    int mPhyWidth;
-    int mPhyHeight;
-
-    int32_t mDrvFd;
-    uint32_t mId;
-
-    bool mSecure;
-    bool mConnected;
 };
 
 

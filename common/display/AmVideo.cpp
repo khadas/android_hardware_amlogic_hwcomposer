@@ -15,17 +15,12 @@
  //
 
 
-//#define LOG_NDEBUG 0
-#include <cutils/log.h>
-
 #include "AmVideo.h"
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <errno.h>
+#include <MesonLog.h>
 
-//#define AMVIDEO_DEBUG
-
-using namespace android;
 
 #define AM_VIDEO_DEV "/dev/amvideo"
 
@@ -42,11 +37,11 @@ Mutex AmVideo::mLock;
 AmVideo::AmVideo() {
     mDevFd = open(AM_VIDEO_DEV, O_RDWR | O_NONBLOCK);
     if (mDevFd < 0) {
-        ALOGE("Open %s Failed. ", AM_VIDEO_DEV);
+        MESON_LOGE("Open %s Failed. ", AM_VIDEO_DEV);
     }
 
     if (getVideoPresent(mVideoPresent) != 0) {
-        ALOGE("Get video mute failed.");
+        MESON_LOGE("Get video mute failed.");
         mVideoPresent = true;
     }
 }
@@ -74,7 +69,7 @@ int AmVideo::presentVideo(bool bPresent) {
         return -EBADF;
 
     if (mVideoPresent != bPresent) {
-        ALOGD("muteVideo to %d", bPresent);
+        MESON_LOGD("muteVideo to %d", bPresent);
         uint32_t val = bPresent ? 1 : 0;
         if (ioctl(mDevFd, AMSTREAM_IOC_GLOBAL_SET_VIDEO_OUTPUT, val) != 0) {
             ALOGE("AMSTREAM_SET_VIDEO_OUTPUT ioctl (%d) return(%d)", bPresent, errno);
@@ -86,9 +81,9 @@ int AmVideo::presentVideo(bool bPresent) {
         bool val = true;
         getVideoPresent(val);
         if (mVideoPresent != val) {
-            ALOGE("presentVideo (%d) vs (%d)", mVideoPresent, val);
+            MESON_LOGE("presentVideo (%d) vs (%d)", mVideoPresent, val);
         }
-        ALOGD("Already set video to (%d)", bPresent);
+        MESON_LOGD("Already set video to (%d)", bPresent);
         #endif
     }
 
@@ -101,7 +96,7 @@ int AmVideo::getVideoPresent(bool& output) {
 
     uint32_t val = 1;
     if (ioctl(mDevFd, AMSTREAM_IOC_GLOBAL_GET_VIDEO_OUTPUT, &val) != 0) {
-        ALOGE("AMSTREAM_GET_VIDEO_OUTPUT ioctl fail(%d)", errno);
+        MESON_LOGE("AMSTREAM_GET_VIDEO_OUTPUT ioctl fail(%d)", errno);
         return -EINVAL;
     }
 
@@ -114,7 +109,7 @@ int AmVideo::getvideodisable(int* mode) {
         return -EBADF;
     int ret = ioctl(mDevFd, AMSTREAM_IOC_GET_VIDEO_DISABLE, mode);
     if (ret < 0) {
-        ALOGE("getvideodisable error, ret=%d", ret);
+        MESON_LOGE("getvideodisable error, ret=%d", ret);
         return ret;
     }
     return 0;
@@ -125,7 +120,7 @@ int AmVideo::setvideodisable(int mode) {
         return -EBADF;
     int ret = ioctl(mDevFd, AMSTREAM_IOC_SET_VIDEO_DISABLE, &mode);
     if (ret < 0) {
-        ALOGE("setvideodisable error, ret=%d", ret);
+        MESON_LOGE("setvideodisable error, ret=%d", ret);
         return ret;
     }
     return 0;
@@ -134,16 +129,17 @@ int AmVideo::setvideodisable(int mode) {
 int AmVideo::getOmxKeepLastFrame(unsigned int *keepLastFrame) {
     if (mDevFd < 0)
         return -EBADF;
+
     int omx_info = 0;
     int ret = ioctl(mDevFd, AMSTREAM_IOC_GET_OMX_INFO, (unsigned long)&omx_info);
     if (ret < 0) {
-        ALOGE("get omx info error, ret =%d", ret);
+        MESON_LOGE("get omx info error, ret =%d", ret);
         *keepLastFrame = 0;
         return ret;
     } else {
         *keepLastFrame = omx_info & 0x1; //omx_info bit0: keep last frmame
     }
-    //ALOGV("video layer keepLastFrame %d", *keepLastFrame);
+    //MESON_LOGV("video layer keepLastFrame %d", *keepLastFrame);
     return 0;
 
 }

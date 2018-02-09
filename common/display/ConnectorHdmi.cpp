@@ -16,39 +16,22 @@
 #include <utils/Tokenizer.h>
 #include <MesonLog.h>
 
-using namespace android;
-
 ConnectorHdmi::ConnectorHdmi()
-  : mPhyWidth(1920),
-    mPhyHeight(1080),
-    mWidth(1920),
-    mHeight(1080),
-    mDpiX(160),
-    mDpiY(160),
-    mFracRate(true),
-    mRefreshRate(60),
-    mConnected(true),
-    mSecure(true),
-    mDisplayMode("1080p60hz"),
-    mDefaultDispMode("1080p60hz") {
+  : mConnected(false),
+    mSecure(false) {
 
 }
 
-ConnectorHdmi::~ConnectorHdmi()
-{
+ConnectorHdmi::~ConnectorHdmi() {
 
 }
 
-int ConnectorHdmi::init()
-{
-    clearSupportedConfigs();
-    mFramebufferContext = new FBContext();
-    framebuffer_info_t* fbInfo = mFramebufferContext->getInfo();
-    calcDefaultMode(*fbInfo, mDefaultDispMode);
-    buildSingleConfigList(mDefaultDispMode);
-    //updateActiveConfig(dispMode);
-    mWidth = fbInfo->info.xres;
-    mHeight = fbInfo->info.yres;
+int ConnectorHdmi::init() {
+    //clearSupportedConfigs();
+    //calcDefaultMode(*fbInfo, mDefaultDispMode);
+    //buildSingleConfigList(mDefaultDispMode);
+
+    updateSupportedConfigs();
     return NO_ERROR;
 }
 
@@ -71,14 +54,13 @@ bool ConnectorHdmi::isConnected() {
 
     MESON_LOGE("chkPresent %s", bConnect ? "connected" : "disconnected");
     return bConnect;
-
 }
 
 
 /* hdmi the common func begin
  *
  *                                                     */
-bool ConnectorHdmi ::isDispModeValid(std::string & dispmode){
+bool ConnectorHdmi ::isDispModeValid(std::string & dispmode) {
     MESON_LOGE("isDispModeValid %s", dispmode.c_str());
     if (dispmode.empty())
         return false;
@@ -102,8 +84,9 @@ auto ConnectorHdmi::getSystemControlService() {
 
     if (bGot)
         return systemControl;
+
     mDeathRecipient = new SystemControlDeathRecipient();
-     Return<bool> linked = systemControl->linkToDeath(mDeathRecipient, /*cookie*/ 0);
+    Return<bool> linked = systemControl->linkToDeath(mDeathRecipient, /*cookie*/ 0);
     if (!linked.isOk()) {
         MESON_LOGE("Transaction error in linking to system service death: %s", linked.description().c_str());
     } else if (!linked) {
@@ -127,8 +110,6 @@ auto ConnectorHdmi::getSystemControlService() {
         MESON_LOGE("Couldn't get connection to SystemControlService\n");
         return NULL;
     }
-
-
 #endif
 
     bGot = true;
@@ -169,6 +150,7 @@ int ConnectorHdmi::readEdidList(std::vector<std::string>& edidlist) {
 #endif
 }
 
+#if 0
 int ConnectorHdmi::calcDefaultMode(framebuffer_info_t& framebufferInfo,
         std::string& defaultMode) {
     const struct vinfo_s * mode =
@@ -195,12 +177,12 @@ int ConnectorHdmi::buildSingleConfigList(std::string& defaultMode) {
 
     return ret;
 }
+#endif
 
 int ConnectorHdmi::readHdmiDispMode(std::string &dispmode) {
     if (mSC.get() && mSC->getActiveDispMode(&dispmode)) {
         MESON_LOGE("get current displaymode %s", dispmode.c_str());
 
-        mDisplayMode = dispmode;
         if (!isDispModeValid(dispmode)) {
             MESON_LOGE("active mode %s not valid", dispmode.c_str());
             return BAD_VALUE;
@@ -212,20 +194,12 @@ int ConnectorHdmi::readHdmiDispMode(std::string &dispmode) {
     }
 }
 
-status_t ConnectorHdmi::readHdmiPhySize(framebuffer_info_t& fbInfo) {
-    struct fb_var_screeninfo vinfo;
-    if ((fbInfo.fd >= 0) && (ioctl(fbInfo.fd, FBIOGET_VSCREENINFO, &vinfo) == 0)) {
-        if (int32_t(vinfo.width) > 16 && int32_t(vinfo.height) > 9) {
-            mPhyWidth = vinfo.width;
-            mPhyHeight = vinfo.height;
-        }
-        return NO_ERROR;
-    }
-    return BAD_VALUE;
+int32_t ConnectorHdmi::readHdmiPhySize() {
+    mPhyWidth = mPhyHeight = 0;
+    return 0;
 }
 
 bool ConnectorHdmi::isSecure() {
-
    auto scs = getSystemControlService();
     int status = 0;
     if (scs == NULL) {
@@ -253,6 +227,7 @@ bool ConnectorHdmi::isSecure() {
 
 }
 
+#if 0
 bool ConnectorHdmi::updateHotplug(bool connected,
         framebuffer_info_t& framebufferInfo) {
     bool ret = true;
@@ -293,25 +268,22 @@ int ConnectorHdmi::updateDisplayAttributes(framebuffer_info_t& framebufferInfo) 
     MESON_LOGE("updateDisplayAttributes physical size (%d x %d)", mPhyWidth, mPhyHeight);
     return NO_ERROR;
 }
+#endif
 
 int ConnectorHdmi::updateSupportedConfigs() {
     // clear display modes
     clearSupportedConfigs();
+    readHdmiPhySize();
 
     std::vector<std::string> supportDispModes;
     std::string::size_type pos;
-    std::string dM (mDefaultDispMode);
 
-    bool isConfiged = readConfigFile("/system/etc/displayModeList.cfg", &supportDispModes);
-    if (isConfiged) {
-        MESON_LOGE("Read supported modes from cfg file.");
-    } else {
-        readEdidList(supportDispModes);
-        if (supportDispModes.size() == 0) {
-            MESON_LOGE("SupportDispModeList null!!!");
-            return BAD_VALUE;
-        }
+    readEdidList(supportDispModes);
+    if (supportDispModes.size() == 0) {
+        MESON_LOGE("SupportDispModeList null!!!");
+        return BAD_VALUE;
     }
+
     for (size_t i = 0; i < supportDispModes.size(); i++) {
         if (!supportDispModes[i].empty()) {
             pos = supportDispModes[i].find('*');
@@ -320,16 +292,14 @@ int ConnectorHdmi::updateSupportedConfigs() {
                 MESON_LOGE("modify support display mode:%s", supportDispModes[i].c_str());
             }
 
-            // skip default / fake active mode as we add it to the end
-            if (supportDispModes[i] != dM)
-                addSupportedConfig(supportDispModes[i]);
+            addSupportedConfig(supportDispModes[i]);
         }
     }
 
-    addSupportedConfig(dM);
     return NO_ERROR;
 }
 
+#if 0
 bool ConnectorHdmi::readConfigFile(const char* configPath, std::vector<std::string>* supportDispModes) {
     const char* WHITESPACE = " \t\r";
 
@@ -364,6 +334,7 @@ bool ConnectorHdmi::readConfigFile(const char* configPath, std::vector<std::stri
         return true;
     }
 }
+#endif
 
 int ConnectorHdmi::addSupportedConfig(std::string& mode) {
     vmode_e vmode = vmode_name_to_mode(mode.c_str());
@@ -394,12 +365,12 @@ int ConnectorHdmi::addSupportedConfig(std::string& mode) {
     return NO_ERROR;
 }
 
-KeyedVector<int,DisplayConfig*> ConnectorHdmi::updateConnectedConfigs() {
-
+KeyedVector<int,DisplayConfig*> ConnectorHdmi::getModesInfo() {
     updateSupportedConfigs();
     return mSupportDispConfigs;
 
 }
+
 int32_t ConnectorHdmi::getLineValue(const char *lineStr, const char *magicStr) {
     int len = 0;
     char value[100] = {0};
@@ -512,12 +483,9 @@ int ConnectorHdmi::clearSupportedConfigs() {
     return NO_ERROR;
 }
 
-void ConnectorHdmi:: dump(String8& dumpstr)
-{
-    updateSupportedConfigs();
+void ConnectorHdmi:: dump(String8& dumpstr) {
     parseHdrCapabilities();
-    dumpstr.appendFormat("Connector (HDMI, %s, %d, %d)\n",
-    mDisplayMode.c_str(),
+    dumpstr.appendFormat("Connector (HDMI, %d, %d)\n",
                  mSupportDispConfigs.size(),
                  1);
         dumpstr.append("   CONFIG   |   VSYNC_PERIOD   |   WIDTH   |   HEIGHT   |"
@@ -526,13 +494,11 @@ void ConnectorHdmi:: dump(String8& dumpstr)
             "-----------+-----------\n");
 
         for (size_t i = 0; i < mSupportDispConfigs.size(); i++) {
-
             int mode = mSupportDispConfigs.keyAt(i);
             DisplayConfig *config = mSupportDispConfigs.valueAt(i);
             if (config) {
-                dumpstr.appendFormat("%s %2d     |      %.3f      |   %5d   |   %5d    |"
+                dumpstr.appendFormat(" %2d     |      %.3f      |   %5d   |   %5d    |"
                     "    %3d    |    %3d    \n",
-                        (config->getDisplayMode() == mDisplayMode)? "   *":"    ",
                          mode,
                          config->getRefreshRate(),
                          config->getWidth(),
@@ -546,7 +512,6 @@ void ConnectorHdmi:: dump(String8& dumpstr)
     dumpstr.append("    DolbyVision1=%zu\n", mHdrCapabilities.dvSupport?1:0);
     dumpstr.appendFormat("    HDR10=%zu, maxLuminance=%zu, avgLuminance=%zu, minLuminance=%zu\n",
         mHdrCapabilities.hdrSupport?1:0, mHdrCapabilities.maxLuminance, mHdrCapabilities.avgLuminance, mHdrCapabilities.minLuminance);
-
 }
 /*hdmi the common func end*/
 

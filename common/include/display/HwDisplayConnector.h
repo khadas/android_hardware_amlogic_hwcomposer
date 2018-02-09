@@ -12,13 +12,15 @@
 
 #include <string>
 #include <vector>
-#include <framebuffer.h>
+
 #include <utils/String8.h>
 #include <utils/Errors.h>
 #include <sys/types.h>
-#include <linux/fb.h>
-#include <DrmTypes.h>
 #include <utils/KeyedVector.h>
+
+#include <DrmTypes.h>
+#include <BasicTypes.h>
+
 #if PLATFORM_SDK_VERSION >= 26
 #include <vendor/amlogic/hardware/systemcontrol/1.0/ISystemControl.h>
 using ::vendor::amlogic::hardware::systemcontrol::V1_0::ISystemControl;
@@ -27,29 +29,10 @@ using ::android::hardware::hidl_vec;
 using ::android::hardware::hidl_string;
 using ::android::hardware::Return;
 #endif
-using namespace android;
-#define DEFAULT_DISPMODE "1080p60hz"
+
 #define DEFAULT_DISPLAY_DPI 160
 
-class FBContext {
-public:
-    FBContext()
-    : mStatus(false)
-    {
-        mFBInfo = new framebuffer_info_t();
-    }
-    virtual ~FBContext(){}
-
-    virtual framebuffer_info_t* getInfo() { return mFBInfo; }
-    virtual bool getStatus() { return mStatus; }
-    virtual void setStatus(bool status) { mStatus = status; }
-private:
-    framebuffer_info_t *mFBInfo;
-    bool mStatus;
-};
-
 class DisplayConfig {
-
 public:
     DisplayConfig(const std::string dm,
         int rr,
@@ -114,15 +97,15 @@ public:
     virtual int init() = 0;
     virtual drm_connector_type_t getType() = 0;
 
-    virtual uint32_t getModesCount() = 0;
     virtual bool isConnected() = 0;
     virtual bool isSecure() = 0;
-    virtual KeyedVector<int,DisplayConfig*> updateConnectedConfigs() = 0;
+    virtual uint32_t getModesCount() = 0;
+    virtual KeyedVector<int, DisplayConfig*> getModesInfo() = 0;
     virtual  void dump(String8 & dumpstr) = 0;
 
 private:
-    int32_t mDrvFd;
-    uint32_t mId;
+    //int32_t mDrvFd;
+    //uint32_t mId;
 };
 
 #endif/*HW_DISPLAY_CONNECTOR_H*/

@@ -14,7 +14,6 @@
 
 #include <DrmFramebuffer.h>
 
-using namespace android;
 
 class HwDisplayPlane {
 public:

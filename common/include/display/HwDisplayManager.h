@@ -19,7 +19,6 @@
 #include <HwDisplayVsync.h>
 #include <HwDisplayDefs.h>
 
-using namespace::android;
 
 class HwDisplayObserver {
 public:

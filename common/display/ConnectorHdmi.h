@@ -16,8 +16,6 @@
 #include "AmVinfo.h"
 #define HDMI_FRAC_RATE_POLICY "/sys/class/amhdmitx/amhdmitx0/frac_rate_policy"
 
-using namespace android;
-class FBContext;
 
 class DisplayConfig;
 
@@ -43,13 +41,12 @@ public:
     virtual uint32_t getModesCount();
     virtual bool isConnected();
     virtual bool isSecure() ;
-    virtual KeyedVector<int,DisplayConfig*>  updateConnectedConfigs();
+    virtual KeyedVector<int,DisplayConfig*>  getModesInfo();
     virtual void dump(String8& dumpstr);
 
 protected:
-
  bool isDispModeValid(std::string& dispmode);
- bool updateHotplug(bool connected, framebuffer_info_t& framebufferInfo);
+
 #if PLATFORM_SDK_VERSION >= 26
     struct SystemControlDeathRecipient : public android::hardware::hidl_death_recipient  {
         // hidl_death_recipient interface
@@ -62,46 +59,27 @@ protected:
      auto getSystemControlService();
      sp<ISystemControlService> mSC;
      status_t readEdidList(std::vector<std::string> &edidlist);
-     status_t writeHdmiDispMode(std::string &dispmode);
      status_t readHdmiDispMode(std::string &dispmode);
-     status_t readHdmiPhySize(framebuffer_info_t& fbInfo);
-
+     status_t readHdmiPhySize();
 
     // operations on mSupportDispModes
     status_t clearSupportedConfigs();
     status_t updateSupportedConfigs();
     status_t addSupportedConfig(std::string& mode);
-    // ensure the active mode equals the current displaymode.
 
-    bool readConfigFile(const char* configPath, std::vector<std::string>* supportDispModes);
-
-    status_t calcDefaultMode(framebuffer_info_t& framebufferInfo, std::string& defaultMode);
-    status_t buildSingleConfigList(std::string& defaultMode);
-    int updateDisplayAttributes(framebuffer_info_t &framebufferInfo);
     int32_t parseHdrCapabilities();
     int32_t getLineValue(const char *lineStr, const char *magicStr);
 
 private:
     // configures variables.
     KeyedVector<int, DisplayConfig*> mSupportDispConfigs;
-    DisplayConfig *mconfig;
-    FBContext* mFramebufferContext;
     sp<ISystemControlService> mSystemControl;
-    // physical size in mm.
-    int mPhyWidth;
-    int mPhyHeight;
-    // framebuffer size.
-    int mWidth;
-    int mHeight;
-    int mDpiX;
-    int mDpiY;
-    bool mFracRate;
-    int mRefreshRate;
+
     bool mConnected;
     bool mSecure;
 
-    std::string mDisplayMode;
-    std::string mDefaultDispMode;
+    int mPhyWidth;
+    int mPhyHeight;
 
     hdr_capabilities_t mHdrCapabilities;
 };

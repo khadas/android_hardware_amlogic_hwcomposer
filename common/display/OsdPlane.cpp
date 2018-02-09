@@ -13,6 +13,17 @@
 
 #define FBIOPUT_OSD_SYNC_RENDER_ADD  0x4519
 
+enum {
+    GLES_COMPOSE_MODE = 0,
+    DIRECT_COMPOSE_MODE = 1,
+    GE2D_COMPOSE_MODE = 2,
+};
+
+enum {
+    OSD_BLANK_OP_BIT = 0x00000001,
+};
+
+
 OsdPlane::OsdPlane(int32_t drvFd, uint32_t id)
     : HwDisplayPlane (drvFd, id),
       mPriorFrameRetireFd(-1),
