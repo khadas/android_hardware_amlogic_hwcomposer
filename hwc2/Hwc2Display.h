@@ -45,51 +45,53 @@ public:
     virtual hwc2_error_t setVsyncEnable(hwc2_vsync_t enabled);
 
     /*Layer releated.*/
-    std::shared_ptr<Hwc2Layer> getLayerById(hwc2_layer_t id);
-    hwc2_error_t createLayer(hwc2_layer_t * outLayer);
-    hwc2_error_t destroyLayer(hwc2_layer_t  inLayer);
-    hwc2_error_t setCursorPosition(hwc2_layer_t layer,
+    virtual std::shared_ptr<Hwc2Layer> getLayerById(hwc2_layer_t id);
+    virtual hwc2_error_t createLayer(hwc2_layer_t * outLayer);
+    virtual hwc2_error_t destroyLayer(hwc2_layer_t  inLayer);
+    virtual hwc2_error_t setCursorPosition(hwc2_layer_t layer,
         int32_t x, int32_t y);
 
-    hwc2_error_t setColorTransform(const float* matrix,
+    virtual hwc2_error_t setColorTransform(const float* matrix,
         android_color_transform_t hint);
-    hwc2_error_t setPowerMode(hwc2_power_mode_t mode);
+    virtual hwc2_error_t setPowerMode(hwc2_power_mode_t mode);
 
     /*Compose flow*/
-    hwc2_error_t validateDisplay(uint32_t* outNumTypes,
+    virtual hwc2_error_t validateDisplay(uint32_t* outNumTypes,
         uint32_t* outNumRequests);
-    hwc2_error_t presentDisplay(int32_t* outPresentFence);
-    hwc2_error_t acceptDisplayChanges();
-    hwc2_error_t getChangedCompositionTypes(
+    virtual hwc2_error_t presentDisplay(int32_t* outPresentFence);
+    virtual hwc2_error_t acceptDisplayChanges();
+    virtual hwc2_error_t getChangedCompositionTypes(
         uint32_t* outNumElements, hwc2_layer_t* outLayers,
         int32_t*  outTypes);
-    hwc2_error_t getDisplayRequests(
+    virtual hwc2_error_t getDisplayRequests(
         int32_t* outDisplayRequests, uint32_t* outNumElements,
         hwc2_layer_t* outLayers,int32_t* outLayerRequests);
-    hwc2_error_t setClientTarget( buffer_handle_t target,
+    virtual hwc2_error_t setClientTarget( buffer_handle_t target,
         int32_t acquireFence, int32_t dataspace, hwc_region_t damage);
-    hwc2_error_t getReleaseFences(uint32_t* outNumElements,
+    virtual hwc2_error_t getReleaseFences(uint32_t* outNumElements,
         hwc2_layer_t* outLayers, int32_t* outFences);
 
     /*display attrbuites*/
-    hwc2_error_t  getDisplayConfigs(
+    virtual hwc2_error_t  getDisplayConfigs(
         uint32_t* outNumConfigs, hwc2_config_t* outConfigs);
-    hwc2_error_t  getDisplayAttribute(
+    virtual hwc2_error_t  getDisplayAttribute(
         hwc2_config_t config, int32_t attribute, int32_t* outValue);
-    hwc2_error_t getActiveConfig(hwc2_config_t* outConfig);
-    hwc2_error_t setActiveConfig(hwc2_config_t config);
+    virtual hwc2_error_t getActiveConfig(hwc2_config_t* outConfig);
+    virtual hwc2_error_t setActiveConfig(hwc2_config_t config);
 
 /*Additional interfaces.*/
 public:
     Hwc2Display(hw_display_id dspId, std::shared_ptr<Hwc2DisplayObserver> observer);
     virtual ~Hwc2Display();
     virtual int32_t initialize();
+    virtual void dump(String8 & dumpstr);
 
+/*Additional interfaces for hw display.*/
+public:
     void onVsync(int64_t timestamp);
     void onHotplug(bool connected);
     void onModeChanged();
 
-    void dump(String8 & dumpstr);
 
 protected:
     /* For compose. */

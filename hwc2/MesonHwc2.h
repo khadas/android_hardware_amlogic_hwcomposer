@@ -115,6 +115,9 @@ protected:
     int32_t initialize();
     bool isDisplayValid(hwc2_display_t display);
 
+    uint32_t getVirtualDisplayId();
+    void freeVirtualDisplayId(uint32_t id);
+
 protected:
     std::map<hwc2_display_t, std::shared_ptr<Hwc2Display>> mDisplays;
 
@@ -124,6 +127,8 @@ protected:
     hwc2_callback_data_t mRefreshData;
     HWC2_PFN_VSYNC mVsyncFn;
     hwc2_callback_data_t mVsyncData;
+
+    uint32_t mVirtualDisplayIds;
 };
 
 #endif/*MESON_HWC2_H*/

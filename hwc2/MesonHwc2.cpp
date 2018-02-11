@@ -13,7 +13,7 @@
 
 #include "MesonHwc2Defs.h"
 #include "MesonHwc2.h"
-
+#include "VirtualDisplay.h"
 
 #define CHECK_DISPLAY_VALID(display)    \
     if (isDisplayValid(display) == false) { \
@@ -253,23 +253,30 @@ int32_t  MesonHwc2::getDisplayAttribute(hwc2_display_t display,
 /*************Virtual display api below*************/
 int32_t MesonHwc2::createVirtualDisplay(uint32_t width, uint32_t height,
     int32_t* format, hwc2_display_t* outDisplay) {
-    MESON_LOG_EMPTY_FUN();
 
-    *outDisplay = -1;
+    hwc2_display_t id = getVirtualDisplayId();
+    VirtualDisplay * disp = new VirtualDisplay(width, height);
+    disp->initialize();
+    disp->setFormat(format);
+    mDisplays.emplace(id, std::move(disp));
+
+    *outDisplay = id;
     return HWC2_ERROR_NONE;
 }
 
 int32_t MesonHwc2::destroyVirtualDisplay(hwc2_display_t display) {
     CHECK_DISPLAY_VALID(display);
-    MESON_LOG_EMPTY_FUN();
-    return 0;
+    mDisplays.erase(display);
+    freeVirtualDisplayId(display);
+    return HWC2_ERROR_NONE;
 }
 
 int32_t MesonHwc2::setOutputBuffer(hwc2_display_t display,
     buffer_handle_t buffer, int32_t releaseFence) {
-    CHECK_DISPLAY_VALID(display);
-    MESON_LOG_EMPTY_FUN();
-    return 0;
+    GET_HWC_DISPLAY(display);
+
+    VirtualDisplay * disp = (VirtualDisplay *)hwcDisplay.get();
+    return disp->setOutputBuffer(buffer, releaseFence);
 }
 
 uint32_t MesonHwc2::getMaxVirtualDisplayCount() {
@@ -465,6 +472,7 @@ protected:
 };
 
 MesonHwc2::MesonHwc2() {
+    mVirtualDisplayIds = 0;
     initialize();
 }
 
@@ -543,5 +551,25 @@ bool MesonHwc2::isDisplayValid(hwc2_display_t display) {
         return true;
 
     return false;
+}
+
+uint32_t MesonHwc2::getVirtualDisplayId() {
+    uint32_t idx;
+    for (idx = MESON_VIRTUAL_DISPLAY_ID_START; idx < 31; idx ++) {
+        if ((mVirtualDisplayIds & (1 << idx)) == 0) {
+            mVirtualDisplayIds |= (1 << idx);
+            MESON_LOGD("getVirtualDisplayId (%d) to (%x)", idx, mVirtualDisplayIds);
+            return idx;
+        }
+    }
+
+    MESON_LOGE("All virtual display id consumed.\n");
+
+    return 0;
+}
+
+void MesonHwc2::freeVirtualDisplayId(uint32_t id) {
+    mVirtualDisplayIds &= ~(1 << id);
+    MESON_LOGD("freeVirtualDisplayId (%d) to (%x)", id, mVirtualDisplayIds);
 }
 
