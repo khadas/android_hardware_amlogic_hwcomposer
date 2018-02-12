@@ -19,7 +19,6 @@
 ConnectorHdmi::ConnectorHdmi()
   : mConnected(false),
     mSecure(false) {
-
 }
 
 ConnectorHdmi::~ConnectorHdmi() {
@@ -27,8 +26,7 @@ ConnectorHdmi::~ConnectorHdmi() {
 }
 
 int ConnectorHdmi::init() {
-    //clearSupportedConfigs();
-    //calcDefaultMode(*fbInfo, mDefaultDispMode);
+     clearSupportedConfigs();
     //buildSingleConfigList(mDefaultDispMode);
 
     updateSupportedConfigs();
@@ -151,21 +149,6 @@ int ConnectorHdmi::readEdidList(std::vector<std::string>& edidlist) {
 }
 
 #if 0
-int ConnectorHdmi::calcDefaultMode(framebuffer_info_t& framebufferInfo,
-        std::string& defaultMode) {
-    const struct vinfo_s * mode =
-        findMatchedMode(framebufferInfo.info.xres, framebufferInfo.info.yres, 60);
-    if (mode == NULL) {
-        defaultMode = DEFAULT_DISPMODE;
-    } else {
-        defaultMode = mode->name;
-    }
-
-    defaultMode = DEFAULT_DISPMODE;
-
-    MESON_LOGE("calcDefaultMode %s", defaultMode.c_str());
-    return NO_ERROR;
-}
 
 int ConnectorHdmi::buildSingleConfigList(std::string& defaultMode) {
     if (!isDispModeValid(defaultMode)) {
@@ -180,23 +163,47 @@ int ConnectorHdmi::buildSingleConfigList(std::string& defaultMode) {
 #endif
 
 int ConnectorHdmi::readHdmiDispMode(std::string &dispmode) {
-    if (mSC.get() && mSC->getActiveDispMode(&dispmode)) {
-        MESON_LOGE("get current displaymode %s", dispmode.c_str());
+    auto scs = getSystemControlService();
+    if (scs == NULL) {
+        MESON_LOGE("syscontrol::readEdidList FAIL.");
+        return FAILED_TRANSACTION;
+    }
 
-        if (!isDispModeValid(dispmode)) {
-            MESON_LOGE("active mode %s not valid", dispmode.c_str());
-            return BAD_VALUE;
+#if PLATFORM_SDK_VERSION >= 26
+    scs->getActiveDispMode([&dispmode](const Result &ret, const hidl_string&supportDispModes) {
+        if (Result::OK == ret) {
+            dispmode = supportDispModes.c_str();
+        } else {
+            dispmode.clear();
         }
-        return NO_ERROR;
+    });
+
+    if (dispmode.empty()) {
+        MESON_LOGE("syscontrol::getActiveDispMode FAIL.");
+        return FAILED_TRANSACTION;
+    }
+
+#else
+    if (scs->getActiveDispMode(&dispmode)) {
     } else {
         MESON_LOGE("syscontrol::getActiveDispMode FAIL.");
         return FAILED_TRANSACTION;
     }
+#endif
+    MESON_LOGE("get current displaymode %s", dispmode.c_str());
+    if (!isDispModeValid(dispmode)) {
+        MESON_LOGE("active mode %s not valid", dispmode.c_str());
+        return BAD_VALUE;
+    }
+
+    return NO_ERROR;
+
 }
 
-int32_t ConnectorHdmi::readHdmiPhySize() {
-    mPhyWidth = mPhyHeight = 0;
-    return 0;
+status_t ConnectorHdmi::readHdmiPhySize() {
+            mPhyWidth = DEFAULT_DISPLAY_DPI;
+            mPhyHeight = DEFAULT_DISPLAY_DPI;
+        return NO_ERROR;
 }
 
 bool ConnectorHdmi::isSecure() {
@@ -299,43 +306,6 @@ int ConnectorHdmi::updateSupportedConfigs() {
     return NO_ERROR;
 }
 
-#if 0
-bool ConnectorHdmi::readConfigFile(const char* configPath, std::vector<std::string>* supportDispModes) {
-    const char* WHITESPACE = " \t\r";
-
-    Tokenizer* tokenizer;
-    status_t status = Tokenizer::open(String8(configPath), &tokenizer);
-
-    if (status) {
-        MESON_LOGE("Error %d opening display config file %s.", status, configPath);
-        return false;
-    } else {
-        while (!tokenizer->isEof()) {
-            tokenizer->skipDelimiters(WHITESPACE);
-            if (!tokenizer->isEol() && tokenizer->peekChar() != '#') {
-                String8 token = tokenizer->nextToken(WHITESPACE);
-                const char* dispMode = token.string();
-                if (strstr(dispMode, "hz")) {
-                    MESON_LOGE("dispMode %s.", dispMode);
-                    (*supportDispModes).push_back(std::string(dispMode));
-                }
-            }
-
-            tokenizer->nextLine();
-        }
-        delete tokenizer;
-    }
-
-    size_t num = (*supportDispModes).size();
-
-    if (num <= 0) {
-        return false;
-    } else {
-        return true;
-    }
-}
-#endif
-
 int ConnectorHdmi::addSupportedConfig(std::string& mode) {
     vmode_e vmode = vmode_name_to_mode(mode.c_str());
     const struct vinfo_s* vinfo = get_tv_info(vmode);
@@ -427,7 +397,7 @@ int32_t ConnectorHdmi::parseHdrCapabilities() {
     char* pos = buf;
     int fd, len;
 
-    memset(&mHdrCapabilities, 0, sizeof(hdr_capabilities_t));
+    memset(&mHdrCapabilities, 0, sizeof(hdr_dev_capabilities_t));
     if ((fd = open(DV_PATH, O_RDONLY)) < 0) {
         MESON_LOGE("open %s fail.", DV_PATH);
         goto exit;
@@ -485,6 +455,7 @@ int ConnectorHdmi::clearSupportedConfigs() {
 
 void ConnectorHdmi:: dump(String8& dumpstr) {
     parseHdrCapabilities();
+    getModesInfo();
     dumpstr.appendFormat("Connector (HDMI, %d, %d)\n",
                  mSupportDispConfigs.size(),
                  1);
@@ -509,7 +480,7 @@ void ConnectorHdmi:: dump(String8& dumpstr) {
         }
     // HDR info
     dumpstr.append("  HDR Capabilities:\n");
-    dumpstr.append("    DolbyVision1=%zu\n", mHdrCapabilities.dvSupport?1:0);
+    dumpstr.appendFormat("    DolbyVision1=%zu\n", mHdrCapabilities.dvSupport?1:0);
     dumpstr.appendFormat("    HDR10=%zu, maxLuminance=%zu, avgLuminance=%zu, minLuminance=%zu\n",
         mHdrCapabilities.hdrSupport?1:0, mHdrCapabilities.maxLuminance, mHdrCapabilities.avgLuminance, mHdrCapabilities.minLuminance);
 }

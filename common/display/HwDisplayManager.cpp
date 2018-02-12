@@ -246,7 +246,7 @@ int32_t HwDisplayManager::getConnector(uint32_t connector_id) {
         }
         delete tokenizer;
     }
-   HwDisplayConnector* connector = HwConnectorFactory::create(
+    HwDisplayConnector* connector = HwConnectorFactory::create(
             connector_type/*, -1, connector_id*/);
 
     mConnectors.emplace(connector_id, std::move(connector));

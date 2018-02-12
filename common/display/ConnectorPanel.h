@@ -9,13 +9,10 @@
 
 #ifndef _CONNECTORPANEL_H
 #define _CONNECTORPANEL_H
-#include <gralloc_priv.h>
-#include <ISystemControlService.h>
-#include "AmVinfo.h"
 #include <HwDisplayConnector.h>
-#define HDMI_FRAC_RATE_POLICY "/sys/class/amhdmitx/amhdmitx0/frac_rate_policy"
 
-
+class FBContext;
+class DisplayConfig;
 
 class ConnectorPanel :public HwDisplayConnector {
 public:
@@ -30,10 +27,33 @@ public:
    virtual void dump(String8 & dumpstr);
 
 protected:
+   int32_t getLineValue(const char *lineStr,const char *magicStr);
+   int32_t parseHdrCapabilities();
+   status_t readPhySize();
+   std::string readDispMode(std::string &dispmode);
+#if PLATFORM_SDK_VERSION >= 26
+    struct SystemControlDeathRecipient : public android::hardware::hidl_death_recipient  {
+        // hidl_death_recipient interface
+        virtual void serviceDied(uint64_t cookie,
+        const ::android::wp<::android::hidl::base::V1_0::IBase>& who) override{};
+    };
+    sp<SystemControlDeathRecipient> mDeathRecipient = nullptr;
+#endif
+     auto getSystemControlService();
 
 private:
     sp<ISystemControlService> mSC;
     KeyedVector<int, DisplayConfig*> mSupportDispConfigs;
+
+    FBContext *mFramebufferContext;
+
+    std::string mDisplayMode;
+    DisplayConfig *mconfig;
+
+    int mPhyWidth;
+    int mPhyHeight;
+
+    hdr_dev_capabilities_t mHdrCapabilities;
 };
 
 
