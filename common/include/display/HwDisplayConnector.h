@@ -21,6 +21,14 @@
 #include <DrmTypes.h>
 #include <BasicTypes.h>
 
+#include <hardware/hardware.h>
+#include <gralloc_priv.h>
+#include <ISystemControlService.h>
+#include <../../display/AmVinfo.h>
+
+#define HDMI_FRAC_RATE_POLICY "/sys/class/amhdmitx/amhdmitx0/frac_rate_policy"
+
+
 #if PLATFORM_SDK_VERSION >= 26
 #include <vendor/amlogic/hardware/systemcontrol/1.0/ISystemControl.h>
 using ::vendor::amlogic::hardware::systemcontrol::V1_0::ISystemControl;
@@ -31,6 +39,18 @@ using ::android::hardware::Return;
 #endif
 
 #define DEFAULT_DISPLAY_DPI 160
+
+struct private_handle_t;
+struct private_module_t;
+
+typedef struct hdr_dev_capabilities {
+    bool init;
+    bool dvSupport;
+    bool hdrSupport;
+    int maxLuminance;
+    int avgLuminance;
+    int minLuminance;
+} hdr_dev_capabilities_t;
 
 class DisplayConfig {
 public:

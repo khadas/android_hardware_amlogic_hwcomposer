@@ -11,22 +11,9 @@
 #define _CONNECTORHDMI_H
 #include <HwDisplayConnector.h>
 
-#include <hardware/hardware.h>
-#include <ISystemControlService.h>
-#include "AmVinfo.h"
-#define HDMI_FRAC_RATE_POLICY "/sys/class/amhdmitx/amhdmitx0/frac_rate_policy"
-
-
+class FBContext;
 class DisplayConfig;
 
-typedef struct hdr_capabilities {
-    bool init;
-    bool dvSupport;
-    bool hdrSupport;
-    int maxLuminance;
-    int avgLuminance;
-    int minLuminance;
-} hdr_capabilities_t;
 
 class ConnectorHdmi : public
                       HwDisplayConnector {
@@ -74,6 +61,7 @@ private:
     // configures variables.
     KeyedVector<int, DisplayConfig*> mSupportDispConfigs;
     sp<ISystemControlService> mSystemControl;
+    FBContext *mFramebufferContext;
 
     bool mConnected;
     bool mSecure;
@@ -81,7 +69,7 @@ private:
     int mPhyWidth;
     int mPhyHeight;
 
-    hdr_capabilities_t mHdrCapabilities;
+    hdr_dev_capabilities_t mHdrCapabilities;
 };
 
 #endif
