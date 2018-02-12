@@ -57,8 +57,8 @@ LOCAL_C_INCLUDES := \
 	system/core/libion/include/ \
 	system/core/libion/kernel-headers \
 	hardware/amlogic/gralloc \
-    $(TOP)/hardware/amlogic/media/amavutils/include \
-    $(TOP)/vendor/amlogic/frameworks/services/systemcontrol
+	$(TOP)/hardware/amlogic/media/amavutils/include \
+	$(TOP)/vendor/amlogic/frameworks/services/systemcontrol
 
 LOCAL_COMMON_BASE_FILES := \
 	common/base/DrmFramebuffer.cpp \
@@ -107,6 +107,7 @@ LOCAL_HWC_FILES := \
 	hwc2/Hwc2Display.cpp \
 	hwc2/Hwc2Layer.cpp \
 	hwc2/Hwc2Module.cpp \
+	hwc2/VirtualDisplay.cpp \
 	hwc2/MesonHwc2.cpp
 endif
 
@@ -123,7 +124,7 @@ LOCAL_SHARED_LIBRARIES := \
 	libsystemcontrolservice
 
 LOCAL_STATIC_LIBRARIES := \
-	  libbhnd
+	libbhnd
 
 #For Android O,and later
 ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 26 && echo OK),OK)

@@ -171,11 +171,19 @@ hwc2_error_t Hwc2Display::collectLayersForPresent() {
     std::unordered_map<hwc2_layer_t, std::shared_ptr<Hwc2Layer>>::iterator it;
     for (it = mLayers.begin(); it != mLayers.end(); it++) {
         std::shared_ptr<Hwc2Layer> layer = it->second;
+        std::shared_ptr<DrmFramebuffer> buffer = layer;
+        MESON_LOGE("Add present layer %p, count(%d)\n", buffer.get(), buffer.use_count());
+        mPresentLayers.push_back(buffer);
 
          /*update expected internal composition type.*/
+        #ifdef HWC_ENABLE_SECURE_LAYER
         if (layer->isSecure() && !mConnector->isSecure()) {
             layer->mCompositionType = MESON_COMPOSITION_DUMMY;
-        } else if (layer->mHwcCompositionType == HWC2_COMPOSITION_CLIENT) {
+            continue;
+        }
+        #endif
+
+        if (layer->mHwcCompositionType == HWC2_COMPOSITION_CLIENT) {
             layer->mCompositionType = MESON_COMPOSITION_CLIENT;
         } else {
             /*
@@ -187,10 +195,6 @@ hwc2_error_t Hwc2Display::collectLayersForPresent() {
             */
             layer->mCompositionType = MESON_COMPOSITION_NONE;
         }
-
-        std::shared_ptr<DrmFramebuffer> buffer = layer;
-        MESON_LOGE("Add present layer %p, count(%d)\n", buffer.get(), buffer.use_count());
-        mPresentLayers.push_back(buffer);
     }
 
     if (mPresentLayers.size() > 1) {
