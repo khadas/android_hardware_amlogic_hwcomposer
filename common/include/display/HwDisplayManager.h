@@ -57,6 +57,7 @@ public:
 
     /*hw vsync*/
     int32_t enableVBlank(bool enabled);
+    int32_t updateRefreshPeriod(int32_t period);
 
     /*registe display observe*/
     int32_t registerObserver(hw_display_id hwDisplayId,

@@ -63,6 +63,7 @@ int32_t Hwc2Display::initialize() {
     mCompositionStrategy = CompositionStrategyFactory::create(SIMPLE_STRATEGY, 0);
 
     mModeMgr = createModeMgr(mConnector);
+    updateDisplayAttribute();
     return 0;
 }
 
@@ -89,6 +90,11 @@ const hdr_capabilities_t * Hwc2Display::getHdrCapabilities() {
 
 hwc2_error_t Hwc2Display::setVsyncEnable(hwc2_vsync_t enabled) {
     HwDisplayManager::getInstance().enableVBlank(enabled);
+    return HWC2_ERROR_NONE;
+}
+
+hwc2_error_t Hwc2Display::setVsyncPeriod(int32_t period) {
+    HwDisplayManager::getInstance().updateRefreshPeriod(period);
     return HWC2_ERROR_NONE;
 }
 
@@ -479,6 +485,23 @@ hwc2_error_t Hwc2Display::setActiveConfig(
             getName());
         return HWC2_ERROR_BAD_DISPLAY;
     }
+}
+
+hwc2_error_t Hwc2Display::updateDisplayAttribute() {
+    // Update vsync period.
+    hwc2_config_t config;
+    int32_t period;
+
+    if (getActiveConfig(&config) == HWC2_ERROR_BAD_DISPLAY) {
+        return HWC2_ERROR_BAD_DISPLAY;
+    }
+    if (getDisplayAttribute(config, HWC2_ATTRIBUTE_VSYNC_PERIOD,
+            &period) == HWC2_ERROR_BAD_DISPLAY) {
+        return HWC2_ERROR_BAD_DISPLAY;
+    }
+
+    setVsyncPeriod(period);
+    return HWC2_ERROR_NONE;
 }
 
 void Hwc2Display::dump(String8 & dumpstr) {

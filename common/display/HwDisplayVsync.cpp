@@ -9,12 +9,14 @@
 
 #include <MesonLog.h>
 #include <HwDisplayVsync.h>
+#include <HwDisplayManager.h>
 
 HwDisplayVsync::HwDisplayVsync(bool softwareVsync,
     HwVsyncObserver * observer) {
     mSoftVsync = softwareVsync;
     mObserver = observer;
     mEnabled = false;
+    mPreTimeStamp = 0;
 
     run("displayVsync", android::PRIORITY_URGENT_DISPLAY);
 }
@@ -58,13 +60,19 @@ bool HwDisplayVsync::threadLoop() {
     if (mSoftVsync) {
         ret = waitSoftwareVsync(timestamp);
     } else {
-        /*ret = HwDisplayManager::getInstance().waitVBlank(timestamp);*/
+        ret = HwDisplayManager::getInstance().waitVBlank(timestamp);
+    }
+    bool debug = false;
+    if (debug) {
+        nsecs_t period = timestamp - mPreTimeStamp;
+        if (mPreTimeStamp != 0)
+            MESON_LOGD("wait for vsync success, peroid: %lld", period);
+        mPreTimeStamp = timestamp;
     }
 
     if ( ret == 0 && mObserver) {
         mObserver->onVsync(timestamp);
     }
-
     return true;
 }
 

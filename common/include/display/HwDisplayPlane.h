@@ -31,6 +31,8 @@ public:
 
     virtual void dump(String8 & dumpstr) = 0;
 
+    int32_t getDrvFd() {return mDrvFd;}
+
 protected:
     int32_t mDrvFd;
     uint32_t mId;

@@ -45,6 +45,7 @@ public:
 
     /*Vsync*/
     virtual hwc2_error_t setVsyncEnable(hwc2_vsync_t enabled);
+    virtual hwc2_error_t setVsyncPeriod(int32_t period);
 
     /*Layer releated.*/
     virtual std::shared_ptr<Hwc2Layer> getLayerById(hwc2_layer_t id);
@@ -80,6 +81,7 @@ public:
         hwc2_config_t config, int32_t attribute, int32_t* outValue);
     virtual hwc2_error_t getActiveConfig(hwc2_config_t* outConfig);
     virtual hwc2_error_t setActiveConfig(hwc2_config_t config);
+    virtual hwc2_error_t updateDisplayAttribute();
 
 /*Additional interfaces.*/
 public:

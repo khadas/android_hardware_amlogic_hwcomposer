@@ -8,6 +8,8 @@
  */
 #include <HwDisplayManager.h>
 #include <MesonLog.h>
+#include <sys/ioctl.h>
+
 #include <HwDisplayConnector.h>
 #include "HwConnectorFactory.h"
 #include "OsdPlane.h"
@@ -15,6 +17,7 @@
 #include <DisplayMode.h>
 #define DEVICE_STR_MBOX                 "MBOX"
 #define DEVICE_STR_TV                   "TV"
+#define FBIO_WAITFORVSYNC       _IOW('F', 0x20, __u32)
 
 #if PLATFORM_SDK_VERSION >= 26 //8.0
 #define pConfigPath "/vendor/etc/mesondisplay.cfg"
@@ -147,6 +150,11 @@ int32_t HwDisplayManager::enableVBlank(bool enabled) {
     return 0;
 }
 
+int32_t HwDisplayManager::updateRefreshPeriod(int32_t period) {
+    mVsync->setPeriod(period);
+    return 0;
+}
+
 int32_t HwDisplayManager::registerObserver(hw_display_id hwDisplayId,
         HwDisplayObserver * observer) {
     mObserver.emplace(hwDisplayId, observer);
@@ -163,8 +171,20 @@ int32_t HwDisplayManager::unregisterObserver(hw_display_id hwDisplayId) {
 }
 
 int32_t HwDisplayManager::waitVBlank(nsecs_t & timestamp) {
-    MESON_LOGE("TODO: empty wait hw vblank.");
-    return -1;
+    std::map<uint32_t, std::shared_ptr<HwDisplayPlane>>::iterator it = mPlanes.begin();
+    int32_t drvFd = it->second->getDrvFd();
+
+    if (ioctl(drvFd, FBIO_WAITFORVSYNC, &timestamp) == -1) {
+        MESON_LOGE("fb ioctl vsync wait error, fb handle: %d", drvFd);
+        return -1;
+    } else {
+        if (timestamp != 0) {
+            return 0;
+        } else {
+            MESON_LOGE("wait for vsync fail");
+            return -1;
+        }
+    }
 }
 
 void HwDisplayManager::onVsync(int64_t timestamp) {

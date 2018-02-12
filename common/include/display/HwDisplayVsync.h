@@ -46,6 +46,7 @@ protected:
     bool mEnabled;
     bool mExit;
     nsecs_t mPeriod;
+    nsecs_t mPreTimeStamp;
 
     HwVsyncObserver * mObserver;
 
