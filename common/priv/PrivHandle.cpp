@@ -63,7 +63,8 @@ bool PrivHandle::isContinuous(const native_handle_t *nativeHnd) {
 
     if (NULL == buffer) return true;
 
-    if (buffer->flags & private_handle_t::PRIV_FLAGS_CONTINUOUS_BUF)
+    if (buffer->flags & private_handle_t::PRIV_FLAGS_CONTINUOUS_BUF
+            || buffer->flags & private_handle_t::PRIV_FLAGS_USES_ION_DMA_HEAP)
         return true;
 
     return false;

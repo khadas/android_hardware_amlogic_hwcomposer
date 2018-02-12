@@ -16,7 +16,7 @@
 OsdPlane::OsdPlane(int32_t drvFd, uint32_t id)
     : HwDisplayPlane (drvFd, id),
       mPriorFrameRetireFd(-1),
-      mFirstPresentDisplay(false),
+      mFirstPresentDisplay(true),
       mRetireFence(DrmFence::NO_FENCE) {
     getProperties();
     mPlaneInfo.out_fen_fd = -1;
@@ -46,7 +46,7 @@ int OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
         // one vsync.
         mFirstPresentDisplay = false;
         sysfs_set_string(DISPLAY_LOGO_INDEX, "-1");
-        sysfs_set_string(DISPLAY_FB0_FREESCALE_SWTICH, "0x10001");
+        // sysfs_set_string(DISPLAY_FB0_FREESCALE_SWTICH, "0x10001");
     }
 
     mPriorFrameRetireFd      = mRetireFence->dup();
