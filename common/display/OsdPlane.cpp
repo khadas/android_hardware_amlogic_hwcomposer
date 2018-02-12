@@ -13,24 +13,14 @@
 
 #define FBIOPUT_OSD_SYNC_RENDER_ADD  0x4519
 
-enum {
-    GLES_COMPOSE_MODE = 0,
-    DIRECT_COMPOSE_MODE = 1,
-    GE2D_COMPOSE_MODE = 2,
-};
-
-enum {
-    OSD_BLANK_OP_BIT = 0x00000001,
-};
-
-
 OsdPlane::OsdPlane(int32_t drvFd, uint32_t id)
     : HwDisplayPlane (drvFd, id),
       mPriorFrameRetireFd(-1),
-      mFirstPresentDisplay(true),
+      mFirstPresentDisplay(false),
       mRetireFence(DrmFence::NO_FENCE) {
     getProperties();
     mPlaneInfo.out_fen_fd = -1;
+    mPlaneInfo.op = 0x0;
 }
 
 OsdPlane::~OsdPlane() {
@@ -43,7 +33,7 @@ int32_t OsdPlane::getProperties() {
 
     if (mId == 30) {
         mPlaneType = OSD_PLANE;
-    } else if (mId == 31) {
+    } else /*if (mId == 31) */{
         mPlaneType = CURSOR_PLANE;
     }
     return 0;
@@ -85,7 +75,7 @@ int OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
     mPlaneInfo.zorder        = fb->mZorder;
     mPlaneInfo.blend_mode    = fb->mBlendMode;
     mPlaneInfo.plane_alpha   = fb->mPlaneAlpha;
-    mPlaneInfo.op            &= ~(OSD_BLANK_OP_BIT);
+    mPlaneInfo.op           &= ~(OSD_BLANK_OP_BIT);
     MESON_LOGD("osdPlane [%p]", (void*)buf);
 
     fb->setReleaseFence(mRetireFence->dup());
@@ -125,6 +115,7 @@ void OsdPlane::dumpPlaneInfo() {
     MESON_LOGD("zord: %d", mPlaneInfo.zorder);
     MESON_LOGD("blen: %d", mPlaneInfo.blend_mode);
     MESON_LOGD("alph: %d", mPlaneInfo.plane_alpha);
+    MESON_LOGD("op:   %d", mPlaneInfo.op);
     MESON_LOGD("********************");
 }
 

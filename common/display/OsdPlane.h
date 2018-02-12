@@ -15,6 +15,18 @@
 #define DISPLAY_LOGO_INDEX              "/sys/module/fb/parameters/osd_logo_index"
 #define DISPLAY_FB0_FREESCALE_SWTICH    "/sys/class/graphics/fb0/free_scale_switch"
 
+
+enum {
+    GLES_COMPOSE_MODE = 0,
+    DIRECT_COMPOSE_MODE = 1,
+    GE2D_COMPOSE_MODE = 2,
+};
+
+enum {
+    OSD_BLANK_OP_BIT = 0x00000001,
+};
+
+
 typedef struct osd_plane_info_t {
     unsigned int    xoffset;
     unsigned int    yoffset;
