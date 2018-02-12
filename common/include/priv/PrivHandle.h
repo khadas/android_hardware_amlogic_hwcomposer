@@ -26,6 +26,7 @@ public:
     static bool isContinuous(const native_handle_t *nativeHnd);
     static bool isOverlayVideo(const native_handle_t *nativeHnd);
     static bool isOmxVideo(const native_handle_t *nativeHnd);
+    static bool isSecure(const native_handle_t *nativeHnd);
 };
 
 #endif/*PRIVATE_HANDLE_H*/

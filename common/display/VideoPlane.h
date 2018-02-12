@@ -27,6 +27,16 @@ public:
     int32_t pageFlip(int32_t &outFence) {return 0;}
 
     void dump(String8 & dumpstr);
+
+private:
+    bool shouldUpdate(std::shared_ptr<DrmFramebuffer> &fb);
+    int32_t getMute(bool& output);
+    int32_t setMute(bool status);
+
+    int32_t mBackupTransform;
+    drm_rect_t mBackupDisplayFrame;
+
+    bool mPlaneMute;
 };
 
 

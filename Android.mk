@@ -148,6 +148,10 @@ LOCAL_SRC_FILES := \
 	$(LOCAL_COMPOSITION_FILES) \
 	$(LOCAL_HWC_FILES)
 #LOCAL_ALLOW_UNDEFINED_SYMBOLS:=true;
+
+LOCAL_SHARED_LIBRARIES += libamavutils_alsa
+LOCAL_C_INCLUDES += $(TOP)/hardware/amlogic/media/amavutils/include
+
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := hwcomposer.amlogic
 

@@ -47,6 +47,17 @@ int PrivHandle::getPStride(const native_handle_t *nativeHnd) {
     return pixelStride;
 }
 
+bool PrivHandle::isSecure(const native_handle_t *nativeHnd) {
+    private_handle_t const* buffer = private_handle_t::dynamicCast(nativeHnd);
+
+    if (NULL == buffer) return true;
+
+    if (buffer->flags & private_handle_t::PRIV_FLAGS_SECURE_PROTECTED)
+        return true;
+
+    return false;
+}
+
 bool PrivHandle::isContinuous(const native_handle_t *nativeHnd) {
     private_handle_t const* buffer = private_handle_t::dynamicCast(nativeHnd);
 
