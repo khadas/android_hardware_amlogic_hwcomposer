@@ -4,7 +4,7 @@ LOCAL_SRC_FILES := \
         ./tvp/OmxUtil.cpp
 
 LOCAL_C_INCLUDES := \
-	    ./tvp
+        ./tvp
 
 LOCAL_MODULE:= libomxutil
 
