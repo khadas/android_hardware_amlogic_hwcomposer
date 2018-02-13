@@ -136,8 +136,16 @@ void SimpleStrategy::preProcessLayers() {
             case MESON_COMPOSITION_NONE:
             {
                 if (layer->mFbType == DRM_FB_VIDEO_OVERLAY ||
-                    layer->mFbType == DRM_FB_VIDEO_OMX ||
-                    layer->mFbType == DRM_FB_VIDEO_SIDEBAND) {
+                    layer->mFbType == DRM_FB_VIDEO_OMX) {
+                    videoFbNum++;
+                    if (videoFbNum <= mVideoPlanes.size()) {
+                        layer->mCompositionType =
+                            MESON_COMPOSITION_PLANE_VIDEO;
+                    } else {
+                        layer->mCompositionType =
+                            MESON_COMPOSITION_DUMMY;
+                    }
+                } else if (layer->mFbType == DRM_FB_VIDEO_SIDEBAND) {
                     videoFbNum++;
                     if (videoFbNum <= mVideoPlanes.size()) {
                         layer->mCompositionType =

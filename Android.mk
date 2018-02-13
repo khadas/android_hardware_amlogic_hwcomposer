@@ -15,6 +15,8 @@ LOCAL_PATH := $(call my-dir)
 
 include $(LOCAL_PATH)/common/priv/Android.mk
 
+include $(LOCAL_PATH)/tvp/Android.mk
+
 include $(CLEAR_VARS)
 
 LOCAL_MODULE_RELATIVE_PATH := hw
@@ -124,7 +126,8 @@ LOCAL_SHARED_LIBRARIES := \
 	libsystemcontrolservice
 
 LOCAL_STATIC_LIBRARIES := \
-	libbhnd
+	libbhnd \
+	libomxutil
 
 #For Android O,and later
 ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 26 && echo OK),OK)

@@ -25,13 +25,13 @@ hwc2_composition_t translateCompositionType(
         case MESON_COMPOSITION_PLANE_CURSOR:
                 hwcCompostion = HWC2_COMPOSITION_CURSOR;
                 break;
-         case MESON_COMPOSITION_PLANE_VIDEO_SIDEBAND:
+        case MESON_COMPOSITION_PLANE_VIDEO_SIDEBAND:
                 hwcCompostion = HWC2_COMPOSITION_SIDEBAND;
                 break;
-          case MESON_COMPOSITION_CLIENT:
+        case MESON_COMPOSITION_CLIENT:
                 hwcCompostion = HWC2_COMPOSITION_CLIENT;
                 break;
-          default:
+        default:
                 hwcCompostion = HWC2_COMPOSITION_INVALID;
                 break;
     }

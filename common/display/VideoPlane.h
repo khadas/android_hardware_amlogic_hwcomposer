@@ -33,10 +33,14 @@ private:
     int32_t getMute(bool& output);
     int32_t setMute(bool status);
 
+    void setOmxPTS(buffer_handle_t buf);
+
     int32_t mBackupTransform;
     drm_rect_t mBackupDisplayFrame;
 
     bool mPlaneMute;
+
+    int Amvideo_Handle;
 };
 
 
