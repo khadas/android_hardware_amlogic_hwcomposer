@@ -62,6 +62,7 @@ int32_t Hwc2Display::initialize() {
     /* load present stragetic.*/
     mCompositionStrategy = CompositionStrategyFactory::create(SIMPLE_STRATEGY, 0);
 
+    mModeMgr = createModeMgr(mConnector);
     return 0;
 }
 
@@ -172,7 +173,6 @@ hwc2_error_t Hwc2Display::collectLayersForPresent() {
     for (it = mLayers.begin(); it != mLayers.end(); it++) {
         std::shared_ptr<Hwc2Layer> layer = it->second;
         std::shared_ptr<DrmFramebuffer> buffer = layer;
-        MESON_LOGE("Add present layer %p, count(%d)\n", buffer.get(), buffer.use_count());
         mPresentLayers.push_back(buffer);
 
          /*update expected internal composition type.*/
@@ -267,7 +267,7 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
         return ret;
     }
 
-    dumpPresentComponents();
+    //dumpPresentComponents();
 
     mCompositionStrategy->setUp(mPresentLayers,
         mPresentComposers, mPresentPlanes);
@@ -437,56 +437,48 @@ hwc2_error_t Hwc2Display::setClientTarget(buffer_handle_t target,
 hwc2_error_t  Hwc2Display::getDisplayConfigs(
     uint32_t* outNumConfigs,
     hwc2_config_t* outConfigs) {
-    MESON_LOG_EMPTY_FUN();
-    *outNumConfigs = 1;
-    if (outConfigs) {
-        *outConfigs = 0;
+    if (mModeMgr != NULL) {
+        return mModeMgr->getDisplayConfigs(outNumConfigs, outConfigs);
+    } else {
+        MESON_LOGE("Hwc2Display getDisplayConfigs (%s) miss valid DisplayConfigure.",
+            getName());
+        return HWC2_ERROR_BAD_DISPLAY;
     }
-
-    return HWC2_ERROR_NONE;
 }
 
 hwc2_error_t  Hwc2Display::getDisplayAttribute(
     hwc2_config_t config,
     int32_t attribute,
     int32_t* outValue) {
-    MESON_LOG_EMPTY_FUN();
-
-    switch (attribute) {
-        case HWC2_ATTRIBUTE_WIDTH:
-            *outValue = 1920;
-            break;
-        case HWC2_ATTRIBUTE_HEIGHT:
-            *outValue = 1080;
-            break;
-        case HWC2_ATTRIBUTE_VSYNC_PERIOD:
-            *outValue = 1e9/60;
-            break;
-        case HWC2_ATTRIBUTE_DPI_X:
-            *outValue = 160;
-            break;
-        case HWC2_ATTRIBUTE_DPI_Y:
-            *outValue = 160;
-            break;
-        default:
-            MESON_LOGE("Unkown display attribute(%d)", attribute);
-            break;
+    if (mModeMgr != NULL) {
+        return mModeMgr->getDisplayAttribute(config, attribute, outValue);
+    } else {
+        MESON_LOGE("Hwc2Display (%s) getDisplayAttribute miss valid DisplayConfigure.",
+            getName());
+        return HWC2_ERROR_BAD_DISPLAY;
     }
-
-    return HWC2_ERROR_NONE;
 }
 
 hwc2_error_t Hwc2Display::getActiveConfig(
     hwc2_config_t* outConfig) {
-    MESON_LOG_EMPTY_FUN();
-    *outConfig = 0;
-    return HWC2_ERROR_NONE;
+    if (mModeMgr != NULL) {
+        return mModeMgr->getActiveConfig(outConfig);
+    } else {
+        MESON_LOGE("Hwc2Display (%s) getActiveConfig miss valid DisplayConfigure.",
+            getName());
+        return HWC2_ERROR_BAD_DISPLAY;
+    }
 }
 
 hwc2_error_t Hwc2Display::setActiveConfig(
     hwc2_config_t config) {
-    MESON_LOG_EMPTY_FUN();
-    return HWC2_ERROR_NONE;
+    if (mModeMgr != NULL) {
+        return mModeMgr->setActiveConfig(config);
+    } else {
+        MESON_LOGE("Display (%s) setActiveConfig miss valid DisplayConfigure.",
+            getName());
+        return HWC2_ERROR_BAD_DISPLAY;
+    }
 }
 
 void Hwc2Display::dump(String8 & dumpstr) {

@@ -13,8 +13,11 @@
 #include <stdint.h>
 #include <fcntl.h>
 #include <inttypes.h>
-#include <utils/Tokenizer.h>
 #include <MesonLog.h>
+#include "AmVinfo.h"
+
+#define HDMI_FRAC_RATE_POLICY "/sys/class/amhdmitx/amhdmitx0/frac_rate_policy"
+
 
 ConnectorHdmi::ConnectorHdmi()
   : mConnected(false),
@@ -22,13 +25,10 @@ ConnectorHdmi::ConnectorHdmi()
 }
 
 ConnectorHdmi::~ConnectorHdmi() {
-
 }
 
 int ConnectorHdmi::init() {
      clearSupportedConfigs();
-    //buildSingleConfigList(mDefaultDispMode);
-
     updateSupportedConfigs();
     return NO_ERROR;
 }
@@ -40,7 +40,11 @@ drm_connector_type_t ConnectorHdmi::getType() {
 uint32_t ConnectorHdmi::getModesCount() {
     std::vector<std::string> supportDispModes;
     readEdidList(supportDispModes);
-     return supportDispModes.size();
+    return supportDispModes.size();
+}
+
+bool ConnectorHdmi::isRemovable() {
+    return true;
 }
 
 bool ConnectorHdmi::isConnected() {
@@ -148,20 +152,6 @@ int ConnectorHdmi::readEdidList(std::vector<std::string>& edidlist) {
 #endif
 }
 
-#if 0
-
-int ConnectorHdmi::buildSingleConfigList(std::string& defaultMode) {
-    if (!isDispModeValid(defaultMode)) {
-        MESON_LOGE("buildSingleConfigList with invalidate mode (%s)", defaultMode.c_str());
-        return false;
-      }
-
-    int ret = addSupportedConfig(defaultMode);
-
-    return ret;
-}
-#endif
-
 int ConnectorHdmi::readHdmiDispMode(std::string &dispmode) {
     auto scs = getSystemControlService();
     if (scs == NULL) {
@@ -197,13 +187,12 @@ int ConnectorHdmi::readHdmiDispMode(std::string &dispmode) {
     }
 
     return NO_ERROR;
-
 }
 
 status_t ConnectorHdmi::readHdmiPhySize() {
-            mPhyWidth = DEFAULT_DISPLAY_DPI;
-            mPhyHeight = DEFAULT_DISPLAY_DPI;
-        return NO_ERROR;
+    mPhyWidth = DEFAULT_DISPLAY_DPI;
+    mPhyHeight = DEFAULT_DISPLAY_DPI;
+    return NO_ERROR;
 }
 
 bool ConnectorHdmi::isSecure() {
@@ -231,53 +220,9 @@ bool ConnectorHdmi::isSecure() {
     #endif
 
     return mSecure;
-
 }
 
-#if 0
-bool ConnectorHdmi::updateHotplug(bool connected,
-        framebuffer_info_t& framebufferInfo) {
-    bool ret = true;
-    int32_t rate;
-
-    if (!connected) {
-        MESON_LOGE("hdmi disconnected, keep old display configs.");
-        // return true;
-    }
-
-     updateDisplayAttributes(framebufferInfo);
-
-    // MR : TODO : Clean up this hot plug logic. Updating the modes before reading
-    //             hdmi modes is counter-intuitive. The intention here was to
-    //             provide a default mode when no display is connected.
-    if (updateSupportedConfigs() != NO_ERROR) {
-        MESON_LOGE("updateHotplug: No supported display list, set default configs.");
-        std::string dM (DEFAULT_DISPMODE);
-        buildSingleConfigList(dM);
-    }
-
-    std::string activemode;
-    if (readHdmiDispMode(activemode) != NO_ERROR) {
-        std::string dM (DEFAULT_DISPMODE);
-        MESON_LOGE("get active display mode failed.");
-        //updateActiveConfig(dM);
-        return false;
-    }
-    //updateActiveConfig(activemode);
-
-    return true;
-}
-
-int ConnectorHdmi::updateDisplayAttributes(framebuffer_info_t& framebufferInfo) {
-    if (readHdmiPhySize(framebufferInfo) != NO_ERROR) {
-        mPhyWidth = mPhyHeight = 0;
-    }
-    MESON_LOGE("updateDisplayAttributes physical size (%d x %d)", mPhyWidth, mPhyHeight);
-    return NO_ERROR;
-}
-#endif
-
-int ConnectorHdmi::updateSupportedConfigs() {
+int32_t ConnectorHdmi::updateSupportedConfigs() {
     // clear display modes
     clearSupportedConfigs();
     readHdmiPhySize();
@@ -306,7 +251,7 @@ int ConnectorHdmi::updateSupportedConfigs() {
     return NO_ERROR;
 }
 
-int ConnectorHdmi::addSupportedConfig(std::string& mode) {
+int32_t ConnectorHdmi::addSupportedConfig(std::string& mode) {
     vmode_e vmode = vmode_name_to_mode(mode.c_str());
     const struct vinfo_s* vinfo = get_tv_info(vmode);
     if (vmode == VMODE_MAX || vinfo == NULL) {
@@ -338,7 +283,6 @@ int ConnectorHdmi::addSupportedConfig(std::string& mode) {
 KeyedVector<int,DisplayConfig*> ConnectorHdmi::getModesInfo() {
     updateSupportedConfigs();
     return mSupportDispConfigs;
-
 }
 
 int32_t ConnectorHdmi::getLineValue(const char *lineStr, const char *magicStr) {
@@ -442,7 +386,7 @@ exit:
     return NO_ERROR;
 }
 
-int ConnectorHdmi::clearSupportedConfigs() {
+int32_t ConnectorHdmi::clearSupportedConfigs() {
     // reset display configs
     for (size_t i = 0; i < mSupportDispConfigs.size(); i++) {
         DisplayConfig *config = mSupportDispConfigs.valueAt(i);
@@ -450,7 +394,7 @@ int ConnectorHdmi::clearSupportedConfigs() {
             delete config;
     }
     mSupportDispConfigs.clear();
-    return NO_ERROR;
+    return 0;
 }
 
 void ConnectorHdmi:: dump(String8& dumpstr) {

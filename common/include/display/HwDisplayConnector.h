@@ -24,9 +24,6 @@
 #include <hardware/hardware.h>
 #include <gralloc_priv.h>
 #include <ISystemControlService.h>
-#include <../../display/AmVinfo.h>
-
-#define HDMI_FRAC_RATE_POLICY "/sys/class/amhdmitx/amhdmitx0/frac_rate_policy"
 
 
 #if PLATFORM_SDK_VERSION >= 26
@@ -39,9 +36,6 @@ using ::android::hardware::Return;
 #endif
 
 #define DEFAULT_DISPLAY_DPI 160
-
-struct private_handle_t;
-struct private_module_t;
 
 typedef struct hdr_dev_capabilities {
     bool init;
@@ -106,7 +100,6 @@ private:
 
 
 class HwDisplayConnector {
-
 public:
     HwDisplayConnector(/*int32_t drvFd, uint32_t id*/) {
         // mDrvFd = drvFd;
@@ -117,6 +110,7 @@ public:
     virtual int init() = 0;
     virtual drm_connector_type_t getType() = 0;
 
+    virtual bool isRemovable() = 0;
     virtual bool isConnected() = 0;
     virtual bool isSecure() = 0;
     virtual uint32_t getModesCount() = 0;

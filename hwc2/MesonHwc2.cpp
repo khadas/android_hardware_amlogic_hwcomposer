@@ -253,7 +253,6 @@ int32_t  MesonHwc2::getDisplayAttribute(hwc2_display_t display,
 /*************Virtual display api below*************/
 int32_t MesonHwc2::createVirtualDisplay(uint32_t width, uint32_t height,
     int32_t* format, hwc2_display_t* outDisplay) {
-
     hwc2_display_t id = getVirtualDisplayId();
     VirtualDisplay * disp = new VirtualDisplay(width, height);
     disp->initialize();
@@ -564,7 +563,6 @@ uint32_t MesonHwc2::getVirtualDisplayId() {
     }
 
     MESON_LOGE("All virtual display id consumed.\n");
-
     return 0;
 }
 

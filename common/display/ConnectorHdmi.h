@@ -11,13 +11,9 @@
 #define _CONNECTORHDMI_H
 #include <HwDisplayConnector.h>
 
-class FBContext;
 class DisplayConfig;
 
-
-class ConnectorHdmi : public
-                      HwDisplayConnector {
-
+class ConnectorHdmi : public HwDisplayConnector {
 public:
     ConnectorHdmi(/*int32_t ConnectorDrv,uint32_t ConnectorId*/);
     virtual ~ConnectorHdmi();
@@ -26,6 +22,7 @@ public:
     virtual int init();
     virtual drm_connector_type_t getType();
     virtual uint32_t getModesCount();
+    virtual bool isRemovable();
     virtual bool isConnected();
     virtual bool isSecure() ;
     virtual KeyedVector<int,DisplayConfig*>  getModesInfo();
@@ -61,7 +58,6 @@ private:
     // configures variables.
     KeyedVector<int, DisplayConfig*> mSupportDispConfigs;
     sp<ISystemControlService> mSystemControl;
-    FBContext *mFramebufferContext;
 
     bool mConnected;
     bool mSecure;

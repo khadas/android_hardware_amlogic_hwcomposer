@@ -11,7 +11,6 @@
 #define _CONNECTORPANEL_H
 #include <HwDisplayConnector.h>
 
-class FBContext;
 class DisplayConfig;
 
 class ConnectorPanel :public HwDisplayConnector {
@@ -21,14 +20,13 @@ public:
    virtual int init();
    virtual drm_connector_type_t getType();
    virtual uint32_t getModesCount();
+   virtual bool isRemovable();
    virtual bool isConnected();
    virtual bool isSecure();
    virtual KeyedVector<int,DisplayConfig*>getModesInfo();
    virtual void dump(String8 & dumpstr);
 
 protected:
-   int32_t getLineValue(const char *lineStr,const char *magicStr);
-   int32_t parseHdrCapabilities();
    status_t readPhySize();
    std::string readDispMode(std::string &dispmode);
 #if PLATFORM_SDK_VERSION >= 26
@@ -45,8 +43,6 @@ private:
     sp<ISystemControlService> mSC;
     KeyedVector<int, DisplayConfig*> mSupportDispConfigs;
 
-    FBContext *mFramebufferContext;
-
     std::string mDisplayMode;
     DisplayConfig *mconfig;
 
@@ -55,10 +51,6 @@ private:
 
     hdr_dev_capabilities_t mHdrCapabilities;
 };
-
-
-
-
 
 
 #endif

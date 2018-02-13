@@ -23,6 +23,8 @@
 #include <ICompositionStrategy.h>
 #include "Hwc2Layer.h"
 #include "MesonHwc2Defs.h"
+#include "HwcModeMgr.h"
+
 
 class Hwc2DisplayObserver  {
 public:
@@ -116,6 +118,9 @@ protected:
     /*composition releated components*/
     std::map<meson_composer_t, std::shared_ptr<IComposeDevice>> mComposers;
     std::shared_ptr<ICompositionStrategy> mCompositionStrategy;
+
+    /*display configs*/
+    std::shared_ptr<HwcModeMgr> mModeMgr;
 
     /* members used in present.*/
     std::vector<std::shared_ptr<DrmFramebuffer>> mPresentLayers;

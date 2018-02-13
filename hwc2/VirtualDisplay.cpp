@@ -128,7 +128,8 @@ hwc2_error_t VirtualDisplay::getDisplayRequests(
     UNUSED(outLayers);
     UNUSED(outLayerRequests);
 
-    *outDisplayRequests = 0;
+    *outDisplayRequests = HWC2_DISPLAY_REQUEST_FLIP_CLIENT_TARGET |
+        HWC2_DISPLAY_REQUEST_WRITE_CLIENT_TARGET_TO_OUTPUT;
     *outNumElements = 0;
     return HWC2_ERROR_NONE;
 }

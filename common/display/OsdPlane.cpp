@@ -14,7 +14,7 @@
 #define FBIOPUT_OSD_SYNC_RENDER_ADD  0x4519
 
 OsdPlane::OsdPlane(int32_t drvFd, uint32_t id)
-    : HwDisplayPlane (drvFd, id),
+    : HwDisplayPlane(drvFd, id),
       mPriorFrameRetireFd(-1),
       mFirstPresentDisplay(true),
       mRetireFence(DrmFence::NO_FENCE) {
@@ -30,6 +30,7 @@ OsdPlane::~OsdPlane() {
 int32_t OsdPlane::getProperties() {
     // TODO: set OSD1 to cursor plane with hard code for implement on p212
     // refrence board.
+    MESON_LOG_EMPTY_FUN();
 
     if (mId == 30) {
         mPlaneType = OSD_PLANE;
@@ -46,7 +47,7 @@ int OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
         // one vsync.
         mFirstPresentDisplay = false;
         sysfs_set_string(DISPLAY_LOGO_INDEX, "-1");
-        // sysfs_set_string(DISPLAY_FB0_FREESCALE_SWTICH, "0x10001");
+        //sysfs_set_string(DISPLAY_FB0_FREESCALE_SWTICH, "0x10001");
     }
 
     mPriorFrameRetireFd      = mRetireFence->dup();
@@ -76,12 +77,12 @@ int OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
     mPlaneInfo.blend_mode    = fb->mBlendMode;
     mPlaneInfo.plane_alpha   = fb->mPlaneAlpha;
     mPlaneInfo.op           &= ~(OSD_BLANK_OP_BIT);
-    MESON_LOGD("osdPlane [%p]", (void*)buf);
+    //MESON_LOGD("osdPlane [%p]", (void*)buf);
 
     fb->setReleaseFence(mRetireFence->dup());
     ioctl(mDrvFd, FBIOPUT_OSD_SYNC_RENDER_ADD, &mPlaneInfo);
     mRetireFence.reset(new DrmFence(mPlaneInfo.out_fen_fd));
-    dumpPlaneInfo();
+    //dumpPlaneInfo();
 
     mPlaneInfo.in_fen_fd     = -1;
     return 0;
