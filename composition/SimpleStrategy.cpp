@@ -27,8 +27,14 @@ void SimpleStrategy::setUp(
     classifyPlanes(planes);
 
     mHaveClientLayer = false;
-    mUiLayers.clear();
+    mSetComposerPlane = false;
+    mOsdPlaneAssignedManually = false;
+    mVideoLayers.clear();
     mUiComposer.reset();
+
+    mUiLayers.clear();
+
+    mAssignedPlaneLayers.clear();
 }
 
 void SimpleStrategy::classifyLayers(
@@ -80,8 +86,12 @@ void SimpleStrategy::classifyPlanes(
     std::vector<std::shared_ptr<HwDisplayPlane>> & planes) {
     std::shared_ptr<HwDisplayPlane> plane;
     mVideoPlanes.clear();
-    mOsdPlanes.clear();
     mCursorPlanes.clear();
+
+    mOsdPlanes.clear();
+    mPresentOsdPlanes.clear();
+    mOsdDiscretePlanes.clear();
+    mOsdContinuousPlanes.clear();
 
     std::vector<std::shared_ptr<HwDisplayPlane>>::iterator it;
     for (it = planes.begin() ; it != planes.end(); ++it) {
@@ -127,7 +137,7 @@ void SimpleStrategy::setUiComposer() {
 }
 
 void SimpleStrategy::preProcessLayers() {
-    uint32_t videoFbNum =0, cursorFbNum = 0;
+    uint32_t videoFbNum = 0, cursorFbNum = 0;
     std::vector<std::shared_ptr<DrmFramebuffer>>::iterator it;
 
     for (it = mLayers.begin(); it != mLayers.end(); ++it) {
@@ -135,25 +145,26 @@ void SimpleStrategy::preProcessLayers() {
         switch (layer->mCompositionType) {
             case MESON_COMPOSITION_NONE:
             {
-                if (layer->mFbType == DRM_FB_VIDEO_OVERLAY ||
-                    layer->mFbType == DRM_FB_VIDEO_OMX ||
-                    layer->mFbType == DRM_FB_VIDEO_SIDEBAND) {
+                if (layer->mFbType & DRM_FB_VIDEO_OVERLAY
+                        || layer->mFbType & DRM_FB_VIDEO_OMX
+                        || layer->mFbType & DRM_FB_VIDEO_SIDEBAND) {
                     videoFbNum++;
                     if (videoFbNum <= mVideoPlanes.size()) {
-                        if (layer->mFbType == DRM_FB_VIDEO_SIDEBAND) {
+                        if (layer->mFbType & DRM_FB_VIDEO_SIDEBAND) {
                             layer->mCompositionType =
                                 MESON_COMPOSITION_PLANE_VIDEO_SIDEBAND;
                         } else {
                             layer->mCompositionType =
                                 MESON_COMPOSITION_PLANE_VIDEO;
                         }
+                        mVideoLayers.push_back(layer);
                     } else {
                         layer->mCompositionType =
                             MESON_COMPOSITION_DUMMY;
                     }
-                } else if (layer->mFbType == DRM_FB_CURSOR) {
+                } else if (layer->mFbType & DRM_FB_CURSOR) {
                     cursorFbNum ++;
-                    if (videoFbNum <= mCursorPlanes.size()) {
+                    if (cursorFbNum <= mCursorPlanes.size()) {
                         layer->mCompositionType =
                             MESON_COMPOSITION_PLANE_CURSOR;
                     }
@@ -179,13 +190,198 @@ bool SimpleStrategy::isPlaneSupported(
     return true;
 }
 
+void SimpleStrategy::sortLayersByZReversed(
+        std::vector<std::shared_ptr<DrmFramebuffer>> &layers) {
+    if (layers.size() > 1) {
+        struct {
+            bool operator() (std::shared_ptr<DrmFramebuffer> a,
+                std::shared_ptr<DrmFramebuffer> b) {
+                return a->mZorder > b->mZorder;
+            }
+        } zorderCompare;
+        /* Sort layers by zorder. */
+        std::sort(layers.begin(), layers.end(), zorderCompare);
+    }
+}
+
+void SimpleStrategy::sortLayersByZ(
+        std::vector<std::shared_ptr<DrmFramebuffer>> &layers) {
+    if (layers.size() > 1) {
+        struct {
+            bool operator() (std::shared_ptr<DrmFramebuffer> a,
+                std::shared_ptr<DrmFramebuffer> b) {
+                return a->mZorder < b->mZorder;
+            }
+        } zorderCompare;
+        /* Sort layers by zorder. */
+        std::sort(layers.begin(), layers.end(), zorderCompare);
+    }
+}
+
+int32_t SimpleStrategy::makeCurrentOsdPlanes(
+        int32_t &numConflictPlanes) {
+    std::list<std::shared_ptr<HwDisplayPlane>>::iterator it;
+    std::shared_ptr<HwDisplayPlane> osdPlane;
+    int32_t i = 0, maskedConflictPlanes = 0;
+
+    /*TODO: need more improve to adapt more cases. */
+    for (it = mOsdPlanes.begin(); it != mOsdPlanes.end(); ++it, i++) {
+        osdPlane = *it;
+        if (osdPlane->getCapabilities() & OSD_VIDEO_CONFLICT) {
+            mOsdContinuousPlanes.push_back(osdPlane);
+            maskedConflictPlanes |= (1 << i);
+            numConflictPlanes++;
+        } else {
+            mOsdDiscretePlanes.push_back(osdPlane);
+        }
+    }
+
+    /* make sure discrete osd plane will be assigned with first prior */
+    mPresentOsdPlanes.assign(mOsdDiscretePlanes.begin(), mOsdDiscretePlanes.end());
+    for (it = mOsdContinuousPlanes.begin(); it != mOsdContinuousPlanes.end(); ++it, i++) {
+        osdPlane = *it;
+        mPresentOsdPlanes.push_back(osdPlane);
+    }
+
+    return maskedConflictPlanes;
+}
+
+void SimpleStrategy::changeDeviceToClientByZ(
+        int32_t from, int32_t to) {
+    if (mUiLayers.size() > 1) {
+        std::vector<std::shared_ptr<DrmFramebuffer>>::iterator it;
+        for (it = mUiLayers.begin(); it != mUiLayers.end(); ++it) {
+             std::shared_ptr<DrmFramebuffer> layer = *it;
+            if (layer->mZorder >= from && layer->mZorder <= to) {
+                if (layer->mCompositionType == MESON_COMPOSITION_PLANE_OSD
+                    || layer->mCompositionType == MESON_COMPOSITION_PLANE_OSD) {
+                    layer->mCompositionType = mUiComposer->getCompostionType(layer);
+                    MESON_LOGD("changeDeviceToClientByZ: (%d)", layer->mZorder);
+                }
+            }
+        }
+    }
+}
+
+bool SimpleStrategy::expandComposedLayers(
+        std::vector<std::shared_ptr<DrmFramebuffer>> &layers,
+        std::vector<std::shared_ptr<DrmFramebuffer>> &composedLayers) {
+    bool found = false;
+    if (composedLayers.size() > 1) {
+        int32_t composedZorder = composedLayers.front()->mZorder;
+        std::vector<std::shared_ptr<DrmFramebuffer>>::iterator it;
+
+        for (it = layers.begin(); it != layers.end(); ++it) {
+             std::shared_ptr<DrmFramebuffer> layer = *it;
+            if (layer->mZorder == composedZorder) {
+                found = true;
+                break;
+            }
+        }
+        if (found) {
+            for (it = composedLayers.begin() + 1; it != composedLayers.end(); ++it) {
+                std::shared_ptr<DrmFramebuffer> layer = *it;
+                layers.push_back(layer);
+            }
+        }
+    }
+
+    return found;
+}
+
+bool SimpleStrategy::isVideoLayer(
+        std::shared_ptr<DrmFramebuffer> &layer) {
+
+    if (layer->mCompositionType == MESON_COMPOSITION_PLANE_VIDEO_SIDEBAND
+            || layer->mCompositionType == MESON_COMPOSITION_PLANE_VIDEO) {
+        return true;
+    }
+    return false;
+}
+
+void SimpleStrategy::makeFinalDecision(
+        std::vector<std::shared_ptr<DrmFramebuffer>> &composedLayers) {
+    std::vector<std::shared_ptr<DrmFramebuffer>> assignedPlaneLayers;
+
+    assignedPlaneLayers.clear();
+    if (composedLayers.size() > 1) {
+        /* sort layers by zorder from high to low. and add layer of highest zorder to assignedPlaneLayers */
+        sortLayersByZReversed(composedLayers);
+        assignedPlaneLayers.push_back(composedLayers.front());
+    }
+
+    /*To set plane*/
+    std::shared_ptr<DrmFramebuffer> layer;
+    std::vector<std::shared_ptr<DrmFramebuffer>>::iterator it;
+    for (it = mUiLayers.begin(); it != mUiLayers.end(); ++it) {
+        layer = *it;
+        if (layer->mCompositionType == MESON_COMPOSITION_NONE) {
+            /*TODO: will support solid color later*/
+            /*if (layer->mFbType & DRM_FB_COLOR) {
+                layer->mCompositionType = MESON_COMPOSITION_PLANE_OSD_COLOR;
+                assignedPlaneLayers.push_back(layer);
+            } else */if (layer->mFbType & DRM_FB_SCANOUT) {
+                layer->mCompositionType = MESON_COMPOSITION_PLANE_OSD;
+                assignedPlaneLayers.push_back(layer);
+            }
+        }
+    }
+
+    int32_t numConflictPlanes = 0;
+    int32_t maskedConflictPlanes = makeCurrentOsdPlanes(numConflictPlanes);
+    if (!mVideoLayers.empty() && numConflictPlanes > 1) {
+        if (assignedPlaneLayers.size() == mPresentOsdPlanes.size()) {
+            /* find out video layer is between osd planes or not. */
+            for (it = mVideoLayers.begin(); it != mVideoLayers.end(); ++it) {
+                layer = *it;
+                assignedPlaneLayers.push_back(layer);
+            }
+            sortLayersByZ(assignedPlaneLayers);
+
+            /* !find out layers that need to assign to special planes */
+            std::shared_ptr<DrmFramebuffer> layer0;
+            std::shared_ptr<DrmFramebuffer> layer1;
+            std::vector<std::shared_ptr<DrmFramebuffer>> assignToSpecialOsdPlaneLayers;
+            for (it = assignedPlaneLayers.begin(); it != assignedPlaneLayers.end(); ++it) {
+                layer0 = *(it++);
+                if (it != assignedPlaneLayers.end()) {
+                    layer1 = *it;
+                    if (mOsdContinuousPlanes.size() > assignToSpecialOsdPlaneLayers.size()
+                            && !isVideoLayer(layer0)
+                            && !isVideoLayer(layer1)) {
+                        assignToSpecialOsdPlaneLayers.push_back(layer0);
+                        assignToSpecialOsdPlaneLayers.push_back(layer1);
+                        continue;
+                    }
+                } else {
+                    break;
+                }
+            }
+
+            if (!assignToSpecialOsdPlaneLayers.empty()) {
+                expandComposedLayers(assignToSpecialOsdPlaneLayers, composedLayers);
+                for (it = assignToSpecialOsdPlaneLayers.begin(); it != assignToSpecialOsdPlaneLayers.end(); ++it) {
+                    layer = *it;
+                    layer->mComposeToType |= MESON_COMPOSE_TO_CONTINUOUS_PLANE;
+                }
+                mOsdPlaneAssignedManually = true;
+            } else {
+                changeDeviceToClientByZ(0, mVideoLayers.front()->mZorder);
+            }
+        } else {
+            /* if we can make sure discrete osd planes are assigned with layers firstly
+             * in commit stage, this case will not a harm to us. */
+        }
+    }
+}
+
 int32_t SimpleStrategy::decideComposition() {
     if (mLayers.empty()) {
         MESON_LOGV("preProcessLayers return with no layers.");
         return 0;
     }
 
-    int composedLayers = 0;
+    std::vector<std::shared_ptr<DrmFramebuffer>> composedLayers;
     std::shared_ptr<DrmFramebuffer> layer;
     std::vector<std::shared_ptr<DrmFramebuffer>>::iterator firstUiLayer;
     std::vector<std::shared_ptr<DrmFramebuffer>>::iterator lastUiLayer;
@@ -194,6 +390,7 @@ int32_t SimpleStrategy::decideComposition() {
     setUiComposer();
 
     firstUiLayer = lastUiLayer = mUiLayers.end();
+    composedLayers.clear();
 
     /*
     * DRM_FB_RENDER, cannot consumed by plane,
@@ -203,7 +400,8 @@ int32_t SimpleStrategy::decideComposition() {
     for (it = mUiLayers.begin(); it != mUiLayers.end(); ++it) {
         layer = *it;
         if (layer->mCompositionType == MESON_COMPOSITION_NONE &&
-            layer->mFbType == DRM_FB_RENDER) {
+            (layer->mFbType & DRM_FB_RENDER
+            || layer->mFbType & DRM_FB_COLOR)) {
             layer->mCompositionType = mUiComposer->getCompostionType(layer);
         } else if (isPlaneSupported(layer) == false) {
             layer->mCompositionType = mUiComposer->getCompostionType(layer);
@@ -214,7 +412,7 @@ int32_t SimpleStrategy::decideComposition() {
                 firstUiLayer = it;
             }
             lastUiLayer = it;
-            composedLayers++;
+            composedLayers.push_back(layer);
         }
     }
 
@@ -223,50 +421,43 @@ int32_t SimpleStrategy::decideComposition() {
         layer = *it;
         if (layer->mCompositionType == MESON_COMPOSITION_NONE) {
             layer->mCompositionType = mUiComposer->getCompostionType(layer);
-            composedLayers++;
+            composedLayers.push_back(layer);
         }
     }
 
     /*If layer num > plane num, need compose more.*/
-    int numUiLayers = mUiLayers.size(), numOsdPlanes = mOsdPlanes.size();
-    int needComposedLayers = 0;
+    int numUiLayers = mUiLayers.size();
+    int numOsdPlanes = mOsdPlanes.size();
+    int numComposedLayers = composedLayers.size();
+    int numNeedComposeLayers = 0;
     /* When layers > planes num, we need use composer to conume more layers.*/
-    if ((numUiLayers - composedLayers) > (numOsdPlanes - (composedLayers ? 1 : 0))) {
-        needComposedLayers = (numUiLayers - composedLayers) - (numOsdPlanes - 1);
+    if ((numUiLayers - numComposedLayers) > (numOsdPlanes - (numComposedLayers ? 1 : 0))) {
+        numNeedComposeLayers = (numUiLayers - numComposedLayers) - (numOsdPlanes - 1);
     }
 
-    if (needComposedLayers > 0) {
+    if (numNeedComposeLayers > 0) {
         if (lastUiLayer != mUiLayers.end()) {
-            for (it = ++lastUiLayer; needComposedLayers > 0 && it != mUiLayers.end(); it++) {
+            for (it = ++lastUiLayer; numNeedComposeLayers > 0 && it != mUiLayers.end(); it++) {
                 layer = *it;
                 if (layer->mCompositionType == MESON_COMPOSITION_NONE) {
                     layer->mCompositionType = mUiComposer->getCompostionType(layer);
-                    needComposedLayers--;
+                    numNeedComposeLayers--;
+                    composedLayers.push_back(layer);
                 }
             }
         }
 
-        for (it = firstUiLayer; needComposedLayers > 0 && it != mUiLayers.begin();) {
+        for (it = firstUiLayer; numNeedComposeLayers > 0 && it != mUiLayers.begin();) {
             it--; layer = *it;
             if (layer->mCompositionType == MESON_COMPOSITION_NONE) {
                 layer->mCompositionType = mUiComposer->getCompostionType(layer);
-                needComposedLayers--;
+                numNeedComposeLayers--;
+                composedLayers.push_back(layer);
             }
         }
     }
 
-    /*To set plane*/
-    for (it = mUiLayers.begin(); it != mUiLayers.end(); ++it) {
-        layer = *it;
-        if (layer->mCompositionType == MESON_COMPOSITION_NONE) {
-            if (layer->mFbType & DRM_FB_COLOR) {
-                layer->mCompositionType = MESON_COMPOSITION_PLANE_OSD_COLOR;
-            } else if (layer->mFbType & DRM_FB_SCANOUT) {
-                layer->mCompositionType = MESON_COMPOSITION_PLANE_OSD;
-            }
-        }
-    }
-
+    makeFinalDecision(composedLayers);
     return 0;
 }
 
@@ -275,9 +466,15 @@ int32_t SimpleStrategy::commit() {
     std::list<std::shared_ptr<HwDisplayPlane>>::iterator videoPlane =
         mVideoPlanes.begin();
     std::list<std::shared_ptr<HwDisplayPlane>>::iterator osdPlane =
-        mOsdPlanes.begin();
+        mPresentOsdPlanes.begin();
     std::list<std::shared_ptr<HwDisplayPlane>>::iterator cursorPlane =
         mCursorPlanes.begin();
+
+    /*special osd planes*/
+    std::list<std::shared_ptr<HwDisplayPlane>>::iterator osdDiscretePlane =
+        mOsdDiscretePlanes.begin();
+    std::list<std::shared_ptr<HwDisplayPlane>>::iterator osdContinuousPlane =
+        mOsdContinuousPlanes.begin();
 
     if (!mLayers.empty()) {
         bool setComposerPlane = false;
@@ -295,7 +492,15 @@ int32_t SimpleStrategy::commit() {
                         std::shared_ptr<DrmFramebuffer> fb = mUiComposer->getOutput();
                         if (fb.get()) {
                             fb->mZorder = layer->mZorder;
-                            (*osdPlane++)->setPlane(fb);
+                            if (mOsdPlaneAssignedManually) {
+                                if (layer->mComposeToType & MESON_COMPOSE_TO_CONTINUOUS_PLANE) {
+                                    (*osdContinuousPlane++)->setPlane(fb);
+                                } else {
+                                    (*osdDiscretePlane++)->setPlane(fb);
+                                }
+                            } else {
+                                (*osdPlane++)->setPlane(fb);
+                            }
                             setComposerPlane = true;
                         }
                     }
@@ -306,7 +511,15 @@ int32_t SimpleStrategy::commit() {
                     break;
                 case MESON_COMPOSITION_PLANE_OSD:
                 case MESON_COMPOSITION_PLANE_OSD_COLOR:
-                    (*osdPlane++)->setPlane(layer);
+                    if (mOsdPlaneAssignedManually) {
+                        if (layer->mComposeToType & MESON_COMPOSE_TO_CONTINUOUS_PLANE) {
+                            (*osdContinuousPlane++)->setPlane(layer);
+                        } else {
+                            (*osdDiscretePlane++)->setPlane(layer);
+                        }
+                    } else {
+                        (*osdPlane++)->setPlane(layer);
+                    }
                     break;
                 case MESON_COMPOSITION_PLANE_CURSOR:
                     (*cursorPlane++)->setPlane(layer);
@@ -320,20 +533,29 @@ int32_t SimpleStrategy::commit() {
 
     /*Set blank framebuffer to */
     while (videoPlane != mVideoPlanes.end()) {
-        (*videoPlane++)->blank();
+        (*videoPlane++)->blank(true);
     }
-    while (osdPlane != mOsdPlanes.end()) {
-        (*osdPlane++)->blank();
+
+    if (mOsdPlaneAssignedManually) {
+        while (osdContinuousPlane != mOsdContinuousPlanes.end()) {
+            (*osdContinuousPlane++)->blank(true);
+        }
+        while (osdDiscretePlane != mOsdDiscretePlanes.end()) {
+            (*osdDiscretePlane++)->blank(true);
+        }
+    } else {
+        while (osdPlane != mPresentOsdPlanes.end()) {
+            (*osdPlane++)->blank(true);
+        }
     }
+
     while (cursorPlane != mCursorPlanes.end()) {
-        (*cursorPlane++)->blank();
+        (*cursorPlane++)->blank(true);
     }
     return 0;
 }
 
 void SimpleStrategy::dump(String8 & dumpstr) {
-
     dumpstr.appendFormat("SimpleStrategy dump");
-
 }
 

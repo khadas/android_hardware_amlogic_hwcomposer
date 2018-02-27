@@ -13,6 +13,24 @@
 #include <BasicTypes.h>
 #include "ICompositionStrategy.h"
 
+typedef enum {
+    VIDEO_AT_BOTTOM                       = (1 << 0),
+    VIDEO_AT_FIRST_POSITION               = (1 << 1),
+    VIDEO_AT_FIRST_POSITION_V2            = ((1 << 1) | (1 << 2)),
+    VIDEO_AT_SECOND_POSITION              = (1 << 2),
+    VIDEO_AT_SECOND_POSITION_V2           = ((1 << 2) | (1 << 3)),
+    VIDEO_AT_FIRST_AND_SECOND_POSITION    = ((1 << 1) | (1 << 3)),
+} video_layer_position_mask;
+
+enum {
+    OSD_VIDEO_CONFLICTED                  = ((1 << 1) | (1 << 2)),
+};
+
+enum {
+    OSD_LAYER_MASK                        = 0x00000001,
+    Z_CONTINUOUS_PLANES_MASK              = 0x00000003,
+};
+
 class SimpleStrategy : public ICompositionStrategy {
 public:
     SimpleStrategy();
@@ -36,11 +54,27 @@ protected:
     void setUiComposer();
     void preProcessLayers();
     bool isPlaneSupported(std::shared_ptr<DrmFramebuffer> & fb);
+    void sortLayersByZ(std::vector<std::shared_ptr<DrmFramebuffer>> &layers);
+    void sortLayersByZReversed(std::vector<std::shared_ptr<DrmFramebuffer>> &layers);
+    void changeDeviceToClientByZ(int32_t from, int32_t to);
+
+    int32_t makeCurrentOsdPlanes(int32_t &numConflictPlanes);
+    bool isVideoLayer(std::shared_ptr<DrmFramebuffer> &layer);
+    bool expandComposedLayers(std::vector<std::shared_ptr<DrmFramebuffer>> &layers,
+            std::vector<std::shared_ptr<DrmFramebuffer>> &composedLayers);
+    void makeFinalDecision(std::vector<std::shared_ptr<DrmFramebuffer>> &composedLayers);
 
 protected:
+    std::list<std::pair<std::shared_ptr<DrmFramebuffer>,
+        std::shared_ptr<HwDisplayPlane>>> mAssignedPlaneLayers;
+
     std::list<std::shared_ptr<HwDisplayPlane>> mVideoPlanes;
-    std::list<std::shared_ptr<HwDisplayPlane>> mOsdPlanes;
     std::list<std::shared_ptr<HwDisplayPlane>> mCursorPlanes;
+
+    std::list<std::shared_ptr<HwDisplayPlane>> mOsdPlanes;
+    std::list<std::shared_ptr<HwDisplayPlane>> mPresentOsdPlanes;
+    std::list<std::shared_ptr<HwDisplayPlane>> mOsdDiscretePlanes;
+    std::list<std::shared_ptr<HwDisplayPlane>> mOsdContinuousPlanes;
 
     std::shared_ptr<IComposeDevice> mDummyComposer;
     std::shared_ptr<IComposeDevice> mClientComposer;
@@ -48,10 +82,14 @@ protected:
     std::shared_ptr<IComposeDevice> mUiComposer;
 
     std::vector<std::shared_ptr<DrmFramebuffer>> mLayers;
+
+    std::vector<std::shared_ptr<DrmFramebuffer>> mVideoLayers;
     std::vector<std::shared_ptr<DrmFramebuffer>> mUiLayers;
 
+    std::vector<std::shared_ptr<DrmFramebuffer>> mPreLayers;
     bool mHaveClientLayer;
-
+    bool mSetComposerPlane;
+    bool mOsdPlaneAssignedManually;
 };
 
 #endif/*SIMPLE_STRATEGY_H*/

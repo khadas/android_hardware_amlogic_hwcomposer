@@ -15,6 +15,10 @@
 #define DISPLAY_LOGO_INDEX              "/sys/module/fb/parameters/osd_logo_index"
 #define DISPLAY_FB0_FREESCALE_SWTICH    "/sys/class/graphics/fb0/free_scale_switch"
 
+/* FBIO */
+#define FBIOPUT_OSD_SYNC_RENDER_ADD  0x4519
+#define FBIOPUT_OSD_HWC_ENABLE       0x451a
+#define FBIOPUT_OSD_SYNC_BLANK       0x451c
 
 enum {
     GLES_COMPOSE_MODE = 0,
@@ -26,8 +30,23 @@ enum {
     OSD_BLANK_OP_BIT = 0x00000001,
 };
 
+typedef enum {
+    OSD_AFBC_EN             = (1 << 31),
+    OSD_TILED_HEADER_EN     = (1 << 18),
+    OSD_SUPER_BLOCK_ASPECT  = (1 << 16),
+    OSD_BLOCK_SPLIT         = (1 << 9),
+    OSD_YUV_TRANSFORM       = (1 << 8),
+} afbc_format_mask;
+
+enum {
+    OSD_SYNC_REQUEST_MAGIC            = 0x54376812,
+    OSD_SYNC_REQUEST_RENDER_MAGIC_V1  = 0x55386816,
+    OSD_SYNC_REQUEST_RENDER_MAGIC_V2  = 0x55386817,
+};
 
 typedef struct osd_plane_info_t {
+    int             magic;
+    int             len;
     unsigned int    xoffset;
     unsigned int    yoffset;
     int             in_fen_fd;
@@ -43,16 +62,13 @@ typedef struct osd_plane_info_t {
     unsigned int    dst_w;
     unsigned int    dst_h;
     int             byte_stride;
-    int             stride;
+    int             pixel_stride;
+    int             afbc_inter_format;
     unsigned int    zorder;
     unsigned int    blend_mode;
-    unsigned int    plane_alpha;
-    unsigned int    reserve;
+    int             plane_alpha;
+    int             reserve;
 } osd_plane_info_t;
-
-/* enum {
-    OSD_BLANK_OP_BIT = 0x00000001,
-};*/
 
 class OsdPlane : public HwDisplayPlane {
 public:
@@ -62,10 +78,11 @@ public:
     uint32_t getPlaneType() {return mPlaneType;}
 
     int32_t setPlane(std::shared_ptr<DrmFramebuffer> & fb);
+    int32_t getCapabilities();
 
-    int32_t blank();
+    int32_t blank(bool blank);
 
-    int32_t pageFlip(int32_t &outFence);
+    // int32_t pageFlip(int32_t &outFence);
 
     void dump(String8 & dumpstr);
 
@@ -74,14 +91,16 @@ protected:
 
     void dumpPlaneInfo();
 
+    int translateInternalFormat(uint64_t internalFormat);
+
+    String8 compositionTypeToString();
+
 private:
     bool mFirstPresentDisplay;
-
-    int32_t mPriorFrameRetireFd;
+    bool mOsdPlaneBlank;
 
     osd_plane_info_t mPlaneInfo;
-
-    std::shared_ptr<DrmFence> mRetireFence;
+    std::shared_ptr<DrmFramebuffer> mDrmFb;
 };
 
 

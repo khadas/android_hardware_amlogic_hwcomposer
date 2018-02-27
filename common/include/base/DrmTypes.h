@@ -54,7 +54,6 @@ typedef enum drm_fb_type {
     DRM_FB_VIDEO_SIDEBAND = 1 << 6,
 } drm_fb_type_t;
 
-
 #define DRM_DISPLAY_MODE_LEN (64)
 
 typedef struct drm_mode_info {

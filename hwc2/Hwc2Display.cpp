@@ -202,7 +202,7 @@ hwc2_error_t Hwc2Display::collectLayersForPresent() {
         struct {
             bool operator() (std::shared_ptr<DrmFramebuffer> a,
                 std::shared_ptr<DrmFramebuffer> b) {
-                return a->mZorder < b->mZorder;
+                return a->mZorder > b->mZorder;
             }
         } zorderCompare;
         std::sort(mPresentLayers.begin(), mPresentLayers.end(), zorderCompare);
@@ -267,7 +267,7 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
         return ret;
     }
 
-    //dumpPresentComponents();
+    // dumpPresentComponents();
 
     mCompositionStrategy->setUp(mPresentLayers,
         mPresentComposers, mPresentPlanes);
@@ -378,15 +378,18 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
         return HWC2_ERROR_NOT_VALIDATED;
     }
 
-    for (std::vector<std::shared_ptr<HwDisplayPlane>>::iterator it = mPresentPlanes.begin();
-            it != mPresentPlanes.end(); it++) {
-        if (it->get()->getPlaneType() == OSD_PLANE) it->get()->pageFlip(outFence);
+    /* Page flip */
+    if (mCrtc->pageFlip(outFence) < 0) {
+        return HWC2_ERROR_UNSUPPORTED;
     }
 
-    /*Page flip */
-    // if (mCrtc->pageFlip(outFence) < 0) {
-    //     return HWC2_ERROR_UNSUPPORTED;
-    // }
+    std::vector<std::shared_ptr<DrmFramebuffer>>::iterator it;
+    for (it = mPresentLayers.begin(); it != mPresentLayers.end(); it++) {
+        Hwc2Layer *layer = (Hwc2Layer*)(it->get());
+        if (HWC2_COMPOSITION_DEVICE == layer->mHwcCompositionType) {
+            layer->setReleaseFence(outFence);
+        }
+    }
 
     *outPresentFence = outFence;
     return HWC2_ERROR_NONE;
@@ -488,11 +491,18 @@ void Hwc2Display::dump(String8 & dumpstr) {
 
     mConnector->dump(dumpstr);
 
-    if (DebugHelper::getInstance().dumpDetailInfo()) {
+    // if (DebugHelper::getInstance().dumpDetailInfo()) {
+    if (true) {
         std::vector<std::shared_ptr<HwDisplayPlane>>::iterator plane;
+        dumpstr.append(" Plane |  Comp Type |  z  | t |        Src Crop        |         DstFrame        | fd "
+                "| format |  bs  |  ps  | blend | alpha |  op  |    afbc    |\n");
+        dumpstr.append("-------+------------+-----+---+------------------------+-------------------------+----"
+                "+--------+------+------+-------+-------+------+------------+\n");
         for (plane = mPlanes.begin(); plane != mPlanes.end(); plane++) {
             (*plane)->dump(dumpstr);
         }
+        dumpstr.append("-------+------------+-----+---+------------------------+-------------------------+----"
+                "+--------+------+------+-------+-------+------+------------+\n");
 
         std::unordered_map<hwc2_layer_t, std::shared_ptr<Hwc2Layer>>::iterator layer;
         for (layer = mLayers.begin(); layer != mLayers.end(); layer++) {

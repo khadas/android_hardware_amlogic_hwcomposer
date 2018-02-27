@@ -11,13 +11,11 @@
 #include <MesonLog.h>
 #include <misc.h>
 
-#define FBIOPUT_OSD_SYNC_RENDER_ADD  0x4519
-
 OsdPlane::OsdPlane(int32_t drvFd, uint32_t id)
     : HwDisplayPlane(drvFd, id),
-      mPriorFrameRetireFd(-1),
+      mDrmFb(NULL),
       mFirstPresentDisplay(true),
-      mRetireFence(DrmFence::NO_FENCE) {
+      mOsdPlaneBlank(false) {
     getProperties();
     mPlaneInfo.out_fen_fd = -1;
     mPlaneInfo.op = 0x0;
@@ -30,32 +28,43 @@ OsdPlane::~OsdPlane() {
 int32_t OsdPlane::getProperties() {
     // TODO: set OSD1 to cursor plane with hard code for implement on p212
     // refrence board.
-    MESON_LOG_EMPTY_FUN();
+    int32_t ret = 0;
 
-    if (mId == 30) {
+#if 0 // g12a.
+    mPlaneType = OSD_PLANE;
+#else // p212.
+    if (mId == 30 || mId == 31 || mId == 32) {
+    // if (mId == 30) {
         mPlaneType = OSD_PLANE;
     } else /*if (mId == 31) */{
         mPlaneType = CURSOR_PLANE;
     }
-    return 0;
+#endif
+
+    return ret;
 }
 
-int OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
+int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
+    if (mDrvFd < 0) {
+        MESON_LOGE("osd plane fd is not valiable!");
+        return -EBADF;
+    }
+
     // close uboot logo, if bootanim begin to show
     if (mFirstPresentDisplay) {
         // TODO: will move this in plane info op, and do this in the driver with
         // one vsync.
         mFirstPresentDisplay = false;
-        sysfs_set_string(DISPLAY_LOGO_INDEX, "-1");
-        //sysfs_set_string(DISPLAY_FB0_FREESCALE_SWTICH, "0x10001");
+        // sysfs_set_string(DISPLAY_LOGO_INDEX, "-1");
+        // sysfs_set_string(DISPLAY_FB0_FREESCALE_SWTICH, "0x10001");
     }
-
-    mPriorFrameRetireFd      = mRetireFence->dup();
 
     drm_rect_t srcCrop       = fb->mSourceCrop;
     drm_rect_t disFrame      = fb->mDisplayFrame;
     buffer_handle_t buf      = fb->mBufferHandle;
 
+    mPlaneInfo.magic         = OSD_SYNC_REQUEST_RENDER_MAGIC_V2;
+    mPlaneInfo.len           = sizeof(osd_plane_info_t);
     mPlaneInfo.type          = DIRECT_COMPOSE_MODE;
 
     mPlaneInfo.xoffset       = srcCrop.left;
@@ -72,54 +81,151 @@ int OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
     mPlaneInfo.format        = PrivHandle::getFormat(buf);
     mPlaneInfo.shared_fd     = PrivHandle::getFd(buf);
     mPlaneInfo.byte_stride   = PrivHandle::getBStride(buf);
-    mPlaneInfo.stride        = PrivHandle::getPStride(buf);
-    mPlaneInfo.zorder        = fb->mZorder;
+    mPlaneInfo.pixel_stride  = PrivHandle::getPStride(buf);
+    /* osd request plane zorder > 0 */
+    mPlaneInfo.zorder        = fb->mZorder + 1;
     mPlaneInfo.blend_mode    = fb->mBlendMode;
     mPlaneInfo.plane_alpha   = fb->mPlaneAlpha;
-    mPlaneInfo.op           &= ~(OSD_BLANK_OP_BIT);
-    //MESON_LOGD("osdPlane [%p]", (void*)buf);
+    mPlaneInfo.op            &= ~(OSD_BLANK_OP_BIT);
+    mPlaneInfo.afbc_inter_format
+        = translateInternalFormat(PrivHandle::getInternalFormat(buf));
 
-    fb->setReleaseFence(mRetireFence->dup());
-    ioctl(mDrvFd, FBIOPUT_OSD_SYNC_RENDER_ADD, &mPlaneInfo);
-    mRetireFence.reset(new DrmFence(mPlaneInfo.out_fen_fd));
-    //dumpPlaneInfo();
+    if (ioctl(mDrvFd, FBIOPUT_OSD_SYNC_RENDER_ADD, &mPlaneInfo) != 0) {
+        MESON_LOGE("osd plane FBIOPUT_OSD_SYNC_RENDER_ADD return(%d)", errno);
+        return -EINVAL;
+    }
 
-    mPlaneInfo.in_fen_fd     = -1;
+    if (mDrmFb) {
+        mDrmFb->setReleaseFence(mPlaneInfo.out_fen_fd);
+    }
+
+    // this plane will be shown.
+    blank(false);
+
+    // update drm fb.
+    mDrmFb = fb;
+
+    mPlaneInfo.in_fen_fd = -1;
     return 0;
 }
 
-int32_t OsdPlane::blank() {
-    MESON_LOG_EMPTY_FUN();
-    mPlaneInfo.op |= OSD_BLANK_OP_BIT;
-    // ioctl(mDrvFd, FBIOPUT_OSD_SYNC_RENDER_ADD, &mPlaneInfo);
+int OsdPlane::translateInternalFormat(uint64_t internalFormat) {
+    int afbcFormat = 0;
+
+    if (internalFormat & MALI_GRALLOC_INTFMT_AFBCENABLE_MASK) {
+        afbcFormat |= (OSD_AFBC_EN | OSD_YUV_TRANSFORM | OSD_BLOCK_SPLIT);
+        if (internalFormat & MALI_GRALLOC_INTFMT_AFBC_WIDEBLK) {
+            afbcFormat |= OSD_SUPER_BLOCK_ASPECT;
+        }
+
+        if (internalFormat & MALI_GRALLOC_INTFMT_AFBC_SPLITBLK) {
+            afbcFormat |= OSD_BLOCK_SPLIT;
+        }
+
+        /*if (internalFormat & MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_WIDEBLK_YUV_DISABLE) {
+            afbcFormat &= ~OSD_YUV_TRANSFORM;
+        }*/
+
+        if (internalFormat & MALI_GRALLOC_INTFMT_AFBC_TILED_HEADERS) {
+            afbcFormat |= OSD_TILED_HEADER_EN;
+        }
+    }
+
+    MESON_LOGV("internal format: 0x%llx translated afbc format: 0x%x",
+            internalFormat, afbcFormat);
+
+    return afbcFormat;
+}
+
+int32_t OsdPlane::blank(bool blank) {
+    if (mDrvFd < 0) {
+        MESON_LOGE("osd plane fd is not valiable!");
+        return -EBADF;
+    }
+
+    if (mOsdPlaneBlank != blank) {
+        uint32_t val = blank ? 1 : 0;
+        if (ioctl(mDrvFd, FBIOPUT_OSD_SYNC_BLANK, &val) != 0) {
+            MESON_LOGE("osd plane blank ioctl (%d) return(%d)", blank, errno);
+            return -EINVAL;
+        }
+        mOsdPlaneBlank = blank;
+    }
 
     return 0;
 }
 
-int32_t OsdPlane::pageFlip(int32_t &outFence) {
-    outFence = mPriorFrameRetireFd;
-    mPriorFrameRetireFd = -1;
-    return 0;
+int32_t OsdPlane::getCapabilities() {
+    // refrence board.
+    int32_t ret = 0;
+
+    // TODO: should get this properties from kernel.
+    if (mId == 31 || mId == 32) {
+        ret |= OSD_VIDEO_CONFLICT;
+    }
+
+    return ret;
 }
 
-void OsdPlane::dumpPlaneInfo() {
-    MESON_LOGD("*****PLANE INFO*****");
-    MESON_LOGD("type: %d", mPlaneInfo.type);
-    MESON_LOGD("src: [%d, %d, %d, %d]", mPlaneInfo.xoffset, mPlaneInfo.yoffset, mPlaneInfo.width, mPlaneInfo.height);
-    MESON_LOGD("dst: [%d, %d, %d, %d]", mPlaneInfo.dst_x, mPlaneInfo.dst_y, mPlaneInfo.dst_w, mPlaneInfo.dst_h);
-    MESON_LOGD("infd: %d", mPlaneInfo.in_fen_fd);
-    MESON_LOGD("oufd: %d", mPlaneInfo.out_fen_fd);
-    MESON_LOGD("form: %d", mPlaneInfo.format);
-    MESON_LOGD("shfd: %d", mPlaneInfo.shared_fd);
-    MESON_LOGD("bstr: %d", mPlaneInfo.byte_stride);
-    MESON_LOGD("pstr: %d", mPlaneInfo.stride);
-    MESON_LOGD("zord: %d", mPlaneInfo.zorder);
-    MESON_LOGD("blen: %d", mPlaneInfo.blend_mode);
-    MESON_LOGD("alph: %d", mPlaneInfo.plane_alpha);
-    MESON_LOGD("op:   %d", mPlaneInfo.op);
-    MESON_LOGD("********************");
+String8 OsdPlane::compositionTypeToString() {
+    String8 compType("NONE");
+
+    if (mDrmFb) {
+        switch (mDrmFb->mCompositionType) {
+            case MESON_COMPOSITION_DUMMY:
+                compType = "DUMMY";
+                break;
+            case MESON_COMPOSITION_CLIENT:
+                compType = "CLIENT";
+                break;
+            case MESON_COMPOSITION_GE2D:
+                compType = "GE2D";
+                break;
+            case MESON_COMPOSITION_PLANE_VIDEO:
+                compType = "VIDEO";
+                break;
+            case MESON_COMPOSITION_PLANE_VIDEO_SIDEBAND:
+                compType = "SIDEBAND";
+                break;
+            case MESON_COMPOSITION_PLANE_OSD:
+                compType = "OSD";
+                break;
+            case MESON_COMPOSITION_PLANE_OSD_COLOR:
+                compType = "COLOR";
+                break;
+            case MESON_COMPOSITION_PLANE_CURSOR:
+                compType = "CURSOR";
+                break;
+            case MESON_COMPOSITION_CLIENT_TARGET:
+                compType = "CLIENT TARGET";
+                break;
+            default:
+                compType = "NONE";
+                break;
+        }
+    }
+
+    return compType;
 }
 
 void OsdPlane::dump(String8 & dumpstr) {
+    if (!mOsdPlaneBlank) {
+        dumpstr.appendFormat("  osd%1d | %10s | %3d | %1d | %4d, %4d, %4d, %4d |  %4d, %4d, %4d, %4d | %2d |   %2d   | %4d |"
+            " %4d | %5d | %5d | %4x |  %8x  |\n",
+                 mId - 30,
+                 compositionTypeToString().string(),
+                 mPlaneInfo.zorder,
+                 mPlaneInfo.type,
+                 mPlaneInfo.xoffset, mPlaneInfo.yoffset, mPlaneInfo.width, mPlaneInfo.height,
+                 mPlaneInfo.dst_x, mPlaneInfo.dst_y, mPlaneInfo.dst_w, mPlaneInfo.dst_h,
+                 mPlaneInfo.shared_fd,
+                 mPlaneInfo.format,
+                 mPlaneInfo.byte_stride,
+                 mPlaneInfo.pixel_stride,
+                 mPlaneInfo.blend_mode,
+                 mPlaneInfo.plane_alpha,
+                 mPlaneInfo.op,
+                 mPlaneInfo.afbc_inter_format);
+    }
 }
 

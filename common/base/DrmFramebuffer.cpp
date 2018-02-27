@@ -41,11 +41,12 @@ int32_t DrmFramebuffer::getReleaseFence() {
 
 void DrmFramebuffer::reset() {
     resetBufferInfo();
-    mBlendMode = DRM_BLEND_MODE_INVALID;
-    mPlaneAlpha = 1.0;
-    mTransform = 0;
-    mZorder = 0;
-    mDataspace = 0;
+    mBlendMode       = DRM_BLEND_MODE_INVALID;
+    mPlaneAlpha      = 1.0;
+    mTransform       = 0;
+    mZorder          = 0;
+    mDataspace       = 0;
+    mCompositionType = MESON_COMPOSITION_CLIENT_TARGET;
 
     mAcquireFence = mReleaseFence = DrmFence::NO_FENCE;
 
@@ -57,7 +58,9 @@ void DrmFramebuffer::reset() {
 
 void DrmFramebuffer::resetBufferInfo() {
     mAcquireFence.reset();
-    mBufferHandle = NULL;
-    mFbType = DRM_FB_RENDER;
+    mAcquireFence  = DrmFence::NO_FENCE;
+    mBufferHandle  = NULL;
+    mFbType        = DRM_FB_RENDER;
+    mComposeToType = MESON_COMPOSE_TO_ANY_PLANE;
 }
 

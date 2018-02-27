@@ -23,6 +23,8 @@ public:
     static int getBStride(const native_handle_t *bufferhnd);
     static int getPStride(const native_handle_t *bufferhnd);
 
+    static uint64_t getInternalFormat(const native_handle_t *nativeHnd);
+
     static bool isContinuous(const native_handle_t *nativeHnd);
     static bool isOverlayVideo(const native_handle_t *nativeHnd);
     static bool isOmxVideo(const native_handle_t *nativeHnd);

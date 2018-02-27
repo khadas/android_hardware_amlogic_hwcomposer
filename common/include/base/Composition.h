@@ -11,7 +11,9 @@
 #define COMPOSITION_H
 
 typedef enum {
-    MESON_COMPOSITION_NONE = 0,
+    MESON_COMPOSITION_CLIENT_TARGET = 0,
+
+    MESON_COMPOSITION_NONE = 1 << 0,
 
     /*Compostion type of composer*/
     MESON_COMPOSITION_DUMMY = 1 << 1,
@@ -27,6 +29,13 @@ typedef enum {
 
     /*MESON_COMPOSITION_GPU,*/
 } meson_compositon_t;
+
+typedef enum meson_compose_to {
+    /*default is no special feature*/
+    MESON_COMPOSE_TO_ANY_PLANE = 0,
+    /*special composition dest need to be special plane*/
+    MESON_COMPOSE_TO_CONTINUOUS_PLANE = 1 << 0,
+} meson_compose_to_t;
 
 bool isOverlayComposition(meson_compositon_t type);
 bool isPlaneComposition(meson_compositon_t type);

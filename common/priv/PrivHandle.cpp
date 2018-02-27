@@ -64,9 +64,12 @@ bool PrivHandle::isContinuous(const native_handle_t *nativeHnd) {
     if (NULL == buffer) return true;
 
     if (buffer->flags & private_handle_t::PRIV_FLAGS_CONTINUOUS_BUF
-            || buffer->flags & private_handle_t::PRIV_FLAGS_USES_ION_DMA_HEAP)
+            || buffer->flags & private_handle_t::PRIV_FLAGS_USES_ION_DMA_HEAP) {
+        ALOGE("Stark, Continuous buffer");
         return true;
+    }
 
+    ALOGE("Stark, not Continuous buffer");
     return false;
 }
 
@@ -90,4 +93,13 @@ bool PrivHandle::isOmxVideo(const native_handle_t *nativeHnd) {
         return true;
 
     return false;
+}
+
+uint64_t PrivHandle::getInternalFormat(const native_handle_t *nativeHnd) {
+    uint64_t internalFormat = 0;
+    private_handle_t const* buffer = private_handle_t::dynamicCast(nativeHnd);
+
+    if (buffer) internalFormat = buffer->internal_format;
+
+    return internalFormat;
 }

@@ -165,7 +165,7 @@ int32_t VideoPlane::setMute(bool status) {
     return 0;
 }
 
-int32_t VideoPlane::blank() {
+int32_t VideoPlane::blank(bool blank) {
     // close omx video.
     if (Amvideo_Handle >= 0) {
         MESON_LOGD("close am video");
@@ -177,6 +177,13 @@ int32_t VideoPlane::blank() {
     return 0;
 }
 
+int32_t VideoPlane::getCapabilities() {
+    // refrence board.
+    int32_t ret = 0;
+    MESON_LOG_EMPTY_FUN();
+
+    return ret;
+}
 void VideoPlane::dump(String8 & dumpstr) {
     MESON_LOG_EMPTY_FUN();
 }
