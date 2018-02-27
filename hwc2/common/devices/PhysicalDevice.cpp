@@ -1339,7 +1339,8 @@ int32_t PhysicalDevice::preValidate() {
 
         private_handle_t const* hnd = private_handle_t::dynamicCast(layer->getBufferHandle());
         if (hnd && !((hnd->flags & private_handle_t::PRIV_FLAGS_CONTINUOUS_BUF)
-            || (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OVERLAY))) {
+            || (hnd->flags & private_handle_t::PRIV_FLAGS_VIDEO_OVERLAY)
+            || (hnd->flags & private_handle_t::PRIV_FLAGS_USES_ION_DMA_HEAP))) {
             mIsContinuousBuf = false;
         }
 
@@ -1610,8 +1611,8 @@ int32_t PhysicalDevice::initDisplay() {
 
         mFramebufferHnd = new private_handle_t(
                         private_handle_t::PRIV_FLAGS_FRAMEBUFFER,
-                        usage, fbInfo->fbSize, 0,
-                        0, fbInfo->fd, bufferSize, 0);
+                        fbInfo->fbSize, 0, usage, usage,
+                        fbInfo->fd, 0);
 
         DTRACE("init_frame_buffer get frame size %d usage %d",
             bufferSize, usage);

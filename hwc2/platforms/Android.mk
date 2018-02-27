@@ -21,6 +21,7 @@ LOCAL_SRC_FILES := \
     ../common/base/HwcModule.cpp \
     ../common/base/VsyncManager.cpp \
     ../common/devices/PhysicalDevice.cpp \
+    ../common/devices/framebuffer.cpp \
     ../common/devices/PrimaryDevice.cpp \
     ../common/devices/VirtualDevice.cpp \
     ../common/hdmi/DisplayHdmi.cpp \
@@ -44,7 +45,6 @@ LOCAL_SHARED_LIBRARIES := \
     libhardware \
     libutils \
     libsync \
-    libfbcnf \
     libge2d \
     libbinder \
     libsystemcontrolservice \

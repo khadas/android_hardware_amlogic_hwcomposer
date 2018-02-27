@@ -28,7 +28,7 @@
 extern "C" {
 #endif
 
-// #define HWC_DEBUG
+//#define HWC_DEBUG
 #ifdef HWC_DEBUG
 // Helper to automatically preappend classname::functionname to the log message
 #if 0
@@ -52,7 +52,7 @@ extern "C" {
 
 
 // Function call tracing
-#if 0
+#ifdef HWC_DEBUG
 #define CTRACE()            ALOGV("Calling %s", __func__)
 #define XTRACE()            ALOGV("Leaving %s", __func__)
 #else
@@ -62,8 +62,8 @@ extern "C" {
 
 
 // Arguments tracing
-#if 0
-#define ATRACE(fmt,...)     ALOGV("%s(args): "fmt, __func__, ##__VA_ARGS__);
+#ifdef HWC_DEBUG
+#define ATRACE(fmt,...)     ALOGV("%s(args): " fmt, __func__, ##__VA_ARGS__);
 #else
 #define ATRACE(fmt,...)     ((void)0)
 #endif
@@ -86,7 +86,7 @@ do { \
     } \
 } while (0)
 
-#if 1
+#ifdef HWC_DEBUG
 #define RETURN_FALSE_IF_NOT_INIT()      RETURN_X_IF_NOT_INIT(false)
 #define RETURN_VOID_IF_NOT_INIT()       RETURN_X_IF_NOT_INIT()
 #define RETURN_NULL_IF_NOT_INIT()       RETURN_X_IF_NOT_INIT(0)

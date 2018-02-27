@@ -52,7 +52,7 @@ GE2DComposer::GE2DComposer(IDisplayDevice& disp)
       mInitialized(false)
 {
     mName = "GE2D";
-
+    mIonClient = ion_open();
     mQueueItems.setCapacity(8);
     mQueueItems.clear();
 }
@@ -62,7 +62,7 @@ GE2DComposer::~GE2DComposer()
     WARN_IF_NOT_DEINIT();
 }
 
-int32_t GE2DComposer::allocBuffer(private_module_t* module, size_t size, int32_t usage, buffer_handle_t* pHandle)
+int32_t GE2DComposer::allocBuffer(private_module_t* __unused, size_t size, int32_t usage, buffer_handle_t* pHandle)
 {
     ion_user_handle_t ion_hnd;
     unsigned char *cpu_ptr = NULL;
@@ -73,22 +73,22 @@ int32_t GE2DComposer::allocBuffer(private_module_t* module, size_t size, int32_t
 
     if (usage & GRALLOC_USAGE_HW_COMPOSER)
     {
-        ret = ion_alloc(module->ion_client, size, 0, 1<<ION_HEAP_TYPE_CHUNK,
+        ret = ion_alloc(mIonClient, size, 0, 1<<ION_HEAP_TYPE_CHUNK,
                     ion_flags, &ion_hnd);
     }
 
     if ( ret != 0)
     {
-        ETRACE("Failed to ion_alloc from ion_client:%d,size=%d", module->ion_client, size);
+        ETRACE("Failed to ion_alloc from ion_client:%d,size=%d", mIonClient, size);
         return -1;
     }
 
-    ret = ion_share( module->ion_client, ion_hnd, &shared_fd );
+    ret = ion_share(mIonClient, ion_hnd, &shared_fd );
     if ( ret != 0 )
     {
-        ETRACE( "ion_share( %d ) failed", module->ion_client );
-        if ( 0 != ion_free( module->ion_client, ion_hnd ) )
-            ETRACE( "ion_free( %d ) failed", module->ion_client );
+        ETRACE( "ion_share( %d ) failed", mIonClient);
+        if ( 0 != ion_free(mIonClient, ion_hnd ) )
+            ETRACE( "ion_free( %d ) failed", mIonClient);
         return -1;
     }
 
@@ -98,29 +98,31 @@ int32_t GE2DComposer::allocBuffer(private_module_t* module, size_t size, int32_t
 
         if ( MAP_FAILED == cpu_ptr )
         {
-            ETRACE( "ion_map( %d ) failed", module->ion_client );
-            if ( 0 != ion_free( module->ion_client, ion_hnd ) )
-                ETRACE( "ion_free( %d ) failed", module->ion_client );
+            ETRACE( "ion_map( %d ) failed", mIonClient );
+            if ( 0 != ion_free( mIonClient, ion_hnd ) )
+                ETRACE( "ion_free( %d ) failed", mIonClient );
             close( shared_fd );
             return -1;
         }
         lock_state = private_handle_t::LOCK_STATE_MAPPED;
     }
 
-    private_handle_t *hnd = new private_handle_t( private_handle_t::PRIV_FLAGS_USES_ION /*TODO ion extend*| priv_heap_flag*/,
-                                                    usage, size, cpu_ptr, lock_state );
+    private_handle_t *hnd = new private_handle_t(private_handle_t::PRIV_FLAGS_USES_ION /*TODO ion extend*| priv_heap_flag*/,
+                                                    size, cpu_ptr, usage, usage, -1, 0);
 
+    ret = ion_free( mIonClient, ion_hnd );
+    if ( 0 != ret )
+        ETRACE( "ion_free( %d ) failed", mIonClient );
     if ( NULL != hnd )
     {
         hnd->share_fd = shared_fd;
-        hnd->ion_hnd = ion_hnd;
         /*TODO ion extend hnd->min_pgsz = min_pgsz; */
         *pHandle = hnd;
         return 0;
     }
     else
     {
-        ETRACE( "Gralloc out of mem for ion_client:%d", module->ion_client );
+        ETRACE( "Gralloc out of mem for ion_client:%d", mIonClient );
     }
 
     close( shared_fd );
@@ -132,13 +134,10 @@ int32_t GE2DComposer::allocBuffer(private_module_t* module, size_t size, int32_t
             ETRACE( "munmap failed for base:%p size: %zd", cpu_ptr, size );
     }
 
-    ret = ion_free( module->ion_client, ion_hnd );
-    if ( 0 != ret )
-        ETRACE( "ion_free( %d ) failed", module->ion_client );
     return -1;
 }
 
-void GE2DComposer::freeBuffer(private_handle_t const* hnd, private_module_t* m)
+void GE2DComposer::freeBuffer(private_handle_t const* hnd, private_module_t* __unused)
 {
     if ( hnd->flags & private_handle_t::PRIV_FLAGS_USES_ION )
     {
@@ -148,7 +147,6 @@ void GE2DComposer::freeBuffer(private_handle_t const* hnd, private_module_t* m)
             if ( 0 != munmap( (void*)hnd->base, hnd->size ) ) ETRACE( "Failed to munmap handle %p", hnd );
         }
         close( hnd->share_fd );
-        if ( 0 != ion_free( m->ion_client, hnd->ion_hnd ) ) ETRACE( "Failed to ion_free( ion_client: %d ion_hnd: %p )", m->ion_client, hnd->ion_hnd );
         memset( (void*)hnd, 0, sizeof( *hnd ) );
     }
 }

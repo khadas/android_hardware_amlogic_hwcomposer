@@ -641,7 +641,6 @@ bool DisplayHdmi::isSecure() {
 
 #if PLATFORM_SDK_VERSION >= 26
     Result rtn = scs->isHDCPTxAuthSuccess();
-    DTRACE("hdcp status: %d", status);
     return  rtn == Result::OK ? true : false;
 #else
     int status = 0;

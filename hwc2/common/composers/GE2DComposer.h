@@ -58,7 +58,7 @@ public:
 
 	private_handle_t const* hnd = private_handle_t::dynamicCast(mBufferHnd);
         if (hnd)
-            mBufferFd = Utils::checkAndDupFd(hnd->ion_hnd);
+            mBufferFd = Utils::checkAndDupFd(hnd->share_fd);
         else
             mBufferFd = -1;
     }
@@ -175,6 +175,7 @@ private:
     Condition mCondition;
     bool mExitThread;
     bool mInitialized;
+    int  mIonClient;
 
 private:
     DECLARE_THREAD(GE2DRenderThread, GE2DComposer);
