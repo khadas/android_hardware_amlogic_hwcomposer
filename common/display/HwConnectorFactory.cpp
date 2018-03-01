@@ -12,16 +12,14 @@
 #include "ConnectorPanel.h"
 
 HwDisplayConnector* HwConnectorFactory::create(
-    drm_connector_type_t connectorType/*,
+    drm_connector_type_t connectorType,
     int32_t connectorDrv,
-    uint32_t connectorId*/) {
+    uint32_t connectorId) {
     switch (connectorType) {
         case DRM_MODE_CONNECTOR_HDMI:
-          return new ConnectorHdmi(/*connectorDrv, connectorId*/);
-            break;
+            return new ConnectorHdmi(connectorDrv, connectorId);
         case DRM_MODE_CONNECTOR_PANEL:
-          return new ConnectorPanel(/*connectorDrv,connectorId*/);
-            break;
+            return new ConnectorPanel(connectorDrv, connectorId);
         case DRM_MODE_CONNECTOR_CVBS:
         default:
             break;

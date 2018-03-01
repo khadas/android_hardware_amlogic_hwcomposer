@@ -19,6 +19,10 @@
 #define AM_VINFO_H_
 #include <sys/types.h>
 
+typedef uint32_t u32;
+typedef unsigned char	   u8;
+
+
 /*
   * !!!ATTENTATION:
   * MOST COPY FROM KERNEL, DONT MODIFY.
@@ -184,9 +188,29 @@ enum tvin_color_fmt_range_e {
 
 typedef uint32_t u32;
 
-/*
-* The commented memebers are not need now.
-*/
+struct hdr_info {
+    u32 hdr_support; /* RX EDID hdr support types */
+    u32 lumi_max; /* RX EDID Lumi Max value */
+    u32 lumi_avg; /* RX EDID Lumi Avg value */
+    u32 lumi_min; /* RX EDID Lumi Min value */
+};
+
+struct vinfo_base_s {
+	enum vmode_e mode;
+	u32 width;
+	u32 height;
+	u32 field_height;
+	u32 aspect_ratio_num;
+	u32 aspect_ratio_den;
+	u32 sync_duration_num;
+	u32 sync_duration_den;
+	u32 screen_real_width;
+	u32 screen_real_height;
+	u32 video_clk;
+	enum tvin_color_fmt_e viu_color_fmt;
+	struct hdr_info hdr_info;
+};
+
 struct vinfo_s {
 	char *name;
 	enum vmode_e mode;
@@ -197,12 +221,12 @@ struct vinfo_s {
 	u32 aspect_ratio_den;
 	u32 sync_duration_num;
 	u32 sync_duration_den;
-//	u32 screen_real_width;
-//	u32 screen_real_height;
+	u32 screen_real_width;
+	u32 screen_real_height;
 	u32 video_clk;
-    enum tvin_color_fmt_e viu_color_fmt;
+	enum tvin_color_fmt_e viu_color_fmt;
 
-//	struct hdr_info hdr_info;
+	struct hdr_info hdr_info;
 //	struct master_display_info_s
 //		master_display_info;
 //	const struct dv_info *dv_info;
@@ -217,5 +241,7 @@ enum vmode_e vmode_name_to_mode(const char *str);
 const struct vinfo_s *get_tv_info(enum vmode_e mode);
 int want_hdmi_mode(enum vmode_e mode);
 const struct vinfo_s * findMatchedMode(u32 width, u32 height, u32 refreshrate);
+int read_vout_info(struct vinfo_base_s * info);
+
 
 #endif //AML_VOUT_H_

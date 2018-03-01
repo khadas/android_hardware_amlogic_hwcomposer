@@ -57,15 +57,10 @@ typedef enum drm_fb_type {
 #define DRM_DISPLAY_MODE_LEN (64)
 
 typedef struct drm_mode_info {
-    uint32_t clock;
-    uint16_t hdisplay, hsync_start, hsync_end, htotal, hskew;
-    uint16_t vdisplay, vsync_start, vsync_end, vtotal, vscan;
-
-    uint32_t vrefresh;
-
-    uint32_t flags;
-    uint32_t type;
     char name[DRM_DISPLAY_MODE_LEN];
+    uint32_t dpiX, dpiY;
+    uint32_t pixelW, pixelH;
+    float refreshRate;
 } drm_mode_info_t;
 
 typedef enum {
@@ -79,6 +74,15 @@ typedef enum {
     DRM_MODE_CONNECTOR_CVBS,
     DRM_MODE_CONNECTOR_PANEL
 } drm_connector_type_t;
+
+typedef struct drm_hdr_capabilities {
+    bool DolbyVisionSupported;
+    bool HDR10Supported;
+
+    int maxLuminance;
+    int avgLuminance;
+    int minLuminance;
+} drm_hdr_capabilities_t;
 
 #define DRM_CONNECTOR_HDMI_NAME "HDMI"
 #define DRM_CONNECTOR_CVBS_NAME "CVBS"

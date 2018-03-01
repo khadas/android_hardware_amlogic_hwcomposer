@@ -11,61 +11,43 @@
 #define _CONNECTORHDMI_H
 #include <HwDisplayConnector.h>
 
-class DisplayConfig;
-
 class ConnectorHdmi : public HwDisplayConnector {
 public:
-    ConnectorHdmi(/*int32_t ConnectorDrv,uint32_t ConnectorId*/);
+    ConnectorHdmi(int32_t drvFd, uint32_t id);
     virtual ~ConnectorHdmi();
 
 public:
-    virtual int init();
     virtual drm_connector_type_t getType();
-    virtual uint32_t getModesCount();
     virtual bool isRemovable();
     virtual bool isConnected();
     virtual bool isSecure() ;
-    virtual KeyedVector<int,DisplayConfig*>  getModesInfo();
+
+    virtual int32_t getModes(std::map<uint32_t, drm_mode_info_t> & modes);
+    virtual void getHdrCapabilities(drm_hdr_capabilities * caps);
+
     virtual void dump(String8& dumpstr);
 
 protected:
- bool isDispModeValid(std::string& dispmode);
+    void loadInfo();
 
-#if PLATFORM_SDK_VERSION >= 26
-    struct SystemControlDeathRecipient : public android::hardware::hidl_death_recipient  {
-        // hidl_death_recipient interface
-        virtual void serviceDied(uint64_t cookie,
-        const ::android::wp<::android::hidl::base::V1_0::IBase>& who) override{};
-    };
-    sp<SystemControlDeathRecipient> mDeathRecipient = nullptr;
-#endif
+    int32_t loadDisplayModes();
+    int32_t addDisplayMode(std::string& mode);
 
-     auto getSystemControlService();
-     sp<ISystemControlService> mSC;
-     status_t readEdidList(std::vector<std::string> &edidlist);
-     status_t readHdmiDispMode(std::string &dispmode);
-     status_t readHdmiPhySize();
-
-    // operations on mSupportDispModes
-    status_t clearSupportedConfigs();
-    status_t updateSupportedConfigs();
-    status_t addSupportedConfig(std::string& mode);
-
-    int32_t parseHdrCapabilities();
+    /*parse hdr info.*/
     int32_t getLineValue(const char *lineStr, const char *magicStr);
+    int32_t parseHdrCapabilities();
+
+protected:
+    bool isDispModeValid(std::string& dispmode);
+
+     status_t readHdmiDispMode(std::string &dispmode);
 
 private:
-    // configures variables.
-    KeyedVector<int, DisplayConfig*> mSupportDispConfigs;
-    sp<ISystemControlService> mSystemControl;
-
     bool mConnected;
     bool mSecure;
+    bool mLoaded;
 
-    int mPhyWidth;
-    int mPhyHeight;
-
-    hdr_dev_capabilities_t mHdrCapabilities;
+    drm_hdr_capabilities mHdrCapabilities;
 };
 
 #endif

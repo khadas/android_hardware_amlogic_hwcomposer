@@ -41,7 +41,7 @@ class Hwc2Display : public HwDisplayObserver {
 public:
     /*Connector releated.*/
     virtual const char * getName();
-    virtual const hdr_capabilities_t * getHdrCapabilities();
+    virtual const drm_hdr_capabilities_t * getHdrCapabilities();
 
     /*Vsync*/
     virtual hwc2_error_t setVsyncEnable(hwc2_vsync_t enabled);
@@ -110,6 +110,7 @@ protected:
 protected:
     std::unordered_map<hwc2_layer_t, std::shared_ptr<Hwc2Layer>> mLayers;
     std::shared_ptr<Hwc2DisplayObserver> mObserver;
+    drm_hdr_capabilities_t mHdrCaps;
 
     /*hw releated components*/
     hw_display_id mHwId;

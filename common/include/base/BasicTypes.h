@@ -23,4 +23,6 @@ using namespace android;
 
 using namespace std;
 
+#define UNUSED(x) (void)x
+
 #endif/*BASIC_TYPES_H*/

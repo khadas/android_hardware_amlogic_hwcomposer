@@ -10,7 +10,6 @@
 #include <MesonLog.h>
 #include "VirtualDisplay.h"
 
-
 #define UNUSED(x) (void)x
 
 VirtualDisplay::VirtualDisplay(uint32_t width, uint32_t height)
@@ -33,7 +32,7 @@ const char * VirtualDisplay::getName() {
     return "Virtual";
 }
 
-const hdr_capabilities_t * VirtualDisplay::getHdrCapabilities() {
+const drm_hdr_capabilities_t * VirtualDisplay::getHdrCapabilities() {
     return NULL;
 }
 

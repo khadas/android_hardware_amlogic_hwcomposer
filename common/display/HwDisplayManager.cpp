@@ -208,15 +208,15 @@ void HwDisplayManager::dump(String8 & dumpstr) {
 #define VIDEO_PLANE_IDX_MIN (40)
 
 int32_t HwDisplayManager::getDrmResources() {
-    /*need load from config.*/
-    count_crtcs = 1;
+    count_crtcs = HWC_CRTC_NUM;
+    count_connectors = count_crtcs;
+
     crtc_ids = new uint32_t [count_crtcs];
     crtc_ids[0] = CRTC_IDX_MIN + 0;
 
     count_connectors = 1;
     connector_ids = new uint32_t [count_connectors];
     connector_ids[0] = CONNECTOR_IDX_MIN + 0;
-
     return 0;
 }
 
@@ -229,15 +229,17 @@ int32_t HwDisplayManager::getCrtc(uint32_t crtcid) {
 }
 
 int32_t HwDisplayManager::getConnector(uint32_t connector_id) {
-    /*TODO: should load config file/or get driver state,
-    *and get connector type by connetor id.
-    */
     drm_connector_type_t connector_type = DRM_MODE_CONNECTOR_HDMI;
-    #if 0
-    XXXX LOAD CONNECTOR TYPE.
-    #endif
+    if (strcasecmp(HWC_PRIMARY_CONNECTOR_TYPE, "hdmi") == 0) {
+        connector_type = DRM_MODE_CONNECTOR_HDMI;
+    } else if (strcasecmp(HWC_PRIMARY_CONNECTOR_TYPE, "cvbs") == 0) {
+        connector_type = DRM_MODE_CONNECTOR_CVBS;
+    } else if (strcasecmp(HWC_PRIMARY_CONNECTOR_TYPE, "panel") == 0) {
+        connector_type = DRM_MODE_CONNECTOR_PANEL;
+    }
+
     HwDisplayConnector* connector = HwConnectorFactory::create(
-            connector_type/*, -1, connector_id*/);
+            connector_type, -1, connector_id);
 
     mConnectors.emplace(connector_id, std::move(connector));
     return 0;

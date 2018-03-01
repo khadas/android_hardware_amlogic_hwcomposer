@@ -19,31 +19,43 @@ include $(LOCAL_PATH)/tvp/Android.mk
 
 include $(CLEAR_VARS)
 
+#those configs will move to board config.
+USE_HWC2 := true
+HWC_CRTC_NUM := 1
+HWC_PRIMARY_CONNECTOR_TYPE := "hdmi"
+WIDTH_PRIMARY_FRAMEBUFFER := 1920
+HEIGHT_PRIMARY_FRAMEBUFFER := 1080
+
+
 LOCAL_MODULE_RELATIVE_PATH := hw
 LOCAL_CPPFLAGS += -std=c++14
 LOCAL_CFLAGS += -DPLATFORM_SDK_VERSION=$(PLATFORM_SDK_VERSION)
 
-USE_HWC2 := true
 
 #HWC API Version Config
-ifeq ($(USE_HWC1),true)
+ifeq ($(USE_HWC1), true)
 LOCAL_CFLAGS += -DENABLE_MESON_HWC1
 endif
 
-ifeq ($(USE_HWC2),true)
+ifeq ($(USE_HWC2), true)
 LOCAL_CFLAGS += -DENABLE_MESON_HWC2
 endif
 
 #FRAMEBUFFER CONFIG
 #define here temply,
-WIDTH_PRIMARY_FRAMEBUFFER := 1920
-HEIGHT_PRIMARY_FRAMEBUFFER := 1080
-
 ifneq ($(WIDTH_PRIMARY_FRAMEBUFFER),)
     LOCAL_CFLAGS += -DWIDTH_PRIMARY_FRAMEBUFFER=$(WIDTH_PRIMARY_FRAMEBUFFER)
 endif
 ifneq ($(HEIGHT_PRIMARY_FRAMEBUFFER),)
     LOCAL_CFLAGS += -DHEIGHT_PRIMARY_FRAMEBUFFER=$(HEIGHT_PRIMARY_FRAMEBUFFER)
+endif
+
+#HWC DISPLAY Config
+ifneq ($(HWC_CRTC_NUM),)
+    LOCAL_CFLAGS += -DHWC_CRTC_NUM=$(HWC_CRTC_NUM)
+endif
+ifneq ($(HWC_PRIMARY_CONNECTOR_TYPE),)
+    LOCAL_CFLAGS += -DHWC_PRIMARY_CONNECTOR_TYPE=\"$(HWC_PRIMARY_CONNECTOR_TYPE)\"
 endif
 
 #HWC Feature Config
@@ -97,6 +109,7 @@ LOCAL_COMMON_DISPLAY_FILES  := \
     common/display/OsdPlane.cpp \
     common/display/VideoPlane.cpp \
     common/display/HwConnectorFactory.cpp \
+    common/display/HwDisplayConnector.cpp \
     common/display/ConnectorHdmi.cpp \
     common/display/ConnectorPanel.cpp \
     common/display/AmVideo.cpp \
@@ -104,6 +117,7 @@ LOCAL_COMMON_DISPLAY_FILES  := \
 
 LOCAL_COMMON_UTILS_FILES  := \
     common/utils/misc.cpp \
+    common/utils/systemcontrol.cpp \
     common/debug/DebugHelper.cpp
 
 LOCAL_COMPOSITION_FILES := \

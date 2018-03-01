@@ -198,14 +198,29 @@ int32_t MesonHwc2::getHdrCapabilities(hwc2_display_t display,
     uint32_t* outNumTypes, int32_t* outTypes, float* outMaxLuminance,
     float* outMaxAverageLuminance, float* outMinLuminance) {
     GET_HWC_DISPLAY(display);
-    const hdr_capabilities_t * caps = hwcDisplay->getHdrCapabilities();
+    const drm_hdr_capabilities_t * caps = hwcDisplay->getHdrCapabilities();
     if (caps) {
-        *outNumTypes = caps->hdrTypesNum;
-        if (outTypes && caps->hdrTypesNum > 0) {
-            int i = 0;
-            for (; i < caps->hdrTypesNum; i ++) {
-                outTypes[i] = caps->hdrTypes[i];
+        bool getInfo = false;
+        if (outTypes)
+            getInfo = true;
+
+        if (caps->DolbyVisionSupported) {
+            *outNumTypes++;
+            if (getInfo) {
+                *outTypes = HAL_HDR_DOLBY_VISION;
             }
+        }
+        if (caps->HDR10Supported) {
+            *outNumTypes++;
+            if (getInfo) {
+                *outTypes = HAL_HDR_HDR10;
+            }
+        }
+
+        if (getInfo) {
+            *outMaxLuminance = caps->maxLuminance;
+            *outMaxAverageLuminance = caps->avgLuminance;
+            *outMinLuminance = caps->minLuminance;
         }
     } else {
         *outNumTypes = 0;

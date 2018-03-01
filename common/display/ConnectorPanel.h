@@ -11,45 +11,17 @@
 #define _CONNECTORPANEL_H
 #include <HwDisplayConnector.h>
 
-class DisplayConfig;
-
 class ConnectorPanel :public HwDisplayConnector {
 public:
-   ConnectorPanel();
+   ConnectorPanel(int32_t drvFd, uint32_t id);
    virtual ~ConnectorPanel();
-   virtual int init();
    virtual drm_connector_type_t getType();
-   virtual uint32_t getModesCount();
    virtual bool isRemovable();
    virtual bool isConnected();
    virtual bool isSecure();
-   virtual KeyedVector<int,DisplayConfig*>getModesInfo();
-   virtual void dump(String8 & dumpstr);
 
-protected:
-   status_t readPhySize();
-   std::string readDispMode(std::string &dispmode);
-#if PLATFORM_SDK_VERSION >= 26
-    struct SystemControlDeathRecipient : public android::hardware::hidl_death_recipient  {
-        // hidl_death_recipient interface
-        virtual void serviceDied(uint64_t cookie,
-        const ::android::wp<::android::hidl::base::V1_0::IBase>& who) override{};
-    };
-    sp<SystemControlDeathRecipient> mDeathRecipient = nullptr;
-#endif
-     auto getSystemControlService();
-
-private:
-    sp<ISystemControlService> mSC;
-    KeyedVector<int, DisplayConfig*> mSupportDispConfigs;
-
-    std::string mDisplayMode;
-    DisplayConfig *mconfig;
-
-    int mPhyWidth;
-    int mPhyHeight;
-
-    hdr_dev_capabilities_t mHdrCapabilities;
+    virtual void getHdrCapabilities(drm_hdr_capabilities * caps);
+    virtual void dump(String8 & dumpstr);
 };
 
 

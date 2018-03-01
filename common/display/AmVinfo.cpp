@@ -23,8 +23,24 @@
 
 #include "AmVinfo.h"
 #include <string.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <errno.h>
+#include <unistd.h>
+
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
+#define VOUT_DEV "/dev/display"
+
+/* vout_ioctl */
+#define VOUT_IOC_TYPE            'C'
+#define VOUT_IOC_NR_GET_VINFO    0x0
+#define VOUT_IOC_NR_SET_VINFO    0x1
+#define VOUT_IOC_CMD_GET_VINFO   \
+		_IOR(VOUT_IOC_TYPE, VOUT_IOC_NR_GET_VINFO, struct vinfo_base_s)
+#define VOUT_IOC_CMD_SET_VINFO   \
+		_IOW(VOUT_IOC_TYPE, VOUT_IOC_NR_SET_VINFO, struct vinfo_base_s)
+
 /*
 *                COPY FROM Vinfo.c
 */
@@ -920,11 +936,29 @@ int want_hdmi_mode(enum vmode_e mode)
 const struct vinfo_s * findMatchedMode(u32 width, u32 height, u32 refreshrate) {
 	int i = 0;
 	for (i = 0; i < ARRAY_SIZE(tv_info); i++) {
-            if (tv_info[i].width == width && tv_info[i].height == height &&
-                tv_info[i].field_height == height && tv_info[i].sync_duration_num == refreshrate) {
-                return &(tv_info[i]);
-            }
+		if (tv_info[i].width == width && tv_info[i].height == height &&
+			tv_info[i].field_height == height && tv_info[i].sync_duration_num == refreshrate) {
+		return &(tv_info[i]);
+		}
 	}
 	return NULL;
+}
+
+int read_vout_info(struct vinfo_base_s * info) {
+	if (!info)
+		return -ENOBUFS;
+
+	int voutdev = open(VOUT_DEV, O_RDONLY);
+	if (voutdev < 0) {
+		return -EBADFD;
+	}
+
+	if (ioctl(voutdev, VOUT_IOC_CMD_GET_VINFO, (unsigned long)info) != 0) {
+		close(voutdev);
+		return -EINVAL;
+	}
+
+	close(voutdev);
+	return 0;
 }
 

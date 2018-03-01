@@ -26,6 +26,8 @@ public:
 
     const char * getName();
 
+    void setConnector(std::shared_ptr<HwDisplayConnector>& connector);
+
     hwc2_error_t  getDisplayConfigs(
         uint32_t* outNumConfigs, hwc2_config_t* outConfigs);
     hwc2_error_t  getDisplayAttribute(
@@ -33,12 +35,16 @@ public:
     hwc2_error_t getActiveConfig(hwc2_config_t* outConfig);
     hwc2_error_t setActiveConfig(hwc2_config_t config);
 
+    void dump(String8 & dumpstr);
+
 protected:
+    float mRefreshRate;
     uint32_t mDisplayWidth;
     uint32_t mDisplayHeight;
-    uint32_t mRefreshRate;
     uint32_t mDpiX;
     uint32_t mDpiY;
+
+    std::shared_ptr<HwDisplayConnector> mConnector;
 };
 
 #endif/*FIXED_SIZE_MODE_MGR_H*/

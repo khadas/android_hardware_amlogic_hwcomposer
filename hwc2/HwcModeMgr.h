@@ -23,7 +23,8 @@ public:
     HwcModeMgr() {}
     virtual ~HwcModeMgr() {}
 
-    virtual const char * getName();
+    virtual const char * getName() = 0;
+    virtual void setConnector(std::shared_ptr<HwDisplayConnector> &connector) = 0;
 
     virtual hwc2_error_t  getDisplayConfigs(
         uint32_t* outNumConfigs, hwc2_config_t* outConfigs) = 0;
@@ -31,6 +32,8 @@ public:
         hwc2_config_t config, int32_t attribute, int32_t* outValue) = 0;
     virtual hwc2_error_t getActiveConfig(hwc2_config_t* outConfig) = 0;
     virtual hwc2_error_t setActiveConfig(hwc2_config_t config) = 0;
+
+    virtual void dump(String8 & dumpstr) = 0;
 };
 
 std::shared_ptr<HwcModeMgr> createModeMgr(std::shared_ptr<HwDisplayConnector>& connector);

@@ -20,9 +20,10 @@ FixedSizeModeMgr::FixedSizeModeMgr() {
         "WIDTH_PRIMARY_FRAMEBUFFER and WIDTH_PRIMARY_FRAMEBUFFER.");
 #endif
 
-    mRefreshRate = 60;
-    mDpiX = 160;
-    mDpiY = 160;
+    //how to get those info.
+    mRefreshRate = 60.0;
+    mDpiX = 161;
+    mDpiY = 161;
 }
 
 FixedSizeModeMgr::~FixedSizeModeMgr() {
@@ -31,6 +32,27 @@ FixedSizeModeMgr::~FixedSizeModeMgr() {
 
 const char * FixedSizeModeMgr::getName() {
     return "FixedSizeMode";
+}
+
+void FixedSizeModeMgr::setConnector(
+    std::shared_ptr<HwDisplayConnector>& connector) {
+    MESON_LOGD("Update connector to (%d)", connector->getType());
+    mConnector = connector;
+}
+
+void FixedSizeModeMgr::dump(String8 & dumpstr) {
+    dumpstr.append("   CONFIG   |   VSYNC_PERIOD   |   WIDTH   |   HEIGHT   |"
+        "   DPI_X   |   DPI_Y   \n");
+    dumpstr.append("------------+------------------+-----------+------------+"
+        "-----------+-----------\n");
+    dumpstr.appendFormat("     %2d     |      %.3f      |   %5d   |   %5d    |"
+        "    %3d    |    %3d    \n",
+         0,
+         mRefreshRate,
+         mDisplayWidth,
+         mDisplayHeight,
+         mDpiX,
+         mDpiY);
 }
 
 hwc2_error_t  FixedSizeModeMgr::getDisplayConfigs(

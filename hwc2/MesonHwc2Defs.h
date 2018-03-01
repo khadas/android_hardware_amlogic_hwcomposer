@@ -18,12 +18,5 @@
 #define MESON_VIRTUAL_DISPLAY_MAX_DIMENSION (1920)
 #define MESON_PHYSCIAL_DISPLAY_MAX_DIMENSION (1920)
 
-typedef struct hdr_capabilities {
-    android_hdr_t * hdrTypes;
-    int hdrTypesNum;
-    int maxLuminance;
-    int avgLuminance;
-    int minLuminance;
-} hdr_capabilities_t;
 
  #endif/*MESON_HWC2_DEFS_H*/

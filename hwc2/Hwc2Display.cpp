@@ -7,6 +7,7 @@
  * Description:
  */
 #include <hardware/hwcomposer2.h>
+#include <inttypes.h>
 
 #include "Hwc2Display.h"
 #include "Hwc2Base.h"
@@ -22,6 +23,7 @@ Hwc2Display::Hwc2Display(hw_display_id dspId,
     std::shared_ptr<Hwc2DisplayObserver> observer) {
     mHwId = dspId;
     mObserver = observer;
+    memset(&mHdrCaps, 0, sizeof(mHdrCaps));
 }
 
 Hwc2Display::~Hwc2Display() {
@@ -46,6 +48,9 @@ int32_t Hwc2Display::initialize() {
         HwDisplayManager::getInstance().getCrtc(mHwId, mCrtc);
         HwDisplayManager::getInstance().getPlanes(mHwId, mPlanes);
         HwDisplayManager::getInstance().getConnector(mHwId, mConnector);
+
+        mModeMgr = createModeMgr(mConnector);
+        mConnector->getHdrCapabilities(&mHdrCaps);
      }
 
     /*add valid composers*/
@@ -83,9 +88,8 @@ const char * Hwc2Display::getName() {
     return NULL;
 }
 
-const hdr_capabilities_t * Hwc2Display::getHdrCapabilities() {
-    MESON_LOG_EMPTY_FUN();
-    return NULL;
+const drm_hdr_capabilities_t * Hwc2Display::getHdrCapabilities() {
+    return &mHdrCaps;
 }
 
 hwc2_error_t Hwc2Display::setVsyncEnable(hwc2_vsync_t enabled) {
@@ -110,7 +114,14 @@ void Hwc2Display::onHotplug(bool connected) {
    * when external display plug in/out,
    * the planes for each display may change.
    */
-    HwDisplayManager::getInstance().getPlanes(mHwId, mPlanes);
+    if (connected) {
+        HwDisplayManager::getInstance().getPlanes(mHwId, mPlanes);
+        HwDisplayManager::getInstance().getConnector(mHwId, mConnector);
+        mModeMgr->setConnector(mConnector);
+        mConnector->getHdrCapabilities(&mHdrCaps);
+    } else {
+        MESON_LOG_EMPTY_FUN();
+    }
 }
 
 void Hwc2Display::onModeChanged() {
@@ -134,24 +145,30 @@ hwc2_error_t Hwc2Display::createLayer(hwc2_layer_t * outLayer) {
 }
 
 hwc2_error_t Hwc2Display::destroyLayer(hwc2_layer_t  inLayer) {
-    MESON_LOGD("destoryLayer (%x)", inLayer);
+    MESON_LOGD("destoryLayer (%" PRId64 ")", inLayer);
     mLayers.erase(inLayer);
     return HWC2_ERROR_NONE;
 }
 
 hwc2_error_t Hwc2Display::setCursorPosition(hwc2_layer_t layer,
     int32_t x, int32_t y) {
+    UNUSED(layer);
+    UNUSED(x);
+    UNUSED(y);
     MESON_LOG_EMPTY_FUN();
     return HWC2_ERROR_NONE;
 }
 
 hwc2_error_t Hwc2Display::setColorTransform(const float* matrix,
     android_color_transform_t hint) {
+    UNUSED(matrix);
+    UNUSED(hint);
     MESON_LOG_EMPTY_FUN();
     return HWC2_ERROR_NONE;
 }
 
 hwc2_error_t Hwc2Display::setPowerMode(hwc2_power_mode_t mode) {
+    UNUSED(mode);
     MESON_LOG_EMPTY_FUN();
     return HWC2_ERROR_NONE;
 }
@@ -508,14 +525,25 @@ hwc2_error_t Hwc2Display::updateDisplayAttribute() {
 }
 
 void Hwc2Display::dump(String8 & dumpstr) {
-    dumpstr.append("-------------------------------------------------------------"
-        "----------------------------------------------------------------\n");
-    dumpstr.appendFormat("Display (%s, %d) state:\n", getName(), mHwId);
+    dumpstr.append("---------------------------------------------------------"
+        "-----------------------\n");
+    dumpstr.appendFormat("Display (%s, %d, %s) state:\n",
+        getName(), mHwId, mModeMgr->getName());
 
-    mConnector->dump(dumpstr);
+    mModeMgr->dump(dumpstr);
 
-    // if (DebugHelper::getInstance().dumpDetailInfo()) {
-    if (true) {
+    // HDR info
+    dumpstr.append("  HDR Capabilities:\n");
+    dumpstr.appendFormat("    DolbyVision1=%d\n",
+        mHdrCaps.DolbyVisionSupported ?  1 : 0);
+    dumpstr.appendFormat("    HDR10=%d, maxLuminance=%d,"
+        "avgLuminance=%d, minLuminance=%d\n",
+        mHdrCaps.HDR10Supported ? 1 : 0,
+        mHdrCaps.maxLuminance,
+        mHdrCaps.avgLuminance,
+        mHdrCaps.minLuminance);
+
+     if (DebugHelper::getInstance().dumpDetailInfo()) {
         std::vector<std::shared_ptr<HwDisplayPlane>>::iterator plane;
         dumpstr.append(" Plane |  Comp Type |  z  | t |        Src Crop        |         DstFrame        | fd "
                 "| format |  bs  |  ps  | blend | alpha |  op  |    afbc    |\n");

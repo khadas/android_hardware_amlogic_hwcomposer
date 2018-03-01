@@ -17,7 +17,7 @@ class VirtualDisplay : public Hwc2Display {
 public:
     /*Connector releated.*/
     const char * getName();
-    const hdr_capabilities_t * getHdrCapabilities();
+    const drm_hdr_capabilities_t * getHdrCapabilities();
 
     /*Vsync*/
     hwc2_error_t setVsyncEnable(hwc2_vsync_t enabled);
