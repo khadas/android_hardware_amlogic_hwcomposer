@@ -50,7 +50,7 @@
 namespace android {
 namespace amlogic {
 
-static int hwc2_device_close(struct hw_device_t *dev)
+static int hwc2_device_close(struct hw_device_t *dev __unused)
 {
     CTRACE();
     Hwcomposer::releaseInstance();
