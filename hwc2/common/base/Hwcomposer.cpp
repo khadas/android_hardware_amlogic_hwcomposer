@@ -880,7 +880,7 @@ static hwc2_function_pointer_t asFP(T function)
     return reinterpret_cast<hwc2_function_pointer_t>(function);
 }
 
-void Hwcomposer::vsync(int disp __unused, int64_t timestamp) {
+void Hwcomposer::vsync(int disp, int64_t timestamp) {
     RETURN_VOID_IF_NOT_INIT();
 
     if (pfnVsync) {

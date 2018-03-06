@@ -29,7 +29,6 @@
 #include <tvp/OmxUtil.h>
 #include <framebuffer.h>
 #include <AmVideo.h>
-#include <systemcontrol/DisplayMode.h>
 
 #define FB_IOC_MAGIC   'O'
 //#define HWC_SUPPORT_SECURE_DISPLAY 1
@@ -39,22 +38,20 @@ namespace android {
 namespace amlogic {
 
 PhysicalDevice::PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc, IComposeDeviceFactory* controlFactory)
-    : mStartBootanim(true),
-      mId(id),
-      mSecure(false),
-      mHDCPRegister(true),
+    : mId(id),
       mHwc(hwc),
       mControlFactory(controlFactory),
-      //mSystemControl(NULL),
       mVsyncObserver(NULL),
-      mComposer(NULL),
+      mConnectorPresent(false),
+      mSecure(false),
+      mHDCPRegister(true),
       mFramebufferHnd(NULL),
+      mSystemControl(NULL),
       mFbSlot(0),
+      mComposer(NULL),
+      mPriorFrameRetireFence(-1),
       mClientTargetHnd(NULL),
       mTargetAcquireFence(-1),
-      mGE2DComposeFrameCount(0),
-      mDirectComposeFrameCount(0),
-      mPriorFrameRetireFence(-1),
       mRenderMode(GLES_COMPOSE_MODE),
       mPreviousRenderMode(GLES_COMPOSE_MODE),
       mIsValidated(false),
@@ -62,10 +59,12 @@ PhysicalDevice::PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc, IComposeDevic
       mDirectRenderLayerId(0),
       mVideoOverlayLayerId(0),
       mGE2DClearVideoRegionCount(0),
-      mInitialized(false),
+      mGE2DComposeFrameCount(0),
+      mDirectComposeFrameCount(0),
       mGetInitState(false),
-      mConnectorPresent(false),
+      mInitialized(false),
       mOmxVideoHandle(0),
+      mStartBootanim(true),
       mVideoLayerOpenByOMX(false) {
     CTRACE();
 
@@ -294,7 +293,7 @@ bool PhysicalDevice::destroyLayer(hwc2_layer_t layerId) {
     DTRACE("::destroyLayer layerId %lld, size: [%d].\n", layerId, mHwcLayers.size());
 
     if (layer == NULL) {
-        ETRACE("destroyLayer: no Hwclayer found (%ld)",(long) layerId);
+        ETRACE("destroyLayer: no Hwclayer found (%d)", layerId);
         return false;
     }
 
@@ -422,7 +421,7 @@ int32_t PhysicalDevice::getDisplayAttribute(
     Mutex::Autolock _l(mLock);
 
     if (!mConnectorPresent) {
-        ETRACE("display %ld is not connected.", (long)mId);
+        ETRACE("display %d is not connected.", mId);
     }
 
     int ret = mDisplayHdmi->getDisplayAttribute(config, attribute, outValue);
@@ -441,13 +440,13 @@ int32_t PhysicalDevice::getDisplayConfigs(
 }
 
 int32_t PhysicalDevice::getDisplayName(
-    uint32_t* outSize __unused,
-    char* outName __unused) {
+    uint32_t* outSize,
+    char* outName) {
     return HWC2_ERROR_NONE;
 }
 
 int32_t PhysicalDevice::getDisplayRequests(
-    int32_t* /*hwc2_display_request_t*/ outDisplayRequests __unused,
+    int32_t* /*hwc2_display_request_t*/ outDisplayRequests,
     uint32_t* outNumElements,
     hwc2_layer_t* outLayers,
     int32_t* /*hwc2_layer_request_t*/ outLayerRequests) {
@@ -506,7 +505,7 @@ int32_t PhysicalDevice::getDisplayType(
 }
 
 int32_t PhysicalDevice::getDozeSupport(
-    int32_t* outSupport __unused) {
+    int32_t* outSupport) {
     return HWC2_ERROR_NONE;
 }
 
@@ -519,7 +518,7 @@ int32_t PhysicalDevice::getHdrCapabilities(
 
     Mutex::Autolock _l(mLock);
     if (!mConnectorPresent) {
-        ETRACE("disp: %ld is not connected", (long)mId);
+        ETRACE("disp: %llu is not connected", mId);
         return HWC2_ERROR_BAD_DISPLAY;
     }
 
@@ -569,7 +568,7 @@ void PhysicalDevice::swapReleaseFence() {
 
 void PhysicalDevice::addReleaseFence(hwc2_layer_t layerId, int32_t fenceFd) {
     ssize_t idx = mHwcCurReleaseFences->indexOfKey(layerId);
-    if (idx >= 0 && idx < (long)mHwcCurReleaseFences->size()) {
+    if (idx >= 0 && idx < mHwcCurReleaseFences->size()) {
         int32_t oldFence = mHwcCurReleaseFences->valueAt(idx);
         String8 mergeName("hwc-release");
         int32_t newFence = HwcFenceControl::merge(mergeName, oldFence, fenceFd);
@@ -587,7 +586,7 @@ void PhysicalDevice::clearFenceList(KeyedVector<hwc2_layer_t, int32_t> * fenceLi
     if (!fenceList || !fenceList->size())
         return;
 
-    for (int i = 0; i < (int)fenceList->size(); i++) {
+    for (int i = 0; i < fenceList->size(); i++) {
         int32_t fenceFd = fenceList->valueAt(i);
         HwcFenceControl::closeFd(fenceFd);
         DTRACE("clearFenceList close fd %d\n", fenceFd);
@@ -601,10 +600,10 @@ void PhysicalDevice::dumpFenceList(KeyedVector<hwc2_layer_t, int32_t> * fenceLis
         return;
 
     String8 resultStr("dumpFenceList: ");
-    for (int i = 0; i < (int)fenceList->size(); i++) {
+    for (int i = 0; i < fenceList->size(); i++) {
         hwc2_layer_t layerId = fenceList->keyAt(i);
         int32_t fenceFd = fenceList->valueAt(i);
-        resultStr.appendFormat("(%ld, %d), ", (long)layerId, fenceFd);
+        resultStr.appendFormat("(%lld, %d), ", layerId, fenceFd);
     }
 
     ETRACE("%s", resultStr.string());
@@ -626,7 +625,7 @@ int32_t PhysicalDevice::getReleaseFences(
     return HWC2_ERROR_NONE;
 }
 
-void PhysicalDevice::directCompose(framebuffer_info_t * fbInfo __unused) {
+void PhysicalDevice::directCompose(framebuffer_info_t * fbInfo) {
     HwcLayer* layer = NULL;
     ssize_t idx = mHwcLayers.indexOfKey(mDirectRenderLayerId);
     if (idx >= 0) {
@@ -843,7 +842,7 @@ bool PhysicalDevice::updateCursorBuffer() {
     void *cbuffer;
 
     for (uint32_t i=0; i<mHwcLayers.size(); i++) {
-        //hwc2_layer_t layerId = mHwcLayers.keyAt(i);
+        hwc2_layer_t layerId = mHwcLayers.keyAt(i);
         layer = mHwcLayers.valueAt(i);
         if (layer && layer->getCompositionType()== HWC2_COMPOSITION_CURSOR) {
             private_handle_t *hnd = private_handle_t::dynamicCast(layer->getBufferHandle());
@@ -863,7 +862,7 @@ bool PhysicalDevice::updateCursorBuffer() {
                     uint32_t irow = 0;
                     char* cpyDst = (char*)cbuffer;
                     char* cpySrc = (char*)hnd->base;
-                    for (irow = 0; (int)irow < hnd->height; irow++) {
+                    for (irow = 0; irow < hnd->height; irow++) {
                         memcpy(cpyDst, cpySrc, 4 * hnd->width);
                         cpyDst += 4 * hnd->stride;
                         cpySrc += 4 * hnd->stride;
@@ -882,7 +881,7 @@ bool PhysicalDevice::updateCursorBuffer() {
 
 void PhysicalDevice::setOsdMouse()
 {
-    //bool ret = true;
+    bool ret = true;
     char cur_mode[MODE_LEN] = {0};
     Utils::getSysfsStr(SYSFS_DISPLAY_MODE, cur_mode);
     DTRACE("set osd mouse mode: %s", cur_mode);
@@ -1018,7 +1017,7 @@ int32_t PhysicalDevice::setActiveConfig(
 int32_t PhysicalDevice::setClientTarget(
         buffer_handle_t target,
         int32_t acquireFence,
-        int32_t /*android_dataspace_t*/ dataspace __unused,
+        int32_t /*android_dataspace_t*/ dataspace,
         hwc_region_t damage) {
 
     if (target && private_handle_t::validate(target) < 0) {
@@ -1039,13 +1038,13 @@ int32_t PhysicalDevice::setClientTarget(
 }
 
 int32_t PhysicalDevice::setColorMode(
-    int32_t /*android_color_mode_t*/ mode __unused) {
+    int32_t /*android_color_mode_t*/ mode) {
     return HWC2_ERROR_NONE;
 }
 
 int32_t PhysicalDevice::setColorTransform(
-    const float* matrix __unused,
-    int32_t /*android_color_transform_t*/ hint __unused) {
+    const float* matrix,
+    int32_t /*android_color_transform_t*/ hint) {
     return HWC2_ERROR_NONE;
 }
 
@@ -1110,7 +1109,7 @@ bool PhysicalDevice::layersStateCheck(int32_t renderMode,
     private_handle_t const* hnd[HWC2_MAX_LAYERS] = { NULL };
     hwc_rect_t displayFrame[HWC2_MAX_LAYERS];
 
-    for (int32_t i = 0; i < (int)layerNum; i++) {
+    for (int32_t i=0; i<layerNum; i++) {
         layer[i] = composeLayers.valueAt(i);
         sourceCrop[i] = layer[i]->getSourceCrop();
         displayFrame[i] = layer[i]->getDisplayFrame();
@@ -1321,7 +1320,7 @@ int32_t PhysicalDevice::preValidate() {
         hwc2_layer_t layerId = mHwcLayers.keyAt(i);
         layer = mHwcLayers.valueAt(i);
         if (!layer) {
-            ETRACE("Meet empty layer, id(%ld)", (long)layerId);
+            ETRACE("Meet empty layer, id(%lld)", layerId);
             continue;
         }
 
@@ -1386,7 +1385,7 @@ int32_t PhysicalDevice::finishCompose() {
     HwcLayer* layer = NULL;
     // reset layers' acquire fence.
     for (uint32_t i=0; i<mHwcLayers.size(); i++) {
-        //hwc2_layer_t layerId = mHwcLayers.keyAt(i);
+        hwc2_layer_t layerId = mHwcLayers.keyAt(i);
         layer = mHwcLayers.valueAt(i);
         if (layer != NULL) {
             layer->resetAcquireFence();
@@ -1528,7 +1527,7 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
     }
 
     // DEVICE_COMPOSE layers set to CLIENT_COMPOSE layers.
-    for (int i = 0; i < (int)composeLayers.size(); i++) {
+    for (int i=0; i<composeLayers.size(); i++) {
         mHwcLayersChangeType.add(composeLayers.keyAt(i), composeLayers.valueAt(i));
         mHwcGlesLayers.add(composeLayers.keyAt(i), composeLayers.valueAt(i));
     }
@@ -1585,7 +1584,7 @@ int32_t PhysicalDevice::initDisplay() {
         // init information from osd.
         fbInfo->displayType = mId;
         fbInfo->fbIdx = getOsdIdx(mId);
-        init_frame_buffer_locked(fbInfo);
+        int32_t err = init_frame_buffer_locked(fbInfo);
         int32_t bufferSize = fbInfo->finfo.line_length
             * fbInfo->info.yres;
         DTRACE("init_frame_buffer get fbinfo->fbIdx (%d) "
@@ -1654,7 +1653,7 @@ bool PhysicalDevice::updateDisplayConfigs() {
     if (mConnectorPresent) {
         updateActiveDisplayAttribute();
     } else {
-        ETRACE("disp: %ld is not connected, should change mode to null", (long)mId);
+        ETRACE("disp: %llu is not connected, should change mode to null", mId);
         // mDisplayHdmi->setBestDisplayMode();
         return false;
     }
@@ -1701,22 +1700,22 @@ void PhysicalDevice::onHotplug(int disp, bool connected) {
 }
 
 int32_t PhysicalDevice::createVirtualDisplay(
-        uint32_t width __unused,
-        uint32_t height __unused,
-        int32_t* /*android_pixel_format_t*/ format __unused,
-        hwc2_display_t* outDisplay __unused) {
+        uint32_t width,
+        uint32_t height,
+        int32_t* /*android_pixel_format_t*/ format,
+        hwc2_display_t* outDisplay) {
 
     return HWC2_ERROR_NONE;
 }
 
 int32_t PhysicalDevice::destroyVirtualDisplay(
-        hwc2_display_t display __unused) {
+        hwc2_display_t display) {
 
     return HWC2_ERROR_NONE;
 }
 
 int32_t PhysicalDevice::setOutputBuffer(
-        buffer_handle_t buffer __unused, int32_t releaseFence __unused) {
+        buffer_handle_t buffer, int32_t releaseFence) {
     // Virtual Display Only.
     return HWC2_ERROR_NONE;
 }

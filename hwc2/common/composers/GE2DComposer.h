@@ -33,9 +33,9 @@ namespace amlogic {
 class LayerState {
 public:
     LayerState()
-    : mBlendMode(0),
+    : mBufferHnd(NULL),
+      mBlendMode(0),
       mTransform(0),
-      mBufferHnd(NULL),
       mBufferFd(-1) {
     }
 
@@ -97,8 +97,8 @@ public:
     ~SlotInfo() {
     }
 
-    int32_t getSlot() const { return mSlot; };
-    int32_t getMergedFence() const { return mFence; };
+    const int32_t getSlot() const { return mSlot; };
+    const int32_t getMergedFence() const { return mFence; };
     const Vector< LayerState* > getLayersState() const { return mLayersState; };
 
     int32_t mSlot;
@@ -126,7 +126,7 @@ public:
     virtual const char* getName() const;
     virtual int32_t startCompose(Vector< hwc2_layer_t > hwcLayers, int32_t *offset = 0, int32_t frameCount = 0);
     // virtual void setCurGlesFbSlot(uint32_t slot);
-    virtual buffer_handle_t getBufHnd();
+    virtual const buffer_handle_t getBufHnd();
     virtual void mergeRetireFence(int32_t slot, int32_t retireFence);
     virtual void removeRetireFence(int32_t slot);
     virtual void setVideoOverlayLayerId(hwc2_layer_t layerId);

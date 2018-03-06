@@ -107,8 +107,8 @@ void DisplayHdmi::reset() {
 
 bool DisplayHdmi::updateHotplug(bool connected,
         framebuffer_info_t& framebufferInfo) {
-    //bool ret = true;
-    //int32_t rate;
+    bool ret = true;
+    int32_t rate;
     mConnected = connected;
 
     if (!connected) {
@@ -275,7 +275,7 @@ status_t DisplayHdmi::setBestDisplayMode() {
     return NO_ERROR;
 }
 
-void DisplayHdmi::switchRatePolicy(bool fracRatePolicy __unused) {
+void DisplayHdmi::switchRatePolicy(bool fracRatePolicy) {
 /*
 TODO: need add new api for hdmi frac rate policy.
 */
@@ -611,7 +611,7 @@ int DisplayHdmi::readEdidList(std::vector<std::string>& edidlist) {
 #endif
 }
 
-int DisplayHdmi::readBestHdmiOutputMode(std::string &dispmode __unused) {
+int DisplayHdmi::readBestHdmiOutputMode(std::string &dispmode) {
 #if 0
     auto scs = getSystemControlService();
     if (scs == NULL) {

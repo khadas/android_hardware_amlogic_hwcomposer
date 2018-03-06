@@ -33,7 +33,7 @@
 #include <hardware/hwcomposer.h>
 #include <Hwcomposer.h>
 #include <Utils.h>
-//#include <ISystemControlService.h>
+#include <ISystemControlService.h>
 #include <gui/SurfaceComposerClient.h>
 #include <AmVinfo.h>
 #include <framebuffer.h>
@@ -177,8 +177,8 @@ private:
 #if PLATFORM_SDK_VERSION >= 26
     struct SystemControlDeathRecipient : public android::hardware::hidl_death_recipient  {
         // hidl_death_recipient interface
-        virtual void serviceDied(uint64_t cookie __unused,
-        const ::android::wp<::android::hidl::base::V1_0::IBase>& who __unused) override{};
+        virtual void serviceDied(uint64_t cookie,
+        const ::android::wp<::android::hidl::base::V1_0::IBase>& who) override{};
     };
     sp<SystemControlDeathRecipient> mDeathRecipient = nullptr;
 #endif
