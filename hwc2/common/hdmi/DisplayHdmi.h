@@ -81,7 +81,7 @@ public:
     {}
 public:
     std::string getDisplayMode() const { return mDisplayMode; };
-    float getRefreshRate() const {
+    float getFracRefreshRate() const {
         float actualRate = 0.0f;
 
         if (mRefreshRate) {
@@ -93,6 +93,7 @@ public:
         }
         return actualRate;
     };
+    int getRefreshRate() const { return mRefreshRate; };
     int getWidth() const { return mWidth; };
     int getHeight() const { return mHeight; };
     int getDpiX() const { return mDpiX; };
@@ -129,9 +130,10 @@ public:
     status_t getRealActiveConfig(hwc2_config_t* outConfig);
     status_t setActiveConfig(int modeId);
     // int setPowerMode(int power) {return 0;};
-    int getDisplayWorkMode() const { return mWorkMode; };
 
-    inline bool isConnected() {return mConnected;};
+    inline bool isConnected() { return mConnected; };
+    inline void updateState(bool connected) { mConnected = connected; };
+
     bool chkPresent();
 
     bool isSecure();
@@ -154,7 +156,7 @@ protected:
 
     // operations on mSupportDispModes
     status_t clearSupportedConfigs();
-    status_t updateSupportedConfigs();
+    status_t updateSupportedConfigs(std::string &activemode);
     status_t readDisplayPhySize();
     status_t addSupportedConfig(std::string& mode);
 

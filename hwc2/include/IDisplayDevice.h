@@ -118,7 +118,7 @@ public:
 
     // events
     virtual void onVsync(int64_t timestamp) = 0;
-    virtual void onHotplug(int disp, bool connected) = 0;
+    virtual void onHotplug(int disp, bool connected, bool modeSwitch = false) = 0;
     virtual void dump(Dump& d) = 0;
 
 };

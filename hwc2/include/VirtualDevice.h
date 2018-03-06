@@ -93,7 +93,7 @@ public:
 
     //events
     virtual void onVsync(int64_t timestamp);
-    virtual void onHotplug(int disp, bool connected);
+    virtual void onHotplug(int disp, bool connected, bool modeSwitch = false);
     virtual void dump(Dump& d);
 
 private:

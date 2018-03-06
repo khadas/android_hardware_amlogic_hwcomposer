@@ -65,6 +65,7 @@ PhysicalDevice::PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc, IComposeDevic
       mInitialized(false),
       mGetInitState(false),
       mConnectorPresent(false),
+      mModeSwitch(false),
       mOmxVideoHandle(-1),
       mVideoLayerOpenByOMX(false) {
     CTRACE();
@@ -316,7 +317,7 @@ int32_t PhysicalDevice::getActiveConfig(
     hwc2_config_t* outConfig) {
     Mutex::Autolock _l(mLock);
 
-    return mDisplayHdmi->getActiveConfig(outConfig);
+    return mDisplayHdmi->getRealActiveConfig(outConfig);
 }
 
 int32_t PhysicalDevice::getChangedCompositionTypes(
@@ -1729,22 +1730,21 @@ void PhysicalDevice::onVsync(int64_t timestamp) {
     mHwc.vsync(mId, timestamp);
 }
 
-void PhysicalDevice::onHotplug(int disp, bool connected) {
+void PhysicalDevice::onHotplug(int disp __unused, bool connected, bool modeSwitch) {
     RETURN_VOID_IF_NOT_INIT();
     ETRACE("connect status = (%d)", connected);
 
-    if (!mGetInitState) {
-        mGetInitState = true;
-        if (mDisplayHdmi->chkPresent()) {
-            updateHotplugState(true);
-        }
+    mModeSwitch = modeSwitch;
+    updateHotplugState(connected);
+
+    if (connected && !updateDisplayConfigs()) {
+        ETRACE("failed to update display config");
+        return;
     }
 
-    if (!updateDisplayConfigs())
-        ETRACE("failed to update display config");
-
+    // can not send hotplug to sf now.
     // notify hwc
-    if (connected)
+    if (connected && !modeSwitch)
         mHwc.hotplug(disp, connected);
 }
 
@@ -1773,6 +1773,7 @@ void PhysicalDevice::updateHotplugState(bool connected) {
     Mutex::Autolock _l(mLock);
 
     mConnectorPresent = connected;
+    mDisplayHdmi->updateState(connected);
     // if plug out, need reinit
     if (!connected)
         memset(&mHdrCapabilities, 0, sizeof(hdr_capabilities_t));

@@ -430,7 +430,7 @@ void VirtualDevice::onVsync(int64_t timestamp __unused) {
     // dont need implement now.
 }
 
-void VirtualDevice::onHotplug(int disp __unused, bool connected __unused) {
+void VirtualDevice::onHotplug(int disp __unused, bool connected __unused, bool modeSwitch __unused) {
     // dont need implement now.
 }
 

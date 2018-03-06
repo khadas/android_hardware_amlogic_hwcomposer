@@ -51,7 +51,7 @@ private:
 
     static void hotplugEventListener(void *data, bool status);
     static void modeChangeEventListener(void *data, bool status);
-    void hotplugListener(bool connected);
+    void hotplugListener(bool connected, bool modeSwitch);
     int parseConfigFile();
 
     const char* pConfigPath;

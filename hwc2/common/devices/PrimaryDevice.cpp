@@ -77,17 +77,18 @@ void PrimaryDevice::deinitialize()
 
 void PrimaryDevice::hotplugEventListener(void *data, bool status)
 {
-    DTRACE("HDMI Plug State[%s]", status == true ? "Plug" : "UnPlug");
+    ETRACE("HDMI Plug State[%s]", status == true ? "Plug" : "UnPlug");
     PrimaryDevice *pThis = (PrimaryDevice*)data;
     if (pThis) {
-        pThis->mSignalHpd = status;
+        pThis->hotplugListener(false, false);
+        if (status) pThis->mSignalHpd = true;
     }
 }
 
 void PrimaryDevice::modeChangeEventListener(void *data, bool status)
 {
     PrimaryDevice *pThis = (PrimaryDevice*)data;
-    DTRACE("mode state: [%s] display mode.", status == true ? "Begin to change" : "Complete");
+    ETRACE("mode state: [%s] display mode.", status == true ? "Begin to change" : "Complete");
 
     if (status && pThis) {
         if (pThis->mStartBootanim) {
@@ -101,19 +102,26 @@ void PrimaryDevice::modeChangeEventListener(void *data, bool status)
         pThis->updateFreescaleAxis();
         Utils::setSysfsStr(DISPLAY_FB0_FREESCALE, "0x10001");
         pThis->setOsdMouse();
-        pThis->hotplugListener(pThis->mSignalHpd);
+        if (pThis->mSignalHpd) {
+            // for now, we can not support hotplug primary display on O.
+            // pThis->hotplugListener(true, false);
+            pThis->mSignalHpd = false;
+
+            // notify sf to refresh.
+            pThis->getDevice().refresh(pThis->getDisplayId());
+        } else {
+            pThis->hotplugListener(true, true);
+        }
     }
 }
 
-void PrimaryDevice::hotplugListener(bool connected)
+void PrimaryDevice::hotplugListener(bool connected, bool modeSwitch)
 {
     CTRACE();
-    ETRACE("hotpug event: %d", connected);
-
-    updateHotplugState(connected);
+    ETRACE("hotplug event: %d", connected);
 
     // update display configs
-    // onHotplug(getDisplayId(), connected);
+    onHotplug(getDisplayId(), connected, modeSwitch);
 
     // notify sf to refresh.
     getDevice().refresh(getDisplayId());

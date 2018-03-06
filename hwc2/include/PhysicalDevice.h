@@ -147,7 +147,7 @@ public:
 
     // events
     virtual void onVsync(int64_t timestamp);
-    virtual void onHotplug(int disp, bool connected);
+    virtual void onHotplug(int disp, bool connected, bool modeSwitch = false);
     virtual void dump(Dump& d);
     DisplayHdmi* getDisplayHdmi()  const { return mDisplayHdmi; };
 
@@ -295,6 +295,8 @@ private:
 
     int mDisplayWidth;
     int mDisplayHeight;
+
+    bool mModeSwitch;
 
     //omx handle for set omx pts
     int32_t mOmxVideoHandle;

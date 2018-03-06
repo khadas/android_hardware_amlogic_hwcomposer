@@ -25,8 +25,14 @@
 namespace android {
 namespace amlogic {
 
-#define DEFAULT_DISPMODE "1080p60hz"
+
+#define DEFAULT_DISPMODE    "1080p60hz"
+#define DEFAULT_REFRESH     59.94f
 #define DEFAULT_DISPLAY_DPI 160
+#define DEFAULT_WIDTH       1920
+#define DEFAULT_HEIGHT      1080
+
+#define FAKE_4K_DISPLAY     1
 
 DisplayHdmi::DisplayHdmi()
     : mFirstBootup(true),
@@ -112,18 +118,20 @@ bool DisplayHdmi::updateHotplug(bool connected) {
 
     if (!connected) {
         DTRACE("hdmi disconnected, keep old display configs.");
-        return true;
+        // return true;
     }
 
     readDisplayPhySize();
 
     std::string activemode;
     if (readHdmiDispMode(activemode) != HWC2_ERROR_NONE) {
+        std::string dM (DEFAULT_DISPMODE);
         ETRACE("get active display mode failed.");
+        updateActiveConfig(dM);
         return false;
     }
 
-    if (updateSupportedConfigs() != HWC2_ERROR_NONE) {
+    if (updateSupportedConfigs(activemode) != HWC2_ERROR_NONE) {
         ETRACE("updateHotplug: No supported display list, set default configs.");
         std::string dM (mDispMode);
         buildSingleConfigList(dM);
@@ -134,13 +142,18 @@ bool DisplayHdmi::updateHotplug(bool connected) {
     return true;
 }
 
-int DisplayHdmi::updateSupportedConfigs() {
+int DisplayHdmi::updateSupportedConfigs(std::string &activemode) {
     // clear display modes
     clearSupportedConfigs();
 
     std::vector<std::string> supportDispModes;
     std::string::size_type pos;
-    std::string dM (mDispMode);
+    std::string dM;
+    if (activemode.empty()) {
+        dM = mDispMode;
+    } else {
+        dM = activemode;
+    }
 
     bool isConfiged = readConfigFile("/system/etc/displayModeList.cfg", &supportDispModes);
     if (isConfiged) {
@@ -148,7 +161,8 @@ int DisplayHdmi::updateSupportedConfigs() {
     } else {
         if (mWorkMode == NONE_ACTIVEMODE) {
             DTRACE("Simple Active Mode!!!");
-            return BAD_VALUE;
+            addSupportedConfig(dM);
+            return NO_ERROR;
         }
 
         readEdidList(supportDispModes);
@@ -195,7 +209,9 @@ int DisplayHdmi::calcDefaultMode(framebuffer_info_t& framebufferInfo,
         defaultMode = mode->name;
     }
 
-    DTRACE("calcDefaultMode %s", defaultMode.c_str());
+    defaultMode = DEFAULT_DISPMODE;
+
+    VTRACE("calcDefaultMode %s", defaultMode.c_str());
     return NO_ERROR;
 }
 
@@ -227,10 +243,6 @@ int DisplayHdmi::addSupportedConfig(std::string& mode) {
                                             dpiY,
                                             false);
 
-    // add normal refresh rate config, like 24hz, 30hz...
-    DTRACE("add display mode pair (%d, %s)", mSupportDispConfigs.size(), mode.c_str());
-    mSupportDispConfigs.add(mSupportDispConfigs.size(), config);
-
     if (mWorkMode == REAL_ACTIVEMODE) {
         // add frac refresh rate config, like 23.976hz, 29.97hz...
         if (vinfo->sync_duration_num == REFRESH_24kHZ
@@ -249,6 +261,10 @@ int DisplayHdmi::addSupportedConfig(std::string& mode) {
         }
     }
 
+    // add normal refresh rate config, like 24hz, 30hz...
+    DTRACE("add display mode pair (%d, %s)", mSupportDispConfigs.size(), mode.c_str());
+    mSupportDispConfigs.add(mSupportDispConfigs.size(), config);
+
     return NO_ERROR;
 }
 
@@ -258,10 +274,13 @@ int DisplayHdmi::updateActiveConfig(std::string& activeMode) {
         DisplayConfig * cfg = mSupportDispConfigs.valueAt(i);
         if (activeMode == cfg->getDisplayMode()) {
             mRealActiveConfigId = mSupportDispConfigs.keyAt(i);
-            DTRACE("updateRealActiveConfig to (%s, %d)", activeMode.c_str(), mRealActiveConfigId);
+            mActiveConfigId = mSupportDispConfigs.size()-1;
+            ETRACE("updateRealActiveConfig to (%s, %d)", activeMode.c_str(), mRealActiveConfigId);
+            return NO_ERROR;
         }
     }
     mActiveConfigId = mSupportDispConfigs.size()-1;
+    mRealActiveConfigId = mActiveConfigId;
     return NO_ERROR;
 }
 
@@ -309,7 +328,6 @@ int DisplayHdmi::setDisplayMode(std::string& dm, bool policy) {
     DTRACE("setDisplayMode to %s", dm.c_str());
     switchRatePolicy(policy);
     writeHdmiDispMode(dm);
-    updateActiveConfig(dm);
     return NO_ERROR;
 }
 
@@ -330,7 +348,7 @@ int DisplayHdmi::getDisplayConfigs(uint32_t* outNumConfigs,
     size_t i;
 
     if (!isConnected()) {
-        ETRACE("hdmi is not connected.");
+        DTRACE("[%s]: hdmi is not connected.", __func__);
     }
 
     size_t configsNum = mSupportDispConfigs.size();
@@ -362,18 +380,17 @@ int DisplayHdmi::getDisplayAttribute(hwc2_config_t config,
 
     switch (attribute) {
         case HWC2_ATTRIBUTE_VSYNC_PERIOD:
-            if (mWorkMode == REAL_ACTIVEMODE) {
-                if (configChosen->getRefreshRate()) {
-                    *outValue = 1e9 / configChosen->getRefreshRate();
-                }
-            } else if (mWorkMode == LOGIC_ACTIVEMODE ||
-                            mWorkMode == NONE_ACTIVEMODE) {
-#ifdef HWC_HEADLESS
-                *outValue = 1e9 / (HWC_HEADLESS_REFRESHRATE);
-#else
-                *outValue = 1e9 / 60;
-#endif
+        {
+            float refreshRate = configChosen->getFracRefreshRate();
+            if (0 == (int)refreshRate) {
+                WTRACE("FPS was 0 : setting to default");
+                refreshRate = DEFAULT_REFRESH;
             }
+            *outValue = 1e9 / refreshRate;
+#ifdef HWC_HEADLESS
+            *outValue = 1e9 / (HWC_HEADLESS_REFRESHRATE);
+#endif
+        }
         break;
         case HWC2_ATTRIBUTE_WIDTH:
             if (mWorkMode == REAL_ACTIVEMODE) {
@@ -381,6 +398,10 @@ int DisplayHdmi::getDisplayAttribute(hwc2_config_t config,
             } else if (mWorkMode == LOGIC_ACTIVEMODE ||
                             mWorkMode == NONE_ACTIVEMODE) {
                 *outValue = mFbWidth;
+            }
+            if (0 == *outValue) {
+                WTRACE("width was 0 : setting to default");
+                *outValue = DEFAULT_WIDTH;
             }
         break;
         case HWC2_ATTRIBUTE_HEIGHT:
@@ -390,12 +411,24 @@ int DisplayHdmi::getDisplayAttribute(hwc2_config_t config,
                             mWorkMode == NONE_ACTIVEMODE) {
                 *outValue = mFbHeight;
             }
+            if (0 == *outValue) {
+                WTRACE("height was 0 : setting to default");
+                *outValue = DEFAULT_HEIGHT;
+            }
         break;
         case HWC2_ATTRIBUTE_DPI_X:
             *outValue = configChosen->getDpiX() * 1000.0f;
+            if (0 == *outValue) {
+                WTRACE("dpi was 0 : setting to default");
+                *outValue = DEFAULT_DISPLAY_DPI;
+            }
         break;
         case HWC2_ATTRIBUTE_DPI_Y:
-            *outValue =  configChosen->getDpiY() * 1000.0f;
+            *outValue = configChosen->getDpiY() * 1000.0f;
+            if (0 == *outValue) {
+                WTRACE("dpi was 0 : setting to default");
+                *outValue = DEFAULT_DISPLAY_DPI;
+            }
         break;
         default:
             ETRACE("unknown display attribute %u", attribute);
@@ -419,14 +452,16 @@ int DisplayHdmi::getRealActiveConfig(hwc2_config_t* outConfig) {
     if (!isConnected()) {
         ETRACE("hdmi is not connected.");
     }
-    // DTRACE("getActiveConfig to config(%d).", mActiveConfigId);
+
+    ETRACE("getRealActiveConfig to config(%d).", mRealActiveConfigId);
     *outConfig = mRealActiveConfigId;
     return NO_ERROR;
 }
 
 int DisplayHdmi::setActiveConfig(int modeId) {
     if (!isConnected()) {
-        ETRACE("hdmi display is not connected.");
+        DTRACE("[%s]: hdmi display is not connected.", __func__);
+        return BAD_VALUE;
     }
 
     DTRACE("setActiveConfig to mode(%d).", modeId);
@@ -667,9 +702,9 @@ void DisplayHdmi::dump(Dump& d) {
             if (config) {
                 d.append("%s %2d     |      %.3f      |   %5d   |   %5d    |"
                     "    %3d    |    %3d    \n",
-                         (mode == (int)mActiveConfigId) ? "*   " : "    ",
+                         (mode == (int)mRealActiveConfigId) ? "*   " : "    ",
                          mode,
-                         config->getRefreshRate(),
+                         config->getFracRefreshRate(),
                          config->getWidth(),
                          config->getHeight(),
                          config->getDpiX(),
