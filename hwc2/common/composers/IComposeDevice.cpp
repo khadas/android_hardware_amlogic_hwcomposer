@@ -35,7 +35,7 @@ IComposeDevice::~IComposeDevice()
     WARN_IF_NOT_DEINIT();
 }
 
-bool IComposeDevice::initialize(framebuffer_info_t* fbInfo __unused)
+bool IComposeDevice::initialize(framebuffer_info_t* fbInfo)
 {
     if (mInitialized) {
         WTRACE("object has been initialized");

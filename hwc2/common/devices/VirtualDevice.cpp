@@ -26,14 +26,14 @@ namespace android {
 namespace amlogic {
 
 VirtualDevice::VirtualDevice(Hwcomposer& hwc)
-    : mId(HWC_DISPLAY_VIRTUAL),
+    : mHwc(hwc),
+      mId(HWC_DISPLAY_VIRTUAL),
       mIsConnected(false),
-      mHwc(hwc),
+      mInitialized(false),
       mWidth(0),
       mHeight(0),
       mFormat(0),
-      mRetireFence(-1),
-      mInitialized(false)
+      mRetireFence(-1)
 {
     CTRACE();
     mName = "Virtual";
@@ -64,7 +64,7 @@ HwcLayer* VirtualDevice::getLayerById(hwc2_layer_t layerId) {
     HwcLayer* layer = NULL;
 
     layer = mHwcLayers.valueFor(layerId);
-    if (!layer) ETRACE("getLayerById %ld error!", (long)layerId);
+    if (!layer) ETRACE("getLayerById %lld error!", layerId);
 
     return layer;
 }
@@ -106,7 +106,7 @@ bool VirtualDevice::destroyLayer(hwc2_layer_t layerId) {
     HwcLayer* layer = mHwcLayers.valueFor(layerId);
 
     if (layer == NULL) {
-        ETRACE("destroyLayer: no Hwclayer found (%ld)", (long)layerId);
+        ETRACE("destroyLayer: no Hwclayer found (%d)", layerId);
         return false;
     }
 
@@ -116,7 +116,7 @@ bool VirtualDevice::destroyLayer(hwc2_layer_t layerId) {
 }
 
 int32_t VirtualDevice::getActiveConfig(
-    hwc2_config_t* outConfig __unused) {
+    hwc2_config_t* outConfig) {
 
     return HWC2_ERROR_NONE;
 }
@@ -156,29 +156,29 @@ int32_t VirtualDevice::getChangedCompositionTypes(
 }
 
 int32_t VirtualDevice::getClientTargetSupport(
-    uint32_t width __unused,
-    uint32_t height __unused,
-    int32_t /*android_pixel_format_t*/ format __unused,
-    int32_t /*android_dataspace_t*/ dataspace __unused) {
+    uint32_t width,
+    uint32_t height,
+    int32_t /*android_pixel_format_t*/ format,
+    int32_t /*android_dataspace_t*/ dataspace) {
 
     // TODO: ?
     return HWC2_ERROR_NONE;
 }
 
 int32_t VirtualDevice::getColorModes(
-    uint32_t* outNumModes __unused,
-    int32_t* /*android_color_mode_t*/ outModes __unused) {
+    uint32_t* outNumModes,
+    int32_t* /*android_color_mode_t*/ outModes) {
     return HWC2_ERROR_NONE;
 }
 
 int32_t VirtualDevice::getDisplayAttribute(
-        hwc2_config_t config __unused,
+        hwc2_config_t config,
         int32_t /*hwc2_attribute_t*/ attribute,
         int32_t* outValue) {
     Mutex::Autolock _l(mLock);
 
     if (!mIsConnected) {
-        ETRACE("display %ld is not connected.", (long)mId);
+        ETRACE("display %d is not connected.", mId);
     }
 
     // TODO: HWC2_ERROR_BAD_CONFIG?
@@ -214,7 +214,7 @@ int32_t VirtualDevice::getDisplayConfigs(
     Mutex::Autolock _l(mLock);
 
     if (!mIsConnected) {
-        ETRACE("display %ld is not connected.", (long)mId);
+        ETRACE("display %d is not connected.", mId);
     }
 
     if (NULL != outConfigs) outConfigs[0] = 0;
@@ -224,16 +224,16 @@ int32_t VirtualDevice::getDisplayConfigs(
 }
 
 int32_t VirtualDevice::getDisplayName(
-    uint32_t* outSize __unused,
-    char* outName __unused) {
+    uint32_t* outSize,
+    char* outName) {
     return HWC2_ERROR_NONE;
 }
 
 int32_t VirtualDevice::getDisplayRequests(
-        int32_t* /*hwc2_display_request_t*/ outDisplayRequests __unused,
+        int32_t* /*hwc2_display_request_t*/ outDisplayRequests,
         uint32_t* outNumElements,
-        hwc2_layer_t* outLayers __unused,
-        int32_t* /*hwc2_layer_request_t*/ outLayerRequests __unused) {
+        hwc2_layer_t* outLayers,
+        int32_t* /*hwc2_layer_request_t*/ outLayerRequests) {
     *outNumElements = 0;
 
     return HWC2_ERROR_NONE;
@@ -242,7 +242,7 @@ int32_t VirtualDevice::getDisplayRequests(
 int32_t VirtualDevice::getDisplayType(
     int32_t* /*hwc2_display_type_t*/ outType) {
     if (!mIsConnected) {
-        ETRACE("display %ld is not connected.", (long)mId);
+        ETRACE("display %d is not connected.", mId);
     }
 
     *outType = HWC2_DISPLAY_TYPE_VIRTUAL;
@@ -250,23 +250,23 @@ int32_t VirtualDevice::getDisplayType(
 }
 
 int32_t VirtualDevice::getDozeSupport(
-    int32_t* outSupport __unused) {
+    int32_t* outSupport) {
     return HWC2_ERROR_NONE;
 }
 
 int32_t VirtualDevice::getHdrCapabilities(
-        uint32_t* outNumTypes __unused,
-        int32_t* /*android_hdr_t*/ outTypes __unused,
-        float* outMaxLuminance __unused,
-        float* outMaxAverageLuminance __unused,
-        float* outMinLuminance __unused) {
+        uint32_t* outNumTypes,
+        int32_t* /*android_hdr_t*/ outTypes,
+        float* outMaxLuminance,
+        float* outMaxAverageLuminance,
+        float* outMinLuminance) {
     return HWC2_ERROR_NONE;
 }
 
 int32_t VirtualDevice::getReleaseFences(
         uint32_t* outNumElements,
-        hwc2_layer_t* outLayers __unused,
-        int32_t* outFences __unused) {
+        hwc2_layer_t* outLayers,
+        int32_t* outFences) {
 
     //No hw compose for virtual display.
     *outNumElements= 0;
@@ -324,14 +324,14 @@ int32_t VirtualDevice::presentDisplay(
 }
 
 int32_t VirtualDevice::setActiveConfig(
-    hwc2_config_t config __unused) {
+    hwc2_config_t config) {
     return HWC2_ERROR_NONE;
 }
 
 int32_t VirtualDevice::setClientTarget(
         buffer_handle_t target,
         int32_t acquireFence,
-        int32_t /*android_dataspace_t*/ dataspace __unused,
+        int32_t /*android_dataspace_t*/ dataspace,
         hwc_region_t damage) {
 
     DTRACE("VirtualDevice::setClientTarget %p, %d", target, acquireFence);
@@ -360,22 +360,22 @@ int32_t VirtualDevice::setClientTarget(
 }
 
 int32_t VirtualDevice::setColorMode(
-    int32_t /*android_color_mode_t*/ mode __unused) {
+    int32_t /*android_color_mode_t*/ mode) {
     return HWC2_ERROR_NONE;
 }
 
 int32_t VirtualDevice::setColorTransform(
-    const float* matrix __unused,
-    int32_t /*android_color_transform_t*/ hint __unused) {
+    const float* matrix,
+    int32_t /*android_color_transform_t*/ hint) {
     return HWC2_ERROR_NONE;
 }
 
 int32_t VirtualDevice::setPowerMode(
-    int32_t /*hwc2_power_mode_t*/ mode __unused){
+    int32_t /*hwc2_power_mode_t*/ mode){
     return HWC2_ERROR_NONE;
 }
 
-bool VirtualDevice::vsyncControl(bool enabled __unused) {
+bool VirtualDevice::vsyncControl(bool enabled) {
     RETURN_FALSE_IF_NOT_INIT();
 
     return true;
@@ -413,9 +413,9 @@ int32_t VirtualDevice::validateDisplay(uint32_t* outNumTypes,
 }
 
 int32_t VirtualDevice::setCursorPosition(
-        hwc2_layer_t layerId __unused,
-        int32_t x __unused,
-        int32_t y __unused) {
+        hwc2_layer_t layerId,
+        int32_t x,
+        int32_t y) {
     Mutex::Autolock _l(mLock);
     return HWC2_ERROR_NONE;
 }
@@ -426,11 +426,11 @@ bool VirtualDevice::updateDisplayConfigs()
     return true;
 }
 
-void VirtualDevice::onVsync(int64_t timestamp __unused) {
+void VirtualDevice::onVsync(int64_t timestamp) {
     // dont need implement now.
 }
 
-void VirtualDevice::onHotplug(int disp __unused, bool connected __unused) {
+void VirtualDevice::onHotplug(int disp, bool connected) {
     // dont need implement now.
 }
 
@@ -479,7 +479,7 @@ int32_t VirtualDevice::destroyVirtualDisplay(
     if (!mHwcLayers.isEmpty()) {
         int i = 0;
         HwcLayer* layer = NULL;
-        for (i = 0; i < (int)mHwcLayers.size(); i++) {
+        for (i = 0; i < mHwcLayers.size(); i++) {
             layer = mHwcLayers[i];
             DEINIT_AND_DELETE_OBJ(layer);
         }

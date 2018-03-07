@@ -19,7 +19,7 @@
 #ifndef HWC_TRACE_H
 #define HWC_TRACE_H
 
-//#define LOG_TAG "hwcomposer"
+#define LOG_TAG "hwcomposer"
 //#define LOG_NDEBUG 0
 #include <cutils/log.h>
 

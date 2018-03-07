@@ -188,7 +188,7 @@ typedef uint32_t u32;
 * The commented memebers are not need now.
 */
 struct vinfo_s {
-	const char *name;
+	char *name;
 	enum vmode_e mode;
 	u32 width;
 	u32 height;
