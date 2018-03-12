@@ -34,9 +34,9 @@ HwDisplayManager::HwDisplayManager() {
     getResources();
 
 #if MESON_HW_DISPLAY_VSYNC_SOFTWARE
-        mVsync = std::make_shared<HwDisplayVsync>(true, this);
+    mVsync = std::make_shared<HwDisplayVsync>(true, this);
 #else
-        mVsync = std::make_shared<HwDisplayVsync>(false, this);
+    mVsync = std::make_shared<HwDisplayVsync>(false, this);
 #endif
 }
 
@@ -221,7 +221,9 @@ int32_t HwDisplayManager::getDrmResources() {
 }
 
 int32_t HwDisplayManager::getCrtc(uint32_t crtcid) {
-    HwDisplayCrtc * crtc = new HwDisplayCrtc(-1, crtcid);
+    /* use fb0 to do display crtc */
+    int fd = open("/dev/graphics/fb0", O_RDWR, 0);
+    HwDisplayCrtc * crtc = new HwDisplayCrtc(fd, crtcid);
     mCrtcs.emplace(crtcid, std::move(crtc));
     return 0;
 }

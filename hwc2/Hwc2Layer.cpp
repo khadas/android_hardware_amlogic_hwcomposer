@@ -44,7 +44,7 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
         mFbType = DRM_FB_RENDER;
     }
 
-    MESON_LOGD("layer setBuffer [%p]", (void*)buffer);
+    MESON_LOGD("layer setBuffer [%p, %d]", (void*)buffer, acquireFence);
     return HWC2_ERROR_NONE;
 }
 

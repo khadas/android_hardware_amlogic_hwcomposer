@@ -15,6 +15,11 @@
 #include <DrmFramebuffer.h>
 
 
+enum {
+    OSD_VIDEO_NO_CONFLICT = 0,
+    OSD_VIDEO_CONFLICT    = 1,
+};
+
 class HwDisplayPlane {
 public:
     HwDisplayPlane(int32_t drvFd, uint32_t id);
@@ -24,10 +29,11 @@ public:
     virtual uint32_t getPlaneType() = 0;
 
     virtual int32_t setPlane(std::shared_ptr<DrmFramebuffer> & fb) = 0;
+    virtual int32_t getCapabilities() = 0;
 
-    virtual int32_t blank() = 0;
+    virtual int32_t blank(bool blank) = 0;
 
-    virtual int32_t pageFlip(int32_t &outFence) = 0;
+    // virtual int32_t pageFlip(int32_t &outFence) = 0;
 
     virtual void dump(String8 & dumpstr) = 0;
 

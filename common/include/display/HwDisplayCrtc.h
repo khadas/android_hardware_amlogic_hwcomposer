@@ -13,6 +13,12 @@
 
 #include <DrmTypes.h>
 
+typedef struct display_flip_info_t {
+    int           out_fen_fd;
+    unsigned int  background_w;
+    unsigned int  background_h;
+} display_flip_info_t;
+
 class HwDisplayCrtc {
 public:
     HwDisplayCrtc(int drvFd, int32_t id);
@@ -25,6 +31,8 @@ public:
 protected:
     int32_t mId;
     int mDrvFd;
+
+    display_flip_info_t mDisplayInfo;
 };
 
 #endif/*HW_DISPLAY_CRTC_H*/
