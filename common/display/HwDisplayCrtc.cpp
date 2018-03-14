@@ -33,7 +33,11 @@ int32_t HwDisplayCrtc::pageFlip(int32_t &out_fence) {
 
     ioctl(mDrvFd, FBIOPUT_OSD_SYNC_FLIP, &mDisplayInfo);
 
-    out_fence = mDisplayInfo.out_fen_fd;
+    if (mDisplayInfo.out_fen_fd >= 0) {
+        out_fence = mDisplayInfo.out_fen_fd;
+    } else {
+        out_fence = -1;
+    }
     return 0;
 }
 

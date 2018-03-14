@@ -377,7 +377,7 @@ hwc2_error_t Hwc2Display::acceptDisplayChanges() {
 }
 
 hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
-    int32_t outFence;
+    int32_t outFence = -1;
 
     /*Start to compose, set up plane info.*/
     if (mCompositionStrategy->commit() != 0) {
@@ -387,14 +387,6 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
     /* Page flip */
     if (mCrtc->pageFlip(outFence) < 0) {
         return HWC2_ERROR_UNSUPPORTED;
-    }
-
-    std::vector<std::shared_ptr<DrmFramebuffer>>::iterator it;
-    for (it = mPresentLayers.begin(); it != mPresentLayers.end(); it++) {
-        Hwc2Layer *layer = (Hwc2Layer*)(it->get());
-        if (HWC2_COMPOSITION_DEVICE == layer->mHwcCompositionType) {
-            layer->setReleaseFence(outFence);
-        }
     }
 
     *outPresentFence = outFence;
