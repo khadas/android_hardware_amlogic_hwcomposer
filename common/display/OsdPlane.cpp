@@ -34,6 +34,7 @@ int32_t OsdPlane::getProperties() {
     mPlaneType = OSD_PLANE;
 #else // p212.
     if (mId == 30 || mId == 31 || mId == 32) {
+    // if (mId == 30 || mId == 31) {
     // if (mId == 30) {
         mPlaneType = OSD_PLANE;
     } else /*if (mId == 31) */{
@@ -96,7 +97,10 @@ int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
     }
 
     if (mDrmFb) {
-        mDrmFb->setReleaseFence(mPlaneInfo.out_fen_fd);
+        /* dup a out fence fd for layer's release fence, we can't close this fd
+         * now, cause display retire fence will also use this fd. will be closed
+         * on SF side*/
+        mDrmFb->setReleaseFence((mPlaneInfo.out_fen_fd >= 0) ? ::dup(mPlaneInfo.out_fen_fd) : -1);
     }
 
     // this plane will be shown.
@@ -105,7 +109,8 @@ int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
     // update drm fb.
     mDrmFb = fb;
 
-    mPlaneInfo.in_fen_fd = -1;
+    mPlaneInfo.in_fen_fd  = -1;
+    mPlaneInfo.out_fen_fd = -1;
     return 0;
 }
 
@@ -175,9 +180,6 @@ String8 OsdPlane::compositionTypeToString() {
             case MESON_COMPOSITION_DUMMY:
                 compType = "DUMMY";
                 break;
-            case MESON_COMPOSITION_CLIENT:
-                compType = "CLIENT";
-                break;
             case MESON_COMPOSITION_GE2D:
                 compType = "GE2D";
                 break;
@@ -197,7 +199,7 @@ String8 OsdPlane::compositionTypeToString() {
                 compType = "CURSOR";
                 break;
             case MESON_COMPOSITION_CLIENT_TARGET:
-                compType = "CLIENT TARGET";
+                compType = "CLIENT";
                 break;
             default:
                 compType = "NONE";
