@@ -10,10 +10,15 @@
 #include <BasicTypes.h>
 #include <MesonLog.h>
 #include <DebugHelper.h>
+#include <unistd.h>
 
 #include "MesonHwc2Defs.h"
 #include "MesonHwc2.h"
 #include "VirtualDisplay.h"
+
+#include <thread>
+#include <mutex>
+#include <condition_variable>
 
 #define CHECK_DISPLAY_VALID(display)    \
     if (isDisplayValid(display) == false) { \
@@ -46,6 +51,9 @@
 /************************************************************
 *                        Hal Interface
 ************************************************************/
+static bool primaryHotplugFlag = false;
+//static bool callbackHotplugFlag = false;
+
 void MesonHwc2::dump(uint32_t* outSize, char* outBuffer) {
     if (outBuffer == NULL) {
         *outSize = 4096;
@@ -100,18 +108,30 @@ int32_t MesonHwc2::registerCallback(int32_t descriptor,
 
     switch (descriptor) {
         case HWC2_CALLBACK_HOTPLUG:
-            /* For android:
-       When primary display is hdmi, we should always return connected event
-       to surfaceflinger, or surfaceflinger will not boot and wait
-       connected event.
-     */
-            if (mHotplugFn == NULL) {
-                bInitHotPlug = true;
+        /* For android:
+        When primary display is hdmi, we should always return connected event
+        to surfaceflinger, or surfaceflinger will not boot and wait
+        connected event.
+        */
+            {
+//                std::lock_guard<std::mutex> lk(Mutex);
             }
-
             mHotplugFn = reinterpret_cast<HWC2_PFN_HOTPLUG>(pointer);
             mHotplugData = callbackData;
-            onHotplug(HWC_DISPLAY_PRIMARY, true);
+            MESON_LOGI("Register callback parse hotplug fn: %p, data: %p, flag: %d",
+                mHotplugFn, mHotplugData, primaryHotplugFlag);
+//            callbackHotplugFlag = true;
+//            cv.notify_one();
+            {
+                std::unique_lock<std::mutex> lk(Mutex);
+                cv.wait(lk, []{return primaryHotplugFlag;});
+            }
+            MESON_LOGV("Primary display send connected for surfaceflinger bootup.");
+            //onHotplug(HWC_DISPLAY_PRIMARY, true);
+
+            if (mHotplugFn) {
+                mHotplugFn(mHotplugData, HWC_DISPLAY_PRIMARY, true);
+            }
             break;
         case HWC2_CALLBACK_REFRESH:
             mRefreshFn = reinterpret_cast<HWC2_PFN_REFRESH>(pointer);
@@ -126,10 +146,6 @@ int32_t MesonHwc2::registerCallback(int32_t descriptor,
             MESON_LOGE("register unknown callback (%d)", descriptor);
             ret = HWC2_ERROR_UNSUPPORTED;
             break;
-    }
-
-    if (bInitHotPlug) {
-        MESON_LOGV("Primary display send connected for surfaceflinger bootup.");
     }
 
     return ret;
@@ -480,6 +496,10 @@ public:
         mHwc->onHotplug(mDispId, connected);
     }
 
+    void setLoadInfoStatus(bool complate) {
+        mHwc->setLoadInfoStatus(complate);
+    }
+
 protected:
     hwc2_display_t mDispId;
     MesonHwc2 * mHwc;
@@ -487,6 +507,9 @@ protected:
 
 MesonHwc2::MesonHwc2() {
     mVirtualDisplayIds = 0;
+    mFirstCallBackSF = true;
+    mHotplugFn = NULL;
+    mHotplugData = NULL;
     initialize();
 }
 
@@ -513,15 +536,30 @@ void MesonHwc2::onVsync(hwc2_display_t display, int64_t timestamp) {
 }
 
 void MesonHwc2::onHotplug(hwc2_display_t display, bool connected) {
-    #if MESON_HWC_HANDLE_PRIMARY_HOTPLUG
-    if (display == HWC_DISPLAY_PRIMARY && !connected) {
+    #ifndef HWC_ENABLE_PRIMARY_HOTPLUG
+    if (display == HWC_DISPLAY_PRIMARY /*&& connected*/ && !mFirstCallBackSF) {
         MESON_LOGE("Primary display not support hotplug.");
         return;
     }
     #endif
 
-    if (mHotplugFn) {
-        mHotplugFn(mHotplugData, display, connected);
+    while (!mHotplugFn) {
+        MESON_LOGD("wait for hotplug callback registered.");
+        usleep(1000 * 1000);
+    }
+    {
+        std::lock_guard<std::mutex> lk(Mutex);
+        //cv.wait(lk, []{return callbackHotplugFlag;});
+    }
+    if (/*mLoadInfoStatus && */mHotplugFn) {
+        MESON_LOGD("On hotplug, Fn: %p, Data: %p, display: %d(%d), connected: %d",
+                mHotplugFn, mHotplugData, display, HWC_DISPLAY_PRIMARY, connected);
+        //mHotplugFn(mHotplugData, display, connected);
+        mFirstCallBackSF = false;
+        primaryHotplugFlag = true;
+        cv.notify_one();
+        MESON_LOGD("HotplugFn finish.");
+        //lk.unlock();
         return;
     }
 
@@ -584,5 +622,10 @@ uint32_t MesonHwc2::getVirtualDisplayId() {
 void MesonHwc2::freeVirtualDisplayId(uint32_t id) {
     mVirtualDisplayIds &= ~(1 << id);
     MESON_LOGD("freeVirtualDisplayId (%d) to (%x)", id, mVirtualDisplayIds);
+}
+
+void MesonHwc2::setLoadInfoStatus(bool complate) {
+    MESON_LOGV("Load connector info finish.");
+    mLoadInfoStatus = complate;
 }
 

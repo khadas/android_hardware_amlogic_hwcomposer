@@ -12,11 +12,15 @@
 #include <MesonLog.h>
 
 ConnectorPanel::ConnectorPanel(int32_t drvFd, uint32_t id)
-    : HwDisplayConnector(drvFd, id) {
-
+    :   HwDisplayConnector(drvFd, id) {
 }
 
 ConnectorPanel::~ConnectorPanel() {
+}
+
+int32_t ConnectorPanel::loadProperities() {
+    loadPhysicalSize();
+    return 0;
 }
 
 drm_connector_type_t ConnectorPanel::getType() {

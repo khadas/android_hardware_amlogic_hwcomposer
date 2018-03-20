@@ -18,7 +18,7 @@
 #include <HwDisplayConnector.h>
 #include <HwDisplayVsync.h>
 #include <HwDisplayDefs.h>
-
+#include <HwDisplayEventListener.h>
 
 class HwDisplayObserver {
 public:
@@ -26,11 +26,13 @@ public:
     virtual ~HwDisplayObserver() {}
     virtual void onVsync(int64_t timestamp) = 0;
     virtual void onHotplug(bool connected) = 0;
-    virtual void onModeChanged() = 0;
+    virtual void onModeChanged(int stage) = 0;
 };
 
-class HwDisplayManager : public android::Singleton<HwDisplayManager>,
-                         public HwVsyncObserver {
+class HwDisplayManager
+    :   public android::Singleton<HwDisplayManager>,
+        public HwDisplayEventHandler,
+        public HwVsyncObserver {
 friend class HwDisplayCrtc;
 friend class HwDisplayConnector;
 friend class HwDisplayPlane;
@@ -57,25 +59,28 @@ public:
 
     /*hw vsync*/
     int32_t enableVBlank(bool enabled);
-    int32_t updateRefreshPeriod(int32_t period);
 
     /*registe display observe*/
     int32_t registerObserver(hw_display_id hwDisplayId,
             HwDisplayObserver * observer);
     int32_t unregisterObserver(hw_display_id hwDisplayId);
 
+    /*handle display uevent */
+    void handle(drm_display_event event, int val);
+
     void dump(String8 & dumpstr);
+
 protected:
     void onVsync(int64_t timestamp);
     int32_t buildDisplayPipes();
 
 protected:
     class HwDisplayPipe {
-    public:
-        uint32_t crtc_id;
-        uint32_t connector_id;
-        uint32_t *plane_ids;
-        uint32_t planes_num;
+        public:
+            uint32_t crtc_id;
+            uint32_t connector_id;
+            uint32_t *plane_ids;
+            uint32_t planes_num;
     };
 
     uint32_t count_pipes;
@@ -85,14 +90,16 @@ protected:
  * drm apis.
  *********************************************/
 protected:
-    int32_t getResources();
-    int32_t freeResources();
+    int32_t loadDrmResources();
+    int32_t freeDrmResources();
 
-    int32_t getDrmResources();
-    int32_t getCrtc(uint32_t crtcid);
-    int32_t getConnector(uint32_t connector_id);
-    int32_t getPlanes();
+    int32_t loadCrtc(uint32_t crtcid);
+    int32_t loadConnector(uint32_t connector_id);
+    int32_t loadPlanes();
+
     int32_t waitVBlank(nsecs_t & timestamp);
+
+    int32_t updateRefreshPeriod(int32_t period);
 
 protected:
     uint32_t count_crtcs;

@@ -6,87 +6,38 @@
  *
  * Description:
  */
-#include <HwDisplayManager.h>
-#include <MesonLog.h>
-#include <sys/ioctl.h>
 
+#include <sys/ioctl.h>
+#include <MesonLog.h>
+#include <HwDisplayManager.h>
 #include <HwDisplayConnector.h>
+#include <systemcontrol.h>
+
 #include "HwConnectorFactory.h"
 #include "OsdPlane.h"
 #include "VideoPlane.h"
-#include <DisplayMode.h>
-#define DEVICE_STR_MBOX                 "MBOX"
-#define DEVICE_STR_TV                   "TV"
-#define FBIO_WAITFORVSYNC       _IOW('F', 0x20, __u32)
-
-#if PLATFORM_SDK_VERSION >= 26 //8.0
-#define pConfigPath "/vendor/etc/mesondisplay.cfg"
-#else
-#define pConfigPath "/system/etc/mesondisplay.cfg"
-#endif
 
 
 ANDROID_SINGLETON_STATIC_INSTANCE(HwDisplayManager)
 
 HwDisplayManager::HwDisplayManager() {
-    crtc_ids = connector_ids = NULL;
-    count_crtcs = count_connectors = count_pipes = 0;
-    getResources();
+    loadDrmResources();
 
 #if MESON_HW_DISPLAY_VSYNC_SOFTWARE
     mVsync = std::make_shared<HwDisplayVsync>(true, this);
 #else
     mVsync = std::make_shared<HwDisplayVsync>(false, this);
 #endif
+
+    HwDisplayEventListener::getInstance().registerHandler(drm_event_any, this);
 }
 
 HwDisplayManager::~HwDisplayManager() {
-    freeResources();
-}
-
-int32_t HwDisplayManager::getResources() {
-    int32_t ret = getDrmResources();
-    if (0 != ret) {
-        MESON_LOGE("%s getDrmResources failed, (%d)", __func__, strerror(ret));
-        return ret;
-    }
-
-    int i = 0;
-    for (; i < count_crtcs; i++) {
-        getCrtc(crtc_ids[i]);
-    }
-
-    for (i = 0; i < count_connectors; i++) {
-        getConnector(connector_ids[i]);
-    }
-
-    getPlanes();
-
-    buildDisplayPipes();
-    return 0;
-}
-
-int32_t HwDisplayManager::freeResources() {
-    if (crtc_ids) {
-        delete crtc_ids;
-        crtc_ids = NULL;
-    }
-
-    if (connector_ids) {
-        delete connector_ids;
-        connector_ids = NULL;
-    }
-
-    count_crtcs = count_connectors = 0;
-
-    mCrtcs.clear();
-    mConnectors.clear();
-    mPlanes.clear();
-    return 0;
+    freeDrmResources();
 }
 
 int32_t HwDisplayManager::getHwDisplayIds(uint32_t * displayNum,
-        hw_display_id * hwDisplayIds) {
+    hw_display_id * hwDisplayIds) {
     *displayNum = count_pipes;
 
     if (hwDisplayIds) {
@@ -103,6 +54,7 @@ int32_t HwDisplayManager::getPlanes(uint32_t hwDisplayId,
     std::vector<std::shared_ptr<HwDisplayPlane>> & planes) {
     int ret = -ENXIO, i = 0;
     mMutex.lock();
+    planes.clear();
     for (i = 0; i < count_pipes; i ++) {
         if (pipes[i].crtc_id == hwDisplayId) {
             int iplane = 0;
@@ -156,7 +108,7 @@ int32_t HwDisplayManager::updateRefreshPeriod(int32_t period) {
 }
 
 int32_t HwDisplayManager::registerObserver(hw_display_id hwDisplayId,
-        HwDisplayObserver * observer) {
+    HwDisplayObserver * observer) {
     mObserver.emplace(hwDisplayId, observer);
     return 0;
 }
@@ -168,6 +120,54 @@ int32_t HwDisplayManager::unregisterObserver(hw_display_id hwDisplayId) {
         mObserver.erase(it);
 
     return 0;
+}
+
+void HwDisplayManager::handle(drm_display_event event, int val) {
+    std::map<hw_display_id, HwDisplayObserver *>::iterator it;
+    switch (event) {
+        case drm_event_hdmitx_hotplug:
+        case drm_event_hdmitx_hdcp:
+            {
+                MESON_LOGD("Hotplug observer size %d.", mObserver.size());
+                for (it = mObserver.begin(); it != mObserver.end(); ++it)
+                    for (int i = 0; i < count_pipes; i++)
+                        if (pipes[i].crtc_id == it->first &&
+                                mConnectors[pipes[i].connector_id]->getType() ==
+                            DRM_MODE_CONNECTOR_HDMI) {
+                            MESON_LOGE("handle hdmi hotplug, display %d", it->first);
+                            it->second->onHotplug((val == 0) ? false : true);
+                            break;
+                        }
+            }
+            break;
+        case drm_event_mode_changed:
+            {
+                #ifndef HWC_MANAGE_DISPLAY_MODE
+                    /*TODO: update which crtc? */
+                    std::string dispmode;
+                    if (0 == sc_get_display_mode(dispmode)) {
+                        if (count_crtcs > 1) {
+                            MESON_LOG_EMPTY_FUN();
+                            MESON_LOGE("Dual display not supported.");
+                        } else if (count_crtcs == 1) {
+                            mCrtcs[crtc_ids[0]]->updateMode(dispmode);
+                        }
+                    } else {
+                        MESON_LOGE("GetDisplayMode by sc failed.");
+                    }
+                #endif
+
+                MESON_LOGD("Mode change observer size %d.", mObserver.size());
+                for (it = mObserver.begin(); it != mObserver.end(); ++it) {
+                    MESON_LOGE("handle mode change stage(%d) display %d", val, it->first);
+                    it->second->onModeChanged(val);
+                }
+            }
+            break;
+        default:
+            MESON_LOGE("Receive unknow event %d", event);
+            break;
+    }
 }
 
 int32_t HwDisplayManager::waitVBlank(nsecs_t & timestamp) {
@@ -207,7 +207,7 @@ void HwDisplayManager::dump(String8 & dumpstr) {
 #define OSD_PLANE_IDX_MIN (30)
 #define VIDEO_PLANE_IDX_MIN (40)
 
-int32_t HwDisplayManager::getDrmResources() {
+int32_t HwDisplayManager::loadDrmResources() {
     count_crtcs = HWC_CRTC_NUM;
     count_connectors = count_crtcs;
 
@@ -217,10 +217,42 @@ int32_t HwDisplayManager::getDrmResources() {
     count_connectors = 1;
     connector_ids = new uint32_t [count_connectors];
     connector_ids[0] = CONNECTOR_IDX_MIN + 0;
+
+    int i = 0;
+    for (; i < count_crtcs; i++) {
+        loadCrtc(crtc_ids[i]);
+    }
+
+    for (i = 0; i < count_connectors; i++) {
+        loadConnector(connector_ids[i]);
+    }
+
+    loadPlanes();
+
+    buildDisplayPipes();
     return 0;
 }
 
-int32_t HwDisplayManager::getCrtc(uint32_t crtcid) {
+int32_t HwDisplayManager::freeDrmResources() {
+    if (crtc_ids) {
+        delete crtc_ids;
+        crtc_ids = NULL;
+    }
+
+    if (connector_ids) {
+        delete connector_ids;
+        connector_ids = NULL;
+    }
+
+    count_crtcs = count_connectors = 0;
+
+    mCrtcs.clear();
+    mConnectors.clear();
+    mPlanes.clear();
+    return 0;
+}
+
+int32_t HwDisplayManager::loadCrtc(uint32_t crtcid) {
     /* use fb0 to do display crtc */
     int fd = open("/dev/graphics/fb0", O_RDWR, 0);
     HwDisplayCrtc * crtc = new HwDisplayCrtc(fd, crtcid);
@@ -228,7 +260,7 @@ int32_t HwDisplayManager::getCrtc(uint32_t crtcid) {
     return 0;
 }
 
-int32_t HwDisplayManager::getConnector(uint32_t connector_id) {
+int32_t HwDisplayManager::loadConnector(uint32_t connector_id) {
     drm_connector_type_t connector_type = DRM_MODE_CONNECTOR_HDMI;
     if (strcasecmp(HWC_PRIMARY_CONNECTOR_TYPE, "hdmi") == 0) {
         connector_type = DRM_MODE_CONNECTOR_HDMI;
@@ -245,7 +277,7 @@ int32_t HwDisplayManager::getConnector(uint32_t connector_id) {
     return 0;
 }
 
-int32_t HwDisplayManager::getPlanes() {
+int32_t HwDisplayManager::loadPlanes() {
     /* scan /dev/graphics/fbx to get planes */
     int fd = -1;
     char path[64];
@@ -287,6 +319,8 @@ int32_t HwDisplayManager::getPlanes() {
 }
 
 int32_t HwDisplayManager::buildDisplayPipes() {
+    /*TODO: need update for dual display.*/
+
     count_pipes = 1;
 
     pipes[0].crtc_id = crtc_ids[0];

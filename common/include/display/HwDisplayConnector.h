@@ -25,6 +25,8 @@ public:
     HwDisplayConnector(int32_t drvFd, uint32_t id);
     virtual ~HwDisplayConnector();
 
+    virtual int32_t loadProperities() = 0;
+
     virtual int32_t getModes(std::map<uint32_t, drm_mode_info_t> & modes);
 
     virtual drm_connector_type_t getType() = 0;

@@ -6,8 +6,11 @@
  *
  * Description:
  */
+#include <HwDisplayManager.h>
 #include <HwDisplayCrtc.h>
 #include <MesonLog.h>
+
+#include "AmVinfo.h"
 
 /* FBIO */
 #define FBIOPUT_OSD_SYNC_FLIP 0x451b
@@ -21,9 +24,33 @@ HwDisplayCrtc::HwDisplayCrtc(int drvFd, int32_t id) {
 HwDisplayCrtc::~HwDisplayCrtc() {
 }
 
+#ifdef HWC_MANAGE_DISPLAY_MODE
 int32_t HwDisplayCrtc::setMode(drm_mode_info_t &mode) {
     MESON_LOG_EMPTY_FUN();
     return 0;
+}
+#else
+int32_t HwDisplayCrtc::updateMode(std::string & displayMode) {
+    MESON_LOGI("hw crtc update mode: %s", displayMode.c_str());
+
+    mCurMode = displayMode;
+    //update software vsync.
+    vmode_e vmode = vmode_name_to_mode(mCurMode.c_str());
+    const struct vinfo_s* vinfo = get_tv_info(vmode);
+    if (vmode == VMODE_MAX || vinfo == NULL) {
+        MESON_LOGE("Invalid display mode %s", displayMode.c_str());
+        return -ENOENT ;
+    }
+
+    float refreshRate = vinfo->sync_duration_num / vinfo->sync_duration_den;
+    HwDisplayManager::getInstance().updateRefreshPeriod(1e9 / refreshRate);
+    return 0;
+}
+#endif
+
+int32_t HwDisplayCrtc::getModeId() {
+    vmode_e vmode = vmode_name_to_mode(mCurMode.c_str());
+    return (int32_t)vmode;
 }
 
 int32_t HwDisplayCrtc::pageFlip(int32_t &out_fence) {

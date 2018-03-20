@@ -106,6 +106,7 @@ public:
     void refresh(hwc2_display_t  display);
     void onVsync(hwc2_display_t display, int64_t timestamp);
     void onHotplug(hwc2_display_t display, bool connected);
+    void setLoadInfoStatus(bool complate);
 
 public:
     MesonHwc2();
@@ -129,6 +130,13 @@ protected:
     hwc2_callback_data_t mVsyncData;
 
     uint32_t mVirtualDisplayIds;
+
+private:
+    bool mFirstCallBackSF;
+    bool mLoadInfoStatus;
+
+    std::mutex Mutex;
+    std::condition_variable cv;
 };
 
 #endif/*MESON_HWC2_H*/

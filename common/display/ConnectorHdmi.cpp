@@ -7,18 +7,18 @@
  * Description:
  */
 
-#define LOG_NDEBUG 0
+#include <MesonLog.h>
+#include <misc.h>
+#include <systemcontrol.h>
+
+#include "AmVinfo.h"
 #include "ConnectorHdmi.h"
 
-#include <MesonLog.h>
-#include <systemcontrol.h>
-#include "AmVinfo.h"
-
 #define HDMI_FRAC_RATE_POLICY "/sys/class/amhdmitx/amhdmitx0/frac_rate_policy"
+#define HDMI_TX_HPD_STATE   "/sys/class/amhdmitx/amhdmitx0/hpd_state"
 
 ConnectorHdmi::ConnectorHdmi(int32_t drvFd, uint32_t id)
-    : HwDisplayConnector(drvFd, id) {
-    mLoaded = false;
+    :   HwDisplayConnector(drvFd, id) {
     mConnected = false;
     mSecure = false;
 }
@@ -26,13 +26,16 @@ ConnectorHdmi::ConnectorHdmi(int32_t drvFd, uint32_t id)
 ConnectorHdmi::~ConnectorHdmi() {
 }
 
-void ConnectorHdmi::loadInfo() {
-    if (!mLoaded) {
+int32_t ConnectorHdmi::loadProperities() {
+    mConnected = checkConnectState();
+    if (mConnected) {
         sc_get_hdmitx_hdcp_state(mSecure);
         loadPhysicalSize();
         loadDisplayModes();
-        mLoaded = true;
+        parseHdrCapabilities();
     }
+
+    return 0;
 }
 
 drm_connector_type_t ConnectorHdmi::getType() {
@@ -44,13 +47,15 @@ bool ConnectorHdmi::isRemovable() {
 }
 
 bool ConnectorHdmi::isConnected() {
-    MESON_LOG_EMPTY_FUN();
-    return true;
+    return mConnected;
 }
 
 bool ConnectorHdmi::isSecure() {
-    loadInfo();
     return mSecure;
+}
+
+bool ConnectorHdmi::checkConnectState() {
+    return sysfs_get_int(HDMI_TX_HPD_STATE, 0) == 1 ? true : false;
 }
 
 int32_t ConnectorHdmi::loadDisplayModes() {
@@ -100,27 +105,23 @@ int32_t ConnectorHdmi::addDisplayMode(std::string& mode) {
         (float)vinfo->sync_duration_num/vinfo->sync_duration_den};
     strcpy(modeInfo.name, mode.c_str());
 
-    mDisplayModes.emplace((uint32_t)vmode,modeInfo);
+    mDisplayModes.emplace((uint32_t)vmode, modeInfo);
 
     MESON_LOGD("add display mode (%s)", mode.c_str());
     return 0;
 }
 
 int32_t ConnectorHdmi::getModes(std::map<uint32_t, drm_mode_info_t> & modes) {
-    loadInfo();
     return HwDisplayConnector::getModes(modes);
 }
 
 void ConnectorHdmi::getHdrCapabilities(drm_hdr_capabilities * caps) {
     if (caps) {
-        parseHdrCapabilities();
         *caps = mHdrCapabilities;
     }
 }
 
 void ConnectorHdmi::dump(String8 & dumpstr) {
-    loadInfo();
-
     dumpstr.appendFormat("Connector (HDMI, %d x %d, %s, %s)\n",
         mPhyWidth, mPhyHeight, isSecure() ? "secure" : "unsecure",
         isConnected() ? "Connected" : "Removed");

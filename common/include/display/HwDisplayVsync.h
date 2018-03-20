@@ -14,8 +14,8 @@
 #include <condition_variable>
 
 #include <utils/threads.h>
-
 #include <time.h>
+#include <pthread.h>
 
 class HwVsyncObserver {
 public:
@@ -24,7 +24,7 @@ public:
     virtual void onVsync(int64_t timestamp) = 0;
 };
 
-class HwDisplayVsync : public android::Thread {
+class HwDisplayVsync {
 public:
     HwDisplayVsync(bool softwareVsync, HwVsyncObserver * observer);
     ~HwDisplayVsync();
@@ -37,7 +37,7 @@ public:
     void dump();
 
 protected:
-    bool threadLoop();
+    static void * vsyncThread(void * data);
     int32_t waitSoftwareVsync(nsecs_t& vsync_timestamp);
 
 
@@ -52,6 +52,7 @@ protected:
 
     std::mutex mStatLock;
     std::condition_variable mStateCondition;
+    pthread_t hw_vsync_thread;
 };
 
 #endif/*HW_DISPLAY_VSYNC_H*/

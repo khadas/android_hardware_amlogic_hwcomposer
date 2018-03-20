@@ -532,6 +532,8 @@ int32_t SimpleStrategy::commit() {
 
         mDummyComposer->start();
         mUiComposer->start();
+    } else {
+        MESON_LOGE("layers is empty.");
     }
 
     /*Set blank framebuffer to */

@@ -7,8 +7,8 @@
  * Description:
  */
 
-#ifndef _CONNECTORHDMI_H
-#define _CONNECTORHDMI_H
+#ifndef CONNECTOR_HDMI_H
+#define CONNECTOR_HDMI_H
 #include <HwDisplayConnector.h>
 
 class ConnectorHdmi : public HwDisplayConnector {
@@ -17,6 +17,8 @@ public:
     virtual ~ConnectorHdmi();
 
 public:
+    virtual int32_t loadProperities();
+
     virtual drm_connector_type_t getType();
     virtual bool isRemovable();
     virtual bool isConnected();
@@ -28,7 +30,7 @@ public:
     virtual void dump(String8& dumpstr);
 
 protected:
-    void loadInfo();
+    bool checkConnectState();
 
     int32_t loadDisplayModes();
     int32_t addDisplayMode(std::string& mode);
@@ -37,19 +39,11 @@ protected:
     int32_t getLineValue(const char *lineStr, const char *magicStr);
     int32_t parseHdrCapabilities();
 
-protected:
-    bool isDispModeValid(std::string& dispmode);
-
-     status_t readHdmiDispMode(std::string &dispmode);
-
 private:
     bool mConnected;
     bool mSecure;
-    bool mLoaded;
 
     drm_hdr_capabilities mHdrCapabilities;
 };
 
 #endif
-
-

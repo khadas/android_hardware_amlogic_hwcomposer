@@ -15,6 +15,9 @@ class ConnectorPanel :public HwDisplayConnector {
 public:
    ConnectorPanel(int32_t drvFd, uint32_t id);
    virtual ~ConnectorPanel();
+
+    virtual int32_t loadProperities();
+
    virtual drm_connector_type_t getType();
    virtual bool isRemovable();
    virtual bool isConnected();

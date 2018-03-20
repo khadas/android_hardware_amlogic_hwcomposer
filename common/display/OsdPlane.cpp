@@ -60,8 +60,8 @@ int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
         // TODO: will move this in plane info op, and do this in the driver with
         // one vsync.
         mFirstPresent = false;
-        // sysfs_set_string(DISPLAY_LOGO_INDEX, "-1");
-        // sysfs_set_string(DISPLAY_FB0_FREESCALE_SWTICH, "0x10001");
+        sysfs_set_string(DISPLAY_LOGO_INDEX, "-1");
+        sysfs_set_string(DISPLAY_FB0_FREESCALE_SWTICH, "0x10001");
     }
 
     drm_rect_t srcCrop       = fb->mSourceCrop;
@@ -147,6 +147,7 @@ int OsdPlane::translateInternalFormat(uint64_t internalFormat) {
 }
 
 int32_t OsdPlane::blank(bool blank) {
+//    MESON_LOGD("osd%d plane set blank %d", mId-30, blank);
     if (mDrvFd < 0) {
         MESON_LOGE("osd plane fd is not valiable!");
         return -EBADF;

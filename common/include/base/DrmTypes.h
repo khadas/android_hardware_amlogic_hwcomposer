@@ -7,15 +7,15 @@
  * Description:
  */
 
-/* blend mode for compoistion or display.
- * The define is same as hwc2_blend_mode.
- * For hwc1, we need do convert.
- */
 #ifndef DRM_TYPES_H
 #define DRM_TYPES_H
 
 #include <hardware/hwcomposer_defs.h>
 
+/* blend mode for compoistion or display.
+ * The define is same as hwc2_blend_mode.
+ * For hwc1, we need do convert.
+ */
 typedef enum {
     DRM_BLEND_MODE_INVALID = 0,
     DRM_BLEND_MODE_NONE = 1,
@@ -68,6 +68,13 @@ typedef enum {
     OSD_PLANE = 1 << 1,
     VIDEO_PLANE =  1 << 2,
 } drm_plane_type_mask;
+
+typedef enum {
+    drm_event_hdmitx_hotplug = 1,
+    drm_event_hdmitx_hdcp,
+    drm_event_mode_changed,
+    drm_event_any = 0xFF
+} drm_display_event;
 
 typedef enum {
     DRM_MODE_CONNECTOR_HDMI = 0,

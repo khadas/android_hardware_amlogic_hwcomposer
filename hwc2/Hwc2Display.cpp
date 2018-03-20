@@ -37,20 +37,19 @@ Hwc2Display::~Hwc2Display() {
     mConnector.reset();
     mObserver.reset();
     mCompositionStrategy.reset();
+
+    mModeMgr.reset();
 }
 
 int32_t Hwc2Display::initialize() {
     /*get hw components.*/
+    mModeMgr = createModeMgr(HwcModeMgr::FIXED_SIZE_POLICY);
+
     if (MESON_DUMMY_DISPLAY_ID == mHwId) {
         MESON_LOGE("Init Hwc2Display with dummy display.");
      } else {
         HwDisplayManager::getInstance().registerObserver(mHwId, this);
         HwDisplayManager::getInstance().getCrtc(mHwId, mCrtc);
-        HwDisplayManager::getInstance().getPlanes(mHwId, mPlanes);
-        HwDisplayManager::getInstance().getConnector(mHwId, mConnector);
-
-        mModeMgr = createModeMgr(mConnector);
-        mConnector->getHdrCapabilities(&mHdrCaps);
      }
 
     /*add valid composers*/
@@ -67,9 +66,15 @@ int32_t Hwc2Display::initialize() {
     /* load present stragetic.*/
     mCompositionStrategy = CompositionStrategyFactory::create(SIMPLE_STRATEGY, 0);
 
-    mModeMgr = createModeMgr(mConnector);
-    updateDisplayAttribute();
     return 0;
+}
+
+void Hwc2Display::loadDisplayResources() {
+    HwDisplayManager::getInstance().getPlanes(mHwId, mPlanes);
+    HwDisplayManager::getInstance().getConnector(mHwId, mConnector);
+
+    mConnector->loadProperities();
+    mConnector->getHdrCapabilities(&mHdrCaps);
 }
 
 const char * Hwc2Display::getName() {
@@ -97,40 +102,42 @@ hwc2_error_t Hwc2Display::setVsyncEnable(hwc2_vsync_t enabled) {
     return HWC2_ERROR_NONE;
 }
 
-hwc2_error_t Hwc2Display::setVsyncPeriod(int32_t period) {
-    HwDisplayManager::getInstance().updateRefreshPeriod(period);
-    return HWC2_ERROR_NONE;
-}
-
 void Hwc2Display::onVsync(int64_t timestamp) {
-    if (mObserver.get() != NULL) {
+    if (mObserver != NULL) {
         mObserver->onVsync(timestamp);
     }
 }
 
 void Hwc2Display::onHotplug(bool connected) {
-    /*
-   * For platforms with dual display,
-   * when external display plug in/out,
-   * the planes for each display may change.
-   */
-    if (connected) {
-        HwDisplayManager::getInstance().getPlanes(mHwId, mPlanes);
-        HwDisplayManager::getInstance().getConnector(mHwId, mConnector);
-        mModeMgr->setConnector(mConnector);
-        mConnector->getHdrCapabilities(&mHdrCaps);
-    } else {
-        MESON_LOG_EMPTY_FUN();
+    MESON_LOGD("onHotplug: %d", connected);
+    loadDisplayResources();
+    mModeMgr->setDisplayResources(mCrtc, mConnector);
+
+    if (mObserver != NULL) {
+        mObserver->setLoadInfoStatus(true);
+        mObserver->onHotplug(connected);
     }
 }
 
-void Hwc2Display::onModeChanged() {
-    //TODO:
-    if (mObserver != NULL) {
-        mObserver->refresh();
-    } else {
-        MESON_LOGE("No display oberserve register to display (%s)", getName());
+void Hwc2Display::onModeChanged(int stage) {
+    MESON_LOGD("onModeChanged: %d", stage);
+    if (stage == 0) {
+        mModeMgr->updateDisplayResources();
+        if (mObserver != NULL) {
+            mObserver->refresh();
+
+            /*Update info to surfaceflinger by hotplug.*/
+            if (mModeMgr->getPolicyType() == HwcModeMgr::FIXED_SIZE_POLICY) {
+                mObserver->onHotplug(true);
+            }
+        } else {
+            MESON_LOGE("No display oberserve register to display (%s)", getName());
+        }
     }
+}
+
+void Hwc2Display::setLoadInfoStatus(bool compate) {
+
 }
 
 hwc2_error_t Hwc2Display::createLayer(hwc2_layer_t * outLayer) {
@@ -302,8 +309,8 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
     return collectCompositionRequest(outNumTypes, outNumRequests);
 }
 
-hwc2_error_t Hwc2Display::collectCompositionRequest(uint32_t* outNumTypes,
-    uint32_t* outNumRequests) {
+hwc2_error_t Hwc2Display::collectCompositionRequest(
+    uint32_t* outNumTypes, uint32_t* outNumRequests) {
     mChangedLayers.clear();
     mOverlayLayers.clear();
 
@@ -345,7 +352,8 @@ hwc2_error_t Hwc2Display::collectCompositionRequest(uint32_t* outNumTypes,
 
     *outNumRequests = mOverlayLayers.size();
     *outNumTypes    = mChangedLayers.size();
-    MESON_LOGV("layer requests: %d, type changed: %d", *outNumRequests, *outNumTypes);
+    MESON_LOGV("layer requests: %d, type changed: %d",
+        *outNumRequests, *outNumTypes);
 
     return ((*outNumTypes) > 0) ? HWC2_ERROR_HAS_CHANGES : HWC2_ERROR_NONE;
 }
@@ -368,8 +376,8 @@ hwc2_error_t Hwc2Display::getDisplayRequests(
 }
 
 hwc2_error_t Hwc2Display::getChangedCompositionTypes(
-    uint32_t* outNumElements, hwc2_layer_t* outLayers,
-    int32_t*  outTypes) {
+    uint32_t * outNumElements, hwc2_layer_t * outLayers,
+    int32_t *  outTypes) {
     *outNumElements = mChangedLayers.size();
     if (outLayers && outTypes) {
         for (uint32_t i = 0; i < mChangedLayers.size(); i++) {
@@ -497,23 +505,6 @@ hwc2_error_t Hwc2Display::setActiveConfig(
             getName());
         return HWC2_ERROR_BAD_DISPLAY;
     }
-}
-
-hwc2_error_t Hwc2Display::updateDisplayAttribute() {
-    // Update vsync period.
-    hwc2_config_t config;
-    int32_t period;
-
-    if (getActiveConfig(&config) == HWC2_ERROR_BAD_DISPLAY) {
-        return HWC2_ERROR_BAD_DISPLAY;
-    }
-    if (getDisplayAttribute(config, HWC2_ATTRIBUTE_VSYNC_PERIOD,
-            &period) == HWC2_ERROR_BAD_DISPLAY) {
-        return HWC2_ERROR_BAD_DISPLAY;
-    }
-
-    setVsyncPeriod(period);
-    return HWC2_ERROR_NONE;
 }
 
 void Hwc2Display::dump(String8 & dumpstr) {

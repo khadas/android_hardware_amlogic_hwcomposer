@@ -11,12 +11,12 @@
 #include "FixedSizeModeMgr.h"
 
 std::shared_ptr<HwcModeMgr> createModeMgr(
-    std::shared_ptr<HwDisplayConnector> & connector) {
-    if (connector != NULL) {
+    HwcModeMgr::ModesPolicy policy) {
+    if (policy == HwcModeMgr::FIXED_SIZE_POLICY) {
         HwcModeMgr * modeMgr = (HwcModeMgr *) new FixedSizeModeMgr();
         return std::shared_ptr<HwcModeMgr>(std::move(modeMgr));
+    } else {
+        return NULL;
     }
-
-    return NULL;
 }
 

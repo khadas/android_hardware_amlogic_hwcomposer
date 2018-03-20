@@ -18,7 +18,12 @@ HwDisplayVsync::HwDisplayVsync(bool softwareVsync,
     mEnabled = false;
     mPreTimeStamp = 0;
 
-    run("displayVsync", android::PRIORITY_URGENT_DISPLAY);
+    int ret;
+    ret = pthread_create(&hw_vsync_thread, NULL, vsyncThread, this);
+    if (ret) {
+        MESON_LOGE("failed to start vsync thread: %s", strerror(ret));
+        return;
+    }
 }
 
 HwDisplayVsync::~HwDisplayVsync() {
@@ -27,7 +32,7 @@ HwDisplayVsync::~HwDisplayVsync() {
     stateLock.unlock();
     mStateCondition.notify_all();
 
-    requestExitAndWait();
+    //requestExitAndWait();
 }
 
 int32_t HwDisplayVsync::setPeriod(nsecs_t period) {
@@ -43,37 +48,40 @@ int32_t HwDisplayVsync::setEnabled(bool enabled) {
     return 0;
 }
 
-bool HwDisplayVsync::threadLoop() {
-    std::unique_lock<std::mutex> stateLock(mStatLock);
+void * HwDisplayVsync::vsyncThread(void * data) {
+    HwDisplayVsync* pThis = (HwDisplayVsync*)data;
 
-    while (!mEnabled) {
-        mStateCondition.wait(stateLock);
-        if (mExit) {
+    std::unique_lock<std::mutex> stateLock(pThis->mStatLock);
+
+    while (!pThis->mEnabled) {
+        pThis->mStateCondition.wait(stateLock);
+        if (pThis->mExit) {
+            //TODO: exit thread ?
             MESON_LOGD("exit vsync loop");
-            return false;
+            return NULL;
         }
     }
     stateLock.unlock();
 
     nsecs_t timestamp;
     int32_t ret;
-    if (mSoftVsync) {
-        ret = waitSoftwareVsync(timestamp);
+    if (pThis->mSoftVsync) {
+        ret = pThis->waitSoftwareVsync(timestamp);
     } else {
         ret = HwDisplayManager::getInstance().waitVBlank(timestamp);
     }
     bool debug = false;
     if (debug) {
-        nsecs_t period = timestamp - mPreTimeStamp;
-        if (mPreTimeStamp != 0)
+        nsecs_t period = timestamp - pThis->mPreTimeStamp;
+        if (pThis->mPreTimeStamp != 0)
             MESON_LOGD("wait for vsync success, peroid: %lld", period);
-        mPreTimeStamp = timestamp;
+        pThis->mPreTimeStamp = timestamp;
     }
 
-    if ( ret == 0 && mObserver) {
-        mObserver->onVsync(timestamp);
+    if ( ret == 0 && pThis->mObserver) {
+        pThis->mObserver->onVsync(timestamp);
     }
-    return true;
+    return NULL;
 }
 
 int32_t HwDisplayVsync::waitSoftwareVsync(nsecs_t& vsync_timestamp) {

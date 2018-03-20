@@ -40,7 +40,7 @@
 
 
 #define MESON_LOG_EMPTY_FUN() \
-    ALOGE("ERR: PLEASE FIX NON-IMPLEMENT FUN(%s).", __func__);
+    ALOGD("ERR: PLEASE FIX NON-IMPLEMENT FUN(%s).", __func__);
 
 
 #endif/*MESON_LOG_H*/

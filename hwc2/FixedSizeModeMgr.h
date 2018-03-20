@@ -24,9 +24,13 @@ public:
     FixedSizeModeMgr();
     ~FixedSizeModeMgr();
 
+    ModesPolicy getPolicyType();
     const char * getName();
 
-    void setConnector(std::shared_ptr<HwDisplayConnector>& connector);
+    void setDisplayResources(
+        std::shared_ptr<HwDisplayCrtc> & crtc,
+        std::shared_ptr<HwDisplayConnector> & connector);
+    int32_t updateDisplayResources();
 
     hwc2_error_t  getDisplayConfigs(
         uint32_t* outNumConfigs, hwc2_config_t* outConfigs);
@@ -38,13 +42,14 @@ public:
     void dump(String8 & dumpstr);
 
 protected:
-    float mRefreshRate;
-    uint32_t mDisplayWidth;
-    uint32_t mDisplayHeight;
-    uint32_t mDpiX;
-    uint32_t mDpiY;
-
     std::shared_ptr<HwDisplayConnector> mConnector;
+    std::shared_ptr<HwDisplayCrtc> mCrtc;
+
+    std::map<uint32_t, drm_mode_info_t> mModes;
+    drm_mode_info_t mCurMode;
+
+private:
+    void updateFreescaleAxis();
 };
 
 #endif/*FIXED_SIZE_MODE_MGR_H*/

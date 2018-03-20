@@ -59,13 +59,22 @@ ifneq ($(HWC_PRIMARY_CONNECTOR_TYPE),)
 endif
 
 #HWC Feature Config
-ifeq ($(TARGET_SUPPORT_SECURE_LAYER),true)
+ifeq ($(TARGET_HWC_SUPPORT_SECURE_LAYER), true)
 LOCAL_CFLAGS += -DHWC_ENABLE_SECURE_LAYER
 endif
 
-ifeq ($(TARGET_SUPPORT_GE2D_COMPOSITION),true)
+ifeq ($(TARGET_HWC_SUPPORT_GE2D_COMPOSITION), true)
 LOCAL_CFLAGS += -DHWC_ENABLE_GE2D_COMPOSITION
 endif
+
+ifeq ($(TARGET_HWC_SUPPORT_PRIMARY_HOTPLUG), true) #need surfaceflinger modifications
+LOCAL_CFLAGS += -DHWC_ENABLE_PRIMARY_HOTPLUG
+endif
+
+ifeq ($(TARGET_HWC_MANAGE_DISPLAY_MODE), true) #need surfaceflinger modifications
+LOCAL_CFLAGS += -DHWC_MANAGE_DISPLAY_MODE
+endif
+
 
 LOCAL_C_INCLUDES := \
     $(LOCAL_PATH)/common/include/display \
@@ -110,6 +119,7 @@ LOCAL_COMMON_DISPLAY_FILES  := \
     common/display/VideoPlane.cpp \
     common/display/HwConnectorFactory.cpp \
     common/display/HwDisplayConnector.cpp \
+    common/display/HwDisplayEventListener.cpp \
     common/display/ConnectorHdmi.cpp \
     common/display/ConnectorPanel.cpp \
     common/display/AmVideo.cpp \

@@ -13,6 +13,7 @@
 #include <hardware/hwcomposer2.h>
 #include <BasicTypes.h>
 #include <HwDisplayConnector.h>
+#include <HwDisplayCrtc.h>
 
 /*
  *For different connectors, we need different manage strategy.
@@ -20,11 +21,22 @@
  */
 class HwcModeMgr {
 public:
+    enum ModesPolicy {
+        FIXED_SIZE_POLICY = 0,
+        FULL_ACTIVE_POLICY
+    };
+
+public:
     HwcModeMgr() {}
     virtual ~HwcModeMgr() {}
 
+    virtual ModesPolicy getPolicyType() = 0;
     virtual const char * getName() = 0;
-    virtual void setConnector(std::shared_ptr<HwDisplayConnector> &connector) = 0;
+
+    virtual void setDisplayResources(
+        std::shared_ptr<HwDisplayCrtc> & crtc,
+        std::shared_ptr<HwDisplayConnector> & connector) = 0;
+    virtual int32_t updateDisplayResources() = 0;
 
     virtual hwc2_error_t  getDisplayConfigs(
         uint32_t* outNumConfigs, hwc2_config_t* outConfigs) = 0;
@@ -36,6 +48,6 @@ public:
     virtual void dump(String8 & dumpstr) = 0;
 };
 
-std::shared_ptr<HwcModeMgr> createModeMgr(std::shared_ptr<HwDisplayConnector>& connector);
+std::shared_ptr<HwcModeMgr> createModeMgr(HwcModeMgr::ModesPolicy policy);
 
 #endif/*IHWC_MODE_MGR_H*/

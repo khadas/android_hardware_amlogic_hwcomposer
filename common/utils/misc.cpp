@@ -88,7 +88,7 @@ int32_t sysfs_set_string(const char *path, const char *val) {
     int32_t fd = open(path, O_RDWR);
     if (fd >= 0) {
         bytes = write(fd, val, strlen(val));
-        //DTRACE("setSysfsStr %s= %s\n", path,val);
+        //MESON_LOGI("setSysfsStr %s= %s\n", path,val);
         close(fd);
         return 0;
     } else {
