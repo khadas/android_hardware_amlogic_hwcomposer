@@ -96,12 +96,15 @@ void SimpleStrategy::classifyPlanes(
     std::vector<std::shared_ptr<HwDisplayPlane>>::iterator it;
     for (it = planes.begin() ; it != planes.end(); ++it) {
         plane = *it;
-        if (plane->getPlaneType()  & OSD_PLANE) {
+        uint32_t planeType = plane->getPlaneType();
+        if (planeType  & OSD_PLANE) {
             mOsdPlanes.push_back(plane);
-        } else if (plane->getPlaneType()  & VIDEO_PLANE) {
+        } else if (planeType  & VIDEO_PLANE) {
             mVideoPlanes.push_back(plane);
-        } else if (plane->getPlaneType() == CURSOR_PLANE) {
+        } else if (planeType == CURSOR_PLANE) {
             mCursorPlanes.push_back(plane);
+        } else {
+            plane->blank(true);
         }
     }
 }

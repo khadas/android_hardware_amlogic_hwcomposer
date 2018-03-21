@@ -537,14 +537,15 @@ void Hwc2Display::dump(String8 & dumpstr) {
 
      if (DebugHelper::getInstance().dumpDetailInfo()) {
         std::vector<std::shared_ptr<HwDisplayPlane>>::iterator plane;
-        dumpstr.append(" Plane |  Comp Type |  z  | t |        Src Crop        |         DstFrame        | fd "
+        dumpstr.append(" Plane name \n"
+                "       z |  Comp Type | t |        Src Crop        |         DstFrame        | fd "
                 "| format |  bs  |  ps  | blend | alpha |  op  |    afbc    |\n");
-        dumpstr.append("-------+------------+-----+---+------------------------+-------------------------+----"
+        dumpstr.append("--------+------------+---+------------------------+-------------------------+----"
                 "+--------+------+------+-------+-------+------+------------+\n");
         for (plane = mPlanes.begin(); plane != mPlanes.end(); plane++) {
             (*plane)->dump(dumpstr);
         }
-        dumpstr.append("-------+------------+-----+---+------------------------+-------------------------+----"
+        dumpstr.append("--------+------------+---+------------------------+-------------------------+----"
                 "+--------+------+------+-------+-------+------+------------+\n");
 
         std::unordered_map<hwc2_layer_t, std::shared_ptr<Hwc2Layer>>::iterator layer;

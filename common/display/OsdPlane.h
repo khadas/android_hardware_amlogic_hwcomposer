@@ -11,6 +11,8 @@
 #define OSD_PLANE_H
 
 #include <HwDisplayPlane.h>
+#include <MesonLog.h>
+#include <misc.h>
 
 #define DISPLAY_LOGO_INDEX              "/sys/module/fb/parameters/osd_logo_index"
 #define DISPLAY_FB0_FREESCALE_SWTICH    "/sys/class/graphics/fb0/free_scale_switch"
@@ -19,6 +21,9 @@
 #define FBIOPUT_OSD_SYNC_RENDER_ADD  0x4519
 #define FBIOPUT_OSD_HWC_ENABLE       0x451a
 #define FBIOPUT_OSD_SYNC_BLANK       0x451c
+#define FBIOGET_OSD_CAPBILITY        0x451e
+
+#define PROP_VALUE_LEN_MAX  92
 
 enum {
     GLES_COMPOSE_MODE = 0,
@@ -75,10 +80,23 @@ public:
     OsdPlane(int32_t drvFd, uint32_t id);
     ~OsdPlane();
 
-    uint32_t getPlaneType() {return mPlaneType;}
+    uint32_t getPlaneType() {
+        int32_t debugOsdPlanes = -1;
+        char val[PROP_VALUE_LEN_MAX];
+
+        memset(val, 0, sizeof(val));
+        if (sys_get_string_prop("sys.hwc.debug.osdplanes", val))
+            debugOsdPlanes = atoi(val);
+
+        MESON_LOGV("debugOsdPlanes: %d", debugOsdPlanes);
+        if (debugOsdPlanes == -1)
+            return mPlaneType;
+        else
+            return (mId < 30 + debugOsdPlanes) ? OSD_PLANE : 0;
+    }
 
     int32_t setPlane(std::shared_ptr<DrmFramebuffer> & fb);
-    int32_t getCapabilities();
+    int32_t getCapabilities() { return mCapability; }
 
     int32_t blank(bool blank);
 
@@ -96,8 +114,8 @@ protected:
     String8 compositionTypeToString();
 
 private:
-    bool mFirstPresentDisplay;
-    bool mOsdPlaneBlank;
+    bool mFirstPresent;
+    bool mBlank;
 
     osd_plane_info_t mPlaneInfo;
     std::shared_ptr<DrmFramebuffer> mDrmFb;

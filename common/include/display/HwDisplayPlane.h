@@ -16,8 +16,11 @@
 
 
 enum {
-    OSD_VIDEO_NO_CONFLICT = 0,
-    OSD_VIDEO_CONFLICT    = 1,
+    OSD_HW_CURSOR        = (1 << 0),
+    OSD_VIDEO_CONFLICT   = (1 << 1),
+    OSD_FREESCALE        = (1 << 2),
+    OSD_UBOOT_LOGO       = (1 << 3),
+    OSD_LAYER_ENABLE     = (1 << 31),
 };
 
 class HwDisplayPlane {
@@ -43,6 +46,7 @@ protected:
     int32_t mDrvFd;
     uint32_t mId;
     uint32_t mPlaneType;
+    int32_t mCapability;
 };
 
  #endif/*HW_DISPLAY_PLANE_H*/

@@ -9,13 +9,12 @@
 
 #include "OsdPlane.h"
 #include <MesonLog.h>
-#include <misc.h>
 
 OsdPlane::OsdPlane(int32_t drvFd, uint32_t id)
     : HwDisplayPlane(drvFd, id),
       mDrmFb(NULL),
-      mFirstPresentDisplay(true),
-      mOsdPlaneBlank(false) {
+      mFirstPresent(true),
+      mBlank(true) {
     getProperties();
     mPlaneInfo.out_fen_fd = -1;
     mPlaneInfo.op = 0x0;
@@ -30,17 +29,22 @@ int32_t OsdPlane::getProperties() {
     // refrence board.
     int32_t ret = 0;
 
-#if 0 // g12a.
-    mPlaneType = OSD_PLANE;
-#else // p212.
-    if (mId == 30 || mId == 31 || mId == 32) {
-    // if (mId == 30 || mId == 31) {
-    // if (mId == 30) {
-        mPlaneType = OSD_PLANE;
-    } else /*if (mId == 31) */{
-        mPlaneType = CURSOR_PLANE;
+    mCapability = 0x0;
+    if (mDrvFd < 0) {
+        MESON_LOGE("osd plane fd is not valiable!");
+        return -EBADF;
     }
-#endif
+
+    if (ioctl(mDrvFd, FBIOGET_OSD_CAPBILITY, &mCapability) != 0) {
+        MESON_LOGE("osd plane get capibility ioctl (%d) return(%d)", mCapability, errno);
+        return -EINVAL;
+    }
+
+    if (mCapability & OSD_LAYER_ENABLE) {
+        mPlaneType = (mCapability & OSD_HW_CURSOR)
+            ? CURSOR_PLANE : OSD_PLANE;
+    }
+    MESON_LOGD("osd%d plane type is %d", mId-30, mPlaneType);
 
     return ret;
 }
@@ -52,10 +56,10 @@ int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
     }
 
     // close uboot logo, if bootanim begin to show
-    if (mFirstPresentDisplay) {
+    if (mFirstPresent) {
         // TODO: will move this in plane info op, and do this in the driver with
         // one vsync.
-        mFirstPresentDisplay = false;
+        mFirstPresent = false;
         // sysfs_set_string(DISPLAY_LOGO_INDEX, "-1");
         // sysfs_set_string(DISPLAY_FB0_FREESCALE_SWTICH, "0x10001");
     }
@@ -148,28 +152,16 @@ int32_t OsdPlane::blank(bool blank) {
         return -EBADF;
     }
 
-    if (mOsdPlaneBlank != blank) {
+    if (mBlank != blank) {
         uint32_t val = blank ? 1 : 0;
         if (ioctl(mDrvFd, FBIOPUT_OSD_SYNC_BLANK, &val) != 0) {
             MESON_LOGE("osd plane blank ioctl (%d) return(%d)", blank, errno);
             return -EINVAL;
         }
-        mOsdPlaneBlank = blank;
+        mBlank = blank;
     }
 
     return 0;
-}
-
-int32_t OsdPlane::getCapabilities() {
-    // refrence board.
-    int32_t ret = 0;
-
-    // TODO: should get this properties from kernel.
-    if (mId == 31 || mId == 32) {
-        ret |= OSD_VIDEO_CONFLICT;
-    }
-
-    return ret;
 }
 
 String8 OsdPlane::compositionTypeToString() {
@@ -211,12 +203,13 @@ String8 OsdPlane::compositionTypeToString() {
 }
 
 void OsdPlane::dump(String8 & dumpstr) {
-    if (!mOsdPlaneBlank) {
-        dumpstr.appendFormat("  osd%1d | %10s | %3d | %1d | %4d, %4d, %4d, %4d |  %4d, %4d, %4d, %4d | %2d |   %2d   | %4d |"
-            " %4d | %5d | %5d | %4x |  %8x  |\n",
+    if (!mBlank) {
+        dumpstr.appendFormat("  osd%1d \n"
+                "     %3d | %10s | %1d | %4d, %4d, %4d, %4d |  %4d, %4d, %4d, %4d | %2d |   %2d   | %4d |"
+                " %4d | %5d | %5d | %4x |  %8x  |\n",
                  mId - 30,
-                 compositionTypeToString().string(),
                  mPlaneInfo.zorder,
+                 compositionTypeToString().string(),
                  mPlaneInfo.type,
                  mPlaneInfo.xoffset, mPlaneInfo.yoffset, mPlaneInfo.width, mPlaneInfo.height,
                  mPlaneInfo.dst_x, mPlaneInfo.dst_y, mPlaneInfo.dst_w, mPlaneInfo.dst_h,
