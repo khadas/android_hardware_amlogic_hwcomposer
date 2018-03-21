@@ -115,6 +115,25 @@ int32_t  sc_get_display_mode(std::string & dispmode) {
     return 0;
 }
 
+int32_t sc_get_osd_position(std::string &dispmode, int *position) {
+    CHK_SC_PROXY();
+
+    gSC->getPosition(dispmode, [&position](const Result &ret,
+                        int left, int top, int width, int height) {
+        if (ret == Result::OK) {
+            position[0] = left;
+            position[1] = top;
+            position[2] = width;
+            position[3] = height;
+
+            MESON_LOGI("sc_get_osd_position x:%d y:%d w:%d h:%d",
+                 position[0], position[1], position[2], position[3]);
+        }
+    });
+
+    return 0;
+}
+
 #else
 
 static sp<ISystemControlService> gSC = NULL;
@@ -162,6 +181,25 @@ int32_t  sc_get_display_mode(std::string & dispmode) {
         return 0;
     } else {
         MESON_LOGE("syscontrol::getActiveDispMode FAIL.");
+        return -EFAULT;
+    }
+}
+
+int32_t sc_get_osd_position(std::string &dispmode, int *position) {
+    CHK_SC_PROXY();
+
+    if (gSC->getPosition(dispmode,
+                int left, int top, int width, int height)) {
+        position[0] = left;
+        position[1] = top;
+        position[2] = width;
+        position[3] = height;
+        MESON_LOGI("sc_get_osd_position x:%d y:%d w:%d h:%d",
+             position[0], position[1], position[2], position[3]);
+
+        return 0;
+    } else {
+        MESON_LOGE("syscontrol::getPosition FAIL.");
         return -EFAULT;
     }
 }

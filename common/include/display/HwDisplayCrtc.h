@@ -13,7 +13,6 @@
 #include <DrmTypes.h>
 #include <BasicTypes.h>
 
-
 typedef struct display_flip_info_t {
     int           out_fen_fd;
     unsigned int  background_w;

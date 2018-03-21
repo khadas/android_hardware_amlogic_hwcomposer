@@ -145,9 +145,6 @@ hwc2_error_t Hwc2Display::destroyLayer(hwc2_layer_t  inLayer) {
 
 hwc2_error_t Hwc2Display::setCursorPosition(hwc2_layer_t layer,
     int32_t x, int32_t y) {
-    UNUSED(layer);
-    UNUSED(x);
-    UNUSED(y);
     MESON_LOG_EMPTY_FUN();
     return HWC2_ERROR_NONE;
 }

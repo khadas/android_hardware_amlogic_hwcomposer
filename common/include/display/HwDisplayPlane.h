@@ -43,6 +43,8 @@ public:
 
     int32_t getDrvFd() {return mDrvFd;}
 
+    virtual int32_t updateOsdPosition(const char * axis) {return 0;}
+
 protected:
     int32_t mDrvFd;
     uint32_t mId;

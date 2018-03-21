@@ -16,8 +16,6 @@
 #include <errno.h>
 #include <MesonLog.h>
 
-#define MAX_STR_LEN         512
-
 bool sys_get_bool_prop(const char *prop, bool defVal) {
     return property_get_bool(prop, defVal);
 }

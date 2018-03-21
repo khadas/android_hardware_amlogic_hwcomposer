@@ -84,15 +84,15 @@ HwDisplayEventListener::~HwDisplayEventListener() {
 
 void HwDisplayEventListener::createThread() {
     int ret;
-    ret = pthread_create(&hw_event_thread, NULL, ueventThread, this);
-    if (ret) {
-        MESON_LOGE("failed to start uevent thread: %s", strerror(ret));
-        return;
-    }
-
     ret = pthread_create(&hw_virtual_hotplug_thread, NULL, virtualHotplugThread, this);
     if (ret) {
         MESON_LOGE("failed to start virtual hotplug thread: %s", strerror(ret));
+        return;
+    }
+
+    ret = pthread_create(&hw_event_thread, NULL, ueventThread, this);
+    if (ret) {
+        MESON_LOGE("failed to start uevent thread: %s", strerror(ret));
         return;
     }
 }

@@ -134,6 +134,7 @@ protected:
 
     /*all go to client composer*/
     bool mForceClientComposer;
+
 };
 
 #endif/*HWC2_DISPLAY_H*/

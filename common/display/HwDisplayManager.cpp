@@ -17,6 +17,7 @@
 #include "DummyPlane.h"
 #include "OsdPlane.h"
 #include "VideoPlane.h"
+#include "CursorPlane.h"
 
 
 ANDROID_SINGLETON_STATIC_INSTANCE(HwDisplayManager)
@@ -26,6 +27,15 @@ ANDROID_SINGLETON_STATIC_INSTANCE(HwDisplayManager)
 
 HwDisplayManager::HwDisplayManager() {
     loadDrmResources();
+
+#if defined(WIDTH_PRIMARY_FRAMEBUFFER) && \
+        defined(HEIGHT_PRIMARY_FRAMEBUFFER)
+        mDefFbWidth  = WIDTH_PRIMARY_FRAMEBUFFER;
+        mDefFbHeight = HEIGHT_PRIMARY_FRAMEBUFFER;
+#else
+        MESON_LOGE("HwDisplayManager need define the"
+            "WIDTH_PRIMARY_FRAMEBUFFER and WIDTH_PRIMARY_FRAMEBUFFER.");
+#endif
 
 #if MESON_HW_DISPLAY_VSYNC_SOFTWARE
     mVsync = std::make_shared<HwDisplayVsync>(true, this);
@@ -38,6 +48,11 @@ HwDisplayManager::HwDisplayManager() {
 
 HwDisplayManager::~HwDisplayManager() {
     freeDrmResources();
+
+    if (mCursorPlane) {
+        delete mCursorPlane;
+        mCursorPlane = NULL;
+    }
 }
 
 int32_t HwDisplayManager::getHwDisplayIds(uint32_t * displayNum,
@@ -155,6 +170,18 @@ void HwDisplayManager::handle(drm_display_event event, int val) {
                             MESON_LOGE("Dual display not supported.");
                         } else if (count_crtcs == 1) {
                             mCrtcs[crtc_ids[0]]->updateMode(dispmode);
+
+                            //set osd mouse scale axis
+                            int position[4] = { 0, 0, 0, 0 };//x,y,w,h
+                            if (0 == sc_get_osd_position(dispmode, position)) {
+                                char axis[MAX_STR_LEN] = {0};
+                                sprintf(axis, "%d %d %d %d",
+                                        mDefFbWidth, mDefFbHeight, position[2], position[3]);
+                                mCursorPlane->updateOsdPosition(axis);
+                            } else {
+                                MESON_LOGE("GetOsdPosition by sc failed.");
+                            }
+
                         }
                     } else {
                         MESON_LOGE("GetDisplayMode by sc failed.");
@@ -311,15 +338,28 @@ int32_t HwDisplayManager::loadPlanes() {
     char path[64];
     int count_osd = 0, count_video = 0;
     int idx = 0, plane_idx = 0;
+    int capability = 0x0, planeType = 0;
 
     do {
         snprintf(path, 64, "/dev/graphics/fb%u", idx);
         fd = open(path, O_RDWR, 0);
         if (fd >= 0) {
             plane_idx = OSD_PLANE_IDX_MIN + idx;
-            OsdPlane * plane = new OsdPlane(fd, plane_idx);
-            mPlanes.emplace(plane_idx, std::move(plane));
-            count_osd ++;
+            if (ioctl(fd, FBIOGET_OSD_CAPBILITY, &capability) != 0) {
+                MESON_LOGE("osd plane get capibility ioctl (%d) return(%d)", capability, errno);
+                return -EINVAL;
+            }
+            if (capability & OSD_LAYER_ENABLE) {
+                HwDisplayPlane * plane;
+                if (capability & OSD_HW_CURSOR) {
+                    plane = new CursorPlane(fd, plane_idx);
+                    mCursorPlane = plane;
+                } else {
+                    plane = new OsdPlane(fd, plane_idx);
+                }
+                mPlanes.emplace(plane_idx, std::move(plane));
+                count_osd ++;
+            }
         }
         idx ++;
     } while(fd >= 0);

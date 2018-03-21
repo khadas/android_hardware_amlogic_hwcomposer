@@ -9,14 +9,9 @@
 
 #include "FixedSizeModeMgr.h"
 #include <MesonLog.h>
-#include <misc.h>
 
 #define DEFUALT_DPI (159)
 #define DEFAULT_REFRESH_RATE (60.0f)
-#define MAX_STR_LEN         512
-//#define FREE_SCALE_ENABLE               "0x10001"
-#define DISPLAY_FB0_FREESCALE           "/sys/class/graphics/fb0/free_scale"
-#define DISPLAY_FB0_FREESCALE_AXIS      "/sys/class/graphics/fb0/free_scale_axis"
 
 FixedSizeModeMgr::FixedSizeModeMgr() {
 #if defined(WIDTH_PRIMARY_FRAMEBUFFER) && \
@@ -69,7 +64,6 @@ int32_t FixedSizeModeMgr::updateDisplayResources() {
                 mCurMode.dpiY = it->second.dpiY;
                 strncpy(mCurMode.name, it->second.name , DRM_DISPLAY_MODE_LEN);
                 MESON_LOGI("ModeMgr update to (%s)", mCurMode.name);
-                updateFreescaleAxis();
             } else {
                 MESON_LOGE("ModeMgr cant find modeid (%d) in connector (%d)",
                     modeId, mConnector->getType());
@@ -87,16 +81,6 @@ int32_t FixedSizeModeMgr::updateDisplayResources() {
     }
 
     return 0;
-}
-
-void FixedSizeModeMgr::updateFreescaleAxis()
-{
-    char axis[MAX_STR_LEN] = {0};
-    sprintf(axis, "%d %d %d %d",
-            0, 0, mCurMode.pixelW - 1, mCurMode.pixelH - 1);
-    sysfs_set_string(DISPLAY_FB0_FREESCALE_AXIS, axis);
-    MESON_LOGD("update free scale axis: %s", axis);
-    sysfs_set_string(DISPLAY_FB0_FREESCALE, "0x10001");
 }
 
 hwc2_error_t  FixedSizeModeMgr::getDisplayConfigs(

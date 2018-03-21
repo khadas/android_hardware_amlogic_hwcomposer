@@ -121,6 +121,7 @@ LOCAL_COMMON_DISPLAY_FILES  := \
     common/display/HwDisplayPlane.cpp \
     common/display/DummyPlane.cpp \
     common/display/OsdPlane.cpp \
+    common/display/CursorPlane.cpp \
     common/display/VideoPlane.cpp \
     common/display/HwConnectorFactory.cpp \
     common/display/HwDisplayConnector.cpp \

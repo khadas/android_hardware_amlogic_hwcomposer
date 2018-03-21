@@ -74,6 +74,9 @@ protected:
     void onVsync(int64_t timestamp);
     int32_t buildDisplayPipes();
 
+    uint32_t mDefFbWidth, mDefFbHeight;
+    HwDisplayPlane * mCursorPlane;
+
 protected:
     class HwDisplayPipe {
         public:

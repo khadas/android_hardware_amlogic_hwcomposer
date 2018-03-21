@@ -31,7 +31,6 @@ public:
         std::shared_ptr<HwDisplayCrtc> & crtc,
         std::shared_ptr<HwDisplayConnector> & connector);
     int32_t updateDisplayResources();
-
     hwc2_error_t  getDisplayConfigs(
         uint32_t* outNumConfigs, hwc2_config_t* outConfigs);
     hwc2_error_t  getDisplayAttribute(
@@ -48,8 +47,6 @@ protected:
     std::map<uint32_t, drm_mode_info_t> mModes;
     drm_mode_info_t mCurMode;
 
-private:
-    void updateFreescaleAxis();
 };
 
 #endif/*FIXED_SIZE_MODE_MGR_H*/

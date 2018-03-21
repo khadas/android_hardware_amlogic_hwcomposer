@@ -75,7 +75,6 @@ public:
     const char * getName();
     uint32_t getPlaneType();
     int32_t getCapabilities() { return mCapability; }
-
     int32_t setPlane(std::shared_ptr<DrmFramebuffer> & fb);
     int32_t blank(bool blank);
 
@@ -85,8 +84,6 @@ protected:
     int32_t getProperties();
 
     void dumpPlaneInfo();
-
-    String8 compositionTypeToString();
 
 private:
     bool mFirstPresent;

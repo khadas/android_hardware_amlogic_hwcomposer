@@ -167,49 +167,13 @@ int32_t OsdPlane::blank(bool blank) {
     return 0;
 }
 
-String8 OsdPlane::compositionTypeToString() {
-    String8 compType("NONE");
-
-    if (mDrmFb) {
-        switch (mDrmFb->mCompositionType) {
-            case MESON_COMPOSITION_DUMMY:
-                compType = "DUMMY";
-                break;
-            case MESON_COMPOSITION_GE2D:
-                compType = "GE2D";
-                break;
-            case MESON_COMPOSITION_PLANE_VIDEO:
-                compType = "VIDEO";
-                break;
-            case MESON_COMPOSITION_PLANE_VIDEO_SIDEBAND:
-                compType = "SIDEBAND";
-                break;
-            case MESON_COMPOSITION_PLANE_OSD:
-                compType = "OSD";
-                break;
-            case MESON_COMPOSITION_PLANE_OSD_COLOR:
-                compType = "COLOR";
-                break;
-            case MESON_COMPOSITION_PLANE_CURSOR:
-                compType = "CURSOR";
-                break;
-            default:
-                compType = "NONE";
-                break;
-        }
-    }
-
-    return compType;
-}
-
 void OsdPlane::dump(String8 & dumpstr) {
     if (!mBlank) {
         dumpstr.appendFormat("osd%2d "
-                "     %3d | %8s | %1d | %4d, %4d, %4d, %4d |  %4d, %4d, %4d, %4d | %2d | %2d | %4d |"
+                "     %3d | %1d | %4d, %4d, %4d, %4d |  %4d, %4d, %4d, %4d | %2d | %2d | %4d |"
                 " %4d | %5d | %5d | %4x |%8x  |\n",
                  mId,
                  mPlaneInfo.zorder,
-                 compositionTypeToString().string(),
                  mPlaneInfo.type,
                  mPlaneInfo.xoffset, mPlaneInfo.yoffset, mPlaneInfo.width, mPlaneInfo.height,
                  mPlaneInfo.dst_x, mPlaneInfo.dst_y, mPlaneInfo.dst_w, mPlaneInfo.dst_h,
