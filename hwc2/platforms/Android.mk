@@ -14,6 +14,16 @@ ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 26 && echo OK),OK)
 LOCAL_PROPRIETARY_MODULE := true
 endif
 
+##TODO remove this macro
+
+ifeq ($(shell test $(PLATFORM_SDK_VERSION) -gt 27 && echo OK),OK)
+LOCAL_CFLAGS += -DMESON_PDK_SYNC_WAIT
+endif
+ifeq ($(PLATFORM_PREVIEW_SDK_VERSION),1)
+LOCAL_CFLAGS += -DMESON_PDK_SYNC_WAIT
+endif
+##TODO remove this macro
+
 LOCAL_SRC_FILES := \
     ../common/base/HwcLayer.cpp \
     ../common/base/HwcFenceControl.cpp \

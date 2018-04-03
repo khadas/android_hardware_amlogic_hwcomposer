@@ -810,7 +810,9 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
             mPriorFrameRetireFence = hwc_fb_post_with_fence_locked(&fbInfo, &mFbSyncRequest, mClientTargetHnd);
         }
         mTargetAcquireFence = -1;
-#if PLATFORM_SDK_VERSION > 26
+#ifdef MESON_PDK_SYNC_WAIT
+        /**FIXME**/
+        ALOGD("this is a workaround for ppdk, you shall not see it\n");
         if (*outRetireFence >= 0) {
             sync_wait(*outRetireFence, 4100);
         }
