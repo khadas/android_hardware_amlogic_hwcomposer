@@ -332,6 +332,13 @@ int32_t PhysicalDevice::getChangedCompositionTypes(
         for (uint32_t i=0; i<mHwcLayersChangeType.size(); i++) {
             hwc2_layer_t layerId = mHwcLayersChangeType.keyAt(i);
             layer = mHwcLayersChangeType.valueAt(i);
+#ifdef HWC_HEADLESS
+            if (layer->getCompositionType() != HWC2_COMPOSITION_DEVICE) {
+                outLayers[i] = layerId;
+                outTypes[i] = HWC2_COMPOSITION_DEVICE;
+                continue;
+            }
+#else
             if (layer) {
                 // deal non secure display.
                 if (!mSecure && !mHwcSecureLayers.isEmpty()) {
@@ -370,6 +377,7 @@ int32_t PhysicalDevice::getChangedCompositionTypes(
                     continue;
                 }
             }
+#endif
         }
 
         if (mHwcLayersChangeType.size() > 0) {
@@ -456,7 +464,15 @@ int32_t PhysicalDevice::getDisplayRequests(
     uint32_t* outNumElements,
     hwc2_layer_t* outLayers,
     int32_t* /*hwc2_layer_request_t*/ outLayerRequests) {
+#ifdef HWC_HEADLESS
+    DTRACE("Headless mode, no display requests.");
 
+    if (NULL == outLayers || NULL == outLayerRequests) {
+        *outNumElements = 0;
+    } else {
+        *outNumElements = 0;
+    }
+#else
     // if outLayers or outTypes were NULL, the number of layers and types which would have been returned.
     if (NULL == outLayers || NULL == outLayerRequests) {
         *outNumElements = mHwcLayersChangeRequest.size();
@@ -499,6 +515,7 @@ int32_t PhysicalDevice::getDisplayRequests(
             DTRACE("No layer requests.");
         }
     }
+#endif
 
     return HWC2_ERROR_NONE;
 }
@@ -990,6 +1007,10 @@ int32_t PhysicalDevice::presentDisplay(
 
     if (mIsValidated) {
         // TODO: need improve the way to set video axis.
+#ifdef HWC_HEADLESS
+        *outRetireFence = -1;
+        err = HWC2_ERROR_NONE;
+#else
         bool bPresent = true;
         if (mHwcSecureLayers.indexOfKey(mVideoOverlayLayerId) >= 0) {
             bPresent = false;
@@ -1009,6 +1030,7 @@ int32_t PhysicalDevice::presentDisplay(
             mGE2DClearVideoRegionCount = 0;
         }
         err = postFramebuffer(outRetireFence, hasVideoOverlay);
+#endif
     } else { // display not validate yet.
         err = HWC2_ERROR_NOT_VALIDATED;
     }
@@ -1467,11 +1489,15 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
                 DTRACE("Meet a client layer!");
                 break;
             case HWC2_COMPOSITION_DEVICE:
+#ifdef HWC_HEADLESS
+                DTRACE("Headless mode, not do real compostion.");
+#else
                 if (layerId == mVideoOverlayLayerId) {
                     mHwcLayersChangeRequest.add(layerId, layer);
                 } else {
                     composeLayers.add(layerId, layer);
                 }
+#endif
                 break;
             case HWC2_COMPOSITION_SOLID_COLOR:
                 if (overlapType != Utils::OVERLAP_FULL) {

@@ -371,7 +371,11 @@ int DisplayHdmi::getDisplayAttribute(hwc2_config_t config,
                 }
             } else if (mWorkMode == LOGIC_ACTIVEMODE ||
                             mWorkMode == NONE_ACTIVEMODE) {
+#ifdef HWC_HEADLESS
+                *outValue = 1e9 / (HWC_HEADLESS_REFRESHRATE);
+#else
                 *outValue = 1e9 / 60;
+#endif
             }
         break;
         case HWC2_ATTRIBUTE_WIDTH:
