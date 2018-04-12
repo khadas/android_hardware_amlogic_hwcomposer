@@ -12,6 +12,8 @@
 #include <Amvideoutils.h>
 #include <tvp/OmxUtil.h>
 #include <MesonLog.h>
+#include <gralloc_priv.h>
+
 
 //#define AMVIDEO_DEBUG
 #define AMSTREAM_IOC_MAGIC  'S'
@@ -92,8 +94,8 @@ int VideoPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
     MESON_LOGD("videoPlane [%p]", (void*)buf);
 
     // TODO: DONOT set mute for now, because we need to implement secure display.
-    // setMute(PrivHandle::isSecure(buf));
-    if (PrivHandle::isOmxVideo(buf)) setOmxPTS(buf);
+    if (am_gralloc_is_omx_metadata_buffer(buf))
+        setOmxPTS(buf);
 
     if (shouldUpdate(fb)) {
         int32_t angle = 0;

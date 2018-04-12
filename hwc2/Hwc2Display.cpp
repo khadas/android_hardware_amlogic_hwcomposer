@@ -60,7 +60,8 @@ int32_t Hwc2Display::initialize() {
     mComposers.emplace(MESON_CLIENT_COMPOSER, std::move(composer));
     ComposerFactory::create(MESON_DUMMY_COMPOSER, composer);
     mComposers.emplace(MESON_DUMMY_COMPOSER, std::move(composer));
-#ifdef HWC_ENABLE_GE2D_COMPOSITION
+
+#if defined(HWC_ENABLE_GE2D_COMPOSITION) && !defined(HWC_HEADLESS)
     ComposerFactory::create(MESON_GE2D_COMPOSER, composer);
     mComposers.emplace(MESON_GE2D_COMPOSER, std::move(composer));
 #endif
@@ -200,7 +201,9 @@ hwc2_error_t Hwc2Display::collectLayersForPresent() {
         std::shared_ptr<Hwc2Layer> layer = it->second;
         std::shared_ptr<DrmFramebuffer> buffer = layer;
         mPresentLayers.push_back(buffer);
-
+#ifdef HWC_HEADLESS
+        layer->mCompositionType = MESON_COMPOSITION_DUMMY;
+#else
          /*update expected internal composition type.*/
         #ifdef HWC_ENABLE_SECURE_LAYER
         if (layer->isSecure() && !mConnector->isSecure()) {
@@ -225,6 +228,7 @@ hwc2_error_t Hwc2Display::collectLayersForPresent() {
                 layer->mCompositionType = MESON_COMPOSITION_NONE;
             }
         }
+#endif
     }
 
     if (mPresentLayers.size() > 1) {

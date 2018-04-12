@@ -40,18 +40,12 @@ public:
     Hwc2Layer();
     virtual ~Hwc2Layer();
 
-    bool isSecure();
+    bool isSecure() { return am_gralloc_is_secure_buffer(mBufferHandle); }
 
     void setUniqueId(hwc2_layer_t id);
     hwc2_layer_t getUniqueId();
+
     int32_t commitCompositionType();
-
-    void dump(String8 & dumpstr);
-
-protected:
-    bool isOverlayVideo()  { return PrivHandle::isOverlayVideo(mBufferHandle); }
-    bool isOmxVideo()      { return PrivHandle::isOmxVideo(mBufferHandle); }
-    bool isContiguousBuf() { return PrivHandle::isContinuous(mBufferHandle); }
 
 public:
     android_dataspace_t mDataSpace;

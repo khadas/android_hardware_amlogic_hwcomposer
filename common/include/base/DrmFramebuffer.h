@@ -16,7 +16,7 @@
 #include <DrmSync.h>
 #include <DrmTypes.h>
 
-#include <PrivHandle.h>
+#include <am_gralloc_ext.h>
 
 /*buffer for display or render.*/
 class DrmFramebuffer {

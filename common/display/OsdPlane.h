@@ -35,14 +35,6 @@ enum {
     OSD_BLANK_OP_BIT = 0x00000001,
 };
 
-typedef enum {
-    OSD_AFBC_EN             = (1 << 31),
-    OSD_TILED_HEADER_EN     = (1 << 18),
-    OSD_SUPER_BLOCK_ASPECT  = (1 << 16),
-    OSD_BLOCK_SPLIT         = (1 << 9),
-    OSD_YUV_TRANSFORM       = (1 << 8),
-} afbc_format_mask;
-
 enum {
     OSD_SYNC_REQUEST_MAGIC            = 0x54376812,
     OSD_SYNC_REQUEST_RENDER_MAGIC_V1  = 0x55386816,
@@ -93,8 +85,6 @@ protected:
     int32_t getProperties();
 
     void dumpPlaneInfo();
-
-    int translateInternalFormat(uint64_t internalFormat);
 
     String8 compositionTypeToString();
 

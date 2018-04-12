@@ -34,11 +34,11 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
     /*set mFbType by usage of GraphicBuffer.*/
     if (mHwcCompositionType == HWC2_COMPOSITION_CURSOR) {
         mFbType = DRM_FB_CURSOR;
-    } else if (isOmxVideo()) {
+    } else if (am_gralloc_is_omx_metadata_buffer(buffer)) {
         mFbType = DRM_FB_VIDEO_OMX;
-    } else if (isOverlayVideo()) {
+    } else if (am_gralloc_is_overlay_buffer(buffer)) {
         mFbType = DRM_FB_VIDEO_OVERLAY;
-    } else if (isContiguousBuf()) {
+    } else if (am_gralloc_is_coherent_buffer(buffer)) {
         mFbType = DRM_FB_SCANOUT;
     } else {
         mFbType = DRM_FB_RENDER;
@@ -132,11 +132,6 @@ int32_t Hwc2Layer::commitCompositionType() {
     return 0;
 }
 
-bool Hwc2Layer::isSecure() {
-    MESON_LOG_EMPTY_FUN();
-    return false;
-}
-
 void Hwc2Layer::setUniqueId(hwc2_layer_t id) {
     mId = id;
 }
@@ -144,9 +139,4 @@ void Hwc2Layer::setUniqueId(hwc2_layer_t id) {
 hwc2_layer_t Hwc2Layer::getUniqueId() {
     return mId;
 }
-
-void Hwc2Layer::dump(String8 & dumpstr) {
-    MESON_LOG_EMPTY_FUN();
-}
-
 

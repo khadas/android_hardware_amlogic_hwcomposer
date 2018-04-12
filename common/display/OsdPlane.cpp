@@ -110,18 +110,16 @@ int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
     } else {
         mPlaneInfo.in_fen_fd     = fb->getAcquireFence()->dup();
     }
-
-    mPlaneInfo.format        = PrivHandle::getFormat(buf);
-    mPlaneInfo.shared_fd     = PrivHandle::getFd(buf);
-    mPlaneInfo.byte_stride   = PrivHandle::getBStride(buf);
-    mPlaneInfo.pixel_stride  = PrivHandle::getPStride(buf);
+    mPlaneInfo.format        = am_gralloc_get_format(buf);
+    mPlaneInfo.shared_fd     = am_gralloc_get_buffer_fd(buf);
+    mPlaneInfo.byte_stride   = am_gralloc_get_stride_in_byte(buf);
+    mPlaneInfo.pixel_stride  = am_gralloc_get_stride_in_pixel(buf);
     /* osd request plane zorder > 0 */
     mPlaneInfo.zorder        = fb->mZorder + 1;
     mPlaneInfo.blend_mode    = fb->mBlendMode;
     mPlaneInfo.plane_alpha   = fb->mPlaneAlpha;
     mPlaneInfo.op            &= ~(OSD_BLANK_OP_BIT);
-    mPlaneInfo.afbc_inter_format
-        = translateInternalFormat(PrivHandle::getInternalFormat(buf));
+    mPlaneInfo.afbc_inter_format = am_gralloc_get_vpu_afbc_mask(buf);
 
     if (ioctl(mDrvFd, FBIOPUT_OSD_SYNC_RENDER_ADD, &mPlaneInfo) != 0) {
         MESON_LOGE("osd plane FBIOPUT_OSD_SYNC_RENDER_ADD return(%d)", errno);
@@ -148,34 +146,6 @@ int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
     mPlaneInfo.in_fen_fd  = -1;
     mPlaneInfo.out_fen_fd = -1;
     return 0;
-}
-
-int OsdPlane::translateInternalFormat(uint64_t internalFormat) {
-    int afbcFormat = 0;
-
-    if (internalFormat & MALI_GRALLOC_INTFMT_AFBCENABLE_MASK) {
-        afbcFormat |= (OSD_AFBC_EN | OSD_YUV_TRANSFORM | OSD_BLOCK_SPLIT);
-        if (internalFormat & MALI_GRALLOC_INTFMT_AFBC_WIDEBLK) {
-            afbcFormat |= OSD_SUPER_BLOCK_ASPECT;
-        }
-
-        if (internalFormat & MALI_GRALLOC_INTFMT_AFBC_SPLITBLK) {
-            afbcFormat |= OSD_BLOCK_SPLIT;
-        }
-
-        /*if (internalFormat & MALI_GRALLOC_FORMAT_CAPABILITY_AFBC_WIDEBLK_YUV_DISABLE) {
-            afbcFormat &= ~OSD_YUV_TRANSFORM;
-        }*/
-
-        if (internalFormat & MALI_GRALLOC_INTFMT_AFBC_TILED_HEADERS) {
-            afbcFormat |= OSD_TILED_HEADER_EN;
-        }
-    }
-
-    MESON_LOGV("internal format: 0x%llx translated afbc format: 0x%x",
-            internalFormat, afbcFormat);
-
-    return afbcFormat;
 }
 
 int32_t OsdPlane::blank(bool blank) {

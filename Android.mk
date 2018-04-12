@@ -11,9 +11,8 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-LOCAL_PATH := $(call my-dir)
 
-include $(LOCAL_PATH)/common/priv/Android.mk
+LOCAL_PATH := $(call my-dir)
 
 include $(LOCAL_PATH)/tvp/Android.mk
 
@@ -75,6 +74,10 @@ ifeq ($(TARGET_HWC_MANAGE_DISPLAY_MODE), true) #need surfaceflinger modification
 LOCAL_CFLAGS += -DHWC_MANAGE_DISPLAY_MODE
 endif
 
+ifeq ($(TARGET_HEADLESS), true))
+LOCAL_CFLAGS += -DHWC_HEADLESS
+LOCAL_CFLAGS += -DHWC_HEADLESS_REFRESHRATE=5
+endif
 
 LOCAL_C_INCLUDES := \
     $(LOCAL_PATH)/common/include/display \
@@ -82,7 +85,6 @@ LOCAL_C_INCLUDES := \
     $(LOCAL_PATH)/common/include/base \
     $(LOCAL_PATH)/common/include/utils \
     $(LOCAL_PATH)/common/include/debug \
-    $(LOCAL_PATH)/common/include/priv \
     $(LOCAL_PATH)/composition \
     system/core/libsync \
     system/core/libsync/include \
@@ -91,6 +93,7 @@ LOCAL_C_INCLUDES := \
     vendor/amlogic/system/libge2d/inlcude \
     system/core/libion/include/ \
     system/core/libion/kernel-headers \
+    hardware/amlogic/gralloc/amlogic \
     hardware/amlogic/gralloc \
     $(TOP)/hardware/amlogic/media/amavutils/include \
     $(TOP)/vendor/amlogic/frameworks/services/systemcontrol
@@ -116,6 +119,7 @@ LOCAL_COMMON_DISPLAY_FILES  := \
     common/display/HwDisplayVsync.cpp \
     common/display/HwDisplayCrtc.cpp \
     common/display/HwDisplayPlane.cpp \
+    common/display/DummyPlane.cpp \
     common/display/OsdPlane.cpp \
     common/display/VideoPlane.cpp \
     common/display/HwConnectorFactory.cpp \
@@ -152,6 +156,7 @@ LOCAL_HWC_FILES := \
 endif
 
 LOCAL_SHARED_LIBRARIES := \
+    libamgralloc_ext \
     libcutils \
     liblog \
     libdl \
@@ -164,7 +169,6 @@ LOCAL_SHARED_LIBRARIES := \
     libsystemcontrolservice
 
 LOCAL_STATIC_LIBRARIES := \
-    libbhnd \
     libomxutil
 
 #For Android O,and later
