@@ -878,7 +878,7 @@ bool PhysicalDevice::updateCursorBuffer() {
     void *cbuffer;
 
     for (uint32_t i=0; i<mHwcLayers.size(); i++) {
-        //hwc2_layer_t layerId = mHwcLayers.keyAt(i);
+        hwc2_layer_t layerId = mHwcLayers.keyAt(i);
         layer = mHwcLayers.valueAt(i);
         if (layer && layer->getCompositionType()== HWC2_COMPOSITION_CURSOR) {
             private_handle_t *hnd = private_handle_t::dynamicCast(layer->getBufferHandle());
@@ -891,6 +891,8 @@ bool PhysicalDevice::updateCursorBuffer() {
             if (cbInfo->info.xres != (uint32_t)hnd->stride || cbInfo->info.yres != (uint32_t)hnd->height) {
                 DTRACE("disp: %d cursor need to redrew", mId);
                 update_cursor_buffer_locked(cbInfo, hnd->stride, hnd->height);
+                hwc_rect_t disFrame = layer->getDisplayFrame();
+                setCursorPosition(layerId, disFrame.left, disFrame.top);
                 cbuffer = mmap(NULL, hnd->size, PROT_READ|PROT_WRITE, MAP_SHARED, cbInfo->fd, 0);
                 if (cbuffer != MAP_FAILED) {
                     memset(cbuffer, 1, hnd->size);
