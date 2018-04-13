@@ -105,7 +105,6 @@ void Hwc2Display::onHotplug(bool connected) {
     mModeMgr->setDisplayResources(mCrtc, mConnector);
 
     if (mObserver != NULL) {
-        mObserver->setLoadInfoStatus(true);
         mObserver->onHotplug(connected);
     }
 }
@@ -125,10 +124,6 @@ void Hwc2Display::onModeChanged(int stage) {
             MESON_LOGE("No display oberserve register to display (%s)", getName());
         }
     }
-}
-
-void Hwc2Display::setLoadInfoStatus(bool compate) {
-
 }
 
 hwc2_error_t Hwc2Display::createLayer(hwc2_layer_t * outLayer) {

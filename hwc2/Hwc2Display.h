@@ -33,7 +33,6 @@ public:
     virtual void refresh() = 0;
     virtual void onVsync(int64_t timestamp) = 0;
     virtual void onHotplug(bool connected) = 0;
-    virtual void setLoadInfoStatus(bool complate) = 0;
 };
 
 
@@ -94,7 +93,6 @@ public:
     void onVsync(int64_t timestamp);
     void onHotplug(bool connected);
     void onModeChanged(int stage);
-    void setLoadInfoStatus(bool complate);
 
 protected:
     /* For compose. */

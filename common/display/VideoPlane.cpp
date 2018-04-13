@@ -8,6 +8,8 @@
  */
 
 #include "VideoPlane.h"
+#include "AmVideo.h"
+
 #include <sys/ioctl.h>
 #include <Amvideoutils.h>
 #include <tvp/OmxUtil.h>
@@ -22,7 +24,7 @@
 
 VideoPlane::VideoPlane(int32_t drvFd, uint32_t id) :
     HwDisplayPlane(drvFd, id) {
-    mPlaneType = LEGACY_VIDEO_PLANE;
+    mPlaneType = VIDEO_PLANE;
 
     if (getMute(mPlaneMute) != 0) {
         MESON_LOGE("get video mute failed.");
@@ -93,6 +95,7 @@ int VideoPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
     buffer_handle_t buf = fb->mBufferHandle;
     MESON_LOGD("videoPlane [%p]", (void*)buf);
 
+    blank(false);
     // TODO: DONOT set mute for now, because we need to implement secure display.
     if (am_gralloc_is_omx_metadata_buffer(buf))
         setOmxPTS(buf);
@@ -175,6 +178,17 @@ int32_t VideoPlane::setMute(bool status) {
 }
 
 int32_t VideoPlane::blank(bool blank) {
+    int disableVideo = -1;
+    AmVideo::getInstance()->getvideodisable(&disableVideo);
+
+    if (blank && disableVideo == 0) {
+        MESON_LOGI("no am video, disable video layer");
+        AmVideo::getInstance()->setvideodisable(1);
+    } else if (!blank && disableVideo == 1) {
+        MESON_LOGI("video layer present, enable video layer");
+        AmVideo::getInstance()->setvideodisable(0);
+    }
+
     // close omx video.
     if (Amvideo_Handle >= 0) {
         MESON_LOGD("close am video");

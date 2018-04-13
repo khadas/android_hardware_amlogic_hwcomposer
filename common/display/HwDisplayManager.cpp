@@ -138,7 +138,7 @@ void HwDisplayManager::handle(drm_display_event event, int val) {
                         if (pipes[i].crtc_id == it->first &&
                                 mConnectors[pipes[i].connector_id]->getType() ==
                             DRM_MODE_CONNECTOR_HDMI) {
-                            MESON_LOGE("handle hdmi hotplug, display %d", it->first);
+                            MESON_LOGD("handle hdmi hotplug, display %d", it->first);
                             it->second->onHotplug((val == 0) ? false : true);
                             break;
                         }
@@ -163,7 +163,7 @@ void HwDisplayManager::handle(drm_display_event event, int val) {
 
                 MESON_LOGD("Mode change observer size %d.", mObserver.size());
                 for (it = mObserver.begin(); it != mObserver.end(); ++it) {
-                    MESON_LOGE("handle mode change stage(%d) display %d", val, it->first);
+                    MESON_LOGD("handle mode change stage(%d) display %d", val, it->first);
                     it->second->onModeChanged(val);
                 }
             }

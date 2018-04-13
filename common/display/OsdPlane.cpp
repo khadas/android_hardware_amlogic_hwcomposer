@@ -61,7 +61,7 @@ uint32_t OsdPlane::getPlaneType() {
     char val[PROP_VALUE_LEN_MAX];
 
     memset(val, 0, sizeof(val));
-    if (sys_get_string_prop("sys.hwc.debug.osdplanes", val))
+    if (sys_get_string_prop("sys.hwc.debug.osdplanes", val) && val[0] != 0)
         debugOsdPlanes = atoi(val);
 
     MESON_LOGV("debugOsdPlanes: %d", debugOsdPlanes);

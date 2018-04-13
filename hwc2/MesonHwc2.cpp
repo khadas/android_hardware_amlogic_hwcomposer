@@ -496,10 +496,6 @@ public:
         mHwc->onHotplug(mDispId, connected);
     }
 
-    void setLoadInfoStatus(bool complate) {
-        mHwc->setLoadInfoStatus(complate);
-    }
-
 protected:
     hwc2_display_t mDispId;
     MesonHwc2 * mHwc;
@@ -538,7 +534,7 @@ void MesonHwc2::onVsync(hwc2_display_t display, int64_t timestamp) {
 void MesonHwc2::onHotplug(hwc2_display_t display, bool connected) {
     #ifndef HWC_ENABLE_PRIMARY_HOTPLUG
     if (display == HWC_DISPLAY_PRIMARY /*&& connected*/ && !mFirstCallBackSF) {
-        MESON_LOGE("Primary display not support hotplug.");
+        MESON_LOGD("Primary display not support hotplug.");
         return;
     }
     #endif
@@ -622,10 +618,5 @@ uint32_t MesonHwc2::getVirtualDisplayId() {
 void MesonHwc2::freeVirtualDisplayId(uint32_t id) {
     mVirtualDisplayIds &= ~(1 << id);
     MESON_LOGD("freeVirtualDisplayId (%d) to (%x)", id, mVirtualDisplayIds);
-}
-
-void MesonHwc2::setLoadInfoStatus(bool complate) {
-    MESON_LOGV("Load connector info finish.");
-    mLoadInfoStatus = complate;
 }
 

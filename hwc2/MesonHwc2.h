@@ -106,7 +106,6 @@ public:
     void refresh(hwc2_display_t  display);
     void onVsync(hwc2_display_t display, int64_t timestamp);
     void onHotplug(hwc2_display_t display, bool connected);
-    void setLoadInfoStatus(bool complate);
 
 public:
     MesonHwc2();
