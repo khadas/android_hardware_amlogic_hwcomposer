@@ -33,6 +33,9 @@ public:
     inline bool saveLayer2File() {return mSaveLayer;}
     inline uint32_t getSaveLayer();
 
+    /*check if UI/osd hwcomposer disabled.*/
+    bool disableUiHwc();
+
     /*for fence debug*/
     inline bool discardInFence() {return mDiscardInFence;}
     inline bool discardOutFence() {return mDiscardOutFence;}

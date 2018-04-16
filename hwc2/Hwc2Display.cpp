@@ -23,6 +23,7 @@ Hwc2Display::Hwc2Display(hw_display_id dspId,
     std::shared_ptr<Hwc2DisplayObserver> observer) {
     mHwId = dspId;
     mObserver = observer;
+    mForceClientComposer = false;
     memset(&mHdrCaps, 0, sizeof(mHdrCaps));
 }
 
@@ -168,9 +169,12 @@ hwc2_error_t Hwc2Display::setCursorPosition(hwc2_layer_t layer,
 
 hwc2_error_t Hwc2Display::setColorTransform(const float* matrix,
     android_color_transform_t hint) {
-    UNUSED(matrix);
-    UNUSED(hint);
-    MESON_LOG_EMPTY_FUN();
+
+    if (hint == HAL_COLOR_TRANSFORM_IDENTITY) {
+        mForceClientComposer = false;
+    } else {
+        mForceClientComposer = true;
+    }
     return HWC2_ERROR_NONE;
 }
 
@@ -199,6 +203,9 @@ hwc2_error_t Hwc2Display::collectLayersForPresent() {
     mPresentLayers.clear();
     mPresentLayers.reserve(10);
 
+    bool disableUiComposer = DebugHelper::getInstance().disableUiHwc();
+    disableUiComposer |= mForceClientComposer;
+
     std::unordered_map<hwc2_layer_t, std::shared_ptr<Hwc2Layer>>::iterator it;
     for (it = mLayers.begin(); it != mLayers.end(); it++) {
         std::shared_ptr<Hwc2Layer> layer = it->second;
@@ -223,7 +230,11 @@ hwc2_error_t Hwc2Display::collectLayersForPresent() {
             * 3) HWC2_COMPOSITION_CURSOR
             * 4) HWC2_COMPOSITION_SIDEBAND
             */
-            layer->mCompositionType = MESON_COMPOSITION_NONE;
+            if (disableUiComposer && layer->isRenderable()) {
+                layer->mCompositionType = MESON_COMPOSITION_CLIENT;
+            } else {
+                layer->mCompositionType = MESON_COMPOSITION_NONE;
+            }
         }
     }
 
@@ -515,7 +526,7 @@ void Hwc2Display::dump(String8 & dumpstr) {
 
     mModeMgr->dump(dumpstr);
 
-    // HDR info
+    /* HDR info */
     dumpstr.append("  HDR Capabilities:\n");
     dumpstr.appendFormat("    DolbyVision1=%d\n",
         mHdrCaps.DolbyVisionSupported ?  1 : 0);
@@ -525,6 +536,8 @@ void Hwc2Display::dump(String8 & dumpstr) {
         mHdrCaps.maxLuminance,
         mHdrCaps.avgLuminance,
         mHdrCaps.minLuminance);
+
+    dumpstr.appendFormat("HwComposition  (%s)\n", mForceClientComposer ? "disabled" : "enabled");
 
      if (DebugHelper::getInstance().dumpDetailInfo()) {
         std::vector<std::shared_ptr<HwDisplayPlane>>::iterator plane;

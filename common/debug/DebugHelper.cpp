@@ -15,8 +15,10 @@
 
 ANDROID_SINGLETON_STATIC_INSTANCE(DebugHelper)
 
+#define LEGACY_DEBUG_DISABLE_HWC "sys.sf.debug.nohwc"
 #define DEBUG_HELPER_ENABLE_PROP "sys.hwc.debug"
 #define DEBUG_HELPER_COMMAND "sys.hwc.debug.command"
+
 #define MAX_DEBUG_COMMANDS (5)
 
 #define INT_PARAMERTER_TO_BOOL(param)  \
@@ -154,6 +156,10 @@ void DebugHelper::resolveCmd() {
 
 bool DebugHelper::isEnabled() {
     return sys_get_bool_prop(DEBUG_HELPER_ENABLE_PROP, false);
+}
+
+bool DebugHelper::disableUiHwc() {
+    return sys_get_bool_prop(LEGACY_DEBUG_DISABLE_HWC, false);
 }
 
 uint32_t DebugHelper::getSaveLayer() {

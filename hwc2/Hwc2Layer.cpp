@@ -69,22 +69,18 @@ hwc2_error_t Hwc2Layer::setColor(hwc_color_t color) {
 }
 
 hwc2_error_t Hwc2Layer::setSourceCrop(hwc_frect_t crop) {
-
     mSourceCrop.left = (int) ceilf(crop.left);
     mSourceCrop.top = (int) ceilf(crop.top);
     mSourceCrop.right = (int) floorf(crop.right);
     mSourceCrop.bottom = (int) floorf(crop.bottom);
-
     return HWC2_ERROR_NONE;
 }
 
 hwc2_error_t Hwc2Layer::setDisplayFrame(hwc_rect_t frame) {
-
     mDisplayFrame.left = frame.left;
     mDisplayFrame.top = frame.top;
     mDisplayFrame.right = frame.right;
     mDisplayFrame.bottom = frame.bottom;
-
     return HWC2_ERROR_NONE;
 }
 
@@ -139,6 +135,15 @@ int32_t Hwc2Layer::commitCompositionType() {
 bool Hwc2Layer::isSecure() {
     MESON_LOG_EMPTY_FUN();
     return false;
+}
+
+bool Hwc2Layer::isRenderable() {
+    if (mFbType == DRM_FB_VIDEO_OMX ||mFbType == DRM_FB_VIDEO_OVERLAY
+        || mFbType == DRM_FB_VIDEO_SIDEBAND) {
+        return false;
+    }
+
+    return true;
 }
 
 void Hwc2Layer::setUniqueId(hwc2_layer_t id) {

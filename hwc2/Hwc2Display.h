@@ -133,6 +133,9 @@ protected:
 
     std::vector<hwc2_layer_t> mChangedLayers;
     std::vector<hwc2_layer_t> mOverlayLayers;
+
+    /*all go to client composer*/
+    bool mForceClientComposer;
 };
 
 #endif/*HWC2_DISPLAY_H*/
