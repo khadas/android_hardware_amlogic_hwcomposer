@@ -10,17 +10,25 @@
 #include "CursorPlane.h"
 #include <sys/mman.h>
 
+static inline size_t round_up_to_page_size(size_t x)
+{
+	return (x + (PAGE_SIZE - 1)) & ~(PAGE_SIZE - 1);
+}
+
 CursorPlane::CursorPlane(int32_t drvFd, uint32_t id)
     : HwDisplayPlane(drvFd, id),
       mDrmFb(NULL),
       mCursorPlaneBlank(false),
       mLastTransform(0) {
-      mPlaneType = CURSOR_PLANE;
     snprintf(mName, 64, "CURSOR-%d", id);
 }
 
 CursorPlane::~CursorPlane() {
 
+}
+
+uint32_t CursorPlane::getPlaneType() {
+    return CURSOR_PLANE;
 }
 
 const char * CursorPlane::getName() {
@@ -50,7 +58,6 @@ int32_t CursorPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
 
     updateCursorBuffer();
     setCursorPosition(mPlaneInfo.dst_x, mPlaneInfo.dst_y);
-    blank(false);
     mDrmFb = fb;
     return 0;
 }
@@ -235,21 +242,17 @@ int32_t CursorPlane::updateOsdPosition(const char * axis) {
     return 0;
 }
 
-int32_t CursorPlane::blank(bool blank) {
+int32_t CursorPlane::blank(int blankOp) {
     //MESON_LOGD("cursor plane blank: %d(%d)", blank, mCursorPlaneBlank);
+    bool bBlank = (blankOp == UNBLANK) ? false : true;
 
-    if (mDrvFd < 0) {
-        MESON_LOGE("cursor plane fd is not valiable!");
-        return -EBADF;
-    }
-
-    if (mCursorPlaneBlank != blank) {
-        uint32_t val = blank ? 1 : 0;
+    if (mCursorPlaneBlank != bBlank) {
+        uint32_t val = bBlank ? 1 : 0;
         if (ioctl(mDrvFd, FBIOPUT_OSD_SYNC_BLANK, &val) != 0) {
-            MESON_LOGE("cursor plane blank ioctl (%d) return(%d)", blank, errno);
+            MESON_LOGE("cursor plane blank ioctl (%d) return(%d)", bBlank, errno);
             return -EINVAL;
         }
-        mCursorPlaneBlank = blank;
+        mCursorPlaneBlank = bBlank;
     }
 
     return 0;

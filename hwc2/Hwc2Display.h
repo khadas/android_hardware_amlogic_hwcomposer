@@ -102,8 +102,6 @@ protected:
     hwc2_error_t collectCompositionRequest(
             uint32_t* outNumTypes, uint32_t* outNumRequests);
 
-    void dumpPresentComponents();
-
     void loadDisplayResources();
 
 protected:

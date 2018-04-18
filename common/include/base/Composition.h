@@ -11,21 +11,22 @@
 #define COMPOSITION_H
 
 typedef enum {
-    MESON_COMPOSITION_NONE = 0,
+    MESON_COMPOSITION_UNDETERMINED = 0,
 
     /*Compostion type of composer*/
-    MESON_COMPOSITION_DUMMY = 1 << 1,
-    MESON_COMPOSITION_CLIENT = 1 << 2,
-    MESON_COMPOSITION_GE2D = 1 << 3,
+    MESON_COMPOSITION_DUMMY = 1,
+    MESON_COMPOSITION_CLIENT,
+    MESON_COMPOSITION_GE2D,
+    /*MESON_COMPOSITION_GPU,*/
 
     /*Compostion type of plane*/
-    MESON_COMPOSITION_PLANE_VIDEO = 1 << 4,
-    MESON_COMPOSITION_PLANE_VIDEO_SIDEBAND = 1 << 5,
-    MESON_COMPOSITION_PLANE_OSD = 1 << 6,
-    MESON_COMPOSITION_PLANE_OSD_COLOR = 1 << 7,
-    MESON_COMPOSITION_PLANE_CURSOR = 1 << 8,
+    MESON_COMPOSITION_PLANE_AMVIDEO,
+    MESON_COMPOSITION_PLANE_AMVIDEO_SIDEBAND,
+    MESON_COMPOSITION_PLANE_OSD,
+    MESON_COMPOSITION_PLANE_CURSOR,
 
-    /*MESON_COMPOSITION_GPU,*/
+    /*New video plane.*/
+    MESON_COMPOSITION_PLANE_HWCVIDEO,
 } meson_compositon_t;
 
 typedef enum meson_compose_to {
@@ -36,7 +37,6 @@ typedef enum meson_compose_to {
 } meson_compose_to_t;
 
 bool isOverlayComposition(meson_compositon_t type);
-bool isPlaneComposition(meson_compositon_t type);
 bool isComposerComposition(meson_compositon_t type);
 const char* compositionTypeToString(meson_compositon_t compType);
 

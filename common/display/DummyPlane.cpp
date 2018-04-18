@@ -26,8 +26,8 @@ int32_t DummyPlane::getCapabilities() {
     return 0;
 }
 
-int32_t DummyPlane::blank(bool blank) {
-    UNUSED(blank);
+int32_t DummyPlane::blank(int blankOp) {
+    UNUSED(blankOp);
     return 0;
 }
 

@@ -16,11 +16,11 @@ OsdPlane::OsdPlane(int32_t drvFd, uint32_t id)
       mDrmFb(NULL),
       mFirstPresent(true),
       mBlank(true) {
-    getProperties();
     mPlaneInfo.out_fen_fd = -1;
     mPlaneInfo.op = 0x0;
-
     snprintf(mName, 64, "OSD-%d", id);
+
+    getProperties();
 }
 
 OsdPlane::~OsdPlane() {
@@ -28,28 +28,21 @@ OsdPlane::~OsdPlane() {
 }
 
 int32_t OsdPlane::getProperties() {
-    // TODO: set OSD1 to cursor plane with hard code for implement on p212
-    // refrence board.
-    int32_t ret = 0;
+    mCapability = 0;
 
-    mCapability = 0x0;
-    if (mDrvFd < 0) {
-        MESON_LOGE("osd plane fd is not valiable!");
-        return -EBADF;
-    }
-
-    if (ioctl(mDrvFd, FBIOGET_OSD_CAPBILITY, &mCapability) != 0) {
+    int capacity;
+    if (ioctl(mDrvFd, FBIOGET_OSD_CAPBILITY, &capacity) != 0) {
         MESON_LOGE("osd plane get capibility ioctl (%d) return(%d)", mCapability, errno);
-        return -EINVAL;
+        return 0;
     }
 
-    if (mCapability & OSD_LAYER_ENABLE) {
-        mPlaneType = (mCapability & OSD_HW_CURSOR)
-            ? CURSOR_PLANE : OSD_PLANE;
+    if (capacity & OSD_VIDEO_CONFLICT) {
+        mCapability |= PLANE_VIDEO_CONFLICT;
+    } else if (capacity & OSD_ZORDER_EN) {
+        mCapability |= PLANE_SUPPORT_ZORDER;
     }
-    MESON_LOGD("osd%d plane type is %d", mId-30, mPlaneType);
 
-    return ret;
+    return 0;
 }
 
 const char * OsdPlane::getName() {
@@ -57,18 +50,17 @@ const char * OsdPlane::getName() {
 }
 
 uint32_t OsdPlane::getPlaneType() {
-    int32_t debugOsdPlanes = -1;
-    char val[PROP_VALUE_LEN_MAX];
-
+    int debugOsdPlanes = -1;
+    char val[PROP_VALUE_LEN_MAX] = {0};
     memset(val, 0, sizeof(val));
     if (sys_get_string_prop("sys.hwc.debug.osdplanes", val) && val[0] != 0)
         debugOsdPlanes = atoi(val);
 
-    MESON_LOGV("debugOsdPlanes: %d", debugOsdPlanes);
-    if (debugOsdPlanes == -1)
-        return mPlaneType;
-    else
-        return (mId < 30 + debugOsdPlanes) ? OSD_PLANE : 0;
+    if (debugOsdPlanes < 0 || (mId <= debugOsdPlanes && debugOsdPlanes > 0)) {
+        return OSD_PLANE;
+    } else {
+        return INVALID_PLANE;
+    }
 }
 
 int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
@@ -137,9 +129,6 @@ int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
         }
     }
 
-    // this plane will be shown.
-    blank(false);
-
     // update drm fb.
     mDrmFb = fb;
 
@@ -148,20 +137,17 @@ int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
     return 0;
 }
 
-int32_t OsdPlane::blank(bool blank) {
+int32_t OsdPlane::blank(int blankOp) {
 //    MESON_LOGD("osd%d plane set blank %d", mId-30, blank);
-    if (mDrvFd < 0) {
-        MESON_LOGE("osd plane fd is not valiable!");
-        return -EBADF;
-    }
+    bool bBlank = (blankOp == UNBLANK) ? false : true;
 
-    if (mBlank != blank) {
-        uint32_t val = blank ? 1 : 0;
+    if (mBlank != bBlank) {
+        uint32_t val = bBlank ? 1 : 0;
         if (ioctl(mDrvFd, FBIOPUT_OSD_SYNC_BLANK, &val) != 0) {
-            MESON_LOGE("osd plane blank ioctl (%d) return(%d)", blank, errno);
+            MESON_LOGE("osd plane blank ioctl (%d) return(%d)", bBlank, errno);
             return -EINVAL;
         }
-        mBlank = blank;
+        mBlank = bBlank;
     }
 
     return 0;

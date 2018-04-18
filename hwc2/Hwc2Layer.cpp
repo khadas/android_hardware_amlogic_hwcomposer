@@ -35,7 +35,7 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
     if (mHwcCompositionType == HWC2_COMPOSITION_CURSOR) {
         mFbType = DRM_FB_CURSOR;
     } else if (am_gralloc_is_omx_metadata_buffer(buffer)) {
-        mFbType = DRM_FB_VIDEO_OMX;
+        mFbType = DRM_FB_VIDEO_OMX_PTS;
     } else if (am_gralloc_is_overlay_buffer(buffer)) {
         mFbType = DRM_FB_VIDEO_OVERLAY;
     } else if (am_gralloc_is_coherent_buffer(buffer)) {
@@ -43,6 +43,8 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
     } else {
         mFbType = DRM_FB_RENDER;
     }
+
+    mSecure = am_gralloc_is_secure_buffer(mBufferHandle);
 
     MESON_LOGD("layer setBuffer [%p, %d]", (void*)buffer, acquireFence);
     return HWC2_ERROR_NONE;
@@ -53,6 +55,8 @@ hwc2_error_t Hwc2Layer::setSidebandStream(const native_handle_t* stream) {
 
     mBufferHandle = stream;
     mFbType = DRM_FB_VIDEO_SIDEBAND;
+    //no secure flag for sideband now,just set to false.
+    mSecure = false;
     return HWC2_ERROR_NONE;
 }
 
@@ -124,10 +128,10 @@ hwc2_error_t Hwc2Layer::setZorder(uint32_t z) {
     return HWC2_ERROR_NONE;
 }
 
-int32_t Hwc2Layer::commitCompositionType() {
-    hwc2_composition_t hwcCompostion = translateCompositionType(mCompositionType);
-    if (mHwcCompositionType != hwcCompostion) {
-        mHwcCompositionType = hwcCompostion;
+int32_t Hwc2Layer::commitCompType(
+    hwc2_composition_t hwcComp) {
+    if (mHwcCompositionType != hwcComp) {
+        mHwcCompositionType = hwcComp;
     }
     return 0;
 }

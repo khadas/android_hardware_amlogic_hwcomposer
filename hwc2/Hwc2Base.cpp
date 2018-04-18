@@ -9,30 +9,25 @@
 
 #include "Hwc2Base.h"
 
-hwc2_composition_t translateCompositionType(
+hwc2_composition_t mesonComp2Hwc2Comp(
     meson_compositon_t type) {
     hwc2_composition_t hwcCompostion;
     switch (type) {
-        case MESON_COMPOSITION_DUMMY:
-        case MESON_COMPOSITION_PLANE_VIDEO:
-        case MESON_COMPOSITION_PLANE_OSD:
-        case MESON_COMPOSITION_GE2D:
-                hwcCompostion = HWC2_COMPOSITION_DEVICE;
-                break;
-        case MESON_COMPOSITION_PLANE_OSD_COLOR:
-                hwcCompostion = HWC2_COMPOSITION_SOLID_COLOR;
+        case MESON_COMPOSITION_CLIENT:
+                hwcCompostion = HWC2_COMPOSITION_CLIENT;
                 break;
         case MESON_COMPOSITION_PLANE_CURSOR:
                 hwcCompostion = HWC2_COMPOSITION_CURSOR;
                 break;
-        case MESON_COMPOSITION_PLANE_VIDEO_SIDEBAND:
+        case MESON_COMPOSITION_PLANE_AMVIDEO_SIDEBAND:
                 hwcCompostion = HWC2_COMPOSITION_SIDEBAND;
                 break;
-        case MESON_COMPOSITION_CLIENT:
-                hwcCompostion = HWC2_COMPOSITION_CLIENT;
-                break;
+        case MESON_COMPOSITION_DUMMY:
+        case MESON_COMPOSITION_PLANE_AMVIDEO:
+        case MESON_COMPOSITION_PLANE_OSD:
+        case MESON_COMPOSITION_GE2D:
         default:
-                hwcCompostion = HWC2_COMPOSITION_INVALID;
+                hwcCompostion = HWC2_COMPOSITION_DEVICE;
                 break;
     }
 

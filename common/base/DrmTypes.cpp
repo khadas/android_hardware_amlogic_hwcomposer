@@ -24,7 +24,7 @@ const char * drmFbTypeToString(drm_fb_type_t fbtype) {
         case DRM_FB_CURSOR:
             typeStr = "cursor";
             break;
-        case DRM_FB_VIDEO_OMX:
+        case DRM_FB_VIDEO_OMX_PTS:
             typeStr = "omx-pts";
             break;
         case DRM_FB_VIDEO_OVERLAY:
@@ -40,12 +40,20 @@ const char * drmFbTypeToString(drm_fb_type_t fbtype) {
     return typeStr;
 }
 
-bool isFbTypeRenderable(drm_fb_type_t fbtype) {
-    if (fbtype == DRM_FB_VIDEO_OMX ||fbtype == DRM_FB_VIDEO_OVERLAY
-        || fbtype == DRM_FB_VIDEO_SIDEBAND) {
-        return false;
+const char * drmPlaneTypeToString(drm_plane_type_t planetype) {
+    const char * typeStr;
+    switch (planetype) {
+        case INVALID_PLANE:
+            return "NULL";
+        case OSD_PLANE:
+            return "OSD";
+        case CURSOR_PLANE:
+            return "CURSOR";
+        case LEGACY_VIDEO_PLANE:
+            return "AmVideo";
+        case HWC_VIDEO_PLANE:
+            return "HwcVideo";
+        default:
+            return "UNKNOWN";
     }
-
-    return true;
 }
-

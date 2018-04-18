@@ -7,15 +7,17 @@
  * Description:
  */
 
-#ifndef DUMMY_PLANE_H
-#define DUMMY_PLANE_H
+ #ifndef HWC_VIDEO_PLANE_H
+#define HWC_VIDEO_PLANE_H
+
 #include <HwDisplayPlane.h>
 
-
-class DummyPlane : public HwDisplayPlane {
+class HwcVideoPlane : public HwDisplayPlane {
 public:
-    DummyPlane(int32_t drvFd, uint32_t id);
+    HwcVideoPlane(int32_t drvFd, uint32_t id);
+    ~HwcVideoPlane();
 
+    const char * getName();
     uint32_t getPlaneType();
     int32_t getCapabilities();
 
@@ -23,6 +25,9 @@ public:
     int32_t blank(int blankOp);
 
     void dump(String8 & dumpstr);
+
+protected:
+    char mName[64];
 };
 
-#endif/*DUMMY_PLANE_H*/
+ #endif/*HWC_VIDEO_PLANE_H*/

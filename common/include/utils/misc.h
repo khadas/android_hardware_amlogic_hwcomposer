@@ -13,6 +13,7 @@
 #include <stdlib.h>
 
 #define MAX_STR_LEN         512
+#define PROP_VALUE_LEN_MAX  92
 
 bool sys_get_bool_prop(const char* prop, bool defVal);
 int32_t sys_get_string_prop(const char* prop, char * val);

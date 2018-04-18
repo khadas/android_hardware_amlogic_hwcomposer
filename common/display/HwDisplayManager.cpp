@@ -12,18 +12,16 @@
 #include <HwDisplayManager.h>
 #include <HwDisplayConnector.h>
 #include <systemcontrol.h>
+#include <DrmTypes.h>
 
 #include "HwConnectorFactory.h"
 #include "DummyPlane.h"
 #include "OsdPlane.h"
-#include "VideoPlane.h"
 #include "CursorPlane.h"
-
+#include "LegacyVideoPlane.h"
+#include "AmFramebuffer.h"
 
 ANDROID_SINGLETON_STATIC_INSTANCE(HwDisplayManager)
-
-#define FBIO_WAITFORVSYNC       _IOW('F', 0x20, __u32)
-
 
 HwDisplayManager::HwDisplayManager() {
     loadDrmResources();
@@ -43,7 +41,7 @@ HwDisplayManager::HwDisplayManager() {
     mVsync = std::make_shared<HwDisplayVsync>(false, this);
 #endif
 
-    HwDisplayEventListener::getInstance().registerHandler(drm_event_any, this);
+    HwDisplayEventListener::getInstance().registerHandler(DRM_EVENT_ANY, this);
 }
 
 HwDisplayManager::~HwDisplayManager() {
@@ -144,14 +142,14 @@ int32_t HwDisplayManager::unregisterObserver(hw_display_id hwDisplayId) {
 void HwDisplayManager::handle(drm_display_event event, int val) {
     std::map<hw_display_id, HwDisplayObserver *>::iterator it;
     switch (event) {
-        case drm_event_hdmitx_hotplug:
-        case drm_event_hdmitx_hdcp:
+        case DRM_EVENT_HDMITX_HOTPLUG:
+        case DRM_EVENT_HDMITX_HDCP:
             {
                 MESON_LOGD("Hotplug observer size %d.", mObserver.size());
                 for (it = mObserver.begin(); it != mObserver.end(); ++it)
                     for (int i = 0; i < count_pipes; i++)
                         if (pipes[i].crtc_id == it->first &&
-                                mConnectors[pipes[i].connector_id]->getType() ==
+                            mConnectors[pipes[i].connector_id]->getType() ==
                             DRM_MODE_CONNECTOR_HDMI) {
                             MESON_LOGD("handle hdmi hotplug, display %d", it->first);
                             it->second->onHotplug((val == 0) ? false : true);
@@ -159,7 +157,7 @@ void HwDisplayManager::handle(drm_display_event event, int val) {
                         }
             }
             break;
-        case drm_event_mode_changed:
+        case DRM_EVENT_MODE_CHANGED:
             {
                 #ifndef HWC_MANAGE_DISPLAY_MODE
                     /*TODO: update which crtc? */
@@ -228,7 +226,7 @@ void HwDisplayManager::onVsync(int64_t timestamp) {
 void HwDisplayManager::dump(String8 & dumpstr) {
     int i = 0;
    dumpstr.append("---------------------------------------------------------"
-       "-----------------------------\nHwResources:\n");
+       "-----------------------------\n");
 
     for (i = 0; i < count_pipes; i ++) {
         dumpstr.appendFormat("Crtc %d :\n", i);
@@ -236,13 +234,17 @@ void HwDisplayManager::dump(String8 & dumpstr) {
         int j;
         for (j = 0; j < planeNum; j++) {
                 int planeId =  pipes[i].plane_ids[j];
-                dumpstr.appendFormat("Plane (%s)\n",
-                    mPlanes.find(planeId)->second->getName());
+                dumpstr.appendFormat("Plane (%s, %s, %x)\n",
+                    mPlanes.find(planeId)->second->getName(),
+                    drmPlaneTypeToString(
+                        (drm_plane_type_t)mPlanes.find(planeId)->second->getPlaneType()),
+                    mPlanes.find(planeId)->second->getCapabilities());
         }
 
         int connectorId = pipes[i].connector_id;
-        dumpstr.appendFormat("Connector (%s)\n",
-            mConnectors.find(connectorId)->second->getName());
+        dumpstr.appendFormat("Connector (%s, %d)\n",
+            mConnectors.find(connectorId)->second->getName(),
+            mConnectors.find(connectorId)->second->isSecure());
 
         dumpstr.append("\n");
     }
@@ -252,11 +254,6 @@ void HwDisplayManager::dump(String8 & dumpstr) {
  *   The following functions need update with drm.                  *
  *   Now is hard code for 1 crtc , 1 connector.                     *
  ********************************************************************/
-#define CRTC_IDX_MIN (10)
-#define CONNECTOR_IDX_MIN (20)
-#define OSD_PLANE_IDX_MIN (30)
-#define VIDEO_PLANE_IDX_MIN (40)
-
 int32_t HwDisplayManager::loadDrmResources() {
     count_crtcs = HWC_CRTC_NUM;
     count_connectors = count_crtcs;
@@ -337,7 +334,7 @@ int32_t HwDisplayManager::loadPlanes() {
     int fd = -1;
     char path[64];
     int count_osd = 0, count_video = 0;
-    int idx = 0, plane_idx = 0;
+    int idx = 0, plane_idx = 0, video_idx_max = 0;
     int capability = 0x0, planeType = 0;
 
     do {
@@ -364,6 +361,7 @@ int32_t HwDisplayManager::loadPlanes() {
         idx ++;
     } while(fd >= 0);
 
+    video_idx_max = VIDEO_PLANE_IDX_MIN;
     idx = 0;
     do {
         if (idx == 0) {
@@ -373,8 +371,22 @@ int32_t HwDisplayManager::loadPlanes() {
         }
         fd = open(path, O_RDWR, 0);
         if (fd >= 0) {
-            plane_idx = VIDEO_PLANE_IDX_MIN + idx;
-            VideoPlane * plane = new VideoPlane(fd, plane_idx);
+            plane_idx = video_idx_max + idx;
+            LegacyVideoPlane * plane = new LegacyVideoPlane(fd, plane_idx);
+            mPlanes.emplace(plane_idx, std::move(plane));
+            count_video ++;
+        }
+        idx ++;
+    } while(fd >= 0);
+
+    video_idx_max = video_idx_max + count_video;
+    idx = 0;
+    do {
+        snprintf(path, 64, "/dev/video_hwc%u", idx);
+        fd = open(path, O_RDWR, 0);
+        if (fd >= 0) {
+            plane_idx = video_idx_max + idx;
+            LegacyVideoPlane * plane = new LegacyVideoPlane(fd, plane_idx);
             mPlanes.emplace(plane_idx, std::move(plane));
             count_video ++;
         }

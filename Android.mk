@@ -122,13 +122,13 @@ LOCAL_COMMON_DISPLAY_FILES  := \
     common/display/DummyPlane.cpp \
     common/display/OsdPlane.cpp \
     common/display/CursorPlane.cpp \
-    common/display/VideoPlane.cpp \
+    common/display/LegacyVideoPlane.cpp \
+    common/display/HwcVideoPlane.cpp \
     common/display/HwConnectorFactory.cpp \
     common/display/HwDisplayConnector.cpp \
     common/display/HwDisplayEventListener.cpp \
     common/display/ConnectorHdmi.cpp \
     common/display/ConnectorPanel.cpp \
-    common/display/AmVideo.cpp \
     common/display/AmVinfo.cpp
 
 LOCAL_COMMON_UTILS_FILES  := \

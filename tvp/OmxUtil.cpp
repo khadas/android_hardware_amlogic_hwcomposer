@@ -42,15 +42,11 @@ void closeamvideo() {
     }
 }
 
-int setomxdisplaymode() {
-    return ioctl(amvideo_handle, AMSTREAM_IOC_SET_VIDEO_DISABLE, 2);
-
-}
-int setomxpts(int time_video) {
+static int setomxpts(int time_video) {
     return ioctl(amvideo_handle, AMSTREAM_IOC_SET_OMX_VPTS, (unsigned long)&time_video);
 }
 
-int setomxpts(uint32_t* omx_info) {
+static int setomxpts(uint32_t* omx_info) {
     return ioctl(amvideo_handle, AMSTREAM_IOC_SET_OMX_VPTS, (unsigned long)omx_info);
 }
 

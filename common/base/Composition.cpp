@@ -9,20 +9,11 @@
 #include <Composition.h>
 
 bool isOverlayComposition(meson_compositon_t type) {
-        if (type == MESON_COMPOSITION_PLANE_VIDEO
-            || type == MESON_COMPOSITION_PLANE_VIDEO_SIDEBAND)
+        if (type == MESON_COMPOSITION_PLANE_AMVIDEO
+            || type == MESON_COMPOSITION_PLANE_AMVIDEO_SIDEBAND)
             return true;
         else
             return false;
-}
-
-bool isPlaneComposition(meson_compositon_t type) {
-    if (type == MESON_COMPOSITION_PLANE_OSD
-        || type == MESON_COMPOSITION_PLANE_OSD_COLOR
-        || type == MESON_COMPOSITION_PLANE_CURSOR)
-        return true;
-    else
-        return false;
 }
 
 bool isComposerComposition(meson_compositon_t type) {
@@ -38,7 +29,7 @@ const char* compositionTypeToString(
     meson_compositon_t compType) {
     const char * compStr = "NONE";
     switch (compType) {
-        case MESON_COMPOSITION_NONE:
+        case MESON_COMPOSITION_UNDETERMINED:
             compStr = "NONE";
             break;
         case MESON_COMPOSITION_DUMMY:
@@ -50,17 +41,14 @@ const char* compositionTypeToString(
         case MESON_COMPOSITION_GE2D:
             compStr = "GE2D";
             break;
-        case MESON_COMPOSITION_PLANE_VIDEO:
-            compStr = "VIDEO";
+        case MESON_COMPOSITION_PLANE_AMVIDEO:
+            compStr = "AMVIDEO";
             break;
-        case MESON_COMPOSITION_PLANE_VIDEO_SIDEBAND:
+        case MESON_COMPOSITION_PLANE_AMVIDEO_SIDEBAND:
             compStr = "SIDEBAND";
             break;
         case MESON_COMPOSITION_PLANE_OSD:
             compStr = "OSD";
-            break;
-        case MESON_COMPOSITION_PLANE_OSD_COLOR:
-            compStr = "COLOR";
             break;
         case MESON_COMPOSITION_PLANE_CURSOR:
             compStr = "CURSOR";

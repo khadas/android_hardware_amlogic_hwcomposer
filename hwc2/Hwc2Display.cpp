@@ -61,13 +61,16 @@ int32_t Hwc2Display::initialize() {
     ComposerFactory::create(MESON_DUMMY_COMPOSER, composer);
     mComposers.emplace(MESON_DUMMY_COMPOSER, std::move(composer));
 
-#if defined(HWC_ENABLE_GE2D_COMPOSITION) && !defined(HWC_HEADLESS)
+#if defined(HWC_ENABLE_GE2D_COMPOSITION)
     ComposerFactory::create(MESON_GE2D_COMPOSER, composer);
     mComposers.emplace(MESON_GE2D_COMPOSER, std::move(composer));
 #endif
 
-    /* load present stragetic.*/
+    /* load composition stragetic.*/
     mCompositionStrategy = CompositionStrategyFactory::create(SIMPLE_STRATEGY, 0);
+    if (!mCompositionStrategy) {
+        MESON_LOGE("Hwc2Display load composition stragegy failed.");
+    }
 
     return 0;
 }
@@ -185,9 +188,6 @@ hwc2_error_t Hwc2Display::collectLayersForPresent() {
     mPresentLayers.clear();
     mPresentLayers.reserve(10);
 
-    bool disableUiComposer = DebugHelper::getInstance().disableUiHwc();
-    disableUiComposer |= mForceClientComposer;
-
     std::unordered_map<hwc2_layer_t, std::shared_ptr<Hwc2Layer>>::iterator it;
     for (it = mLayers.begin(); it != mLayers.end(); it++) {
         std::shared_ptr<Hwc2Layer> layer = it->second;
@@ -196,14 +196,6 @@ hwc2_error_t Hwc2Display::collectLayersForPresent() {
 #ifdef HWC_HEADLESS
         layer->mCompositionType = MESON_COMPOSITION_DUMMY;
 #else
-         /*update expected internal composition type.*/
-        #ifdef HWC_ENABLE_SECURE_LAYER
-        if (layer->isSecure() && !mConnector->isSecure()) {
-            layer->mCompositionType = MESON_COMPOSITION_DUMMY;
-            continue;
-        }
-        #endif
-
         if (layer->mHwcCompositionType == HWC2_COMPOSITION_CLIENT) {
             layer->mCompositionType = MESON_COMPOSITION_CLIENT;
         } else {
@@ -214,11 +206,8 @@ hwc2_error_t Hwc2Display::collectLayersForPresent() {
             * 3) HWC2_COMPOSITION_CURSOR
             * 4) HWC2_COMPOSITION_SIDEBAND
             */
-            if (disableUiComposer && isFbTypeRenderable(layer->mFbType)) {
-                layer->mCompositionType = MESON_COMPOSITION_CLIENT;
-            } else {
-                layer->mCompositionType = MESON_COMPOSITION_NONE;
-            }
+            /*composition type unknown, set to none first.*/
+            layer->mCompositionType = MESON_COMPOSITION_UNDETERMINED;
         }
 #endif
     }
@@ -255,29 +244,6 @@ hwc2_error_t Hwc2Display::collectComposersForPresent() {
     return HWC2_ERROR_NONE;
 }
 
-void Hwc2Display::dumpPresentComponents() {
-    /*Dump layers for DEBUG.*/
-    MESON_LOGE("+++++++ Present layers +++++++\n");
-    for (std::vector<std::shared_ptr<DrmFramebuffer>>::iterator it = mPresentLayers.begin();
-            it != mPresentLayers.end(); it++) {
-        MESON_LOGE("Layer(%p) zorder (%d)", it->get(), it->get()->mZorder);
-    }
-
-    /*Dump composers for DEBUG.*/
-    MESON_LOGE("+++++++ Present composers +++++++\n");
-    for (std::vector<std::shared_ptr<IComposeDevice>>::iterator it = mPresentComposers.begin();
-            it != mPresentComposers.end(); it++) {
-        MESON_LOGE("Composer(%p, %s) \n", it->get(), it->get()->getName());
-    }
-
-    /*Dump planes for DEBUG.*/
-    MESON_LOGE("+++++++ Present planes +++++++\n");
-    for (std::vector<std::shared_ptr<HwDisplayPlane>>::iterator it = mPresentPlanes.begin();
-            it != mPresentPlanes.end(); it++) {
-        MESON_LOGE("Plane (%p, %d)", it->get(), it->get()->getPlaneType());
-    }
-}
-
 hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
     uint32_t* outNumRequests) {
     hwc2_error_t ret = collectLayersForPresent();
@@ -293,10 +259,18 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
         return ret;
     }
 
-    // dumpPresentComponents();
+    uint32_t compositionFlags = 0;
+    if (DebugHelper::getInstance().disableUiHwc() || mForceClientComposer) {
+        compositionFlags |= COMPOSE_FORCE_CLIENT;
+    }
+#ifdef HWC_ENABLE_SECURE_LAYER
+    if (!mConnector->isSecure()) {
+        compositionFlags |= COMPOSE_HIDE_SECURE_FB;
+    }
+#endif
 
     mCompositionStrategy->setUp(mPresentLayers,
-        mPresentComposers, mPresentPlanes);
+        mPresentComposers, mPresentPlanes, compositionFlags);
     if (mCompositionStrategy->decideComposition() < 0) {
         return HWC2_ERROR_NO_RESOURCES;
     }
@@ -322,7 +296,7 @@ hwc2_error_t Hwc2Display::collectCompositionRequest(
 
         /*record composition changed layer.*/
         hwc2_composition_t expectedHwcComposition =
-            translateCompositionType(layer->mCompositionType);
+            mesonComp2Hwc2Comp(layer->mCompositionType);
         if (expectedHwcComposition  != layer->mHwcCompositionType) {
             mChangedLayers.push_back(layer->getUniqueId());
         }
@@ -378,7 +352,7 @@ hwc2_error_t Hwc2Display::getChangedCompositionTypes(
     if (outLayers && outTypes) {
         for (uint32_t i = 0; i < mChangedLayers.size(); i++) {
             std::shared_ptr<Hwc2Layer> layer = mLayers.find(mChangedLayers[i])->second;
-            outTypes[i] = translateCompositionType(layer->mCompositionType);
+            outTypes[i] = mesonComp2Hwc2Comp(layer->mCompositionType);
             outLayers[i] = mChangedLayers[i];
         }
     }
@@ -391,7 +365,7 @@ hwc2_error_t Hwc2Display::acceptDisplayChanges() {
     std::vector<std::shared_ptr<DrmFramebuffer>>::iterator it;
     for (it = mPresentLayers.begin() ; it != mPresentLayers.end(); it++) {
         Hwc2Layer * layer = (Hwc2Layer*)(it->get());
-        layer->commitCompositionType();
+        layer->commitCompType(mesonComp2Hwc2Comp(layer->mCompositionType));
     }
 
     return HWC2_ERROR_NONE;
@@ -553,6 +527,10 @@ void Hwc2Display::dump(String8 & dumpstr) {
                 compositionTypeToString(layer->mCompositionType));
         }
         dumpstr.append("-----------------------------------------------------------\n");
+        dumpstr.append("\n");
+
+        /* dump composition stragegy.*/
+        mCompositionStrategy->dump(dumpstr);
         dumpstr.append("\n");
     }
 

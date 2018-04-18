@@ -14,7 +14,7 @@
 
 #include <Composition.h>
 
-hwc2_composition_t translateCompositionType(
+hwc2_composition_t mesonComp2Hwc2Comp(
     meson_compositon_t type);
 
 #endif/*HWC2_BASE_H*/

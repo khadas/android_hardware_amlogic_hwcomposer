@@ -46,7 +46,7 @@ void DrmFramebuffer::reset() {
     mTransform       = 0;
     mZorder          = 0;
     mDataspace       = 0;
-    mCompositionType = MESON_COMPOSITION_NONE;
+    mCompositionType = MESON_COMPOSITION_UNDETERMINED;
 
     mAcquireFence = mReleaseFence = DrmFence::NO_FENCE;
 
@@ -61,6 +61,7 @@ void DrmFramebuffer::resetBufferInfo() {
     mAcquireFence  = DrmFence::NO_FENCE;
     mBufferHandle  = NULL;
     mFbType        = DRM_FB_RENDER;
+    mSecure         = false;
     mComposeToType = MESON_COMPOSE_TO_ANY_PLANE;
 }
 

@@ -40,12 +40,12 @@ public:
     Hwc2Layer();
     virtual ~Hwc2Layer();
 
-    bool isSecure() { return am_gralloc_is_secure_buffer(mBufferHandle); }
+    bool isSecure() { return mSecure;}
 
     void setUniqueId(hwc2_layer_t id);
     hwc2_layer_t getUniqueId();
 
-    int32_t commitCompositionType();
+    int32_t commitCompType(hwc2_composition_t hwcComp);
 
 public:
     android_dataspace_t mDataSpace;

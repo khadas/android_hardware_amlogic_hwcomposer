@@ -39,19 +39,21 @@ typedef struct drm_color {
 
 typedef enum drm_fb_type {
     /*scattered buffer, can be used for rendering.*/
-    DRM_FB_RENDER = 1 << 0,
+    DRM_FB_RENDER = 1,
     /*contiguous buffer, can be used for scanout.*/
-    DRM_FB_SCANOUT = 1 << 1,
+    DRM_FB_SCANOUT,
     /*no image data, fill with color.*/
-    DRM_FB_COLOR = 1 << 2,
+    DRM_FB_COLOR,
     /*indicate curosr ioctl in plane.*/
-    DRM_FB_CURSOR =  1 << 3,
-    /*no image data, but with pts.*/
-    DRM_FB_VIDEO_OMX = 1 << 4,
+    DRM_FB_CURSOR,
     /*buffer with overlay flag, no image data*/
-    DRM_FB_VIDEO_OVERLAY = 1 << 5,
+    DRM_FB_VIDEO_OVERLAY,
     /*special handle for video/TV, no image data*/
-    DRM_FB_VIDEO_SIDEBAND = 1 << 6,
+    DRM_FB_VIDEO_SIDEBAND,
+    /*no image data, but with pts.*/
+    DRM_FB_VIDEO_OMX_PTS,
+    /*no image data, but with pts.*/
+    DRM_FB_VIDEO_OMX_V4L,
 } drm_fb_type_t;
 
 #define DRM_DISPLAY_MODE_LEN (64)
@@ -64,17 +66,29 @@ typedef struct drm_mode_info {
 } drm_mode_info_t;
 
 typedef enum {
-    CURSOR_PLANE = 1<< 0,
-    OSD_PLANE = 1 << 1,
-    LEGACY_VIDEO_PLANE =  1 << 2,
-    VIDEO_PLANE = 1 << 3,
-} drm_plane_type_mask;
+    INVALID_PLANE = 0,
+    OSD_PLANE,
+    CURSOR_PLANE,
+    LEGACY_VIDEO_PLANE,
+    HWC_VIDEO_PLANE,
+} drm_plane_type_t;
 
 typedef enum {
-    drm_event_hdmitx_hotplug = 1,
-    drm_event_hdmitx_hdcp,
-    drm_event_mode_changed,
-    drm_event_any = 0xFF
+    PLANE_VIDEO_CONFLICT = (1 << 0),
+    PLANE_SUPPORT_ZORDER = (1 << 1),
+} drm_plane_capacity_t;
+
+typedef enum {
+    UNBLANK = 0,
+    BLANK_FOR_NO_CONENT = 1,
+    BLANK_FOR_SECURE_CONTENT = 2,
+} drm_plane_blank_t;
+
+typedef enum {
+    DRM_EVENT_HDMITX_HOTPLUG = 1,
+    DRM_EVENT_HDMITX_HDCP,
+    DRM_EVENT_MODE_CHANGED,
+    DRM_EVENT_ANY = 0xFF
 } drm_display_event;
 
 typedef enum {
@@ -92,7 +106,7 @@ typedef struct drm_hdr_capabilities {
     int minLuminance;
 } drm_hdr_capabilities_t;
 
+const char * drmPlaneTypeToString(drm_plane_type_t planetype);
 const char * drmFbTypeToString(drm_fb_type_t fbtype);
-bool isFbTypeRenderable(drm_fb_type_t fbtype);
 
 #endif/*DRM_TYPES_H*/

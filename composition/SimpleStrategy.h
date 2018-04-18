@@ -38,7 +38,8 @@ public:
 
     void setUp(std::vector<std::shared_ptr<DrmFramebuffer>> & layers,
         std::vector<std::shared_ptr<IComposeDevice>> & composers,
-        std::vector<std::shared_ptr<HwDisplayPlane>> & planes);
+        std::vector<std::shared_ptr<HwDisplayPlane>> & planes,
+        uint32_t flags);
 
     int32_t decideComposition();
 
@@ -90,6 +91,9 @@ protected:
     bool mHaveClientLayer;
     bool mSetComposerPlane;
     bool mOsdPlaneAssignedManually;
+
+    bool mForceClientComposer;
+    bool mHideSecureLayer;
 };
 
 #endif/*SIMPLE_STRATEGY_H*/

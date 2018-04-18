@@ -39,7 +39,6 @@ public:
     const native_handle_t * mBufferHandle;
     drm_color_t mColor;
     drm_fb_type_t mFbType;
-    int32_t mComposeToType;
 
     drm_rect_t mSourceCrop;
     drm_rect_t mDisplayFrame;
@@ -48,8 +47,12 @@ public:
     int32_t mTransform;
     uint32_t mZorder;
     int32_t mDataspace;
+    bool mSecure;
 
     meson_compositon_t mCompositionType;
+
+    int32_t mComposeToType;
+
 protected:
     std::shared_ptr<DrmFence> mAcquireFence;
     std::shared_ptr<DrmFence> mReleaseFence;
