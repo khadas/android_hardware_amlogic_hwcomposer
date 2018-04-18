@@ -189,7 +189,7 @@ void UeventObserver::onUevent()
     char *msg = mUeventMessage;
     UeventListener *listener = NULL;
 
-    DTRACE("onUevent: %s", mUeventMessage);
+    VTRACE("onUevent: %s", mUeventMessage);
     for (uint32_t i=0; i<mListeners.size(); i++) {
         const char *envelope = mListeners.keyAt(i).string();
         if (strncmp(msg, envelope, UEVENT_MSG_LEN) == 0) {
@@ -207,7 +207,7 @@ void UeventObserver::onUevent()
     String8 key;
     while (*msg) {
         key = String8(msg);
-        DTRACE("received Uevent: %s", msg);
+        ITRACE("received Uevent: %s", msg);
         if (key.contains(Utils::getSwitchState1())) {
             listener->func(listener->data, true);
         } else if (key.contains(Utils::getSwitchState0())) {

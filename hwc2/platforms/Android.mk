@@ -30,6 +30,7 @@ LOCAL_SRC_FILES := \
     ../common/devices/VirtualDevice.cpp \
     ../common/hdmi/DisplayHdmi.cpp \
     ../common/observers/SoftVsyncObserver.cpp \
+    ../common/observers/VsyncEventObserver.cpp \
     ../common/observers/UeventObserver.cpp \
     ../common/composers/IComposeDevice.cpp \
     ../common/utils/Utils.cpp \
