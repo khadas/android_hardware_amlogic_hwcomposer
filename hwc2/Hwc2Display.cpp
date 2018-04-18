@@ -12,6 +12,7 @@
 #include "Hwc2Display.h"
 #include "Hwc2Base.h"
 
+#include <DrmTypes.h>
 #include <MesonLog.h>
 #include <DebugHelper.h>
 #include <Composition.h>
@@ -79,19 +80,7 @@ void Hwc2Display::loadDisplayResources() {
 }
 
 const char * Hwc2Display::getName() {
-    switch (mConnector->getType()) {
-        case DRM_MODE_CONNECTOR_HDMI:
-            return DRM_CONNECTOR_HDMI_NAME;
-        case DRM_MODE_CONNECTOR_CVBS:
-            return DRM_CONNECTOR_CVBS_NAME;
-        case DRM_MODE_CONNECTOR_PANEL:
-            return DRM_CONNECTOR_PANEL_NAME;
-        default:
-            MESON_LOGE("Unknown connector (%d)", mConnector->getType());
-            break;
-    }
-
-    return NULL;
+    return mConnector->getName();
 }
 
 const drm_hdr_capabilities_t * Hwc2Display::getHdrCapabilities() {
@@ -230,7 +219,7 @@ hwc2_error_t Hwc2Display::collectLayersForPresent() {
             * 3) HWC2_COMPOSITION_CURSOR
             * 4) HWC2_COMPOSITION_SIDEBAND
             */
-            if (disableUiComposer && layer->isRenderable()) {
+            if (disableUiComposer && isFbTypeRenderable(layer->mFbType)) {
                 layer->mCompositionType = MESON_COMPOSITION_CLIENT;
             } else {
                 layer->mCompositionType = MESON_COMPOSITION_NONE;
@@ -520,14 +509,13 @@ hwc2_error_t Hwc2Display::setActiveConfig(
 
 void Hwc2Display::dump(String8 & dumpstr) {
     dumpstr.append("---------------------------------------------------------"
-        "-----------------------\n");
-    dumpstr.appendFormat("Display (%s, %d, %s) state:\n",
-        getName(), mHwId, mModeMgr->getName());
-
-    mModeMgr->dump(dumpstr);
+        "-----------------------------\n");
+    dumpstr.appendFormat("Display %d (%s, %s, %s):\n",
+        mHwId, getName(), mModeMgr->getName(),
+        mForceClientComposer ? "Client-Comp" : "HW-Comp");
 
     /* HDR info */
-    dumpstr.append("  HDR Capabilities:\n");
+    dumpstr.append("HDR Capabilities:\n");
     dumpstr.appendFormat("    DolbyVision1=%d\n",
         mHdrCaps.DolbyVisionSupported ?  1 : 0);
     dumpstr.appendFormat("    HDR10=%d, maxLuminance=%d,"
@@ -536,29 +524,42 @@ void Hwc2Display::dump(String8 & dumpstr) {
         mHdrCaps.maxLuminance,
         mHdrCaps.avgLuminance,
         mHdrCaps.minLuminance);
+    dumpstr.append("\n");
 
-    dumpstr.appendFormat("HwComposition  (%s)\n", mForceClientComposer ? "disabled" : "enabled");
+    /* dump display configs*/
+     mModeMgr->dump(dumpstr);
+    dumpstr.append("\n");
 
-     if (DebugHelper::getInstance().dumpDetailInfo()) {
-        std::vector<std::shared_ptr<HwDisplayPlane>>::iterator plane;
-        dumpstr.append(" Plane name \n"
-                "       z |  Comp Type | t |        Src Crop        |         DstFrame        | fd "
-                "| format |  bs  |  ps  | blend | alpha |  op  |    afbc    |\n");
-        dumpstr.append("--------+------------+---+------------------------+-------------------------+----"
-                "+--------+------+------+-------+-------+------+------------+\n");
-        for (plane = mPlanes.begin(); plane != mPlanes.end(); plane++) {
-            (*plane)->dump(dumpstr);
+    /*dump detail debug info*/
+    if (DebugHelper::getInstance().dumpDetailInfo()) {
+        /* dump composers*/
+        dumpstr.append("Valid composers:\n");
+        for (std::vector<std::shared_ptr<IComposeDevice>>::iterator it = mPresentComposers.begin();
+            it != mPresentComposers.end(); it++) {
+            dumpstr.appendFormat("%s-Composer (%p)\n", it->get()->getName(), it->get());
         }
-        dumpstr.append("--------+------------+---+------------------------+-------------------------+----"
-                "+--------+------+------+-------+-------+------+------------+\n");
+        dumpstr.append("\n");
 
-        std::unordered_map<hwc2_layer_t, std::shared_ptr<Hwc2Layer>>::iterator layer;
-        for (layer = mLayers.begin(); layer != mLayers.end(); layer++) {
-            layer->second->dump(dumpstr);
+        /* dump present layers info*/
+        dumpstr.append("Present layers:\n");
+        dumpstr.append("-----------------------------------------------------------\n");
+        dumpstr.append("|  z  |    type    |blend|  alpha |transform|  Comp Type  |\n");
+        for (std::vector<std::shared_ptr<DrmFramebuffer>>::iterator it = mPresentLayers.begin();
+            it != mPresentLayers.end(); it++) {
+            Hwc2Layer *layer = (Hwc2Layer*)(it->get());
+            dumpstr.append("+-----+------------+-----+--------+---------+-------------+\n");
+            dumpstr.appendFormat("|%5d|%12s|%5d|%8f|%9d|%13s|\n",
+                layer->mZorder,
+                drmFbTypeToString(layer->mFbType),
+                layer->mBlendMode,
+                layer->mPlaneAlpha,
+                layer->mTransform,
+                compositionTypeToString(layer->mCompositionType));
         }
-
-        if (mCompositionStrategy != NULL)
-            mCompositionStrategy->dump(dumpstr);
+        dumpstr.append("-----------------------------------------------------------\n");
+        dumpstr.append("\n");
     }
+
+    dumpstr.append("\n");
 }
 

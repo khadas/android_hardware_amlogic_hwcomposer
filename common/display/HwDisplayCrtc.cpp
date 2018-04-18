@@ -9,6 +9,7 @@
 #include <HwDisplayManager.h>
 #include <HwDisplayCrtc.h>
 #include <MesonLog.h>
+#include <DebugHelper.h>
 
 #include "AmVinfo.h"
 
@@ -60,11 +61,15 @@ int32_t HwDisplayCrtc::pageFlip(int32_t &out_fence) {
 
     ioctl(mDrvFd, FBIOPUT_OSD_SYNC_FLIP, &mDisplayInfo);
 
-    if (mDisplayInfo.out_fen_fd >= 0) {
-        out_fence = mDisplayInfo.out_fen_fd;
-    } else {
+    if (DebugHelper::getInstance().discardOutFence()) {
+        std::shared_ptr<DrmFence> outfence =
+            std::make_shared<DrmFence>(mDisplayInfo.out_fen_fd);
+        outfence->waitForever("crtc-output");
         out_fence = -1;
+    } else {
+        out_fence = (mDisplayInfo.out_fen_fd >= 0) ? mDisplayInfo.out_fen_fd : -1;
     }
+
     return 0;
 }
 

@@ -66,7 +66,8 @@ typedef struct drm_mode_info {
 typedef enum {
     CURSOR_PLANE = 1<< 0,
     OSD_PLANE = 1 << 1,
-    VIDEO_PLANE =  1 << 2,
+    LEGACY_VIDEO_PLANE =  1 << 2,
+    VIDEO_PLANE = 1 << 3,
 } drm_plane_type_mask;
 
 typedef enum {
@@ -91,8 +92,7 @@ typedef struct drm_hdr_capabilities {
     int minLuminance;
 } drm_hdr_capabilities_t;
 
-#define DRM_CONNECTOR_HDMI_NAME "HDMI"
-#define DRM_CONNECTOR_CVBS_NAME "CVBS"
-#define DRM_CONNECTOR_PANEL_NAME "PANEL"
+const char * drmFbTypeToString(drm_fb_type_t fbtype);
+bool isFbTypeRenderable(drm_fb_type_t fbtype);
 
 #endif/*DRM_TYPES_H*/

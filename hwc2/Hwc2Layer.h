@@ -41,7 +41,6 @@ public:
     virtual ~Hwc2Layer();
 
     bool isSecure();
-    bool isRenderable();
 
     void setUniqueId(hwc2_layer_t id);
     hwc2_layer_t getUniqueId();

@@ -21,6 +21,8 @@ ConnectorHdmi::ConnectorHdmi(int32_t drvFd, uint32_t id)
     :   HwDisplayConnector(drvFd, id) {
     mConnected = false;
     mSecure = false;
+
+    snprintf(mName, 64, "HDMI-%d", id);
 }
 
 ConnectorHdmi::~ConnectorHdmi() {
@@ -36,6 +38,10 @@ int32_t ConnectorHdmi::loadProperities() {
     }
 
     return 0;
+}
+
+const char * ConnectorHdmi::getName() {
+    return mName;
 }
 
 drm_connector_type_t ConnectorHdmi::getType() {

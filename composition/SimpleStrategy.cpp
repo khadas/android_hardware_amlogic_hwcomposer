@@ -561,6 +561,6 @@ int32_t SimpleStrategy::commit() {
 }
 
 void SimpleStrategy::dump(String8 & dumpstr) {
-    dumpstr.appendFormat("SimpleStrategy dump");
+    dumpstr.appendFormat("SimpleStrategy:\n");
 }
 

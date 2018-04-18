@@ -80,27 +80,12 @@ public:
     OsdPlane(int32_t drvFd, uint32_t id);
     ~OsdPlane();
 
-    uint32_t getPlaneType() {
-        int32_t debugOsdPlanes = -1;
-        char val[PROP_VALUE_LEN_MAX];
-
-        memset(val, 0, sizeof(val));
-        if (sys_get_string_prop("sys.hwc.debug.osdplanes", val))
-            debugOsdPlanes = atoi(val);
-
-        MESON_LOGV("debugOsdPlanes: %d", debugOsdPlanes);
-        if (debugOsdPlanes == -1)
-            return mPlaneType;
-        else
-            return (mId < 30 + debugOsdPlanes) ? OSD_PLANE : 0;
-    }
-
-    int32_t setPlane(std::shared_ptr<DrmFramebuffer> & fb);
+    const char * getName();
+    uint32_t getPlaneType();
     int32_t getCapabilities() { return mCapability; }
 
+    int32_t setPlane(std::shared_ptr<DrmFramebuffer> & fb);
     int32_t blank(bool blank);
-
-    // int32_t pageFlip(int32_t &outFence);
 
     void dump(String8 & dumpstr);
 
@@ -119,6 +104,8 @@ private:
 
     osd_plane_info_t mPlaneInfo;
     std::shared_ptr<DrmFramebuffer> mDrmFb;
+
+    char mName[64];
 };
 
 

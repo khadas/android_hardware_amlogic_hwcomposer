@@ -149,17 +149,21 @@ hwc2_error_t FixedSizeModeMgr::setActiveConfig(
 }
 
 void FixedSizeModeMgr::dump(String8 & dumpstr) {
-    dumpstr.append("   CONFIG   |   VSYNC_PERIOD   |   WIDTH   |   HEIGHT   |"
-        "   DPI_X   |   DPI_Y   \n");
-    dumpstr.append("------------+------------------+-----------+------------+"
-        "-----------+-----------\n");
-    dumpstr.appendFormat("     %2d     |      %.3f      |   %5d   |   %5d    |"
-        "    %3d    |    %3d    \n",
+    dumpstr.append("---------------------------------------------------------"
+        "-------------------------\n");
+    dumpstr.append("|   CONFIG   |   VSYNC_PERIOD   |   WIDTH   |   HEIGHT   |"
+        "   DPI_X   |   DPI_Y   |\n");
+    dumpstr.append("+------------+------------------+-----------+------------+"
+        "-----------+-----------+\n");
+    dumpstr.appendFormat("|     %2d     |      %.3f      |   %5d   |   %5d    |"
+        "    %3d    |    %3d    |\n",
          0,
          mCurMode.refreshRate,
          mCurMode.pixelW,
          mCurMode.pixelH,
          mCurMode.dpiX,
          mCurMode.dpiY);
+    dumpstr.append("---------------------------------------------------------"
+        "-------------------------\n");
 }
 

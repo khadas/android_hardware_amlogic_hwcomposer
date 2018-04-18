@@ -38,7 +38,7 @@ protected:
 public:
     const native_handle_t * mBufferHandle;
     drm_color_t mColor;
-    int32_t mFbType;
+    drm_fb_type_t mFbType;
     int32_t mComposeToType;
 
     drm_rect_t mSourceCrop;

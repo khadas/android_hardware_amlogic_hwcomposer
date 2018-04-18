@@ -46,7 +46,7 @@ void DrmFramebuffer::reset() {
     mTransform       = 0;
     mZorder          = 0;
     mDataspace       = 0;
-    mCompositionType = MESON_COMPOSITION_CLIENT_TARGET;
+    mCompositionType = MESON_COMPOSITION_NONE;
 
     mAcquireFence = mReleaseFence = DrmFence::NO_FENCE;
 

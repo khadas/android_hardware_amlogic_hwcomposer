@@ -195,7 +195,26 @@ void HwDisplayManager::onVsync(int64_t timestamp) {
 }
 
 void HwDisplayManager::dump(String8 & dumpstr) {
-    MESON_LOG_EMPTY_FUN();
+    int i = 0;
+   dumpstr.append("---------------------------------------------------------"
+       "-----------------------------\nHwResources:\n");
+
+    for (i = 0; i < count_pipes; i ++) {
+        dumpstr.appendFormat("Crtc %d :\n", i);
+        int planeNum =  pipes[i].planes_num;
+        int j;
+        for (j = 0; j < planeNum; j++) {
+                int planeId =  pipes[i].plane_ids[j];
+                dumpstr.appendFormat("Plane (%s)\n",
+                    mPlanes.find(planeId)->second->getName());
+        }
+
+        int connectorId = pipes[i].connector_id;
+        dumpstr.appendFormat("Connector (%s)\n",
+            mConnectors.find(connectorId)->second->getName());
+
+        dumpstr.append("\n");
+    }
 }
 
 /********************************************************************

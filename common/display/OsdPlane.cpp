@@ -9,6 +9,7 @@
 
 #include "OsdPlane.h"
 #include <MesonLog.h>
+#include <DebugHelper.h>
 
 OsdPlane::OsdPlane(int32_t drvFd, uint32_t id)
     : HwDisplayPlane(drvFd, id),
@@ -18,6 +19,8 @@ OsdPlane::OsdPlane(int32_t drvFd, uint32_t id)
     getProperties();
     mPlaneInfo.out_fen_fd = -1;
     mPlaneInfo.op = 0x0;
+
+    snprintf(mName, 64, "OSD-%d", id);
 }
 
 OsdPlane::~OsdPlane() {
@@ -47,6 +50,25 @@ int32_t OsdPlane::getProperties() {
     MESON_LOGD("osd%d plane type is %d", mId-30, mPlaneType);
 
     return ret;
+}
+
+const char * OsdPlane::getName() {
+    return mName;
+}
+
+uint32_t OsdPlane::getPlaneType() {
+    int32_t debugOsdPlanes = -1;
+    char val[PROP_VALUE_LEN_MAX];
+
+    memset(val, 0, sizeof(val));
+    if (sys_get_string_prop("sys.hwc.debug.osdplanes", val))
+        debugOsdPlanes = atoi(val);
+
+    MESON_LOGV("debugOsdPlanes: %d", debugOsdPlanes);
+    if (debugOsdPlanes == -1)
+        return mPlaneType;
+    else
+        return (mId < 30 + debugOsdPlanes) ? OSD_PLANE : 0;
 }
 
 int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
@@ -82,7 +104,13 @@ int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
     mPlaneInfo.dst_w         = disFrame.right  - disFrame.left;
     mPlaneInfo.dst_h         = disFrame.bottom - disFrame.top;
 
-    mPlaneInfo.in_fen_fd     = fb->getAcquireFence()->dup();
+    if (DebugHelper::getInstance().discardInFence()) {
+        fb->getAcquireFence()->waitForever("osd-input");
+        mPlaneInfo.in_fen_fd = -1;
+    } else {
+        mPlaneInfo.in_fen_fd     = fb->getAcquireFence()->dup();
+    }
+
     mPlaneInfo.format        = PrivHandle::getFormat(buf);
     mPlaneInfo.shared_fd     = PrivHandle::getFd(buf);
     mPlaneInfo.byte_stride   = PrivHandle::getBStride(buf);
@@ -101,10 +129,14 @@ int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
     }
 
     if (mDrmFb) {
-        /* dup a out fence fd for layer's release fence, we can't close this fd
-         * now, cause display retire fence will also use this fd. will be closed
-         * on SF side*/
-        mDrmFb->setReleaseFence((mPlaneInfo.out_fen_fd >= 0) ? ::dup(mPlaneInfo.out_fen_fd) : -1);
+    /* dup a out fence fd for layer's release fence, we can't close this fd
+    * now, cause display retire fence will also use this fd. will be closed
+    * on SF side*/
+        if (DebugHelper::getInstance().discardOutFence()) {
+            mDrmFb->setReleaseFence(-1);
+        } else {
+            mDrmFb->setReleaseFence((mPlaneInfo.out_fen_fd >= 0) ? ::dup(mPlaneInfo.out_fen_fd) : -1);
+        }
     }
 
     // this plane will be shown.
@@ -191,9 +223,6 @@ String8 OsdPlane::compositionTypeToString() {
             case MESON_COMPOSITION_PLANE_CURSOR:
                 compType = "CURSOR";
                 break;
-            case MESON_COMPOSITION_CLIENT_TARGET:
-                compType = "CLIENT";
-                break;
             default:
                 compType = "NONE";
                 break;
@@ -205,10 +234,10 @@ String8 OsdPlane::compositionTypeToString() {
 
 void OsdPlane::dump(String8 & dumpstr) {
     if (!mBlank) {
-        dumpstr.appendFormat("  osd%1d \n"
-                "     %3d | %10s | %1d | %4d, %4d, %4d, %4d |  %4d, %4d, %4d, %4d | %2d |   %2d   | %4d |"
-                " %4d | %5d | %5d | %4x |  %8x  |\n",
-                 mId - 30,
+        dumpstr.appendFormat("osd%2d "
+                "     %3d | %8s | %1d | %4d, %4d, %4d, %4d |  %4d, %4d, %4d, %4d | %2d | %2d | %4d |"
+                " %4d | %5d | %5d | %4x |%8x  |\n",
+                 mId,
                  mPlaneInfo.zorder,
                  compositionTypeToString().string(),
                  mPlaneInfo.type,

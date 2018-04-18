@@ -28,6 +28,7 @@ public:
     HwDisplayPlane(int32_t drvFd, uint32_t id);
     virtual ~HwDisplayPlane();
 
+    virtual const char * getName() = 0;
     /*PlaneType is a comb of drm_plane_type_mask*/
     virtual uint32_t getPlaneType() = 0;
 

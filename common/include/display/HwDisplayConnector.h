@@ -29,6 +29,7 @@ public:
 
     virtual int32_t getModes(std::map<uint32_t, drm_mode_info_t> & modes);
 
+    virtual const char * getName() = 0;
     virtual drm_connector_type_t getType() = 0;
     virtual bool isRemovable() = 0;
     virtual bool isSecure() = 0;

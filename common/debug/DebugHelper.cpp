@@ -25,7 +25,7 @@ ANDROID_SINGLETON_STATIC_INSTANCE(DebugHelper)
         atoi(param) > 0 ? true : false
 
 #define CHECK_CMD_INT_PARAMETER() \
-    if (i > paramNum) { \
+    if (i >= paramNum) { \
         MESON_LOGE("param number is not correct.\n");   \
         break;  \
     }
@@ -178,7 +178,7 @@ void DebugHelper::dump(String8 & dumpstr) {
 
     if (mDumpUsage) {
         static const char * usage =
-            "Passed command string to prop " DEBUG_HELPER_COMMAND " to debug.\n"
+            "Pass command string to prop " DEBUG_HELPER_COMMAND " to debug.\n"
             "Supported commands:\n"
             "\t --clear: clear all debug flags.\n"
             "\t --detail 0|1: enable/dislabe dump detail internal info.\n"
@@ -190,7 +190,9 @@ void DebugHelper::dump(String8 & dumpstr) {
             "\t --hide/--show [zorder]: hide/unhide specific layers by zorder. \n"
             "\t --save [zorder]: save specific layer's raw data by zorder. \n";
 
+        dumpstr.append("\nMesonHwc debug helper:\n");
         dumpstr.append(usage);
+        dumpstr.append("\n");
     }
 
 }

@@ -11,9 +11,7 @@
 #define COMPOSITION_H
 
 typedef enum {
-    MESON_COMPOSITION_CLIENT_TARGET = 0,
-
-    MESON_COMPOSITION_NONE = 1 << 0,
+    MESON_COMPOSITION_NONE = 0,
 
     /*Compostion type of composer*/
     MESON_COMPOSITION_DUMMY = 1 << 1,
@@ -40,5 +38,6 @@ typedef enum meson_compose_to {
 bool isOverlayComposition(meson_compositon_t type);
 bool isPlaneComposition(meson_compositon_t type);
 bool isComposerComposition(meson_compositon_t type);
+const char* compositionTypeToString(meson_compositon_t compType);
 
 #endif/*COMPOSITION_H*/

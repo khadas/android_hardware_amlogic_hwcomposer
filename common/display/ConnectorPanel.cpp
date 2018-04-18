@@ -13,6 +13,7 @@
 
 ConnectorPanel::ConnectorPanel(int32_t drvFd, uint32_t id)
     :   HwDisplayConnector(drvFd, id) {
+    snprintf(mName, 64, "Panel-%d", id);
 }
 
 ConnectorPanel::~ConnectorPanel() {
@@ -21,6 +22,10 @@ ConnectorPanel::~ConnectorPanel() {
 int32_t ConnectorPanel::loadProperities() {
     loadPhysicalSize();
     return 0;
+}
+
+const char * ConnectorPanel::getName() {
+    return mName;
 }
 
 drm_connector_type_t ConnectorPanel::getType() {

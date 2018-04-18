@@ -20,18 +20,25 @@
 
 VideoPlane::VideoPlane(int32_t drvFd, uint32_t id) :
     HwDisplayPlane(drvFd, id) {
-    mPlaneType = VIDEO_PLANE;
+    mPlaneType = LEGACY_VIDEO_PLANE;
 
     if (getMute(mPlaneMute) != 0) {
         MESON_LOGE("get video mute failed.");
         mPlaneMute = false;
     }
     Amvideo_Handle = -1;
+
+    snprintf(mName, 64, "AmVideo-%d", id);
 }
 
 VideoPlane::~VideoPlane() {
 
 }
+
+const char * VideoPlane::getName() {
+    return mName;
+}
+
 
 bool VideoPlane::shouldUpdate(std::shared_ptr<DrmFramebuffer> &fb) {
     // TODO: we need to update video axis while mode or freescale state is changed.
@@ -181,7 +188,6 @@ int32_t VideoPlane::getCapabilities() {
     // refrence board.
     int32_t ret = 0;
     MESON_LOG_EMPTY_FUN();
-
     return ret;
 }
 void VideoPlane::dump(String8 & dumpstr) {

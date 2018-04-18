@@ -19,6 +19,7 @@ public:
 public:
     virtual int32_t loadProperities();
 
+    virtual const char * getName();
     virtual drm_connector_type_t getType();
     virtual bool isRemovable();
     virtual bool isConnected();
@@ -44,6 +45,8 @@ private:
     bool mSecure;
 
     drm_hdr_capabilities mHdrCapabilities;
+
+    char mName[64];
 };
 
 #endif

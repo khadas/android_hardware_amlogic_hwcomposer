@@ -63,7 +63,7 @@ void MesonHwc2::dump(uint32_t* outSize, char* outBuffer) {
     String8 dumpstr;
     DebugHelper::getInstance().resolveCmd();
 
-    dumpstr.append("MesonHwc2 state:\n");
+    dumpstr.append("\nMesonHwc2 state:\n");
 
     if (DebugHelper::getInstance().dumpDetailInfo())
         HwDisplayManager::getInstance().dump(dumpstr);

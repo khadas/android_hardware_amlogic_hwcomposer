@@ -18,14 +18,13 @@ public:
     VideoPlane(int32_t drvFd, uint32_t id);
     ~VideoPlane();
 
+    const char * getName();
     uint32_t getPlaneType() {return mPlaneType;}
-
-    int32_t setPlane(std::shared_ptr<DrmFramebuffer> & fb);
     int32_t getCapabilities();
 
-    int32_t blank(bool blank);
+    int32_t setPlane(std::shared_ptr<DrmFramebuffer> & fb);
 
-    // int32_t pageFlip(int32_t &outFence) {return 0;}
+    int32_t blank(bool blank);
 
     void dump(String8 & dumpstr);
 
@@ -40,8 +39,8 @@ private:
     drm_rect_t mBackupDisplayFrame;
 
     bool mPlaneMute;
-
     int Amvideo_Handle;
+    char mName[64];
 };
 
 

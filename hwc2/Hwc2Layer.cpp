@@ -137,15 +137,6 @@ bool Hwc2Layer::isSecure() {
     return false;
 }
 
-bool Hwc2Layer::isRenderable() {
-    if (mFbType == DRM_FB_VIDEO_OMX ||mFbType == DRM_FB_VIDEO_OVERLAY
-        || mFbType == DRM_FB_VIDEO_SIDEBAND) {
-        return false;
-    }
-
-    return true;
-}
-
 void Hwc2Layer::setUniqueId(hwc2_layer_t id) {
     mId = id;
 }
