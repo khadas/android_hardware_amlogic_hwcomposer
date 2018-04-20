@@ -357,10 +357,11 @@ int32_t PhysicalDevice::getChangedCompositionTypes(
                 if (layer->getCompositionType() == HWC2_COMPOSITION_DEVICE
 #ifdef ENABLE_SOFT_CURSOR
                     || layer->getCompositionType() == HWC2_COMPOSITION_SOLID_COLOR
-                    || layer->getCompositionType() == HWC2_COMPOSITION_CURSOR) {
+                    || layer->getCompositionType() == HWC2_COMPOSITION_CURSOR)
 #else
-                    || layer->getCompositionType() == HWC2_COMPOSITION_SOLID_COLOR) {
+                    || layer->getCompositionType() == HWC2_COMPOSITION_SOLID_COLOR)
 #endif
+                {
                     // change all other device type to client.
                     outLayers[i] = layerId;
                     outTypes[i] = HWC2_COMPOSITION_CLIENT;

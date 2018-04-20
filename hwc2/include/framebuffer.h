@@ -43,10 +43,8 @@ typedef struct framebuffer_info_t{
 }framebuffer_info_t;
 
 typedef struct hwc_fb_sync_request_t{
-#if PLATFORM_SDK_VERSION < 26
     int             magic;
     int             len;
-#endif
     unsigned int    xoffset;
     unsigned int    yoffset;
     int             in_fen_fd;

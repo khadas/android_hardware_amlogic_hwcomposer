@@ -36,6 +36,8 @@
 #include "gralloc_priv.h"
 #include "gralloc_helper.h"
 
+#define FB_SYNC_REQUEST_MAGIC         0x54376812
+#define FB_SYNC_REQUEST_RENDER_MAGIC  0x55386816
 
 #ifdef DEBUG_EXTERNAL_DISPLAY_ON_PANEL
  // 3  for panel, 3 for hdmi
@@ -600,6 +602,8 @@ int hwc_fb_post_with_fence_locked(
 	} else {
 		ALOGV("hwc FB post blank without buffer.");
 	}
+	sync_req->magic   = FB_SYNC_REQUEST_RENDER_MAGIC;
+	sync_req->len     = sizeof(hwc_fb_sync_request_t);
 	ALOGV( "hwc format: %d, shared_fd: %d, op: 0x%x, byte_stride: %d, pixel_stride: %d",
 				sync_req->format,
 				sync_req->shared_fd,
@@ -611,8 +615,6 @@ int hwc_fb_post_with_fence_locked(
 }
 
 #if PLATFORM_SDK_VERSION < 26
-#define FB_SYNC_REQUEST_MAGIC         0x54376812
-#define FB_SYNC_REQUEST_RENDER_MAGIC  0x55386816
 int hwc_old_fb_post_with_fence_locked(
 			struct framebuffer_info_t* fbinfo,
 			struct hwc_fb_sync_request_t* fb_sync_req,
