@@ -20,6 +20,7 @@
 #include <Hwcomposer.h>
 #include <PrimaryDevice.h>
 #include <Utils.h>
+#include <cutils/properties.h>
 #include <SysTokenizer.h>
 #include <systemcontrol/DisplayMode.h>
 
@@ -144,8 +145,14 @@ int PrimaryDevice::parseConfigFile()
                 }
                 tokenizer->skipDelimiters(WHITESPACE);
                 tokenizer->nextToken(WHITESPACE);
-                tokenizer->skipDelimiters(WHITESPACE);
-                strcpy(mDefaultMode, tokenizer->nextToken(WHITESPACE));
+
+                char uiMode[PROPERTY_VALUE_MAX] = {0};
+                if (property_get("ro.ui_mode", uiMode, NULL)  > 0) {
+                     strcpy(mDefaultMode, uiMode);
+                } else {
+                    tokenizer->skipDelimiters(WHITESPACE);
+                    strcpy(mDefaultMode, tokenizer->nextToken(WHITESPACE)); 
+                }
             }
 
             tokenizer->nextLine();
