@@ -23,6 +23,7 @@ public:
 
     int32_t getFixedZorder();
 
+    int32_t updateZoomInfo(display_zoom_info_t zoomInfo);
     int32_t setPlane(std::shared_ptr<DrmFramebuffer> & fb);
     int32_t blank(int blankOp);
 

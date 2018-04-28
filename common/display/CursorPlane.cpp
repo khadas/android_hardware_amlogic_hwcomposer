@@ -6,10 +6,10 @@
  *
  * Description:
  */
+#include <sys/mman.h>
+#include <misc.h>
 
 #include "CursorPlane.h"
-#include <sys/mman.h>
-
 /*
 static inline size_t round_up_to_page_size(size_t x)
 {
@@ -44,6 +44,34 @@ const char * CursorPlane::getName() {
     return mName;
 }
 
+int32_t CursorPlane::updateZoomInfo(display_zoom_info_t zoomInfo) {
+    char axis[MAX_STR_LEN] = {0};
+    int x, y, w, h;
+    int dftFbWidth, dftFbHeight;
+    x = zoomInfo.position[0];
+    y = zoomInfo.position[1];
+    w = zoomInfo.position[2];
+    h = zoomInfo.position[3];
+    dftFbWidth  = zoomInfo.framebuffer_w;
+    dftFbHeight = zoomInfo.framebuffer_h;
+
+    sprintf(axis, "%d %d %d %d %d %d 18 18",
+        x, y, dftFbWidth, dftFbHeight, x, y);
+    sysfs_set_string(SYSFS_DISPLAY_AXIS, axis);
+    MESON_LOGD("update display axis: %s", axis);
+
+    sprintf(axis, "%d %d %d %d", dftFbWidth, dftFbHeight, w, h);
+    sysfs_set_string(DISPLAY_FB1_SCALE_AXIS, axis);
+    MESON_LOGD("update fb1 scale axis: %s", axis);
+    if ((dftFbWidth != w) || (dftFbHeight != h)) {
+        sysfs_set_string(DISPLAY_FB1_SCALE, "0x10001");
+    } else {
+        sysfs_set_string(DISPLAY_FB1_SCALE, "0");
+    }
+
+    return 0;
+}
+
 int32_t CursorPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
     if (mDrvFd < 0) {
         MESON_LOGE("cursor plane fd is not valiable!");
@@ -56,9 +84,8 @@ int32_t CursorPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
     /* osd request plane zorder > 0 */
     mPlaneInfo.zorder        = fb->mZorder + 1;
     mPlaneInfo.transform     = fb->mTransform;
-    mPlaneInfo.dst_x         = disFrame.left;//TODO reproduction rate
+    mPlaneInfo.dst_x         = disFrame.left;
     mPlaneInfo.dst_y         = disFrame.top;
-
     mPlaneInfo.format        = am_gralloc_get_format(buf);
     mPlaneInfo.shared_fd     = am_gralloc_get_buffer_fd(buf);
     mPlaneInfo.stride        = am_gralloc_get_stride_in_pixel(buf);
@@ -233,20 +260,6 @@ int32_t CursorPlane::setCursorPosition(int32_t x, int32_t y) {
     MESON_LOGI("setCursorPosition x_pos=%d, y_pos=%d", cinfo.hot.x, cinfo.hot.y);
     if (ioctl(mDrvFd, FBIOPUT_OSD_CURSOR, &cinfo) != 0)
         MESON_LOGE("set cursor position ioctl return(%d)", errno);
-
-    return 0;
-}
-
-int32_t CursorPlane::updateOsdPosition(const char * axis) {
-    int soc_w, soc_h, dst_w, dst_h;
-    sysfs_set_string(DISPLAY_FB1_SCALE_AXIS, axis);
-    MESON_LOGD("CursorPlane updateScaleAxis: %s", axis);
-    sscanf(axis, "%d %d %d %d", &soc_w, &soc_h, &dst_w ,&dst_h);
-    if ((soc_w != dst_w) || (soc_h != dst_h)) {
-        sysfs_set_string(DISPLAY_FB1_SCALE, "0x10001");
-    } else {
-        sysfs_set_string(DISPLAY_FB1_SCALE, "0");
-    }
 
     return 0;
 }

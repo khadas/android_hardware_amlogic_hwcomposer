@@ -9,6 +9,8 @@
 
 #include "LegacyVideoPlane.h"
 #include "AmFramebuffer.h"
+
+#include <misc.h>
 #include <sys/ioctl.h>
 #include <Amvideoutils.h>
 #include <tvp/OmxUtil.h>
@@ -17,8 +19,14 @@
 
 //#define AMVIDEO_DEBUG
 
+/*Used for zoom position*/
+#define OFFSET_STEP          2
+#define PERCENT_FULL_SCREEN  100
+
 LegacyVideoPlane::LegacyVideoPlane(int32_t drvFd, uint32_t id)
-    : HwDisplayPlane(drvFd, id) {
+    : HwDisplayPlane(drvFd, id),
+    mZoomPercent(PERCENT_FULL_SCREEN),
+    mNeedUpdateAxis(false) {
     snprintf(mName, 64, "AmVideo-%d", id);
 
     if (getMute(mPlaneMute) != 0) {
@@ -56,15 +64,15 @@ bool LegacyVideoPlane::shouldUpdateAxis(
     bool bUpdate = false;
 
     // TODO: we need to update video axis while mode or freescale state is changed.
+    if (mNeedUpdateAxis) {
+        mNeedUpdateAxis = false;
+        bUpdate = true;
+    }
+
     drm_rect_t *displayFrame = &(fb->mDisplayFrame);
 
     if (memcmp(&mBackupDisplayFrame, displayFrame, sizeof(drm_rect_t))) {
         memcpy(&mBackupDisplayFrame, displayFrame, sizeof(drm_rect_t));
-        bUpdate = true;
-    }
-
-    if (mBackupTransform != fb->mTransform) {
-        mBackupTransform = fb->mTransform;
         bUpdate = true;
     }
 
@@ -76,39 +84,17 @@ int32_t LegacyVideoPlane::setPlane(std::shared_ptr<DrmFramebuffer> & fb) {
 
     // TODO: DONOT set mute for now, because we need to implement secure display.
     if (shouldUpdateAxis(fb)) {
-        int32_t angle = 0;
         drm_rect_t *displayFrame = &(fb->mDisplayFrame);
+        char axis[MAX_STR_LEN] = {0};
 
-        switch (fb->mTransform) {
-            case 0:
-                angle = 0;
-            break;
-            case HAL_TRANSFORM_ROT_90:
-                angle = 90;
-            break;
-            case HAL_TRANSFORM_ROT_180:
-                angle = 180;
-            break;
-            case HAL_TRANSFORM_ROT_270:
-                angle = 270;
-            break;
-            default:
-            return 0;
+        sprintf(axis, "%d %d %d %d", displayFrame->left, displayFrame->top,
+                    displayFrame->right, displayFrame->bottom);
+        //MESON_LOGV("Set video axis: %s", axis);
+        if (mZoomPercent != 0) {
+            setScale(*displayFrame, axis);
         }
 
-        MESON_LOGV("displayFrame: [%d, %d, %d, %d]",
-                displayFrame->left,
-                displayFrame->top,
-                displayFrame->right,
-                displayFrame->bottom);
-
-        amvideo_utils_set_virtual_position(
-                displayFrame->left,
-                displayFrame->top,
-                displayFrame->right - displayFrame->left,
-                displayFrame->bottom - displayFrame->top,
-                angle);
-
+        sysfs_set_string(SYSFS_VIDEO_AXIS, axis);
     }
 
     if (am_gralloc_is_omx_metadata_buffer(buf)) {
@@ -126,6 +112,36 @@ int32_t LegacyVideoPlane::setPlane(std::shared_ptr<DrmFramebuffer> & fb) {
             MESON_LOGE("set omx pts failed.");
         }
     }
+
+    return 0;
+}
+
+int32_t LegacyVideoPlane::setScale(drm_rect_t disPosition, char * axis) {
+    int zoom_w, zoom_h;
+    int disp_w = disPosition.right  - disPosition.left;
+    int disp_h = disPosition.bottom - disPosition.top;
+    drm_rect_t curPosition = disPosition;
+
+    zoom_w = (100 - mZoomPercent)*(disPosition.right)/(100*2*OFFSET_STEP);
+    zoom_h = (100 - mZoomPercent)*(disPosition.bottom)/(100*2*OFFSET_STEP);
+    curPosition.left      += zoom_w;
+    curPosition.top       += zoom_h;
+    curPosition.right     -= zoom_w;
+    curPosition.bottom    -= zoom_h;
+
+    float tmp_x,tmp_y,tmp_r,tmp_b;
+    tmp_x = (float)((float)((curPosition.left)    * mWindowW) / (float)disp_w);
+    tmp_y = (float)((float)((curPosition.top)     * mWindowH) / (float)disp_h);
+    tmp_r = (float)((float)((curPosition.right)   * mWindowW) / (float)disp_w);
+    tmp_b = (float)((float)((curPosition.bottom)  * mWindowH) / (float)disp_h);
+    curPosition.left   = (int)(tmp_x+0.5);
+    curPosition.top    = (int)(tmp_y+0.5);
+    curPosition.right  = (int)(tmp_r+0.5);
+    curPosition.bottom = (int)(tmp_b+0.5);
+
+    sprintf(axis, "%d %d %d %d", curPosition.left, curPosition.top,
+                curPosition.right, curPosition.bottom);
+    MESON_LOGD("After scale video axis: %s", axis);
 
     return 0;
 }
@@ -222,6 +238,14 @@ int32_t LegacyVideoPlane::getOmxKeepLastFrame(unsigned int & keep) {
         ret = 0;
     }
     return ret;
+}
+
+int32_t LegacyVideoPlane::updateZoomInfo(display_zoom_info_t zoomInfo) {
+    mZoomPercent = zoomInfo.percent;
+    mWindowW = zoomInfo.width  - 1;
+    mWindowH = zoomInfo.height - 1;
+    mNeedUpdateAxis = true;
+    return 0;
 }
 
 void LegacyVideoPlane::dump(String8 & dumpstr) {

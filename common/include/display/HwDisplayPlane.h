@@ -13,6 +13,15 @@
 #include <stdlib.h>
 #include <DrmFramebuffer.h>
 
+typedef struct display_zoom_info_t {
+    int           percent;
+    int           width;
+    int           height;
+    int           field_height;
+    int           position[4];
+    unsigned int  framebuffer_w;
+    unsigned int  framebuffer_h;
+} display_zoom_info_t;
 
 class HwDisplayPlane {
 public:
@@ -26,6 +35,7 @@ public:
     /*Plane with fixed zorder will return a zorder >=0, or will return < 0.*/
     virtual int32_t getFixedZorder() = 0;
 
+    virtual int32_t updateZoomInfo(display_zoom_info_t zoomInfo) = 0;
     virtual int32_t setPlane(std::shared_ptr<DrmFramebuffer> & fb) = 0;
     virtual int32_t blank(int blankOp) = 0;
 
@@ -35,8 +45,6 @@ public:
 
     int32_t getDrvFd() {return mDrvFd;}
     uint32_t getPlaneId() {return mId;}
-
-    virtual int32_t updateOsdPosition(const char * axis) {return 0;}
 
 protected:
     int32_t mDrvFd;

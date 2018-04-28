@@ -12,7 +12,6 @@
 
 #include <HwDisplayPlane.h>
 #include <MesonLog.h>
-#include <misc.h>
 #include "AmFramebuffer.h"
 
 class CursorPlane : public HwDisplayPlane {
@@ -25,10 +24,9 @@ public:
     uint32_t getCapabilities();
     int32_t getFixedZorder();
 
+    int32_t updateZoomInfo(display_zoom_info_t zoomInfo);
     int32_t setPlane(std::shared_ptr<DrmFramebuffer> & fb);
     int32_t blank(int blankOp);
-
-    int32_t updateOsdPosition(const char * axis);
 
     void dump(String8 & dumpstr);
 
@@ -37,12 +35,11 @@ private:
     int32_t updatePlaneInfo(int xres, int yres);
     int32_t updateCursorBuffer();
 
+    char mName[64];
     int32_t mLastTransform;
     bool mCursorPlaneBlank;
     cursor_plane_info_t mPlaneInfo;
     std::shared_ptr<DrmFramebuffer> mDrmFb;
-
-    char mName[64];
 };
 
  #endif/*CURSOR_PLANE_H*/

@@ -22,6 +22,7 @@ public:
     uint32_t getCapabilities();
     int32_t getFixedZorder();
 
+    int32_t updateZoomInfo(display_zoom_info_t zoomInfo);
     int32_t setPlane(std::shared_ptr<DrmFramebuffer> & fb);
     int32_t blank(int blankOp);
 
@@ -30,6 +31,7 @@ public:
 protected:
     int32_t getOmxKeepLastFrame(unsigned int & keep);
     bool shouldUpdateAxis(std::shared_ptr<DrmFramebuffer> & fb);
+    int32_t setScale(drm_rect_t disPosition, char * axis);
 
     int32_t getMute(bool& status);
     int32_t setMute(bool status);
@@ -45,6 +47,9 @@ protected:
 
     int32_t mBackupTransform;
     drm_rect_t mBackupDisplayFrame;
+    int mZoomPercent;
+    int mWindowW, mWindowH;
+    bool mNeedUpdateAxis;
 };
 
  #endif/*LEGACY_VIDEO_PLANE_H*/

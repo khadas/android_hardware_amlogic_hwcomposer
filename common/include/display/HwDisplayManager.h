@@ -69,13 +69,9 @@ public:
     void handle(drm_display_event event, int val);
 
     void dump(String8 & dumpstr);
-
 protected:
     void onVsync(int64_t timestamp);
     int32_t buildDisplayPipes();
-
-    uint32_t mDefFbWidth, mDefFbHeight;
-    HwDisplayPlane * mCursorPlane;
 
 protected:
     class HwDisplayPipe {

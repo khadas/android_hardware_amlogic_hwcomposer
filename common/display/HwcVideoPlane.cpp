@@ -37,6 +37,11 @@ int32_t HwcVideoPlane::getFixedZorder() {
     return PLANE_VARIABLE_ZORDER;
 }
 
+int32_t HwcVideoPlane::updateZoomInfo(display_zoom_info_t zoomInfo) {
+    MESON_LOG_EMPTY_FUN();
+    return 0;
+}
+
 int32_t HwcVideoPlane::setPlane(std::shared_ptr<DrmFramebuffer> & fb) {
     if (mDrvFd < 0) {
         MESON_LOGE("osd plane fd is not valiable!");

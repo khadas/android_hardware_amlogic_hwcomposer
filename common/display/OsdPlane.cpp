@@ -91,7 +91,7 @@ int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
         // one vsync.
         mFirstPresent = false;
         sysfs_set_string(DISPLAY_LOGO_INDEX, "-1");
-        //sysfs_set_string(DISPLAY_FB0_FREESCALE_SWTICH, "0x10001");
+        sysfs_set_string(DISPLAY_FB0_FREESCALE_SWTICH, "0x10001");
     }
 
     drm_rect_t srcCrop       = fb->mSourceCrop;
@@ -104,13 +104,12 @@ int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
 
     mPlaneInfo.xoffset       = srcCrop.left;
     mPlaneInfo.yoffset       = srcCrop.top;
-    mPlaneInfo.width         = srcCrop.right  - srcCrop.left;
-    mPlaneInfo.height        = srcCrop.bottom - srcCrop.top;
-
+    mPlaneInfo.width         = srcCrop.right    - srcCrop.left;
+    mPlaneInfo.height        = srcCrop.bottom   - srcCrop.top;
     mPlaneInfo.dst_x         = disFrame.left;
     mPlaneInfo.dst_y         = disFrame.top;
-    mPlaneInfo.dst_w         = disFrame.right  - disFrame.left;
-    mPlaneInfo.dst_h         = disFrame.bottom - disFrame.top;
+    mPlaneInfo.dst_w         = disFrame.right   - disFrame.left;
+    mPlaneInfo.dst_h         = disFrame.bottom  - disFrame.top;
 
     if (DebugHelper::getInstance().discardInFence()) {
         fb->getAcquireFence()->waitForever("osd-input");

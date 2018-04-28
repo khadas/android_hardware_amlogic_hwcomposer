@@ -443,6 +443,11 @@ hwc2_error_t Hwc2Display::acceptDisplayChanges() {
 hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
     int32_t outFence = -1;
 
+    /*Pre page flip, set display position*/
+    if (mCrtc->prePageFlip() != 0) {
+        return HWC2_ERROR_NOT_VALIDATED;
+    }
+
     /*Start to compose, set up plane info.*/
     if (mCompositionStrategy->commit() != 0) {
         return HWC2_ERROR_NOT_VALIDATED;

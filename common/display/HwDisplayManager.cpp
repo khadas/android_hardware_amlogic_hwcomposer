@@ -27,15 +27,6 @@ ANDROID_SINGLETON_STATIC_INSTANCE(HwDisplayManager)
 HwDisplayManager::HwDisplayManager() {
     loadDrmResources();
 
-#if defined(WIDTH_PRIMARY_FRAMEBUFFER) && \
-        defined(HEIGHT_PRIMARY_FRAMEBUFFER)
-        mDefFbWidth  = WIDTH_PRIMARY_FRAMEBUFFER;
-        mDefFbHeight = HEIGHT_PRIMARY_FRAMEBUFFER;
-#else
-        MESON_LOGE("HwDisplayManager need define the"
-            "WIDTH_PRIMARY_FRAMEBUFFER and WIDTH_PRIMARY_FRAMEBUFFER.");
-#endif
-
 #if MESON_HW_DISPLAY_VSYNC_SOFTWARE
     mVsync = std::make_shared<HwDisplayVsync>(true, this);
 #else
@@ -47,11 +38,6 @@ HwDisplayManager::HwDisplayManager() {
 
 HwDisplayManager::~HwDisplayManager() {
     freeDrmResources();
-
-    if (mCursorPlane) {
-        delete mCursorPlane;
-        mCursorPlane = NULL;
-    }
 }
 
 int32_t HwDisplayManager::getHwDisplayIds(uint32_t * displayNum,
@@ -180,19 +166,6 @@ void HwDisplayManager::handle(drm_display_event event, int val) {
                         } else if (count_crtcs == 1 &&
                                 mConnectors[pipes[0].connector_id]->isConnected()) {
                             mCrtcs[crtc_ids[0]]->updateMode(dispmode);
-
-                            if (mCursorPlane) {
-                                //set osd mouse scale axis
-                                int position[4] = { 0, 0, 0, 0 };//x,y,w,h
-                                if (0 == sc_get_osd_position(dispmode, position)) {
-                                    char axis[MAX_STR_LEN] = {0};
-                                    sprintf(axis, "%d %d %d %d",
-                                            mDefFbWidth, mDefFbHeight, position[2], position[3]);
-                                    mCursorPlane->updateOsdPosition(axis);
-                                } else {
-                                    MESON_LOGE("GetOsdPosition by sc failed.");
-                                }
-                            }
                         }
                     } else {
                         MESON_LOGE("GetDisplayMode by sc failed.");
@@ -364,7 +337,6 @@ int32_t HwDisplayManager::loadPlanes() {
                 HwDisplayPlane * plane;
                 if (capability & OSD_HW_CURSOR) {
                     plane = new CursorPlane(fd, plane_idx);
-                    mCursorPlane = plane;
                 } else {
                     plane = new OsdPlane(fd, plane_idx);
                 }
@@ -429,6 +401,13 @@ int32_t HwDisplayManager::buildDisplayPipes() {
         pipes[0].plane_ids[i] = it->first;
         i++;
     }
+
+    std::shared_ptr<HwDisplayCrtc> crtc;
+    std::shared_ptr<HwDisplayConnector> connector;
+
+    crtc = mCrtcs.find(pipes[0].crtc_id)->second;
+    connector = mConnectors.find(pipes[0].connector_id)->second;
+    crtc->setUp(connector, mPlanes);
 
     return 0;
 }
