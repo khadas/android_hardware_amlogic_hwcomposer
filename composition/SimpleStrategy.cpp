@@ -190,7 +190,11 @@ void SimpleStrategy::preProcessLayers() {
             if (mHideSecureLayer && layer->mSecure) {
                 layer->mCompositionType = MESON_COMPOSITION_DUMMY;
             } else {
-                mUiLayers.push_back(layer);
+                if (mForceClientComposer) {
+                    layer->mCompositionType = MESON_COMPOSITION_CLIENT;
+                } else {
+                    mUiLayers.push_back(layer);
+                }
             }
         }
     }

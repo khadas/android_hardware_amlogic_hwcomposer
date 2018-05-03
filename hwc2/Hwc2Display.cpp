@@ -416,10 +416,16 @@ hwc2_error_t Hwc2Display::getReleaseFences(uint32_t* outNumElements,
 
 hwc2_error_t Hwc2Display::setClientTarget(buffer_handle_t target,
     int32_t acquireFence, int32_t dataspace, hwc_region_t damage) {
+    /*create DrmFramebuffer for client target.*/
     std::shared_ptr<DrmFramebuffer> clientFb =  std::make_shared<DrmFramebuffer>(
         target, acquireFence);
+    clientFb->mFbType = DRM_FB_SCANOUT;
+    clientFb->mBlendMode = DRM_BLEND_MODE_PREMULTIPLIED;
+    clientFb->mPlaneAlpha = 1.0f;
+    clientFb->mTransform = 0;
     clientFb->mDataspace = dataspace;
 
+    /*set framebuffer to client composer.*/
     std::shared_ptr<IComposeDevice> clientComposer =
         mComposers.find(MESON_CLIENT_COMPOSER)->second;
     if (clientComposer.get() &&

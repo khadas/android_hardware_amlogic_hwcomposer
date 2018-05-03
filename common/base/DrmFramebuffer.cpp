@@ -20,6 +20,13 @@ DrmFramebuffer::DrmFramebuffer(
     mBufferHandle = bufferhnd;
     if (acquireFence >= 0)
         mAcquireFence = std::make_shared<DrmFence>(acquireFence);
+
+    if (bufferhnd) {
+        mDisplayFrame.left   = mSourceCrop.left   = 0;
+        mDisplayFrame.top    = mSourceCrop.top    = 0;
+        mDisplayFrame.right  = mSourceCrop.right  = am_gralloc_get_width(bufferhnd);
+        mDisplayFrame.bottom = mSourceCrop.bottom = am_gralloc_get_height(bufferhnd);
+    }
 }
 
 DrmFramebuffer::~DrmFramebuffer() {
@@ -44,7 +51,7 @@ void DrmFramebuffer::reset() {
     mBlendMode       = DRM_BLEND_MODE_INVALID;
     mPlaneAlpha      = 1.0;
     mTransform       = 0;
-    mZorder          = 0;
+    mZorder          = 0xFEEF; //set to special value for debug.
     mDataspace       = 0;
     mCompositionType = MESON_COMPOSITION_UNDETERMINED;
 
@@ -52,8 +59,8 @@ void DrmFramebuffer::reset() {
 
     mDisplayFrame.left   = mSourceCrop.left   = 0;
     mDisplayFrame.top    = mSourceCrop.top    = 0;
-    mDisplayFrame.right  = mSourceCrop.right  = 1920;
-    mDisplayFrame.bottom = mSourceCrop.bottom = 1080;
+    mDisplayFrame.right  = mSourceCrop.right  = 0;
+    mDisplayFrame.bottom = mSourceCrop.bottom = 0;
 }
 
 void DrmFramebuffer::resetBufferInfo() {
