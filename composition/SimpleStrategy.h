@@ -65,6 +65,11 @@ protected:
             std::vector<std::shared_ptr<DrmFramebuffer>> &composedLayers);
     void makeFinalDecision(std::vector<std::shared_ptr<DrmFramebuffer>> &composedLayers);
 
+    void addCompositionInfo(std::shared_ptr<DrmFramebuffer>  layer,
+        std::shared_ptr<IComposeDevice>  composer,
+        std::shared_ptr<HwDisplayPlane>  plane,
+        int planeBlank);
+
 protected:
     std::list<std::pair<std::shared_ptr<DrmFramebuffer>,
         std::shared_ptr<HwDisplayPlane>>> mAssignedPlaneLayers;
@@ -94,6 +99,8 @@ protected:
 
     bool mForceClientComposer;
     bool mHideSecureLayer;
+
+    String8 mDumpStr;
 };
 
 #endif/*SIMPLE_STRATEGY_H*/

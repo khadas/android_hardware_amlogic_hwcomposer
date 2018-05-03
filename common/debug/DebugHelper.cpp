@@ -19,7 +19,7 @@ ANDROID_SINGLETON_STATIC_INSTANCE(DebugHelper)
 #define DEBUG_HELPER_ENABLE_PROP "sys.hwc.debug"
 #define DEBUG_HELPER_COMMAND "sys.hwc.debug.command"
 
-#define MAX_DEBUG_COMMANDS (5)
+#define MAX_DEBUG_COMMANDS (20)
 
 #define INT_PARAMERTER_TO_BOOL(param)  \
         atoi(param) > 0 ? true : false
@@ -40,7 +40,6 @@ DebugHelper::~DebugHelper() {
 }
 
 void DebugHelper::clearOnePassCmd() {
-    mSaveLayer = false;
     mDumpUsage = false;
 }
 
@@ -48,12 +47,40 @@ void DebugHelper::clearPersistCmd() {
     mDumpDetail = false;
 
     mLogFps = false;
-    mLogCompositionFlow = false;
+    mLogCompositionInfo = false;
     mLogLayerStatistic = false;
 
-    mHideLayer = false;
     mDiscardInFence = false;
     mDiscardOutFence = false;
+
+    mHideLayers.clear();
+    mSaveLayers.clear();
+
+    mDebugHideLayer = false;
+}
+
+void DebugHelper::addHideLayer(int id) {
+    bool bExist = false;
+    std::vector<int>::iterator it;
+    for (it = mHideLayers.begin(); it < mHideLayers.end(); it++) {
+        if (*it == id) {
+            bExist = true;
+        }
+    }
+
+    if (!bExist) {
+        mHideLayers.push_back(id);
+    }
+}
+
+void DebugHelper::removeHideLayer(int id) {
+    std::vector<int>::iterator it;
+    for (it = mHideLayers.begin(); it < mHideLayers.end(); it++) {
+        if (*it == id) {
+            mHideLayers.erase(it);
+            break;
+        }
+    }
 }
 
 void DebugHelper::resolveCmd() {
@@ -104,8 +131,7 @@ void DebugHelper::resolveCmd() {
                 if (strcmp(paramArray[i], "--composition-info") == 0) {
                     i++;
                     CHECK_CMD_INT_PARAMETER();
-                    mLogCompositionFlow = INT_PARAMERTER_TO_BOOL(paramArray[i]);
-
+                    mLogCompositionInfo = INT_PARAMERTER_TO_BOOL(paramArray[i]);
                     continue;
                 }
 
@@ -131,17 +157,40 @@ void DebugHelper::resolveCmd() {
                 }
 
                 if (strcmp(paramArray[i], "--hide") == 0) {
-                    mHideLayer = true;
+                    i++;
+                    CHECK_CMD_INT_PARAMETER();
+                    int layerId = atoi(paramArray[i]);
+                    if (layerId < 0) {
+                        MESON_LOGE("Show invalid layer (%d)", layerId);
+                    } else {
+                        addHideLayer(layerId);
+                        mDebugHideLayer = true;
+                    }
                     continue;
                 }
 
                 if (strcmp(paramArray[i], "--show") == 0) {
-                    mHideLayer = false;
+                    i++;
+                    CHECK_CMD_INT_PARAMETER();
+                    int layerId = atoi(paramArray[i]);
+                    if (layerId < 0) {
+                        MESON_LOGE("Show invalid layer (%d)", layerId);
+                    } else {
+                        removeHideLayer(layerId);
+                        mDebugHideLayer = true;
+                    }
                     continue;
                 }
 
                 if (strcmp(paramArray[i], "--save") == 0) {
-                    mSaveLayer = true;
+                    i++;
+                    CHECK_CMD_INT_PARAMETER();
+                    int layerId = atoi(paramArray[i]);
+                    if (layerId < 0) {
+                        MESON_LOGE("Save layer (%d)", layerId);
+                    } else {
+                        mSaveLayers.push_back(layerId);
+                    }
                     continue;
                 }
             }
@@ -162,14 +211,20 @@ bool DebugHelper::disableUiHwc() {
     return sys_get_bool_prop(LEGACY_DEBUG_DISABLE_HWC, false);
 }
 
-uint32_t DebugHelper::getSaveLayer() {
-    MESON_LOG_EMPTY_FUN();
-    return 0;
-}
+void DebugHelper::removeDebugLayer(int id) {
+    #if 0/*useless now.*/
+    /*remove hide layer*/
+    removeHideLayer(id);
 
-uint32_t DebugHelper::getHideLayer() {
-    MESON_LOG_EMPTY_FUN();
-    return 0;
+    /*remove save layer*/
+    std::vector<int>::iterator it;
+    for (it = mSaveLayers.begin(); it < mSaveLayers.end(); it++) {
+        if (*it == id) {
+            mSaveLayers.erase(it);
+            break;
+        }
+    }
+    #endif
 }
 
 void DebugHelper::dump(String8 & dumpstr) {
@@ -182,17 +237,39 @@ void DebugHelper::dump(String8 & dumpstr) {
             "Supported commands:\n"
             "\t --clear: clear all debug flags.\n"
             "\t --detail 0|1: enable/dislabe dump detail internal info.\n"
-            "\t --fps 0|1: start/stop log fps.\n"
-            "\t --composition-info 0|1: enable/disable composition detail info.\n"
-            "\t --layer-statistic 0|1:  enable/disable log layer statistic for hw analysis. \n"
             "\t --infence 0 | 1: pass in fence to display, or handle it in hwc.\n"
             "\t --outfence 0 | 1: return display out fence, or handle it in hwc.\n"
-            "\t --hide/--show [zorder]: hide/unhide specific layers by zorder. \n"
-            "\t --save [zorder]: save specific layer's raw data by zorder. \n";
+            "\t --composition-info 0|1: enable/disable composition detail info.\n"
+            "\t --fps 0|1: start/stop log fps.\n"
+            "\t --layer-statistic 0|1:  enable/disable log layer statistic for hw analysis. \n"
+            "\t --hide/--show [layerId]: hide/unhide specific layers by zorder. \n"
+            "\t --save [layerId]: save specific layer's raw data by layer id. \n";
 
         dumpstr.append("\nMesonHwc debug helper:\n");
         dumpstr.append(usage);
         dumpstr.append("\n");
+    } else {
+        dumpstr.append("Debug Command:\n");
+        dumpstr.appendFormat("--nohwc (%d)\n", disableUiHwc());
+        dumpstr.appendFormat("--detail (%d)\n", mDumpDetail);
+        dumpstr.appendFormat("--infence (%d)\n", mDiscardInFence);
+        dumpstr.appendFormat("--outfence (%d)\n", mDiscardOutFence);
+        dumpstr.appendFormat("--composition-info (%d)\n", mLogCompositionInfo);
+        dumpstr.appendFormat("--fps (%d)\n", mLogFps);
+        dumpstr.appendFormat("--layer-statistic (%d)\n", mLogLayerStatistic);
+
+        dumpstr.append("--hide (");
+        std::vector<int>::iterator it;
+        for (it = mHideLayers.begin(); it < mHideLayers.end(); it++) {
+            dumpstr.appendFormat("%d    ", *it);
+        }
+        dumpstr.append(")\n");
+
+        dumpstr.append("--save (");
+        for (it = mSaveLayers.begin(); it < mSaveLayers.end(); it++) {
+            dumpstr.appendFormat("%d    ", *it);
+        }
+        dumpstr.append(")\n");
     }
 
 }

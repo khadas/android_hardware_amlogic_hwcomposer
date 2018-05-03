@@ -129,12 +129,13 @@ int32_t LegacyVideoPlane::setPlane(std::shared_ptr<DrmFramebuffer> & fb) {
 int32_t LegacyVideoPlane::blank(int blankOp) {
     MESON_LOGD("LegacyVideoPlane  blank (%d)", blankOp);
 
-    if (blankOp == BLANK_FOR_SECURE_CONTENT && !mPlaneMute) {
+    if (blankOp == BLANK_FOR_SECURE_CONTENT
+        || blankOp == BLANK_FOR_NO_CONENT) {
         setMute(true);
         return 0;
     }
 
-    if (blankOp == UNBLANK && mPlaneMute) {
+    if (blankOp == UNBLANK) {
         setMute(false);
     }
 

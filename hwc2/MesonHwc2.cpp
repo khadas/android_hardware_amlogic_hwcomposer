@@ -75,6 +75,7 @@ void MesonHwc2::dump(uint32_t* outSize, char* outBuffer) {
     }
 
     DebugHelper::getInstance().dump(dumpstr);
+    dumpstr.append("\n");
 
     strncpy(outBuffer, dumpstr.string(), dumpstr.size() > 4096 ? 4095 : dumpstr.size());
 }

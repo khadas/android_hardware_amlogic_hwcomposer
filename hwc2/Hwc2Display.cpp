@@ -26,6 +26,8 @@ Hwc2Display::Hwc2Display(hw_display_id dspId,
     mObserver = observer;
     mForceClientComposer = false;
     memset(&mHdrCaps, 0, sizeof(mHdrCaps));
+
+    initLayerIdGenerator();
 }
 
 Hwc2Display::~Hwc2Display() {
@@ -129,20 +131,56 @@ void Hwc2Display::onModeChanged(int stage) {
     }
 }
 
+/*
+LayerId is 16bits.
+Higher 8 Bits: now is 256 layer slot, the higher 8 bits is the slot index.
+Lower 8 Bits: a sequence no, used to distinguish layers have same slot index (
+which may happended a layer destoryed and at the same time a new layer created.)
+*/
+#define MAX_HWC_LAYERS (256)
+#define LAYER_SLOT_BITS (8)
+
+void Hwc2Display::initLayerIdGenerator() {
+    mLayersBitmap = std::make_shared<BitsMap>(MAX_HWC_LAYERS);
+    mLayerSeq = 0;
+}
+
+hwc2_layer_t Hwc2Display::createLayerId() {
+    hwc2_layer_t layerId = 0;
+    int idx = mLayersBitmap->getZeroBit();
+    mLayersBitmap->setBit(idx);
+
+    mLayerSeq++;
+    mLayerSeq %= MAX_HWC_LAYERS;
+
+    layerId = ((idx & (MAX_HWC_LAYERS - 1)) << LAYER_SLOT_BITS) |mLayerSeq;
+    return layerId;
+}
+
+void Hwc2Display::destroyLayerId(hwc2_layer_t id) {
+    int slotIdx = id >> LAYER_SLOT_BITS;
+    mLayersBitmap->clearBit(slotIdx);
+}
+
 hwc2_error_t Hwc2Display::createLayer(hwc2_layer_t * outLayer) {
     std::shared_ptr<Hwc2Layer> layer = std::make_shared<Hwc2Layer>();
-    hwc2_layer_t layerId = reinterpret_cast<hwc2_layer_t>(layer.get());
-    layer->setUniqueId(layerId);
-    mLayers.emplace(layerId, layer);
-    *outLayer = layerId;
+    uint32_t idx = createLayerId();
 
-    MESON_LOGD("createLayer (%p)", layer.get());
+    *outLayer = idx;
+    layer->setUniqueId(*outLayer);
+    mLayers.emplace(*outLayer, layer);
+
+    MESON_LOGD("createLayer (%d-%p)", idx,  layer.get());
     return HWC2_ERROR_NONE;
 }
 
 hwc2_error_t Hwc2Display::destroyLayer(hwc2_layer_t  inLayer) {
     MESON_LOGD("destoryLayer (%" PRId64 ")", inLayer);
+
+    DebugHelper::getInstance().removeDebugLayer((int)inLayer);
+
     mLayers.erase(inLayer);
+    destroyLayerId(inLayer);
     return HWC2_ERROR_NONE;
 }
 
@@ -157,8 +195,10 @@ hwc2_error_t Hwc2Display::setColorTransform(const float* matrix,
 
     if (hint == HAL_COLOR_TRANSFORM_IDENTITY) {
         mForceClientComposer = false;
+        memset(mColorMatrix, 0, sizeof(float) * 16);
     } else {
         mForceClientComposer = true;
+        memcpy(mColorMatrix, matrix, sizeof(float) * 16);
     }
     return HWC2_ERROR_NONE;
 }
@@ -193,6 +233,12 @@ hwc2_error_t Hwc2Display::collectLayersForPresent() {
         std::shared_ptr<Hwc2Layer> layer = it->second;
         std::shared_ptr<DrmFramebuffer> buffer = layer;
         mPresentLayers.push_back(buffer);
+
+        if (isLayerHideForDebug(it->first)) {
+            layer->mCompositionType = MESON_COMPOSITION_DUMMY;
+            continue;
+        }
+
 #ifdef HWC_HEADLESS
         layer->mCompositionType = MESON_COMPOSITION_DUMMY;
 #else
@@ -221,6 +267,13 @@ hwc2_error_t Hwc2Display::collectLayersForPresent() {
             }
         } zorderCompare;
         std::sort(mPresentLayers.begin(), mPresentLayers.end(), zorderCompare);
+    }
+
+    if (DebugHelper::getInstance().logCompositionFlow()) {
+        String8 layersDump;
+        dumpPresentLayers(layersDump);
+        MESON_LOGE("Compostion-Layers:\n");
+        MESON_LOGE("%s", layersDump.string());
     }
 
     return HWC2_ERROR_NONE;
@@ -259,16 +312,19 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
         return ret;
     }
 
+    /*collect composition flag*/
     uint32_t compositionFlags = 0;
     if (DebugHelper::getInstance().disableUiHwc() || mForceClientComposer) {
         compositionFlags |= COMPOSE_FORCE_CLIENT;
     }
+
 #ifdef HWC_ENABLE_SECURE_LAYER
     if (!mConnector->isSecure()) {
         compositionFlags |= COMPOSE_HIDE_SECURE_FB;
     }
 #endif
 
+    /*setup composition strategy.*/
     mCompositionStrategy->setUp(mPresentLayers,
         mPresentComposers, mPresentPlanes, compositionFlags);
     if (mCompositionStrategy->decideComposition() < 0) {
@@ -384,6 +440,12 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
         return HWC2_ERROR_UNSUPPORTED;
     }
 
+    if (DebugHelper::getInstance().logCompositionFlow()) {
+        String8 compDump;
+        mCompositionStrategy->dump(compDump);
+        MESON_LOGE("%s", compDump.string());
+    }
+
     *outPresentFence = outFence;
     return HWC2_ERROR_NONE;
 }
@@ -483,12 +545,80 @@ hwc2_error_t Hwc2Display::setActiveConfig(
     }
 }
 
+bool Hwc2Display::isLayerHideForDebug(hwc2_layer_t id) {
+    std::vector<int> hideLayers;
+    DebugHelper::getInstance().getHideLayers(hideLayers);
+    if (hideLayers.empty())
+        return false;
+
+    std::vector<int>::iterator it = hideLayers.begin();
+    for (;it < hideLayers.end(); it++) {
+        if (*it == id) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+void Hwc2Display::dumpPresentLayers(String8 & dumpstr) {
+    dumpstr.append("----------------------------------------------------------"
+        "-------------------------------\n");
+    dumpstr.append("|  id  |  z  |  type  |blend| alpha  |t|"
+        "  AFBC  |    Source Crop    |    Display Frame  |\n");
+    for (std::vector<std::shared_ptr<DrmFramebuffer>>::iterator it = mPresentLayers.begin();
+        it != mPresentLayers.end(); it++) {
+        Hwc2Layer *layer = (Hwc2Layer*)(it->get());
+        dumpstr.append("+------+-----+--------+-----+--------+-+--------+"
+            "-------------------+-------------------+\n");
+        dumpstr.appendFormat("|%6llu|%5d|%8s|%5d|%8f|%1d|%8x|%4d %4d %4d %4d"
+            "|%4d %4d %4d %4d|\n",
+            layer->getUniqueId(),
+            layer->mZorder,
+            drmFbTypeToString(layer->mFbType),
+            layer->mBlendMode,
+            layer->mPlaneAlpha,
+            layer->mTransform,
+            am_gralloc_get_vpu_afbc_mask(layer->mBufferHandle),
+            layer->mSourceCrop.left,
+            layer->mSourceCrop.top,
+            layer->mSourceCrop.right,
+            layer->mSourceCrop.bottom,
+            layer->mDisplayFrame.left,
+            layer->mDisplayFrame.top,
+            layer->mDisplayFrame.right,
+            layer->mDisplayFrame.bottom
+            );
+    }
+    dumpstr.append("----------------------------------------------------------"
+        "-------------------------------\n");
+}
+
 void Hwc2Display::dump(String8 & dumpstr) {
+    /*update for debug*/
+    if (DebugHelper::getInstance().debugHideLayers()) {
+        //ask for auto refresh for debug layers update.
+        if (mObserver != NULL) {
+            mObserver->refresh();
+        }
+    }
+
+    /*dump*/
     dumpstr.append("---------------------------------------------------------"
         "-----------------------------\n");
     dumpstr.appendFormat("Display %d (%s, %s, %s):\n",
         mHwId, getName(), mModeMgr->getName(),
         mForceClientComposer ? "Client-Comp" : "HW-Comp");
+    dumpstr.append("\n");
+
+    dumpstr.append("ColorMatrix:\n");
+    int matrixRow;
+    for (matrixRow = 0; matrixRow < 4; matrixRow ++) {
+        dumpstr.appendFormat("| %f %f %f %f |\n",
+            mColorMatrix[matrixRow*4], mColorMatrix[matrixRow*4 + 1],
+            mColorMatrix[matrixRow*4 + 2], mColorMatrix[matrixRow*4 + 3]);
+    }
+    dumpstr.append("\n");
 
     /* HDR info */
     dumpstr.append("HDR Capabilities:\n");
@@ -518,21 +648,7 @@ void Hwc2Display::dump(String8 & dumpstr) {
 
         /* dump present layers info*/
         dumpstr.append("Present layers:\n");
-        dumpstr.append("-----------------------------------------------------------\n");
-        dumpstr.append("|  z  |    type    |blend|  alpha |transform|  Comp Type  |\n");
-        for (std::vector<std::shared_ptr<DrmFramebuffer>>::iterator it = mPresentLayers.begin();
-            it != mPresentLayers.end(); it++) {
-            Hwc2Layer *layer = (Hwc2Layer*)(it->get());
-            dumpstr.append("+-----+------------+-----+--------+---------+-------------+\n");
-            dumpstr.appendFormat("|%5d|%12s|%5d|%8f|%9d|%13s|\n",
-                layer->mZorder,
-                drmFbTypeToString(layer->mFbType),
-                layer->mBlendMode,
-                layer->mPlaneAlpha,
-                layer->mTransform,
-                compositionTypeToString(layer->mCompositionType));
-        }
-        dumpstr.append("-----------------------------------------------------------\n");
+        dumpPresentLayers(dumpstr);
         dumpstr.append("\n");
 
         /* dump composition stragegy.*/

@@ -32,10 +32,12 @@ int32_t HwcVideoPlane::getCapabilities() {
 }
 
 int32_t HwcVideoPlane::setPlane(std::shared_ptr<DrmFramebuffer> & fb) {
+    MESON_LOG_EMPTY_FUN();
     return 0;
 }
 
 int32_t HwcVideoPlane::blank(int blankOp) {
+    MESON_LOG_EMPTY_FUN();
     return 0;
 }
 

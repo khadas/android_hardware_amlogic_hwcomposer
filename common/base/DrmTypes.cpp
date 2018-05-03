@@ -19,7 +19,7 @@ const char * drmFbTypeToString(drm_fb_type_t fbtype) {
             typeStr = "scanout";
             break;
         case DRM_FB_COLOR:
-            typeStr = "solidcolor";
+            typeStr = "color";
             break;
         case DRM_FB_CURSOR:
             typeStr = "cursor";

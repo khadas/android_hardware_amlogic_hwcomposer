@@ -134,6 +134,7 @@ LOCAL_COMMON_DISPLAY_FILES  := \
 LOCAL_COMMON_UTILS_FILES  := \
     common/utils/misc.cpp \
     common/utils/systemcontrol.cpp \
+    common/utils/BitsMap.cpp \
     common/debug/DebugHelper.cpp
 
 LOCAL_COMPOSITION_FILES := \

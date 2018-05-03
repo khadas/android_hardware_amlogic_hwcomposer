@@ -41,6 +41,8 @@ void SimpleStrategy::setUp(
     classifyLayers(layers);
     classifyComposers(composers);
     classifyPlanes(planes);
+
+    mDumpStr.clear();
 }
 
 void SimpleStrategy::classifyLayers(
@@ -492,9 +494,14 @@ int32_t SimpleStrategy::commit() {
 
     if (!mLayers.empty()) {
         bool setComposerPlane = false;
+
         std::vector<std::shared_ptr<DrmFramebuffer>>::iterator it;
         for (it = mLayers.begin(); it != mLayers.end(); ++it) {
             layer = *it;
+            int planeBlank = UNBLANK;
+            std::shared_ptr<DrmFramebuffer> sourceFb = NULL;
+            std::shared_ptr<HwDisplayPlane> targetPlane = NULL;
+
             switch (layer->mCompositionType) {
                 case MESON_COMPOSITION_DUMMY:
                     mDummyComposer->addInput(layer);
@@ -503,20 +510,20 @@ int32_t SimpleStrategy::commit() {
                 case MESON_COMPOSITION_GE2D:
                     mUiComposer->addInput(layer);
                     if (!setComposerPlane) {
-                        std::shared_ptr<DrmFramebuffer> fb = mUiComposer->getOutput();
-                        if (fb.get()) {
-                            fb->mZorder = layer->mZorder;
+                        sourceFb = mUiComposer->getOutput();
+                        if (sourceFb.get()) {
+                            sourceFb->mZorder = layer->mZorder;
                             if (mOsdPlaneAssignedManually) {
                                 if (layer->mComposeToType & MESON_COMPOSE_TO_CONTINUOUS_PLANE) {
-                                    (*osdContinuousPlane)->setPlane(fb);
-                                    (*osdContinuousPlane++)->blank(UNBLANK);
+                                    targetPlane = (*osdContinuousPlane);
+                                    osdContinuousPlane++;
                                 } else {
-                                    (*osdDiscretePlane)->setPlane(fb);
-                                    (*osdDiscretePlane++)->blank(UNBLANK);
+                                    targetPlane = (*osdDiscretePlane);
+                                    osdDiscretePlane++;
                                 }
                             } else {
-                                (*osdPlane)->setPlane(fb);
-                                (*osdPlane++)->blank(UNBLANK);
+                                targetPlane = (*osdPlane);
+                                osdPlane++;
                             }
                             setComposerPlane = true;
                         }
@@ -524,29 +531,40 @@ int32_t SimpleStrategy::commit() {
                     break;
                 case MESON_COMPOSITION_PLANE_AMVIDEO:
                 case MESON_COMPOSITION_PLANE_AMVIDEO_SIDEBAND:
-                    (*videoPlane)->blank((layer->mSecure && mHideSecureLayer) ?
-                        BLANK_FOR_SECURE_CONTENT : UNBLANK);
-                    (*videoPlane++)->setPlane(layer);
+                    planeBlank = (layer->mSecure && mHideSecureLayer) ?
+                        BLANK_FOR_SECURE_CONTENT : UNBLANK;
+                    targetPlane = (*videoPlane);
+                    videoPlane++;
                     break;
                 case MESON_COMPOSITION_PLANE_OSD:
                     if (mOsdPlaneAssignedManually) {
                         if (layer->mComposeToType & MESON_COMPOSE_TO_CONTINUOUS_PLANE) {
-                            (*osdContinuousPlane)->setPlane(layer);
-                            (*osdContinuousPlane++)->blank(UNBLANK);
+                            targetPlane = (*osdContinuousPlane);
+                            osdContinuousPlane++;
                         } else {
-                            (*osdDiscretePlane)->setPlane(layer);
-                            (*osdDiscretePlane++)->blank(UNBLANK);
+                            targetPlane = (*osdDiscretePlane);
+                            osdDiscretePlane++;
                         }
                     } else {
-                        (*osdPlane)->setPlane(layer);
-                        (*osdPlane++)->blank(UNBLANK);
+                        targetPlane = (*osdPlane);
+                        osdPlane++;
                     }
                     break;
                 case MESON_COMPOSITION_PLANE_CURSOR:
-                    (*cursorPlane)->setPlane(layer);
-                    (*cursorPlane++)->blank(UNBLANK);
+                    targetPlane = (*cursorPlane);
+                    cursorPlane++;
                     break;
             }
+
+            if (targetPlane.get()) {
+                if (sourceFb.get())
+                    targetPlane->setPlane(sourceFb);
+                else
+                    targetPlane->setPlane(layer);
+
+                targetPlane->blank(planeBlank);
+            }
+            addCompositionInfo(layer, NULL, targetPlane, planeBlank);
         }
 
         mDummyComposer->start();
@@ -557,30 +575,77 @@ int32_t SimpleStrategy::commit() {
 
     /*Set blank framebuffer to */
     while (videoPlane != mVideoPlanes.end()) {
+        addCompositionInfo(NULL, NULL, (*videoPlane), BLANK_FOR_NO_CONENT);
         (*videoPlane++)->blank(BLANK_FOR_NO_CONENT);
     }
 
     if (mOsdPlaneAssignedManually) {
         while (osdContinuousPlane != mOsdContinuousPlanes.end()) {
+            addCompositionInfo(NULL, NULL, (*osdContinuousPlane), BLANK_FOR_NO_CONENT);
             (*osdContinuousPlane++)->blank(BLANK_FOR_NO_CONENT);
         }
         while (osdDiscretePlane != mOsdDiscretePlanes.end()) {
+            addCompositionInfo(NULL, NULL, (*osdDiscretePlane), BLANK_FOR_NO_CONENT);
             (*osdDiscretePlane++)->blank(BLANK_FOR_NO_CONENT);
         }
     } else {
         while (osdPlane != mPresentOsdPlanes.end()) {
+            addCompositionInfo(NULL, NULL, (*osdPlane), BLANK_FOR_NO_CONENT);
             (*osdPlane++)->blank(BLANK_FOR_NO_CONENT);
         }
     }
 
     while (cursorPlane != mCursorPlanes.end()) {
+        addCompositionInfo(NULL, NULL, (*cursorPlane), BLANK_FOR_NO_CONENT);
         (*cursorPlane++)->blank(BLANK_FOR_NO_CONENT);
     }
+
     return 0;
 }
 
+void SimpleStrategy::addCompositionInfo(
+    std::shared_ptr<DrmFramebuffer>  layer,
+    std::shared_ptr<IComposeDevice>  composer,
+    std::shared_ptr<HwDisplayPlane>  plane,
+    int planeBlank) {
+    const char * planeName = "NULL";
+    const char * blankStat = "";
+    int32_t layerZ = layer.get() ? layer->mZorder : -1;
+    const char * compType = layer.get() ?
+        compositionTypeToString(layer->mCompositionType) : "";
+
+    if (plane.get()) {
+        planeName = plane->getName();
+        switch (planeBlank) {
+            case UNBLANK:
+                blankStat = "UnBlank";
+                break;
+            case BLANK_FOR_NO_CONENT:
+                blankStat = "Blank";
+                break;
+            case BLANK_FOR_SECURE_CONTENT:
+                blankStat = "Secure-Blank";
+                break;
+            default:
+                blankStat = "Unknown";
+                break;
+        }
+    } else {
+        planeName = "";
+        blankStat = "";
+    }
+
+    mDumpStr.append("+------+-------------+----------+--------------+\n");
+    mDumpStr.appendFormat("|%6d|%13s|%10s|%14s|\n",
+        layerZ, compType, planeName, blankStat);
+}
+
 void SimpleStrategy::dump(String8 & dumpstr) {
-    dumpstr.appendFormat("SimpleStrategy(ForceClient %d, HideSecure %d):\n",
+    dumpstr.appendFormat("Compostion: SimpleStrategy(ForceClient %d, HideSecure %d):\n",
         mForceClientComposer, mHideSecureLayer);
+    dumpstr.append("------------------------------------------------\n");
+    dumpstr.append("|zorder|  Comp Type  |  Plane   |  PlaneStat   |\n");
+    dumpstr.append(mDumpStr);
+    dumpstr.append("------------------------------------------------\n");
 }
 

@@ -17,6 +17,7 @@
 #include <HwDisplayManager.h>
 #include <HwDisplayPlane.h>
 #include <HwDisplayConnector.h>
+#include <BitsMap.h>
 
 #include <ComposerFactory.h>
 #include <IComposeDevice.h>
@@ -104,6 +105,15 @@ protected:
 
     void loadDisplayResources();
 
+    /*Layer id sequence no.*/
+    void initLayerIdGenerator();
+    hwc2_layer_t createLayerId();
+    void destroyLayerId(hwc2_layer_t id);
+
+    /*For debug*/
+    void dumpPresentLayers(String8 & dumpstr);
+    bool isLayerHideForDebug(hwc2_layer_t id);
+
 protected:
     std::unordered_map<hwc2_layer_t, std::shared_ptr<Hwc2Layer>> mLayers;
     std::shared_ptr<Hwc2DisplayObserver> mObserver;
@@ -122,6 +132,11 @@ protected:
     /*display configs*/
     std::shared_ptr<HwcModeMgr> mModeMgr;
 
+    /*layer id generate*/
+    std::shared_ptr<BitsMap> mLayersBitmap;
+    int32_t mLayerSeq;
+
+
     /* members used in present.*/
     std::vector<std::shared_ptr<DrmFramebuffer>> mPresentLayers;
     std::vector<std::shared_ptr<IComposeDevice>> mPresentComposers;
@@ -132,7 +147,7 @@ protected:
 
     /*all go to client composer*/
     bool mForceClientComposer;
-
+    float mColorMatrix[16];
 };
 
 #endif/*HWC2_DISPLAY_H*/

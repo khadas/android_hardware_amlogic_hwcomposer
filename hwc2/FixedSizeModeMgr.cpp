@@ -137,6 +137,7 @@ hwc2_error_t FixedSizeModeMgr::setActiveConfig(
 }
 
 void FixedSizeModeMgr::dump(String8 & dumpstr) {
+    dumpstr.append("FixedSizeModeMgr:\n");
     dumpstr.append("---------------------------------------------------------"
         "-------------------------\n");
     dumpstr.append("|   CONFIG   |   VSYNC_PERIOD   |   WIDTH   |   HEIGHT   |"

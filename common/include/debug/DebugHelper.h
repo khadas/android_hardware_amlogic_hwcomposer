@@ -25,13 +25,9 @@ public:
     inline bool dumpDetailInfo() {return mDumpDetail;}
 
     /*log informations.*/
-    inline bool logCompositionFlow() {return mLogCompositionFlow;}
+    inline bool logCompositionFlow() {return mLogCompositionInfo;}
     inline bool logFps() {return mLogFps;}
     inline bool logLayerStatistic() {return mLogLayerStatistic;}
-
-    /*save layer's raw data by zorder.*/
-    inline bool saveLayer2File() {return mSaveLayer;}
-    inline uint32_t getSaveLayer();
 
     /*check if UI/osd hwcomposer disabled.*/
     bool disableUiHwc();
@@ -41,26 +37,36 @@ public:
     inline bool discardOutFence() {return mDiscardOutFence;}
 
     /*for layer compostion debug*/
-    inline bool hideLayer() {return mHideLayer;}
-    inline uint32_t getHideLayer();
+    inline void getHideLayers(std::vector<int> & layers) {layers = mHideLayers;}
+    inline bool debugHideLayers() {return mDebugHideLayer;}
+
+    /*save layer's raw data by layerid.*/
+    inline void getSavedLayers(std::vector<int> & layers) {layers = mSaveLayers;}
+
+    /*remove debug layer*/
+    void removeDebugLayer(int id);
 
 protected:
     bool isEnabled();
     void clearOnePassCmd();
     void clearPersistCmd();
 
-protected:
+    void addHideLayer(int id);
+    void removeHideLayer(int id);
 
+protected:
     bool mEnabled;
     bool mDumpUsage;
     bool mDumpDetail;
 
-    bool mLogCompositionFlow;
+    bool mLogCompositionInfo;
     bool mLogFps;
     bool mLogLayerStatistic;
 
-    bool mSaveLayer;
-    bool mHideLayer;
+    std::vector<int> mSaveLayers;
+    std::vector<int> mHideLayers;
+
+    bool mDebugHideLayer;
 
     /*handle osd in/out fence in hwc.*/
     bool mDiscardInFence;
