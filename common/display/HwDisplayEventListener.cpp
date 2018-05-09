@@ -84,7 +84,7 @@ HwDisplayEventListener::~HwDisplayEventListener() {
 
 void HwDisplayEventListener::createThread() {
     int ret;
-    ret = pthread_create(&hw_virtual_hotplug_thread, NULL, virtualHotplugThread, this);
+    ret = pthread_create(&hw_primary_boot_thread, NULL, primaryBootThread, this);
     if (ret) {
         MESON_LOGE("failed to start virtual hotplug thread: %s", strerror(ret));
         return;
@@ -120,12 +120,7 @@ void HwDisplayEventListener::handleUevent() {
             }
             drm_display_event event = it->first;
             MESON_LOGD("parse event %d, val %d", event, val);
-
-            std::multimap<drm_display_event, HwDisplayEventHandler *>::iterator it;
-            for (it = mEventHandler.begin(); it != mEventHandler.end(); it++) {
-                if (it->first == event || it->first == DRM_EVENT_ANY)
-                    it->second->handle(event, val);
-            }
+            handle(event, val);
         }
     }
 
@@ -163,25 +158,23 @@ void * HwDisplayEventListener::ueventThread(void * data) {
     return NULL;
 }
 
-void * HwDisplayEventListener::virtualHotplugThread(void * data) {
+void * HwDisplayEventListener::primaryBootThread(void * data) {
     HwDisplayEventListener* pThis = (HwDisplayEventListener*)data;
-    MESON_LOGV("Virtual hotplug thread start.");
+    MESON_LOGV("Fake primary boot thread start.");
+    pThis->handle(DRM_EVENT_PRIMARY_BOOT, 0);
+    pThis->handle(DRM_EVENT_MODE_CHANGED, 0);
 
-    int val = 0;
-    drm_display_event event = DRM_EVENT_HDMITX_HOTPLUG;
-    std::multimap<drm_display_event, HwDisplayEventHandler *>::iterator it;
-    for (it = pThis->mEventHandler.begin(); it != pThis->mEventHandler.end(); it++) {
-        if (it->first == event || it->first == DRM_EVENT_ANY)
-            it->second->handle(event, val);
-    }
-
-    event = DRM_EVENT_MODE_CHANGED;
-    val = 0;
-    for (it = pThis->mEventHandler.begin(); it != pThis->mEventHandler.end(); it++) {
-        if (it->first == event || it->first == DRM_EVENT_ANY)
-            it->second->handle(event, val);
-    }
     return NULL;
+}
+
+int32_t HwDisplayEventListener::handle(drm_display_event event, int val) {
+    std::multimap<drm_display_event, HwDisplayEventHandler *>::iterator it;
+    for (it = mEventHandler.begin(); it != mEventHandler.end(); it++) {
+        if (it->first == event || it->first == DRM_EVENT_ANY)
+            it->second->handle(event, val);
+    }
+
+    return 0;
 }
 
 int32_t HwDisplayEventListener::registerHandler(
@@ -191,6 +184,7 @@ int32_t HwDisplayEventListener::registerHandler(
         case DRM_EVENT_HDMITX_HOTPLUG:
         case DRM_EVENT_HDMITX_HDCP:
         case DRM_EVENT_MODE_CHANGED:
+        case DRM_EVENT_PRIMARY_BOOT:
         case DRM_EVENT_ANY:
             mEventHandler.insert(std::make_pair(event, handler));
             return 0;

@@ -103,7 +103,7 @@ void Hwc2Display::onVsync(int64_t timestamp) {
 }
 
 void Hwc2Display::onHotplug(bool connected) {
-    MESON_LOGD("onHotplug: %d", connected);
+    MESON_LOGD("On hot plug: [%s]", connected == true ? "Plug in" : "Plug out");
     loadDisplayResources();
     mModeMgr->setDisplayResources(mCrtc, mConnector);
 
@@ -113,7 +113,7 @@ void Hwc2Display::onHotplug(bool connected) {
 }
 
 void Hwc2Display::onModeChanged(int stage) {
-    MESON_LOGD("onModeChanged: %d", stage);
+    MESON_LOGD("On mode change state: [%s]", stage == 1 ? "Begin to change" : "Complete");
     if (stage == 0) {
         mModeMgr->updateDisplayResources();
         if (mObserver != NULL) {

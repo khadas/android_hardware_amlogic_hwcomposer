@@ -34,7 +34,6 @@ protected:
     bool checkConnectState();
 
     int32_t loadDisplayModes();
-    int32_t addDisplayMode(std::string& mode);
 
     /*parse hdr info.*/
     int32_t getLineValue(const char *lineStr, const char *magicStr);

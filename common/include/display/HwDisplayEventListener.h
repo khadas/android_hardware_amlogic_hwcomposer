@@ -51,14 +51,15 @@ protected:
 
 protected:
     static void * ueventThread(void * data);
-    static void * virtualHotplugThread(void * data);
+    static void * primaryBootThread(void * data);
     void handleUevent();
 
 private:
     void createThread();
+    int32_t handle(drm_display_event event, int val);
 
     pthread_t hw_event_thread;
-    pthread_t hw_virtual_hotplug_thread;
+    pthread_t hw_primary_boot_thread;
 
 };
 

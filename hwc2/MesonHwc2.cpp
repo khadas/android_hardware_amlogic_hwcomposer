@@ -113,21 +113,15 @@ int32_t MesonHwc2::registerCallback(int32_t descriptor,
         to surfaceflinger, or surfaceflinger will not boot and wait
         connected event.
         */
-            {
-//                std::lock_guard<std::mutex> lk(Mutex);
-            }
             mHotplugFn = reinterpret_cast<HWC2_PFN_HOTPLUG>(pointer);
             mHotplugData = callbackData;
             MESON_LOGI("Register callback parse hotplug fn: %p, data: %p, flag: %d",
                 mHotplugFn, mHotplugData, primaryHotplugFlag);
-//            callbackHotplugFlag = true;
-//            cv.notify_one();
             {
                 std::unique_lock<std::mutex> lk(Mutex);
                 cv.wait(lk, []{return primaryHotplugFlag;});
             }
             MESON_LOGV("Primary display send connected for surfaceflinger bootup.");
-            //onHotplug(HWC_DISPLAY_PRIMARY, true);
 
             if (mHotplugFn) {
                 mHotplugFn(mHotplugData, HWC_DISPLAY_PRIMARY, true);
@@ -545,17 +539,14 @@ void MesonHwc2::onHotplug(hwc2_display_t display, bool connected) {
     }
     {
         std::lock_guard<std::mutex> lk(Mutex);
-        //cv.wait(lk, []{return callbackHotplugFlag;});
     }
-    if (/*mLoadInfoStatus && */mHotplugFn) {
+    if (mHotplugFn) {
         MESON_LOGD("On hotplug, Fn: %p, Data: %p, display: %d(%d), connected: %d",
                 mHotplugFn, mHotplugData, display, HWC_DISPLAY_PRIMARY, connected);
-        //mHotplugFn(mHotplugData, display, connected);
         mFirstCallBackSF = false;
         primaryHotplugFlag = true;
         cv.notify_one();
         MESON_LOGD("HotplugFn finish.");
-        //lk.unlock();
         return;
     }
 

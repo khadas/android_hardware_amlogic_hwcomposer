@@ -88,35 +88,6 @@ int32_t ConnectorHdmi::loadDisplayModes() {
     return 0;
 }
 
-int32_t ConnectorHdmi::addDisplayMode(std::string& mode) {
-    vmode_e vmode = vmode_name_to_mode(mode.c_str());
-    const struct vinfo_s* vinfo = get_tv_info(vmode);
-    if (vmode == VMODE_MAX || vinfo == NULL) {
-        MESON_LOGE("addSupportedConfig meet error mode (%s, %d)", mode.c_str(), vmode);
-        return -ENOENT;
-    }
-
-    uint32_t dpiX  = DEFAULT_DISPLAY_DPI, dpiY = DEFAULT_DISPLAY_DPI;
-    if (mPhyWidth > 16 && mPhyHeight > 9) {
-        dpiX = (vinfo->width  * 25.4f) / mPhyWidth;
-        dpiY = (vinfo->height  * 25.4f) / mPhyHeight;
-    }
-
-    drm_mode_info_t modeInfo = {
-        "",
-        dpiX,
-        dpiY,
-        vinfo->width,
-        vinfo->height,
-        (float)vinfo->sync_duration_num/vinfo->sync_duration_den};
-    strcpy(modeInfo.name, mode.c_str());
-
-    mDisplayModes.emplace((uint32_t)vmode, modeInfo);
-
-    MESON_LOGD("add display mode (%s)", mode.c_str());
-    return 0;
-}
-
 int32_t ConnectorHdmi::getModes(std::map<uint32_t, drm_mode_info_t> & modes) {
     return HwDisplayConnector::getModes(modes);
 }

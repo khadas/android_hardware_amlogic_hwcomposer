@@ -40,6 +40,7 @@ public:
 
 protected:
     virtual void loadPhysicalSize();
+    virtual int32_t addDisplayMode(std::string& mode);
     int32_t mDrvFd;
     uint32_t mId;
 

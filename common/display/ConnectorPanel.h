@@ -27,7 +27,9 @@ public:
     virtual void getHdrCapabilities(drm_hdr_capabilities * caps);
     virtual void dump(String8 & dumpstr);
 
-    protected:
+protected:
+    int32_t loadDisplayModes();
+
     char mName[64];
 };
 

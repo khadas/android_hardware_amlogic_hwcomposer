@@ -88,6 +88,7 @@ typedef enum {
     DRM_EVENT_HDMITX_HOTPLUG = 1,
     DRM_EVENT_HDMITX_HDCP,
     DRM_EVENT_MODE_CHANGED,
+    DRM_EVENT_PRIMARY_BOOT,
     DRM_EVENT_ANY = 0xFF
 } drm_display_event;
 

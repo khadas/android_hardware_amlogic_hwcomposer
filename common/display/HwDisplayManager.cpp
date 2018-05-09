@@ -142,6 +142,17 @@ int32_t HwDisplayManager::unregisterObserver(hw_display_id hwDisplayId) {
 void HwDisplayManager::handle(drm_display_event event, int val) {
     std::map<hw_display_id, HwDisplayObserver *>::iterator it;
     switch (event) {
+        case DRM_EVENT_PRIMARY_BOOT:
+            {
+                MESON_LOGD("Primary boot observer size %d.", mObserver.size());
+                for (it = mObserver.begin(); it != mObserver.end(); ++it)
+                    for (int i = 0; i < count_pipes; i++)
+                        if (pipes[i].crtc_id == it->first) {
+                            it->second->onHotplug((val == 0) ? false : true);
+                            break;
+                        }
+            }
+            break;
         case DRM_EVENT_HDMITX_HOTPLUG:
         case DRM_EVENT_HDMITX_HDCP:
             {
@@ -151,7 +162,6 @@ void HwDisplayManager::handle(drm_display_event event, int val) {
                         if (pipes[i].crtc_id == it->first &&
                             mConnectors[pipes[i].connector_id]->getType() ==
                             DRM_MODE_CONNECTOR_HDMI) {
-                            MESON_LOGD("handle hdmi hotplug, display %d", it->first);
                             it->second->onHotplug((val == 0) ? false : true);
                             break;
                         }
@@ -166,7 +176,8 @@ void HwDisplayManager::handle(drm_display_event event, int val) {
                         if (count_crtcs > 1) {
                             MESON_LOG_EMPTY_FUN();
                             MESON_LOGE("Dual display not supported.");
-                        } else if (count_crtcs == 1) {
+                        } else if (count_crtcs == 1 &&
+                                mConnectors[pipes[0].connector_id]->isConnected()) {
                             mCrtcs[crtc_ids[0]]->updateMode(dispmode);
 
                             //set osd mouse scale axis
@@ -188,8 +199,12 @@ void HwDisplayManager::handle(drm_display_event event, int val) {
 
                 MESON_LOGD("Mode change observer size %d.", mObserver.size());
                 for (it = mObserver.begin(); it != mObserver.end(); ++it) {
-                    MESON_LOGD("handle mode change stage(%d) display %d", val, it->first);
-                    it->second->onModeChanged(val);
+                    for (int i = 0; i < count_pipes; i++)
+                        if (pipes[i].crtc_id == it->first &&
+                            mConnectors[pipes[i].connector_id]->isConnected()) {
+                            it->second->onModeChanged(val);
+                            break;
+                        }
                 }
             }
             break;

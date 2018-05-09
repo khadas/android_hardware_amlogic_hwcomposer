@@ -21,6 +21,7 @@ ConnectorPanel::~ConnectorPanel() {
 
 int32_t ConnectorPanel::loadProperities() {
     loadPhysicalSize();
+    loadDisplayModes();
     return 0;
 }
 
@@ -42,6 +43,41 @@ bool ConnectorPanel::isConnected(){
 
 bool ConnectorPanel::isSecure(){
     return true;
+}
+
+int32_t ConnectorPanel::loadDisplayModes() {
+    vmode_e vmode;
+    struct vinfo_base_s info;
+    int ret = -1 /*read_vout_info(&info)*/;
+    if (ret == 0)
+        vmode = info.mode;
+    else {
+        vmode = VMODE_MAX;
+        MESON_LOGE("read vout info error return %d", ret);
+    }
+    MESON_LOGD("readDisplayPhySize vmode: %d", vmode);
+    //Tmp
+    vmode = VMODE_1080P;
+    for (int i = 0; i < 2; i++) {
+        const struct vinfo_s* vinfo = get_tv_info(vmode);
+        if (vmode == VMODE_MAX || vinfo == NULL) {
+            MESON_LOGE("loadDisplayModes meet error mode (%d)", vmode);
+            return -ENOENT;
+        }
+
+        std::string dispmode = vinfo->name;
+        addDisplayMode(dispmode);
+        int pos = dispmode.find("60hz", 0);
+        if (pos > 0) {
+            dispmode.replace(pos, 4, "50hz");
+            addDisplayMode(dispmode);
+        } else {
+            MESON_LOGE("loadDisplayModes can not find 60hz in %s", dispmode.c_str());
+        }
+        vmode = VMODE_4K2K_60HZ;
+    }
+
+    return 0;
 }
 
 void ConnectorPanel::getHdrCapabilities(drm_hdr_capabilities * caps) {
