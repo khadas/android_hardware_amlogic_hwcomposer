@@ -32,8 +32,7 @@ void HwDisplayConnector::loadPhysicalSize() {
         mPhyHeight = info.screen_real_height;
     } else {
         mPhyWidth = mPhyHeight = 0;
-        MESON_LOGE("read vout info error return %d(%d %d %d)", ret,
-            ENOBUFS, EBADFD, EINVAL);
+        MESON_LOGE("read vout info error return %d", ret);
     }
     MESON_LOGD("readDisplayPhySize physical size (%d x %d)", mPhyWidth, mPhyHeight);
 }

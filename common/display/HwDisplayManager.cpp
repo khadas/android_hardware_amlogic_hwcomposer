@@ -180,17 +180,18 @@ void HwDisplayManager::handle(drm_display_event event, int val) {
                                 mConnectors[pipes[0].connector_id]->isConnected()) {
                             mCrtcs[crtc_ids[0]]->updateMode(dispmode);
 
-                            //set osd mouse scale axis
-                            int position[4] = { 0, 0, 0, 0 };//x,y,w,h
-                            if (0 == sc_get_osd_position(dispmode, position)) {
-                                char axis[MAX_STR_LEN] = {0};
-                                sprintf(axis, "%d %d %d %d",
-                                        mDefFbWidth, mDefFbHeight, position[2], position[3]);
-                                mCursorPlane->updateOsdPosition(axis);
-                            } else {
-                                MESON_LOGE("GetOsdPosition by sc failed.");
+                            if (mCursorPlane) {
+                                //set osd mouse scale axis
+                                int position[4] = { 0, 0, 0, 0 };//x,y,w,h
+                                if (0 == sc_get_osd_position(dispmode, position)) {
+                                    char axis[MAX_STR_LEN] = {0};
+                                    sprintf(axis, "%d %d %d %d",
+                                            mDefFbWidth, mDefFbHeight, position[2], position[3]);
+                                    mCursorPlane->updateOsdPosition(axis);
+                                } else {
+                                    MESON_LOGE("GetOsdPosition by sc failed.");
+                                }
                             }
-
                         }
                     } else {
                         MESON_LOGE("GetDisplayMode by sc failed.");

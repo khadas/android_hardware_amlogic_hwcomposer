@@ -508,15 +508,15 @@ int32_t SimpleStrategy::commit() {
                             fb->mZorder = layer->mZorder;
                             if (mOsdPlaneAssignedManually) {
                                 if (layer->mComposeToType & MESON_COMPOSE_TO_CONTINUOUS_PLANE) {
-                                    (*osdContinuousPlane)->blank(UNBLANK);
-                                    (*osdContinuousPlane++)->setPlane(fb);
+                                    (*osdContinuousPlane)->setPlane(fb);
+                                    (*osdContinuousPlane++)->blank(UNBLANK);
                                 } else {
-                                    (*osdDiscretePlane)->blank(UNBLANK);
-                                    (*osdDiscretePlane++)->setPlane(fb);
+                                    (*osdDiscretePlane)->setPlane(fb);
+                                    (*osdDiscretePlane++)->blank(UNBLANK);
                                 }
                             } else {
-                                (*osdPlane)->blank(UNBLANK);
-                                (*osdPlane++)->setPlane(fb);
+                                (*osdPlane)->setPlane(fb);
+                                (*osdPlane++)->blank(UNBLANK);
                             }
                             setComposerPlane = true;
                         }
@@ -531,20 +531,20 @@ int32_t SimpleStrategy::commit() {
                 case MESON_COMPOSITION_PLANE_OSD:
                     if (mOsdPlaneAssignedManually) {
                         if (layer->mComposeToType & MESON_COMPOSE_TO_CONTINUOUS_PLANE) {
-                            (*osdContinuousPlane)->blank(UNBLANK);
-                            (*osdContinuousPlane++)->setPlane(layer);
+                            (*osdContinuousPlane)->setPlane(layer);
+                            (*osdContinuousPlane++)->blank(UNBLANK);
                         } else {
-                            (*osdDiscretePlane)->blank(UNBLANK);
-                            (*osdDiscretePlane++)->setPlane(layer);
+                            (*osdDiscretePlane)->setPlane(layer);
+                            (*osdDiscretePlane++)->blank(UNBLANK);
                         }
                     } else {
-                        (*osdPlane)->blank(UNBLANK);
-                        (*osdPlane++)->setPlane(layer);
+                        (*osdPlane)->setPlane(layer);
+                        (*osdPlane++)->blank(UNBLANK);
                     }
                     break;
                 case MESON_COMPOSITION_PLANE_CURSOR:
-                    (*cursorPlane)->blank(UNBLANK);
-                    (*cursorPlane++)->setPlane(layer);
+                    (*cursorPlane)->setPlane(layer);
+                    (*cursorPlane++)->blank(UNBLANK);
                     break;
             }
         }

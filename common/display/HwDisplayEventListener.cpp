@@ -105,6 +105,7 @@ void HwDisplayEventListener::handleUevent() {
             int val;
             char *msg = mUeventMsg;
             while (*msg) {
+                //TODO
                 key = String8(msg);
                 MESON_LOGD("received Uevent: %s", msg);
                 if (key.contains("STATE=ACA=1")) {
