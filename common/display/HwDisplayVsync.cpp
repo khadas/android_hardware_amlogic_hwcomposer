@@ -11,6 +11,8 @@
 #include <HwDisplayVsync.h>
 #include <HwDisplayManager.h>
 
+#define SF_VSYNC_DFT_PERIOD 60
+
 HwDisplayVsync::HwDisplayVsync(bool softwareVsync,
     HwVsyncObserver * observer) {
     mSoftVsync = softwareVsync;
@@ -52,7 +54,6 @@ void * HwDisplayVsync::vsyncThread(void * data) {
     HwDisplayVsync* pThis = (HwDisplayVsync*)data;
 
     std::unique_lock<std::mutex> stateLock(pThis->mStatLock);
-
     while (!pThis->mEnabled) {
         pThis->mStateCondition.wait(stateLock);
         if (pThis->mExit) {
@@ -89,6 +90,8 @@ int32_t HwDisplayVsync::waitSoftwareVsync(nsecs_t& vsync_timestamp) {
     static nsecs_t old_vsync_period = 0;
     nsecs_t sleep;
     nsecs_t now = systemTime(CLOCK_MONOTONIC);
+
+    mPeriod = (mPeriod == 0) ? SF_VSYNC_DFT_PERIOD : mPeriod;
 
     //cal the last vsync time with old period
     if (mPeriod != old_vsync_period) {
