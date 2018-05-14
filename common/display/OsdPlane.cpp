@@ -50,17 +50,11 @@ const char * OsdPlane::getName() {
 }
 
 uint32_t OsdPlane::getPlaneType() {
-    int debugOsdPlanes = -1;
-    char val[PROP_VALUE_LEN_MAX] = {0};
-    memset(val, 0, sizeof(val));
-    if (sys_get_string_prop("sys.hwc.debug.osdplanes", val) && val[0] != 0)
-        debugOsdPlanes = atoi(val);
-
-    if (debugOsdPlanes < 0 || (mId <= debugOsdPlanes && debugOsdPlanes > 0)) {
-        return OSD_PLANE;
-    } else {
+    if (mIdle) {
         return INVALID_PLANE;
     }
+
+    return OSD_PLANE;
 }
 
 int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
@@ -102,8 +96,9 @@ int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
     } else {
         mPlaneInfo.in_fen_fd     = fb->getAcquireFence()->dup();
     }
+
+    mPlaneInfo.shared_fd     = ::dup(am_gralloc_get_buffer_fd(buf));
     mPlaneInfo.format        = am_gralloc_get_format(buf);
-    mPlaneInfo.shared_fd     = am_gralloc_get_buffer_fd(buf);
     mPlaneInfo.byte_stride   = am_gralloc_get_stride_in_byte(buf);
     mPlaneInfo.pixel_stride  = am_gralloc_get_stride_in_pixel(buf);
     /* osd request plane zorder > 0 */

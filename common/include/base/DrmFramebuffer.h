@@ -10,6 +10,7 @@
 #define DRM_FRAMEBUFFER_H
 
 #include <stdlib.h>
+#include <cutils/native_handle.h>
 
 #include <BasicTypes.h>
 #include <Composition.h>
@@ -32,11 +33,13 @@ public:
     int32_t getReleaseFence();
 
 protected:
+    void setBufferInfo(const native_handle_t * bufferhnd, int32_t acquireFence);
+    void clearBufferInfo();
+
     void reset();
-    void resetBufferInfo();
 
 public:
-    const native_handle_t * mBufferHandle;
+    native_handle_t * mBufferHandle;
     drm_color_t mColor;
     drm_fb_type_t mFbType;
 

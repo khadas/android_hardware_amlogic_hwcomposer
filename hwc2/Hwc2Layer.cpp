@@ -19,6 +19,7 @@ Hwc2Layer::Hwc2Layer() : DrmFramebuffer(){
 }
 
 Hwc2Layer::~Hwc2Layer() {
+    MESON_LOGD("Destroy Hwc2Layer (%p - %llu)", this, getUniqueId());
 }
 
 hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) {
@@ -26,10 +27,8 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
     * SurfaceFlinger will call setCompostionType() first,then setBuffer().
     * So it is safe to calc drm_fb_type_t mFbType here.
     */
-    resetBufferInfo();
-
-    mBufferHandle = buffer;
-    mAcquireFence = std::make_shared<DrmFence>(acquireFence);
+    clearBufferInfo();
+    setBufferInfo(buffer, acquireFence);
 
     /*set mFbType by usage of GraphicBuffer.*/
     if (mHwcCompositionType == HWC2_COMPOSITION_CURSOR) {
@@ -46,22 +45,21 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
 
     mSecure = am_gralloc_is_secure_buffer(mBufferHandle);
 
-    MESON_LOGD("layer setBuffer [%p, %d]", (void*)buffer, acquireFence);
+    MESON_LOGD("layer (%llu) setBuffer [%p, %d]", getUniqueId(), (void*)buffer, acquireFence);
     return HWC2_ERROR_NONE;
 }
 
 hwc2_error_t Hwc2Layer::setSidebandStream(const native_handle_t* stream) {
-    resetBufferInfo();
+    clearBufferInfo();
+    setBufferInfo(stream, -1);
 
-    mBufferHandle = stream;
     mFbType = DRM_FB_VIDEO_SIDEBAND;
-    //no secure flag for sideband now,just set to false.
     mSecure = false;
     return HWC2_ERROR_NONE;
 }
 
 hwc2_error_t Hwc2Layer::setColor(hwc_color_t color) {
-    resetBufferInfo();
+    clearBufferInfo();
 
     mColor.r = color.r;
     mColor.g = color.g;

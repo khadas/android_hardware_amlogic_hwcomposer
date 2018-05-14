@@ -13,6 +13,7 @@
 HwDisplayPlane::HwDisplayPlane(int32_t drvFd, uint32_t id) {
     mDrvFd = drvFd;
     mId = id;
+    mIdle = false;
 }
 
 HwDisplayPlane::~HwDisplayPlane() {

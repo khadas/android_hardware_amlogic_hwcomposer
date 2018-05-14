@@ -10,16 +10,16 @@
 #include <DrmFramebuffer.h>
 #include <MesonLog.h>
 
-DrmFramebuffer::DrmFramebuffer() {
+DrmFramebuffer::DrmFramebuffer()
+    : mBufferHandle(NULL) {
     reset();
 }
 
 DrmFramebuffer::DrmFramebuffer(
-    const native_handle_t * bufferhnd, int32_t acquireFence) {
+    const native_handle_t * bufferhnd, int32_t acquireFence)
+    : mBufferHandle(NULL) {
     reset();
-    mBufferHandle = bufferhnd;
-    if (acquireFence >= 0)
-        mAcquireFence = std::make_shared<DrmFence>(acquireFence);
+    setBufferInfo(bufferhnd, acquireFence);
 
     if (bufferhnd) {
         mDisplayFrame.left   = mSourceCrop.left   = 0;
@@ -47,7 +47,7 @@ int32_t DrmFramebuffer::getReleaseFence() {
 }
 
 void DrmFramebuffer::reset() {
-    resetBufferInfo();
+    clearBufferInfo();
     mBlendMode       = DRM_BLEND_MODE_INVALID;
     mPlaneAlpha      = 1.0;
     mTransform       = 0;
@@ -63,10 +63,25 @@ void DrmFramebuffer::reset() {
     mDisplayFrame.bottom = mSourceCrop.bottom = 0;
 }
 
-void DrmFramebuffer::resetBufferInfo() {
+void DrmFramebuffer::setBufferInfo(
+    const native_handle_t * bufferhnd,
+    int32_t acquireFence) {
+    if (bufferhnd) {
+        mBufferHandle = native_handle_clone(bufferhnd);
+        if (acquireFence >= 0)
+            mAcquireFence = std::make_shared<DrmFence>(acquireFence);
+    }
+}
+
+void DrmFramebuffer::clearBufferInfo() {
+    if (mBufferHandle) {
+        native_handle_close(mBufferHandle);
+        native_handle_delete(mBufferHandle);
+        mBufferHandle  = NULL;
+    }
+
     mAcquireFence.reset();
     mAcquireFence  = DrmFence::NO_FENCE;
-    mBufferHandle  = NULL;
     mFbType        = DRM_FB_RENDER;
     mSecure         = false;
     mComposeToType = MESON_COMPOSE_TO_ANY_PLANE;

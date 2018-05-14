@@ -55,8 +55,10 @@ void DebugHelper::clearPersistCmd() {
 
     mHideLayers.clear();
     mSaveLayers.clear();
+    mHidePlanes.clear();
 
     mDebugHideLayer = false;
+    mDebugHidePlane = false;
 }
 
 void DebugHelper::addHideLayer(int id) {
@@ -82,6 +84,31 @@ void DebugHelper::removeHideLayer(int id) {
         }
     }
 }
+
+void DebugHelper::addHidePlane(int id) {
+    bool bExist = false;
+    std::vector<int>::iterator it;
+    for (it = mHidePlanes.begin(); it < mHidePlanes.end(); it++) {
+        if (*it == id) {
+            bExist = true;
+        }
+    }
+
+    if (!bExist) {
+        mHidePlanes.push_back(id);
+    }
+}
+
+void DebugHelper::removeHidePlane(int id) {
+    std::vector<int>::iterator it;
+    for (it = mHidePlanes.begin(); it < mHidePlanes.end(); it++) {
+        if (*it == id) {
+            mHidePlanes.erase(it);
+            break;
+        }
+    }
+}
+
 
 void DebugHelper::resolveCmd() {
     clearOnePassCmd();
@@ -182,6 +209,32 @@ void DebugHelper::resolveCmd() {
                     continue;
                 }
 
+                if (strcmp(paramArray[i], "--hide-plane") == 0) {
+                    i++;
+                    CHECK_CMD_INT_PARAMETER();
+                    int planeId = atoi(paramArray[i]);
+                    if (planeId < 0) {
+                        MESON_LOGE("Show invalid plane (%d)", planeId);
+                    } else {
+                        addHidePlane(planeId);
+                        mDebugHidePlane = true;
+                    }
+                    continue;
+                }
+
+                if (strcmp(paramArray[i], "--show-plane") == 0) {
+                    i++;
+                    CHECK_CMD_INT_PARAMETER();
+                    int planeId = atoi(paramArray[i]);
+                    if (planeId < 0) {
+                        MESON_LOGE("Show invalid plane (%d)", planeId);
+                    } else {
+                        removeHidePlane(planeId);
+                        mDebugHidePlane = true;
+                    }
+                    continue;
+                }
+
                 if (strcmp(paramArray[i], "--save") == 0) {
                     i++;
                     CHECK_CMD_INT_PARAMETER();
@@ -240,15 +293,18 @@ void DebugHelper::dump(String8 & dumpstr) {
             "\t --infence 0 | 1: pass in fence to display, or handle it in hwc.\n"
             "\t --outfence 0 | 1: return display out fence, or handle it in hwc.\n"
             "\t --composition-info 0|1: enable/disable composition detail info.\n"
+            "\t --hide/--show [layerId]: hide/unhide specific layers by zorder. \n"
+            "\t --hide-plane/--show-plane [planeId]: hide/unhide specific plane by plane id. \n"
             "\t --fps 0|1: start/stop log fps.\n"
             "\t --layer-statistic 0|1:  enable/disable log layer statistic for hw analysis. \n"
-            "\t --hide/--show [layerId]: hide/unhide specific layers by zorder. \n"
             "\t --save [layerId]: save specific layer's raw data by layer id. \n";
 
         dumpstr.append("\nMesonHwc debug helper:\n");
         dumpstr.append(usage);
         dumpstr.append("\n");
     } else {
+        std::vector<int>::iterator it;
+
         dumpstr.append("Debug Command:\n");
         dumpstr.appendFormat("--nohwc (%d)\n", disableUiHwc());
         dumpstr.appendFormat("--detail (%d)\n", mDumpDetail);
@@ -258,8 +314,13 @@ void DebugHelper::dump(String8 & dumpstr) {
         dumpstr.appendFormat("--fps (%d)\n", mLogFps);
         dumpstr.appendFormat("--layer-statistic (%d)\n", mLogLayerStatistic);
 
+        dumpstr.append("--hide-plane (");
+        for (it = mHidePlanes.begin(); it < mHidePlanes.end(); it++) {
+            dumpstr.appendFormat("%d    ", *it);
+        }
+        dumpstr.append(")\n");
+
         dumpstr.append("--hide (");
-        std::vector<int>::iterator it;
         for (it = mHideLayers.begin(); it < mHideLayers.end(); it++) {
             dumpstr.appendFormat("%d    ", *it);
         }

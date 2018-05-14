@@ -284,6 +284,17 @@ hwc2_error_t Hwc2Display::collectLayersForPresent() {
 hwc2_error_t Hwc2Display::collectPlanesForPresent() {
     mPresentPlanes.clear();
     mPresentPlanes = mPlanes;
+
+    std::vector<std::shared_ptr<HwDisplayPlane>>::iterator it = mPresentPlanes.begin();
+    for ( ; it != mPresentPlanes.end(); it++) {
+        std::shared_ptr<HwDisplayPlane> plane = *it;
+        if (isPlaneHideForDebug(plane->getPlaneId())) {
+            plane->setIdle(true);
+        } else {
+            plane->setIdle(false);
+        }
+    }
+
     return  HWC2_ERROR_NONE;
 }
 
@@ -563,6 +574,22 @@ bool Hwc2Display::isLayerHideForDebug(hwc2_layer_t id) {
     return false;
 }
 
+bool Hwc2Display::isPlaneHideForDebug(int id) {
+    std::vector<int> hidePlanes;
+    DebugHelper::getInstance().getHidePlanes(hidePlanes);
+    if (hidePlanes.empty())
+        return false;
+
+    std::vector<int>::iterator it = hidePlanes.begin();
+    for (;it < hidePlanes.end(); it++) {
+        if (*it == id) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 void Hwc2Display::dumpPresentLayers(String8 & dumpstr) {
     dumpstr.append("----------------------------------------------------------"
         "-------------------------------\n");
@@ -598,7 +625,8 @@ void Hwc2Display::dumpPresentLayers(String8 & dumpstr) {
 
 void Hwc2Display::dump(String8 & dumpstr) {
     /*update for debug*/
-    if (DebugHelper::getInstance().debugHideLayers()) {
+    if (DebugHelper::getInstance().debugHideLayers() ||
+        DebugHelper::getInstance().debugHidePlanes()) {
         //ask for auto refresh for debug layers update.
         if (mObserver != NULL) {
             mObserver->refresh();
