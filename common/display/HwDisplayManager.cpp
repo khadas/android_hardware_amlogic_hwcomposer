@@ -19,6 +19,7 @@
 #include "OsdPlane.h"
 #include "CursorPlane.h"
 #include "LegacyVideoPlane.h"
+#include "HwcVideoPlane.h"
 #include "AmFramebuffer.h"
 
 ANDROID_SINGLETON_STATIC_INSTANCE(HwDisplayManager)
@@ -246,11 +247,12 @@ void HwDisplayManager::dump(String8 & dumpstr) {
         int j;
         for (j = 0; j < planeNum; j++) {
                 int planeId =  pipes[i].plane_ids[j];
-                dumpstr.appendFormat("Plane (%s, %s, %x)\n",
+                dumpstr.appendFormat("Plane (%s, %s, 0x%x, %d)\n",
                     mPlanes.find(planeId)->second->getName(),
                     drmPlaneTypeToString(
                         (drm_plane_type_t)mPlanes.find(planeId)->second->getPlaneType()),
-                    mPlanes.find(planeId)->second->getCapabilities());
+                    mPlanes.find(planeId)->second->getCapabilities(),
+                    mPlanes.find(planeId)->second->getFixedZorder());
         }
 
         int connectorId = pipes[i].connector_id;
@@ -398,7 +400,7 @@ int32_t HwDisplayManager::loadPlanes() {
         fd = open(path, O_RDWR, 0);
         if (fd >= 0) {
             plane_idx = video_idx_max + idx;
-            LegacyVideoPlane * plane = new LegacyVideoPlane(fd, plane_idx);
+            HwcVideoPlane * plane = new HwcVideoPlane(fd, plane_idx);
             mPlanes.emplace(plane_idx, std::move(plane));
             count_video ++;
         }

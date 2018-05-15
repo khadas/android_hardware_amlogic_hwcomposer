@@ -10,11 +10,12 @@
 #include "CursorPlane.h"
 #include <sys/mman.h>
 
+/*
 static inline size_t round_up_to_page_size(size_t x)
 {
 	return (x + (PAGE_SIZE - 1)) & ~(PAGE_SIZE - 1);
 }
-
+*/
 CursorPlane::CursorPlane(int32_t drvFd, uint32_t id)
     : HwDisplayPlane(drvFd, id),
       mDrmFb(NULL),
@@ -29,6 +30,14 @@ CursorPlane::~CursorPlane() {
 
 uint32_t CursorPlane::getPlaneType() {
     return CURSOR_PLANE;
+}
+
+uint32_t CursorPlane::getCapabilities() {
+    return 0;
+};
+
+int32_t CursorPlane::getFixedZorder() {
+    return CURSOR_PLANE_FIXED_ZORDER;
 }
 
 const char * CursorPlane::getName() {

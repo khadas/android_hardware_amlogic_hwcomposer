@@ -22,7 +22,7 @@ int32_t DummyPlane::setPlane(std::shared_ptr<DrmFramebuffer> & fb) {
     return 0;
 }
 
-int32_t DummyPlane::getCapabilities() {
+uint32_t DummyPlane::getCapabilities() {
     return 0;
 }
 

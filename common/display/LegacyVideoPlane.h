@@ -19,7 +19,8 @@ public:
 
     const char * getName();
     uint32_t getPlaneType();
-    int32_t getCapabilities();
+    uint32_t getCapabilities();
+    int32_t getFixedZorder();
 
     int32_t setPlane(std::shared_ptr<DrmFramebuffer> & fb);
     int32_t blank(int blankOp);

@@ -74,8 +74,11 @@ typedef enum {
 } drm_plane_type_t;
 
 typedef enum {
-    PLANE_VIDEO_CONFLICT = (1 << 0),
-    PLANE_SUPPORT_ZORDER = (1 << 1),
+    PLANE_SUPPORT_ZORDER = (1 << 0),
+    PLANE_SUPPORT_FREE_SCALE = (1 << 1),
+    PLANE_SHOW_LOGO = (1 << 2),
+    PLANE_VIDEO_CONFLICT = (1 << 3),
+    PLANE_PRIMARY = (1 << 4),
 } drm_plane_capacity_t;
 
 typedef enum {

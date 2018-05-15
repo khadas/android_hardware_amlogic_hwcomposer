@@ -94,8 +94,10 @@ void SimpleStrategy::classifyComposers(
 void SimpleStrategy::classifyPlanes(
     std::vector<std::shared_ptr<HwDisplayPlane>> & planes) {
     std::shared_ptr<HwDisplayPlane> plane;
-    mVideoPlanes.clear();
     mCursorPlanes.clear();
+
+    mAmVideoPlanes.clear();
+    mHwcVideoPlanes.clear();
 
     mOsdPlanes.clear();
     mPresentOsdPlanes.clear();
@@ -109,7 +111,9 @@ void SimpleStrategy::classifyPlanes(
         if (planeType == OSD_PLANE) {
             mOsdPlanes.push_back(plane);
         } else if (planeType == LEGACY_VIDEO_PLANE) {
-            mVideoPlanes.push_back(plane);
+            mAmVideoPlanes.push_back(plane);
+        } else if (planeType == HWC_VIDEO_PLANE) {
+            mHwcVideoPlanes.push_back(plane);
         } else if (planeType == CURSOR_PLANE) {
             mCursorPlanes.push_back(plane);
         } else {
@@ -159,12 +163,16 @@ void SimpleStrategy::preProcessLayers() {
             {
                 if (layer->mFbType == DRM_FB_VIDEO_OVERLAY
                     || layer->mFbType == DRM_FB_VIDEO_OMX_PTS
-                    || layer->mFbType == DRM_FB_VIDEO_SIDEBAND) {
+                    || layer->mFbType == DRM_FB_VIDEO_SIDEBAND
+                    || layer->mFbType == DRM_FB_VIDEO_OMX_V4L) {
                     videoFbNum++;
-                    if (videoFbNum <= mVideoPlanes.size()) {
+                    if (videoFbNum <= (mAmVideoPlanes.size() + mHwcVideoPlanes.size())) {
                         if (layer->mFbType == DRM_FB_VIDEO_SIDEBAND) {
                             layer->mCompositionType =
                                 MESON_COMPOSITION_PLANE_AMVIDEO_SIDEBAND;
+                        } else if (layer->mFbType == DRM_FB_VIDEO_OMX_V4L) {
+                            layer->mCompositionType =
+                                MESON_COMPOSITION_PLANE_HWCVIDEO;
                         } else {
                             layer->mCompositionType =
                                 MESON_COMPOSITION_PLANE_AMVIDEO;
@@ -313,7 +321,8 @@ bool SimpleStrategy::isVideoLayer(
         std::shared_ptr<DrmFramebuffer> &layer) {
 
     if (layer->mCompositionType == MESON_COMPOSITION_PLANE_AMVIDEO_SIDEBAND
-            || layer->mCompositionType == MESON_COMPOSITION_PLANE_AMVIDEO) {
+            || layer->mCompositionType == MESON_COMPOSITION_PLANE_AMVIDEO
+            || layer->mCompositionType == MESON_COMPOSITION_PLANE_HWCVIDEO) {
         return true;
     }
     return false;
@@ -479,8 +488,10 @@ int32_t SimpleStrategy::decideComposition() {
 
 int32_t SimpleStrategy::commit() {
     std::shared_ptr<DrmFramebuffer> layer;
-    std::list<std::shared_ptr<HwDisplayPlane>>::iterator videoPlane =
-        mVideoPlanes.begin();
+    std::list<std::shared_ptr<HwDisplayPlane>>::iterator amVideoPlane =
+        mAmVideoPlanes.begin();
+    std::list<std::shared_ptr<HwDisplayPlane>>::iterator hwcVideoPlane =
+        mHwcVideoPlanes.begin();
     std::list<std::shared_ptr<HwDisplayPlane>>::iterator osdPlane =
         mPresentOsdPlanes.begin();
     std::list<std::shared_ptr<HwDisplayPlane>>::iterator cursorPlane =
@@ -529,12 +540,18 @@ int32_t SimpleStrategy::commit() {
                         }
                     }
                     break;
+                case MESON_COMPOSITION_PLANE_HWCVIDEO:
+                    planeBlank = (layer->mSecure && mHideSecureLayer) ?
+                        BLANK_FOR_SECURE_CONTENT : UNBLANK;
+                    targetPlane = (*hwcVideoPlane);
+                    hwcVideoPlane++;
+                    break;
                 case MESON_COMPOSITION_PLANE_AMVIDEO:
                 case MESON_COMPOSITION_PLANE_AMVIDEO_SIDEBAND:
                     planeBlank = (layer->mSecure && mHideSecureLayer) ?
                         BLANK_FOR_SECURE_CONTENT : UNBLANK;
-                    targetPlane = (*videoPlane);
-                    videoPlane++;
+                    targetPlane = (*amVideoPlane);
+                    amVideoPlane++;
                     break;
                 case MESON_COMPOSITION_PLANE_OSD:
                     if (mOsdPlaneAssignedManually) {
@@ -574,9 +591,13 @@ int32_t SimpleStrategy::commit() {
     }
 
     /*Set blank framebuffer to */
-    while (videoPlane != mVideoPlanes.end()) {
-        addCompositionInfo(NULL, NULL, (*videoPlane), BLANK_FOR_NO_CONENT);
-        (*videoPlane++)->blank(BLANK_FOR_NO_CONENT);
+    while (amVideoPlane != mAmVideoPlanes.end()) {
+        addCompositionInfo(NULL, NULL, (*amVideoPlane), BLANK_FOR_NO_CONENT);
+        (*amVideoPlane++)->blank(BLANK_FOR_NO_CONENT);
+    }
+    while (hwcVideoPlane != mHwcVideoPlanes.end()) {
+        addCompositionInfo(NULL, NULL, (*hwcVideoPlane), BLANK_FOR_NO_CONENT);
+        (*hwcVideoPlane++)->blank(BLANK_FOR_NO_CONENT);
     }
 
     if (mOsdPlaneAssignedManually) {

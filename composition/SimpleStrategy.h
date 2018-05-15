@@ -74,8 +74,10 @@ protected:
     std::list<std::pair<std::shared_ptr<DrmFramebuffer>,
         std::shared_ptr<HwDisplayPlane>>> mAssignedPlaneLayers;
 
-    std::list<std::shared_ptr<HwDisplayPlane>> mVideoPlanes;
     std::list<std::shared_ptr<HwDisplayPlane>> mCursorPlanes;
+
+    std::list<std::shared_ptr<HwDisplayPlane>> mAmVideoPlanes;
+    std::list<std::shared_ptr<HwDisplayPlane>> mHwcVideoPlanes;
 
     std::list<std::shared_ptr<HwDisplayPlane>> mOsdPlanes;
     std::list<std::shared_ptr<HwDisplayPlane>> mPresentOsdPlanes;

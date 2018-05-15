@@ -42,9 +42,13 @@ const char * LegacyVideoPlane::getName() {
     return mName;
 }
 
-int32_t LegacyVideoPlane::getCapabilities() {
-    int32_t ret = 0;
-    return ret;
+uint32_t LegacyVideoPlane::getCapabilities() {
+    return 0;
+}
+
+int32_t LegacyVideoPlane::getFixedZorder() {
+    /*Legacy video plane not support PLANE_SUPPORT_ZORDER, always at bottom*/
+    return LEGACY_VIDEO_PLANE_FIXED_ZORDER;
 }
 
 bool LegacyVideoPlane::shouldUpdateAxis(

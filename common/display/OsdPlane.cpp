@@ -36,10 +36,20 @@ int32_t OsdPlane::getProperties() {
         return 0;
     }
 
+    if (capacity & OSD_ZORDER_EN) {
+        mCapability |= PLANE_SUPPORT_ZORDER;
+    }
+    if (capacity & OSD_FREESCALE) {
+        mCapability |= PLANE_SUPPORT_FREE_SCALE;
+    }
+    if (capacity & OSD_UBOOT_LOGO) {
+        mCapability |= PLANE_SHOW_LOGO;
+    }
     if (capacity & OSD_VIDEO_CONFLICT) {
         mCapability |= PLANE_VIDEO_CONFLICT;
-    } else if (capacity & OSD_ZORDER_EN) {
-        mCapability |= PLANE_SUPPORT_ZORDER;
+    }
+    if (capacity & OSD_PLANE_PRIMARY) {
+        mCapability |= PLANE_PRIMARY;
     }
 
     return 0;
@@ -55,6 +65,18 @@ uint32_t OsdPlane::getPlaneType() {
     }
 
     return OSD_PLANE;
+}
+
+uint32_t OsdPlane::getCapabilities() {
+    return mCapability;
+}
+
+int32_t OsdPlane::getFixedZorder() {
+    if (mCapability & PLANE_SUPPORT_ZORDER) {
+        return PLANE_VARIABLE_ZORDER;
+    }
+
+    return OSD_PLANE_FIXED_ZORDER;
 }
 
 int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {

@@ -33,6 +33,9 @@ const char * drmFbTypeToString(drm_fb_type_t fbtype) {
         case DRM_FB_VIDEO_SIDEBAND:
             typeStr = "sideband";
             break;
+        case DRM_FB_VIDEO_OMX_V4L:
+            typeStr = "omx-v4l";
+            break;
         default:
             typeStr = "unknown";
             break;

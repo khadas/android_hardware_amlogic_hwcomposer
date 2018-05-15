@@ -53,6 +53,9 @@ const char* compositionTypeToString(
         case MESON_COMPOSITION_PLANE_CURSOR:
             compStr = "CURSOR";
             break;
+        case MESON_COMPOSITION_PLANE_HWCVIDEO:
+            compStr = "HWCVIDEO";
+            break;
         default:
             compStr = "UNKNOWN";
             break;
