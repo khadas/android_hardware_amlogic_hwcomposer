@@ -65,7 +65,7 @@ PhysicalDevice::PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc, IComposeDevic
       mInitialized(false),
       mGetInitState(false),
       mConnectorPresent(false),
-      mOmxVideoHandle(0),
+      mOmxVideoHandle(-1),
       mVideoLayerOpenByOMX(false) {
     CTRACE();
 
@@ -99,9 +99,9 @@ PhysicalDevice::~PhysicalDevice() {
     WARN_IF_NOT_DEINIT();
     clearFenceList(mHwcCurReleaseFences);
     clearFenceList(mHwcPriorReleaseFences);
-    if (mOmxVideoHandle != 0) {
+    if (mOmxVideoHandle != -1) {
         closeamvideo();
-        mOmxVideoHandle  = 0;
+        mOmxVideoHandle  = -1;
     }
 }
 

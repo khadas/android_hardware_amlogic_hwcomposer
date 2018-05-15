@@ -21,7 +21,7 @@
 #define AMSTREAM_IOC_SET_OMX_VPTS  _IOW(AMSTREAM_IOC_MAGIC, 0xaf, int)
 #define AMSTREAM_IOC_SET_VIDEO_DISABLE  _IOW(AMSTREAM_IOC_MAGIC, 0x49, int)
 
-static int amvideo_handle = 0;
+static int amvideo_handle = -1;
 
 #define TVP_SECRET "amlogic_omx_decoder,pts="
 #define TVP_SECRET_RENDER "is rendered = true"
@@ -34,9 +34,9 @@ int openamvideo() {
 }
 
 void closeamvideo() {
-    if (amvideo_handle != 0) {
+    if (amvideo_handle != -1) {
         int ret = close(amvideo_handle);
-        amvideo_handle = 0;
+        amvideo_handle = -1;
         if (ret < 0)
             ALOGE("close Amvideo error");
     }
@@ -60,14 +60,16 @@ void set_omx_pts(char* data, int* handle) {
         return;
     }
     if (strncmp(data, TVP_SECRET, strlen(TVP_SECRET)) == 0) {
-        if (*handle == 0 || amvideo_handle == 0) {
+        if (*handle == -1 || amvideo_handle == -1) {
              *handle = openamvideo();
-            if (*handle == 0)
+            ALOGI("open amvideo handle 0x%x\n", *handle);
+            if (*handle == -1)
                 ALOGW("can not open amvideo");
         }
         uint32_t omx_version = 0;
         if (strncmp(data+sizeof(TVP_SECRET)+sizeof(signed long long), TVP_SECRET_RENDER, strlen(TVP_SECRET_RENDER)) != 0) {
             signed long long time;
+            uint32_t session = 0;
             int offset = 0;
             offset += sizeof(TVP_SECRET);
             memcpy(&time, (char*)data+offset, sizeof(signed long long));
@@ -86,6 +88,9 @@ void set_omx_pts(char* data, int* handle) {
                     offset += sizeof(TVP_SECRET_FRAME_NUM);
                     memcpy(&frame_num, (char*)data+offset, sizeof(uint32_t));
                     offset += sizeof(uint32_t);
+                    if (omx_version >= 3) {
+                        memcpy(&session, (char*)data+offset, sizeof(uint32_t));
+                    }
                 }
                 uint32_t omx_info[6];
                 omx_info[0] = time_video;
@@ -93,7 +98,11 @@ void set_omx_pts(char* data, int* handle) {
                 omx_info[2] = 1; // set by hw
                 omx_info[3] = frame_num;
                 omx_info[4] = 0; // 0:need reset omx_pts;1:do not need reset omx_pts
-                omx_info[5] = 0; // Reserved
+                if (omx_version >= 3) {
+                    omx_info[5] = session;
+                } else {
+                    omx_info[5] = 0; // Reserved
+                }
                 ret = setomxpts(omx_info);
             } else
                 ret = setomxpts(time_video);
