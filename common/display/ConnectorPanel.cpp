@@ -48,12 +48,12 @@ bool ConnectorPanel::isSecure(){
 int32_t ConnectorPanel::loadDisplayModes() {
     vmode_e vmode;
     struct vinfo_base_s info;
-    int ret = -1 /*read_vout_info(&info)*/;
+    int ret = read_vout_info(&info);
     if (ret == 0)
         vmode = info.mode;
     else {
         vmode = VMODE_MAX;
-        MESON_LOGE("read vout info error return %d", ret);
+        MESON_LOGE("read vout info failed return %d", ret);
     }
     MESON_LOGD("readDisplayPhySize vmode: %d", vmode);
     //Tmp
@@ -68,7 +68,7 @@ int32_t ConnectorPanel::loadDisplayModes() {
         std::string dispmode = vinfo->name;
         addDisplayMode(dispmode);
         int pos = dispmode.find("60hz", 0);
-        if (pos > 0) {
+        if (pos != std::string::npos) {
             dispmode.replace(pos, 4, "50hz");
             addDisplayMode(dispmode);
         } else {

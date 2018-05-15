@@ -73,6 +73,7 @@ int32_t ConnectorHdmi::loadDisplayModes() {
         return -ENOENT;
     }
 
+    mDisplayModes.clear();
     for (size_t i = 0; i < supportDispModes.size(); i++) {
         if (!supportDispModes[i].empty()) {
             pos = supportDispModes[i].find('*');

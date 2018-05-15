@@ -33,8 +33,7 @@ HwDisplayVsync::~HwDisplayVsync() {
     mExit = true;
     stateLock.unlock();
     mStateCondition.notify_all();
-
-    //requestExitAndWait();
+    pthread_join(hw_vsync_thread, NULL);
 }
 
 int32_t HwDisplayVsync::setPeriod(nsecs_t period) {
@@ -44,7 +43,8 @@ int32_t HwDisplayVsync::setPeriod(nsecs_t period) {
 
 int32_t HwDisplayVsync::setEnabled(bool enabled) {
     std::unique_lock<std::mutex> stateLock(mStatLock);
-    mEnabled = true;
+    MESON_LOGI("HwDisplayVsync: setEnabled %d", enabled);
+    mEnabled = enabled;
     stateLock.unlock();
     mStateCondition.notify_all();
     return 0;
@@ -52,35 +52,38 @@ int32_t HwDisplayVsync::setEnabled(bool enabled) {
 
 void * HwDisplayVsync::vsyncThread(void * data) {
     HwDisplayVsync* pThis = (HwDisplayVsync*)data;
+    MESON_LOGV("HwDisplayVsync: vsyncThread start.");
 
-    std::unique_lock<std::mutex> stateLock(pThis->mStatLock);
-    while (!pThis->mEnabled) {
-        pThis->mStateCondition.wait(stateLock);
-        if (pThis->mExit) {
-            //TODO: exit thread ?
-            MESON_LOGD("exit vsync loop");
-            return NULL;
+    while (true) {
+        std::unique_lock<std::mutex> stateLock(pThis->mStatLock);
+        while (!pThis->mEnabled) {
+            pThis->mStateCondition.wait(stateLock);
+            if (pThis->mExit) {
+                pthread_exit(0);
+                MESON_LOGD("exit vsync loop");
+                return NULL;
+            }
         }
-    }
-    stateLock.unlock();
+        stateLock.unlock();
 
-    nsecs_t timestamp;
-    int32_t ret;
-    if (pThis->mSoftVsync) {
-        ret = pThis->waitSoftwareVsync(timestamp);
-    } else {
-        ret = HwDisplayManager::getInstance().waitVBlank(timestamp);
-    }
-    bool debug = false;
-    if (debug) {
-        nsecs_t period = timestamp - pThis->mPreTimeStamp;
-        if (pThis->mPreTimeStamp != 0)
-            MESON_LOGD("wait for vsync success, peroid: %lld", period);
-        pThis->mPreTimeStamp = timestamp;
-    }
+        nsecs_t timestamp;
+        int32_t ret;
+        if (pThis->mSoftVsync) {
+            ret = pThis->waitSoftwareVsync(timestamp);
+        } else {
+            ret = HwDisplayManager::getInstance().waitVBlank(timestamp);
+        }
+        bool debug = false;
+        if (debug) {
+            nsecs_t period = timestamp - pThis->mPreTimeStamp;
+            if (pThis->mPreTimeStamp != 0)
+                MESON_LOGD("wait for vsync success, peroid: %lld", period);
+            pThis->mPreTimeStamp = timestamp;
+        }
 
-    if ( ret == 0 && pThis->mObserver) {
-        pThis->mObserver->onVsync(timestamp);
+        if ( ret == 0 && pThis->mObserver) {
+            pThis->mObserver->onVsync(timestamp);
+        }
     }
     return NULL;
 }

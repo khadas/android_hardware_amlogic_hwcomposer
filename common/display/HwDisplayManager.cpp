@@ -200,12 +200,8 @@ void HwDisplayManager::handle(drm_display_event event, int val) {
 
                 MESON_LOGD("Mode change observer size %d.", mObserver.size());
                 for (it = mObserver.begin(); it != mObserver.end(); ++it) {
-                    for (int i = 0; i < count_pipes; i++)
-                        if (pipes[i].crtc_id == it->first &&
-                            mConnectors[pipes[i].connector_id]->isConnected()) {
-                            it->second->onModeChanged(val);
-                            break;
-                        }
+                    it->second->onModeChanged(val);
+                    break;
                 }
             }
             break;

@@ -25,6 +25,7 @@ Hwc2Display::Hwc2Display(hw_display_id dspId,
     mHwId = dspId;
     mObserver = observer;
     mForceClientComposer = false;
+    mIsConnected = false;
     memset(&mHdrCaps, 0, sizeof(mHdrCaps));
 
     initLayerIdGenerator();
@@ -108,6 +109,7 @@ void Hwc2Display::onHotplug(bool connected) {
     MESON_LOGD("On hot plug: [%s]", connected == true ? "Plug in" : "Plug out");
     loadDisplayResources();
     mModeMgr->setDisplayResources(mCrtc, mConnector);
+    mIsConnected = connected;
 
     if (mObserver != NULL) {
         mObserver->onHotplug(connected);
@@ -116,7 +118,7 @@ void Hwc2Display::onHotplug(bool connected) {
 
 void Hwc2Display::onModeChanged(int stage) {
     MESON_LOGD("On mode change state: [%s]", stage == 1 ? "Begin to change" : "Complete");
-    if (stage == 0) {
+    if (mIsConnected && stage == 0) {
         mModeMgr->updateDisplayResources();
         if (mObserver != NULL) {
             mObserver->refresh();

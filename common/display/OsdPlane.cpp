@@ -75,7 +75,7 @@ int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
         // one vsync.
         mFirstPresent = false;
         sysfs_set_string(DISPLAY_LOGO_INDEX, "-1");
-        sysfs_set_string(DISPLAY_FB0_FREESCALE_SWTICH, "0x10001");
+        //sysfs_set_string(DISPLAY_FB0_FREESCALE_SWTICH, "0x10001");
     }
 
     drm_rect_t srcCrop       = fb->mSourceCrop;

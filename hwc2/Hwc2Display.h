@@ -148,6 +148,8 @@ protected:
     /*all go to client composer*/
     bool mForceClientComposer;
     float mColorMatrix[16];
+
+    bool mIsConnected;
 };
 
 #endif/*HWC2_DISPLAY_H*/

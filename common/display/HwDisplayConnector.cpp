@@ -26,13 +26,13 @@ int32_t HwDisplayConnector::getModes(
 
 void HwDisplayConnector::loadPhysicalSize() {
     struct vinfo_base_s info;
-    int ret = -1 /*read_vout_info(&info)*/;
+    int ret = read_vout_info(&info);
     if (ret == 0) {
-        mPhyWidth = info.screen_real_width;
+        mPhyWidth  = info.screen_real_width;
         mPhyHeight = info.screen_real_height;
     } else {
         mPhyWidth = mPhyHeight = 0;
-        MESON_LOGE("read vout info error return %d", ret);
+        MESON_LOGE("read vout info failed return %d", ret);
     }
     MESON_LOGD("readDisplayPhySize physical size (%d x %d)", mPhyWidth, mPhyHeight);
 }
@@ -49,6 +49,7 @@ int32_t HwDisplayConnector::addDisplayMode(std::string& mode) {
     if (mPhyWidth > 16 && mPhyHeight > 9) {
         dpiX = (vinfo->width  * 25.4f) / mPhyWidth;
         dpiY = (vinfo->height  * 25.4f) / mPhyHeight;
+        MESON_LOGD("add display mode real dpi (%d, %d)", dpiX, dpiY);
     }
 
     drm_mode_info_t modeInfo = {
