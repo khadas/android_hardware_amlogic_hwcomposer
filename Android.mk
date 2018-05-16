@@ -18,43 +18,39 @@ include $(LOCAL_PATH)/tvp/Android.mk
 
 include $(CLEAR_VARS)
 
-#those configs will move to board config.
-USE_HWC2 := true
-HWC_CRTC_NUM := 1
-HWC_PRIMARY_CONNECTOR_TYPE := "hdmi"
-WIDTH_PRIMARY_FRAMEBUFFER := 1920
-HEIGHT_PRIMARY_FRAMEBUFFER := 1080
-
-
 LOCAL_MODULE_RELATIVE_PATH := hw
 LOCAL_CPPFLAGS += -std=c++14
 LOCAL_CFLAGS += -DPLATFORM_SDK_VERSION=$(PLATFORM_SDK_VERSION)
 
-
 #HWC API Version Config
 ifeq ($(USE_HWC1), true)
 LOCAL_CFLAGS += -DENABLE_MESON_HWC1
-endif
-
-ifeq ($(USE_HWC2), true)
+else ifeq ($(USE_HWC2), true)
 LOCAL_CFLAGS += -DENABLE_MESON_HWC2
+else
+$(error "need config hwc api version")
 endif
 
 #FRAMEBUFFER CONFIG
 #define here temply,
-ifneq ($(WIDTH_PRIMARY_FRAMEBUFFER),)
+ifneq (($(WIDTH_PRIMARY_FRAMEBUFFER),) && ($(HEIGHT_PRIMARY_FRAMEBUFFER),))
     LOCAL_CFLAGS += -DWIDTH_PRIMARY_FRAMEBUFFER=$(WIDTH_PRIMARY_FRAMEBUFFER)
-endif
-ifneq ($(HEIGHT_PRIMARY_FRAMEBUFFER),)
     LOCAL_CFLAGS += -DHEIGHT_PRIMARY_FRAMEBUFFER=$(HEIGHT_PRIMARY_FRAMEBUFFER)
+else
+$(error "need config frame buffer size")
 endif
 
 #HWC DISPLAY Config
 ifneq ($(HWC_CRTC_NUM),)
     LOCAL_CFLAGS += -DHWC_CRTC_NUM=$(HWC_CRTC_NUM)
+else
+$(error "need config hwc crtc num")
 endif
+
 ifneq ($(HWC_PRIMARY_CONNECTOR_TYPE),)
     LOCAL_CFLAGS += -DHWC_PRIMARY_CONNECTOR_TYPE=\"$(HWC_PRIMARY_CONNECTOR_TYPE)\"
+else
+$(error "need config hwc primary connector type")
 endif
 
 #HWC Feature Config

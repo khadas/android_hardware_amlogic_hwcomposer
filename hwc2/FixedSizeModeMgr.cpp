@@ -14,14 +14,6 @@
 #define DEFAULT_REFRESH_RATE (60.0f)
 
 FixedSizeModeMgr::FixedSizeModeMgr() {
-#if defined(WIDTH_PRIMARY_FRAMEBUFFER) && \
-    defined(HEIGHT_PRIMARY_FRAMEBUFFER)
-    mCurMode.pixelW = WIDTH_PRIMARY_FRAMEBUFFER;
-    mCurMode.pixelH = HEIGHT_PRIMARY_FRAMEBUFFER;
-#else
-    MESON_LOGE("FixedSizeModeMgr need define the"
-        "WIDTH_PRIMARY_FRAMEBUFFER and WIDTH_PRIMARY_FRAMEBUFFER.");
-#endif
 }
 
 FixedSizeModeMgr::~FixedSizeModeMgr() {
@@ -41,6 +33,7 @@ void FixedSizeModeMgr::setDisplayResources(
     std::shared_ptr<HwDisplayConnector> & connector) {
     mConnector = connector;
     mCrtc = crtc;
+    mCrtc->parseDftFbSize(mCurMode.pixelW, mCurMode.pixelH);
 
     updateDisplayResources();
 }

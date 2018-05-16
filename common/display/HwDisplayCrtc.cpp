@@ -10,8 +10,10 @@
 #include <HwDisplayCrtc.h>
 #include <MesonLog.h>
 #include <DebugHelper.h>
+#include <cutils/properties.h>
 
 #include "AmVinfo.h"
+#include "AmFramebuffer.h"
 
 /* FBIO */
 #define FBIOPUT_OSD_SYNC_FLIP 0x451b
@@ -52,6 +54,30 @@ int32_t HwDisplayCrtc::updateMode(std::string & displayMode) {
 int32_t HwDisplayCrtc::getModeId() {
     vmode_e vmode = vmode_name_to_mode(mCurMode.c_str());
     return (int32_t)vmode;
+}
+
+int32_t HwDisplayCrtc::parseDftFbSize(uint32_t & width, uint32_t & height) {
+    char uiMode[PROPERTY_VALUE_MAX] = {0};
+    if (property_get("ro.ui_mode", uiMode, NULL) > 0) {
+        if (!strncmp(uiMode, "720", 3)) {
+            width  = 1280;
+            height = 720;
+        } else if (!strncmp(uiMode, "1080", 4)) {
+            width  = 1920;
+            height = 1080;
+        } else if (!strncmp(uiMode, "4k2k", 4)) {
+            width  = 3840;
+            height = 2160;
+        } else {
+            MESON_LOGE("parseDftFbSize: get not support mode [%s]", uiMode);
+        }
+    } else {
+        width  = WIDTH_PRIMARY_FRAMEBUFFER;
+        height = HEIGHT_PRIMARY_FRAMEBUFFER;
+    }
+    MESON_LOGI("default frame buffer size (%d x %d)", width, height);
+
+    return 0;
 }
 
 int32_t HwDisplayCrtc::pageFlip(int32_t &out_fence) {

@@ -32,6 +32,8 @@ public:
 
     int32_t getModeId();
 
+    int32_t parseDftFbSize(uint32_t & width, uint32_t & height);
+
     int32_t pageFlip(int32_t &out_fence);
 
 protected:
