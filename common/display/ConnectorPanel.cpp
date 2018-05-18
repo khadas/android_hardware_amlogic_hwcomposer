@@ -8,7 +8,9 @@
  */
 
 #include "ConnectorPanel.h"
-#include "AmVinfo.h"
+#include "AmFramebuffer.h"
+
+#include <misc.h>
 #include <MesonLog.h>
 
 ConnectorPanel::ConnectorPanel(int32_t drvFd, uint32_t id)
@@ -46,35 +48,17 @@ bool ConnectorPanel::isSecure(){
 }
 
 int32_t ConnectorPanel::loadDisplayModes() {
-    vmode_e vmode;
-    struct vinfo_base_s info;
-    int ret = read_vout_info(&info);
-    if (ret == 0)
-        vmode = info.mode;
-    else {
-        vmode = VMODE_MAX;
-        MESON_LOGE("read vout info failed return %d", ret);
-    }
-    MESON_LOGD("readDisplayPhySize vmode: %d", vmode);
-    //Tmp
-    vmode = VMODE_1080P;
-    for (int i = 0; i < 2; i++) {
-        const struct vinfo_s* vinfo = get_tv_info(vmode);
-        if (vmode == VMODE_MAX || vinfo == NULL) {
-            MESON_LOGE("loadDisplayModes meet error mode (%d)", vmode);
-            return -ENOENT;
-        }
-
-        std::string dispmode = vinfo->name;
+    char axis[MAX_STR_LEN] = {0};
+    sysfs_get_string(SYSFS_DISPLAY_MODE, axis);
+    MESON_LOGD("get display mode: %s", axis);
+    std::string dispmode = axis;
+    addDisplayMode(dispmode);
+    const unsigned int pos = dispmode.find("60hz", 0);
+    if (pos != std::string::npos) {
+        dispmode.replace(pos, 4, "50hz");
         addDisplayMode(dispmode);
-        int pos = dispmode.find("60hz", 0);
-        if (pos != std::string::npos) {
-            dispmode.replace(pos, 4, "50hz");
-            addDisplayMode(dispmode);
-        } else {
-            MESON_LOGE("loadDisplayModes can not find 60hz in %s", dispmode.c_str());
-        }
-        vmode = VMODE_4K2K_60HZ;
+    } else {
+        MESON_LOGE("loadDisplayModes can not find 60hz in %s", dispmode.c_str());
     }
 
     return 0;

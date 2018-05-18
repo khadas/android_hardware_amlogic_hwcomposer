@@ -73,6 +73,7 @@ enum {
     _IOR((AMSTREAM_IOC_MAGIC), 0xb2, unsigned int)
 
 /*Legacy fb sysfs*/
+#define SYSFS_DISPLAY_MODE              "/sys/class/display/mode"
 #define SYSFS_DISPLAY_AXIS              "/sys/class/display/axis"
 #define SYSFS_VIDEO_AXIS                "/sys/class/video/axis"
 #define DISPLAY_FB1_SCALE_AXIS          "/sys/class/graphics/fb1/scale_axis"

@@ -34,7 +34,7 @@ void HwDisplayConnector::loadPhysicalSize() {
         mPhyWidth = mPhyHeight = 0;
         MESON_LOGE("read vout info failed return %d", ret);
     }
-    MESON_LOGD("readDisplayPhySize physical size (%d x %d)", mPhyWidth, mPhyHeight);
+    MESON_LOGI("readDisplayPhySize physical size (%d x %d)", mPhyWidth, mPhyHeight);
 }
 
 int32_t HwDisplayConnector::addDisplayMode(std::string& mode) {
@@ -49,7 +49,7 @@ int32_t HwDisplayConnector::addDisplayMode(std::string& mode) {
     if (mPhyWidth > 16 && mPhyHeight > 9) {
         dpiX = (vinfo->width  * 25.4f) / mPhyWidth;
         dpiY = (vinfo->height  * 25.4f) / mPhyHeight;
-        MESON_LOGD("add display mode real dpi (%d, %d)", dpiX, dpiY);
+        MESON_LOGI("add display mode real dpi (%d, %d)", dpiX, dpiY);
     }
 
     drm_mode_info_t modeInfo = {
@@ -63,7 +63,7 @@ int32_t HwDisplayConnector::addDisplayMode(std::string& mode) {
 
     mDisplayModes.emplace((uint32_t)vmode, modeInfo);
 
-    MESON_LOGD("add display mode (%s)", mode.c_str());
+    MESON_LOGI("add display mode (%s)", mode.c_str());
     return 0;
 }
 

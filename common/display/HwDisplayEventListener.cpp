@@ -54,8 +54,6 @@ HwDisplayEventListener::HwDisplayEventListener()
     mUeventParser.emplace(DRM_EVENT_HDMITX_HOTPLUG, std::string(HDMITX_HOTPLUG_EVENT));
     mUeventParser.emplace(DRM_EVENT_HDMITX_HDCP, std::string(HDMITX_HDCP_EVENT));
     mUeventParser.emplace(DRM_EVENT_MODE_CHANGED, std::string(VOUT_MODE_EVENT));
-
-    createThread();
 }
 
 HwDisplayEventListener::~HwDisplayEventListener() {
@@ -162,7 +160,7 @@ void * HwDisplayEventListener::ueventThread(void * data) {
 void * HwDisplayEventListener::primaryBootThread(void * data) {
     HwDisplayEventListener* pThis = (HwDisplayEventListener*)data;
     MESON_LOGV("Fake primary boot thread start.");
-    pThis->handle(DRM_EVENT_PRIMARY_BOOT, 0);
+    pThis->handle(DRM_EVENT_PRIMARY_BOOT, 1);
     pThis->handle(DRM_EVENT_MODE_CHANGED, 0);
 
     return NULL;
@@ -188,6 +186,7 @@ int32_t HwDisplayEventListener::registerHandler(
         case DRM_EVENT_PRIMARY_BOOT:
         case DRM_EVENT_ANY:
             mEventHandler.insert(std::make_pair(event, handler));
+            createThread();
             return 0;
         default:
             return -ENOENT ;
