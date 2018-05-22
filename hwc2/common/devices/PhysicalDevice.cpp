@@ -1697,8 +1697,7 @@ void PhysicalDevice::updateActiveDisplayAttribute() {
 
 bool PhysicalDevice::updateDisplayConfigs() {
     Mutex::Autolock _l(mLock);
-    framebuffer_info_t* fbinfo = mFramebufferContext->getInfo();
-    mDisplayHdmi->updateHotplug(mConnectorPresent, *fbinfo);
+    mDisplayHdmi->updateHotplug(mConnectorPresent);
 
     if (mConnectorPresent) {
         updateActiveDisplayAttribute();

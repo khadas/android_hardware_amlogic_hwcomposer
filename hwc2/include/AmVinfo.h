@@ -183,6 +183,7 @@ enum tvin_color_fmt_range_e {
 };
 
 typedef uint32_t u32;
+typedef unsigned char	   u8;
 
 /*
 * The commented memebers are not need now.
@@ -212,10 +213,53 @@ struct vinfo_s {
 //	void (*fresh_tx_vsif_pkt)(enum eotf_type type, uint8_t tunnel_mode);
 };
 
+struct hdr_info {
+	u32 hdr_support; /* RX EDID hdr support types */
+	/*bit7:BT2020RGB    bit6:BT2020YCC bit5:BT2020cYCC bit4:adobeRGB*/
+	/*bit3:adobeYCC601 bit2:sYCC601     bit1:xvYCC709    bit0:xvYCC601*/
+	u8 colorimetry_support; /* RX EDID colorimetry support types */
+	u32 lumi_max; /* RX EDID Lumi Max value */
+	u32 lumi_avg; /* RX EDID Lumi Avg value */
+	u32 lumi_min; /* RX EDID Lumi Min value */
+};
+
+typedef enum color_fmt_e {
+	RGB444 = 0,
+	YUV422, // 1
+	YUV444, // 2
+	YUYV422,// 3
+	YVYU422,// 4
+	UYVY422,// 5
+	VYUY422,// 6
+	NV12,   // 7
+	NV21,   // 8
+	BGGR,   // 9  raw data
+	RGGB,   // 10 raw data
+	GBRG,   // 11 raw data
+	GRBG,   // 12 raw data
+	COLOR_FMT_MAX,
+} color_fmt_t;
+
+struct vinfo_base_s {
+	enum vmode_e mode;
+	u32 width;
+	u32 height;
+	u32 field_height;
+	u32 aspect_ratio_num;
+	u32 aspect_ratio_den;
+	u32 sync_duration_num;
+	u32 sync_duration_den;
+	u32 screen_real_width;
+	u32 screen_real_height;
+	u32 video_clk;
+	enum color_fmt_e viu_color_fmt;
+	struct hdr_info hdr_info;
+};
 
 enum vmode_e vmode_name_to_mode(const char *str);
 const struct vinfo_s *get_tv_info(enum vmode_e mode);
 int want_hdmi_mode(enum vmode_e mode);
 const struct vinfo_s * findMatchedMode(u32 width, u32 height, u32 refreshrate);
+int read_vout_info(struct vinfo_base_s * info);
 
 #endif //AML_VOUT_H_

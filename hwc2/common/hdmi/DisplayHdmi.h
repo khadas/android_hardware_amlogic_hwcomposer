@@ -120,7 +120,7 @@ public:
 
     void initialize(framebuffer_info_t& framebufferInfo);
     void deinitialize();
-    bool updateHotplug(bool connected, framebuffer_info_t& framebufferInfo);
+    bool updateHotplug(bool connected);
     status_t setBestDisplayMode();
 
     status_t getDisplayConfigs(uint32_t* outNumConfigs, hwc2_config_t* outConfigs);
@@ -155,7 +155,7 @@ protected:
     // operations on mSupportDispModes
     status_t clearSupportedConfigs();
     status_t updateSupportedConfigs();
-    status_t updateDisplayAttributes(framebuffer_info_t& framebufferInfo);
+    status_t readDisplayPhySize();
     status_t addSupportedConfig(std::string& mode);
 
     // ensure the active mode equals the current displaymode.

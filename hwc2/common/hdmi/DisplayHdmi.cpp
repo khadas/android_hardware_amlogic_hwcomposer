@@ -105,8 +105,7 @@ void DisplayHdmi::reset() {
     mPhyWidth = mPhyHeight = 0;
 }
 
-bool DisplayHdmi::updateHotplug(bool connected,
-        framebuffer_info_t& framebufferInfo) {
+bool DisplayHdmi::updateHotplug(bool connected) {
     //bool ret = true;
     //int32_t rate;
     mConnected = connected;
@@ -116,7 +115,7 @@ bool DisplayHdmi::updateHotplug(bool connected,
         return true;
     }
 
-    updateDisplayAttributes(framebufferInfo);
+    readDisplayPhySize();
 
     std::string activemode;
     if (readHdmiDispMode(activemode) != HWC2_ERROR_NONE) {
@@ -210,8 +209,14 @@ int DisplayHdmi::addSupportedConfig(std::string& mode) {
 
     int dpiX  = DEFAULT_DISPLAY_DPI, dpiY = DEFAULT_DISPLAY_DPI;
     if (mPhyWidth > 16 && mPhyHeight > 9) {
-        dpiX = (vinfo->width  * 25.4f) / mPhyWidth;
-        dpiY = (vinfo->height  * 25.4f) / mPhyHeight;
+        if (mWorkMode == REAL_ACTIVEMODE) {
+            dpiX = (vinfo->width  * 25.4f) / mPhyWidth;
+            dpiY = (vinfo->height  * 25.4f) / mPhyHeight;
+        } else if (mWorkMode == LOGIC_ACTIVEMODE ||
+                        mWorkMode == NONE_ACTIVEMODE) {
+            dpiX = (mFbWidth  * 25.4f) / mPhyWidth;
+            dpiY = (mFbHeight  * 25.4f) / mPhyHeight;
+        }
     }
 
     DisplayConfig *config = new DisplayConfig(mode,
@@ -308,23 +313,15 @@ int DisplayHdmi::setDisplayMode(std::string& dm, bool policy) {
     return NO_ERROR;
 }
 
-status_t DisplayHdmi::readHdmiPhySize(framebuffer_info_t& fbInfo) {
-    struct fb_var_screeninfo vinfo;
-    if ((fbInfo.fd >= 0) && (ioctl(fbInfo.fd, FBIOGET_VSCREENINFO, &vinfo) == 0)) {
-        if (int32_t(vinfo.width) > 16 && int32_t(vinfo.height) > 9) {
-            mPhyWidth = vinfo.width;
-            mPhyHeight = vinfo.height;
-        }
-        return NO_ERROR;
-    }
-    return BAD_VALUE;
-}
-
-int DisplayHdmi::updateDisplayAttributes(framebuffer_info_t& framebufferInfo) {
-    if (readHdmiPhySize(framebufferInfo) != NO_ERROR) {
+status_t DisplayHdmi::readDisplayPhySize() {
+    struct vinfo_base_s info;
+    if (read_vout_info(&info) == 0) {
+        mPhyWidth = info.screen_real_width;
+        mPhyHeight = info.screen_real_height;
+    } else {
         mPhyWidth = mPhyHeight = 0;
     }
-    DTRACE("updateDisplayAttributes physical size (%d x %d)", mPhyWidth, mPhyHeight);
+    DTRACE("readDisplayPhySize physical size (%d x %d)", mPhyWidth, mPhyHeight);
     return NO_ERROR;
 }
 
