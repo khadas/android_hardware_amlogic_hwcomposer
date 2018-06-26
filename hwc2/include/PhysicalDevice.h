@@ -176,7 +176,7 @@ private:
     int32_t initDisplay();
     int32_t postFramebuffer(int32_t* outRetireFence,  bool hasVideoOverlay);
     void bootanimDetect();
-    bool updateCursorBuffer();
+    bool updateCursorBuffer(bool init = false);
     void setOsdMouse(int x, int y, int w, int h, const char* cur_mode);
     int getOsdPosition(const char* curMode, int *position);
     int32_t getLineValue(const char *lineStr, const char *magicStr);

@@ -719,12 +719,6 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
     framebuffer_info_t fbInfo = *(mFramebufferContext->getInfo());
     bool cursorShow = false;
 
-#ifdef ENABLE_SOFT_CURSOR
-    //cursorShow = updateCursorBuffer();
-#else
-    cursorShow = updateCursorBuffer();
-#endif
-
     if (mRenderMode == GLES_COMPOSE_MODE) {
         //if no layers to compose, post blank op to osd.
         if (mPreviousRenderMode != GLES_COMPOSE_MODE && mHwcGlesLayers.size() == 0) {
@@ -769,6 +763,17 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
         mFramebufferContext->setStatus(true);
         mPriorFrameRetireFence = hwc_fb_post_with_fence_locked(&fbInfo, &mFbSyncRequest, NULL);
      } else {
+        if (mStartBootanim) {
+            mStartBootanim = false;
+            bootanimDetect();
+        }
+
+#ifdef ENABLE_SOFT_CURSOR
+        //cursorShow = updateCursorBuffer();
+#else
+        cursorShow = updateCursorBuffer();
+#endif
+
         *outRetireFence = HwcFenceControl::dupFence(mPriorFrameRetireFence);
         if (*outRetireFence >= 0) {
             DTRACE("Get prior frame's retire fence %d", *outRetireFence);
@@ -789,10 +794,6 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
             needBlankFb0 = true;
         }
 
-        if (mStartBootanim) {
-            mStartBootanim = false;
-            bootanimDetect();
-        }
         // real post framebuffer here.
         DTRACE("render type: %d", mFbSyncRequest.type);
 
@@ -860,6 +861,10 @@ void PhysicalDevice::bootanimDetect() {
     } else {
         Utils::setSysfsStr(DISPLAY_FB0_FREESCALE_SWTICH, "0x10001");
     }
+
+#ifndef ENABLE_SOFT_CURSOR
+    updateCursorBuffer(true);
+#endif
     setOsdMouse();
 }
 
@@ -872,46 +877,55 @@ void PhysicalDevice::updateFreescaleAxis()
 }
 
 // deal physical display's client target layer
-bool PhysicalDevice::updateCursorBuffer() {
+bool PhysicalDevice::updateCursorBuffer(bool init) {
     framebuffer_info_t* cbInfo = mCursorContext->getInfo();
-    HwcLayer* layer = NULL;
     void *cbuffer;
 
-    for (uint32_t i=0; i<mHwcLayers.size(); i++) {
-        hwc2_layer_t layerId = mHwcLayers.keyAt(i);
-        layer = mHwcLayers.valueAt(i);
-        if (layer && layer->getCompositionType()== HWC2_COMPOSITION_CURSOR) {
-            private_handle_t *hnd = private_handle_t::dynamicCast(layer->getBufferHandle());
-            if (!hnd) {
-                ETRACE("invalid cursor layer handle.");
-                break;
-            }
-            DTRACE("This is a Sprite, hnd->width is %d(%d), hnd->height is %d",
-                        hnd->width, hnd->stride, hnd->height);
-            if (cbInfo->info.xres != (uint32_t)hnd->stride || cbInfo->info.yres != (uint32_t)hnd->height) {
-                DTRACE("disp: %d cursor need to redrew", mId);
-                update_cursor_buffer_locked(cbInfo, hnd->stride, hnd->height);
-                hwc_rect_t disFrame = layer->getDisplayFrame();
-                setCursorPosition(layerId, disFrame.left, disFrame.top);
-                cbuffer = mmap(NULL, hnd->size, PROT_READ|PROT_WRITE, MAP_SHARED, cbInfo->fd, 0);
-                if (cbuffer != MAP_FAILED) {
-                    memset(cbuffer, 1, hnd->size);
-
-                    uint32_t irow = 0;
-                    char* cpyDst = (char*)cbuffer;
-                    char* cpySrc = (char*)hnd->base;
-                    for (irow = 0; (int)irow < hnd->height; irow++) {
-                        memcpy(cpyDst, cpySrc, 4 * hnd->width);
-                        cpyDst += 4 * hnd->stride;
-                        cpySrc += 4 * hnd->stride;
-                    }
-                    munmap(cbuffer, hnd->size);
-                    DTRACE("setCursor ok");
-                } else {
-                   ETRACE("Cursor display buffer mmap fail!");
+    if (init == false) {
+        HwcLayer* layer = NULL;
+        for (uint32_t i=0; i<mHwcLayers.size(); i++) {
+            hwc2_layer_t layerId = mHwcLayers.keyAt(i);
+            layer = mHwcLayers.valueAt(i);
+            if (layer && layer->getCompositionType()== HWC2_COMPOSITION_CURSOR) {
+                private_handle_t *hnd = private_handle_t::dynamicCast(layer->getBufferHandle());
+                if (!hnd) {
+                    ETRACE("invalid cursor layer handle.");
+                    break;
                 }
+                DTRACE("This is a Sprite, hnd->width is %d(%d), hnd->height is %d",
+                            hnd->width, hnd->stride, hnd->height);
+                if (cbInfo->info.xres != (uint32_t)hnd->stride || cbInfo->info.yres != (uint32_t)hnd->height) {
+                    DTRACE("disp: %d cursor need to redrew", mId);
+                    update_cursor_buffer_locked(cbInfo, hnd->stride, hnd->height);
+
+                    hwc_rect_t disFrame = layer->getDisplayFrame();
+                    setCursorPosition(layerId, disFrame.left, disFrame.top);
+                    cbuffer = mmap(NULL, hnd->size, PROT_READ|PROT_WRITE, MAP_SHARED, cbInfo->fd, 0);
+                    if (cbuffer != MAP_FAILED) {
+                        memset(cbuffer, 1, hnd->size);
+
+                        uint32_t irow = 0;
+                        char* cpyDst = (char*)cbuffer;
+                        char* cpySrc = (char*)hnd->base;
+                        for (irow = 0; (int)irow < hnd->height; irow++) {
+                            memcpy(cpyDst, cpySrc, 4 * hnd->width);
+                            cpyDst += 4 * hnd->stride;
+                            cpySrc += 4 * hnd->stride;
+                        }
+                        munmap(cbuffer, hnd->size);
+                        DTRACE("setCursor ok");
+                    } else {
+                       ETRACE("Cursor display buffer mmap fail!");
+                    }
+                }
+                return true;
             }
-            return true;
+        }
+    }else {
+        cbuffer = mmap(NULL, cbInfo->fbSize, PROT_READ|PROT_WRITE, MAP_SHARED, cbInfo->fd, 0);
+        if (cbuffer != MAP_FAILED) {
+            memset(cbuffer, 0, cbInfo->fbSize);
+            munmap(cbuffer, cbInfo->fbSize);
         }
     }
     return false;
