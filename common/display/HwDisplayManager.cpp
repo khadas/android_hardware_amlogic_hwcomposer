@@ -189,7 +189,7 @@ int32_t HwDisplayManager::waitVBlank(nsecs_t & timestamp) {
     std::map<uint32_t, std::shared_ptr<HwDisplayPlane>>::iterator it = mPlanes.begin();
     int32_t drvFd = it->second->getDrvFd();
 
-    if (ioctl(drvFd, FBIO_WAITFORVSYNC, &timestamp) == -1) {
+    if (ioctl(drvFd, FBIO_WAITFORVSYNC_64, &timestamp) == -1) {
         MESON_LOGE("fb ioctl vsync wait error, fb handle: %d", drvFd);
         return -1;
     } else {

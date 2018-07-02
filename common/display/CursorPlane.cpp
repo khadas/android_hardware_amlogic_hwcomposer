@@ -10,12 +10,12 @@
 #include <misc.h>
 
 #include "CursorPlane.h"
-/*
+
 static inline size_t round_up_to_page_size(size_t x)
 {
 	return (x + (PAGE_SIZE - 1)) & ~(PAGE_SIZE - 1);
 }
-*/
+
 CursorPlane::CursorPlane(int32_t drvFd, uint32_t id)
     : HwDisplayPlane(drvFd, id),
       mDrmFb(NULL),

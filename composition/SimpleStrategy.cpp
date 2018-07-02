@@ -345,7 +345,7 @@ void SimpleStrategy::makeFinalDecision(
     for (it = mUiLayers.begin(); it != mUiLayers.end(); ++it) {
         layer = *it;
         if (layer->mCompositionType == MESON_COMPOSITION_UNDETERMINED) {
-            if (layer->mFbType == DRM_FB_SCANOUT) {
+            if (layer->mFbType == DRM_FB_SCANOUT || layer->mFbType == DRM_FB_CURSOR) {
                 layer->mCompositionType = MESON_COMPOSITION_PLANE_OSD;
                 assignedPlaneLayers.push_back(layer);
             }

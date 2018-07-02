@@ -50,8 +50,8 @@ enum {
 /*Osd ioctl*/
 #define FB_IOC_MAGIC   'O'
 
-#define FBIO_WAITFORVSYNC       _IOW('F', 0x20, __u32)
-#define FBIOPUT_OSD_CURSOR     _IOWR(FB_IOC_MAGIC, 0x0,  struct fb_cursor)
+#define FBIO_WAITFORVSYNC_64        _IOW('F', 0x21, __u32)
+#define FBIOPUT_OSD_CURSOR          _IOWR(FB_IOC_MAGIC, 0x0,  struct fb_cursor)
 
 #define FBIOPUT_OSD_REVERSE          0x4515
 #define FBIOPUT_OSD_SYNC_BLANK       0x451c
