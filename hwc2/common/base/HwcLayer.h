@@ -25,9 +25,18 @@
 #include <utils/Vector.h>
 #include <Utils.h>
 #include <HwcFenceControl.h>
+#include <vector>
+#include <iostream>
 
 namespace android {
 namespace amlogic {
+
+typedef struct FrameMetadata {
+    hwc2_per_frame_metadata_key_t key;
+    float value;
+} FrameMetadata_t;
+
+
 
 class HwcLayer {
     public:
@@ -68,6 +77,8 @@ class HwcLayer {
         hwc_frect_t getSourceCrop() { return mSourceCrop; };
         int32_t getTransform() { return mTransform; };
         hwc_region_t getVisibleRegion() { return mVisibleRegion; };
+        std::vector<FrameMetadata_t>& getPerFrameMetadata() ;
+        int32_t setPerFrameMetadata(uint32_t numElements, const int32_t* keys, const float* metadata);
 
         bool initialize();
         void deinitialize();
@@ -105,6 +116,13 @@ class HwcLayer {
         hwc_region_t mDamageRegion;
         hwc_region_t mVisibleRegion;
 
+        //hdr
+        int32_t* mOutKeys;
+        uint32_t* mNumKeys;
+        int32_t mNumElements;
+        const int32_t* mKeys;
+        const float* mMetadata;
+        std::vector<FrameMetadata_t> mPerFrameMetadatas;
 
         union {
             buffer_handle_t mBufferHnd;

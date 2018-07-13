@@ -31,6 +31,9 @@
 #include <binder/Binder.h>
 #include <binder/IServiceManager.h>
 #include <utils/RefBase.h>
+#include <tvp/OmxUtil.h>
+
+
 
 #define DISPLAY_LOGO_INDEX              "/sys/module/fb/parameters/osd_logo_index"
 #define DISPLAY_FB0_FREESCALE_SWTICH    "/sys/class/graphics/fb0/free_scale_switch"
@@ -107,6 +110,7 @@ public:
     virtual int32_t getHdrCapabilities(uint32_t* outNumTypes,
         int32_t* /*android_hdr_t*/ outTypes, float* outMaxLuminance,
         float* outMaxAverageLuminance, float* outMinLuminance);
+    virtual int32_t getPerFrameMetadataKeys (uint32_t* outNumKeys, int32_t* outKeys);
     virtual int32_t getReleaseFences(uint32_t* outNumElements, hwc2_layer_t* outLayers, int32_t* outFences);
     virtual int32_t presentDisplay(int32_t* outRetireFence);
     virtual int32_t setActiveConfig(hwc2_config_t config);
@@ -208,6 +212,8 @@ private:
     // for vpp post scale.
     bool calReverseScale();
 
+    void updateHdrStaticInfo(std::vector<FrameMetadata_t> &metadata);
+
     template <typename T, typename S>
     static inline bool compareSize(T a, S b) {
         if ((int32_t)(a.right - a.left) == (int32_t)(b.right - b.left)
@@ -254,6 +260,9 @@ private:
     int32_t mPreviousRenderMode;
     bool mIsValidated;
     bool mIsContinuousBuf;
+
+    int32_t mKeys;
+    uint32_t mNumKeys;
 
     // num of composition type changed layer.
     uint32_t mNumLayersChangetype;
@@ -305,6 +314,10 @@ private:
     uint32_t mOmxKeepLastFrame;
     bool mVideoLayerOpenByOMX;
     bool mOmxSideBandPresent;
+
+    vframe_master_display_colour_s_t mHdrInfo;
+    bool mHasHdrInfo;
+    bool mHdrInfoChanged;
 };
 
 

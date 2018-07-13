@@ -92,6 +92,9 @@ public:
     virtual int32_t setLayerTransform(hwc2_display_t display, hwc2_layer_t layer, int32_t /*hwc_transform_t*/ transform);
     virtual int32_t setLayerVisibleRegion(hwc2_display_t display, hwc2_layer_t layer, hwc_region_t visible);
     virtual int32_t setLayerZOrder(hwc2_display_t display, hwc2_layer_t layer, uint32_t z);
+    virtual int32_t setLayerPerFrameMetadata(hwc2_display_t display,hwc2_layer_t layer,uint32_t numElements,
+        const int32_t* /*hw2_per_frame_metadata_key_t*/ keys,const float* metadata);
+    virtual int32_t getPerFrameMetadataKeys(hwc2_display_t display,uint32_t* outNumKeys,int32_t* /*hwc2_per_frame_metadata_key_t*/ outKeys);
 
     // callbacks
     virtual void vsync(int disp, int64_t timestamp);
