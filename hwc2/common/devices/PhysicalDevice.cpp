@@ -813,12 +813,6 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
             mPriorFrameRetireFence = hwc_fb_post_with_fence_locked(&fbInfo, &mFbSyncRequest, mClientTargetHnd);
         }
         mTargetAcquireFence = -1;
-#ifdef MESON_PDK_SYNC_WAIT
-        /**FIXME**/
-        if (*outRetireFence >= 0) {
-            sync_wait(*outRetireFence, 4100);
-        }
-#endif
         if (mRenderMode == GE2D_COMPOSE_MODE) {
             mComposer->mergeRetireFence(mFbSlot, HwcFenceControl::dupFence(mPriorFrameRetireFence));
         } else {
