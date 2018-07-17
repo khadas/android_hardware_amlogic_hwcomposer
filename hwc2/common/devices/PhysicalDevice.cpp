@@ -815,7 +815,6 @@ int32_t PhysicalDevice::postFramebuffer(int32_t* outRetireFence, bool hasVideoOv
         mTargetAcquireFence = -1;
 #ifdef MESON_PDK_SYNC_WAIT
         /**FIXME**/
-        ALOGD("this is a workaround for ppdk, you shall not see it\n");
         if (*outRetireFence >= 0) {
             sync_wait(*outRetireFence, 4100);
         }
