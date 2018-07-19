@@ -34,8 +34,16 @@
 //#define HWC_SUPPORT_SECURE_DISPLAY 1
 #define FBIOPUT_OSD_CURSOR     _IOWR(FB_IOC_MAGIC, 0x0,  struct fb_cursor)
 
+#if PLATFORM_SDK_VERSION == 28
+#define USE_DEFAULT_HDR_CAP 1
+#else
+#define USE_DEFAULT_HDR_CAP 0
+#endif
 namespace android {
 namespace amlogic {
+
+constexpr static float sDefaultMinLumiance = 0.0;
+constexpr static float sDefaultMaxLumiance = 500.0;
 
 PhysicalDevice::PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc, IComposeDeviceFactory* controlFactory)
     : mStartBootanim(true),
@@ -1896,6 +1904,14 @@ int32_t PhysicalDevice::parseHdrCapabilities() {
         mHdrCapabilities.dvSupport = true;
     // dobly version parse end
 
+#if USE_DEFAULT_HDR_CAP
+    mHdrCapabilities.hdrSupport = true;
+
+    mHdrCapabilities.maxLuminance = sDefaultMaxLumiance;
+    mHdrCapabilities.avgLuminance = sDefaultMaxLumiance;
+    mHdrCapabilities.minLuminance = sDefaultMinLumiance;
+
+#else
     memset(buf, 0, 1024);
     if ((fd = open(HDR_PATH, O_RDONLY)) < 0) {
         ETRACE("open %s fail.", HDR_PATH);
@@ -1916,7 +1932,7 @@ int32_t PhysicalDevice::parseHdrCapabilities() {
         mHdrCapabilities.avgLuminance = getLineValue(pos, "Avg: ");
         mHdrCapabilities.minLuminance = getLineValue(pos, "Min: ");
     }
-
+#endif
     ITRACE("dolby version support:%d, hdr support:%d max:%d, avg:%d, min:%d\n",
         mHdrCapabilities.dvSupport?1:0, mHdrCapabilities.hdrSupport?1:0, mHdrCapabilities.maxLuminance, mHdrCapabilities.avgLuminance, mHdrCapabilities.minLuminance);
 exit:
