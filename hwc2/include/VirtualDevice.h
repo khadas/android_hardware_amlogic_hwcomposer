@@ -58,7 +58,9 @@ public:
     virtual int32_t getHdrCapabilities(uint32_t* outNumTypes,
         int32_t* /*android_hdr_t*/ outTypes, float* outMaxLuminance,
         float* outMaxAverageLuminance, float* outMinLuminance);
+    #ifdef HDR_SUPPORT
     virtual int32_t getPerFrameMetadataKeys(uint32_t * outNumKeys,int32_t * outKeys);
+    #endif
     virtual int32_t getReleaseFences(uint32_t* outNumElements, hwc2_layer_t* outLayers, int32_t* outFences);
     virtual int32_t presentDisplay(int32_t* outRetireFence);
     virtual int32_t setActiveConfig(hwc2_config_t config);

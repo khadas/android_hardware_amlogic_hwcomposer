@@ -159,10 +159,12 @@ bool HwcLayer::haveDataspace() {
     return mDataSpace != HAL_DATASPACE_UNKNOWN;
 }
 
+#ifdef HDR_SUPPORT
 std::vector<FrameMetadata_t>& HwcLayer::getPerFrameMetadata(){
     DTRACE("mPerFrameMetadata_size: %d", mNumElements);
     return mPerFrameMetadatas;
 }
+#endif
 
 void HwcLayer::reverseScaledFrame(const float& scaleX, const float& scaleY) {
     if (mScaleReversed)
@@ -290,7 +292,7 @@ int32_t HwcLayer::setZ(uint32_t z) {
     return HWC2_ERROR_NONE;
 }
 
-
+#ifdef HDR_SUPPORT
 int32_t HwcLayer::setPerFrameMetadata(uint32_t numElements, const int32_t* keys, const float* metadata){
     Mutex::Autolock _l(mLock);
 
@@ -301,6 +303,7 @@ int32_t HwcLayer::setPerFrameMetadata(uint32_t numElements, const int32_t* keys,
     }
     return HWC2_ERROR_NONE;
 }
+#endif
 
 void HwcLayer::resetLayerBuffer() {
    mSidebandStream = NULL;

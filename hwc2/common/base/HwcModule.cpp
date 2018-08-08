@@ -515,8 +515,7 @@ int32_t setLayerZOrder(
 
     return ret;
 }
-
-
+#ifdef HDR_SUPPORT
 int32_t setLayerPerFrameMetadata(
         hwc2_device_t* device, hwc2_display_t display, hwc2_layer_t layer,
         uint32_t numElements, const int32_t* /*hw2_per_frame_metadata_key_t*/ keys,
@@ -537,7 +536,7 @@ int32_t getPerFrameMetadataKeys(
 
     return ret;
 }
-
+#endif
 
 hwc2_function_pointer_t hwc2_getFunction(struct hwc2_device* device,
         int32_t /*hwc2_function_descriptor_t*/ descriptor) {
@@ -637,10 +636,12 @@ hwc2_function_pointer_t hwc2_getFunction(struct hwc2_device* device,
             return reinterpret_cast<hwc2_function_pointer_t>(setLayerVisibleRegion);
         case HWC2_FUNCTION_SET_LAYER_Z_ORDER:
             return reinterpret_cast<hwc2_function_pointer_t>(setLayerZOrder);
+        #ifdef HDR_SUPPORT
         case HWC2_FUNCTION_SET_LAYER_PER_FRAME_METADATA:
             return reinterpret_cast<hwc2_function_pointer_t>(setLayerPerFrameMetadata);
         case HWC2_FUNCTION_GET_PER_FRAME_METADATA_KEYS:
             return reinterpret_cast<hwc2_function_pointer_t>(getPerFrameMetadataKeys);
+        #endif
 
         default:
             ETRACE("getFunction: Unknown function descriptor: %d", descriptor);
