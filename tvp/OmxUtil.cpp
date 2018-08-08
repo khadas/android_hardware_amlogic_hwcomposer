@@ -15,11 +15,13 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <media/stagefright/foundation/ADebug.h>
+#include "OmxUtil.h"
 
 #define AMSTREAM_IOC_MAGIC  'S'
 
 #define AMSTREAM_IOC_SET_OMX_VPTS  _IOW(AMSTREAM_IOC_MAGIC, 0xaf, int)
 #define AMSTREAM_IOC_SET_VIDEO_DISABLE  _IOW(AMSTREAM_IOC_MAGIC, 0x49, int)
+#define AMSTREAM_IOC_SET_HDR_INFO    _IOW((AMSTREAM_IOC_MAGIC), 0xb3, int)
 
 static int amvideo_handle = -1;
 
@@ -112,5 +114,17 @@ void set_omx_pts(char* data, int* handle) {
         }
         memcpy((char*)data + sizeof(TVP_SECRET) + sizeof(signed long long), TVP_SECRET_RENDER, sizeof(TVP_SECRET_RENDER));
     }
+}
+
+int set_hdr_info(vframe_master_display_colour_s_t vf_hdr, int* handle) {
+    if (*handle == -1 || amvideo_handle == -1) {
+        *handle = openamvideo();
+            ALOGI("open amvideo handle 0x%x\n", *handle);
+        if (*handle == -1) {
+            ALOGW("can not open amvideo");
+            return -1;
+        }
+    }
+    return ioctl(amvideo_handle, AMSTREAM_IOC_SET_HDR_INFO, (unsigned long)&vf_hdr);
 }
 

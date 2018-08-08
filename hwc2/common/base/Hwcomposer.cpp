@@ -874,6 +874,48 @@ int32_t Hwcomposer::setLayerZOrder(
     return err;
 }
 
+
+int32_t Hwcomposer::setLayerPerFrameMetadata(
+        hwc2_display_t display, hwc2_layer_t layer,
+        uint32_t numElements, const int32_t* /*hw2_per_frame_metadata_key_t*/ keys,
+        const float* metadata) {
+    HwcLayer* hwcLayer = NULL;
+    int32_t err = HWC2_ERROR_NONE;
+    DTRACE("setLayerPerFrameMetadata disp = %d", (int32_t)display);
+
+    IDisplayDevice *device = getDisplayDevice((int32_t)display);
+    if (!device) {
+        ETRACE("no device found");
+        return HWC2_ERROR_BAD_DISPLAY;
+    }
+
+    hwcLayer = device->getLayerById(layer);
+    if (hwcLayer) {
+        err = hwcLayer->setPerFrameMetadata(numElements, keys, metadata);
+    } else {
+        ETRACE("bad layer.");
+        return HWC2_ERROR_BAD_LAYER;
+    }
+
+    return err;
+}
+
+
+int32_t Hwcomposer::getPerFrameMetadataKeys(
+        hwc2_display_t display,
+        uint32_t* outNumKeys,
+        int32_t* /*hwc2_per_frame_metadata_key_t*/ outKeys) {
+    DTRACE("getPerFrameMetadataKeys disp = %d", (int32_t)display);
+
+    IDisplayDevice *device = getDisplayDevice((int32_t)display);
+    if (!device) {
+        ETRACE("no device found");
+        return HWC2_ERROR_BAD_DISPLAY;
+    }
+
+    return device->getPerFrameMetadataKeys(outNumKeys, outKeys);
+}
+
 template <typename T>
 static hwc2_function_pointer_t asFP(T function)
 {

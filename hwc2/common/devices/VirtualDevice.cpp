@@ -263,6 +263,11 @@ int32_t VirtualDevice::getHdrCapabilities(
     return HWC2_ERROR_NONE;
 }
 
+int32_t VirtualDevice::getPerFrameMetadataKeys(
+    uint32_t * outNumKeys __unused,
+    int32_t * outKeys __unused) {
+    return HWC2_ERROR_NONE;
+}
 int32_t VirtualDevice::getReleaseFences(
         uint32_t* outNumElements,
         hwc2_layer_t* outLayers __unused,

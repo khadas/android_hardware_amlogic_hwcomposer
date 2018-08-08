@@ -24,6 +24,10 @@
 #include <cutils/properties.h>
 #include <sync/sync.h>
 #include <AmVideo.h>
+#include <string>
+#include <map>
+#include <iostream>
+#include <vector>
 
 
 namespace android {
@@ -59,6 +63,7 @@ HwcLayer::HwcLayer(hwc2_display_t& dpy)
 
     mDamageRegion.numRects = 0;
     mVisibleRegion.numRects = 0;
+    mNumElements = 0;
 }
 
 HwcLayer::~HwcLayer()
@@ -152,6 +157,11 @@ bool HwcLayer::havePlaneAlpha() {
 bool HwcLayer::haveDataspace() {
     DTRACE("mDataSpace: %d", mDataSpace);
     return mDataSpace != HAL_DATASPACE_UNKNOWN;
+}
+
+std::vector<FrameMetadata_t>& HwcLayer::getPerFrameMetadata(){
+    DTRACE("mPerFrameMetadata_size: %d", mNumElements);
+    return mPerFrameMetadatas;
 }
 
 void HwcLayer::reverseScaledFrame(const float& scaleX, const float& scaleY) {
@@ -277,6 +287,18 @@ int32_t HwcLayer::setZ(uint32_t z) {
 
     // TODO: still have some work to do.
     mZ = z;
+    return HWC2_ERROR_NONE;
+}
+
+
+int32_t HwcLayer::setPerFrameMetadata(uint32_t numElements, const int32_t* keys, const float* metadata){
+    Mutex::Autolock _l(mLock);
+
+    mNumElements = numElements;
+    for (int m=0; m < mNumElements; m++) {
+        mPerFrameMetadatas.insert(mPerFrameMetadatas.end(),{static_cast<hwc2_per_frame_metadata_key_t>(*(keys+m)),*(metadata+m)});
+        ALOGD("setPerFrameMetadata %d: %f",mPerFrameMetadatas.at(m).key,mPerFrameMetadatas.at(m).value);
+    }
     return HWC2_ERROR_NONE;
 }
 

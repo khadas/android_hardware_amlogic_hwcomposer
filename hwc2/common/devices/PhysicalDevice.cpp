@@ -26,7 +26,6 @@
 #include <Utils.h>
 #include <HwcFenceControl.h>
 #include <cutils/properties.h>
-#include <tvp/OmxUtil.h>
 #include <framebuffer.h>
 #include <AmVideo.h>
 #include <systemcontrol/DisplayMode.h>
@@ -67,7 +66,9 @@ PhysicalDevice::PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc, IComposeDevic
       mConnectorPresent(false),
       mModeSwitch(false),
       mOmxVideoHandle(-1),
-      mVideoLayerOpenByOMX(false) {
+      mVideoLayerOpenByOMX(false),
+      mHasHdrInfo(false),
+      mHdrInfoChanged(false) {
     CTRACE();
 
     switch (id) {
@@ -94,6 +95,7 @@ PhysicalDevice::PhysicalDevice(hwc2_display_t id, Hwcomposer& hwc, IComposeDevic
     mHwcCurReleaseFences = mHwcPriorReleaseFences = NULL;
     mOmxKeepLastFrame = 0;
     AmVideo::getInstance()->getOmxKeepLastFrame(&mOmxKeepLastFrame);
+    memset(&mHdrInfo, 0, sizeof(mHdrInfo));
 }
 
 PhysicalDevice::~PhysicalDevice() {
@@ -564,6 +566,31 @@ int32_t PhysicalDevice::getHdrCapabilities(
         *outMaxLuminance = mHdrCapabilities.maxLuminance;
         *outMaxAverageLuminance = mHdrCapabilities.avgLuminance;
         *outMinLuminance = mHdrCapabilities.minLuminance;
+    }
+
+    return HWC2_ERROR_NONE;
+}
+
+int32_t PhysicalDevice::getPerFrameMetadataKeys(
+    uint32_t* outNumKeys, int32_t* outKeys) {
+
+    int keys = 12;
+    if (NULL == outKeys) {
+        *outNumKeys = keys;
+    } else {
+        *outNumKeys = keys;
+        *outKeys++ = hwc2_per_frame_metadata_key_t::HWC2_DISPLAY_RED_PRIMARY_X;
+        *outKeys++ = hwc2_per_frame_metadata_key_t::HWC2_DISPLAY_RED_PRIMARY_Y;
+        *outKeys++ = hwc2_per_frame_metadata_key_t::HWC2_DISPLAY_GREEN_PRIMARY_X;
+        *outKeys++ = hwc2_per_frame_metadata_key_t::HWC2_DISPLAY_GREEN_PRIMARY_Y;
+        *outKeys++ = hwc2_per_frame_metadata_key_t::HWC2_DISPLAY_BLUE_PRIMARY_X;
+        *outKeys++ = hwc2_per_frame_metadata_key_t::HWC2_DISPLAY_BLUE_PRIMARY_Y;
+        *outKeys++ = hwc2_per_frame_metadata_key_t::HWC2_WHITE_POINT_X;
+        *outKeys++ = hwc2_per_frame_metadata_key_t::HWC2_WHITE_POINT_Y;
+        *outKeys++ = hwc2_per_frame_metadata_key_t::HWC2_MAX_LUMINANCE;
+        *outKeys++ = hwc2_per_frame_metadata_key_t::HWC2_MIN_LUMINANCE;
+        *outKeys++ = hwc2_per_frame_metadata_key_t::HWC2_MAX_CONTENT_LIGHT_LEVEL;
+        *outKeys++ = hwc2_per_frame_metadata_key_t::HWC2_MAX_FRAME_AVERAGE_LIGHT_LEVEL;
     }
 
     return HWC2_ERROR_NONE;
@@ -1464,6 +1491,11 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
     if (mVideoOverlayLayerId) {
         videoLayer = mHwcLayers.valueFor(mVideoOverlayLayerId);
         videoRect = videoLayer->getDisplayFrame();
+        std::vector<FrameMetadata_t> metadata  = videoLayer->getPerFrameMetadata();
+        updateHdrStaticInfo(metadata);
+        if (mHdrInfoChanged) {
+            int err = set_hdr_info(mHdrInfo, &mOmxVideoHandle);
+        }
     }
 
     for (uint32_t i=0; i<mHwcLayers.size(); i++) {
@@ -1927,6 +1959,109 @@ void PhysicalDevice::dump(Dump& d) {
     d.append("    DolbyVision1=%zu\n", mHdrCapabilities.dvSupport?1:0);
     d.append("    HDR10=%zu, maxLuminance=%zu, avgLuminance=%zu, minLuminance=%zu\n",
         mHdrCapabilities.hdrSupport?1:0, mHdrCapabilities.maxLuminance, mHdrCapabilities.avgLuminance, mHdrCapabilities.minLuminance);
+}
+
+bool isHdrInfoChanged(const vframe_master_display_colour_s_t old_data, const vframe_master_display_colour_s_t new_data) {
+    if (old_data.primaries[0][0] == new_data.primaries[0][0] &&
+        old_data.primaries[0][1] == new_data.primaries[0][1] &&
+        old_data.primaries[1][0] == new_data.primaries[1][0] &&
+        old_data.primaries[1][1] == new_data.primaries[1][1] &&
+        old_data.primaries[2][0] == new_data.primaries[2][0] &&
+        old_data.primaries[2][1] == new_data.primaries[2][1] &&
+        old_data.white_point[0] == new_data.white_point[0] &&
+        old_data.white_point[1] == new_data.white_point[1] &&
+        old_data.luminance[0] == new_data.luminance[0] &&
+        old_data.luminance[1] == new_data.luminance[1] &&
+        old_data.content_light_level.max_content == new_data.content_light_level.max_content &&
+        old_data.content_light_level.max_pic_average == new_data.content_light_level.max_pic_average &&
+        old_data.present_flag == new_data.present_flag &&
+        old_data.content_light_level.present_flag == new_data.content_light_level.present_flag ){
+        ALOGV("hdr metedata no change!");
+        return false;
+    } else {
+        ALOGD("hdr metedata change! %d %d %d %d %d %d %d %d %d %d %d %d",
+        new_data.primaries[0][0],new_data.primaries[0][1],
+        new_data.primaries[1][0],new_data.primaries[1][1],
+        new_data.primaries[2][0],new_data.primaries[2][1],
+        new_data.white_point[0],new_data.white_point[1],
+        new_data.luminance[0],new_data.luminance[1],
+        new_data.content_light_level.max_content,new_data.content_light_level.max_pic_average);
+        return true;
+    }
+
+}
+void PhysicalDevice::updateHdrStaticInfo(std::vector<FrameMetadata_t> &metadata) {
+    bool valid_hdr = false;
+    vframe_master_display_colour_s_t hdr_tmp;
+    memset(&hdr_tmp,0,sizeof(mHdrInfo));
+        if (!metadata.empty()) {
+            hdr_tmp.present_flag = 1;
+            std::vector<FrameMetadata_t>::iterator iter;
+            for (iter = metadata.begin(); iter != metadata.end(); ++iter) {
+                ALOGV("%d: %f",iter->key,iter->value);
+                switch (iter->key) {
+                case HWC2_DISPLAY_RED_PRIMARY_X:
+                    hdr_tmp.primaries[2][0] = (u32)(iter->value * 50000); //mR.x
+                    break;
+                case HWC2_DISPLAY_RED_PRIMARY_Y:
+                    hdr_tmp.primaries[2][1] = (u32)(iter->value * 50000); //mR.Y
+                    break;
+                case HWC2_DISPLAY_GREEN_PRIMARY_X:
+                    hdr_tmp.primaries[0][0] = (u32)(iter->value * 50000);//mG.x
+                    break;
+                case HWC2_DISPLAY_GREEN_PRIMARY_Y:
+                    hdr_tmp.primaries[0][1] = (u32)(iter->value * 50000);//mG.y
+                    break;
+                case HWC2_DISPLAY_BLUE_PRIMARY_X:
+                    hdr_tmp.primaries[1][0] = (u32)(iter->value * 50000);//mB.x
+                    break;
+                case HWC2_DISPLAY_BLUE_PRIMARY_Y:
+                    hdr_tmp.primaries[1][1] = (u32)(iter->value * 50000);//mB.Y
+                    break;
+                case HWC2_WHITE_POINT_X:
+                    hdr_tmp.white_point[0] = (u32)(iter->value * 50000);//mW.x
+                    break;
+                case HWC2_WHITE_POINT_Y:
+                    hdr_tmp.white_point[1] = (u32)(iter->value * 50000);//mW.Y
+                    break;
+                case HWC2_MAX_LUMINANCE:
+                    hdr_tmp.luminance[0] = (u32)(iter->value); //mMaxDL
+                    break;
+                case HWC2_MIN_LUMINANCE:
+                    hdr_tmp.luminance[1] = (u32)(iter->value * 10000);//mMinDL
+                    break;
+                case HWC2_MAX_CONTENT_LIGHT_LEVEL:
+                    hdr_tmp.content_light_level.max_content = (u32)(iter->value); //mMaxCLL
+                    hdr_tmp.content_light_level.present_flag = 1;
+                    break;
+                case HWC2_MAX_FRAME_AVERAGE_LIGHT_LEVEL:
+                    hdr_tmp.content_light_level.max_pic_average = (u32)(iter->value);//mMaxFALL
+                    hdr_tmp.content_light_level.present_flag = 1;
+                    break;
+                default:
+                    ALOGW("unkown key %d",iter->key);
+                    break;
+            }
+        }
+
+        if (hdr_tmp.primaries[0][0] == 0 && hdr_tmp.primaries[0][1] == 0 &&
+            hdr_tmp.primaries[1][0] == 0 && hdr_tmp.primaries[1][1] == 0 &&
+            hdr_tmp.primaries[2][0] == 0 && hdr_tmp.primaries[2][1] == 0 &&
+            hdr_tmp.white_point[0] == 0 && hdr_tmp.white_point[1] == 0 &&
+            hdr_tmp.luminance[0] == 0 && hdr_tmp.luminance[1] == 0 &&
+            hdr_tmp.content_light_level.max_content == 0 &&
+            hdr_tmp.content_light_level.max_pic_average == 0) {
+            hdr_tmp.present_flag = 0;
+            hdr_tmp.content_light_level.present_flag = 0;
+            ALOGW("invalid hdr metedata!");
+        }
+    }
+    mHdrInfoChanged = isHdrInfoChanged(mHdrInfo,hdr_tmp);
+
+    if (mHdrInfoChanged) {
+        mHdrInfo = hdr_tmp;
+        mHasHdrInfo = hdr_tmp.present_flag;
+    }
 }
 
 } // namespace amlogic
