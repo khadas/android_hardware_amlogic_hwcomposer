@@ -5,6 +5,9 @@ LOCAL_SRC_FILES:=                     \
         OmxUtil.cpp            \
 
 LOCAL_C_INCLUDES := \
+	system/core/libcutils/include \
+	system/core/liblog/include \
+	frameworks/av/media/libstagefright/foundation/include
 
 LOCAL_MODULE:= libomxutil
 

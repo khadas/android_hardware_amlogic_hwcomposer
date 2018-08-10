@@ -14,7 +14,10 @@
 
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include <media/stagefright/foundation/ADebug.h>
+#include <unistd.h>
+#include <string.h>
+#include <cutils/log.h>
+//#include <media/stagefright/foundation/ADebug.h>
 #include "OmxUtil.h"
 
 #define AMSTREAM_IOC_MAGIC  'S'

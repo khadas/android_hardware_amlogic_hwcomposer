@@ -34,7 +34,7 @@
 #include <Hwcomposer.h>
 #include <Utils.h>
 //#include <ISystemControlService.h>
-#include <gui/SurfaceComposerClient.h>
+//#include <gui/SurfaceComposerClient.h>
 #include <AmVinfo.h>
 #include <framebuffer.h>
 

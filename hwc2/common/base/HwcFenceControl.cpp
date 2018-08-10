@@ -16,7 +16,8 @@
 */
 
 
-#include <sync/sync.h>
+//#include <sync/sync.h>
+#include <android/sync.h>
 #include <sw_sync.h>
 
 #include <HwcFenceControl.h>
@@ -43,6 +44,7 @@ HwcFenceControl::~HwcFenceControl() {
     }
 }
 
+#ifdef ENABLE_AML_GE2D_COMPOSER
 int32_t HwcFenceControl::createFenceTimeline() {
     int32_t syncTimelineFd;
 
@@ -77,6 +79,7 @@ status_t HwcFenceControl::syncTimelineInc(int32_t syncTimelineFd) {
     }
     return err;
 }
+#endif
 
 status_t HwcFenceControl::traceFenceInfo(int32_t fence) {
     status_t err;

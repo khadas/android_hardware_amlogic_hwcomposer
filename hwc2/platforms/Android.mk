@@ -52,7 +52,8 @@ LOCAL_SHARED_LIBRARIES := \
     libge2d \
     libbinder \
     libsystemcontrolservice \
-    libgui
+    libui \
+    libnativewindow
 
 # added for treble
 LOCAL_SHARED_LIBRARIES += \
@@ -84,6 +85,10 @@ LOCAL_C_INCLUDES += $(LOCAL_PATH) \
     $(TOP)/hardware/amlogic/media/amavutils/include \
     $(LOCAL_PATH)/ \
     $(TOP)/$(BOARD_AML_VENDOR_PATH)/frameworks/services/systemcontrol \
+    frameworks/native/libs/gui/include \
+    frameworks/native/libs/ui/include \
+    frameworks/native/libs/nativewindow/include \
+    system/libhidl/transport/token/1.0/utils/include
 
 LOCAL_KK=0
 ifeq ($(GPU_TYPE),t83x)
