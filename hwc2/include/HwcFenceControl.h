@@ -76,9 +76,11 @@ public:
     status_t waitForever(const char* logname);
 
     // fence.
+#ifdef ENABLE_AML_GE2D_COMPOSER
     static int32_t createFenceTimeline();
     static int32_t createFence(int32_t syncTimelineFd,char* str, uint32_t val);
     static status_t syncTimelineInc(int32_t syncTimelineFd);
+#endif
     static status_t traceFenceInfo(int32_t fence);
 
     static inline void closeFd(int32_t fence) {
