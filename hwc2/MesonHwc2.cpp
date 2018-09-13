@@ -22,8 +22,8 @@
 
 #define CHECK_DISPLAY_VALID(display)    \
     if (isDisplayValid(display) == false) { \
-        MESON_LOGE("(%s) met invalid display id (%d) ", \
-            __func__, display); \
+        MESON_LOGE("(%s) met invalid display id (%d)", \
+            __func__, (int)display); \
         return HWC2_ERROR_BAD_DISPLAY; \
     }
 
@@ -34,8 +34,8 @@
     if (it != mDisplays.end()) { \
         hwcDisplay = it->second; \
     }  else {\
-        MESON_LOGE("(%s) met invalid display id (%d) ",\
-            __func__, display); \
+        MESON_LOGE("(%s) met invalid display id (%d)",\
+            __func__, (int)display); \
         return HWC2_ERROR_BAD_DISPLAY; \
     }
 
@@ -43,7 +43,7 @@
     std::shared_ptr<Hwc2Layer> hwcLayer = display->getLayerById(id); \
     if (hwcLayer.get() == NULL) { \
         MESON_LOGE("(%s) met invalid layer id (%d) in display (%p)",\
-            __func__, id, display.get()); \
+            __func__, (int)id, display.get()); \
         return HWC2_ERROR_BAD_LAYER; \
     }
 
@@ -90,7 +90,7 @@ void MesonHwc2::getCapabilities(uint32_t* outCount,
 }
 
 int32_t MesonHwc2::getClientTargetSupport(hwc2_display_t display,
-    uint32_t width, uint32_t height, int32_t format, int32_t dataspace) {
+    uint32_t width __unused, uint32_t height __unused, int32_t format, int32_t dataspace) {
     GET_HWC_DISPLAY(display);
     if (format == HAL_PIXEL_FORMAT_RGBA_8888 &&
         dataspace == HAL_DATASPACE_UNKNOWN) {
@@ -105,7 +105,6 @@ int32_t MesonHwc2::getClientTargetSupport(hwc2_display_t display,
 int32_t MesonHwc2::registerCallback(int32_t descriptor,
     hwc2_callback_data_t callbackData, hwc2_function_pointer_t pointer) {
     hwc2_error_t ret = HWC2_ERROR_NONE;
-    bool bInitHotPlug = false;
 
     switch (descriptor) {
         case HWC2_CALLBACK_HOTPLUG:
@@ -151,7 +150,7 @@ int32_t MesonHwc2::getDisplayName(hwc2_display_t display,
     GET_HWC_DISPLAY(display);
     const char * name = hwcDisplay->getName();
     if (name == NULL) {
-        MESON_LOGE("getDisplayName (%d) failed", display);
+        MESON_LOGE("getDisplayName (%d) failed", (int)display);
     } else {
         *outSize = strlen(name) + 1;
         if (outName) {
@@ -193,7 +192,7 @@ int32_t  MesonHwc2::getColorModes(hwc2_display_t display,
     return HWC2_ERROR_NONE;
 }
 
-int32_t MesonHwc2::setColorMode(hwc2_display_t display, int32_t mode) {
+int32_t MesonHwc2::setColorMode(hwc2_display_t display, int32_t mode __unused) {
     CHECK_DISPLAY_VALID(display);
      /*Only support native color mode, nothing to do now.*/
      return HWC2_ERROR_NONE;
@@ -216,13 +215,13 @@ int32_t MesonHwc2::getHdrCapabilities(hwc2_display_t display,
             getInfo = true;
 
         if (caps->DolbyVisionSupported) {
-            *outNumTypes++;
+            *outNumTypes = *outNumTypes + 1;
             if (getInfo) {
                 *outTypes = HAL_HDR_DOLBY_VISION;
             }
         }
         if (caps->HDR10Supported) {
-            *outNumTypes++;
+            *outNumTypes = *outNumTypes + 1;
             if (getInfo) {
                 *outTypes = HAL_HDR_HDR10;
             }
@@ -465,9 +464,8 @@ int32_t  MesonHwc2::setLayerZorder(hwc2_display_t display,
     return hwcLayer->setZorder(z);
 }
 
-/************************************************************/
-/*                     Internal Implement
-/************************************************************/
+/**********************Internal Implement********************/
+
 class MesonHwc2Observer : public Hwc2DisplayObserver {
 public:
     MesonHwc2Observer(hwc2_display_t display, MesonHwc2 * hwc) {
@@ -475,11 +473,11 @@ public:
         mHwc = hwc;
     }
     ~MesonHwc2Observer() {
-        MESON_LOGD("MesonHwc2Observer disp(%d) destruct.", mDispId);
+        MESON_LOGD("MesonHwc2Observer disp(%d) destruct.", (int)mDispId);
     }
 
     void refresh() {
-        MESON_LOGD("Display (%d) ask for refresh.", mDispId);
+        MESON_LOGD("Display (%d) ask for refresh.", (int)mDispId);
         mHwc->refresh(mDispId);
     }
 
@@ -526,7 +524,7 @@ void MesonHwc2::onVsync(hwc2_display_t display, int64_t timestamp) {
     MESON_LOGE("No vsync callback registered.");
 }
 
-void MesonHwc2::onHotplug(hwc2_display_t display, bool connected) {
+void MesonHwc2::onHotplug(hwc2_display_t display, bool connected __unused) {
     #ifndef HWC_ENABLE_PRIMARY_HOTPLUG
     if (display == HWC_DISPLAY_PRIMARY /*&& connected*/ && !mFirstCallBackSF) {
         MESON_LOGD("Primary display not support hotplug.");
@@ -543,7 +541,7 @@ void MesonHwc2::onHotplug(hwc2_display_t display, bool connected) {
     }
     if (mHotplugFn) {
         MESON_LOGD("On hotplug, Fn: %p, Data: %p, display: %d(%d), connected: %d",
-                mHotplugFn, mHotplugData, display, HWC_DISPLAY_PRIMARY, connected);
+                mHotplugFn, mHotplugData, (int)display, HWC_DISPLAY_PRIMARY, connected);
         mFirstCallBackSF = false;
         primaryHotplugFlag = true;
         cv.notify_one();

@@ -22,6 +22,7 @@ void SimpleStrategy::setUp(
     std::vector<std::shared_ptr<IComposeDevice>> & composers,
     std::vector<std::shared_ptr<HwDisplayPlane>> & planes,
     uint32_t flags) {
+    MESON_LOG_FUN_ENTER();
     mForceClientComposer = false;
     mHideSecureLayer = false;
 
@@ -93,6 +94,7 @@ void SimpleStrategy::classifyComposers(
 
 void SimpleStrategy::classifyPlanes(
     std::vector<std::shared_ptr<HwDisplayPlane>> & planes) {
+    MESON_LOG_FUN_ENTER();
     std::shared_ptr<HwDisplayPlane> plane;
     mCursorPlanes.clear();
 
@@ -190,10 +192,12 @@ void SimpleStrategy::preProcessLayers() {
                     }
                 }
             }
-            break;
-        case MESON_COMPOSITION_CLIENT:
-            mHaveClientLayer = true;
-            break;
+                break;
+            case MESON_COMPOSITION_CLIENT:
+                mHaveClientLayer = true;
+                break;
+            default:
+                MESON_LOGE("Not support composition type now");
         }
 
         if (layer->mCompositionType == MESON_COMPOSITION_UNDETERMINED) {
@@ -248,6 +252,7 @@ void SimpleStrategy::sortLayersByZ(
 
 int32_t SimpleStrategy::makeCurrentOsdPlanes(
         int32_t &numConflictPlanes) {
+    MESON_LOG_FUN_ENTER();
     std::list<std::shared_ptr<HwDisplayPlane>>::iterator it;
     std::shared_ptr<HwDisplayPlane> osdPlane;
     int32_t i = 0, maskedConflictPlanes = 0;
@@ -275,7 +280,7 @@ int32_t SimpleStrategy::makeCurrentOsdPlanes(
 }
 
 void SimpleStrategy::changeDeviceToClientByZ(
-        int32_t from, int32_t to) {
+        uint32_t from, uint32_t to) {
     if (mUiLayers.size() > 1) {
         std::vector<std::shared_ptr<DrmFramebuffer>>::iterator it;
         for (it = mUiLayers.begin(); it != mUiLayers.end(); ++it) {
@@ -296,7 +301,7 @@ bool SimpleStrategy::expandComposedLayers(
         std::vector<std::shared_ptr<DrmFramebuffer>> &composedLayers) {
     bool found = false;
     if (composedLayers.size() > 1) {
-        int32_t composedZorder = composedLayers.front()->mZorder;
+        uint32_t composedZorder = composedLayers.front()->mZorder;
         std::vector<std::shared_ptr<DrmFramebuffer>>::iterator it;
 
         for (it = layers.begin(); it != layers.end(); ++it) {
@@ -353,7 +358,7 @@ void SimpleStrategy::makeFinalDecision(
     }
 
     int32_t numConflictPlanes = 0;
-    int32_t maskedConflictPlanes = makeCurrentOsdPlanes(numConflictPlanes);
+    makeCurrentOsdPlanes(numConflictPlanes);
     if (!mVideoLayers.empty() && numConflictPlanes > 1) {
         if (assignedPlaneLayers.size() == mPresentOsdPlanes.size()) {
             /* find out video layer is between osd planes or not. */
@@ -487,6 +492,8 @@ int32_t SimpleStrategy::decideComposition() {
 }
 
 int32_t SimpleStrategy::commit() {
+    MESON_LOG_FUN_ENTER();
+
     std::shared_ptr<DrmFramebuffer> layer;
     std::list<std::shared_ptr<HwDisplayPlane>>::iterator amVideoPlane =
         mAmVideoPlanes.begin();
@@ -571,6 +578,8 @@ int32_t SimpleStrategy::commit() {
                     targetPlane = (*cursorPlane);
                     cursorPlane++;
                     break;
+                default:
+                    MESON_LOGE("Error: invalid composition type!");
             }
 
             if (targetPlane.get()) {
@@ -626,7 +635,7 @@ int32_t SimpleStrategy::commit() {
 
 void SimpleStrategy::addCompositionInfo(
     std::shared_ptr<DrmFramebuffer>  layer,
-    std::shared_ptr<IComposeDevice>  composer,
+    std::shared_ptr<IComposeDevice>  composer __unused,
     std::shared_ptr<HwDisplayPlane>  plane,
     int planeBlank) {
     const char * planeName = "NULL";

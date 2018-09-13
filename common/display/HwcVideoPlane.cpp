@@ -37,12 +37,12 @@ int32_t HwcVideoPlane::getFixedZorder() {
     return PLANE_VARIABLE_ZORDER;
 }
 
-int32_t HwcVideoPlane::updateZoomInfo(display_zoom_info_t zoomInfo) {
+int32_t HwcVideoPlane::updateZoomInfo(display_zoom_info_t zoomInfo __unused) {
     MESON_LOG_EMPTY_FUN();
     return 0;
 }
 
-int32_t HwcVideoPlane::setPlane(std::shared_ptr<DrmFramebuffer> & fb) {
+int32_t HwcVideoPlane::setPlane(std::shared_ptr<DrmFramebuffer> & fb __unused) {
     if (mDrvFd < 0) {
         MESON_LOGE("osd plane fd is not valiable!");
         return -EBADF;
@@ -107,10 +107,10 @@ int32_t HwcVideoPlane::setPlane(std::shared_ptr<DrmFramebuffer> & fb) {
     return 0;
 }
 
-int32_t HwcVideoPlane::blank(int blankOp) {
+int32_t HwcVideoPlane::blank(int blankOp __unused) {
+#if 0
     MESON_LOGD("HwcVideo-%d plane set blank %d", mId, blankOp);
     bool bBlank = (blankOp == UNBLANK) ? false : true;
-#if 0
     if (mBlank != bBlank) {
         uint32_t val = bBlank ? 1 : 0;
         if (ioctl(mDrvFd, FBIOPUT_OSD_SYNC_BLANK, &val) != 0) {
@@ -123,7 +123,7 @@ int32_t HwcVideoPlane::blank(int blankOp) {
     return 0;
 }
 
-void HwcVideoPlane::dump(String8 & dumpstr) {
+void HwcVideoPlane::dump(String8 & dumpstr __unused) {
 #if 0
     if (!mBlank) {
         dumpstr.appendFormat("HwcVideo%2d "

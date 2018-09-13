@@ -46,7 +46,7 @@
 */
 
 struct vmode_match_s {
-	char *name;
+	const char *name;
 	enum vmode_e mode;
 };
 
@@ -105,7 +105,7 @@ static struct vmode_match_s vmode_match_table[] = {
 */
 enum vmode_e vmode_name_to_mode(const char *str)
 {
-	int i;
+	uint32_t i;
 	enum vmode_e vmode = VMODE_MAX;
 
 	for (i = 0; i < ARRAY_SIZE(vmode_match_table); i++) {
@@ -126,8 +126,8 @@ enum vmode_e vmode_name_to_mode(const char *str)
 
 const char *vmode_mode_to_name(enum vmode_e vmode)
 {
-	int i;
-	char *str = "invalid";
+	uint32_t i;
+	const char *str = "invalid";
 
 	for (i = 0; i < ARRAY_SIZE(vmode_match_table); i++) {
 		if (vmode == vmode_match_table[i].mode) {
@@ -878,7 +878,7 @@ static const struct vinfo_s tv_info[] = {
 
 const struct vinfo_s *get_tv_info(enum vmode_e mode)
 {
-	int i = 0;
+	uint32_t i = 0;
 	for (i = 0; i < ARRAY_SIZE(tv_info); i++) {
 		if (mode == tv_info[i].mode)
 			return &tv_info[i];
@@ -934,7 +934,7 @@ int want_hdmi_mode(enum vmode_e mode)
 */
 //search
 const struct vinfo_s * findMatchedMode(u32 width, u32 height, u32 refreshrate) {
-	int i = 0;
+	uint32_t i = 0;
 	for (i = 0; i < ARRAY_SIZE(tv_info); i++) {
 		if (tv_info[i].width == width && tv_info[i].height == height &&
 			tv_info[i].field_height == height && tv_info[i].sync_duration_num == refreshrate) {

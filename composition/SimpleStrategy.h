@@ -57,7 +57,7 @@ protected:
     bool isPlaneSupported(std::shared_ptr<DrmFramebuffer> & fb);
     void sortLayersByZ(std::vector<std::shared_ptr<DrmFramebuffer>> &layers);
     void sortLayersByZReversed(std::vector<std::shared_ptr<DrmFramebuffer>> &layers);
-    void changeDeviceToClientByZ(int32_t from, int32_t to);
+    void changeDeviceToClientByZ(uint32_t from, uint32_t to);
 
     int32_t makeCurrentOsdPlanes(int32_t &numConflictPlanes);
     bool isVideoLayer(std::shared_ptr<DrmFramebuffer> &layer);

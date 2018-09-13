@@ -215,7 +215,7 @@ struct vinfo_base_s {
 };
 
 struct vinfo_s {
-	char *name;
+	const char *name;
 	enum vmode_e mode;
 	u32 width;
 	u32 height;

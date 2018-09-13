@@ -13,6 +13,7 @@
 
 #include <fcntl.h>
 #include <stdlib.h>
+#include <string.h>
 #include <errno.h>
 #include <MesonLog.h>
 
@@ -24,7 +25,7 @@ int32_t sys_get_string_prop(const char *prop, char *val) {
     return property_get(prop, val, NULL);
 }
 
-int32_t sys_set_prop(const char *prop, char *val) {
+int32_t sys_set_prop(const char *prop, const char *val) {
     return property_set(prop, val);
 }
 
