@@ -45,7 +45,7 @@ int32_t HwDisplayManager::getHwDisplayIds(uint32_t * displayNum,
     *displayNum = count_pipes;
 
     if (hwDisplayIds) {
-        int i;
+        uint32_t i;
         for (i = 0 ;i < count_pipes; ++i) {
             hwDisplayIds[i] = pipes[i].crtc_id;
         }
@@ -56,12 +56,13 @@ int32_t HwDisplayManager::getHwDisplayIds(uint32_t * displayNum,
 
 int32_t HwDisplayManager::getPlanes(uint32_t hwDisplayId,
     std::vector<std::shared_ptr<HwDisplayPlane>> & planes) {
-    int ret = -ENXIO, i = 0;
+    int ret = -ENXIO;
+    uint32_t i = 0;
     mMutex.lock();
     planes.clear();
     for (i = 0; i < count_pipes; i ++) {
         if (pipes[i].crtc_id == hwDisplayId) {
-            int iplane = 0;
+            uint32_t iplane = 0;
             for (iplane = 0; iplane < pipes[i].planes_num; iplane ++) {
                 planes.push_back(mPlanes.find(pipes[i].plane_ids[iplane])->second);
             }
@@ -75,7 +76,8 @@ int32_t HwDisplayManager::getPlanes(uint32_t hwDisplayId,
 
 int32_t HwDisplayManager::getCrtc(hw_display_id hwDisplayId,
         std::shared_ptr<HwDisplayCrtc> & crtc) {
-    int ret = -ENXIO, i = 0;
+    int ret = -ENXIO;
+    uint32_t i = 0;
     mMutex.lock();
     for (i = 0; i < count_pipes; i ++) {
         if (pipes[i].crtc_id == hwDisplayId) {
@@ -89,7 +91,8 @@ int32_t HwDisplayManager::getCrtc(hw_display_id hwDisplayId,
 
 int32_t HwDisplayManager::getConnector(hw_display_id hwDisplayId,
         std::shared_ptr<HwDisplayConnector> & connector) {
-    int ret = -ENXIO, i = 0;
+    int ret = -ENXIO;
+    uint32_t i = 0;
     mMutex.lock();
     for (i = 0; i < count_pipes; i ++) {
         if (pipes[i].crtc_id == hwDisplayId) {
@@ -133,7 +136,7 @@ void HwDisplayManager::handle(drm_display_event event, int val) {
             {
                 MESON_LOGD("Primary boot observer size %d.", mObserver.size());
                 for (it = mObserver.begin(); it != mObserver.end(); ++it)
-                    for (int i = 0; i < count_pipes; i++)
+                    for (uint32_t i = 0; i < count_pipes; i++)
                         if (pipes[i].crtc_id == it->first) {
                             it->second->onHotplug((val == 0) ? false : true);
                             break;
@@ -145,7 +148,7 @@ void HwDisplayManager::handle(drm_display_event event, int val) {
             {
                 MESON_LOGD("Hotplug observer size %d.", mObserver.size());
                 for (it = mObserver.begin(); it != mObserver.end(); ++it)
-                    for (int i = 0; i < count_pipes; i++)
+                    for (uint32_t i = 0; i < count_pipes; i++)
                         if (pipes[i].crtc_id == it->first &&
                             mConnectors[pipes[i].connector_id]->getType() ==
                             DRM_MODE_CONNECTOR_HDMI) {
@@ -210,8 +213,8 @@ void HwDisplayManager::onVsync(int64_t timestamp) {
 }
 
 void HwDisplayManager::dump(String8 & dumpstr) {
-    int i = 0;
-   dumpstr.append("---------------------------------------------------------"
+    uint32_t i = 0;
+    dumpstr.append("---------------------------------------------------------"
        "-----------------------------\n");
 
     for (i = 0; i < count_pipes; i ++) {
@@ -252,7 +255,7 @@ int32_t HwDisplayManager::loadDrmResources() {
     connector_ids = new uint32_t [count_connectors];
     connector_ids[0] = CONNECTOR_IDX_MIN + 0;
 
-    int i = 0;
+    uint32_t i = 0;
     for (; i < count_crtcs; i++) {
         loadCrtc(crtc_ids[i]);
     }
@@ -322,7 +325,7 @@ int32_t HwDisplayManager::loadPlanes() {
     char path[64];
     int count_osd = 0, count_video = 0;
     int idx = 0, plane_idx = 0, video_idx_max = 0;
-    int capability = 0x0, planeType = 0;
+    int capability = 0x0;
 
     do {
         snprintf(path, 64, "/dev/graphics/fb%u", idx);

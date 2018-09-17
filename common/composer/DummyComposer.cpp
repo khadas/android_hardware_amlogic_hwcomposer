@@ -24,7 +24,7 @@ bool DummyComposer::isCompositionSupport(
 }
 
 bool DummyComposer::isFbSupport(
-    std::shared_ptr<DrmFramebuffer> & fb) {
+    std::shared_ptr<DrmFramebuffer> & fb __unused) {
     return true;
 }
 
@@ -33,18 +33,18 @@ int32_t DummyComposer::prepare() {
 }
 
 meson_compositon_t DummyComposer::getCompostionType(
-    std::shared_ptr<DrmFramebuffer> & fb) {
+    std::shared_ptr<DrmFramebuffer> & fb __unused) {
     return MESON_COMPOSITION_DUMMY;
 }
 
 int32_t DummyComposer::addInput(
-    std::shared_ptr<DrmFramebuffer> & fb) {
+    std::shared_ptr<DrmFramebuffer> & fb __unused) {
     return 0;
 }
 
 int32_t DummyComposer::setOutput(
-    std::shared_ptr<DrmFramebuffer> & fb,
-    hwc_region_t damage) {
+    std::shared_ptr<DrmFramebuffer> & fb __unused,
+    hwc_region_t damage __unused) {
     return 0;
 }
 

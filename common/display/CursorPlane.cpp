@@ -18,9 +18,9 @@ static inline size_t round_up_to_page_size(size_t x)
 
 CursorPlane::CursorPlane(int32_t drvFd, uint32_t id)
     : HwDisplayPlane(drvFd, id),
-      mDrmFb(NULL),
+      mLastTransform(0),
       mCursorPlaneBlank(false),
-      mLastTransform(0) {
+      mDrmFb(NULL) {
     snprintf(mName, 64, "CURSOR-%d", id);
 }
 
@@ -132,10 +132,9 @@ int32_t CursorPlane::updateCursorBuffer() {
                                 NULL, mPlaneInfo.fbSize, PROT_READ|PROT_WRITE,
                                 MAP_SHARED, mPlaneInfo.shared_fd, 0);
 
-            uint32_t irow = 0;
             char* cpyDst = (char*)cbuffer;
             char* cpySrc = (char*)base;
-            for (irow = 0; irow < mPlaneInfo.buf_h; irow++) {
+            for (int irow = 0; irow < mPlaneInfo.buf_h; irow++) {
                 memcpy(cpyDst, cpySrc, bppX * mPlaneInfo.buf_w);
                 cpyDst += bppX * cbwidth;
                 cpySrc += bppX * mPlaneInfo.stride;

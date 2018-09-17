@@ -25,7 +25,7 @@ bool ClientComposer::isCompositionSupport(
 }
 
 bool ClientComposer::isFbSupport(
-    std::shared_ptr<DrmFramebuffer> &fb) {
+    std::shared_ptr<DrmFramebuffer> &fb __unused) {
     return true;
 }
 
@@ -34,18 +34,18 @@ int32_t ClientComposer::prepare() {
 }
 
 meson_compositon_t ClientComposer::getCompostionType(
-    std::shared_ptr<DrmFramebuffer> &fb) {
+    std::shared_ptr<DrmFramebuffer> &fb __unused) {
     return MESON_COMPOSITION_CLIENT;
 }
 
 int32_t ClientComposer::addInput(
-    std::shared_ptr<DrmFramebuffer> &fb) {
+    std::shared_ptr<DrmFramebuffer> &fb __unused) {
     return 0;
 }
 
 int32_t ClientComposer::setOutput(
     std::shared_ptr<DrmFramebuffer> &fb,
-    hwc_region_t damage) {
+    hwc_region_t damage __unused) {
 
     mClientTarget = fb;
     return 0;

@@ -13,9 +13,9 @@
 
 OsdPlane::OsdPlane(int32_t drvFd, uint32_t id)
     : HwDisplayPlane(drvFd, id),
-      mDrmFb(NULL),
       mFirstPresent(true),
-      mBlank(true) {
+      mBlank(true),
+      mDrmFb(NULL) {
     mPlaneInfo.out_fen_fd = -1;
     mPlaneInfo.op = 0x0;
     snprintf(mName, 64, "OSD-%d", id);
@@ -80,10 +80,13 @@ int32_t OsdPlane::getFixedZorder() {
 }
 
 int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
+    MESON_LOG_FUN_ENTER();
+
     if (mDrvFd < 0) {
         MESON_LOGE("osd plane fd is not valiable!");
         return -EBADF;
     }
+    //MESON_LOGE("osd%d setPlane", mId-30);
 
     // close uboot logo, if bootanim begin to show
     if (mFirstPresent) {
@@ -154,7 +157,7 @@ int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
 }
 
 int32_t OsdPlane::blank(int blankOp) {
-//    MESON_LOGD("osd%d plane set blank %d", mId-30, blank);
+    //MESON_LOGE("osd%d plane set blank %d", mId-30, blankOp);
     bool bBlank = (blankOp == UNBLANK) ? false : true;
 
     if (mBlank != bBlank) {

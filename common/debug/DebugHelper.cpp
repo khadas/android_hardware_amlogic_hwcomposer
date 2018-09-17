@@ -120,8 +120,8 @@ void DebugHelper::resolveCmd() {
             mDumpUsage = false;
 
             int paramNum = 0;
+            const char * delimit = " ";
             char * paramArray [MAX_DEBUG_COMMANDS + 1] = {NULL};
-            char * delimit = " ";
             char * param = strtok(debugCmd, delimit);
 
             while (param != NULL) {
@@ -264,7 +264,7 @@ bool DebugHelper::disableUiHwc() {
     return sys_get_bool_prop(LEGACY_DEBUG_DISABLE_HWC, false);
 }
 
-void DebugHelper::removeDebugLayer(int id) {
+void DebugHelper::removeDebugLayer(int id __unused) {
     #if 0/*useless now.*/
     /*remove hide layer*/
     removeHideLayer(id);

@@ -91,7 +91,6 @@ void * HwDisplayVsync::vsyncThread(void * data) {
 int32_t HwDisplayVsync::waitSoftwareVsync(nsecs_t& vsync_timestamp) {
     static nsecs_t vsync_time = 0;
     static nsecs_t old_vsync_period = 0;
-    nsecs_t sleep;
     nsecs_t now = systemTime(CLOCK_MONOTONIC);
 
     mPeriod = (mPeriod == 0) ? SF_VSYNC_DFT_PERIOD : mPeriod;

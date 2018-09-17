@@ -169,12 +169,12 @@ LOCAL_SHARED_LIBRARIES := \
 LOCAL_STATIC_LIBRARIES := \
     libomxutil
 
-#For Android O,and later
-ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 26 && echo OK),OK)
+#For Android p,and later
+ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 28 && echo OK),OK)
 LOCAL_PROPRIETARY_MODULE := true
 # added for treble
 LOCAL_SHARED_LIBRARIES += \
-    vendor.amlogic.hardware.systemcontrol@1.0_vendor \
+    vendor.amlogic.hardware.systemcontrol@1.0 \
     libbase \
     libhidlbase \
     libhidltransport

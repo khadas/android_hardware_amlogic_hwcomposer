@@ -132,7 +132,6 @@ protected:
 
 private:
     bool mFirstCallBackSF;
-    bool mLoadInfoStatus;
 
     std::mutex Mutex;
     std::condition_variable cv;

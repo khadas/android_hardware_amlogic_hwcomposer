@@ -86,7 +86,7 @@ hwc2_error_t  FixedSizeModeMgr::getDisplayConfigs(
 }
 
 hwc2_error_t  FixedSizeModeMgr::getDisplayAttribute(
-    hwc2_config_t config, int32_t attribute, int32_t * outValue) {
+    hwc2_config_t config __unused, int32_t attribute, int32_t * outValue) {
     switch (attribute) {
         case HWC2_ATTRIBUTE_WIDTH:
             *outValue = mCurMode.pixelW;

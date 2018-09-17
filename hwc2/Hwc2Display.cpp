@@ -186,8 +186,8 @@ hwc2_error_t Hwc2Display::destroyLayer(hwc2_layer_t  inLayer) {
     return HWC2_ERROR_NONE;
 }
 
-hwc2_error_t Hwc2Display::setCursorPosition(hwc2_layer_t layer,
-    int32_t x, int32_t y) {
+hwc2_error_t Hwc2Display::setCursorPosition(hwc2_layer_t layer __unused,
+    int32_t x __unused, int32_t y __unused) {
     MESON_LOG_EMPTY_FUN();
     return HWC2_ERROR_NONE;
 }
@@ -312,6 +312,7 @@ hwc2_error_t Hwc2Display::collectComposersForPresent() {
 
 hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
     uint32_t* outNumRequests) {
+    MESON_LOG_FUN_ENTER();
     hwc2_error_t ret = collectLayersForPresent();
     if (ret != HWC2_ERROR_NONE) {
         return ret;
@@ -441,6 +442,8 @@ hwc2_error_t Hwc2Display::acceptDisplayChanges() {
 }
 
 hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
+    MESON_LOG_FUN_ENTER();
+
     int32_t outFence = -1;
 
     /*Pre page flip, set display position*/
@@ -571,7 +574,7 @@ bool Hwc2Display::isLayerHideForDebug(hwc2_layer_t id) {
 
     std::vector<int>::iterator it = hideLayers.begin();
     for (;it < hideLayers.end(); it++) {
-        if (*it == id) {
+        if (*it == (int)id) {
             return true;
         }
     }

@@ -25,7 +25,7 @@ public:
     uint32_t getCapabilities();
     int32_t getFixedZorder();
 
-    int32_t updateZoomInfo(display_zoom_info_t zoomInfo) {return 0;}
+    int32_t updateZoomInfo(display_zoom_info_t zoomInfo __unused) {return 0;}
     int32_t setPlane(std::shared_ptr<DrmFramebuffer> & fb);
     int32_t blank(int blankOp);
 

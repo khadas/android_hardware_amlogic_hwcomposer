@@ -319,7 +319,7 @@ int32_t  hwc2_set_layer_z_order(
     return mesonhwc->setLayerZorder(display, layer, z);
 }
 
-hwc2_function_pointer_t hwc2_getFunction(struct hwc2_device* device,
+hwc2_function_pointer_t hwc2_getFunction(struct hwc2_device* device __unused,
         int32_t descriptor) {
     switch (descriptor) {
         case HWC2_FUNCTION_ACCEPT_DISPLAY_CHANGES:
@@ -464,7 +464,7 @@ static int hwc2_device_open(
 }
 
 static struct hw_module_methods_t hwc2_module_methods = {
-    open : hwc2_device_open
+    .open = hwc2_device_open
 };
 
 typedef struct hwc2_module {
@@ -473,7 +473,7 @@ typedef struct hwc2_module {
 } hwc2_module_t;
 
 hwc_module_t HAL_MODULE_INFO_SYM = {
-    common: {
+    .common = {
         .tag = HARDWARE_MODULE_TAG,
         .version_major = 2,
         .version_minor = 0,

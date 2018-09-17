@@ -44,7 +44,6 @@ const char * drmFbTypeToString(drm_fb_type_t fbtype) {
 }
 
 const char * drmPlaneTypeToString(drm_plane_type_t planetype) {
-    const char * typeStr;
     switch (planetype) {
         case INVALID_PLANE:
             return "NULL";
