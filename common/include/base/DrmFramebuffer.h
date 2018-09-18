@@ -13,7 +13,6 @@
 #include <cutils/native_handle.h>
 
 #include <BasicTypes.h>
-#include <Composition.h>
 #include <DrmSync.h>
 #include <DrmTypes.h>
 
@@ -31,6 +30,9 @@ public:
     int32_t setReleaseFence(int32_t fenceFd);
     /*dup current release fence.*/
     int32_t getReleaseFence();
+
+    bool isScaled();
+    bool isRotated();
 
 protected:
     void setBufferInfo(const native_handle_t * bufferhnd, int32_t acquireFence);
@@ -52,9 +54,7 @@ public:
     int32_t mDataspace;
     bool mSecure;
 
-    meson_compositon_t mCompositionType;
-
-    int32_t mComposeToType;
+    int32_t mCompositionType;
 
 protected:
     std::shared_ptr<DrmFence> mAcquireFence;

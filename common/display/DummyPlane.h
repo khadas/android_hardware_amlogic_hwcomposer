@@ -19,7 +19,7 @@ public:
     uint32_t getPlaneType();
     uint32_t getCapabilities();
 
-    int32_t setPlane(std::shared_ptr<DrmFramebuffer> & fb);
+    int32_t setPlane(std::shared_ptr<DrmFramebuffer> & fb, uint32_t zorder);
     int32_t blank(int blankOp);
 
     void dump(String8 & dumpstr);

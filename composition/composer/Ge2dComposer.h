@@ -9,12 +9,12 @@
 
 #ifndef GE2D_COMPOSER_H
 #define GE2D_COMPOSER_H
-#include <IComposeDevice.h>
+#include <IComposer.h>
 
 #define GE2D_COMPOSER_NAME "GE2D"
 
 
-class Ge2dComposer : public IComposeDevice {
+class Ge2dComposer : public IComposer {
 public:
 };
 

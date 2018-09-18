@@ -8,8 +8,8 @@
  */
 
 #include <BitsMap.h>
-#include <MesonLog.h>
 #include <string.h>
+#include <MesonLog.h>
 
 #define BYTE_IDX(idx) (idx >> 3)
 #define BIT_OFFSET(idx) (idx & 0x7)

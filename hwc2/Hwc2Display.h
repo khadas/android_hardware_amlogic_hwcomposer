@@ -20,7 +20,7 @@
 #include <BitsMap.h>
 
 #include <ComposerFactory.h>
-#include <IComposeDevice.h>
+#include <IComposer.h>
 #include <ICompositionStrategy.h>
 #include "Hwc2Layer.h"
 #include "MesonHwc2Defs.h"
@@ -128,7 +128,7 @@ protected:
     std::vector<std::shared_ptr<HwDisplayPlane>> mPlanes;
 
     /*composition releated components*/
-    std::map<meson_composer_t, std::shared_ptr<IComposeDevice>> mComposers;
+    std::map<meson_composer_t, std::shared_ptr<IComposer>> mComposers;
     std::shared_ptr<ICompositionStrategy> mCompositionStrategy;
 
     /*display configs*/
@@ -141,7 +141,7 @@ protected:
 
     /* members used in present.*/
     std::vector<std::shared_ptr<DrmFramebuffer>> mPresentLayers;
-    std::vector<std::shared_ptr<IComposeDevice>> mPresentComposers;
+    std::vector<std::shared_ptr<IComposer>> mPresentComposers;
     std::vector<std::shared_ptr<HwDisplayPlane>> mPresentPlanes;
 
     std::vector<hwc2_layer_t> mChangedLayers;

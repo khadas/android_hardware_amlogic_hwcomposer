@@ -8,27 +8,29 @@
  */
 #include <Composition.h>
 
-bool isOverlayComposition(meson_compositon_t type) {
-        if (type == MESON_COMPOSITION_PLANE_AMVIDEO
-            || type == MESON_COMPOSITION_PLANE_AMVIDEO_SIDEBAND)
-            return true;
-        else
-            return false;
+bool isVideoPlaneComposition(int meson_composition_type) {
+    if (meson_composition_type == MESON_COMPOSITION_PLANE_AMVIDEO
+        || meson_composition_type == MESON_COMPOSITION_PLANE_AMVIDEO_SIDEBAND
+        || meson_composition_type == MESON_COMPOSITION_PLANE_HWCVIDEO) {
+        return true;
+    }
+
+    return false;
 }
 
-bool isComposerComposition(meson_compositon_t type) {
-    if (type == MESON_COMPOSITION_CLIENT
-        || type == MESON_COMPOSITION_GE2D
-        || type == MESON_COMPOSITION_DUMMY)
+bool isComposerComposition(int meson_composition_type) {
+    if (meson_composition_type == MESON_COMPOSITION_CLIENT
+        || meson_composition_type == MESON_COMPOSITION_GE2D
+        || meson_composition_type == MESON_COMPOSITION_DUMMY)
         return true;
     else
         return false;
 }
 
 const char* compositionTypeToString(
-    meson_compositon_t compType) {
+    int meson_composition_type) {
     const char * compStr = "NONE";
-    switch (compType) {
+    switch (meson_composition_type) {
         case MESON_COMPOSITION_UNDETERMINED:
             compStr = "NONE";
             break;

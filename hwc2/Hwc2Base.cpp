@@ -9,8 +9,7 @@
 
 #include "Hwc2Base.h"
 
-hwc2_composition_t mesonComp2Hwc2Comp(
-    meson_compositon_t type) {
+hwc2_composition_t mesonComp2Hwc2Comp(int type) {
     hwc2_composition_t hwcCompostion;
     switch (type) {
         case MESON_COMPOSITION_CLIENT:

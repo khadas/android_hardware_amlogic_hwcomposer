@@ -81,7 +81,7 @@ LOCAL_C_INCLUDES := \
     $(LOCAL_PATH)/common/include/base \
     $(LOCAL_PATH)/common/include/utils \
     $(LOCAL_PATH)/common/include/debug \
-    $(LOCAL_PATH)/composition \
+    $(LOCAL_PATH)/composition/include \
     system/core/libsync \
     system/core/libsync/include \
     system/core/include \
@@ -107,18 +107,7 @@ endif
 LOCAL_COMMON_BASE_FILES := \
     common/base/DrmFramebuffer.cpp \
     common/base/DrmSync.cpp \
-    common/base/DrmTypes.cpp \
-    common/base/Composition.cpp
-
-LOCAL_COMMON_COMPOSER_FILES := \
-    common/composer/ComposerFactory.cpp \
-    common/composer/ClientComposer.cpp \
-    common/composer/DummyComposer.cpp
-
-ifeq ($(TARGET_SUPPORT_GE2D_COMPOSITION),true)
-LOCAL_COMMON_COMPOSER_FILES += \
-    common/composer/GE2DComposer.cpp
-endif
+    common/base/DrmTypes.cpp
 
 LOCAL_COMMON_DISPLAY_FILES  := \
     common/display/HwDisplayManager.cpp \
@@ -144,8 +133,17 @@ LOCAL_COMMON_UTILS_FILES  := \
     common/debug/DebugHelper.cpp
 
 LOCAL_COMPOSITION_FILES := \
+    composition/Composition.cpp \
     composition/CompositionStrategyFactory.cpp \
-    composition/SimpleStrategy.cpp
+    composition/composer/ComposerFactory.cpp \
+    composition/composer/ClientComposer.cpp \
+    composition/composer/DummyComposer.cpp \
+    composition/simplestrategy/SingleplaneComposition/SingleplaneComposition.cpp
+
+ifeq ($(TARGET_SUPPORT_GE2D_COMPOSITION),true)
+LOCAL_COMPOSITION_FILES += \
+    common/composer/GE2DComposer.cpp
+endif
 
 ifeq ($(USE_HWC1),true)
 #LOCAL_HWC_FILES :=

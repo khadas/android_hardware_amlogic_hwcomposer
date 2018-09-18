@@ -74,11 +74,13 @@ typedef enum {
 } drm_plane_type_t;
 
 typedef enum {
-    PLANE_SUPPORT_ZORDER = (1 << 0),
-    PLANE_SUPPORT_FREE_SCALE = (1 << 1),
-    PLANE_SHOW_LOGO = (1 << 2),
-    PLANE_VIDEO_CONFLICT = (1 << 3),
-    PLANE_PRIMARY = (1 << 4),
+    PLANE_SHOW_LOGO = (1 << 0),
+    PLANE_SUPPORT_ZORDER = (1 << 1),
+    PLANE_SUPPORT_FREE_SCALE = (1 << 2),
+    PLANE_PRIMARY = (1 << 3),
+    PLANE_NO_PRE_BLEND = (1 << 4),
+    PLANE_PRE_BLEND_1 = (1 << 5),
+    PLANE_PRE_BLEND_2  = (1 << 6),
 } drm_plane_capacity_t;
 
 typedef enum {
@@ -110,7 +112,22 @@ typedef struct drm_hdr_capabilities {
     int minLuminance;
 } drm_hdr_capabilities_t;
 
+/*Defines for old VPU(p212)
+ *The gap between different plane
+ *is left for variable zorder plane.
+ */
+enum PLANE_ZORDER {
+    LEGACY_VIDEO_PLANE_FIXED_ZORDER = 0x400,
+    OSD_PLANE_FIXED_ZORDER = 0x800,
+    /*Cursor plane will always on top of other layers.*/
+    CURSOR_PLANE_FIXED_ZORDER = 0xFFF,
+    MAX_PLANE_ZORDER = 0xFFFFFFFF,
+};
+
+#define VARIABLE_PLANE_ZORDER MAX_PLANE_ZORDER
+
 const char * drmPlaneTypeToString(drm_plane_type_t planetype);
 const char * drmFbTypeToString(drm_fb_type_t fbtype);
+const char * drmPlaneBlankToString(drm_plane_blank_t planetype);
 
 #endif/*DRM_TYPES_H*/

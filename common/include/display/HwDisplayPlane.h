@@ -36,7 +36,7 @@ public:
     virtual int32_t getFixedZorder() = 0;
 
     virtual int32_t updateZoomInfo(display_zoom_info_t zoomInfo) = 0;
-    virtual int32_t setPlane(std::shared_ptr<DrmFramebuffer> & fb) = 0;
+    virtual int32_t setPlane(std::shared_ptr<DrmFramebuffer> & fb, uint32_t zorder) = 0;
     virtual int32_t blank(int blankOp) = 0;
 
     /*For debug, plane return a invalid type.*/

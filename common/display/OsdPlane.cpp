@@ -36,20 +36,28 @@ int32_t OsdPlane::getProperties() {
         return 0;
     }
 
-    if (capacity & OSD_ZORDER_EN) {
+    if (capacity & OSD_UBOOT_LOGO) {
+        mCapability |= PLANE_SHOW_LOGO;
+    }
+    if (capacity & OSD_ZORDER) {
         mCapability |= PLANE_SUPPORT_ZORDER;
+    }
+    if (capacity & OSD_PRIMARY) {
+        mCapability |= PLANE_PRIMARY;
     }
     if (capacity & OSD_FREESCALE) {
         mCapability |= PLANE_SUPPORT_FREE_SCALE;
     }
-    if (capacity & OSD_UBOOT_LOGO) {
-        mCapability |= PLANE_SHOW_LOGO;
+    if (capacity & OSD_PRE_SCALE) {
+        mCapability |= PLANE_SUPPORT_FREE_SCALE;
     }
-    if (capacity & OSD_VIDEO_CONFLICT) {
-        mCapability |= PLANE_VIDEO_CONFLICT;
-    }
-    if (capacity & OSD_PLANE_PRIMARY) {
-        mCapability |= PLANE_PRIMARY;
+
+    if (capacity & OSD_NO_PRE_BLEND) {
+        mCapability |= PLANE_NO_PRE_BLEND;
+    } else if (capacity & OSD_PRE_BLEND_1) {
+        mCapability |= PLANE_PRE_BLEND_1;
+    } else if (capacity & OSD_PRE_BLEND_2){
+        mCapability |= PLANE_PRE_BLEND_2;
     }
 
     return 0;
@@ -73,15 +81,13 @@ uint32_t OsdPlane::getCapabilities() {
 
 int32_t OsdPlane::getFixedZorder() {
     if (mCapability & PLANE_SUPPORT_ZORDER) {
-        return PLANE_VARIABLE_ZORDER;
+        return MAX_PLANE_ZORDER;
     }
 
     return OSD_PLANE_FIXED_ZORDER;
 }
 
-int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
-    MESON_LOG_FUN_ENTER();
-
+int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb, uint32_t zorder) {
     if (mDrvFd < 0) {
         MESON_LOGE("osd plane fd is not valiable!");
         return -EBADF;
@@ -126,7 +132,7 @@ int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
     mPlaneInfo.byte_stride   = am_gralloc_get_stride_in_byte(buf);
     mPlaneInfo.pixel_stride  = am_gralloc_get_stride_in_pixel(buf);
     /* osd request plane zorder > 0 */
-    mPlaneInfo.zorder        = fb->mZorder + 1;
+    mPlaneInfo.zorder        = zorder + 1;
     mPlaneInfo.blend_mode    = fb->mBlendMode;
     mPlaneInfo.plane_alpha   = fb->mPlaneAlpha;
     mPlaneInfo.op            &= ~(OSD_BLANK_OP_BIT);

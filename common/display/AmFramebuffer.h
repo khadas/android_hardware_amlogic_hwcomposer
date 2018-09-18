@@ -22,13 +22,18 @@ Amlogic defined ioctl, masks.
 #define HWC_ALIGN( value, base ) (((value) + ((base) - 1)) & ~((base) - 1))
 
 enum {
-    OSD_HW_CURSOR        = (1 << 0),
-    OSD_VIDEO_CONFLICT   = (1 << 1),
-    OSD_FREESCALE        = (1 << 2),
-    OSD_UBOOT_LOGO       = (1 << 3),
-    OSD_ZORDER_EN        = (1 << 4),
-    OSD_PLANE_PRIMARY    = (1 << 5),
-    OSD_LAYER_ENABLE     = (1 << 31),
+    OSD_HW_CURSOR = (1 << 0),
+    OSD_UBOOT_LOGO = (1 << 1),
+    OSD_ZORDER = (1 << 2),
+    OSD_PRIMARY = (1 << 3),
+    OSD_FREESCALE = (1 << 4),
+    OSD_PRE_SCALE = (1 << 5),
+    OSD_NO_PRE_BLEND = (1 << 6),
+    OSD_PRE_BLEND_1 = (1 << 7),
+    OSD_PRE_BLEND_2 = (1 << 8),
+    OSD_VIU2 = (1 << 29),
+    OSD_VIU1 = (1 << 30),
+    OSD_LAYER_ENABLE = (1 << 31)
 };
 
 enum {
@@ -130,14 +135,6 @@ typedef struct cursor_plane_info_t {
 #define CONNECTOR_IDX_MIN (20)
 #define OSD_PLANE_IDX_MIN (30)
 #define VIDEO_PLANE_IDX_MIN (40)
-
-/*Defines for old VPU(p212)*/
-#define CURSOR_PLANE_FIXED_ZORDER (3)
-#define OSD_PLANE_FIXED_ZORDER (2)
-#define LEGACY_VIDEO_PLANE_FIXED_ZORDER (1)
-
-/*FOR NEW VPU WHICH Support plane with variable zorder.*/
-#define PLANE_VARIABLE_ZORDER (-1)
 
 
 #endif/*AM_FRAMEBUFFER_H*/

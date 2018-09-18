@@ -16,7 +16,7 @@
 #include <MesonLog.h>
 #include <DebugHelper.h>
 #include <Composition.h>
-#include <IComposeDevice.h>
+#include <IComposer.h>
 #include <ComposerFactory.h>
 #include <CompositionStrategyFactory.h>
 
@@ -47,43 +47,48 @@ Hwc2Display::~Hwc2Display() {
 }
 
 int32_t Hwc2Display::initialize() {
+    if (MESON_DUMMY_DISPLAY_ID != mHwId) {
+        HwDisplayManager::getInstance().registerObserver(mHwId, this);
+     } else {
+        MESON_LOGE("Init Hwc2Display with dummy display.");
+     }
+
     /*get hw components.*/
     mModeMgr = createModeMgr(HwcModeMgr::FIXED_SIZE_POLICY);
 
-    if (MESON_DUMMY_DISPLAY_ID == mHwId) {
-        MESON_LOGE("Init Hwc2Display with dummy display.");
-     } else {
-        HwDisplayManager::getInstance().registerObserver(mHwId, this);
-        HwDisplayManager::getInstance().getCrtc(mHwId, mCrtc);
-     }
-
     /*add valid composers*/
-    std::shared_ptr<IComposeDevice> composer;
+    std::shared_ptr<IComposer> composer;
     ComposerFactory::create(MESON_CLIENT_COMPOSER, composer);
     mComposers.emplace(MESON_CLIENT_COMPOSER, std::move(composer));
     ComposerFactory::create(MESON_DUMMY_COMPOSER, composer);
     mComposers.emplace(MESON_DUMMY_COMPOSER, std::move(composer));
-
 #if defined(HWC_ENABLE_GE2D_COMPOSITION)
+    //TODO: havenot finish ge2d composer.
     ComposerFactory::create(MESON_GE2D_COMPOSER, composer);
     mComposers.emplace(MESON_GE2D_COMPOSER, std::move(composer));
 #endif
-
-    /* load composition stragetic.*/
-    mCompositionStrategy = CompositionStrategyFactory::create(SIMPLE_STRATEGY, 0);
-    if (!mCompositionStrategy) {
-        MESON_LOGE("Hwc2Display load composition stragegy failed.");
-    }
 
     return 0;
 }
 
 void Hwc2Display::loadDisplayResources() {
+    if (MESON_DUMMY_DISPLAY_ID == mHwId)
+        return;
+
+    HwDisplayManager::getInstance().registerObserver(mHwId, this);
+    HwDisplayManager::getInstance().getCrtc(mHwId, mCrtc);
     HwDisplayManager::getInstance().getPlanes(mHwId, mPlanes);
     HwDisplayManager::getInstance().getConnector(mHwId, mConnector);
 
     mConnector->loadProperities();
     mConnector->getHdrCapabilities(&mHdrCaps);
+
+    mModeMgr->setDisplayResources(mCrtc, mConnector);
+
+    mCompositionStrategy = CompositionStrategyFactory::create(SIMPLE_STRATEGY, 0);
+    if (!mCompositionStrategy) {
+        MESON_LOGE("Hwc2Display load composition strategy failed.");
+    }
 }
 
 const char * Hwc2Display::getName() {
@@ -108,7 +113,6 @@ void Hwc2Display::onVsync(int64_t timestamp) {
 void Hwc2Display::onHotplug(bool connected) {
     MESON_LOGD("On hot plug: [%s]", connected == true ? "Plug in" : "Plug out");
     loadDisplayResources();
-    mModeMgr->setDisplayResources(mCrtc, mConnector);
     mIsConnected = connected;
 
     if (mObserver != NULL) {
@@ -205,8 +209,7 @@ hwc2_error_t Hwc2Display::setColorTransform(const float* matrix,
     return HWC2_ERROR_NONE;
 }
 
-hwc2_error_t Hwc2Display::setPowerMode(hwc2_power_mode_t mode) {
-    UNUSED(mode);
+hwc2_error_t Hwc2Display::setPowerMode(hwc2_power_mode_t mode __unused) {
     MESON_LOG_EMPTY_FUN();
     return HWC2_ERROR_NONE;
 }
@@ -301,7 +304,7 @@ hwc2_error_t Hwc2Display::collectPlanesForPresent() {
 hwc2_error_t Hwc2Display::collectComposersForPresent() {
     mPresentComposers.clear();
 
-    std::map<meson_composer_t, std::shared_ptr<IComposeDevice>>::iterator it =
+    std::map<meson_composer_t, std::shared_ptr<IComposer>>::iterator it =
         mComposers.begin();
     for ( ; it != mComposers.end(); it++) {
         mPresentComposers.push_back(it->second);
@@ -339,7 +342,7 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
 #endif
 
     /*setup composition strategy.*/
-    mCompositionStrategy->setUp(mPresentLayers,
+    mCompositionStrategy->setup(mPresentLayers,
         mPresentComposers, mPresentPlanes, compositionFlags);
     if (mCompositionStrategy->decideComposition() < 0) {
         return HWC2_ERROR_NO_RESOURCES;
@@ -355,38 +358,27 @@ hwc2_error_t Hwc2Display::collectCompositionRequest(
     mOverlayLayers.clear();
 
     Hwc2Layer *layer;
-    std::vector<std::shared_ptr<DrmFramebuffer>>::iterator firstClientLayer;
-    std::vector<std::shared_ptr<DrmFramebuffer>>::iterator lastClientLayer;
-    firstClientLayer = lastClientLayer = mPresentLayers.end();
-
     /*collect display requested, and changed composition type.*/
     std::vector<std::shared_ptr<DrmFramebuffer>>::iterator it;
     for (it = mPresentLayers.begin() ; it != mPresentLayers.end(); it++) {
         layer = (Hwc2Layer*)(it->get());
-
         /*record composition changed layer.*/
         hwc2_composition_t expectedHwcComposition =
             mesonComp2Hwc2Comp(layer->mCompositionType);
         if (expectedHwcComposition  != layer->mHwcCompositionType) {
             mChangedLayers.push_back(layer->getUniqueId());
         }
-
-        /*find first/last client layers.*/
-        if (layer->mCompositionType == MESON_COMPOSITION_CLIENT) {
-            if (firstClientLayer == mPresentLayers.end()) {
-                firstClientLayer = it;
-            }
-            lastClientLayer = it;
-        }
     }
 
-    /*collect overlay layers between client layers.*/
-    if (firstClientLayer != mPresentLayers.end()) {
-        for (it = firstClientLayer; it != lastClientLayer; it++) {
+    /*collcet client clear layer.*/
+    std::shared_ptr<IComposer> clientComposer =
+        mComposers.find(MESON_CLIENT_COMPOSER)->second;
+    std::vector<std::shared_ptr<DrmFramebuffer>> overlayLayers;
+    if (0 == clientComposer->getOverlyFbs(overlayLayers) ) {
+        auto it = overlayLayers.begin();
+        for (; it != overlayLayers.end(); ++it) {
             layer = (Hwc2Layer*)(it->get());
-            if (isOverlayComposition(layer->mCompositionType)) {
-                mOverlayLayers.push_back(layer->getUniqueId());
-            }
+            mOverlayLayers.push_back(layer->getUniqueId());
         }
     }
 
@@ -509,7 +501,7 @@ hwc2_error_t Hwc2Display::setClientTarget(buffer_handle_t target,
     clientFb->mDataspace = dataspace;
 
     /*set framebuffer to client composer.*/
-    std::shared_ptr<IComposeDevice> clientComposer =
+    std::shared_ptr<IComposer> clientComposer =
         mComposers.find(MESON_CLIENT_COMPOSER)->second;
     if (clientComposer.get() &&
         clientComposer->setOutput(clientFb, damage) == 0) {
@@ -678,7 +670,7 @@ void Hwc2Display::dump(String8 & dumpstr) {
     if (DebugHelper::getInstance().dumpDetailInfo()) {
         /* dump composers*/
         dumpstr.append("Valid composers:\n");
-        for (std::vector<std::shared_ptr<IComposeDevice>>::iterator it = mPresentComposers.begin();
+        for (std::vector<std::shared_ptr<IComposer>>::iterator it = mPresentComposers.begin();
             it != mPresentComposers.end(); it++) {
             dumpstr.appendFormat("%s-Composer (%p)\n", it->get()->getName(), it->get());
         }

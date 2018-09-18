@@ -9,12 +9,13 @@
 
 #include <misc.h>
 
-#include <cutils/properties.h>
-
 #include <fcntl.h>
 #include <stdlib.h>
-#include <string.h>
 #include <errno.h>
+#include <string.h>
+
+#include <cutils/properties.h>
+
 #include <MesonLog.h>
 
 bool sys_get_bool_prop(const char *prop, bool defVal) {

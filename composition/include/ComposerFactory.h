@@ -9,7 +9,7 @@
 #ifndef COMPOSER_FACTORY_H
 #define COMPOSER_FACTORY_H
 
-#include <IComposeDevice.h>
+#include <IComposer.h>
 
 typedef enum {
     MESON_CLIENT_COMPOSER = 0,
@@ -21,7 +21,7 @@ typedef enum {
 class ComposerFactory {
 public:
     /*get valid composers by flags.*/
-    static int32_t create(meson_composer_t type, std::shared_ptr<IComposeDevice> & composer);
+    static int32_t create(meson_composer_t type, std::shared_ptr<IComposer> & composer);
 };
 
 #endif/*COMPOSER_FACTORY_H*/

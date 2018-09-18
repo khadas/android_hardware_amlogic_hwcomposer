@@ -75,7 +75,9 @@ int32_t CursorPlane::updateZoomInfo(display_zoom_info_t zoomInfo) {
     return 0;
 }
 
-int32_t CursorPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb) {
+int32_t CursorPlane::setPlane(
+    std::shared_ptr<DrmFramebuffer> &fb __unused,
+    uint32_t zorder __unused) {
     if (mDrvFd < 0) {
         MESON_LOGE("cursor plane fd is not valiable!");
         return -EBADF;

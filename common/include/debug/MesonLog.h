@@ -13,6 +13,7 @@
 #define LOG_TAG "MesonHwc"
 #define LOG_NDEBUG 0
 #include <cutils/log.h>
+ #include <cassert>
 
 #define MESON_DEBUG_LEVEL 1
 
@@ -29,6 +30,15 @@
 #endif
 #define MESON_LOGE(fmt,...)		ALOGE(fmt, ##__VA_ARGS__)
 
+#if MESON_DEBUG_LEVEL > 0
+#define MESON_ASSERT(condition,fmt,...) \
+        if (!(condition)) { \
+            ALOGE(fmt, ##__VA_ARGS__); \
+            assert(0); \
+        }
+#else
+#define MESON_ASSERT(condition,fmt,...) ((void)0)
+#endif
 
 #if MESON_DEBUG_LEVEL > 2
 #define MESON_LOG_FUN_ENTER()		ALOGV("Enter %s", __func__)
@@ -38,9 +48,7 @@
 #define MESON_LOG_FUN_LEAVE()		((void)0)
 #endif
 
-
 #define MESON_LOG_EMPTY_FUN() \
     ALOGD("ERR: PLEASE FIX NON-IMPLEMENT FUN(%s).", __func__);
-
 
 #endif/*MESON_LOG_H*/

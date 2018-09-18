@@ -14,7 +14,7 @@
 #include "Ge2dComposer.h"
 
 int32_t ComposerFactory::create(meson_composer_t type,
-    std::shared_ptr<IComposeDevice> & composer) {
+    std::shared_ptr<IComposer> & composer) {
     int32_t ret = 0;
 
     switch (type) {

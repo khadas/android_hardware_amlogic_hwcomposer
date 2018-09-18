@@ -59,3 +59,24 @@ const char * drmPlaneTypeToString(drm_plane_type_t planetype) {
             return "UNKNOWN";
     }
 }
+
+const char * drmPlaneBlankToString(drm_plane_blank_t blankType) {
+    const char * typeStr;
+    switch (blankType) {
+        case UNBLANK:
+            typeStr = "UnBlank";
+            break;
+        case BLANK_FOR_NO_CONENT:
+            typeStr = "Blank";
+            break;
+        case BLANK_FOR_SECURE_CONTENT:
+            typeStr = "Secure-Blank";
+            break;
+        default:
+            typeStr = "Unknown";
+            break;
+    }
+
+    return typeStr;
+}
+

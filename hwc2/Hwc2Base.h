@@ -14,7 +14,6 @@
 
 #include <Composition.h>
 
-hwc2_composition_t mesonComp2Hwc2Comp(
-    meson_compositon_t type);
+hwc2_composition_t mesonComp2Hwc2Comp(int type);
 
 #endif/*HWC2_BASE_H*/

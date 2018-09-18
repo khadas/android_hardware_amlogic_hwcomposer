@@ -15,16 +15,9 @@ DummyComposer::DummyComposer() {
 DummyComposer::~DummyComposer() {
 }
 
-bool DummyComposer::isCompositionSupport(
-    meson_compositon_t type) {
-    if (MESON_COMPOSITION_DUMMY == type)
-        return true;
-    else
-        return false;
-}
-
-bool DummyComposer::isFbSupport(
-    std::shared_ptr<DrmFramebuffer> & fb __unused) {
+bool DummyComposer::isFbsSupport(
+    std::vector<std::shared_ptr<DrmFramebuffer>> & fbs __unused,
+    std::vector<std::shared_ptr<DrmFramebuffer>> & overlayfbs __unused) {
     return true;
 }
 
@@ -32,13 +25,20 @@ int32_t DummyComposer::prepare() {
     return 0;
 }
 
-meson_compositon_t DummyComposer::getCompostionType(
-    std::shared_ptr<DrmFramebuffer> & fb __unused) {
-    return MESON_COMPOSITION_DUMMY;
+int32_t DummyComposer::addInput(
+    std::shared_ptr<DrmFramebuffer> & fb __unused,
+    bool bOverlay __unused) {
+    return 0;
 }
 
-int32_t DummyComposer::addInput(
-    std::shared_ptr<DrmFramebuffer> & fb __unused) {
+int32_t DummyComposer::addInputs(
+    std::vector<std::shared_ptr<DrmFramebuffer>> & fbs __unused,
+    std::vector<std::shared_ptr<DrmFramebuffer>> & overlayfbs __unused) {
+    return 0;
+}
+
+int32_t DummyComposer::getOverlyFbs(
+    std::vector<std::shared_ptr<DrmFramebuffer>> & overlays __unused) {
     return 0;
 }
 

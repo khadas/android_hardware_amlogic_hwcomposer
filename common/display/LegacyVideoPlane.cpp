@@ -79,7 +79,9 @@ bool LegacyVideoPlane::shouldUpdateAxis(
     return bUpdate;
 }
 
-int32_t LegacyVideoPlane::setPlane(std::shared_ptr<DrmFramebuffer> & fb) {
+int32_t LegacyVideoPlane::setPlane(
+    std::shared_ptr<DrmFramebuffer> & fb,
+    uint32_t zorder __unused) {
     buffer_handle_t buf = fb->mBufferHandle;
 
     // TODO: DONOT set mute for now, because we need to implement secure display.
@@ -248,8 +250,7 @@ int32_t LegacyVideoPlane::updateZoomInfo(display_zoom_info_t zoomInfo) {
     return 0;
 }
 
-void LegacyVideoPlane::dump(String8 & dumpstr) {
-    UNUSED(dumpstr);
+void LegacyVideoPlane::dump(String8 & dumpstr __unused) {
     MESON_LOG_EMPTY_FUN();
 }
 

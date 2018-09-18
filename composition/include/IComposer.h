@@ -6,8 +6,8 @@
  *
  * Description:
  */
-#ifndef ICOMPOSE_DEVICE_H
-#define ICOMPOSE_DEVICE_H
+#ifndef ICOMPOSER_H
+#define ICOMPOSER_H
 
 #include <stdlib.h>
 
@@ -15,28 +15,26 @@
 #include <Composition.h>
 #include <DrmFramebuffer.h>
 
-class IComposeDevice {
+class IComposer {
 public:
-    IComposeDevice() { }
-    virtual ~IComposeDevice() { }
+    IComposer() { }
+    virtual ~IComposer() { }
 
     virtual const char* getName() = 0;
-
-    /*return mask of meson_compositon_t */
-    virtual bool isCompositionSupport(meson_compositon_t type) = 0;
+    virtual meson_compositon_t getType() = 0;
 
     /*check if input framebuffer can be consumed */
-    virtual bool isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) = 0;
+    virtual bool isFbsSupport(
+        std::vector<std::shared_ptr<DrmFramebuffer>> & fbs,
+        std::vector<std::shared_ptr<DrmFramebuffer>> & overlayfbs) = 0;
 
     /* preapre for new composition pass.*/
     virtual int32_t prepare() = 0;
 
-    /*return meson_compositon_t type */
-    virtual meson_compositon_t getCompostionType(
-        std::shared_ptr<DrmFramebuffer> & fb) = 0;
-
     /* add input framebuffers to this composer.*/
-    virtual int32_t addInput(std::shared_ptr<DrmFramebuffer> & fb) = 0;
+    virtual int32_t addInputs(
+        std::vector<std::shared_ptr<DrmFramebuffer>> & fbs,
+        std::vector<std::shared_ptr<DrmFramebuffer>> & overlayfbs) = 0;
 
     virtual int32_t setOutput(std::shared_ptr<DrmFramebuffer> & fb,
         hwc_region_t damage) = 0;
@@ -45,8 +43,10 @@ public:
    * should be able to get its relese fence.*/
     virtual int32_t start() = 0;
 
-    virtual std::shared_ptr<DrmFramebuffer> getOutput();
+    /* return overlay fbs*/
+    virtual int32_t getOverlyFbs(std::vector<std::shared_ptr<DrmFramebuffer>> & overlays) = 0;
 
+    virtual std::shared_ptr<DrmFramebuffer> getOutput();
 };
 
-#endif/*ICOMPOSER_DEVICE_H*/
+#endif/*ICOMPOSER_H*/

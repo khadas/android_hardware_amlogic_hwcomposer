@@ -14,7 +14,11 @@
 
 enum {
     SIMPLE_STRATEGY = 0,
-};
+} COMPOSITION_TYPE;
+
+enum {
+    MUTLI_OSD_PLANES = 1 << 0, //vpu have multi layers
+} COMPOSITION_FLAG;
 
 class CompositionStrategyFactory {
 public:

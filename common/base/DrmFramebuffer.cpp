@@ -55,9 +55,9 @@ void DrmFramebuffer::reset() {
     mBlendMode       = DRM_BLEND_MODE_INVALID;
     mPlaneAlpha      = 1.0;
     mTransform       = 0;
-    mZorder          = 0xFEEF; //set to special value for debug.
+    mZorder          = 0xFFFFFFFF; //set to special value for debug.
     mDataspace       = 0;
-    mCompositionType = MESON_COMPOSITION_UNDETERMINED;
+    mCompositionType = 0;
 
     mAcquireFence = mReleaseFence = DrmFence::NO_FENCE;
 
@@ -88,6 +88,23 @@ void DrmFramebuffer::clearBufferInfo() {
     mAcquireFence  = DrmFence::NO_FENCE;
     mFbType        = DRM_FB_RENDER;
     mSecure         = false;
-    mComposeToType = MESON_COMPOSE_TO_ANY_PLANE;
+}
+
+bool DrmFramebuffer::isScaled() {
+    bool rtn = false;
+    int displayWidth = mDisplayFrame.right - mDisplayFrame.left;
+    int displayHeight = mDisplayFrame.bottom - mDisplayFrame.top;
+    if (displayWidth > 0 && displayHeight > 0) {
+        int srcWidth = mSourceCrop.right - mSourceCrop.left;
+        int srcHeight = mSourceCrop.bottom - mSourceCrop.top;
+        if (srcWidth != displayWidth || srcHeight != displayHeight)
+            rtn = true;
+    }
+
+    return rtn;
+}
+
+bool DrmFramebuffer::isRotated() {
+    return mTransform != 0;
 }
 
