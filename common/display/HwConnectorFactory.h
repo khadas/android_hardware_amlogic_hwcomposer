@@ -14,7 +14,7 @@
 
 class HwConnectorFactory {
 public:
-    static HwDisplayConnector* create(
+    static std::shared_ptr<HwDisplayConnector> create(
         drm_connector_type_t connectorType,
         int32_t connectorDrv,
         uint32_t connectorId);

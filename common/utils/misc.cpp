@@ -106,3 +106,27 @@ int32_t sysfs_get_int(const char* path, int32_t def) {
     return val;
 }
 
+#if PLATFORM_SDK_VERSION < 28
+native_handle_t* native_handle_clone(const native_handle_t* handle) {
+    private_handle_t const* hnd = private_handle_t::dynamicCast(handle);
+    if (!hnd) return NULL;
+
+    native_handle_t* clone = native_handle_create(handle->numFds, handle->numInts);
+    if (!clone) return NULL;
+
+    for (int i = 0; i < handle->numFds; i++) {
+        clone->data[i] = ::dup(handle->data[i]);
+        if (clone->data[i] < 0) {
+            clone->numFds = i;
+            native_handle_close(clone);
+            native_handle_delete(clone);
+            return NULL;
+        }
+    }
+
+    memcpy(&clone->data[handle->numFds], &handle->data[handle->numFds],
+            sizeof(int) * handle->numInts);
+
+    return clone;
+}
+#endif

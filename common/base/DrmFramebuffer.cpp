@@ -10,6 +10,10 @@
 #include <DrmFramebuffer.h>
 #include <MesonLog.h>
 
+#if PLATFORM_SDK_VERSION < 28
+#include <misc.h>
+#endif
+
 DrmFramebuffer::DrmFramebuffer()
     : mBufferHandle(NULL) {
     reset();

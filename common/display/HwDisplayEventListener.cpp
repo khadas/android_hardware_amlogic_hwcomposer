@@ -51,9 +51,9 @@ HwDisplayEventListener::HwDisplayEventListener()
     memset(mUeventMsg, 0, UEVENT_MAX_LEN);
 
     /*load uevent parser*/
-    mUeventParser.emplace(DRM_EVENT_HDMITX_HOTPLUG, std::string(HDMITX_HOTPLUG_EVENT));
-    mUeventParser.emplace(DRM_EVENT_HDMITX_HDCP, std::string(HDMITX_HDCP_EVENT));
-    mUeventParser.emplace(DRM_EVENT_MODE_CHANGED, std::string(VOUT_MODE_EVENT));
+    mUeventParser.emplace(DRM_EVENT_HDMITX_HOTPLUG, HDMITX_HOTPLUG_EVENT);
+    mUeventParser.emplace(DRM_EVENT_HDMITX_HDCP, HDMITX_HDCP_EVENT);
+    mUeventParser.emplace(DRM_EVENT_MODE_CHANGED, VOUT_MODE_EVENT);
 }
 
 HwDisplayEventListener::~HwDisplayEventListener() {
@@ -96,11 +96,11 @@ void HwDisplayEventListener::createThread() {
 }
 
 void HwDisplayEventListener::handleUevent() {
-    std::map<drm_display_event, std::string>::iterator it = mUeventParser.begin();
+    std::map<drm_display_event, const char *>::iterator it = mUeventParser.begin();
     for (; it!= mUeventParser.end(); ++it) {
-        if (memcmp(mUeventMsg, it->second.c_str(), it->second.length()) == 0) {
+        if (memcmp(mUeventMsg, it->second, strlen(it->second)) == 0) {
             String8 key;
-            int val;
+            int val = -1;
             char *msg = mUeventMsg;
             while (*msg) {
                 //TODO
@@ -118,8 +118,12 @@ void HwDisplayEventListener::handleUevent() {
                 msg += strlen(msg) + 1;
             }
             drm_display_event event = it->first;
-            MESON_LOGD("parse event %d, val %d", event, val);
-            handle(event, val);
+            if (val < 0) {
+                MESON_LOGE("ERROR: HwDisplayEventListener handle invalid event!");
+            } else {
+                MESON_LOGD("parse event %d, val %d", event, val);
+                handle(event, val);
+            }
         }
     }
 

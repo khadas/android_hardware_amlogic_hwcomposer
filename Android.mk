@@ -88,11 +88,21 @@ LOCAL_C_INCLUDES := \
     system/core/include/system \
     vendor/amlogic/system/libge2d/inlcude \
     system/core/libion/include/ \
-    system/core/libion/kernel-headers \
+    system/core/libion/kernel-headers
+
+ifeq ($(PRODUCT_NAME_BAXTER), true)
+LOCAL_C_INCLUDES += \
+    hardware/amlogic/905x2/gralloc/amlogic \
+    hardware/amlogic/905x2/gralloc \
+    $(TOP)/hardware/amlogic/905x2/media/amavutils/include \
+    $(TOP)/vendor/amlogic/905x2/frameworks/services/systemcontrol
+else
+LOCAL_C_INCLUDES += \
     hardware/amlogic/gralloc/amlogic \
     hardware/amlogic/gralloc \
     $(TOP)/hardware/amlogic/media/amavutils/include \
     $(TOP)/vendor/amlogic/frameworks/services/systemcontrol
+endif
 
 LOCAL_COMMON_BASE_FILES := \
     common/base/DrmFramebuffer.cpp \
@@ -193,7 +203,6 @@ LOCAL_SRC_FILES := \
 #LOCAL_ALLOW_UNDEFINED_SYMBOLS:=true;
 
 LOCAL_SHARED_LIBRARIES += libamavutils_alsa
-LOCAL_C_INCLUDES += $(TOP)/hardware/amlogic/media/amavutils/include
 
 LOCAL_MODULE_TAGS := optional
 LOCAL_MODULE := hwcomposer.amlogic

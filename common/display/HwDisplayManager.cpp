@@ -7,6 +7,7 @@
  * Description:
  */
 
+#include <fcntl.h>
 #include <sys/ioctl.h>
 #include <MesonLog.h>
 #include <HwDisplayManager.h>
@@ -292,8 +293,8 @@ int32_t HwDisplayManager::freeDrmResources() {
 int32_t HwDisplayManager::loadCrtc(uint32_t crtcid) {
     /* use fb0 to do display crtc */
     int fd = open("/dev/graphics/fb0", O_RDWR, 0);
-    HwDisplayCrtc * crtc = new HwDisplayCrtc(fd, crtcid);
-    mCrtcs.emplace(crtcid, std::move(crtc));
+    std::shared_ptr<HwDisplayCrtc> crtc = std::make_shared<HwDisplayCrtc>(fd, crtcid);
+    mCrtcs.emplace(crtcid, crtc);
     return 0;
 }
 
@@ -301,16 +302,17 @@ int32_t HwDisplayManager::loadConnector(uint32_t connector_id) {
     drm_connector_type_t connector_type = DRM_MODE_CONNECTOR_HDMI;
     if (strcasecmp(HWC_PRIMARY_CONNECTOR_TYPE, "hdmi") == 0) {
         connector_type = DRM_MODE_CONNECTOR_HDMI;
-    } else if (strcasecmp(HWC_PRIMARY_CONNECTOR_TYPE, "cvbs") == 0) {
-        connector_type = DRM_MODE_CONNECTOR_CVBS;
     } else if (strcasecmp(HWC_PRIMARY_CONNECTOR_TYPE, "panel") == 0) {
         connector_type = DRM_MODE_CONNECTOR_PANEL;
+    } else if (strcasecmp(HWC_PRIMARY_CONNECTOR_TYPE, "cvbs") == 0) {
+        connector_type = DRM_MODE_CONNECTOR_CVBS;
     }
 
-    HwDisplayConnector* connector = HwConnectorFactory::create(
+    std::shared_ptr<HwDisplayConnector> connector = HwConnectorFactory::create(
             connector_type, -1, connector_id);
 
-    mConnectors.emplace(connector_id, std::move(connector));
+    mConnectors.emplace(connector_id, connector);
+
     return 0;
 }
 
@@ -318,8 +320,8 @@ int32_t HwDisplayManager::loadPlanes() {
     /* scan /dev/graphics/fbx to get planes */
 #ifdef HWC_HEADLESS
     int plane_idx = OSD_PLANE_IDX_MIN;
-    DummyPlane * plane = new DummyPlane(-1, plane_idx);
-    mPlanes.emplace(plane_idx, std::move(plane));
+    std::shared_ptr<DummyPlane> plane = std::make_shared<DummyPlane>(-1, plane_idx);
+    mPlanes.emplace(plane_idx, plane);
 #else
     int fd = -1;
     char path[64];
@@ -337,13 +339,13 @@ int32_t HwDisplayManager::loadPlanes() {
                 return -EINVAL;
             }
             if (capability & OSD_LAYER_ENABLE) {
-                HwDisplayPlane * plane;
                 if (capability & OSD_HW_CURSOR) {
-                    plane = new CursorPlane(fd, plane_idx);
+                    std::shared_ptr<CursorPlane> plane = std::make_shared<CursorPlane>(fd, plane_idx);
+                    mPlanes.emplace(plane_idx, plane);
                 } else {
-                    plane = new OsdPlane(fd, plane_idx);
+                    std::shared_ptr<OsdPlane> plane = std::make_shared<OsdPlane>(fd, plane_idx);
+                    mPlanes.emplace(plane_idx, plane);
                 }
-                mPlanes.emplace(plane_idx, std::move(plane));
                 count_osd ++;
             }
         }
@@ -361,8 +363,8 @@ int32_t HwDisplayManager::loadPlanes() {
         fd = open(path, O_RDWR, 0);
         if (fd >= 0) {
             plane_idx = video_idx_max + idx;
-            LegacyVideoPlane * plane = new LegacyVideoPlane(fd, plane_idx);
-            mPlanes.emplace(plane_idx, std::move(plane));
+            std::shared_ptr<LegacyVideoPlane> plane = std::make_shared<LegacyVideoPlane>(fd, plane_idx);
+            mPlanes.emplace(plane_idx, plane);
             count_video ++;
         }
         idx ++;
@@ -375,8 +377,8 @@ int32_t HwDisplayManager::loadPlanes() {
         fd = open(path, O_RDWR, 0);
         if (fd >= 0) {
             plane_idx = video_idx_max + idx;
-            HwcVideoPlane * plane = new HwcVideoPlane(fd, plane_idx);
-            mPlanes.emplace(plane_idx, std::move(plane));
+            std::shared_ptr<HwcVideoPlane> plane = std::make_shared<HwcVideoPlane>(fd, plane_idx);
+            mPlanes.emplace(plane_idx, plane);
             count_video ++;
         }
         idx ++;

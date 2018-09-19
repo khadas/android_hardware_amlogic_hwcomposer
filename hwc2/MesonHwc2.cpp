@@ -279,10 +279,10 @@ int32_t  MesonHwc2::getDisplayAttribute(hwc2_display_t display,
 int32_t MesonHwc2::createVirtualDisplay(uint32_t width, uint32_t height,
     int32_t* format, hwc2_display_t* outDisplay) {
     hwc2_display_t id = getVirtualDisplayId();
-    VirtualDisplay * disp = new VirtualDisplay(width, height);
+    std::shared_ptr<VirtualDisplay> disp = std::make_shared<VirtualDisplay>(width, height);
     disp->initialize();
     disp->setFormat(format);
-    mDisplays.emplace(id, std::move(disp));
+    mDisplays.emplace(id, disp);
 
     *outDisplay = id;
     return HWC2_ERROR_NONE;

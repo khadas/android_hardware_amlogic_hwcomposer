@@ -11,20 +11,21 @@
 #include "ConnectorHdmi.h"
 #include "ConnectorPanel.h"
 
-HwDisplayConnector* HwConnectorFactory::create(
+std::shared_ptr<HwDisplayConnector> HwConnectorFactory::create(
     drm_connector_type_t connectorType,
     int32_t connectorDrv,
     uint32_t connectorId) {
+    std::shared_ptr<HwDisplayConnector> connector = NULL;
     switch (connectorType) {
         case DRM_MODE_CONNECTOR_HDMI:
-            return new ConnectorHdmi(connectorDrv, connectorId);
+            connector =  std::make_shared<ConnectorHdmi>(connectorDrv, connectorId);
         case DRM_MODE_CONNECTOR_PANEL:
-            return new ConnectorPanel(connectorDrv, connectorId);
+            connector =  std::make_shared<ConnectorPanel>(connectorDrv, connectorId);
         case DRM_MODE_CONNECTOR_CVBS:
         default:
             break;
     }
 
-    return NULL;
+    return connector;
 }
 

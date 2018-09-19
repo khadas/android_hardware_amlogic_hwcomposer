@@ -11,10 +11,13 @@
 
 #include "CursorPlane.h"
 
+/*TMP: due to gralloc not sync*/
+#if PLATFORM_SDK_VERSION >= 28
 static inline size_t round_up_to_page_size(size_t x)
 {
 	return (x + (PAGE_SIZE - 1)) & ~(PAGE_SIZE - 1);
 }
+#endif
 
 CursorPlane::CursorPlane(int32_t drvFd, uint32_t id)
     : HwDisplayPlane(drvFd, id),

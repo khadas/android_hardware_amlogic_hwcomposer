@@ -21,7 +21,9 @@ using ::android::hardware::hidl_vec;
 using ::android::hardware::hidl_string;
 using ::android::hardware::Return;
 #else
+#include <utils/String16.h>
 #include <ISystemControlService.h>
+#include <binder/IServiceManager.h>
 #endif
 
 #define CHK_SC_PROXY() \
@@ -150,7 +152,7 @@ static void load_sc_proxy() {
 
     gSC = interface_cast<ISystemControlService>(
         sm->getService(String16("system_control")));
-    if (systemControl == NULL)
+    if (gSC == NULL)
         MESON_LOGE("Couldn't get connection to SystemControlService\n");
 }
 
@@ -165,7 +167,7 @@ int32_t sc_get_hdmitx_mode_list(std::vector<std::string>& edidlist) {
     }
 }
 
-bool sc_get_hdmitx_hdcp_state(bool & val) {
+int32_t sc_get_hdmitx_hdcp_state(bool & val) {
     CHK_SC_PROXY();
     int status;
     gSC->isHDCPTxAuthSuccess(status);
@@ -188,20 +190,16 @@ int32_t  sc_get_display_mode(std::string & dispmode) {
 int32_t sc_get_osd_position(std::string &dispmode, int *position) {
     CHK_SC_PROXY();
 
-    if (gSC->getPosition(dispmode,
-                int left, int top, int width, int height)) {
-        position[0] = left;
-        position[1] = top;
-        position[2] = width;
-        position[3] = height;
-        MESON_LOGI("sc_get_osd_position x:%d y:%d w:%d h:%d",
-             position[0], position[1], position[2], position[3]);
-
-        return 0;
-    } else {
-        MESON_LOGE("syscontrol::getPosition FAIL.");
-        return -EFAULT;
-    }
+    const char * mode = dispmode.c_str();
+    int left, top, width, height;
+    gSC->getPosition(String16(mode), left, top, width, height);
+    position[0] = left;
+    position[1] = top;
+    position[2] = width;
+    position[3] = height;
+    MESON_LOGI("sc_get_osd_position x:%d y:%d w:%d h:%d",
+         position[0], position[1], position[2], position[3]);
+    return 0;
 }
 
 #endif

@@ -7,6 +7,7 @@
  * Description:
  */
 
+#include <fcntl.h>
 #include <MesonLog.h>
 #include <misc.h>
 #include <systemcontrol.h>
