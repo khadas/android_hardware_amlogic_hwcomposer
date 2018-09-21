@@ -27,6 +27,41 @@ ANDROID_SINGLETON_STATIC_INSTANCE(HwDisplayEventListener)
 
 #define UEVENT_MAX_LEN (4096)
 
+#define OLD_EVENT_STATE_ENABLE "SWITCH_STATE=1"
+#define OLD_EVENT_STATE_DISABLE "SWITCH_STATE=0"
+#define NEW_EVENT_STATE_ENABLE "STATE=HDMI=1"
+#define NEW_EVENT_STATE_DISABLE "STATE=HDMI=0"
+#define VOUT_EVENT_MODESWITCH_BEGIN "STATE=ACA=1"
+#define VOUT_EVENT_MODESWITCH_COMPLETE "STATE=ACA=0"
+
+typedef struct drm_uevent_info {
+    const char * head;
+    drm_display_event eventType;
+    const char * stateEnable;
+    const char * stateDisable;
+}drm_uevent_info_t;
+
+/*load uevent parser*/
+#if PLATFORM_SDK_VERSION >= 28
+static drm_uevent_info_t mUeventParser[] = {
+    {HDMITX_HOTPLUG_EVENT, DRM_EVENT_HDMITX_HOTPLUG,
+    NEW_EVENT_STATE_DISABLE, NEW_EVENT_STATE_ENABLE},
+    {HDMITX_HDCP_EVENT, DRM_EVENT_HDMITX_HDCP,
+    NEW_EVENT_STATE_DISABLE, NEW_EVENT_STATE_ENABLE},
+    {VOUT_MODE_EVENT, DRM_EVENT_MODE_CHANGED,
+    VOUT_EVENT_MODESWITCH_BEGIN, VOUT_EVENT_MODESWITCH_COMPLETE}
+};
+#else
+static drm_uevent_info_t mUeventParser[] = {
+    {HDMITX_HOTPLUG_EVENT, DRM_EVENT_HDMITX_HOTPLUG,
+    OLD_EVENT_STATE_ENABLE, OLD_EVENT_STATE_DISABLE},
+    {HDMITX_HDCP_EVENT, DRM_EVENT_HDMITX_HDCP,
+    OLD_EVENT_STATE_ENABLE, OLD_EVENT_STATE_DISABLE},
+    {VOUT_MODE_EVENT, DRM_EVENT_MODE_CHANGED,
+    OLD_EVENT_STATE_DISABLE, OLD_EVENT_STATE_ENABLE}
+};
+#endif
+
 HwDisplayEventListener::HwDisplayEventListener()
     :   mUeventMsg(NULL),
         mCtlInFd(-1),
@@ -49,11 +84,6 @@ HwDisplayEventListener::HwDisplayEventListener()
 
     mUeventMsg = new char[UEVENT_MAX_LEN];
     memset(mUeventMsg, 0, UEVENT_MAX_LEN);
-
-    /*load uevent parser*/
-    mUeventParser.emplace(DRM_EVENT_HDMITX_HOTPLUG, HDMITX_HOTPLUG_EVENT);
-    mUeventParser.emplace(DRM_EVENT_HDMITX_HDCP, HDMITX_HDCP_EVENT);
-    mUeventParser.emplace(DRM_EVENT_MODE_CHANGED, VOUT_MODE_EVENT);
 }
 
 HwDisplayEventListener::~HwDisplayEventListener() {
@@ -76,7 +106,6 @@ HwDisplayEventListener::~HwDisplayEventListener() {
 
     delete mUeventMsg;
 
-    mUeventParser.clear();
     mEventHandler.clear();
 }
 
@@ -96,37 +125,24 @@ void HwDisplayEventListener::createThread() {
 }
 
 void HwDisplayEventListener::handleUevent() {
-    std::map<drm_display_event, const char *>::iterator it = mUeventParser.begin();
-    for (; it!= mUeventParser.end(); ++it) {
-        if (memcmp(mUeventMsg, it->second, strlen(it->second)) == 0) {
+    for (drm_uevent_info_t uevent : mUeventParser) {
+        if (memcmp(mUeventMsg, uevent.head, strlen(uevent.head)) == 0) {
             String8 key;
-            int val = -1;
-            char *msg = mUeventMsg;
+            char * msg = mUeventMsg;
             while (*msg) {
-                //TODO
                 key = String8(msg);
                 MESON_LOGD("received Uevent: %s", msg);
-                if (key.contains("STATE=ACA=1")) {
-                     val =  1;
-                } else if (key.contains("STATE=ACA=0")) {
-                     val =  0;
-                } else if (key.contains("STATE=HDMI=1")) {
-                     val =  1;
-                } else if (key.contains("STATE=HDMI=0")) {
-                     val =  0;
+                if (key.contains(uevent.stateEnable)) {
+                    handle(uevent.eventType, 1);
+                    return;
+                } else if (key.contains(uevent.stateDisable)) {
+                    handle(uevent.eventType, 0);
+                    return;
                 }
                 msg += strlen(msg) + 1;
             }
-            drm_display_event event = it->first;
-            if (val < 0) {
-                MESON_LOGE("ERROR: HwDisplayEventListener handle invalid event!");
-            } else {
-                MESON_LOGD("parse event %d, val %d", event, val);
-                handle(event, val);
-            }
         }
     }
-
 }
 
 void * HwDisplayEventListener::ueventThread(void * data) {

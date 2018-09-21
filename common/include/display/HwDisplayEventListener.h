@@ -42,7 +42,6 @@ public:
 protected:
     std::multimap<drm_display_event, HwDisplayEventHandler* >
         mEventHandler;
-    std::map<drm_display_event, const char *> mUeventParser;
 
     char * mUeventMsg;
     int mEventSocket;

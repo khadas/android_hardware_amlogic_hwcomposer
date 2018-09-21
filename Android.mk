@@ -90,7 +90,7 @@ LOCAL_C_INCLUDES := \
     system/core/libion/include/ \
     system/core/libion/kernel-headers
 
-ifeq ($(PRODUCT_NAME_BAXTER), true)
+ifeq ($(TARGET_SPECIAL_PATH), true)
 LOCAL_C_INCLUDES += \
     hardware/amlogic/905x2/gralloc/amlogic \
     hardware/amlogic/905x2/gralloc \
