@@ -30,7 +30,7 @@ public:
     inline bool logLayerStatistic() {return mLogLayerStatistic;}
 
     /*check if UI/osd hwcomposer disabled.*/
-    bool disableUiHwc();
+    bool disableUiHwc() {return mDisableUiHwc;}
 
     /*for fence debug*/
     inline bool discardInFence() {return mDiscardInFence;}
@@ -63,6 +63,7 @@ protected:
 protected:
     bool mEnabled;
     bool mDumpUsage;
+    bool mDisableUiHwc;
     bool mDumpDetail;
 
     bool mLogCompositionInfo;

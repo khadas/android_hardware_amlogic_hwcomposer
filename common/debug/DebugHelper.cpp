@@ -15,9 +15,8 @@
 
 ANDROID_SINGLETON_STATIC_INSTANCE(DebugHelper)
 
-#define LEGACY_DEBUG_DISABLE_HWC "sys.sf.debug.nohwc"
-#define DEBUG_HELPER_ENABLE_PROP "sys.hwc.debug"
-#define DEBUG_HELPER_COMMAND "sys.hwc.debug.command"
+#define DEBUG_HELPER_ENABLE_PROP "vendor.hwc.debug"
+#define DEBUG_HELPER_COMMAND "vendor.hwc.debug.command"
 
 #define MAX_DEBUG_COMMANDS (20)
 
@@ -44,6 +43,7 @@ void DebugHelper::clearOnePassCmd() {
 }
 
 void DebugHelper::clearPersistCmd() {
+    mDisableUiHwc = false;
     mDumpDetail = false;
 
     mLogFps = false;
@@ -138,6 +138,13 @@ void DebugHelper::resolveCmd() {
                 if (strcmp(paramArray[i], "--clear") == 0) {
                     clearPersistCmd();
                     clearOnePassCmd();
+                    continue;
+                }
+
+                if (strcmp(paramArray[i], "--nohwc") == 0) {
+                    i++;
+                    CHECK_CMD_INT_PARAMETER();
+                    mDisableUiHwc = INT_PARAMERTER_TO_BOOL(paramArray[i]);
                     continue;
                 }
 
@@ -260,10 +267,6 @@ bool DebugHelper::isEnabled() {
     return sys_get_bool_prop(DEBUG_HELPER_ENABLE_PROP, false);
 }
 
-bool DebugHelper::disableUiHwc() {
-    return sys_get_bool_prop(LEGACY_DEBUG_DISABLE_HWC, false);
-}
-
 void DebugHelper::removeDebugLayer(int id __unused) {
     #if 0/*useless now.*/
     /*remove hide layer*/
@@ -289,6 +292,7 @@ void DebugHelper::dump(String8 & dumpstr) {
             "Pass command string to prop " DEBUG_HELPER_COMMAND " to debug.\n"
             "Supported commands:\n"
             "\t --clear: clear all debug flags.\n"
+            "\t --nohwc 0|1:  choose osd/UI hwcomposer.\n"
             "\t --detail 0|1: enable/dislabe dump detail internal info.\n"
             "\t --infence 0 | 1: pass in fence to display, or handle it in hwc.\n"
             "\t --outfence 0 | 1: return display out fence, or handle it in hwc.\n"
@@ -306,7 +310,7 @@ void DebugHelper::dump(String8 & dumpstr) {
         std::vector<int>::iterator it;
 
         dumpstr.append("Debug Command:\n");
-        dumpstr.appendFormat("--nohwc (%d)\n", disableUiHwc());
+        dumpstr.appendFormat("--nohwc (%d)\n", mDisableUiHwc);
         dumpstr.appendFormat("--detail (%d)\n", mDumpDetail);
         dumpstr.appendFormat("--infence (%d)\n", mDiscardInFence);
         dumpstr.appendFormat("--outfence (%d)\n", mDiscardOutFence);
