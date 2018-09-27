@@ -2047,7 +2047,7 @@ void PhysicalDevice::updateHdrStaticInfo(std::vector<FrameMetadata_t> &metadata)
                     hdr_tmp.white_point[1] = (u32)(iter->value * 50000);//mW.Y
                     break;
                 case HWC2_MAX_LUMINANCE:
-                    hdr_tmp.luminance[0] = (u32)(iter->value); //mMaxDL
+                    hdr_tmp.luminance[0] = (u32)(iter->value * 1000); //mMaxDL
                     break;
                 case HWC2_MIN_LUMINANCE:
                     hdr_tmp.luminance[1] = (u32)(iter->value * 10000);//mMinDL
