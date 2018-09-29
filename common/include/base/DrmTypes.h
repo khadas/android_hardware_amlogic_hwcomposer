@@ -136,9 +136,10 @@ enum PLANE_ZORDER {
     /*Cursor plane will always on top of other layers.*/
     CURSOR_PLANE_FIXED_ZORDER = 0xFFF,
     MAX_PLANE_ZORDER = 0xFFFFFFFF,
+    VARIABLE_PLANE_ZORDER = 0xFFFFFFFF
 };
 
-#define VARIABLE_PLANE_ZORDER MAX_PLANE_ZORDER
+#define INVALID_ZORDER 0xFFFFFFFF
 
 const char * drmPlaneTypeToString(drm_plane_type_t planetype);
 const char * drmFbTypeToString(drm_fb_type_t fbtype);

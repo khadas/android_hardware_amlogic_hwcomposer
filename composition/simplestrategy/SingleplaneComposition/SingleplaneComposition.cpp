@@ -217,7 +217,7 @@ int SingleplaneComposition::buildOsdComposition() {
     std::vector<std::shared_ptr<DrmFramebuffer>> dummyOverlayFbs;
     std::shared_ptr<DrmFramebuffer> fb;
     std::shared_ptr<DrmFramebuffer> videoFb;
-    uint32_t  minZ = MAX_PLANE_ZORDER, maxZ = MAX_PLANE_ZORDER;
+    uint32_t  minZ = INVALID_ZORDER, maxZ = INVALID_ZORDER;
     bool bRemove = false, bHaveClient = false;
 
     /*
@@ -244,7 +244,7 @@ int SingleplaneComposition::buildOsdComposition() {
             case MESON_COMPOSITION_CLIENT:
                 bHaveClient = true;
             case MESON_COMPOSITION_UNDETERMINED:
-                if (minZ == maxZ == MAX_PLANE_ZORDER) {
+                if (minZ == INVALID_ZORDER) {
                     minZ = maxZ = fb->mZorder;
                 } else {
                     if (minZ > fb->mZorder)

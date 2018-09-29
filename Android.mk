@@ -157,8 +157,8 @@ LOCAL_COMPOSITION_FILES := \
     composition/composer/ComposerFactory.cpp \
     composition/composer/ClientComposer.cpp \
     composition/composer/DummyComposer.cpp \
-    composition/simplestrategy/SingleplaneComposition/SingleplaneComposition.cpp
-
+    composition/simplestrategy/SingleplaneComposition/SingleplaneComposition.cpp \
+    composition/simplestrategy/MultiplanesComposition/MultiplanesComposition.cpp
 ifeq ($(TARGET_SUPPORT_GE2D_COMPOSITION),true)
 LOCAL_COMPOSITION_FILES += \
     common/composer/GE2DComposer.cpp

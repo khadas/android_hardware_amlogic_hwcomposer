@@ -91,6 +91,9 @@ void DrmFramebuffer::clearBufferInfo() {
 }
 
 bool DrmFramebuffer::isScaled() {
+    if (mFbType == DRM_FB_COLOR)
+        return false;
+
     bool rtn = false;
     int displayWidth = mDisplayFrame.right - mDisplayFrame.left;
     int displayHeight = mDisplayFrame.bottom - mDisplayFrame.top;
