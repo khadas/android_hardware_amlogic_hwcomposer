@@ -190,7 +190,7 @@ void HwDisplayManager::handle(drm_display_event event, int val) {
 }
 
 int32_t HwDisplayManager::waitVBlank(nsecs_t & timestamp) {
-    std::map<uint32_t, std::shared_ptr<HwDisplayPlane>>::iterator it = mPlanes.begin();
+    auto it = mPlanes.begin();
     int32_t drvFd = it->second->getDrvFd();
 
     if (ioctl(drvFd, FBIO_WAITFORVSYNC_64, &timestamp) == -1) {
@@ -397,15 +397,18 @@ int32_t HwDisplayManager::buildDisplayPipes() {
 
     pipes[0].crtc_id = crtc_ids[0];
     pipes[0].connector_id = connector_ids[0];
-    pipes[0].planes_num = mPlanes.size();
-    pipes[0].plane_ids = new uint32_t [pipes[0].planes_num];
+    pipes[0].plane_ids = new uint32_t [mPlanes.size()];
 
     int i = 0;
-    std::map<uint32_t, std::shared_ptr<HwDisplayPlane>>::iterator it = mPlanes.begin();
+    auto it = mPlanes.begin();
     for (; it!=mPlanes.end(); ++it) {
-        pipes[0].plane_ids[i] = it->first;
-        i++;
+        if (it->second->getPossibleCrtcs() & 1) {
+            pipes[0].plane_ids[i] = it->first;
+            i++;
+        }
     }
+
+    pipes[0].planes_num = i;
 
     std::shared_ptr<HwDisplayCrtc> crtc;
     std::shared_ptr<HwDisplayConnector> connector;

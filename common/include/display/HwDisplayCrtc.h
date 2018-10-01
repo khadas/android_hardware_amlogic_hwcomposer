@@ -52,11 +52,14 @@ protected:
     int32_t getZoomInfo(display_zoom_info_t & zoomInfo);
     int32_t updateDisplayInfo();
 
+    void closeLogoDisplay();
+
     int32_t mId;
     int mDrvFd;
     std::string mCurMode;
     uint32_t mFbWidth, mFbHeight;
     int mBackupZoomPos[4];
+    bool mFirstPresent;
 
     display_flip_info_t mDisplayInfo;
     display_flip_info_t mBackupDisplayInfo;

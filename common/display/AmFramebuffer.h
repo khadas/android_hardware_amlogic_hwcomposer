@@ -27,10 +27,6 @@ enum {
     OSD_ZORDER = (1 << 2),
     OSD_PRIMARY = (1 << 3),
     OSD_FREESCALE = (1 << 4),
-    OSD_PRE_SCALE = (1 << 5),
-    OSD_NO_PRE_BLEND = (1 << 6),
-    OSD_PRE_BLEND_1 = (1 << 7),
-    OSD_PRE_BLEND_2 = (1 << 8),
     OSD_VIU2 = (1 << 29),
     OSD_VIU1 = (1 << 30),
     OSD_LAYER_ENABLE = (1 << 31)
@@ -83,6 +79,7 @@ enum {
 #define SYSFS_VIDEO_AXIS                "/sys/class/video/axis"
 #define DISPLAY_FB1_SCALE_AXIS          "/sys/class/graphics/fb1/scale_axis"
 #define DISPLAY_FB1_SCALE               "/sys/class/graphics/fb1/scale"
+/*legacy logo switch*/
 #define DISPLAY_LOGO_INDEX              "/sys/module/fb/parameters/osd_logo_index"
 #define DISPLAY_FB0_FREESCALE_SWTICH    "/sys/class/graphics/fb0/free_scale_switch"
 
@@ -135,6 +132,5 @@ typedef struct cursor_plane_info_t {
 #define CONNECTOR_IDX_MIN (20)
 #define OSD_PLANE_IDX_MIN (30)
 #define VIDEO_PLANE_IDX_MIN (40)
-
 
 #endif/*AM_FRAMEBUFFER_H*/

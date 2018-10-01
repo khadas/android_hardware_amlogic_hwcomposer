@@ -13,28 +13,25 @@
 
 OsdPlane::OsdPlane(int32_t drvFd, uint32_t id)
     : HwDisplayPlane(drvFd, id),
-      mFirstPresent(true),
       mBlank(true),
+      mPossibleCrtcs(0),
       mDrmFb(NULL) {
-    mPlaneInfo.out_fen_fd = -1;
-    mPlaneInfo.op = 0x0;
     snprintf(mName, 64, "OSD-%d", id);
-
+    mPlaneInfo.out_fen_fd = -1;
     getProperties();
 }
 
 OsdPlane::~OsdPlane() {
-
 }
 
 int32_t OsdPlane::getProperties() {
-    mCapability = 0;
-
     int capacity;
     if (ioctl(mDrvFd, FBIOGET_OSD_CAPBILITY, &capacity) != 0) {
         MESON_LOGE("osd plane get capibility ioctl (%d) return(%d)", mCapability, errno);
         return 0;
     }
+
+    mCapability = 0;
 
     if (capacity & OSD_UBOOT_LOGO) {
         mCapability |= PLANE_SHOW_LOGO;
@@ -48,16 +45,13 @@ int32_t OsdPlane::getProperties() {
     if (capacity & OSD_FREESCALE) {
         mCapability |= PLANE_SUPPORT_FREE_SCALE;
     }
-    if (capacity & OSD_PRE_SCALE) {
-        mCapability |= PLANE_SUPPORT_FREE_SCALE;
-    }
 
-    if (capacity & OSD_NO_PRE_BLEND) {
-        mCapability |= PLANE_NO_PRE_BLEND;
-    } else if (capacity & OSD_PRE_BLEND_1) {
-        mCapability |= PLANE_PRE_BLEND_1;
-    } else if (capacity & OSD_PRE_BLEND_2){
-        mCapability |= PLANE_PRE_BLEND_2;
+    /*set possible crtc*/
+    if (capacity & OSD_VIU1) {
+        mPossibleCrtcs |= 1 << 0;
+    }
+    if (capacity & OSD_VIU2) {
+        mPossibleCrtcs |= 1 << 1;
     }
 
     return 0;
@@ -87,21 +81,35 @@ int32_t OsdPlane::getFixedZorder() {
     return OSD_PLANE_FIXED_ZORDER;
 }
 
-int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb, uint32_t zorder) {
-    if (mDrvFd < 0) {
-        MESON_LOGE("osd plane fd is not valiable!");
-        return -EBADF;
-    }
-    //MESON_LOGE("osd%d setPlane", mId-30);
+uint32_t OsdPlane::getPossibleCrtcs() {
+    return mPossibleCrtcs;
+}
 
-    // close uboot logo, if bootanim begin to show
-    if (mFirstPresent) {
-        // TODO: will move this in plane info op, and do this in the driver with
-        // one vsync.
-        mFirstPresent = false;
-        sysfs_set_string(DISPLAY_LOGO_INDEX, "-1");
-        sysfs_set_string(DISPLAY_FB0_FREESCALE_SWTICH, "0x10001");
+bool OsdPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
+    if ((fb->mFbType != DRM_FB_SCANOUT &&
+        fb->mFbType != DRM_FB_COLOR) ||
+        fb->isRotated())
+        return false;
+
+    int format = am_gralloc_get_format(fb->mBufferHandle);
+    switch (format) {
+        case HAL_PIXEL_FORMAT_RGBA_8888:
+        case HAL_PIXEL_FORMAT_RGBX_8888:
+        case HAL_PIXEL_FORMAT_RGB_888:
+        case HAL_PIXEL_FORMAT_RGB_565:
+        case HAL_PIXEL_FORMAT_BGRA_8888:
+            break;
+        default:
+            MESON_LOGE("Layer format %d not support.", format);
+            return false;
     }
+
+    return true;
+}
+
+int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb, uint32_t zorder) {
+    MESON_ASSERT(mDrvFd >= 0, "osd plane fd is not valiable!");
+    MESON_ASSERT(zorder > 0, "osd driver request zorder > 0");
 
     drm_rect_t srcCrop       = fb->mSourceCrop;
     drm_rect_t disFrame      = fb->mDisplayFrame;
@@ -131,11 +139,10 @@ int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb, uint32_t zorder)
     mPlaneInfo.format        = am_gralloc_get_format(buf);
     mPlaneInfo.byte_stride   = am_gralloc_get_stride_in_byte(buf);
     mPlaneInfo.pixel_stride  = am_gralloc_get_stride_in_pixel(buf);
-    /* osd request plane zorder > 0 */
-    mPlaneInfo.zorder        = zorder + 1;
+    mPlaneInfo.zorder        = zorder;// driver request zorder > 0
     mPlaneInfo.blend_mode    = fb->mBlendMode;
     mPlaneInfo.plane_alpha   = fb->mPlaneAlpha;
-    mPlaneInfo.op            &= ~(OSD_BLANK_OP_BIT);
+    mPlaneInfo.op            = 0;//&= ~(OSD_BLANK_OP_BIT);
     mPlaneInfo.afbc_inter_format = am_gralloc_get_vpu_afbc_mask(buf);
 
     if (ioctl(mDrvFd, FBIOPUT_OSD_SYNC_RENDER_ADD, &mPlaneInfo) != 0) {

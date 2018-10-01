@@ -35,6 +35,9 @@ public:
     /*Plane with fixed zorder will return a zorder >=0, or will return < 0.*/
     virtual int32_t getFixedZorder() = 0;
 
+    virtual uint32_t getPossibleCrtcs() = 0;
+    virtual bool isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) = 0;
+
     virtual int32_t updateZoomInfo(display_zoom_info_t zoomInfo) = 0;
     virtual int32_t setPlane(std::shared_ptr<DrmFramebuffer> & fb, uint32_t zorder) = 0;
     virtual int32_t blank(int blankOp) = 0;

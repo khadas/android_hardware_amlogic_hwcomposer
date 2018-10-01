@@ -31,6 +31,10 @@ CursorPlane::~CursorPlane() {
 
 }
 
+const char * CursorPlane::getName() {
+    return mName;
+}
+
 uint32_t CursorPlane::getPlaneType() {
     return CURSOR_PLANE;
 }
@@ -43,8 +47,15 @@ int32_t CursorPlane::getFixedZorder() {
     return CURSOR_PLANE_FIXED_ZORDER;
 }
 
-const char * CursorPlane::getName() {
-    return mName;
+uint32_t CursorPlane::getPossibleCrtcs() {
+    return 1 << 0;
+}
+
+bool CursorPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
+    if (fb->mFbType == DRM_FB_CURSOR)
+        return true;
+
+    return false;
 }
 
 int32_t CursorPlane::updateZoomInfo(display_zoom_info_t zoomInfo) {

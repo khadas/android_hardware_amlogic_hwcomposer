@@ -59,6 +59,19 @@ int32_t LegacyVideoPlane::getFixedZorder() {
     return LEGACY_VIDEO_PLANE_FIXED_ZORDER;
 }
 
+uint32_t LegacyVideoPlane::getPossibleCrtcs() {
+    return 1 << 0;
+}
+
+bool LegacyVideoPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
+    if (fb->mFbType == DRM_FB_VIDEO_OVERLAY ||
+        fb->mFbType == DRM_FB_VIDEO_SIDEBAND ||
+        fb->mFbType == DRM_FB_VIDEO_OMX_PTS)
+        return true;
+
+    return false;
+}
+
 bool LegacyVideoPlane::shouldUpdateAxis(
     std::shared_ptr<DrmFramebuffer> &fb) {
     bool bUpdate = false;

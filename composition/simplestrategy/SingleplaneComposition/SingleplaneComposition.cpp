@@ -286,7 +286,7 @@ int SingleplaneComposition::buildOsdComposition() {
 
         if (mFramebuffers.size() == 1 &&
             fb->mCompositionType == MESON_COMPOSITION_UNDETERMINED &&
-            isFbScanable(fb)) {
+            mOsdPlane->isFbSupport(fb)) {
             fb->mCompositionType = MESON_COMPOSITION_PLANE_OSD;
             mDisplayPairs.push_back(DisplayPair{fb, mOsdPlane});
             mOsdPlane.reset();
@@ -304,8 +304,9 @@ int SingleplaneComposition::buildOsdComposition() {
             }
             if (mComposer.get() == NULL)
                 mComposer = mClientComposer;
-            MESON_LOGD("Use composer (%s) .", mComposer->getName());
 
+            /*set composed fb composition type*/
+            MESON_LOGD("Use composer (%s) .", mComposer->getName());
             for (; it != mFramebuffers.end(); ++it) {
                 (*it)->mCompositionType = mComposer->getType();
             }

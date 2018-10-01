@@ -85,10 +85,21 @@ void Hwc2Display::loadDisplayResources() {
 
     mModeMgr->setDisplayResources(mCrtc, mConnector);
 
-    mCompositionStrategy = CompositionStrategyFactory::create(SIMPLE_STRATEGY, 0);
-    if (!mCompositionStrategy) {
-        MESON_LOGE("Hwc2Display load composition strategy failed.");
+    /*create composition strategy.*/
+    uint32_t strategyFlags = 0;
+    int osdPlanes = 0;
+    for (auto it = mPlanes.begin(); it != mPlanes.end(); ++ it) {
+        if ((*it)->getPlaneType() == OSD_PLANE) {
+            osdPlanes ++;
+            if (osdPlanes > 1) {
+                strategyFlags |= MUTLI_OSD_PLANES;
+                break;
+            }
+        }
     }
+    mCompositionStrategy =
+        CompositionStrategyFactory::create(SIMPLE_STRATEGY, strategyFlags);
+    MESON_ASSERT(mCompositionStrategy, "Hwc2Display load composition strategy failed.");
 }
 
 const char * Hwc2Display::getName() {

@@ -12,6 +12,7 @@
 #include <DebugHelper.h>
 #include <cutils/properties.h>
 #include <systemcontrol.h>
+#include <misc.h>
 
 #include "AmVinfo.h"
 #include "AmFramebuffer.h"
@@ -25,6 +26,7 @@
 HwDisplayCrtc::HwDisplayCrtc(int drvFd, int32_t id) {
     mId = id;
     mDrvFd = drvFd;
+    mFirstPresent = true;
     mDisplayInfo.out_fen_fd = -1;
     memset(mBackupZoomPos,0,sizeof(mBackupZoomPos));
 
@@ -96,6 +98,11 @@ int32_t HwDisplayCrtc::parseDftFbSize(uint32_t & width, uint32_t & height) {
 }
 
 int32_t HwDisplayCrtc::prePageFlip() {
+    if (mFirstPresent) {
+        mFirstPresent = false;
+        closeLogoDisplay();
+    }
+
     bool bUpdate = false;
     display_zoom_info_t zoomInfo;
     getZoomInfo(zoomInfo);
@@ -138,6 +145,11 @@ int32_t HwDisplayCrtc::pageFlip(int32_t &out_fence) {
     }
 
     return 0;
+}
+
+void HwDisplayCrtc::closeLogoDisplay() {
+    sysfs_set_string(DISPLAY_LOGO_INDEX, "-1");
+    sysfs_set_string(DISPLAY_FB0_FREESCALE_SWTICH, "0x10001");
 }
 
 int32_t HwDisplayCrtc::updateDisplayInfo() {
