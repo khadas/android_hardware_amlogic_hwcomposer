@@ -1612,7 +1612,7 @@ int32_t PhysicalDevice::validateDisplay(uint32_t* outNumTypes,
         }
     }
 
-    bool noDevComp = Utils::checkBoolProp("sys.sf.debug.nohwc");
+    bool noDevComp = Utils::checkBoolProp("vendor.sys.sf.debug.nohwc");
 #ifndef USE_CONTINOUS_BUFFER_COMPOSER
     DTRACE("No continous buffer composer!");
     noDevComp = true;
