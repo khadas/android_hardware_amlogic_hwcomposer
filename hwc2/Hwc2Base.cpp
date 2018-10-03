@@ -9,9 +9,9 @@
 
 #include "Hwc2Base.h"
 
-hwc2_composition_t mesonComp2Hwc2Comp(int type) {
+hwc2_composition_t mesonComp2Hwc2Comp(Hwc2Layer * layer) {
     hwc2_composition_t hwcCompostion;
-    switch (type) {
+    switch (layer->mCompositionType) {
         case MESON_COMPOSITION_CLIENT:
                 hwcCompostion = HWC2_COMPOSITION_CLIENT;
                 break;
@@ -27,8 +27,11 @@ hwc2_composition_t mesonComp2Hwc2Comp(int type) {
         case MESON_COMPOSITION_PLANE_OSD:
         case MESON_COMPOSITION_GE2D:
         default:
+            if (layer->mFbType == DRM_FB_COLOR)
+                hwcCompostion = HWC2_COMPOSITION_SOLID_COLOR;
+            else
                 hwcCompostion = HWC2_COMPOSITION_DEVICE;
-                break;
+            break;
     }
 
     return hwcCompostion;

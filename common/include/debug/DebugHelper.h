@@ -25,9 +25,10 @@ public:
     inline bool dumpDetailInfo() {return mDumpDetail;}
 
     /*log informations.*/
-    inline bool logCompositionFlow() {return mLogCompositionInfo;}
+    inline bool logCompositionDetail() {return mLogCompositionDetail;}
+    inline bool monitorDeviceComposition() {return mMonitorDeviceComposition;}
+    inline uint32_t deviceCompositionThreshold() {return mDeviceCompositionThreshold;}
     inline bool logFps() {return mLogFps;}
-    inline bool logLayerStatistic() {return mLogLayerStatistic;}
 
     /*check if UI/osd hwcomposer disabled.*/
     bool disableUiHwc() {return mDisableUiHwc;}
@@ -66,9 +67,11 @@ protected:
     bool mDisableUiHwc;
     bool mDumpDetail;
 
-    bool mLogCompositionInfo;
+    bool mLogCompositionDetail;
     bool mLogFps;
-    bool mLogLayerStatistic;
+
+    bool mMonitorDeviceComposition;
+    uint32_t mDeviceCompositionThreshold;
 
     std::vector<int> mSaveLayers;
     std::vector<int> mHideLayers;

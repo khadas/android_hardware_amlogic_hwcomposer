@@ -18,6 +18,22 @@ ANDROID_SINGLETON_STATIC_INSTANCE(DebugHelper)
 #define DEBUG_HELPER_ENABLE_PROP "vendor.hwc.debug"
 #define DEBUG_HELPER_COMMAND "vendor.hwc.debug.command"
 
+#define COMMAND_CLEAR "--clear"
+#define COMMAND_NOHWC "--nohwc"
+#define COMMAND_DUMP_DETAIL "--detail"
+#define COMMAND_LOG_COMPOSITION_DETAIL "--composition-detail"
+#define COMMAND_LOG_FPS "--fps"
+#define COMMAND_SAVE_LAYER "--save-layer"
+#define COMMAND_IN_FENCE "--infence"
+#define COMMAND_OUT_FENCE "--outfence"
+#define COMMAND_SHOW_LAYER "--show-layer"
+#define COMMAND_HIDE_LAYER "--hide-layer"
+#define COMMAND_SHOW_PLANE "--show-plane"
+#define COMMAND_HIDE_PLANE "--hide-plane"
+
+#define COMMAND_MONITOR_DEVICE_COMPOSITION "--monitor-composition"
+#define COMMAND_DEVICE_COMPOSITION_THRESHOLD "--device-layers-threshold"
+
 #define MAX_DEBUG_COMMANDS (20)
 
 #define INT_PARAMERTER_TO_BOOL(param)  \
@@ -47,8 +63,9 @@ void DebugHelper::clearPersistCmd() {
     mDumpDetail = false;
 
     mLogFps = false;
-    mLogCompositionInfo = false;
-    mLogLayerStatistic = false;
+    mLogCompositionDetail = false;
+    mMonitorDeviceComposition = false;
+    mDeviceCompositionThreshold = 4;
 
     mDiscardInFence = false;
     mDiscardOutFence = false;
@@ -135,62 +152,69 @@ void DebugHelper::resolveCmd() {
 
             for (int i = 0; i < paramNum; i++) {
                 MESON_LOGE("Parse command [%s]", paramArray[i]);
-                if (strcmp(paramArray[i], "--clear") == 0) {
+                if (strcmp(paramArray[i], COMMAND_CLEAR) == 0) {
                     clearPersistCmd();
                     clearOnePassCmd();
                     continue;
                 }
 
-                if (strcmp(paramArray[i], "--nohwc") == 0) {
+                if (strcmp(paramArray[i], COMMAND_NOHWC) == 0) {
                     i++;
                     CHECK_CMD_INT_PARAMETER();
                     mDisableUiHwc = INT_PARAMERTER_TO_BOOL(paramArray[i]);
                     continue;
                 }
 
-                if (strcmp(paramArray[i], "--detail") == 0) {
+                if (strcmp(paramArray[i], COMMAND_DUMP_DETAIL) == 0) {
                     i++;
                     CHECK_CMD_INT_PARAMETER();
                     mDumpDetail = INT_PARAMERTER_TO_BOOL(paramArray[i]);
                     continue;
                 }
 
-                if (strcmp(paramArray[i], "--fps") == 0) {
+                if (strcmp(paramArray[i], COMMAND_LOG_FPS) == 0) {
                     i++;
                     CHECK_CMD_INT_PARAMETER();
                     mLogFps = INT_PARAMERTER_TO_BOOL(paramArray[i]);
                     continue;
                 }
 
-                if (strcmp(paramArray[i], "--composition-info") == 0) {
+                if (strcmp(paramArray[i], COMMAND_LOG_COMPOSITION_DETAIL) == 0) {
                     i++;
                     CHECK_CMD_INT_PARAMETER();
-                    mLogCompositionInfo = INT_PARAMERTER_TO_BOOL(paramArray[i]);
+                    mLogCompositionDetail = INT_PARAMERTER_TO_BOOL(paramArray[i]);
                     continue;
                 }
 
-                if (strcmp(paramArray[i], "--layer-statistic") == 0) {
+                if (strcmp(paramArray[i], COMMAND_MONITOR_DEVICE_COMPOSITION) == 0) {
                     i++;
                     CHECK_CMD_INT_PARAMETER();
-                    mLogLayerStatistic = INT_PARAMERTER_TO_BOOL(paramArray[i]);
+                    mMonitorDeviceComposition = INT_PARAMERTER_TO_BOOL(paramArray[i]);
                     continue;
                 }
 
-                if (strcmp(paramArray[i], "--infence") == 0) {
+                if (strcmp(paramArray[i], COMMAND_DEVICE_COMPOSITION_THRESHOLD) == 0) {
+                    i++;
+                    CHECK_CMD_INT_PARAMETER();
+                    mDeviceCompositionThreshold = atoi(paramArray[i]);
+                    continue;
+                }
+
+                if (strcmp(paramArray[i], COMMAND_IN_FENCE) == 0) {
                     i++;
                     CHECK_CMD_INT_PARAMETER();
                     mDiscardInFence = INT_PARAMERTER_TO_BOOL(paramArray[i]);
                     continue;
                 }
 
-                if (strcmp(paramArray[i], "--outfence") == 0) {
+                if (strcmp(paramArray[i], COMMAND_OUT_FENCE) == 0) {
                     i++;
                     CHECK_CMD_INT_PARAMETER();
                     mDiscardOutFence = INT_PARAMERTER_TO_BOOL(paramArray[i]);
                     continue;
                 }
 
-                if (strcmp(paramArray[i], "--hide") == 0) {
+                if (strcmp(paramArray[i], COMMAND_HIDE_LAYER) == 0) {
                     i++;
                     CHECK_CMD_INT_PARAMETER();
                     int layerId = atoi(paramArray[i]);
@@ -203,7 +227,7 @@ void DebugHelper::resolveCmd() {
                     continue;
                 }
 
-                if (strcmp(paramArray[i], "--show") == 0) {
+                if (strcmp(paramArray[i], COMMAND_SHOW_LAYER) == 0) {
                     i++;
                     CHECK_CMD_INT_PARAMETER();
                     int layerId = atoi(paramArray[i]);
@@ -216,7 +240,7 @@ void DebugHelper::resolveCmd() {
                     continue;
                 }
 
-                if (strcmp(paramArray[i], "--hide-plane") == 0) {
+                if (strcmp(paramArray[i], COMMAND_HIDE_PLANE) == 0) {
                     i++;
                     CHECK_CMD_INT_PARAMETER();
                     int planeId = atoi(paramArray[i]);
@@ -229,7 +253,7 @@ void DebugHelper::resolveCmd() {
                     continue;
                 }
 
-                if (strcmp(paramArray[i], "--show-plane") == 0) {
+                if (strcmp(paramArray[i], COMMAND_SHOW_PLANE) == 0) {
                     i++;
                     CHECK_CMD_INT_PARAMETER();
                     int planeId = atoi(paramArray[i]);
@@ -242,7 +266,7 @@ void DebugHelper::resolveCmd() {
                     continue;
                 }
 
-                if (strcmp(paramArray[i], "--save") == 0) {
+                if (strcmp(paramArray[i], COMMAND_SAVE_LAYER) == 0) {
                     i++;
                     CHECK_CMD_INT_PARAMETER();
                     int layerId = atoi(paramArray[i]);
@@ -291,17 +315,17 @@ void DebugHelper::dump(String8 & dumpstr) {
         static const char * usage =
             "Pass command string to prop " DEBUG_HELPER_COMMAND " to debug.\n"
             "Supported commands:\n"
-            "\t --clear: clear all debug flags.\n"
-            "\t --nohwc 0|1:  choose osd/UI hwcomposer.\n"
-            "\t --detail 0|1: enable/dislabe dump detail internal info.\n"
-            "\t --infence 0 | 1: pass in fence to display, or handle it in hwc.\n"
-            "\t --outfence 0 | 1: return display out fence, or handle it in hwc.\n"
-            "\t --composition-info 0|1: enable/disable composition detail info.\n"
-            "\t --hide/--show [layerId]: hide/unhide specific layers by zorder. \n"
-            "\t --hide-plane/--show-plane [planeId]: hide/unhide specific plane by plane id. \n"
-            "\t --fps 0|1: start/stop log fps.\n"
-            "\t --layer-statistic 0|1:  enable/disable log layer statistic for hw analysis. \n"
-            "\t --save [layerId]: save specific layer's raw data by layer id. \n";
+            "\t " COMMAND_CLEAR ": clear all debug flags.\n"
+            "\t " COMMAND_NOHWC " 0|1:  choose osd/UI hwcomposer.\n"
+            "\t " COMMAND_DUMP_DETAIL " 0|1: enable/dislabe dump detail internal info.\n"
+            "\t " COMMAND_IN_FENCE " 0 | 1: pass in fence to display, or handle it in hwc.\n"
+            "\t " COMMAND_OUT_FENCE " 0 | 1: return display out fence, or handle it in hwc.\n"
+            "\t " COMMAND_LOG_COMPOSITION_DETAIL " 0|1: enable/disable composition detail info.\n"
+            "\t " COMMAND_HIDE_LAYER "/" COMMAND_SHOW_LAYER " [layerId]: hide/unhide specific layers by zorder. \n"
+            "\t " COMMAND_HIDE_PLANE "/" COMMAND_SHOW_PLANE " [planeId]: hide/unhide specific plane by plane id. \n"
+            "\t " COMMAND_LOG_FPS " 0|1: start/stop log fps.\n"
+            "\t " COMMAND_SAVE_LAYER " [layerId]: save specific layer's raw data by layer id. \n"
+            "\t " COMMAND_MONITOR_DEVICE_COMPOSITION " 0|1: monitor non device composition. \n";
 
         dumpstr.append("\nMesonHwc debug helper:\n");
         dumpstr.append(usage);
@@ -310,27 +334,28 @@ void DebugHelper::dump(String8 & dumpstr) {
         std::vector<int>::iterator it;
 
         dumpstr.append("Debug Command:\n");
-        dumpstr.appendFormat("--nohwc (%d)\n", mDisableUiHwc);
-        dumpstr.appendFormat("--detail (%d)\n", mDumpDetail);
-        dumpstr.appendFormat("--infence (%d)\n", mDiscardInFence);
-        dumpstr.appendFormat("--outfence (%d)\n", mDiscardOutFence);
-        dumpstr.appendFormat("--composition-info (%d)\n", mLogCompositionInfo);
-        dumpstr.appendFormat("--fps (%d)\n", mLogFps);
-        dumpstr.appendFormat("--layer-statistic (%d)\n", mLogLayerStatistic);
+        dumpstr.appendFormat(COMMAND_NOHWC " (%d)\n", mDisableUiHwc);
+        dumpstr.appendFormat(COMMAND_DUMP_DETAIL " (%d)\n", mDumpDetail);
+        dumpstr.appendFormat(COMMAND_IN_FENCE " (%d)\n", mDiscardInFence);
+        dumpstr.appendFormat(COMMAND_OUT_FENCE " (%d)\n", mDiscardOutFence);
+        dumpstr.appendFormat(COMMAND_LOG_COMPOSITION_DETAIL " (%d)\n", mLogCompositionDetail);
+        dumpstr.appendFormat(COMMAND_LOG_FPS " (%d)\n", mLogFps);
+        dumpstr.appendFormat(COMMAND_MONITOR_DEVICE_COMPOSITION " (%d)\n", mMonitorDeviceComposition);
+        dumpstr.appendFormat(COMMAND_DEVICE_COMPOSITION_THRESHOLD " (%d)\n", mDeviceCompositionThreshold);
 
-        dumpstr.append("--hide-plane (");
+        dumpstr.append(COMMAND_HIDE_PLANE " (");
         for (it = mHidePlanes.begin(); it < mHidePlanes.end(); it++) {
             dumpstr.appendFormat("%d    ", *it);
         }
         dumpstr.append(")\n");
 
-        dumpstr.append("--hide (");
+        dumpstr.append(COMMAND_HIDE_LAYER " (");
         for (it = mHideLayers.begin(); it < mHideLayers.end(); it++) {
             dumpstr.appendFormat("%d    ", *it);
         }
         dumpstr.append(")\n");
 
-        dumpstr.append("--save (");
+        dumpstr.append(COMMAND_SAVE_LAYER " (");
         for (it = mSaveLayers.begin(); it < mSaveLayers.end(); it++) {
             dumpstr.appendFormat("%d    ", *it);
         }
@@ -338,4 +363,3 @@ void DebugHelper::dump(String8 & dumpstr) {
     }
 
 }
-

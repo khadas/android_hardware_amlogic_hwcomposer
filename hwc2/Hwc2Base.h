@@ -11,9 +11,9 @@
 #define HWC2_BASE_H
 
 #include <hardware/hwcomposer2.h>
-
 #include <Composition.h>
+#include "Hwc2Layer.h"
 
-hwc2_composition_t mesonComp2Hwc2Comp(int type);
+hwc2_composition_t mesonComp2Hwc2Comp(Hwc2Layer * layer);
 
 #endif/*HWC2_BASE_H*/

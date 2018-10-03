@@ -285,13 +285,6 @@ hwc2_error_t Hwc2Display::collectLayersForPresent() {
         std::sort(mPresentLayers.begin(), mPresentLayers.end(), zorderCompare);
     }
 
-    if (DebugHelper::getInstance().logCompositionFlow()) {
-        String8 layersDump;
-        dumpPresentLayers(layersDump);
-        MESON_LOGE("Compostion-Layers:\n");
-        MESON_LOGE("%s", layersDump.string());
-    }
-
     return HWC2_ERROR_NONE;
 }
 
@@ -327,6 +320,8 @@ hwc2_error_t Hwc2Display::collectComposersForPresent() {
 hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
     uint32_t* outNumRequests) {
     MESON_LOG_FUN_ENTER();
+    mFailedDeviceComp = false;
+
     hwc2_error_t ret = collectLayersForPresent();
     if (ret != HWC2_ERROR_NONE) {
         return ret;
@@ -360,7 +355,23 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
     }
 
     /*collect changed dispplay, layer, compostiion.*/
-    return collectCompositionRequest(outNumTypes, outNumRequests);
+    ret = collectCompositionRequest(outNumTypes, outNumRequests);
+
+    /*dump at end of validate, for we need check by some composition info.*/
+    bool dumpLayers = false;
+    if (DebugHelper::getInstance().logCompositionDetail()) {
+        MESON_LOGE("***CompositionFlow (%s):\n", __func__);
+        dumpLayers = true;
+    } else if (mFailedDeviceComp) {
+        MESON_LOGE("***MonitorFailedDeviceComposition: \n");
+        dumpLayers = true;
+    }
+    if (dumpLayers) {
+        String8 layersDump;
+        dumpPresentLayers(layersDump);
+        MESON_LOGE("%s", layersDump.string());
+    }
+    return ret;
 }
 
 hwc2_error_t Hwc2Display::collectCompositionRequest(
@@ -375,9 +386,15 @@ hwc2_error_t Hwc2Display::collectCompositionRequest(
         layer = (Hwc2Layer*)(it->get());
         /*record composition changed layer.*/
         hwc2_composition_t expectedHwcComposition =
-            mesonComp2Hwc2Comp(layer->mCompositionType);
+            mesonComp2Hwc2Comp(layer);
         if (expectedHwcComposition  != layer->mHwcCompositionType) {
             mChangedLayers.push_back(layer->getUniqueId());
+            /*For debug.*/
+            if (DebugHelper::getInstance().monitorDeviceComposition() &&
+                (mPresentLayers.size() <= DebugHelper::getInstance().deviceCompositionThreshold()) &&
+                (expectedHwcComposition == HWC2_COMPOSITION_CLIENT)) {
+                mFailedDeviceComp = true;
+            }
         }
     }
 
@@ -425,7 +442,7 @@ hwc2_error_t Hwc2Display::getChangedCompositionTypes(
     if (outLayers && outTypes) {
         for (uint32_t i = 0; i < mChangedLayers.size(); i++) {
             std::shared_ptr<Hwc2Layer> layer = mLayers.find(mChangedLayers[i])->second;
-            outTypes[i] = mesonComp2Hwc2Comp(layer->mCompositionType);
+            outTypes[i] = mesonComp2Hwc2Comp(layer.get());
             outLayers[i] = mChangedLayers[i];
         }
     }
@@ -438,7 +455,7 @@ hwc2_error_t Hwc2Display::acceptDisplayChanges() {
     std::vector<std::shared_ptr<DrmFramebuffer>>::iterator it;
     for (it = mPresentLayers.begin() ; it != mPresentLayers.end(); it++) {
         Hwc2Layer * layer = (Hwc2Layer*)(it->get());
-        layer->commitCompType(mesonComp2Hwc2Comp(layer->mCompositionType));
+        layer->commitCompType(mesonComp2Hwc2Comp(layer));
     }
 
     return HWC2_ERROR_NONE;
@@ -446,7 +463,6 @@ hwc2_error_t Hwc2Display::acceptDisplayChanges() {
 
 hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
     MESON_LOG_FUN_ENTER();
-
     int32_t outFence = -1;
 
     /*Pre page flip, set display position*/
@@ -464,13 +480,22 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
         return HWC2_ERROR_UNSUPPORTED;
     }
 
-    if (DebugHelper::getInstance().logCompositionFlow()) {
+    *outPresentFence = outFence;
+
+    /*dump debug informations.*/
+    bool dumpComposition = false;
+    if (DebugHelper::getInstance().logCompositionDetail()) {
+        MESON_LOGE("***CompositionFlow (%s):\n", __func__);
+        dumpComposition = true;
+    } else if (mFailedDeviceComp) {
+        MESON_LOGE("***MonitorFailedDeviceComposition: \n");
+        dumpComposition = true;
+    }
+    if (dumpComposition) {
         String8 compDump;
         mCompositionStrategy->dump(compDump);
         MESON_LOGE("%s", compDump.string());
     }
-
-    *outPresentFence = outFence;
     return HWC2_ERROR_NONE;
 }
 

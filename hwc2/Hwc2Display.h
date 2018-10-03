@@ -130,6 +130,7 @@ protected:
     /*composition releated components*/
     std::map<meson_composer_t, std::shared_ptr<IComposer>> mComposers;
     std::shared_ptr<ICompositionStrategy> mCompositionStrategy;
+    bool mFailedDeviceComp;
 
     /*display configs*/
     std::shared_ptr<HwcModeMgr> mModeMgr;
@@ -137,7 +138,6 @@ protected:
     /*layer id generate*/
     std::shared_ptr<BitsMap> mLayersBitmap;
     int32_t mLayerSeq;
-
 
     /* members used in present.*/
     std::vector<std::shared_ptr<DrmFramebuffer>> mPresentLayers;
@@ -152,6 +152,7 @@ protected:
     float mColorMatrix[16];
 
     bool mIsConnected;
+
 };
 
 #endif/*HWC2_DISPLAY_H*/
