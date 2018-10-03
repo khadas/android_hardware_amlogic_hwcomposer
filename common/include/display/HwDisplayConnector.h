@@ -29,6 +29,8 @@ public:
 
     virtual int32_t getModes(std::map<uint32_t, drm_mode_info_t> & modes);
 
+    virtual int32_t switchRatePolicy(bool fracRatePolicy __unused) {return 0;};
+
     virtual const char * getName() = 0;
     virtual drm_connector_type_t getType() = 0;
     virtual bool isRemovable() = 0;
@@ -36,7 +38,7 @@ public:
     virtual bool isConnected() = 0;
 
     virtual void getHdrCapabilities(drm_hdr_capabilities * caps) = 0;
-    virtual  void dump(String8 & dumpstr) = 0;
+    virtual void dump(String8 & dumpstr) = 0;
 
 protected:
     virtual void loadPhysicalSize();
@@ -44,8 +46,8 @@ protected:
     int32_t mDrvFd;
     uint32_t mId;
 
-    int mPhyWidth;
-    int mPhyHeight;
+    uint32_t mPhyWidth;
+    uint32_t mPhyHeight;
 
     std::map<uint32_t, drm_mode_info_t> mDisplayModes;
 };

@@ -28,6 +28,8 @@ public:
     int32_t updateMode(std::string & displayMode);
 #endif
 
+    int32_t updateActiveMode(std::string & displayMode, bool policy);
+
     int32_t getModeId();
 
     int32_t parseDftFbSize(uint32_t & width, uint32_t & height);

@@ -88,6 +88,14 @@ drm_connector_type_t HwcConfig::getConnectorType(int disp) {
     return connector_type;
 }
 
+hwc_modes_policy_t HwcConfig::getModePolicy() {
+#ifdef ENABLE_ACTIVE_MODE
+    return FULL_ACTIVE_POLICY;
+#else
+    return FIXED_SIZE_POLICY;
+#endif
+}
+
 bool HwcConfig::isHeadlessMode() {
 #ifdef HWC_ENABLE_HEADLESS_MODE
         return true;

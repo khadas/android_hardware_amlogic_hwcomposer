@@ -14,6 +14,7 @@
 #include <BasicTypes.h>
 #include <HwDisplayConnector.h>
 #include <HwDisplayCrtc.h>
+#include <HwcConfig.h>
 
 /*
  *For different connectors, we need different manage strategy.
@@ -21,16 +22,10 @@
  */
 class HwcModeMgr {
 public:
-    enum ModesPolicy {
-        FIXED_SIZE_POLICY = 0,
-        FULL_ACTIVE_POLICY
-    };
-
-public:
     HwcModeMgr() {}
     virtual ~HwcModeMgr() {}
 
-    virtual ModesPolicy getPolicyType() = 0;
+    virtual hwc_modes_policy_t getPolicyType() = 0;
     virtual const char * getName() = 0;
 
     virtual void setDisplayResources(
@@ -48,6 +43,6 @@ public:
     virtual void dump(String8 & dumpstr) = 0;
 };
 
-std::shared_ptr<HwcModeMgr> createModeMgr(HwcModeMgr::ModesPolicy policy);
+std::shared_ptr<HwcModeMgr> createModeMgr(hwc_modes_policy_t policy);
 
 #endif/*IHWC_MODE_MGR_H*/

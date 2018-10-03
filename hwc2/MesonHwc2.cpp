@@ -533,23 +533,31 @@ void MesonHwc2::onHotplug(hwc2_display_t display, bool connected __unused) {
         }
     }
 
-    while (!mHotplugFn) {
-        MESON_LOGD("wait for hotplug callback registered.");
-        usleep(1000 * 1000);
+    if (mFirstCallBackSF) {
+        while (!mHotplugFn) {
+            MESON_LOGD("wait for hotplug callback registered.");
+            usleep(1000 * 1000);
+        }
+        {
+            std::lock_guard<std::mutex> lk(Mutex);
+        }
+        if (mHotplugFn) {
+            MESON_LOGD("On hotplug, Fn: %p, Data: %p, display: %d(%d), connected: %d",
+                    mHotplugFn, mHotplugData, (int)display, HWC_DISPLAY_PRIMARY, connected);
+            mFirstCallBackSF = false;
+            primaryHotplugFlag = true;
+            cv.notify_one();
+            MESON_LOGD("HotplugFn finish.");
+            return;
+        }
+    } else {
+        if (mHotplugFn) {
+            MESON_LOGD("On hotplug, Fn: %p, Data: %p, display: %d(%d), connected: %d",
+                    mHotplugFn, mHotplugData, (int)display, HWC_DISPLAY_PRIMARY, connected);
+            mHotplugFn(mHotplugData, HWC_DISPLAY_PRIMARY, connected);
+            return;
+        }
     }
-    {
-        std::lock_guard<std::mutex> lk(Mutex);
-    }
-    if (mHotplugFn) {
-        MESON_LOGD("On hotplug, Fn: %p, Data: %p, display: %d(%d), connected: %d",
-                mHotplugFn, mHotplugData, (int)display, HWC_DISPLAY_PRIMARY, connected);
-        mFirstCallBackSF = false;
-        primaryHotplugFlag = true;
-        cv.notify_one();
-        MESON_LOGD("HotplugFn finish.");
-        return;
-    }
-
     MESON_LOGE("No hotplug callback registered.");
 }
 

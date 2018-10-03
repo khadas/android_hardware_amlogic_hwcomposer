@@ -26,11 +26,14 @@ public:
     virtual bool isSecure() ;
 
     virtual int32_t getModes(std::map<uint32_t, drm_mode_info_t> & modes);
+    virtual int32_t switchRatePolicy(bool fracRatePolicy);
     virtual void getHdrCapabilities(drm_hdr_capabilities * caps);
 
     virtual void dump(String8& dumpstr);
 
 protected:
+    virtual int32_t addDisplayMode(std::string& mode);
+
     bool checkConnectState();
 
     int32_t loadDisplayModes();

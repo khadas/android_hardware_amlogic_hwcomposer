@@ -20,7 +20,7 @@ FixedSizeModeMgr::~FixedSizeModeMgr() {
 
 }
 
-HwcModeMgr::ModesPolicy FixedSizeModeMgr::getPolicyType() {
+hwc_modes_policy_t FixedSizeModeMgr::getPolicyType() {
     return FIXED_SIZE_POLICY;
 }
 

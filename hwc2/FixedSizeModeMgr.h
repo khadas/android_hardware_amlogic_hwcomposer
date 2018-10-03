@@ -24,7 +24,7 @@ public:
     FixedSizeModeMgr();
     ~FixedSizeModeMgr();
 
-    ModesPolicy getPolicyType();
+    hwc_modes_policy_t getPolicyType();
     const char * getName();
 
     void setDisplayResources(

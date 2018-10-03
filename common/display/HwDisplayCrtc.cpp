@@ -63,9 +63,26 @@ int32_t HwDisplayCrtc::updateMode(std::string & displayMode) {
 }
 #endif
 
+int32_t HwDisplayCrtc::updateActiveMode(std::string & displayMode, bool policy) {
+    MESON_LOGI("hw crtc update active mode: %s", displayMode.c_str());
+
+    updateMode(displayMode);
+    mConnector->switchRatePolicy(policy);
+    sc_set_display_mode(displayMode);
+    return 0;
+}
+
 int32_t HwDisplayCrtc::getModeId() {
-    vmode_e vmode = vmode_name_to_mode(mCurMode.c_str());
-    return (int32_t)vmode;
+    std::map<uint32_t, drm_mode_info_t> displayModes;
+    mConnector->getModes(displayModes);
+    std::map<uint32_t, drm_mode_info_t>::iterator it = displayModes.begin();
+    for (; it != displayModes.end(); ++it)
+        if (strncmp(it->second.name, mCurMode.c_str(), DRM_DISPLAY_MODE_LEN) == 0)
+            return it->first;
+
+    MESON_ASSERT(0, "[%s]: Get not support display mode %s",
+        __func__, mCurMode.c_str());
+    return -ENOENT;
 }
 
 int32_t HwDisplayCrtc::parseDftFbSize(uint32_t & width, uint32_t & height) {

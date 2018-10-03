@@ -13,6 +13,7 @@
 #include "Hwc2Base.h"
 
 #include <DrmTypes.h>
+#include <HwcConfig.h>
 #include <MesonLog.h>
 #include <DebugHelper.h>
 #include <Composition.h>
@@ -47,6 +48,7 @@ Hwc2Display::~Hwc2Display() {
 }
 
 int32_t Hwc2Display::initialize() {
+
     if (MESON_DUMMY_DISPLAY_ID != mHwId) {
         HwDisplayManager::getInstance().registerObserver(mHwId, this);
      } else {
@@ -54,7 +56,7 @@ int32_t Hwc2Display::initialize() {
      }
 
     /*get hw components.*/
-    mModeMgr = createModeMgr(HwcModeMgr::FIXED_SIZE_POLICY);
+    mModeMgr = createModeMgr(HwcConfig::getModePolicy());
 
     /*add valid composers*/
     std::shared_ptr<IComposer> composer;
@@ -139,7 +141,7 @@ void Hwc2Display::onModeChanged(int stage) {
             mObserver->refresh();
 
             /*Update info to surfaceflinger by hotplug.*/
-            if (mModeMgr->getPolicyType() == HwcModeMgr::FIXED_SIZE_POLICY) {
+            if (mModeMgr->getPolicyType() == FIXED_SIZE_POLICY) {
                 mObserver->onHotplug(true);
             }
         } else {

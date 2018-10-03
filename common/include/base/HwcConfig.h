@@ -12,12 +12,17 @@
 
 #include <DrmTypes.h>
 
+typedef enum hwc_modes_policy {
+    FIXED_SIZE_POLICY = 0,
+    FULL_ACTIVE_POLICY
+}hwc_modes_policy_t;
 
 class HwcConfig {
 public:
     static int32_t getDisplayNum();
     static drm_connector_type_t getConnectorType(int disp);
     static int32_t getFramebufferSize(int disp, uint32_t & width, uint32_t & height);
+    static hwc_modes_policy_t getModePolicy();
     static bool isHeadlessMode();
     static int32_t headlessRefreshRate();
 

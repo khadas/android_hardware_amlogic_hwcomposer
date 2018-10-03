@@ -14,6 +14,7 @@
 int32_t sc_get_hdmitx_mode_list(std::vector<std::string>& edidlist);
 int32_t sc_get_hdmitx_hdcp_state(bool & val);
 int32_t sc_get_display_mode(std::string &dispmode);
+int32_t sc_set_display_mode(std::string &dispmode);
 int32_t sc_get_osd_position(std::string &dispmode, int *position);
 
 #endif/*SYSTEM_CONTROL_H*/

@@ -10,6 +10,14 @@
 #include <MesonLog.h>
 #include "AmVinfo.h"
 
+enum {
+    REFRESH_24kHZ = 24,
+    REFRESH_30kHZ = 30,
+    REFRESH_60kHZ = 60,
+    REFRESH_120kHZ = 120,
+    REFRESH_240kHZ = 240
+};
+
 HwDisplayConnector::HwDisplayConnector(int32_t drvFd, uint32_t id) {
     mDrvFd = drvFd;
     mId = id;
@@ -61,7 +69,7 @@ int32_t HwDisplayConnector::addDisplayMode(std::string& mode) {
         (float)vinfo->sync_duration_num/vinfo->sync_duration_den};
     strcpy(modeInfo.name, mode.c_str());
 
-    mDisplayModes.emplace((uint32_t)vmode, modeInfo);
+    mDisplayModes.emplace(mDisplayModes.size(), modeInfo);
 
     MESON_LOGI("add display mode (%s)", mode.c_str());
     return 0;
