@@ -86,10 +86,21 @@ uint32_t OsdPlane::getPossibleCrtcs() {
 }
 
 bool OsdPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
-    if ((fb->mFbType != DRM_FB_SCANOUT &&
-        fb->mFbType != DRM_FB_COLOR) ||
-        fb->isRotated())
-        return false;
+    if (fb->isRotated())
+         return false;
+
+    //if cursor fb, check if buffer is cont
+    switch (fb->mFbType) {
+        case DRM_FB_CURSOR:
+            if (!am_gralloc_is_coherent_buffer(fb->mBufferHandle))
+                return false;
+        case DRM_FB_SCANOUT:
+            break;
+        case DRM_FB_COLOR:
+            /*TODO:will enable later.*/
+        default:
+            return false;
+    }
 
     int format = am_gralloc_get_format(fb->mBufferHandle);
     switch (format) {
