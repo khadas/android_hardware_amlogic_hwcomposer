@@ -1878,31 +1878,6 @@ int32_t PhysicalDevice::getLineValue(const char *lineStr, const char *magicStr) 
 *     DM Ver: 1
 *******************************************/
 int32_t PhysicalDevice::parseHdrCapabilities() {
-    // DolbyVision1
-    const char *DV_PATH = "/sys/class/amhdmitx/amhdmitx0/dv_cap";
-    // HDR
-    const char *HDR_PATH = "/sys/class/amhdmitx/amhdmitx0/hdr_cap";
-
-    char buf[1024+1] = {0};
-    char* pos = buf;
-    int fd, len;
-
-    memset(&mHdrCapabilities, 0, sizeof(hdr_capabilities_t));
-    if ((fd = open(DV_PATH, O_RDONLY)) < 0) {
-        ETRACE("open %s fail.", DV_PATH);
-        goto exit;
-    }
-
-    len = read(fd, buf, 1024);
-    if (len < 0) {
-        ETRACE("read error: %s, %s\n", DV_PATH, strerror(errno));
-        goto exit;
-    }
-    close(fd);
-
-    if ((NULL != strstr(pos, "2160p30hz")) || (NULL != strstr(pos, "2160p60hz")))
-        mHdrCapabilities.dvSupport = true;
-    // dobly version parse end
 
 #if USE_DEFAULT_HDR_CAP
     mHdrCapabilities.hdrSupport = true;
@@ -1912,6 +1887,10 @@ int32_t PhysicalDevice::parseHdrCapabilities() {
     mHdrCapabilities.minLuminance = sDefaultMinLumiance;
 
 #else
+    char buf[1024+1] = {0};
+    char* pos = buf;
+    int fd, len;
+
     memset(buf, 0, 1024);
     if ((fd = open(HDR_PATH, O_RDONLY)) < 0) {
         ETRACE("open %s fail.", HDR_PATH);
@@ -1932,12 +1911,40 @@ int32_t PhysicalDevice::parseHdrCapabilities() {
         mHdrCapabilities.avgLuminance = getLineValue(pos, "Avg: ");
         mHdrCapabilities.minLuminance = getLineValue(pos, "Min: ");
     }
-#endif
-    ITRACE("dolby version support:%d, hdr support:%d max:%d, avg:%d, min:%d\n",
+
+// DolbyVision1
+    const char *DV_PATH = "/sys/class/amhdmitx/amhdmitx0/dv_cap";
+// HDR
+    const char *HDR_PATH = "/sys/class/amhdmitx/amhdmitx0/hdr_cap";
+
+
+    memset(&mHdrCapabilities, 0, sizeof(hdr_capabilities_t));
+    if ((fd = open(DV_PATH, O_RDONLY)) < 0) {
+        ETRACE("open %s fail.", DV_PATH);
+        goto exit;
+    }
+
+    len = read(fd, buf, 1024);
+    if (len < 0) {
+        ETRACE("read error: %s, %s\n", DV_PATH, strerror(errno));
+        goto exit;
+    }
+    close(fd);
+
+    if ((NULL != strstr(pos, "2160p30hz")) || (NULL != strstr(pos, "2160p60hz")))
+        mHdrCapabilities.dvSupport = true;
+// dobly version parse end
+
+ITRACE("dolby version support:%d, hdr support:%d max:%d, avg:%d, min:%d\n",
         mHdrCapabilities.dvSupport?1:0, mHdrCapabilities.hdrSupport?1:0, mHdrCapabilities.maxLuminance, mHdrCapabilities.avgLuminance, mHdrCapabilities.minLuminance);
 exit:
     close(fd);
     return HWC2_ERROR_NONE;
+
+#endif
+
+return HWC2_ERROR_NONE;
+
 }
 
 void PhysicalDevice::dump(Dump& d) {
