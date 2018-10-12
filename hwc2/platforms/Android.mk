@@ -15,7 +15,9 @@ LOCAL_PROPRIETARY_MODULE := true
 endif
 
 ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 28 && echo OK),OK)
+ifeq ($(TARGET_COMPOSOR2.2_SUPPORT), true)
 LOCAL_CFLAGS += -DHDR_SUPPORT
+endif
 endif
 
 LOCAL_SRC_FILES := \

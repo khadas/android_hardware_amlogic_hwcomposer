@@ -34,11 +34,12 @@
 //#define HWC_SUPPORT_SECURE_DISPLAY 1
 #define FBIOPUT_OSD_CURSOR     _IOWR(FB_IOC_MAGIC, 0x0,  struct fb_cursor)
 
-#if PLATFORM_SDK_VERSION == 28
+#ifdef HDR_SUPPORT
 #define USE_DEFAULT_HDR_CAP 1
 #else
 #define USE_DEFAULT_HDR_CAP 0
 #endif
+
 namespace android {
 namespace amlogic {
 
