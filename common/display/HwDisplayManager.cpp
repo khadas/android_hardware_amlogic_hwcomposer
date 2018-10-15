@@ -230,6 +230,8 @@ void HwDisplayManager::dump(String8 & dumpstr) {
                         (drm_plane_type_t)mPlanes.find(planeId)->second->getPlaneType()),
                     mPlanes.find(planeId)->second->getCapabilities(),
                     mPlanes.find(planeId)->second->getFixedZorder());
+
+                mPlanes.find(planeId)->second->dump(dumpstr);
         }
 
         int connectorId = pipes[i].connector_id;

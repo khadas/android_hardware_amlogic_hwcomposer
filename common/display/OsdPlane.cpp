@@ -97,7 +97,7 @@ bool OsdPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
         case DRM_FB_SCANOUT:
             break;
         case DRM_FB_COLOR:
-            /*TODO:will enable later.*/
+            return true;
         default:
             return false;
     }
@@ -120,7 +120,7 @@ bool OsdPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
 
 int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb, uint32_t zorder) {
     MESON_ASSERT(mDrvFd >= 0, "osd plane fd is not valiable!");
-    MESON_ASSERT(zorder > 0, "osd driver request zorder > 0");
+    MESON_ASSERT(zorder > 0, "osd driver request zorder > 0");// driver request zorder > 0
 
     drm_rect_t srcCrop       = fb->mSourceCrop;
     drm_rect_t disFrame      = fb->mDisplayFrame;
@@ -129,7 +129,6 @@ int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb, uint32_t zorder)
     mPlaneInfo.magic         = OSD_SYNC_REQUEST_RENDER_MAGIC_V2;
     mPlaneInfo.len           = sizeof(osd_plane_info_t);
     mPlaneInfo.type          = DIRECT_COMPOSE_MODE;
-
     mPlaneInfo.xoffset       = srcCrop.left;
     mPlaneInfo.yoffset       = srcCrop.top;
     mPlaneInfo.width         = srcCrop.right    - srcCrop.left;
@@ -138,6 +137,36 @@ int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb, uint32_t zorder)
     mPlaneInfo.dst_y         = disFrame.top;
     mPlaneInfo.dst_w         = disFrame.right   - disFrame.left;
     mPlaneInfo.dst_h         = disFrame.bottom  - disFrame.top;
+    mPlaneInfo.blend_mode    = fb->mBlendMode;
+    mPlaneInfo.zorder        = zorder;
+    mPlaneInfo.op            = 0;
+
+    if (fb->mFbType == DRM_FB_COLOR) {
+        /*reset buffer layer info*/
+        mPlaneInfo.shared_fd = -1;
+
+        mPlaneInfo.dim_layer = 1;
+          /*osd canot support plane alpha when ouput dim layer.
+        *so we handle the plane on color here.
+        */
+        mPlaneInfo.dim_color = (((unsigned char)(fb->mColor.r * fb->mPlaneAlpha) << 24) |
+                                                ((unsigned char)(fb->mColor.g * fb->mPlaneAlpha) << 16) |
+                                                ((unsigned char)(fb->mColor.b * fb->mPlaneAlpha) << 8) |
+                                                ((unsigned char)(fb->mColor.a * fb->mPlaneAlpha)));
+        mPlaneInfo.plane_alpha = 255;
+        mPlaneInfo.afbc_inter_format = 0;
+    } else  {
+        //reset dim layer info.
+        mPlaneInfo.dim_layer = 0;
+        mPlaneInfo.dim_color = 0;
+
+        mPlaneInfo.shared_fd     = ::dup(am_gralloc_get_buffer_fd(buf));
+        mPlaneInfo.format        = am_gralloc_get_format(buf);
+        mPlaneInfo.byte_stride   = am_gralloc_get_stride_in_byte(buf);
+        mPlaneInfo.pixel_stride  = am_gralloc_get_stride_in_pixel(buf);
+        mPlaneInfo.afbc_inter_format = am_gralloc_get_vpu_afbc_mask(buf);
+        mPlaneInfo.plane_alpha   = (unsigned char)255 * fb->mPlaneAlpha; //kenrel need alpha 0 ~ 255
+    }
 
     if (DebugHelper::getInstance().discardInFence()) {
         fb->getAcquireFence()->waitForever("osd-input");
@@ -145,16 +174,6 @@ int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb, uint32_t zorder)
     } else {
         mPlaneInfo.in_fen_fd     = fb->getAcquireFence()->dup();
     }
-
-    mPlaneInfo.shared_fd     = ::dup(am_gralloc_get_buffer_fd(buf));
-    mPlaneInfo.format        = am_gralloc_get_format(buf);
-    mPlaneInfo.byte_stride   = am_gralloc_get_stride_in_byte(buf);
-    mPlaneInfo.pixel_stride  = am_gralloc_get_stride_in_pixel(buf);
-    mPlaneInfo.zorder        = zorder;// driver request zorder > 0
-    mPlaneInfo.blend_mode    = fb->mBlendMode;
-    mPlaneInfo.plane_alpha   = fb->mPlaneAlpha;
-    mPlaneInfo.op            = 0;//&= ~(OSD_BLANK_OP_BIT);
-    mPlaneInfo.afbc_inter_format = am_gralloc_get_vpu_afbc_mask(buf);
 
     if (ioctl(mDrvFd, FBIOPUT_OSD_SYNC_RENDER_ADD, &mPlaneInfo) != 0) {
         MESON_LOGE("osd plane FBIOPUT_OSD_SYNC_RENDER_ADD return(%d)", errno);
