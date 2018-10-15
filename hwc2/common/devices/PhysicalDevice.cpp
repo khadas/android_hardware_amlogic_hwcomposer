@@ -1887,9 +1887,31 @@ int32_t PhysicalDevice::parseHdrCapabilities() {
     mHdrCapabilities.minLuminance = sDefaultMinLumiance;
 
 #else
+    // DolbyVision1
+    const char *DV_PATH = "/sys/class/amhdmitx/amhdmitx0/dv_cap";
+    // HDR
+    const char *HDR_PATH = "/sys/class/amhdmitx/amhdmitx0/hdr_cap";
+
     char buf[1024+1] = {0};
     char* pos = buf;
     int fd, len;
+
+    memset(&mHdrCapabilities, 0, sizeof(hdr_capabilities_t));
+    if ((fd = open(DV_PATH, O_RDONLY)) < 0) {
+        ETRACE("open %s fail.", DV_PATH);
+        goto exit;
+    }
+
+    len = read(fd, buf, 1024);
+    if (len < 0) {
+        ETRACE("read error: %s, %s\n", DV_PATH, strerror(errno));
+        goto exit;
+    }
+    close(fd);
+
+    if ((NULL != strstr(pos, "2160p30hz")) || (NULL != strstr(pos, "2160p60hz")))
+        mHdrCapabilities.dvSupport = true;
+// dobly version parse end
 
     memset(buf, 0, 1024);
     if ((fd = open(HDR_PATH, O_RDONLY)) < 0) {
@@ -1912,28 +1934,6 @@ int32_t PhysicalDevice::parseHdrCapabilities() {
         mHdrCapabilities.minLuminance = getLineValue(pos, "Min: ");
     }
 
-// DolbyVision1
-    const char *DV_PATH = "/sys/class/amhdmitx/amhdmitx0/dv_cap";
-// HDR
-    const char *HDR_PATH = "/sys/class/amhdmitx/amhdmitx0/hdr_cap";
-
-
-    memset(&mHdrCapabilities, 0, sizeof(hdr_capabilities_t));
-    if ((fd = open(DV_PATH, O_RDONLY)) < 0) {
-        ETRACE("open %s fail.", DV_PATH);
-        goto exit;
-    }
-
-    len = read(fd, buf, 1024);
-    if (len < 0) {
-        ETRACE("read error: %s, %s\n", DV_PATH, strerror(errno));
-        goto exit;
-    }
-    close(fd);
-
-    if ((NULL != strstr(pos, "2160p30hz")) || (NULL != strstr(pos, "2160p60hz")))
-        mHdrCapabilities.dvSupport = true;
-// dobly version parse end
 
 ITRACE("dolby version support:%d, hdr support:%d max:%d, avg:%d, min:%d\n",
         mHdrCapabilities.dvSupport?1:0, mHdrCapabilities.hdrSupport?1:0, mHdrCapabilities.maxLuminance, mHdrCapabilities.avgLuminance, mHdrCapabilities.minLuminance);
