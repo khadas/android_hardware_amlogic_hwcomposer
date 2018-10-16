@@ -14,8 +14,6 @@
 
 typedef uint32_t hw_display_id;
 
-#define MESON_HW_DISPLAY_VSYNC_SOFTWARE 0
-
 #define MESON_DUMMY_DISPLAY_ID (0xffffffff)
 #define MESON_HW_DISPLAYS_MAX (2)
 

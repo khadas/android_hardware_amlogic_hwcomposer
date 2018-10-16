@@ -11,6 +11,7 @@
 #include <MesonLog.h>
 #include <DebugHelper.h>
 #include <unistd.h>
+#include <HwcConfig.h>
 
 #include "MesonHwc2Defs.h"
 #include "MesonHwc2.h"
@@ -525,12 +526,12 @@ void MesonHwc2::onVsync(hwc2_display_t display, int64_t timestamp) {
 }
 
 void MesonHwc2::onHotplug(hwc2_display_t display, bool connected __unused) {
-    #ifndef HWC_ENABLE_PRIMARY_HOTPLUG
-    if (display == HWC_DISPLAY_PRIMARY /*&& connected*/ && !mFirstCallBackSF) {
-        MESON_LOGD("Primary display not support hotplug.");
-        return;
+    if (HwcConfig::primaryHotplugEnabled()) {
+        if (display == HWC_DISPLAY_PRIMARY /*&& connected*/ && !mFirstCallBackSF) {
+            MESON_LOGD("Primary display not support hotplug.");
+            return;
+        }
     }
-    #endif
 
     while (!mHotplugFn) {
         MESON_LOGD("wait for hotplug callback registered.");

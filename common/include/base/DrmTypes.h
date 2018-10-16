@@ -100,7 +100,8 @@ typedef enum {
 typedef enum {
     DRM_MODE_CONNECTOR_HDMI = 0,
     DRM_MODE_CONNECTOR_CVBS,
-    DRM_MODE_CONNECTOR_PANEL
+    DRM_MODE_CONNECTOR_PANEL,
+    DRM_MODE_CONNECTOR_INVALID = 0xFF,
 } drm_connector_type_t;
 
 typedef struct drm_hdr_capabilities {

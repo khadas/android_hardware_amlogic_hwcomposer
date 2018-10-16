@@ -255,7 +255,7 @@ hwc2_error_t Hwc2Display::collectLayersForPresent() {
             continue;
         }
 
-#ifdef HWC_HEADLESS
+#ifdef HWC_ENABLE_HEADLESS_MODE
         layer->mCompositionType = MESON_COMPOSITION_DUMMY;
 #else
         if (layer->mHwcCompositionType == HWC2_COMPOSITION_CLIENT) {

@@ -14,6 +14,7 @@
 #include <HwDisplayConnector.h>
 #include <systemcontrol.h>
 #include <DrmTypes.h>
+#include <HwcConfig.h>
 
 #include "HwConnectorFactory.h"
 #include "DummyPlane.h"
@@ -28,11 +29,8 @@ ANDROID_SINGLETON_STATIC_INSTANCE(HwDisplayManager)
 HwDisplayManager::HwDisplayManager() {
     loadDrmResources();
 
-#if MESON_HW_DISPLAY_VSYNC_SOFTWARE
-    mVsync = std::make_shared<HwDisplayVsync>(true, this);
-#else
-    mVsync = std::make_shared<HwDisplayVsync>(false, this);
-#endif
+    bool bSoftwareVsync = HwcConfig::softwareVsyncEnabled();
+    mVsync = std::make_shared<HwDisplayVsync>(bSoftwareVsync, this);
 
     HwDisplayEventListener::getInstance().registerHandler(DRM_EVENT_ANY, this);
 }
@@ -248,7 +246,7 @@ void HwDisplayManager::dump(String8 & dumpstr) {
  *   Now is hard code for 1 crtc , 1 connector.                     *
  ********************************************************************/
 int32_t HwDisplayManager::loadDrmResources() {
-    count_crtcs = HWC_CRTC_NUM;
+    count_crtcs = HwcConfig::getDisplayNum();
     count_connectors = count_crtcs;
 
     crtc_ids = new uint32_t [count_crtcs];
@@ -301,26 +299,17 @@ int32_t HwDisplayManager::loadCrtc(uint32_t crtcid) {
 }
 
 int32_t HwDisplayManager::loadConnector(uint32_t connector_id) {
-    drm_connector_type_t connector_type = DRM_MODE_CONNECTOR_HDMI;
-    if (strcasecmp(HWC_PRIMARY_CONNECTOR_TYPE, "hdmi") == 0) {
-        connector_type = DRM_MODE_CONNECTOR_HDMI;
-    } else if (strcasecmp(HWC_PRIMARY_CONNECTOR_TYPE, "panel") == 0) {
-        connector_type = DRM_MODE_CONNECTOR_PANEL;
-    } else if (strcasecmp(HWC_PRIMARY_CONNECTOR_TYPE, "cvbs") == 0) {
-        connector_type = DRM_MODE_CONNECTOR_CVBS;
-    }
-
+    drm_connector_type_t connector_type = HwcConfig::getConnectorType(0);
     std::shared_ptr<HwDisplayConnector> connector = HwConnectorFactory::create(
             connector_type, -1, connector_id);
 
     mConnectors.emplace(connector_id, connector);
-
     return 0;
 }
 
 int32_t HwDisplayManager::loadPlanes() {
     /* scan /dev/graphics/fbx to get planes */
-#ifdef HWC_HEADLESS
+#ifdef HWC_ENABLE_HEADLESS_MODE
     int plane_idx = OSD_PLANE_IDX_MIN;
     std::shared_ptr<DummyPlane> plane = std::make_shared<DummyPlane>(-1, plane_idx);
     mPlanes.emplace(plane_idx, plane);
@@ -342,8 +331,10 @@ int32_t HwDisplayManager::loadPlanes() {
             }
             if (capability & OSD_LAYER_ENABLE) {
                 if (capability & OSD_HW_CURSOR) {
-                    std::shared_ptr<CursorPlane> plane = std::make_shared<CursorPlane>(fd, plane_idx);
-                    mPlanes.emplace(plane_idx, plane);
+                    if (!HwcConfig::cursorPlaneDisabled()) {
+                        std::shared_ptr<CursorPlane> plane = std::make_shared<CursorPlane>(fd, plane_idx);
+                        mPlanes.emplace(plane_idx, plane);
+                    }
                 } else {
                     std::shared_ptr<OsdPlane> plane = std::make_shared<OsdPlane>(fd, plane_idx);
                     mPlanes.emplace(plane_idx, plane);

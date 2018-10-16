@@ -95,7 +95,7 @@ hwc2_error_t  FixedSizeModeMgr::getDisplayAttribute(
             *outValue = mCurMode.pixelH;
             break;
         case HWC2_ATTRIBUTE_VSYNC_PERIOD:
-        #ifdef HWC_HEADLESS
+        #ifdef HWC_ENABLE_HEADLESS_MODE
             *outValue = 1e9 / (HWC_HEADLESS_REFRESHRATE);
         #else
             *outValue = 1e9 / mCurMode.refreshRate;

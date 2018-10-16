@@ -22,6 +22,7 @@ LOCAL_MODULE_RELATIVE_PATH := hw
 LOCAL_CPPFLAGS += -std=c++14
 LOCAL_CFLAGS += -DPLATFORM_SDK_VERSION=$(PLATFORM_SDK_VERSION)
 
+#*********************************HWC CONFIGS************************
 #HWC API Version Config
 ifeq ($(USE_HWC1), true)
 LOCAL_CFLAGS += -DENABLE_MESON_HWC1
@@ -31,49 +32,66 @@ else
 $(error "need config hwc api version")
 endif
 
-#FRAMEBUFFER CONFIG
-#define here temply,
-ifneq (($(WIDTH_PRIMARY_FRAMEBUFFER),) && ($(HEIGHT_PRIMARY_FRAMEBUFFER),))
-    LOCAL_CFLAGS += -DWIDTH_PRIMARY_FRAMEBUFFER=$(WIDTH_PRIMARY_FRAMEBUFFER)
-    LOCAL_CFLAGS += -DHEIGHT_PRIMARY_FRAMEBUFFER=$(HEIGHT_PRIMARY_FRAMEBUFFER)
-else
-$(error "need config frame buffer size")
-endif
-
 #HWC DISPLAY Config
-ifneq ($(HWC_CRTC_NUM),)
-    LOCAL_CFLAGS += -DHWC_CRTC_NUM=$(HWC_CRTC_NUM)
+ifneq ($(HWC_DISPLAY_NUM),)
+    LOCAL_CFLAGS += -DHWC_DISPLAY_NUM=$(HWC_DISPLAY_NUM)
 else
 $(error "need config hwc crtc num")
 endif
 
+#FRAMEBUFFER CONFIG
+#Primary
+ifneq ($(HWC_PRIMARY_FRAMEBUFFER_WIDTH)$(HWC_PRIMARY_FRAMEBUFFER_HEIGHT),)
+    LOCAL_CFLAGS += -DHWC_PRIMARY_FRAMEBUFFER_WIDTH=$(HWC_PRIMARY_FRAMEBUFFER_WIDTH)
+    LOCAL_CFLAGS += -DHWC_PRIMARY_FRAMEBUFFER_HEIGHT=$(HWC_PRIMARY_FRAMEBUFFER_HEIGHT)
+endif
+#Extend, if needed.
+ifneq ($(HWC_EXTEND_FRAMEBUFFER_WIDTH)$(HWC_EXTEND_FRAMEBUFFER_HEIGHT),)
+    LOCAL_CFLAGS += -DHWC_EXTEND_FRAMEBUFFER_WIDTH=$(HWC_EXTEND_FRAMEBUFFER_WIDTH)
+    LOCAL_CFLAGS += -DHWC_EXTEND_FRAMEBUFFER_HEIGHT=$(HWC_EXTEND_FRAMEBUFFER_HEIGHT)
+endif
+
+#CONNECTOR
+#Primary
 ifneq ($(HWC_PRIMARY_CONNECTOR_TYPE),)
     LOCAL_CFLAGS += -DHWC_PRIMARY_CONNECTOR_TYPE=\"$(HWC_PRIMARY_CONNECTOR_TYPE)\"
 else
 $(error "need config hwc primary connector type")
 endif
-
-#HWC Feature Config
-ifeq ($(TARGET_HWC_SUPPORT_SECURE_LAYER), true)
-LOCAL_CFLAGS += -DHWC_ENABLE_SECURE_LAYER
+#Extend, if needed.
+ifneq ($(HWC_EXTEND_CONNECTOR_TYPE),)
+    LOCAL_CFLAGS += -DHWC_EXTEND_CONNECTOR_TYPE=\"$(HWC_EXTEND_CONNECTOR_TYPE)\"
 endif
 
-ifeq ($(TARGET_HWC_SUPPORT_GE2D_COMPOSITION), true)
-LOCAL_CFLAGS += -DHWC_ENABLE_GE2D_COMPOSITION
-endif
-
-ifeq ($(TARGET_HWC_SUPPORT_PRIMARY_HOTPLUG), true) #need surfaceflinger modifications
-LOCAL_CFLAGS += -DHWC_ENABLE_PRIMARY_HOTPLUG
-endif
-
-ifeq ($(TARGET_HWC_MANAGE_DISPLAY_MODE), true) #need surfaceflinger modifications
-LOCAL_CFLAGS += -DHWC_MANAGE_DISPLAY_MODE
-endif
-
-ifeq ($(TARGET_HEADLESS), true))
-LOCAL_CFLAGS += -DHWC_HEADLESS
+#HEADLESS MODE
+ifeq ($(HWC_ENABLE_HEADLESS_MODE), true)
+LOCAL_CFLAGS += -DHWC_ENABLE_HEADLESS_MODE
 LOCAL_CFLAGS += -DHWC_HEADLESS_REFRESHRATE=5
 endif
+
+#HWC Feature Config
+ifeq ($(HWC_ENABLE_SOFTWARE_VSYNC), true)
+LOCAL_CFLAGS += -DHWC_ENABLE_SOFTWARE_VSYNC
+endif
+ifeq ($(HWC_ENABLE_PRIMARY_HOTPLUG), true) #need surfaceflinger modifications
+LOCAL_CFLAGS += -DHWC_ENABLE_PRIMARY_HOTPLUG
+endif
+ifeq ($(HWC_ENABLE_SECURE_LAYER_PROCESS), true)
+LOCAL_CFLAGS += -DHWC_ENABLE_SECURE_LAYER_PROCESS
+endif
+ifeq ($(HWC_DISABLE_CURSOR_PLANE), true)
+LOCAL_CFLAGS += -DHWC_DISABLE_CURSOR_PLANE
+endif
+
+#the following feature havenot finish.
+ifeq ($(HWC_ENABLE_GE2D_COMPOSITION), true)
+LOCAL_CFLAGS += -DHWC_ENABLE_GE2D_COMPOSITION
+endif
+ifeq ($(HWC_ENABLE_DISPLAY_MODE_MANAGEMENT), true)
+LOCAL_CFLAGS += -DHWC_ENABLE_DISPLAY_MODE_MANAGEMENT
+endif
+#*********************************HWC CONFIGS END************************
+
 
 LOCAL_C_INCLUDES := \
     $(LOCAL_PATH)/common/include/display \
@@ -107,7 +125,8 @@ endif
 LOCAL_COMMON_BASE_FILES := \
     common/base/DrmFramebuffer.cpp \
     common/base/DrmSync.cpp \
-    common/base/DrmTypes.cpp
+    common/base/DrmTypes.cpp \
+    common/base/HwcConfig.cpp
 
 LOCAL_COMMON_DISPLAY_FILES  := \
     common/display/HwDisplayManager.cpp \

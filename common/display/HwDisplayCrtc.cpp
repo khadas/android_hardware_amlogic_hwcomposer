@@ -8,6 +8,7 @@
  */
 #include <HwDisplayManager.h>
 #include <HwDisplayCrtc.h>
+#include <HwcConfig.h>
 #include <MesonLog.h>
 #include <DebugHelper.h>
 #include <cutils/properties.h>
@@ -74,26 +75,7 @@ int32_t HwDisplayCrtc::getModeId() {
 }
 
 int32_t HwDisplayCrtc::parseDftFbSize(uint32_t & width, uint32_t & height) {
-    char uiMode[PROPERTY_VALUE_MAX] = {0};
-    if (property_get("ro.ui_mode", uiMode, NULL) > 0) {
-        if (!strncmp(uiMode, "720", 3)) {
-            width  = 1280;
-            height = 720;
-        } else if (!strncmp(uiMode, "1080", 4)) {
-            width  = 1920;
-            height = 1080;
-        } else if (!strncmp(uiMode, "4k2k", 4)) {
-            width  = 3840;
-            height = 2160;
-        } else {
-            MESON_LOGE("parseDftFbSize: get not support mode [%s]", uiMode);
-        }
-    } else {
-        width  = WIDTH_PRIMARY_FRAMEBUFFER;
-        height = HEIGHT_PRIMARY_FRAMEBUFFER;
-    }
-    MESON_LOGI("default frame buffer size (%d x %d)", width, height);
-
+    HwcConfig::getFramebufferSize(0, width, height);
     return 0;
 }
 
