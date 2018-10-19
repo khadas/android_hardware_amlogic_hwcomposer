@@ -113,6 +113,19 @@ typedef struct drm_hdr_capabilities {
     int minLuminance;
 } drm_hdr_capabilities_t;
 
+typedef struct display_zoom_info {
+    unsigned int framebuffer_w;
+    unsigned int framebuffer_h;
+    unsigned int crtc_w;
+    unsigned int crtc_h;
+
+    /*scaled display axis*/
+    unsigned int crtc_display_x;
+    unsigned int crtc_display_y;
+    unsigned int crtc_display_w;
+    unsigned int crtc_display_h;
+} display_zoom_info_t;
+
 /*Defines for old VPU(p212)
  *The gap between different plane
  *is left for variable zorder plane.

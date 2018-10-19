@@ -12,20 +12,16 @@
 
 #include <misc.h>
 #include <sys/ioctl.h>
-#include <Amvideoutils.h>
 #include <tvp/OmxUtil.h>
 #include <MesonLog.h>
 #include <gralloc_priv.h>
+#include <math.h>
+
 
 //#define AMVIDEO_DEBUG
 
-/*Used for zoom position*/
-#define OFFSET_STEP          2
-#define PERCENT_FULL_SCREEN  100
-
 LegacyVideoPlane::LegacyVideoPlane(int32_t drvFd, uint32_t id)
     : HwDisplayPlane(drvFd, id),
-    mZoomPercent(PERCENT_FULL_SCREEN),
     mNeedUpdateAxis(false) {
     snprintf(mName, 64, "AmVideo-%d", id);
 
@@ -97,21 +93,46 @@ int32_t LegacyVideoPlane::setPlane(
     uint32_t zorder __unused) {
     buffer_handle_t buf = fb->mBufferHandle;
 
-    // TODO: DONOT set mute for now, because we need to implement secure display.
+    /*set video axis.*/
     if (shouldUpdateAxis(fb)) {
-        drm_rect_t *displayFrame = &(fb->mDisplayFrame);
-        char axis[MAX_STR_LEN] = {0};
+        char videoAxisStr[MAX_STR_LEN] = {0};
+        drm_rect_t * videoAxis = NULL;
+        drm_rect_t videoScaledFrame;
 
-        sprintf(axis, "%d %d %d %d", displayFrame->left, displayFrame->top,
-                    displayFrame->right, displayFrame->bottom);
-        //MESON_LOGV("Set video axis: %s", axis);
-        if (mZoomPercent != 0) {
-            setScale(*displayFrame, axis);
+        if (mZoomInfo.framebuffer_w == mZoomInfo.crtc_w &&
+            mZoomInfo.framebuffer_w == mZoomInfo.crtc_h &&
+            mZoomInfo.crtc_w == mZoomInfo.crtc_display_w &&
+            mZoomInfo.crtc_h == mZoomInfo.crtc_display_h) {
+            MESON_LOGD("Crtc is no scaled.");
+            videoAxis = &(fb->mDisplayFrame);
+        } else {
+            MESON_LOGD("Crtc need scale.");
+            drm_rect_t * displayFrame = &(fb->mDisplayFrame);
+            videoScaledFrame.left = (uint32_t)ceilf(displayFrame->left *
+                mZoomInfo.crtc_display_w / mZoomInfo.framebuffer_w) +
+                mZoomInfo.crtc_display_x;
+            videoScaledFrame.top = (uint32_t)ceilf(displayFrame->top *
+                mZoomInfo.crtc_display_h /mZoomInfo.framebuffer_h) +
+                mZoomInfo.crtc_display_y;
+
+            videoScaledFrame.right = (uint32_t)floorf(displayFrame->right *
+                mZoomInfo.crtc_display_w / mZoomInfo.framebuffer_w) +
+                mZoomInfo.crtc_display_x;
+
+            videoScaledFrame.bottom = (uint32_t)floorf(displayFrame->bottom *
+                mZoomInfo.crtc_display_h /mZoomInfo.framebuffer_h) +
+                mZoomInfo.crtc_display_y;
+
+            videoAxis = &videoScaledFrame;
         }
+        MESON_ASSERT(videoAxis, "VideoAxis not set.");
 
-        sysfs_set_string(SYSFS_VIDEO_AXIS, axis);
+        sprintf(videoAxisStr, "%d %d %d %d", videoAxis->left, videoAxis->top,
+            videoAxis->right - 1, videoAxis->bottom - 1);
+        sysfs_set_string(SYSFS_VIDEO_AXIS, videoAxisStr);
     }
 
+    /*set omx pts.*/
     if (am_gralloc_is_omx_metadata_buffer(buf)) {
         private_handle_t const* buffer = private_handle_t::dynamicCast(buf);
 
@@ -131,6 +152,7 @@ int32_t LegacyVideoPlane::setPlane(
     return 0;
 }
 
+#if 0
 int32_t LegacyVideoPlane::setScale(drm_rect_t disPosition, char * axis) {
     int zoom_w, zoom_h;
     int disp_w = disPosition.right  - disPosition.left;
@@ -160,6 +182,7 @@ int32_t LegacyVideoPlane::setScale(drm_rect_t disPosition, char * axis) {
 
     return 0;
 }
+#endif
 
 int32_t LegacyVideoPlane::blank(int blankOp) {
     MESON_LOGD("LegacyVideoPlane  blank (%d)", blankOp);
@@ -256,9 +279,7 @@ int32_t LegacyVideoPlane::getOmxKeepLastFrame(unsigned int & keep) {
 }
 
 int32_t LegacyVideoPlane::updateZoomInfo(display_zoom_info_t zoomInfo) {
-    mZoomPercent = zoomInfo.percent;
-    mWindowW = zoomInfo.width  - 1;
-    mWindowH = zoomInfo.height - 1;
+    mZoomInfo = zoomInfo;
     mNeedUpdateAxis = true;
     return 0;
 }

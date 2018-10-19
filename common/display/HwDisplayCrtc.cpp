@@ -18,30 +18,24 @@
 #include "AmVinfo.h"
 #include "AmFramebuffer.h"
 
-/* FBIO */
-#define FBIOPUT_OSD_SYNC_FLIP 0x451b
-
-/*Used for zoom position*/
-#define OFFSET_STEP          2
-
 HwDisplayCrtc::HwDisplayCrtc(int drvFd, int32_t id) {
     mId = id;
     mDrvFd = drvFd;
+
     mFirstPresent = true;
-    mDisplayInfo.out_fen_fd = -1;
-    memset(mBackupZoomPos,0,sizeof(mBackupZoomPos));
+    memset(&mBackupZoomInfo,0,sizeof(mBackupZoomInfo));
 
     parseDftFbSize(mFbWidth, mFbHeight);
 }
 
 HwDisplayCrtc::~HwDisplayCrtc() {
 }
+
 int32_t HwDisplayCrtc::setUp(
     std::shared_ptr<HwDisplayConnector>  connector,
     std::map<uint32_t, std::shared_ptr<HwDisplayPlane>> planes) {
     mConnector = connector;
     mPlanes = planes;
-
     return 0;
 }
 
@@ -85,45 +79,39 @@ int32_t HwDisplayCrtc::prePageFlip() {
         closeLogoDisplay();
     }
 
-    bool bUpdate = false;
     display_zoom_info_t zoomInfo;
     getZoomInfo(zoomInfo);
-
-    for (int i = 0; i < 4; i++)
-        if (mBackupZoomPos[i] != zoomInfo.position[i]) {
-            bUpdate = true;
-            break;
+    if (memcmp(&mBackupZoomInfo, &zoomInfo, sizeof(mBackupZoomInfo))) {
+        mBackupZoomInfo = zoomInfo;
+        for (auto it = mPlanes.begin(); it!=mPlanes.end(); ++it) {
+            it->second->updateZoomInfo(zoomInfo);
         }
-    if (!bUpdate)
-        return 0;
-    memcpy(mBackupZoomPos,zoomInfo.position,sizeof(zoomInfo.position));
-    zoomInfo.framebuffer_w = mFbWidth;
-    zoomInfo.framebuffer_h = mFbHeight;
-
-    std::map<uint32_t, std::shared_ptr<HwDisplayPlane>>::iterator it = mPlanes.begin();
-    for (; it!=mPlanes.end(); ++it) {
-        it->second->updateZoomInfo(zoomInfo);
     }
-
     return 0;
 }
 
 int32_t HwDisplayCrtc::pageFlip(int32_t &out_fence) {
-    // TODO: get real active config's width/height.
-    mDisplayInfo.background_w = 1920;
-    mDisplayInfo.background_h = 1080;
+    osd_page_flip_info_t flipInfo;
 
-    updateDisplayInfo();
+    flipInfo.background_w = mBackupZoomInfo.framebuffer_w;
+    flipInfo.background_h = mBackupZoomInfo.framebuffer_h;
+    flipInfo.fullScreen_w = mBackupZoomInfo.crtc_w;
+    flipInfo.fullScreen_h = mBackupZoomInfo.crtc_h;
 
-    ioctl(mDrvFd, FBIOPUT_OSD_SYNC_FLIP, &mDisplayInfo);
+    flipInfo.curPosition_x = mBackupZoomInfo.crtc_display_x;
+    flipInfo.curPosition_y = mBackupZoomInfo.crtc_display_y;
+    flipInfo.curPosition_w = mBackupZoomInfo.crtc_display_w;
+    flipInfo.curPosition_h = mBackupZoomInfo.crtc_display_h;
+
+    ioctl(mDrvFd, FBIOPUT_OSD_DO_HWC, &flipInfo);
 
     if (DebugHelper::getInstance().discardOutFence()) {
         std::shared_ptr<DrmFence> outfence =
-            std::make_shared<DrmFence>(mDisplayInfo.out_fen_fd);
+            std::make_shared<DrmFence>(flipInfo.out_fen_fd);
         outfence->waitForever("crtc-output");
         out_fence = -1;
     } else {
-        out_fence = (mDisplayInfo.out_fen_fd >= 0) ? mDisplayInfo.out_fen_fd : -1;
+        out_fence = (flipInfo.out_fen_fd >= 0) ? flipInfo.out_fen_fd : -1;
     }
 
     return 0;
@@ -134,68 +122,39 @@ void HwDisplayCrtc::closeLogoDisplay() {
     sysfs_set_string(DISPLAY_FB0_FREESCALE_SWTICH, "0x10001");
 }
 
-int32_t HwDisplayCrtc::updateDisplayInfo() {
-    display_zoom_info_t zoomInfo;
-    if (getZoomInfo(zoomInfo) == 0) {
-        mDisplayInfo.fullScreen_w = zoomInfo.width;
-        mDisplayInfo.fullScreen_h = zoomInfo.field_height;
-
-        mDisplayInfo.curPosition_x = zoomInfo.position[0];
-        mDisplayInfo.curPosition_y = zoomInfo.position[1];
-        mDisplayInfo.curPosition_w = zoomInfo.position[2];
-        mDisplayInfo.curPosition_h = zoomInfo.position[3];
-
-        #if 0
-        MESON_LOGV("updateOsdPosition display info:\n"
-            "background          [w-%d h-%d]\n"
-            "full screen         [w-%d h-%d]\n"
-            "current position    [x-%d y-%d w-%d h-%d]",
-            mDisplayInfo.background_w,  mDisplayInfo.background_h,
-            mDisplayInfo.fullScreen_w,  mDisplayInfo.fullScreen_h,
-            mDisplayInfo.curPosition_x, mDisplayInfo.curPosition_y,
-            mDisplayInfo.curPosition_w, mDisplayInfo.curPosition_h);
-        #endif
+int32_t HwDisplayCrtc::getZoomInfo(display_zoom_info_t & zoomInfo) {
+    int crtc_display[4];
+    vmode_e vmode = vmode_name_to_mode(mCurMode.c_str());
+    const struct vinfo_s* vinfo = get_tv_info(vmode);
+    if (vmode == VMODE_MAX || vinfo == NULL) {
+         MESON_ASSERT(0, "Invalid display mode %s", mCurMode.c_str());
+         return -ENOENT;
     }
 
-    return 0;
-}
+    zoomInfo.framebuffer_w = mFbWidth;
+    zoomInfo.framebuffer_h = mFbHeight;
+    zoomInfo.crtc_w = vinfo->width;
+    zoomInfo.crtc_h = vinfo->field_height;
 
-int32_t HwDisplayCrtc::getZoomInfo(display_zoom_info_t & zoomInfo) {
-    float temp;
-    if (0 == sc_get_osd_position(mCurMode, zoomInfo.position)) {
-        vmode_e vmode = vmode_name_to_mode(mCurMode.c_str());
-        const struct vinfo_s* vinfo = get_tv_info(vmode);
-        if (vmode == VMODE_MAX || vinfo == NULL) {
-         MESON_LOGE("Invalid display mode %s", mCurMode.c_str());
-         return -ENOENT;
+    if (0 == sc_get_osd_position(mCurMode, crtc_display)) {
+        zoomInfo.crtc_display_x = crtc_display[0];
+        zoomInfo.crtc_display_y = crtc_display[1];
+        zoomInfo.crtc_display_w = crtc_display[2];
+        zoomInfo.crtc_display_h = crtc_display[3];
+
+        /*for interlaced.*/
+        if (vinfo->field_height != vinfo->height) {
+            zoomInfo.crtc_display_y = vinfo->field_height * zoomInfo.crtc_display_y / vinfo->height;
+            zoomInfo.crtc_display_h = vinfo->field_height * zoomInfo.crtc_display_h / vinfo->height;
         }
-        zoomInfo.width          = vinfo->width;
-        zoomInfo.height         = vinfo->field_height;
-        zoomInfo.field_height   = vinfo->field_height;
-
-        if (vmode == VMODE_480I        || vmode == VMODE_576I    ||
-            vmode == VMODE_480CVBS     || vmode == VMODE_576CVBS ||
-            vmode == VMODE_1080I_50HZ  || vmode == VMODE_1080I) {
-            zoomInfo.position[1] /= 2;
-            zoomInfo.position[3] /= 2;
-        }
-
-        /*
-         * Cal by apk:
-         * mCurrentLeft = (100-percent)*(mMaxRight)/(100*2*offsetStep);
-         * offsetStep: because 20% is too large ,so divide the value to smooth the view
-         * TODO: percent should not be calculated only by position_x
-         */
-        temp = (float)((float)(zoomInfo.position[0] * (100*2*OFFSET_STEP)) /
-                        (float)(zoomInfo.width));
-        zoomInfo.percent = 100 - (int)(temp + 0.5);
-        //MESON_LOGD("getOsdPosition: percent = %d", percent);
-
+        return 0;
     } else {
-        MESON_LOGE("GetOsdPosition by sc failed.");
+        MESON_LOGE("GetOsdPosition by sc failed, set to no scaled value.");
+        zoomInfo.crtc_display_x = 0;
+        zoomInfo.crtc_display_y = 0;
+        zoomInfo.crtc_display_w = zoomInfo.crtc_w;
+        zoomInfo.crtc_display_h = zoomInfo.crtc_h;
         return -ENOENT;
     }
-
-    return 0;
 }
 

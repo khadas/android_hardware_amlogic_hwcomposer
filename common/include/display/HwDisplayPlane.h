@@ -13,16 +13,6 @@
 #include <stdlib.h>
 #include <DrmFramebuffer.h>
 
-typedef struct display_zoom_info_t {
-    int           percent;
-    int           width;
-    int           height;
-    int           field_height;
-    int           position[4];
-    unsigned int  framebuffer_w;
-    unsigned int  framebuffer_h;
-} display_zoom_info_t;
-
 class HwDisplayPlane {
 public:
     HwDisplayPlane(int32_t drvFd, uint32_t id);

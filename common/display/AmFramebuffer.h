@@ -59,6 +59,7 @@ enum {
 #define FBIOPUT_OSD_SYNC_RENDER_ADD  0x4519
 #define FBIOPUT_OSD_HWC_ENABLE       0x451a
 #define FBIOGET_OSD_CAPBILITY        0x451e
+#define FBIOPUT_OSD_DO_HWC 0x451b
 
 /*AmVideo ioctl*/
 #define AMSTREAM_IOC_MAGIC  'S'
@@ -128,6 +129,18 @@ typedef struct cursor_plane_info_t {
     struct fb_var_screeninfo info;
     struct fb_fix_screeninfo finfo;
 } cursor_plane_info_t;
+
+typedef struct osd_page_flip_info_t {
+    int           out_fen_fd;
+    unsigned int  background_w;
+    unsigned int  background_h;
+    unsigned int  fullScreen_w;
+    unsigned int  fullScreen_h;
+    unsigned int  curPosition_x;
+    unsigned int  curPosition_y;
+    unsigned int  curPosition_w;
+    unsigned int  curPosition_h;
+} osd_page_flip_info_t;
 
 /*fake index for display components.*/
 #define CRTC_IDX_MIN (10)

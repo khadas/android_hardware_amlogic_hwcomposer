@@ -62,10 +62,10 @@ int32_t CursorPlane::updateZoomInfo(display_zoom_info_t zoomInfo) {
     char axis[MAX_STR_LEN] = {0};
     int x, y, w, h;
     int dftFbWidth, dftFbHeight;
-    x = zoomInfo.position[0];
-    y = zoomInfo.position[1];
-    w = zoomInfo.position[2];
-    h = zoomInfo.position[3];
+    x = zoomInfo.crtc_display_x;
+    y = zoomInfo.crtc_display_y;
+    w = zoomInfo.crtc_display_w;
+    h = zoomInfo.crtc_display_h;
     dftFbWidth  = zoomInfo.framebuffer_w;
     dftFbHeight = zoomInfo.framebuffer_h;
 
@@ -87,7 +87,7 @@ int32_t CursorPlane::updateZoomInfo(display_zoom_info_t zoomInfo) {
 }
 
 int32_t CursorPlane::setPlane(
-    std::shared_ptr<DrmFramebuffer> &fb __unused,
+    std::shared_ptr<DrmFramebuffer> &fb,
     uint32_t zorder __unused) {
     if (mDrvFd < 0) {
         MESON_LOGE("cursor plane fd is not valiable!");

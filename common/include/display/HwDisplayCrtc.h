@@ -15,18 +15,6 @@
 #include <HwDisplayConnector.h>
 #include <HwDisplayPlane.h>
 
-typedef struct display_flip_info_t {
-    int           out_fen_fd;
-    unsigned int  background_w;
-    unsigned int  background_h;
-    unsigned int  fullScreen_w;
-    unsigned int  fullScreen_h;
-    unsigned int  curPosition_x;
-    unsigned int  curPosition_y;
-    unsigned int  curPosition_w;
-    unsigned int  curPosition_h;
-} display_flip_info_t;
-
 class HwDisplayCrtc {
 public:
     HwDisplayCrtc(int drvFd, int32_t id);
@@ -50,19 +38,18 @@ public:
 
 protected:
     int32_t getZoomInfo(display_zoom_info_t & zoomInfo);
-    int32_t updateDisplayInfo();
 
     void closeLogoDisplay();
 
+protected:
     int32_t mId;
     int mDrvFd;
+
     std::string mCurMode;
     uint32_t mFbWidth, mFbHeight;
-    int mBackupZoomPos[4];
     bool mFirstPresent;
 
-    display_flip_info_t mDisplayInfo;
-    display_flip_info_t mBackupDisplayInfo;
+    display_zoom_info_t mBackupZoomInfo;
 
     std::shared_ptr<HwDisplayConnector>  mConnector;
     std::map<uint32_t, std::shared_ptr<HwDisplayPlane>> mPlanes;
