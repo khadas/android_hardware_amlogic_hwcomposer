@@ -22,6 +22,10 @@ LOCAL_MODULE_RELATIVE_PATH := hw
 LOCAL_CPPFLAGS += -std=c++14
 LOCAL_CFLAGS += -DPLATFORM_SDK_VERSION=$(PLATFORM_SDK_VERSION)
 
+ifeq ($(TARGET_BUILD_VARIANT), user)
+LOCAL_CFLAGS += -DHWC_RELEASE=1
+endif
+
 #*********************************HWC CONFIGS************************
 #HWC API Version Config
 ifeq ($(USE_HWC1), true)
@@ -149,6 +153,7 @@ LOCAL_COMMON_UTILS_FILES  := \
     common/utils/misc.cpp \
     common/utils/systemcontrol.cpp \
     common/utils/BitsMap.cpp \
+    common/utils/EventThread.cpp \
     common/debug/DebugHelper.cpp
 
 LOCAL_COMPOSITION_FILES := \

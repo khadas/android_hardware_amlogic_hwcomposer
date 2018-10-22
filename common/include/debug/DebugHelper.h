@@ -84,5 +84,4 @@ protected:
     bool mDiscardInFence;
     bool mDiscardOutFence;
 };
-
 #endif

@@ -24,7 +24,6 @@ HwDisplayCrtc::HwDisplayCrtc(int drvFd, int32_t id) {
 
     mFirstPresent = true;
     memset(&mBackupZoomInfo,0,sizeof(mBackupZoomInfo));
-
     parseDftFbSize(mFbWidth, mFbHeight);
 }
 
@@ -39,21 +38,30 @@ int32_t HwDisplayCrtc::setUp(
     return 0;
 }
 
-#ifdef HWC_MANAGE_DISPLAY_MODE
-int32_t HwDisplayCrtc::setMode(drm_mode_info_t &mode) {
+int32_t HwDisplayCrtc::loadProperities() {
+    return updateMode();
+}
+
+int32_t HwDisplayCrtc::setMode(drm_mode_info_t & mode __unused) {
     MESON_LOG_EMPTY_FUN();
     return 0;
 }
-#else
-int32_t HwDisplayCrtc::updateMode(std::string & displayMode) {
-    MESON_LOGI("hw crtc update mode: %s", displayMode.c_str());
+
+int32_t HwDisplayCrtc::updateMode() {
+    std::string displayMode;
+    if (0 != sc_get_display_mode(displayMode)) {
+        MESON_ASSERT(0," %s GetDisplayMode by sc failed.", __func__);
+        return -ENOENT ;
+    }
+
+    MESON_LOGI("hw crtc update to mode: %s", displayMode.c_str());
 
     mCurMode = displayMode;
     //update software vsync.
     vmode_e vmode = vmode_name_to_mode(mCurMode.c_str());
     const struct vinfo_s* vinfo = get_tv_info(vmode);
     if (vmode == VMODE_MAX || vinfo == NULL) {
-        MESON_LOGE("Invalid display mode %s", displayMode.c_str());
+        MESON_ASSERT(0, "updateMode to invalid display mode %s", displayMode.c_str());
         return -ENOENT ;
     }
 
@@ -61,12 +69,10 @@ int32_t HwDisplayCrtc::updateMode(std::string & displayMode) {
     HwDisplayManager::getInstance().updateRefreshPeriod(1e9 / refreshRate);
     return 0;
 }
-#endif
 
 int32_t HwDisplayCrtc::updateActiveMode(std::string & displayMode, bool policy) {
-    MESON_LOGI("hw crtc update active mode: %s", displayMode.c_str());
+    MESON_LOGI("Crtc active mode: %s", displayMode.c_str());
 
-    updateMode(displayMode);
     mConnector->switchRatePolicy(policy);
     sc_set_display_mode(displayMode);
     return 0;

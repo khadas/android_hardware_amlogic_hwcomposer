@@ -11,6 +11,7 @@
 #define HWC_CONFIG_H
 
 #include <DrmTypes.h>
+#include <BasicTypes.h>
 
 typedef enum hwc_modes_policy {
     FIXED_SIZE_POLICY = 0,
@@ -32,5 +33,7 @@ public:
     static bool primaryHotplugEnabled();
     static bool secureLayerProcessEnabled();
     static bool cursorPlaneDisabled();
+
+    static void dump(String8 & dumpstr);
 };
 #endif/*HWC_CONFIG_H*/

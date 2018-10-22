@@ -32,7 +32,7 @@ HwDisplayManager::HwDisplayManager() {
     bool bSoftwareVsync = HwcConfig::softwareVsyncEnabled();
     mVsync = std::make_shared<HwDisplayVsync>(bSoftwareVsync, this);
 
-    HwDisplayEventListener::getInstance().registerHandler(DRM_EVENT_ANY, this);
+    HwDisplayEventListener::getInstance().registerHandler(DRM_EVENT_ALL, this);
 }
 
 HwDisplayManager::~HwDisplayManager() {
@@ -131,17 +131,6 @@ int32_t HwDisplayManager::unregisterObserver(hw_display_id hwDisplayId) {
 void HwDisplayManager::handle(drm_display_event event, int val) {
     std::map<hw_display_id, HwDisplayObserver *>::iterator it;
     switch (event) {
-        case DRM_EVENT_PRIMARY_BOOT:
-            {
-                MESON_LOGD("Primary boot observer size %d.", mObserver.size());
-                for (it = mObserver.begin(); it != mObserver.end(); ++it)
-                    for (uint32_t i = 0; i < count_pipes; i++)
-                        if (pipes[i].crtc_id == it->first) {
-                            it->second->onHotplug((val == 0) ? false : true);
-                            break;
-                        }
-            }
-            break;
         case DRM_EVENT_HDMITX_HOTPLUG:
         case DRM_EVENT_HDMITX_HDCP:
             {
@@ -158,21 +147,13 @@ void HwDisplayManager::handle(drm_display_event event, int val) {
             break;
         case DRM_EVENT_MODE_CHANGED:
             {
-                #ifndef HWC_MANAGE_DISPLAY_MODE
-                    /*TODO: update which crtc? */
-                    std::string dispmode;
-                    if (0 == sc_get_display_mode(dispmode)) {
-                        if (count_crtcs > 1) {
-                            MESON_LOG_EMPTY_FUN();
-                            MESON_LOGE("Dual display not supported.");
-                        } else if (count_crtcs == 1 &&
-                                mConnectors[pipes[0].connector_id]->isConnected()) {
-                            mCrtcs[crtc_ids[0]]->updateMode(dispmode);
-                        }
-                    } else {
-                        MESON_LOGE("GetDisplayMode by sc failed.");
-                    }
-                #endif
+                /*TODO: update which crtc? */
+                if (count_crtcs > 1) {
+                    MESON_ASSERT(0, " %s Dual display not supported.", __func__);
+                } else if (count_crtcs == 1 &&
+                        mConnectors[pipes[0].connector_id]->isConnected()) {
+                    mCrtcs[crtc_ids[0]]->updateMode();
+                }
 
                 MESON_LOGD("Mode change observer size %d.", mObserver.size());
                 for (it = mObserver.begin(); it != mObserver.end(); ++it) {
@@ -228,8 +209,6 @@ void HwDisplayManager::dump(String8 & dumpstr) {
                         (drm_plane_type_t)mPlanes.find(planeId)->second->getPlaneType()),
                     mPlanes.find(planeId)->second->getCapabilities(),
                     mPlanes.find(planeId)->second->getFixedZorder());
-
-                mPlanes.find(planeId)->second->dump(dumpstr);
         }
 
         int connectorId = pipes[i].connector_id;
@@ -409,7 +388,6 @@ int32_t HwDisplayManager::buildDisplayPipes() {
     crtc = mCrtcs.find(pipes[0].crtc_id)->second;
     connector = mConnectors.find(pipes[0].connector_id)->second;
     crtc->setUp(connector, mPlanes);
-
     return 0;
 }
 

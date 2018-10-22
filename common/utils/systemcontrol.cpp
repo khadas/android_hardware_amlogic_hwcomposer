@@ -55,7 +55,13 @@ static void load_sc_proxy() {
     if (gSC != NULL)
         return;
 
-    gSC = ISystemControl::getService();
+    gSC = ISystemControl::tryGetService();
+    while (!gSC) {
+        MESON_LOGE("tryGet system control daemon Service failed, sleep to wait.");
+        usleep(200*1000);//sleep 200ms
+        gSC = ISystemControl::tryGetService();
+    };
+
     gSCDeathRecipient = new SystemControlDeathRecipient();
     Return<bool> linked = gSC->linkToDeath(gSCDeathRecipient, /*cookie*/ 0);
     if (!linked.isOk()) {

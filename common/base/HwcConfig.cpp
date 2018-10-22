@@ -109,7 +109,7 @@ int32_t HwcConfig::headlessRefreshRate() {
         return HWC_HEADLESS_REFRESHRATE;
 #else
         MESON_ASSERT(0, "HWC_HEADLESS_REFRESHRATE not set.");
-        return 1;;
+        return 1;
 #endif
 }
 
@@ -153,4 +153,37 @@ bool HwcConfig::cursorPlaneDisabled() {
 #endif
 }
 
+void HwcConfig::dump(String8 & dumpstr) {
+    #if HWC_RELEASE
+    dumpstr.append("HwcConfigs (RELEASE):\n");
+    #else
+    dumpstr.append("HwcConfigs (DEBUG):\n");
+    #endif
+
+    if (isHeadlessMode()) {
+        dumpstr.appendFormat("\t HeadlessMode refreshrate: %d", headlessRefreshRate());
+        dumpstr.append("\n");
+    } else {
+        int displaynum = getDisplayNum();
+        for (int i = 0; i < displaynum; i++) {
+            dumpstr.appendFormat("Display:(%d) \n", i);
+            uint32_t w,h;
+            getFramebufferSize(i, w, h);
+            dumpstr.appendFormat("\t Fb: %d x %d", w, h);
+            dumpstr.appendFormat("\t Conntecor: %d", getConnectorType(i));
+            dumpstr.appendFormat("\t ModePolicy: %d", getModePolicy());
+            dumpstr.append("\n");
+            dumpstr.appendFormat("\t SoftwareVsync: %s", softwareVsyncEnabled() ? "Y" : "N");
+            dumpstr.appendFormat("\t CursorPlane: %s", cursorPlaneDisabled() ? "N" : "Y");
+            dumpstr.append("\n");
+            dumpstr.appendFormat("\t PrimaryHotplug: %s", primaryHotplugEnabled() ? "Y" : "N");
+            dumpstr.appendFormat("\t SecureLayer: %s", secureLayerProcessEnabled() ? "Y" : "N");
+            dumpstr.append("\n");
+            dumpstr.appendFormat("\t FracRefreshRate: %s", fracRefreshRateEnabled() ? "Y" : "N");
+            dumpstr.append("\n");
+        }
+    }
+
+    dumpstr.append("\n");
+}
 

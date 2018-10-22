@@ -30,7 +30,6 @@ ANDROID_SINGLETON_STATIC_INSTANCE(DebugHelper)
 #define COMMAND_HIDE_LAYER "--hide-layer"
 #define COMMAND_SHOW_PLANE "--show-plane"
 #define COMMAND_HIDE_PLANE "--hide-plane"
-
 #define COMMAND_MONITOR_DEVICE_COMPOSITION "--monitor-composition"
 #define COMMAND_DEVICE_COMPOSITION_THRESHOLD "--device-layers-threshold"
 
@@ -44,7 +43,6 @@ ANDROID_SINGLETON_STATIC_INSTANCE(DebugHelper)
         MESON_LOGE("param number is not correct.\n");   \
         break;  \
     }
-
 
 DebugHelper::DebugHelper() {
     clearPersistCmd();
@@ -128,6 +126,9 @@ void DebugHelper::removeHidePlane(int id) {
 
 
 void DebugHelper::resolveCmd() {
+#ifdef HWC_RELEASE
+    return;
+#else
     clearOnePassCmd();
     mEnabled = sys_get_bool_prop(DEBUG_HELPER_ENABLE_PROP, false);
 
@@ -285,10 +286,15 @@ void DebugHelper::resolveCmd() {
             mDumpUsage = true;
         }
     }
+#endif
 }
 
 bool DebugHelper::isEnabled() {
+#ifdef HWC_RELEASE
+    return false;
+#else
     return sys_get_bool_prop(DEBUG_HELPER_ENABLE_PROP, false);
+#endif
 }
 
 void DebugHelper::removeDebugLayer(int id __unused) {
@@ -308,6 +314,9 @@ void DebugHelper::removeDebugLayer(int id __unused) {
 }
 
 void DebugHelper::dump(String8 & dumpstr) {
+#if HWC_RELEASE
+    UNUSED(dumpstr);
+#else
     if (!mEnabled)
         return;
 
@@ -361,5 +370,6 @@ void DebugHelper::dump(String8 & dumpstr) {
         }
         dumpstr.append(")\n");
     }
-
+#endif
 }
+

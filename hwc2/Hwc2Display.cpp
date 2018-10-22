@@ -20,6 +20,7 @@
 #include <IComposer.h>
 #include <ComposerFactory.h>
 #include <CompositionStrategyFactory.h>
+#include <EventThread.h>
 
 Hwc2Display::Hwc2Display(hw_display_id dspId,
     std::shared_ptr<Hwc2DisplayObserver> observer) {
@@ -29,7 +30,7 @@ Hwc2Display::Hwc2Display(hw_display_id dspId,
     mIsConnected = false;
     memset(&mHdrCaps, 0, sizeof(mHdrCaps));
 
-    initLayerIdGenerator();
+    mIgnorBlankInBoot = true;
 }
 
 Hwc2Display::~Hwc2Display() {
@@ -48,7 +49,6 @@ Hwc2Display::~Hwc2Display() {
 }
 
 int32_t Hwc2Display::initialize() {
-
     if (MESON_DUMMY_DISPLAY_ID != mHwId) {
         HwDisplayManager::getInstance().registerObserver(mHwId, this);
      } else {
@@ -70,6 +70,10 @@ int32_t Hwc2Display::initialize() {
     mComposers.emplace(MESON_GE2D_COMPOSER, std::move(composer));
 #endif
 
+    initLayerIdGenerator();
+    loadDisplayResources();
+    mIsConnected = mConnector->isConnected();
+
     return 0;
 }
 
@@ -81,13 +85,12 @@ void Hwc2Display::loadDisplayResources() {
     HwDisplayManager::getInstance().getCrtc(mHwId, mCrtc);
     HwDisplayManager::getInstance().getPlanes(mHwId, mPlanes);
     HwDisplayManager::getInstance().getConnector(mHwId, mConnector);
-
+    mCrtc->loadProperities();
     mConnector->loadProperities();
     mConnector->getHdrCapabilities(&mHdrCaps);
-
     mModeMgr->setDisplayResources(mCrtc, mConnector);
 
-    /*create composition strategy.*/
+    /*update composition strategy.*/
     uint32_t strategyFlags = 0;
     int osdPlanes = 0;
     for (auto it = mPlanes.begin(); it != mPlanes.end(); ++ it) {
@@ -124,7 +127,9 @@ void Hwc2Display::onVsync(int64_t timestamp) {
 }
 
 void Hwc2Display::onHotplug(bool connected) {
+    std::lock_guard<std::mutex> lock(mMutex);
     MESON_LOGD("On hot plug: [%s]", connected == true ? "Plug in" : "Plug out");
+
     loadDisplayResources();
     mIsConnected = connected;
 
@@ -134,6 +139,7 @@ void Hwc2Display::onHotplug(bool connected) {
 }
 
 void Hwc2Display::onModeChanged(int stage) {
+    std::lock_guard<std::mutex> lock(mMutex);
     MESON_LOGD("On mode change state: [%s]", stage == 1 ? "Begin to change" : "Complete");
     if (mIsConnected && stage == 0) {
         mModeMgr->updateDisplayResources();
@@ -182,18 +188,21 @@ void Hwc2Display::destroyLayerId(hwc2_layer_t id) {
 }
 
 hwc2_error_t Hwc2Display::createLayer(hwc2_layer_t * outLayer) {
+    std::lock_guard<std::mutex> lock(mMutex);
+
     std::shared_ptr<Hwc2Layer> layer = std::make_shared<Hwc2Layer>();
     uint32_t idx = createLayerId();
-
     *outLayer = idx;
     layer->setUniqueId(*outLayer);
     mLayers.emplace(*outLayer, layer);
-
     MESON_LOGD("createLayer (%d-%p)", idx,  layer.get());
+
     return HWC2_ERROR_NONE;
 }
 
 hwc2_error_t Hwc2Display::destroyLayer(hwc2_layer_t  inLayer) {
+    std::lock_guard<std::mutex> lock(mMutex);
+
     MESON_LOGD("destoryLayer (%" PRId64 ")", inLayer);
 
     DebugHelper::getInstance().removeDebugLayer((int)inLayer);
@@ -243,11 +252,9 @@ hwc2_error_t Hwc2Display::collectLayersForPresent() {
     * 2) for special layer, update its composition type.
     * 3) sort Layers by zorder for composition.
     */
-    mPresentLayers.clear();
     mPresentLayers.reserve(10);
 
-    std::unordered_map<hwc2_layer_t, std::shared_ptr<Hwc2Layer>>::iterator it;
-    for (it = mLayers.begin(); it != mLayers.end(); it++) {
+    for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
         std::shared_ptr<Hwc2Layer> layer = it->second;
         std::shared_ptr<DrmFramebuffer> buffer = layer;
         mPresentLayers.push_back(buffer);
@@ -291,11 +298,8 @@ hwc2_error_t Hwc2Display::collectLayersForPresent() {
 }
 
 hwc2_error_t Hwc2Display::collectPlanesForPresent() {
-    mPresentPlanes.clear();
     mPresentPlanes = mPlanes;
-
-    std::vector<std::shared_ptr<HwDisplayPlane>>::iterator it = mPresentPlanes.begin();
-    for ( ; it != mPresentPlanes.end(); it++) {
+    for (auto  it = mPresentPlanes.begin(); it != mPresentPlanes.end(); it++) {
         std::shared_ptr<HwDisplayPlane> plane = *it;
         if (isPlaneHideForDebug(plane->getPlaneId())) {
             plane->setIdle(true);
@@ -308,11 +312,7 @@ hwc2_error_t Hwc2Display::collectPlanesForPresent() {
 }
 
 hwc2_error_t Hwc2Display::collectComposersForPresent() {
-    mPresentComposers.clear();
-
-    std::map<meson_composer_t, std::shared_ptr<IComposer>>::iterator it =
-        mComposers.begin();
-    for ( ; it != mComposers.end(); it++) {
+    for (auto it = mComposers.begin(); it != mComposers.end(); it++) {
         mPresentComposers.push_back(it->second);
     }
 
@@ -322,12 +322,29 @@ hwc2_error_t Hwc2Display::collectComposersForPresent() {
 hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
     uint32_t* outNumRequests) {
     MESON_LOG_FUN_ENTER();
+
+    /*clear data used in composition.*/
+    mPresentLayers.clear();
+    mPresentComposers.clear();
+    mPresentPlanes.clear();
+    mChangedLayers.clear();
+    mOverlayLayers.clear();
     mFailedDeviceComp = false;
 
     hwc2_error_t ret = collectLayersForPresent();
     if (ret != HWC2_ERROR_NONE) {
         return ret;
     }
+    /* No layers means post blank,
+    * when system boot, we ignor this blank and keep logo displayed*/
+    if (mIgnorBlankInBoot && mPresentLayers.size() == 0) {
+        MESON_LOGE("ignor blank when boot.");
+        return HWC2_ERROR_NONE;
+    } else {
+        MESON_LOGE("ignor blank finished..");
+        mIgnorBlankInBoot = false;
+    }
+
     ret = collectComposersForPresent();
     if (ret != HWC2_ERROR_NONE) {
         return ret;
@@ -378,13 +395,9 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
 
 hwc2_error_t Hwc2Display::collectCompositionRequest(
     uint32_t* outNumTypes, uint32_t* outNumRequests) {
-    mChangedLayers.clear();
-    mOverlayLayers.clear();
-
     Hwc2Layer *layer;
     /*collect display requested, and changed composition type.*/
-    std::vector<std::shared_ptr<DrmFramebuffer>>::iterator it;
-    for (it = mPresentLayers.begin() ; it != mPresentLayers.end(); it++) {
+    for (auto it = mPresentLayers.begin() ; it != mPresentLayers.end(); it++) {
         layer = (Hwc2Layer*)(it->get());
         /*record composition changed layer.*/
         hwc2_composition_t expectedHwcComposition =
@@ -454,8 +467,7 @@ hwc2_error_t Hwc2Display::getChangedCompositionTypes(
 
 hwc2_error_t Hwc2Display::acceptDisplayChanges() {
    /* commit composition type */
-    std::vector<std::shared_ptr<DrmFramebuffer>>::iterator it;
-    for (it = mPresentLayers.begin() ; it != mPresentLayers.end(); it++) {
+    for (auto it = mPresentLayers.begin() ; it != mPresentLayers.end(); it++) {
         Hwc2Layer * layer = (Hwc2Layer*)(it->get());
         layer->commitCompType(mesonComp2Hwc2Comp(layer));
     }
@@ -466,6 +478,11 @@ hwc2_error_t Hwc2Display::acceptDisplayChanges() {
 hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
     MESON_LOG_FUN_ENTER();
     int32_t outFence = -1;
+
+    if (mIgnorBlankInBoot) {
+        *outPresentFence = -1;
+        return HWC2_ERROR_NONE;
+    }
 
     /*Pre page flip, set display position*/
     if (mCrtc->prePageFlip() != 0) {
@@ -508,8 +525,7 @@ hwc2_error_t Hwc2Display::getReleaseFences(uint32_t* outNumElements,
     if (outLayers && outFences)
         needInfo = true;
 
-    std::vector<std::shared_ptr<DrmFramebuffer>>::iterator it;
-    for (it = mPresentLayers.begin(); it != mPresentLayers.end(); it++) {
+    for (auto it = mPresentLayers.begin(); it != mPresentLayers.end(); it++) {
         Hwc2Layer *layer = (Hwc2Layer*)(it->get());
         if (HWC2_COMPOSITION_DEVICE == layer->mHwcCompositionType) {
             num++;
@@ -602,11 +618,9 @@ bool Hwc2Display::isLayerHideForDebug(hwc2_layer_t id) {
     if (hideLayers.empty())
         return false;
 
-    std::vector<int>::iterator it = hideLayers.begin();
-    for (;it < hideLayers.end(); it++) {
-        if (*it == (int)id) {
+    for (auto it = hideLayers.begin(); it < hideLayers.end(); it++) {
+        if (*it == (int)id)
             return true;
-        }
     }
 
     return false;
@@ -618,8 +632,7 @@ bool Hwc2Display::isPlaneHideForDebug(int id) {
     if (hidePlanes.empty())
         return false;
 
-    std::vector<int>::iterator it = hidePlanes.begin();
-    for (;it < hidePlanes.end(); it++) {
+    for (auto it = hidePlanes.begin(); it < hidePlanes.end(); it++) {
         if (*it == id) {
             return true;
         }
@@ -633,8 +646,7 @@ void Hwc2Display::dumpPresentLayers(String8 & dumpstr) {
         "-------------------------------\n");
     dumpstr.append("|  id  |  z  |  type  |blend| alpha  |t|"
         "  AFBC  |    Source Crop    |    Display Frame  |\n");
-    for (std::vector<std::shared_ptr<DrmFramebuffer>>::iterator it = mPresentLayers.begin();
-        it != mPresentLayers.end(); it++) {
+    for (auto it = mPresentLayers.begin(); it != mPresentLayers.end(); it++) {
         Hwc2Layer *layer = (Hwc2Layer*)(it->get());
         dumpstr.append("+------+-----+--------+-----+--------+-+--------+"
             "-------------------+-------------------+\n");
@@ -708,8 +720,7 @@ void Hwc2Display::dump(String8 & dumpstr) {
     if (DebugHelper::getInstance().dumpDetailInfo()) {
         /* dump composers*/
         dumpstr.append("Valid composers:\n");
-        for (std::vector<std::shared_ptr<IComposer>>::iterator it = mPresentComposers.begin();
-            it != mPresentComposers.end(); it++) {
+        for (auto it = mPresentComposers.begin(); it != mPresentComposers.end(); it++) {
             dumpstr.appendFormat("%s-Composer (%p)\n", it->get()->getName(), it->get());
         }
         dumpstr.append("\n");

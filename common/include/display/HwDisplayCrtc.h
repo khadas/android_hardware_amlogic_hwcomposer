@@ -22,11 +22,10 @@ public:
 
     int32_t setUp(std::shared_ptr<HwDisplayConnector>  connector,
                    std::map<uint32_t, std::shared_ptr<HwDisplayPlane>> planes);
-#ifdef HWC_MANAGE_DISPLAY_MODE
+     int32_t loadProperities();
+    int32_t updateMode();
+
     int32_t setMode(drm_mode_info_t &mode);
-#else
-    int32_t updateMode(std::string & displayMode);
-#endif
 
     int32_t updateActiveMode(std::string & displayMode, bool policy);
 

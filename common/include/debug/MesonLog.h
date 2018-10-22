@@ -13,9 +13,13 @@
 #define LOG_TAG "MesonHwc"
 #define LOG_NDEBUG 0
 #include <cutils/log.h>
- #include <cassert>
+#include <stdlib.h>
 
+#if HWC_RELEASE
+#define MESON_DEBUG_LEVEL 0
+#else
 #define MESON_DEBUG_LEVEL 1
+#endif
 
 #if MESON_DEBUG_LEVEL > 0
 #define MESON_LOGV(fmt,...)		ALOGV(fmt, ##__VA_ARGS__)
@@ -34,7 +38,7 @@
 #define MESON_ASSERT(condition,fmt,...) \
         if (!(condition)) { \
             ALOGE(fmt, ##__VA_ARGS__); \
-            assert(0); \
+            abort(); \
         }
 #else
 #define MESON_ASSERT(condition,fmt,...) ((void)0)

@@ -22,10 +22,11 @@
 #include <ComposerFactory.h>
 #include <IComposer.h>
 #include <ICompositionStrategy.h>
+#include <EventThread.h>
+
 #include "Hwc2Layer.h"
 #include "MesonHwc2Defs.h"
 #include "HwcModeMgr.h"
-
 
 class Hwc2DisplayObserver  {
 public:
@@ -35,7 +36,6 @@ public:
     virtual void onVsync(int64_t timestamp) = 0;
     virtual void onHotplug(bool connected) = 0;
 };
-
 
 class Hwc2Display : public HwDisplayObserver {
 /*HWC2 interfaces.*/
@@ -151,8 +151,10 @@ protected:
     bool mForceClientComposer;
     float mColorMatrix[16];
 
+    bool mIgnorBlankInBoot;
     bool mIsConnected;
 
+    std::mutex mMutex;
 };
 
 #endif/*HWC2_DISPLAY_H*/

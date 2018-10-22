@@ -129,12 +129,6 @@ protected:
     hwc2_callback_data_t mVsyncData;
 
     uint32_t mVirtualDisplayIds;
-
-private:
-    bool mFirstCallBackSF;
-
-    std::mutex Mutex;
-    std::condition_variable cv;
 };
 
 #endif/*MESON_HWC2_H*/

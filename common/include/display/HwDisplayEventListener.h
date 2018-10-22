@@ -16,7 +16,6 @@
 #include <utils/threads.h>
 #include <pthread.h>
 
-static pthread_mutex_t hwc_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 class HwDisplayEventHandler {
 public:
@@ -50,7 +49,6 @@ protected:
 
 protected:
     static void * ueventThread(void * data);
-    static void * primaryBootThread(void * data);
     void handleUevent();
 
 private:
@@ -58,8 +56,8 @@ private:
     int32_t handle(drm_display_event event, int val);
 
     pthread_t hw_event_thread;
-    pthread_t hw_primary_boot_thread;
 
+    pthread_mutex_t hw_event_mutex;
 };
 
 #endif/*HWDISPLAY_EVENT_LISTENER_H*/
