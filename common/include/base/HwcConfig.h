@@ -25,6 +25,7 @@ public:
     static hwc_modes_policy_t getModePolicy();
     static bool isHeadlessMode();
     static int32_t headlessRefreshRate();
+    static bool fracRefreshRateEnabled();
 
     /*get feature */
     static bool softwareVsyncEnabled();

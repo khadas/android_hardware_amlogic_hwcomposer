@@ -11,6 +11,7 @@
 #include <MesonLog.h>
 #include <misc.h>
 #include <systemcontrol.h>
+#include <HwcConfig.h>
 
 #include "AmVinfo.h"
 #include "ConnectorHdmi.h"
@@ -113,19 +114,18 @@ int32_t ConnectorHdmi::addDisplayMode(std::string& mode) {
         (float)vinfo->sync_duration_num/vinfo->sync_duration_den};
     strcpy(modeInfo.name, mode.c_str());
 
-#ifdef ENABLE_FRACTIONAL_REFRESH_RATE
-    // add frac refresh rate config, like 23.976hz, 29.97hz...
-    if (modeInfo.refreshRate == REFRESH_24kHZ
-        || modeInfo.refreshRate == REFRESH_30kHZ
-        || modeInfo.refreshRate == REFRESH_60kHZ
-        || modeInfo.refreshRate == REFRESH_120kHZ
-        || modeInfo.refreshRate == REFRESH_240kHZ) {
-        drm_mode_info_t fracMode = modeInfo;
-        fracMode.refreshRate = (modeInfo.refreshRate * 1000) / (float)1001;
-        mDisplayModes.emplace(mDisplayModes.size(), fracMode);
+    if (HwcConfig::fracRefreshRateEnabled()) {
+        // add frac refresh rate config, like 23.976hz, 29.97hz...
+        if (modeInfo.refreshRate == REFRESH_24kHZ
+            || modeInfo.refreshRate == REFRESH_30kHZ
+            || modeInfo.refreshRate == REFRESH_60kHZ
+            || modeInfo.refreshRate == REFRESH_120kHZ
+            || modeInfo.refreshRate == REFRESH_240kHZ) {
+            drm_mode_info_t fracMode = modeInfo;
+            fracMode.refreshRate = (modeInfo.refreshRate * 1000) / (float)1001;
+            mDisplayModes.emplace(mDisplayModes.size(), fracMode);
+        }
     }
-#endif
-
     // add normal refresh rate config, like 24hz, 30hz...
     mDisplayModes.emplace(mDisplayModes.size(), modeInfo);
 

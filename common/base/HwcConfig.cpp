@@ -89,7 +89,7 @@ drm_connector_type_t HwcConfig::getConnectorType(int disp) {
 }
 
 hwc_modes_policy_t HwcConfig::getModePolicy() {
-#ifdef ENABLE_ACTIVE_MODE
+#ifdef HWC_ENABLE_ACTIVE_MODE
     return FULL_ACTIVE_POLICY;
 #else
     return FIXED_SIZE_POLICY;
@@ -110,6 +110,14 @@ int32_t HwcConfig::headlessRefreshRate() {
 #else
         MESON_ASSERT(0, "HWC_HEADLESS_REFRESHRATE not set.");
         return 1;;
+#endif
+}
+
+bool HwcConfig::fracRefreshRateEnabled() {
+#ifdef ENABLE_FRACTIONAL_REFRESH_RATE
+    return true;
+#else
+    return false;
 #endif
 }
 
