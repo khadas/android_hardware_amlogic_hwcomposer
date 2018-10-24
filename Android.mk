@@ -108,19 +108,11 @@ LOCAL_C_INCLUDES := \
     system/core/libion/include/ \
     system/core/libion/kernel-headers
 
-ifeq ($(TARGET_SPECIAL_PATH), true)
-LOCAL_C_INCLUDES += \
-    hardware/amlogic/905x2/gralloc/amlogic \
-    hardware/amlogic/905x2/gralloc \
-    $(TOP)/hardware/amlogic/905x2/media/amavutils/include \
-    $(TOP)/vendor/amlogic/905x2/frameworks/services/systemcontrol
-else
 LOCAL_C_INCLUDES += \
     hardware/amlogic/gralloc/amlogic \
     hardware/amlogic/gralloc \
     $(TOP)/hardware/amlogic/media/amavutils/include \
     $(TOP)/vendor/amlogic/frameworks/services/systemcontrol
-endif
 
 LOCAL_COMMON_BASE_FILES := \
     common/base/DrmFramebuffer.cpp \
