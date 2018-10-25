@@ -16,6 +16,14 @@
 #include "AmVinfo.h"
 #include "ConnectorHdmi.h"
 
+enum {
+    REFRESH_24kHZ = 24,
+    REFRESH_30kHZ = 30,
+    REFRESH_60kHZ = 60,
+    REFRESH_120kHZ = 120,
+    REFRESH_240kHZ = 240
+};
+
 #define HDMI_FRAC_RATE_POLICY "/sys/class/amhdmitx/amhdmitx0/frac_rate_policy"
 #define HDMI_TX_HPD_STATE   "/sys/class/amhdmitx/amhdmitx0/hpd_state"
 

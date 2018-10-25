@@ -10,14 +10,6 @@
 #include <MesonLog.h>
 #include "AmVinfo.h"
 
-enum {
-    REFRESH_24kHZ = 24,
-    REFRESH_30kHZ = 30,
-    REFRESH_60kHZ = 60,
-    REFRESH_120kHZ = 120,
-    REFRESH_240kHZ = 240
-};
-
 HwDisplayConnector::HwDisplayConnector(int32_t drvFd, uint32_t id) {
     mDrvFd = drvFd;
     mId = id;

@@ -117,6 +117,18 @@ int32_t  sc_get_display_mode(std::string & dispmode) {
     return 0;
 }
 
+int32_t sc_set_display_mode(std::string &dispmode) {
+    CHK_SC_PROXY();
+
+    Result ret = gSC->setActiveDispMode(dispmode);
+    if (ret == Result::OK) {
+        return 0;
+    } else {
+        MESON_LOGE("syscontrol::setActiveDispMode FAIL.");
+        return -EFAULT;
+    }
+}
+
 int32_t sc_get_osd_position(std::string &dispmode, int *position) {
     CHK_SC_PROXY();
 
