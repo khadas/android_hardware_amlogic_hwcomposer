@@ -34,43 +34,27 @@ void FixedSizeModeMgr::setDisplayResources(
     mConnector = connector;
     mCrtc = crtc;
     mCrtc->parseDftFbSize(mCurMode.pixelW, mCurMode.pixelH);
-
-    updateDisplayResources();
 }
 
-int32_t FixedSizeModeMgr::updateDisplayResources() {
-    bool useFakeMode = false;
+int32_t FixedSizeModeMgr::update() {
+    bool useFakeMode = true;
+    drm_mode_info_t realMode;
 
-    if (mConnector->isConnected()) {
-        int modeId = mCrtc->getModeId();
-        if (modeId < 0) {
-            MESON_LOGE("Get current display mode failed.\n");
-            useFakeMode = true;
-        } else {
-            mModes.clear();
-            mConnector->getModes(mModes);
-
-            std::map<uint32_t, drm_mode_info_t>::iterator it = mModes.find(modeId);
-            if (it != mModes.end()) {
-                mCurMode.refreshRate = it->second.refreshRate;
-                mCurMode.dpiX = it->second.dpiX;
-                mCurMode.dpiY = it->second.dpiY;
-                strncpy(mCurMode.name, it->second.name , DRM_DISPLAY_MODE_LEN);
-                MESON_LOGI("ModeMgr update to (%s)", mCurMode.name);
-            } else {
-                MESON_LOGE("ModeMgr cant find modeid (%d) in connector (%d)",
-                    modeId, mConnector->getType());
-                useFakeMode = true;
-            }
+    if (mConnector->isConnected() && 0 == mCrtc->getMode(realMode)) {
+        if (realMode.name[0] != 0) {
+            mCurMode.refreshRate = realMode.refreshRate;
+            mCurMode.dpiX = realMode.dpiX;
+            mCurMode.dpiY = realMode.dpiY;
+            strncpy(mCurMode.name, realMode.name , DRM_DISPLAY_MODE_LEN);
+            MESON_LOGI("ModeMgr update to (%s)", mCurMode.name);
+            useFakeMode = false;
         }
-    } else {
-        useFakeMode = true;
     }
 
     if (useFakeMode) {
         mCurMode.refreshRate = DEFAULT_REFRESH_RATE;
         mCurMode.dpiX = mCurMode.dpiY = DEFUALT_DPI;
-        strncpy(mCurMode.name, "DefaultMode", DRM_DISPLAY_MODE_LEN);
+        strncpy(mCurMode.name, "NULL", DRM_DISPLAY_MODE_LEN);
     }
 
     return 0;
@@ -130,7 +114,7 @@ hwc2_error_t FixedSizeModeMgr::setActiveConfig(
 }
 
 void FixedSizeModeMgr::dump(String8 & dumpstr) {
-    dumpstr.append("FixedSizeModeMgr:\n");
+    dumpstr.appendFormat("FixedSizeModeMgr:(%s)\n", mCurMode.name);
     dumpstr.append("---------------------------------------------------------"
         "-------------------------\n");
     dumpstr.append("|   CONFIG   |   VSYNC_PERIOD   |   WIDTH   |   HEIGHT   |"

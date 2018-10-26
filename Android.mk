@@ -130,7 +130,8 @@ LOCAL_COMMON_BASE_FILES := \
     common/base/DrmFramebuffer.cpp \
     common/base/DrmSync.cpp \
     common/base/DrmTypes.cpp \
-    common/base/HwcConfig.cpp
+    common/base/HwcConfig.cpp \
+    common/base/HwcPowerMode.cpp
 
 LOCAL_COMMON_DISPLAY_FILES  := \
     common/display/HwDisplayManager.cpp \

@@ -494,6 +494,10 @@ MesonHwc2::MesonHwc2() {
     mVirtualDisplayIds = 0;
     mHotplugFn = NULL;
     mHotplugData = NULL;
+    mRefreshFn = NULL;
+    mRefreshData = NULL;
+    mVsyncFn = NULL;
+    mVsyncData = NULL;
     initialize();
 }
 

@@ -83,6 +83,7 @@ int32_t ConnectorHdmi::loadDisplayModes() {
         return -ENOENT;
     }
 
+    mFracRefreshRates.clear();
     mDisplayModes.clear();
     for (size_t i = 0; i < supportDispModes.size(); i++) {
         if (!supportDispModes[i].empty()) {
@@ -132,6 +133,7 @@ int32_t ConnectorHdmi::addDisplayMode(std::string& mode) {
             drm_mode_info_t fracMode = modeInfo;
             fracMode.refreshRate = (modeInfo.refreshRate * 1000) / (float)1001;
             mDisplayModes.emplace(mDisplayModes.size(), fracMode);
+            mFracRefreshRates.push_back(fracMode.refreshRate);
         }
     }
     // add normal refresh rate config, like 24hz, 30hz...
@@ -143,6 +145,22 @@ int32_t ConnectorHdmi::addDisplayMode(std::string& mode) {
 
 int32_t ConnectorHdmi::getModes(std::map<uint32_t, drm_mode_info_t> & modes) {
     return HwDisplayConnector::getModes(modes);
+}
+
+int32_t ConnectorHdmi::setMode(drm_mode_info_t & mode) {
+    if (!HwcConfig::fracRefreshRateEnabled())
+        return 0;
+
+    /*update rate policy.*/
+    for (auto it = mFracRefreshRates.begin(); it != mFracRefreshRates.end(); it ++) {
+        if (*it == mode.refreshRate) {
+            switchRatePolicy(true);
+            return 0;
+        }
+    }
+
+    switchRatePolicy(false);
+    return 0;
 }
 
 int32_t ConnectorHdmi::switchRatePolicy(bool fracRatePolicy) {
@@ -181,7 +199,7 @@ void ConnectorHdmi::dump(String8 & dumpstr) {
     dumpstr.append("------------+------------------+-----------+------------+"
         "-----------+-----------\n");
 
-    std::map<uint32_t, drm_mode_info_t>::iterator it = mDisplayModes.begin();
+    auto it = mDisplayModes.begin();
     for ( ; it != mDisplayModes.end(); ++it) {
         dumpstr.appendFormat(" %2d     |      %.3f      |   %5d   |   %5d    |"
             "    %3d    |    %3d    \n",

@@ -129,30 +129,28 @@ int32_t HwDisplayManager::unregisterObserver(hw_display_id hwDisplayId) {
 }
 
 void HwDisplayManager::handle(drm_display_event event, int val) {
+    /*TODO: need update for dual display.*/
     std::map<hw_display_id, HwDisplayObserver *>::iterator it;
     switch (event) {
         case DRM_EVENT_HDMITX_HOTPLUG:
         case DRM_EVENT_HDMITX_HDCP:
             {
-                MESON_LOGD("Hotplug observer size %d.", mObserver.size());
+                MESON_LOGD("Hotplug observer size %d to handle value %d.",
+                    mObserver.size(), val);
                 for (it = mObserver.begin(); it != mObserver.end(); ++it)
                     for (uint32_t i = 0; i < count_pipes; i++)
                         if (pipes[i].crtc_id == it->first &&
                             mConnectors[pipes[i].connector_id]->getType() ==
-                            DRM_MODE_CONNECTOR_HDMI) {
-                            it->second->onHotplug((val == 0) ? false : true);
-                            break;
+                                DRM_MODE_CONNECTOR_HDMI) {
+                                it->second->onHotplug((val == 0) ? false : true);
+                                break;
                         }
             }
             break;
         case DRM_EVENT_MODE_CHANGED:
             {
-                /*TODO: update which crtc? */
                 if (count_crtcs > 1) {
                     MESON_ASSERT(0, " %s Dual display not supported.", __func__);
-                } else if (count_crtcs == 1 &&
-                        mConnectors[pipes[0].connector_id]->isConnected()) {
-                    mCrtcs[crtc_ids[0]]->updateMode();
                 }
 
                 MESON_LOGD("Mode change observer size %d.", mObserver.size());
@@ -163,7 +161,7 @@ void HwDisplayManager::handle(drm_display_event event, int val) {
             }
             break;
         default:
-            MESON_LOGE("Receive unknow event %d", event);
+            MESON_LOGE("Receive unhandled event %d", event);
             break;
     }
 }

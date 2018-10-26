@@ -314,7 +314,7 @@ void DebugHelper::removeDebugLayer(int id __unused) {
 }
 
 void DebugHelper::dump(String8 & dumpstr) {
-#if HWC_RELEASE
+#ifdef HWC_RELEASE
     UNUSED(dumpstr);
 #else
     if (!mEnabled)

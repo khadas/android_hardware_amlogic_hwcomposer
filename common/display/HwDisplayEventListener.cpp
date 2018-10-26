@@ -17,7 +17,8 @@
 
 ANDROID_SINGLETON_STATIC_INSTANCE(HwDisplayEventListener)
 
-
+#define HDMITX_AUDIO_HOTPLUG_EVENT \
+    "change@/devices/virtual/amhdmitx/amhdmitx0/hdmi_audio"
 #define HDMITX_HOTPLUG_EVENT \
     "change@/devices/virtual/amhdmitx/amhdmitx0/hdmi"
 #define HDMITX_HDCP_EVENT \
@@ -44,21 +45,25 @@ typedef struct drm_uevent_info {
 /*load uevent parser*/
 #if PLATFORM_SDK_VERSION >= 28
 static drm_uevent_info_t mUeventParser[] = {
+    {HDMITX_AUDIO_HOTPLUG_EVENT, DRM_EVENT_HDMITX_AUDIO_HOTPLUG,
+        NEW_EVENT_STATE_ENABLE, NEW_EVENT_STATE_DISABLE},
     {HDMITX_HOTPLUG_EVENT, DRM_EVENT_HDMITX_HOTPLUG,
-    NEW_EVENT_STATE_DISABLE, NEW_EVENT_STATE_ENABLE},
+        NEW_EVENT_STATE_ENABLE, NEW_EVENT_STATE_DISABLE},
     {HDMITX_HDCP_EVENT, DRM_EVENT_HDMITX_HDCP,
-    NEW_EVENT_STATE_DISABLE, NEW_EVENT_STATE_ENABLE},
+        NEW_EVENT_STATE_ENABLE, NEW_EVENT_STATE_DISABLE},
     {VOUT_MODE_EVENT, DRM_EVENT_MODE_CHANGED,
-    VOUT_EVENT_MODESWITCH_BEGIN, VOUT_EVENT_MODESWITCH_COMPLETE}
+        VOUT_EVENT_MODESWITCH_COMPLETE, VOUT_EVENT_MODESWITCH_BEGIN}
 };
 #else
 static drm_uevent_info_t mUeventParser[] = {
+    {HDMITX_AUDIO_HOTPLUG_EVENT, DRM_EVENT_HDMITX_AUDIO_HOTPLUG,
+        OLD_EVENT_STATE_ENABLE, OLD_EVENT_STATE_DISABLE},
     {HDMITX_HOTPLUG_EVENT, DRM_EVENT_HDMITX_HOTPLUG,
-    OLD_EVENT_STATE_ENABLE, OLD_EVENT_STATE_DISABLE},
+        OLD_EVENT_STATE_ENABLE, OLD_EVENT_STATE_DISABLE},
     {HDMITX_HDCP_EVENT, DRM_EVENT_HDMITX_HDCP,
-    OLD_EVENT_STATE_ENABLE, OLD_EVENT_STATE_DISABLE},
+        OLD_EVENT_STATE_ENABLE, OLD_EVENT_STATE_DISABLE},
     {VOUT_MODE_EVENT, DRM_EVENT_MODE_CHANGED,
-    OLD_EVENT_STATE_DISABLE, OLD_EVENT_STATE_ENABLE}
+        OLD_EVENT_STATE_ENABLE, OLD_EVENT_STATE_DISABLE}
 };
 #endif
 
@@ -122,16 +127,17 @@ void HwDisplayEventListener::createThread() {
 
 void HwDisplayEventListener::handleUevent() {
     for (drm_uevent_info_t uevent : mUeventParser) {
-        if (memcmp(mUeventMsg, uevent.head, strlen(uevent.head)) == 0) {
+        if (strncmp(mUeventMsg, uevent.head, strlen(uevent.head)) == 0) {
             String8 key;
             char * msg = mUeventMsg;
             while (*msg) {
                 key = String8(msg);
                 MESON_LOGD("received Uevent: %s", msg);
-                if (key.contains(uevent.stateEnable)) {
+
+                if (strstr(msg, uevent.stateEnable)) {
                     handle(uevent.eventType, 1);
                     return;
-                } else if (key.contains(uevent.stateDisable)) {
+                } else if (strstr(msg, uevent.stateDisable)) {
                     handle(uevent.eventType, 0);
                     return;
                 }

@@ -22,38 +22,43 @@ public:
 
     int32_t setUp(std::shared_ptr<HwDisplayConnector>  connector,
                    std::map<uint32_t, std::shared_ptr<HwDisplayPlane>> planes);
+
+    /*load the fixed informations: displaymode list, hdr cap, etc...*/
      int32_t loadProperities();
-    int32_t updateMode();
+    /*update the dynamic informations, current display mode now.*/
+     int32_t update();
 
-    int32_t setMode(drm_mode_info_t &mode);
-
-    int32_t updateActiveMode(std::string & displayMode, bool policy);
-
-    int32_t getModeId();
+    /*get current display mode.*/
+    int32_t getMode(drm_mode_info_t & mode);
+    /*set current display mode.*/
+    int32_t setMode(drm_mode_info_t & mode);
 
     int32_t parseDftFbSize(uint32_t & width, uint32_t & height);
 
     int32_t prePageFlip();
-
     int32_t pageFlip(int32_t &out_fence);
 
 protected:
     int32_t getZoomInfo(display_zoom_info_t & zoomInfo);
-
     void closeLogoDisplay();
+
 
 protected:
     int32_t mId;
     int mDrvFd;
 
-    std::string mCurMode;
     uint32_t mFbWidth, mFbHeight;
     bool mFirstPresent;
 
     display_zoom_info_t mBackupZoomInfo;
 
+    drm_mode_info_t mCurModeInfo;
+    bool mConnected;
+    std::map<uint32_t, drm_mode_info_t> mModes;
     std::shared_ptr<HwDisplayConnector>  mConnector;
     std::map<uint32_t, std::shared_ptr<HwDisplayPlane>> mPlanes;
+
+    std::mutex mMutex;
 };
 
 #endif/*HW_DISPLAY_CRTC_H*/

@@ -30,7 +30,8 @@ public:
     void setDisplayResources(
         std::shared_ptr<HwDisplayCrtc> & crtc,
         std::shared_ptr<HwDisplayConnector> & connector);
-    int32_t updateDisplayResources();
+    int32_t update();
+
     hwc2_error_t  getDisplayConfigs(
         uint32_t* outNumConfigs, hwc2_config_t* outConfigs);
     hwc2_error_t  getDisplayAttribute(

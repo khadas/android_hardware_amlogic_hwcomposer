@@ -154,7 +154,7 @@ bool HwcConfig::cursorPlaneDisabled() {
 }
 
 void HwcConfig::dump(String8 & dumpstr) {
-    #if HWC_RELEASE
+    #ifdef HWC_RELEASE
     dumpstr.append("HwcConfigs (RELEASE):\n");
     #else
     dumpstr.append("HwcConfigs (DEBUG):\n");

@@ -27,10 +27,9 @@ Hwc2Display::Hwc2Display(hw_display_id dspId,
     mHwId = dspId;
     mObserver = observer;
     mForceClientComposer = false;
-    mIsConnected = false;
+    mPowerMode  = std::make_shared<HwcPowerMode>();
+    mSignalHpd = false;
     memset(&mHdrCaps, 0, sizeof(mHdrCaps));
-
-    mIgnorBlankInBoot = true;
 }
 
 Hwc2Display::~Hwc2Display() {
@@ -49,6 +48,8 @@ Hwc2Display::~Hwc2Display() {
 }
 
 int32_t Hwc2Display::initialize() {
+    std::lock_guard<std::mutex> lock(mMutex);
+
     if (MESON_DUMMY_DISPLAY_ID != mHwId) {
         HwDisplayManager::getInstance().registerObserver(mHwId, this);
      } else {
@@ -71,8 +72,12 @@ int32_t Hwc2Display::initialize() {
 #endif
 
     initLayerIdGenerator();
+
+    /*manual do display init, for we may missed some displayevents.*/
     loadDisplayResources();
-    mIsConnected = mConnector->isConnected();
+    mCrtc->update();
+    mModeMgr->update();
+    mPowerMode->setConnectorStatus(mConnector->isConnected());
 
     return 0;
 }
@@ -81,14 +86,12 @@ void Hwc2Display::loadDisplayResources() {
     if (MESON_DUMMY_DISPLAY_ID == mHwId)
         return;
 
-    HwDisplayManager::getInstance().registerObserver(mHwId, this);
     HwDisplayManager::getInstance().getCrtc(mHwId, mCrtc);
     HwDisplayManager::getInstance().getPlanes(mHwId, mPlanes);
     HwDisplayManager::getInstance().getConnector(mHwId, mConnector);
     mCrtc->loadProperities();
-    mConnector->loadProperities();
-    mConnector->getHdrCapabilities(&mHdrCaps);
     mModeMgr->setDisplayResources(mCrtc, mConnector);
+    mConnector->getHdrCapabilities(&mHdrCaps);
 
     /*update composition strategy.*/
     uint32_t strategyFlags = 0;
@@ -126,12 +129,19 @@ void Hwc2Display::onVsync(int64_t timestamp) {
     }
 }
 
+// HWC uses SystemControl for HDMI query / control purpose. Bacuase both parties
+// respond to the same hot plug uevent additional means of synchronization
+// are required before former can talk to the latter. To accomplish that HWC
+// shall wait for SystemControl before it can update its state and notify FWK
+// accordingly.
 void Hwc2Display::onHotplug(bool connected) {
     std::lock_guard<std::mutex> lock(mMutex);
     MESON_LOGD("On hot plug: [%s]", connected == true ? "Plug in" : "Plug out");
 
-    loadDisplayResources();
-    mIsConnected = connected;
+    if (connected) {
+        mSignalHpd = true;
+        return;
+    }
 
     if (mObserver != NULL) {
         mObserver->onHotplug(connected);
@@ -140,16 +150,30 @@ void Hwc2Display::onHotplug(bool connected) {
 
 void Hwc2Display::onModeChanged(int stage) {
     std::lock_guard<std::mutex> lock(mMutex);
-    MESON_LOGD("On mode change state: [%s]", stage == 1 ? "Begin to change" : "Complete");
-    if (mIsConnected && stage == 0) {
-        mModeMgr->updateDisplayResources();
+    MESON_LOGD("On mode change state: [%s]", stage == 0 ? "Begin to change" : "Complete");
+    if (stage == 1) {
         if (mObserver != NULL) {
-            mObserver->refresh();
+            if (mSignalHpd) {
+                loadDisplayResources();
+                mPowerMode->setConnectorStatus(mConnector->isConnected());
+                mCrtc->update();
+                mModeMgr->update();
+                mObserver->onHotplug(true);
+                mSignalHpd = false;
+            } else {
+                mPowerMode->setConnectorStatus(mConnector->isConnected());
+                mCrtc->update();
+                mModeMgr->update();
+            }
 
-            /*Update info to surfaceflinger by hotplug.*/
+            /*Update info to surfaceflinger by hotplug.
+        * need surfaceflinger to update*/
             if (mModeMgr->getPolicyType() == FIXED_SIZE_POLICY) {
                 mObserver->onHotplug(true);
             }
+
+            /*last call refresh*/
+            mObserver->refresh();
         } else {
             MESON_LOGE("No display oberserve register to display (%s)", getName());
         }
@@ -369,7 +393,7 @@ hwc2_error_t Hwc2Display::scalePresentLayers() {
 
 hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
     uint32_t* outNumRequests) {
-    MESON_LOG_FUN_ENTER();
+    std::lock_guard<std::mutex> lock(mMutex);
 
     /*clear data used in composition.*/
     mPresentLayers.clear();
@@ -378,19 +402,11 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
     mChangedLayers.clear();
     mOverlayLayers.clear();
     mFailedDeviceComp = false;
+    mSkipComposition = false;
 
     hwc2_error_t ret = collectLayersForPresent();
     if (ret != HWC2_ERROR_NONE) {
         return ret;
-    }
-    /* No layers means post blank,
-    * when system boot, we ignor this blank and keep logo displayed*/
-    if (mIgnorBlankInBoot && mPresentLayers.size() == 0) {
-        MESON_LOGE("ignor blank when boot.");
-        return HWC2_ERROR_NONE;
-    } else {
-        MESON_LOGE("ignor blank finished..");
-        mIgnorBlankInBoot = false;
     }
 
     if (mPresentLayers.size() > 0) {
@@ -422,15 +438,29 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
     }
 #endif
 
-    /*setup composition strategy.*/
-    mCompositionStrategy->setup(mPresentLayers,
-        mPresentComposers, mPresentPlanes, compositionFlags);
-    if (mCompositionStrategy->decideComposition() < 0) {
-        return HWC2_ERROR_NO_RESOURCES;
+    /*check power mode*/
+    if (mPowerMode->needBlankScreen(mPresentLayers.size())) {
+        if (!mPowerMode->getScreenStatus()) {
+            MESON_LOGD("Need to blank screen.");
+            mPresentLayers.clear();
+        } else {
+            mSkipComposition = true;
+        }
     }
 
-    /*collect changed dispplay, layer, compostiion.*/
-    ret = collectCompositionRequest(outNumTypes, outNumRequests);
+    if (!mSkipComposition) {
+        mPowerMode->setScreenStatus(mPresentLayers.size() > 0 ? false : true);
+
+        /*setup composition strategy.*/
+        mCompositionStrategy->setup(mPresentLayers,
+            mPresentComposers, mPresentPlanes, compositionFlags);
+        if (mCompositionStrategy->decideComposition() < 0) {
+            return HWC2_ERROR_NO_RESOURCES;
+        }
+
+        /*collect changed dispplay, layer, compostiion.*/
+        ret = collectCompositionRequest(outNumTypes, outNumRequests);
+    }
 
     /*dump at end of validate, for we need check by some composition info.*/
     bool dumpLayers = false;
@@ -532,30 +562,26 @@ hwc2_error_t Hwc2Display::acceptDisplayChanges() {
 }
 
 hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
-    MESON_LOG_FUN_ENTER();
-    int32_t outFence = -1;
+    std::lock_guard<std::mutex> lock(mMutex);
 
-    if (mIgnorBlankInBoot) {
+    if (mSkipComposition) {
         *outPresentFence = -1;
-        return HWC2_ERROR_NONE;
+    } else {
+        int32_t outFence = -1;
+        /*Pre page flip, set display position*/
+        if (mCrtc->prePageFlip() != 0) {
+            return HWC2_ERROR_NOT_VALIDATED;
+        }
+        /*Start to compose, set up plane info.*/
+        if (mCompositionStrategy->commit() != 0) {
+            return HWC2_ERROR_NOT_VALIDATED;
+        }
+        /* Page flip */
+        if (mCrtc->pageFlip(outFence) < 0) {
+            return HWC2_ERROR_UNSUPPORTED;
+        }
+        *outPresentFence = outFence;
     }
-
-    /*Pre page flip, set display position*/
-    if (mCrtc->prePageFlip() != 0) {
-        return HWC2_ERROR_NOT_VALIDATED;
-    }
-
-    /*Start to compose, set up plane info.*/
-    if (mCompositionStrategy->commit() != 0) {
-        return HWC2_ERROR_NOT_VALIDATED;
-    }
-
-    /* Page flip */
-    if (mCrtc->pageFlip(outFence) < 0) {
-        return HWC2_ERROR_UNSUPPORTED;
-    }
-
-    *outPresentFence = outFence;
 
     /*dump debug informations.*/
     bool dumpComposition = false;

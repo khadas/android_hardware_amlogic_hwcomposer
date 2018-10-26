@@ -12,6 +12,7 @@
 #include <HwDisplayConnector.h>
 
 class ConnectorHdmi : public HwDisplayConnector {
+friend class HwDisplayCrtc;
 public:
     ConnectorHdmi(int32_t drvFd, uint32_t id);
     virtual ~ConnectorHdmi();
@@ -26,15 +27,17 @@ public:
     virtual bool isSecure() ;
 
     virtual int32_t getModes(std::map<uint32_t, drm_mode_info_t> & modes);
-    virtual int32_t switchRatePolicy(bool fracRatePolicy);
     virtual void getHdrCapabilities(drm_hdr_capabilities * caps);
 
     virtual void dump(String8& dumpstr);
 
 protected:
-    virtual int32_t addDisplayMode(std::string& mode);
+    virtual int32_t setMode(drm_mode_info_t & mode);
 
+protected:
+    virtual int32_t addDisplayMode(std::string& mode);
     bool checkConnectState();
+    int32_t switchRatePolicy(bool fracRatePolicy);
 
     int32_t loadDisplayModes();
 
@@ -43,12 +46,12 @@ protected:
     int32_t parseHdrCapabilities();
 
 private:
+    char mName[64];
     bool mConnected;
     bool mSecure;
 
+    std::vector<float> mFracRefreshRates;
     drm_hdr_capabilities mHdrCapabilities;
-
-    char mName[64];
 };
 
 #endif

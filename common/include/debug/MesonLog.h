@@ -15,7 +15,7 @@
 #include <cutils/log.h>
 #include <stdlib.h>
 
-#if HWC_RELEASE
+#ifdef HWC_RELEASE
 #define MESON_DEBUG_LEVEL 0
 #else
 #define MESON_DEBUG_LEVEL 1

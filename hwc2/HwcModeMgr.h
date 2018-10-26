@@ -31,7 +31,7 @@ public:
     virtual void setDisplayResources(
         std::shared_ptr<HwDisplayCrtc> & crtc,
         std::shared_ptr<HwDisplayConnector> & connector) = 0;
-    virtual int32_t updateDisplayResources() = 0;
+    virtual int32_t update() = 0;
 
     virtual hwc2_error_t  getDisplayConfigs(
         uint32_t* outNumConfigs, hwc2_config_t* outConfigs) = 0;

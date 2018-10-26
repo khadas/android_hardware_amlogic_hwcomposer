@@ -18,6 +18,7 @@
 #include <HwDisplayPlane.h>
 #include <HwDisplayConnector.h>
 #include <BitsMap.h>
+#include <HwcPowerMode.h>
 
 #include <ComposerFactory.h>
 #include <IComposer.h>
@@ -116,7 +117,6 @@ protected:
     bool isLayerHideForDebug(hwc2_layer_t id);
     bool isPlaneHideForDebug(int id);
 
-
 protected:
     std::unordered_map<hwc2_layer_t, std::shared_ptr<Hwc2Layer>> mLayers;
     std::shared_ptr<Hwc2DisplayObserver> mObserver;
@@ -152,8 +152,10 @@ protected:
     bool mForceClientComposer;
     float mColorMatrix[16];
 
-    bool mIgnorBlankInBoot;
-    bool mIsConnected;
+    std::shared_ptr<HwcPowerMode> mPowerMode;
+    bool mSkipComposition;
+
+    bool mSignalHpd;
 
     std::mutex mMutex;
 };

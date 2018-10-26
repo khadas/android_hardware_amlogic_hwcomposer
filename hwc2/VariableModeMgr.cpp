@@ -98,7 +98,7 @@ void VariableModeMgr::setDisplayResources(
         initDefaultDispResources();
     }
 
-    updateDisplayResources();
+    update();
 }
 
 int32_t VariableModeMgr::initDefaultDispResources() {
@@ -110,7 +110,7 @@ int32_t VariableModeMgr::initDefaultDispResources() {
     return 0;
 }
 
-int32_t VariableModeMgr::updateDisplayResources() {
+int32_t VariableModeMgr::update() {
     bool useFakeMode = false;
 
     if (mConnector->isConnected()) {
@@ -266,12 +266,7 @@ hwc2_error_t VariableModeMgr::setActiveConfig(
             return HWC2_ERROR_NONE;
         }
 
-        std::string mode(cfg.name);
-        // Determine frac / normal display config
-        float frac = cfg.refreshRate - (int)cfg.refreshRate;
-        bool fracRatePolicy = (frac > 0 || frac < 0) ? true : false;
-        mCrtc->updateActiveMode(mode, fracRatePolicy);
-
+        mCrtc->setMode(cfg);
         mExtModeSet = true;
         MESON_LOGD("setActiveConfig %d, mExtModeSet %d",
             config, mExtModeSet);
