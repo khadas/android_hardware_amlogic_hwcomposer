@@ -53,6 +53,7 @@ public:
     hwc_region_t mVisibleRegion;
     hwc_region_t mDamageRegion;
     hwc2_layer_t mId;
+    drm_rect_t mBackupDisplayFrame;
 };
 
 

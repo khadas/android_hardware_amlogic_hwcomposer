@@ -102,7 +102,7 @@ int32_t sysfs_get_int(const char* path, int32_t def) {
     char str[64];
     if (sysfs_get_string(path, str) == 0) {
         val = atoi(str);
-        MESON_LOGE("sysfs(%s) read int32_t (%d)", path, val);
+        MESON_LOGD("sysfs(%s) read int32_t (%d)", path, val);
     }
     return val;
 }

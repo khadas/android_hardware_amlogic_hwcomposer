@@ -102,6 +102,7 @@ protected:
     hwc2_error_t collectPlanesForPresent();
     hwc2_error_t collectCompositionRequest(
             uint32_t* outNumTypes, uint32_t* outNumRequests);
+    hwc2_error_t scalePresentLayers();
 
     void loadDisplayResources();
 

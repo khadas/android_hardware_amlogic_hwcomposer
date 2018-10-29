@@ -14,7 +14,7 @@
 
 #include <string>
 
-#define DEFUALT_DPI (159)
+#define DEFUALT_DPI (160)
 #define DEFAULT_REFRESH_RATE_60 (60.0f)
 #define DEFAULT_REFRESH_RATE_50 (50.0f)
 
@@ -140,7 +140,7 @@ hwc2_error_t VariableModeMgr::getDisplayConfigs(
             mActiveModes.begin();
         for (uint32_t index = 0; it != mActiveModes.end(); ++it, ++index) {
             outConfigs[index] = it->first;
-            MESON_LOGD("outConfig[%d]: %d.", index, outConfigs[index]);
+            MESON_LOGV("outConfig[%d]: %d.", index, outConfigs[index]);
         }
     }
     return HWC2_ERROR_NONE;
@@ -155,10 +155,11 @@ hwc2_error_t VariableModeMgr::updateDisplayConfigs() {
         activeModes.begin();
     for (; it != activeModes.end(); ++it)
         // skip default / fake active mode as we add it to the end
-        if (memcmp(&mDefaultMode, &it->second, sizeof(mDefaultMode)))
-            mActiveModes.emplace(mActiveModes.size(), it->second);
-        else
+        if (!strncmp(mDefaultMode.name, it->second.name, DRM_DISPLAY_MODE_LEN)
+            && mDefaultMode.refreshRate == it->second.refreshRate)
             mDefaultModeSupport = true;
+        else
+            mActiveModes.emplace(mActiveModes.size(), it->second);
 
     // Add default mode as last, unconditionally in all cases. This is to ensure
     // availability of 1080p mode always.
@@ -168,9 +169,9 @@ hwc2_error_t VariableModeMgr::updateDisplayConfigs() {
 
 hwc2_error_t  VariableModeMgr::getDisplayAttribute(
     hwc2_config_t config, int32_t attribute, int32_t * outValue) {
-    MESON_LOGV("getDisplayAttribute: config %d, fakeConfig %d,"
+    /*MESON_LOGD("getDisplayAttribute: config %d, fakeConfig %d,"
         "activeConfig %d, mExtModeSet %d", config, mFakeConfigId,
-        mActiveConfigId, mExtModeSet);
+        mActiveConfigId, mExtModeSet);*/
     std::map<uint32_t, drm_mode_info_t>::iterator it =
         mActiveModes.find(config);
     if (it != mActiveModes.end()) {
@@ -240,7 +241,7 @@ hwc2_error_t  VariableModeMgr::updateActiveConfig(
 hwc2_error_t VariableModeMgr::getActiveConfig(
     hwc2_config_t * outConfig) {
     *outConfig = mExtModeSet ? mActiveConfigId : mFakeConfigId;
-    MESON_LOGD("getActiveConfig (%d), mActiveConfigId %d, mFakeConfigId %d, mExtModeSet %d",
+    MESON_LOGV("getActiveConfig (%d), mActiveConfigId %d, mFakeConfigId %d, mExtModeSet %d",
         *outConfig, mActiveConfigId, mFakeConfigId, mExtModeSet);
     return HWC2_ERROR_NONE;
 }

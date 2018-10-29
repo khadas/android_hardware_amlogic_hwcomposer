@@ -147,14 +147,14 @@ int32_t ConnectorHdmi::getModes(std::map<uint32_t, drm_mode_info_t> & modes) {
 
 int32_t ConnectorHdmi::switchRatePolicy(bool fracRatePolicy) {
     if (fracRatePolicy) {
-        if (sysfs_set_string(HDMI_FRAC_RATE_POLICY, "1")) {
+        if (!sysfs_set_string(HDMI_FRAC_RATE_POLICY, "1")) {
             MESON_LOGV("Switch to frac rate policy SUCCESS.");
         } else {
             MESON_LOGE("Switch to frac rate policy FAIL.");
             return -EFAULT;
         }
     } else {
-        if (sysfs_set_string(HDMI_FRAC_RATE_POLICY, "0")) {
+        if (!sysfs_set_string(HDMI_FRAC_RATE_POLICY, "0")) {
             MESON_LOGV("Switch to normal rate policy SUCCESS.");
         } else {
             MESON_LOGE("Switch to normal rate policy FAIL.");

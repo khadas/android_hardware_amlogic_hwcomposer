@@ -195,7 +195,7 @@ hwc2_error_t Hwc2Display::createLayer(hwc2_layer_t * outLayer) {
     *outLayer = idx;
     layer->setUniqueId(*outLayer);
     mLayers.emplace(*outLayer, layer);
-    MESON_LOGD("createLayer (%d-%p)", idx,  layer.get());
+    MESON_LOGD("createLayer (%d-%p)", idx, layer.get());
 
     return HWC2_ERROR_NONE;
 }
@@ -319,6 +319,54 @@ hwc2_error_t Hwc2Display::collectComposersForPresent() {
     return HWC2_ERROR_NONE;
 }
 
+// Scaled display frame to the framebuffer config if necessary
+// (i.e. not at the default resolution of 1080p)
+hwc2_error_t Hwc2Display::scalePresentLayers() {
+    hwc2_config_t config;
+    int32_t configWidth;
+    int32_t configHeight;
+    uint32_t fbWidth;
+    uint32_t fbHeight;
+
+    if (mModeMgr->getActiveConfig(&config) != HWC2_ERROR_NONE) {
+        MESON_LOGE("[%s]: getActiveConfig failed!", __func__);
+        return HWC2_ERROR_NOT_VALIDATED;
+    }
+    if (mModeMgr->getDisplayAttribute(config,
+            HWC2_ATTRIBUTE_WIDTH, &configWidth) != HWC2_ERROR_NONE) {
+        MESON_LOGE("[%s]: getHwcDisplayWidth failed!", __func__);
+        return HWC2_ERROR_NOT_VALIDATED;
+    }
+    if (mModeMgr->getDisplayAttribute(config,
+            HWC2_ATTRIBUTE_HEIGHT, &configHeight) != HWC2_ERROR_NONE) {
+        MESON_LOGE("[%s]: getHwcDisplayHeight failed!", __func__);
+        return HWC2_ERROR_NOT_VALIDATED;
+    }
+    HwcConfig::getFramebufferSize(0, fbWidth, fbHeight);
+
+    if (configWidth == (int32_t)fbWidth && configHeight == (int32_t)fbHeight) {
+        //MESON_LOGD("[%s]: display frame no need scaled.", __func__);
+        return HWC2_ERROR_NONE;
+    }
+
+    Hwc2Layer * layer;
+    for (auto it = mPresentLayers.begin() ; it != mPresentLayers.end(); it++) {
+        layer = (Hwc2Layer*)(it->get());
+
+        float fl = layer->mBackupDisplayFrame.left   / (float)configWidth;
+        float ft = layer->mBackupDisplayFrame.top    / (float)configHeight;
+        float fr = layer->mBackupDisplayFrame.right  / (float)configWidth;
+        float fb = layer->mBackupDisplayFrame.bottom / (float)configHeight;
+
+        layer->mDisplayFrame.left   = fl * fbWidth;
+        layer->mDisplayFrame.top    = ft * fbHeight;
+        layer->mDisplayFrame.right  = fr * fbWidth;
+        layer->mDisplayFrame.bottom = fb * fbHeight;
+    }
+
+    return HWC2_ERROR_NONE;
+}
+
 hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
     uint32_t* outNumRequests) {
     MESON_LOG_FUN_ENTER();
@@ -343,6 +391,14 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
     } else {
         MESON_LOGE("ignor blank finished..");
         mIgnorBlankInBoot = false;
+    }
+
+    if (mPresentLayers.size() > 0) {
+        ret = scalePresentLayers();
+        if (ret != HWC2_ERROR_NONE) {
+            MESON_ASSERT(0, "[%s]: scaled layers display frame faild!", __func__);
+            return ret;
+        }
     }
 
     ret = collectComposersForPresent();

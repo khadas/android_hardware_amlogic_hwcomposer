@@ -61,7 +61,7 @@ int32_t HwDisplayCrtc::updateMode() {
     vmode_e vmode = vmode_name_to_mode(mCurMode.c_str());
     const struct vinfo_s* vinfo = get_tv_info(vmode);
     if (vmode == VMODE_MAX || vinfo == NULL) {
-        MESON_ASSERT(0, "updateMode to invalid display mode %s", displayMode.c_str());
+        MESON_LOGD("updateMode to invalid display mode %s", displayMode.c_str());
         return -ENOENT ;
     }
 
@@ -150,7 +150,7 @@ int32_t HwDisplayCrtc::getZoomInfo(display_zoom_info_t & zoomInfo) {
     vmode_e vmode = vmode_name_to_mode(mCurMode.c_str());
     const struct vinfo_s* vinfo = get_tv_info(vmode);
     if (vmode == VMODE_MAX || vinfo == NULL) {
-         MESON_ASSERT(0, "Invalid display mode %s", mCurMode.c_str());
+         MESON_LOGE("Invalid display mode %s", mCurMode.c_str());
          return -ENOENT;
     }
 

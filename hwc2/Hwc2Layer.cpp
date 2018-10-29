@@ -85,6 +85,12 @@ hwc2_error_t Hwc2Layer::setDisplayFrame(hwc_rect_t frame) {
     mDisplayFrame.top = frame.top;
     mDisplayFrame.right = frame.right;
     mDisplayFrame.bottom = frame.bottom;
+
+    /*Used for display frame scale*/
+    mBackupDisplayFrame.left = frame.left;
+    mBackupDisplayFrame.top = frame.top;
+    mBackupDisplayFrame.right = frame.right;
+    mBackupDisplayFrame.bottom = frame.bottom;
     return HWC2_ERROR_NONE;
 }
 
