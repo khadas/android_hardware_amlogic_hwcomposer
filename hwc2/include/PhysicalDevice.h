@@ -55,6 +55,7 @@ typedef struct hdr_capabilities {
     bool init;
     bool dvSupport;
     bool hdrSupport;
+    bool hlgSupport;
     int maxLuminance;
     int avgLuminance;
     int minLuminance;

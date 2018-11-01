@@ -560,11 +560,13 @@ int32_t PhysicalDevice::getHdrCapabilities(
         int num = 0;
         if (mHdrCapabilities.dvSupport) num++;
         if (mHdrCapabilities.hdrSupport) num++;
+        if (mHdrCapabilities.hlgSupport) num++;
 
         *outNumTypes = num;
     } else {
         if (mHdrCapabilities.dvSupport) *outTypes++ = HAL_HDR_DOLBY_VISION;
         if (mHdrCapabilities.hdrSupport) *outTypes++ = HAL_HDR_HDR10;
+        if (mHdrCapabilities.hlgSupport) *outTypes++ = HAL_HDR_HLG;
 
         *outMaxLuminance = mHdrCapabilities.maxLuminance;
         *outMaxAverageLuminance = mHdrCapabilities.avgLuminance;
@@ -1875,8 +1877,9 @@ int32_t PhysicalDevice::getLineValue(const char *lineStr, const char *magicStr) 
 int32_t PhysicalDevice::parseHdrCapabilities() {
 
 #ifdef USE_DEFAULT_HDR_CAP
-    mHdrCapabilities.hdrSupport = true;
 
+    mHdrCapabilities.hdrSupport = true;
+    mHdrCapabilities.hlgSupport = true;
     mHdrCapabilities.maxLuminance = sDefaultMaxLumiance;
     mHdrCapabilities.avgLuminance = sDefaultMaxLumiance;
     mHdrCapabilities.minLuminance = sDefaultMinLumiance;
@@ -1929,9 +1932,16 @@ int32_t PhysicalDevice::parseHdrCapabilities() {
         mHdrCapabilities.minLuminance = getLineValue(pos, "Min: ");
     }
 
+    pos = strstr(pos, "Hybrif Log-Gamma: ");
+    if ((NULL != pos) && ('1' == *(pos + strlen("Hybrif Log-Gamma: ")))) {
+        mHdrCapabilities.hlgSupport = true;
+    }
 
-ITRACE("dolby version support:%d, hdr support:%d max:%d, avg:%d, min:%d\n",
-        mHdrCapabilities.dvSupport?1:0, mHdrCapabilities.hdrSupport?1:0, mHdrCapabilities.maxLuminance, mHdrCapabilities.avgLuminance, mHdrCapabilities.minLuminance);
+
+    ITRACE("dolby version support:%d, hdr support:%d hlg support:%d max:%d, avg:%d, min:%d\n",
+        mHdrCapabilities.dvSupport?1:0, mHdrCapabilities.hdrSupport?1:0,
+        mHdrCapabilities.hlgSupport?1:0, mHdrCapabilities.maxLuminance,
+        mHdrCapabilities.avgLuminance, mHdrCapabilities.minLuminance);
 exit:
     close(fd);
     return HWC2_ERROR_NONE;
@@ -1979,8 +1989,8 @@ void PhysicalDevice::dump(Dump& d) {
     // HDR info
     d.append("  HDR Capabilities:\n");
     d.append("    DolbyVision1=%zu\n", mHdrCapabilities.dvSupport?1:0);
-    d.append("    HDR10=%zu, maxLuminance=%zu, avgLuminance=%zu, minLuminance=%zu\n",
-        mHdrCapabilities.hdrSupport?1:0, mHdrCapabilities.maxLuminance, mHdrCapabilities.avgLuminance, mHdrCapabilities.minLuminance);
+    d.append("    HDR10=%zu, HLG=%zu, maxLuminance=%zu, avgLuminance=%zu, minLuminance=%zu\n",
+        mHdrCapabilities.hdrSupport?1:0,mHdrCapabilities.hlgSupport?1:0, mHdrCapabilities.maxLuminance, mHdrCapabilities.avgLuminance, mHdrCapabilities.minLuminance);
 }
 
 bool isHdrInfoChanged(const vframe_master_display_colour_s_t old_data, const vframe_master_display_colour_s_t new_data) {
