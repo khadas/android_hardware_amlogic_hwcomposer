@@ -34,12 +34,6 @@
 //#define HWC_SUPPORT_SECURE_DISPLAY 1
 #define FBIOPUT_OSD_CURSOR     _IOWR(FB_IOC_MAGIC, 0x0,  struct fb_cursor)
 
-#ifdef HDR_SUPPORT
-#define USE_DEFAULT_HDR_CAP 1
-#else
-#define USE_DEFAULT_HDR_CAP 0
-#endif
-
 namespace android {
 namespace amlogic {
 
@@ -1880,7 +1874,7 @@ int32_t PhysicalDevice::getLineValue(const char *lineStr, const char *magicStr) 
 *******************************************/
 int32_t PhysicalDevice::parseHdrCapabilities() {
 
-#if USE_DEFAULT_HDR_CAP
+#ifdef USE_DEFAULT_HDR_CAP
     mHdrCapabilities.hdrSupport = true;
 
     mHdrCapabilities.maxLuminance = sDefaultMaxLumiance;
