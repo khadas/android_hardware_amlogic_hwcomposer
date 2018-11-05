@@ -786,6 +786,8 @@ void Hwc2Display::dump(String8 & dumpstr) {
     dumpstr.append("HDR Capabilities:\n");
     dumpstr.appendFormat("    DolbyVision1=%d\n",
         mHdrCaps.DolbyVisionSupported ?  1 : 0);
+    dumpstr.appendFormat("    HLG=%d\n",
+        mHdrCaps.HLGSupported ?  1 : 0);
     dumpstr.appendFormat("    HDR10=%d, maxLuminance=%d,"
         "avgLuminance=%d, minLuminance=%d\n",
         mHdrCaps.HDR10Supported ? 1 : 0,

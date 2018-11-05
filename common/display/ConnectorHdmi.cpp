@@ -254,7 +254,7 @@ int32_t ConnectorHdmi::getLineValue(const char *lineStr, const char *magicStr) {
 *     Traditional SDR: 1
 *     Traditional HDR: 0
 *     SMPTE ST 2084: 1
-*     Future EOTF: 0
+*     Hybrif Log-Gamma: 1
 * Supported SMD type1: 1
 * Luminance Data
 *     Max: 0
@@ -316,8 +316,14 @@ int32_t ConnectorHdmi::parseHdrCapabilities() {
         mHdrCapabilities.minLuminance = getLineValue(pos, "Min: ");
     }
 
-    MESON_LOGD("dolby version support:%d, hdr support:%d max:%d, avg:%d, min:%d\n",
+    pos = strstr(buf, "Hybrif Log-Gamma: ");
+    if ((NULL != pos) && ('1' == *(pos + strlen("Hybrif Log-Gamma: ")))) {
+        mHdrCapabilities.HLGSupported = true;
+    }
+
+    MESON_LOGD("dolby version:%d, hlg:%d, hdr:%d max:%d, avg:%d, min:%d\n",
         mHdrCapabilities.DolbyVisionSupported ? 1:0,
+        mHdrCapabilities.HLGSupported ? 1:0,
         mHdrCapabilities.HDR10Supported ? 1:0,
         mHdrCapabilities.maxLuminance,
         mHdrCapabilities.avgLuminance,

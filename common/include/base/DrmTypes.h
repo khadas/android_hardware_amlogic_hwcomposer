@@ -106,6 +106,7 @@ typedef enum {
 
 typedef struct drm_hdr_capabilities {
     bool DolbyVisionSupported;
+    bool HLGSupported;
     bool HDR10Supported;
 
     int maxLuminance;

@@ -213,13 +213,19 @@ int32_t MesonHwc2::getHdrCapabilities(hwc2_display_t display,
         if (caps->DolbyVisionSupported) {
             *outNumTypes = *outNumTypes + 1;
             if (getInfo) {
-                *outTypes = HAL_HDR_DOLBY_VISION;
+                *outTypes++ = HAL_HDR_DOLBY_VISION;
+            }
+        }
+        if (caps->HLGSupported) {
+            *outNumTypes = *outNumTypes + 1;
+            if (getInfo) {
+                *outTypes++ = HAL_HDR_HLG;
             }
         }
         if (caps->HDR10Supported) {
             *outNumTypes = *outNumTypes + 1;
             if (getInfo) {
-                *outTypes = HAL_HDR_HDR10;
+                *outTypes++ = HAL_HDR_HDR10;
             }
         }
 
