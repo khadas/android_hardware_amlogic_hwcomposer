@@ -323,11 +323,6 @@ void HwcLayer::presentOverlay(bool bPresent) {
 
     AmVideo::getInstance()->presentVideo(bPresent);
 
-    if (Utils::checkBoolProp("ro.vout.dualdisplay4")) {
-        vpp_changed = Utils::checkSysfsStatus(
-            SYSFS_AMVIDEO_CURIDX, mLastVal, 32);
-    }
-
     mode_changed            = Utils::checkSysfsStatus(SYSFS_DISPLAY_MODE, mLastMode, 32);
     free_scale_changed      = Utils::checkSysfsStatus(SYSFS_FB0_FREE_SCALE, mLastFreescale, 32);
     axis_changed            = Utils::checkSysfsStatus(SYSFS_VIDEO_AXIS, mLastAxis, 32);
