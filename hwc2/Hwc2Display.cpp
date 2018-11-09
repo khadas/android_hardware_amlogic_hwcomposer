@@ -48,6 +48,7 @@ Hwc2Display::~Hwc2Display() {
 }
 
 int32_t Hwc2Display::initialize() {
+    MESON_LOG_FUN_ENTER();
     std::lock_guard<std::mutex> lock(mMutex);
 
     if (MESON_DUMMY_DISPLAY_ID != mHwId) {
@@ -79,10 +80,12 @@ int32_t Hwc2Display::initialize() {
     mModeMgr->update();
     mPowerMode->setConnectorStatus(mConnector->isConnected());
 
+    MESON_LOG_FUN_LEAVE();
     return 0;
 }
 
 void Hwc2Display::loadDisplayResources() {
+    MESON_LOG_FUN_ENTER();
     if (MESON_DUMMY_DISPLAY_ID == mHwId)
         return;
 
@@ -108,6 +111,7 @@ void Hwc2Display::loadDisplayResources() {
     mCompositionStrategy =
         CompositionStrategyFactory::create(SIMPLE_STRATEGY, strategyFlags);
     MESON_ASSERT(mCompositionStrategy, "Hwc2Display load composition strategy failed.");
+    MESON_LOG_FUN_LEAVE();
 }
 
 const char * Hwc2Display::getName() {
@@ -664,7 +668,7 @@ hwc2_error_t  Hwc2Display::getDisplayAttribute(
     int32_t attribute,
     int32_t* outValue) {
     if (mModeMgr != NULL) {
-        return mModeMgr->getDisplayAttribute(config, attribute, outValue);
+        return mModeMgr->getDisplayAttribute(config, attribute, outValue, CALL_FROM_SF);
     } else {
         MESON_LOGE("Hwc2Display (%s) getDisplayAttribute miss valid DisplayConfigure.",
             getName());
@@ -675,7 +679,7 @@ hwc2_error_t  Hwc2Display::getDisplayAttribute(
 hwc2_error_t Hwc2Display::getActiveConfig(
     hwc2_config_t* outConfig) {
     if (mModeMgr != NULL) {
-        return mModeMgr->getActiveConfig(outConfig);
+        return mModeMgr->getActiveConfig(outConfig, CALL_FROM_SF);
     } else {
         MESON_LOGE("Hwc2Display (%s) getActiveConfig miss valid DisplayConfigure.",
             getName());

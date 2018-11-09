@@ -35,8 +35,8 @@ public:
     hwc2_error_t  getDisplayConfigs(
         uint32_t* outNumConfigs, hwc2_config_t* outConfigs);
     hwc2_error_t  getDisplayAttribute(
-        hwc2_config_t config, int32_t attribute, int32_t* outValue);
-    hwc2_error_t getActiveConfig(hwc2_config_t* outConfig);
+        hwc2_config_t config, int32_t attribute, int32_t* outValue, int32_t caller);
+    hwc2_error_t getActiveConfig(hwc2_config_t* outConfig, int32_t caller);
     hwc2_error_t setActiveConfig(hwc2_config_t config);
 
     void dump(String8 & dumpstr);

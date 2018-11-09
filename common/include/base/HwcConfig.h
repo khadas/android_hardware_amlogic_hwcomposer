@@ -13,6 +13,9 @@
 #include <DrmTypes.h>
 #include <BasicTypes.h>
 
+#define CALL_FROM_SF  0
+#define CALL_FROM_HWC 1
+
 typedef enum hwc_modes_policy {
     FIXED_SIZE_POLICY = 0,
     FULL_ACTIVE_POLICY

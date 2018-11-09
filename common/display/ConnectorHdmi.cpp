@@ -39,6 +39,7 @@ ConnectorHdmi::~ConnectorHdmi() {
 }
 
 int32_t ConnectorHdmi::loadProperities() {
+    MESON_LOG_FUN_ENTER();
     mConnected = checkConnectState();
     if (mConnected) {
         sc_get_hdmitx_hdcp_state(mSecure);
@@ -47,6 +48,7 @@ int32_t ConnectorHdmi::loadProperities() {
         parseHdrCapabilities();
     }
 
+    MESON_LOG_FUN_LEAVE();
     return 0;
 }
 

@@ -36,8 +36,10 @@ public:
     virtual hwc2_error_t  getDisplayConfigs(
         uint32_t* outNumConfigs, hwc2_config_t* outConfigs) = 0;
     virtual hwc2_error_t  getDisplayAttribute(
-        hwc2_config_t config, int32_t attribute, int32_t* outValue) = 0;
-    virtual hwc2_error_t getActiveConfig(hwc2_config_t* outConfig) = 0;
+        hwc2_config_t config, int32_t attribute, int32_t* outValue,
+        int32_t caller = CALL_FROM_HWC) = 0;
+    virtual hwc2_error_t getActiveConfig(hwc2_config_t* outConfig,
+        int32_t caller = CALL_FROM_HWC) = 0;
     virtual hwc2_error_t setActiveConfig(hwc2_config_t config) = 0;
 
     virtual void dump(String8 & dumpstr) = 0;

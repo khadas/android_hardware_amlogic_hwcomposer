@@ -34,16 +34,17 @@ public:
     hwc2_error_t  getDisplayConfigs(
         uint32_t* outNumConfigs, hwc2_config_t* outConfigs);
     hwc2_error_t  getDisplayAttribute(
-        hwc2_config_t config, int32_t attribute, int32_t* outValue);
-    hwc2_error_t getActiveConfig(hwc2_config_t* outConfig);
+        hwc2_config_t config, int32_t attribute, int32_t* outValue, int32_t caller);
+    hwc2_error_t getActiveConfig(hwc2_config_t* outConfig, int32_t caller);
     hwc2_error_t setActiveConfig(hwc2_config_t config);
 
     void dump(String8 & dumpstr);
 
 protected:
     int32_t initDefaultDispResources();
-    hwc2_error_t updateDisplayConfigs();
-    hwc2_error_t updateActiveConfig(const char * activeMode);
+    hwc2_error_t updateHwcDispConfigs();
+    hwc2_error_t updateSfDispConfigs();
+    hwc2_error_t updateHwcActiveConfig(const char * activeMode);
 
     void reset();
     const drm_mode_info_t findMatchedMode(
@@ -62,11 +63,16 @@ protected:
     bool mDefaultModeSupport;
 
     std::string mActiveConfigStr;
-    hwc2_config_t mActiveConfigId;
     hwc2_config_t mFakeConfigId;
     drm_mode_info_t mDefaultMode;
 
-    std::map<uint32_t, drm_mode_info_t> mActiveModes;
+    // Used for HWC
+    hwc2_config_t mHwcActiveConfigId;
+    std::map<uint32_t, drm_mode_info_t> mHwcActiveModes;
+
+    // Passed to SF
+    hwc2_config_t mSfActiveConfigId;
+    std::map<uint32_t, drm_mode_info_t> mSfActiveModes;
 
 };
 
