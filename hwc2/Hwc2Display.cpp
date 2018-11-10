@@ -30,6 +30,7 @@ Hwc2Display::Hwc2Display(hw_display_id dspId,
     mPowerMode  = std::make_shared<HwcPowerMode>();
     mSignalHpd = false;
     memset(&mHdrCaps, 0, sizeof(mHdrCaps));
+    memset(mColorMatrix, 0, sizeof(float) * 16);
 }
 
 Hwc2Display::~Hwc2Display() {
@@ -249,6 +250,7 @@ hwc2_error_t Hwc2Display::setCursorPosition(hwc2_layer_t layer __unused,
 hwc2_error_t Hwc2Display::setColorTransform(const float* matrix,
     android_color_transform_t hint) {
 
+    MESON_LOGV("msz color transform %d(%d)", hint, HAL_COLOR_TRANSFORM_IDENTITY);
     if (hint == HAL_COLOR_TRANSFORM_IDENTITY) {
         mForceClientComposer = false;
         memset(mColorMatrix, 0, sizeof(float) * 16);
@@ -775,15 +777,6 @@ void Hwc2Display::dump(String8 & dumpstr) {
     dumpstr.appendFormat("Display %d (%s, %s, %s):\n",
         mHwId, getName(), mModeMgr->getName(),
         mForceClientComposer ? "Client-Comp" : "HW-Comp");
-    dumpstr.append("\n");
-
-    dumpstr.append("ColorMatrix:\n");
-    int matrixRow;
-    for (matrixRow = 0; matrixRow < 4; matrixRow ++) {
-        dumpstr.appendFormat("| %f %f %f %f |\n",
-            mColorMatrix[matrixRow*4], mColorMatrix[matrixRow*4 + 1],
-            mColorMatrix[matrixRow*4 + 2], mColorMatrix[matrixRow*4 + 3]);
-    }
     dumpstr.append("\n");
 
     /* HDR info */

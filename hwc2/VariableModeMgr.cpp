@@ -154,15 +154,18 @@ hwc2_error_t VariableModeMgr::updateHwcDispConfigs() {
     mHwcActiveModes.clear();
 
     mConnector->getModes(activeModes);
-    for (auto it = activeModes.begin(); it != activeModes.end(); ++it)
+    for (auto it = activeModes.begin(); it != activeModes.end(); ++it) {
         // skip default / fake active mode as we add it to the end
         if (!strncmp(mDefaultMode.name, it->second.name, DRM_DISPLAY_MODE_LEN)
-            && mDefaultMode.refreshRate == it->second.refreshRate)
+            && mDefaultMode.refreshRate == it->second.refreshRate) {
             mDefaultModeSupport = true;
-        else {
+            mDefaultMode.dpiX = it->second.dpiX;
+            mDefaultMode.dpiY = it->second.dpiY;
+        } else {
             MESON_LOGV("[%s]: Hwc modes %d.", __func__, mHwcActiveModes.size());
             mHwcActiveModes.emplace(mHwcActiveModes.size(), it->second);
         }
+    }
 
     // Add default mode as last, unconditionally in all cases. This is to ensure
     // availability of 1080p mode always.
