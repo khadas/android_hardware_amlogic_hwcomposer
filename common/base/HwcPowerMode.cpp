@@ -59,3 +59,8 @@ bool HwcPowerMode::needBlankScreen(bool bLayerPresent) {
 
     return false;
 }
+
+meson_power_mode_t HwcPowerMode::getMode() {
+    return mPowerMode;
+}
+

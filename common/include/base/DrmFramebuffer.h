@@ -31,7 +31,6 @@ public:
     /*dup current release fence.*/
     int32_t getReleaseFence();
 
-    bool isScaled();
     bool isRotated();
 
 protected:

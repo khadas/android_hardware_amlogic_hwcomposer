@@ -114,9 +114,16 @@ typedef struct drm_hdr_capabilities {
     int minLuminance;
 } drm_hdr_capabilities_t;
 
+/*
+display_zoom_info used to pass the calibrate display frame.
+Now, it is used to pass the scale info of current vpu.
+So, the crtc_display_w may be not follow the crtc size.
+*/
 typedef struct display_zoom_info {
     unsigned int framebuffer_w;
     unsigned int framebuffer_h;
+
+    /*crtc w,h not used now.*/
     unsigned int crtc_w;
     unsigned int crtc_h;
 
@@ -127,19 +134,7 @@ typedef struct display_zoom_info {
     unsigned int crtc_display_h;
 } display_zoom_info_t;
 
-/*Defines for old VPU(p212)
- *The gap between different plane
- *is left for variable zorder plane.
- */
-enum PLANE_ZORDER {
-    LEGACY_VIDEO_PLANE_FIXED_ZORDER = 0x400,
-    OSD_PLANE_FIXED_ZORDER = 0x800,
-    /*Cursor plane will always on top of other layers.*/
-    CURSOR_PLANE_FIXED_ZORDER = 0xFFF,
-    MAX_PLANE_ZORDER = 0xFFFFFFFF,
-    VARIABLE_PLANE_ZORDER = 0xFFFFFFFF
-};
-
+/*the invalid zorder value defination.*/
 #define INVALID_ZORDER 0xFFFFFFFF
 
 const char * drmPlaneTypeToString(drm_plane_type_t planetype);

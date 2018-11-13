@@ -80,12 +80,16 @@ const char * VariableModeMgr::getName() {
     return "VariableMode";
 }
 
+void VariableModeMgr::setFramebufferSize(uint32_t w, uint32_t h) {
+    mFbWidth = w;
+    mFbHeight = h;
+}
+
 void VariableModeMgr::setDisplayResources(
     std::shared_ptr<HwDisplayCrtc> & crtc,
     std::shared_ptr<HwDisplayConnector> & connector) {
     mConnector = connector;
     mCrtc = crtc;
-    mCrtc->parseDftFbSize(mFbWidth, mFbHeight);
 
     /*
      * Only when it is first boot will come here,

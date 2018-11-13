@@ -132,6 +132,7 @@ typedef struct cursor_plane_info_t {
 
 typedef struct osd_page_flip_info_t {
     int           out_fen_fd;
+    unsigned char hdr_mode;
     unsigned int  background_w;
     unsigned int  background_h;
     unsigned int  fullScreen_w;
@@ -147,5 +148,14 @@ typedef struct osd_page_flip_info_t {
 #define CONNECTOR_IDX_MIN (20)
 #define OSD_PLANE_IDX_MIN (30)
 #define VIDEO_PLANE_IDX_MIN (40)
+
+#define CURSOR_PLANE_FIXED_ZORDER 0xFFF
+#define OSD_PLANE_FIXED_ZORDER 0x100
+#define LEGACY_VIDEO_PLANE_FIXED_ZORDER 0x80
+
+#define OSD_INPUT_MAX_WIDTH (1920)
+#define OSD_INPUT_MAX_HEIGHT (1080)
+#define OSD_INPUT_MIN_WIDTH (32)
+#define OSD_INPUT_MIN_HEIGHT (32)
 
 #endif/*AM_FRAMEBUFFER_H*/

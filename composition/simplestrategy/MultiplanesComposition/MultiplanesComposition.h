@@ -49,6 +49,7 @@
 ------------------------------------------------------------------------------------------------------------
 */
 
+#define OSD_PLANE_NUM_MAX         3  // Maximum osd planes of support
 
 class MultiplanesComposition : public ICompositionStrategy {
 public:
@@ -60,10 +61,12 @@ public:
     void setup(std::vector<std::shared_ptr<DrmFramebuffer>> & layers,
         std::vector<std::shared_ptr<IComposer>> & composers,
         std::vector<std::shared_ptr<HwDisplayPlane>> & planes,
+        std::shared_ptr<HwDisplayCrtc> & crtc,
         uint32_t flags);
 
     int decideComposition();
     int commit();
+    void dump(String8 & dumpstr);
 
 protected:
     void init();
@@ -98,6 +101,11 @@ protected:
     /* Input Fbs from SF, min zorder at begin, max zorder at end. */
     std::map<uint32_t, std::shared_ptr<DrmFramebuffer>, std::less<uint32_t>> mFramebuffers;
 
+    /*reffb is the fb used to setup the osddisplayframe.*/
+    std::shared_ptr<DrmFramebuffer> mDisplayRefFb;
+    display_zoom_info_t mOsdDisplayFrame;
+    std::shared_ptr<HwDisplayCrtc> mCrtc;
+
     /* Composer */
     std::shared_ptr<IComposer> mDummyComposer;
     std::shared_ptr<IComposer> mClientComposer;
@@ -105,6 +113,7 @@ protected:
 
     /* Get display planes from DispalyManager */
     std::vector<std::shared_ptr<HwDisplayPlane>> mOsdPlanes;
+
     std::shared_ptr<HwDisplayPlane> mHwcVideoPlane;             // Future  VIDEO support : 2 HwcVideoPlane
     std::shared_ptr<HwDisplayPlane> mLegacyVideoPlane;          // Current VIDEO support : 1 LegacyVideoPlane + 1 HwcVideoPlane
     std::vector<std::shared_ptr<HwDisplayPlane>> mOtherPlanes;
@@ -121,7 +130,6 @@ protected:
     uint32_t mMaxComposerZorder;
     uint32_t mMinVideoZorder;
     uint32_t mMaxVideoZorder;
-
 };
 
 

@@ -15,6 +15,8 @@
 #include <DrmFramebuffer.h>
 #include <IComposer.h>
 #include <HwDisplayPlane.h>
+#include <HwDisplayCrtc.h>
+
 
 /*compositon request for special cases:
     * FORCE_CLIENT: don't use device compostion, for debug.
@@ -57,10 +59,12 @@ public:
     virtual void setup(std::vector<std::shared_ptr<DrmFramebuffer>> & layers,
         std::vector<std::shared_ptr<IComposer>> & composers,
         std::vector<std::shared_ptr<HwDisplayPlane>> & planes,
+        std::shared_ptr<HwDisplayCrtc> & crtc,
         uint32_t reqFlag) {
         UNUSED(layers);
         UNUSED(composers);
         UNUSED(planes);
+        UNUSED(crtc);
         mCompositionFlag = reqFlag;
     }
 

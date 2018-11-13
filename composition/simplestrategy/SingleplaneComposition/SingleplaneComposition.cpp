@@ -49,12 +49,13 @@ void SingleplaneComposition::setup(
     std::vector<std::shared_ptr<DrmFramebuffer>> & layers,
     std::vector<std::shared_ptr<IComposer>> & composers,
     std::vector<std::shared_ptr<HwDisplayPlane>> & planes,
+    std::shared_ptr<HwDisplayCrtc> & crtc,
     uint32_t reqFlag) {
     cleanup();
 
     mCompositionFlag = reqFlag;
     if (mCompositionFlag & COMPOSE_WITH_HDR_VIDEO) {
-        MESON_LOGD("For Singleplane, nothing to do with HDR.");
+        MESON_LOGV("For Singleplane, nothing to do with HDR.");
     }
     if (mCompositionFlag & COMPOSE_FORCE_CLIENT) {
         mForceClientComposer = true;
@@ -62,6 +63,8 @@ void SingleplaneComposition::setup(
     if (mCompositionFlag & COMPOSE_HIDE_SECURE_FB) {
         mHideSecureLayer = true;
     }
+
+    mCrtc = crtc;
 
     /*add layers*/
     mFramebuffers = layers;
@@ -327,6 +330,7 @@ int SingleplaneComposition::commit() {
         mOsdPlane.reset();
     }
 
+    display_zoom_info_t osdDisplayFrame;
     /*commit display path.*/
     auto displayIt = mDisplayPairs.begin();
     for (; displayIt != mDisplayPairs.end(); ++displayIt) {
@@ -340,9 +344,7 @@ int SingleplaneComposition::commit() {
         * For osd, if the zorder is not fixed, set to default fixed osd plane.
         */
         uint32_t z  = plane->getFixedZorder();
-        if (z == VARIABLE_PLANE_ZORDER) {
-            z = OSD_PLANE_FIXED_ZORDER;
-        }
+        MESON_ASSERT(z != INVALID_ZORDER, "Not support zorder.");
 
         if (composeOutput == fb) {
             /*dump composer info*/
@@ -358,6 +360,17 @@ int SingleplaneComposition::commit() {
             }
         } else {
             dumpFbAndPlane(fb, plane, z, blankFlag);
+        }
+
+        if (plane->getPlaneType() == OSD_PLANE) {
+            osdDisplayFrame.framebuffer_w = fb->mSourceCrop.right - fb->mSourceCrop.left;
+            osdDisplayFrame.framebuffer_h = fb->mSourceCrop.bottom - fb->mSourceCrop.top;
+            osdDisplayFrame.crtc_display_x = 0;
+            osdDisplayFrame.crtc_display_y = 0;
+            osdDisplayFrame.crtc_display_w = fb->mDisplayFrame.right -
+                fb->mDisplayFrame.left;
+            osdDisplayFrame.crtc_display_h = fb->mDisplayFrame.bottom -
+                fb->mDisplayFrame.top;
         }
 
         /*set display info*/
@@ -378,6 +391,10 @@ int SingleplaneComposition::commit() {
         (*planeit)->blank(BLANK_FOR_NO_CONENT);
         dumpUnusedPlane(*planeit, BLANK_FOR_NO_CONENT);
     }
+
+    /*set crtc info.*/
+    mCrtc->setOsdChannels(1);
+    mCrtc->setDisplayFrame(osdDisplayFrame);
     return 0;
 }
 

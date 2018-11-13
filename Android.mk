@@ -81,6 +81,13 @@ ifeq ($(HWC_ENABLE_FRACTIONAL_REFRESH_RATE), true)
 LOCAL_CFLAGS += -DENABLE_FRACTIONAL_REFRESH_RATE
 endif
 
+#Display Calibrate
+ifeq ($(HWC_ENABLE_PRE_DISPLAY_CALIBRATE), true)
+#pre display calibrate means calibrate in surfacefligner,
+#all the coordinates got by hwc already calibrated.
+LOCAL_CFLAGS += -DHWC_ENABLE_PRE_DISPLAY_CALIBRATE
+endif
+
 #HWC Feature Config
 ifeq ($(HWC_ENABLE_SOFTWARE_VSYNC), true)
 LOCAL_CFLAGS += -DHWC_ENABLE_SOFTWARE_VSYNC

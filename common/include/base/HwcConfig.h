@@ -32,6 +32,7 @@ public:
     static bool fracRefreshRateEnabled();
 
     /*get feature */
+    static bool preDisplayCalibrateEnabled();
     static bool softwareVsyncEnabled();
     static bool primaryHotplugEnabled();
     static bool secureLayerProcessEnabled();

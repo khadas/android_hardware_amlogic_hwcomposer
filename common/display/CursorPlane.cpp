@@ -58,6 +58,7 @@ bool CursorPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
     return false;
 }
 
+#if 0
 int32_t CursorPlane::updateZoomInfo(display_zoom_info_t zoomInfo) {
     char axis[MAX_STR_LEN] = {0};
     int x, y, w, h;
@@ -85,6 +86,7 @@ int32_t CursorPlane::updateZoomInfo(display_zoom_info_t zoomInfo) {
 
     return 0;
 }
+#endif
 
 int32_t CursorPlane::setPlane(
     std::shared_ptr<DrmFramebuffer> &fb,

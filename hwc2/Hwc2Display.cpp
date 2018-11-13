@@ -21,6 +21,7 @@
 #include <ComposerFactory.h>
 #include <CompositionStrategyFactory.h>
 #include <EventThread.h>
+#include <systemcontrol.h>
 
 Hwc2Display::Hwc2Display(hw_display_id dspId,
     std::shared_ptr<Hwc2DisplayObserver> observer) {
@@ -51,15 +52,17 @@ Hwc2Display::~Hwc2Display() {
 int32_t Hwc2Display::initialize() {
     MESON_LOG_FUN_ENTER();
     std::lock_guard<std::mutex> lock(mMutex);
-
     if (MESON_DUMMY_DISPLAY_ID != mHwId) {
         HwDisplayManager::getInstance().registerObserver(mHwId, this);
      } else {
         MESON_LOGE("Init Hwc2Display with dummy display.");
      }
 
+    HwcConfig::getFramebufferSize (0, mFbWidth, mFbHeight);
+
     /*get hw components.*/
     mModeMgr = createModeMgr(HwcConfig::getModePolicy());
+    mModeMgr->setFramebufferSize(mFbWidth, mFbHeight);
 
     /*add valid composers*/
     std::shared_ptr<IComposer> composer;
@@ -80,6 +83,7 @@ int32_t Hwc2Display::initialize() {
     mCrtc->update();
     mModeMgr->update();
     mPowerMode->setConnectorStatus(mConnector->isConnected());
+    mCrtc->getMode(mDisplayMode);
 
     MESON_LOG_FUN_LEAVE();
     return 0;
@@ -147,32 +151,34 @@ void Hwc2Display::onHotplug(bool connected) {
         mSignalHpd = true;
         return;
     }
+    mPowerMode->setConnectorStatus(false);
 
     if (mObserver != NULL) {
-        mObserver->onHotplug(connected);
+        mObserver->onHotplug(false);
     }
 }
 
 void Hwc2Display::onModeChanged(int stage) {
     std::lock_guard<std::mutex> lock(mMutex);
-    MESON_LOGD("On mode change state: [%s]", stage == 0 ? "Begin to change" : "Complete");
+    MESON_LOGD("On mode change state: [%s]", stage == 1 ? "Complete" : "Begin to change");
     if (stage == 1) {
         if (mObserver != NULL) {
             if (mSignalHpd) {
                 loadDisplayResources();
-                mPowerMode->setConnectorStatus(mConnector->isConnected());
                 mCrtc->update();
                 mModeMgr->update();
                 mObserver->onHotplug(true);
                 mSignalHpd = false;
             } else {
-                mPowerMode->setConnectorStatus(mConnector->isConnected());
                 mCrtc->update();
                 mModeMgr->update();
             }
 
+            if (mCrtc->getMode(mDisplayMode) == 0)
+                mPowerMode->setConnectorStatus(true);
+
             /*Update info to surfaceflinger by hotplug.
-        * need surfaceflinger to update*/
+             * need surfaceflinger to update*/
             if (mModeMgr->getPolicyType() == FIXED_SIZE_POLICY) {
                 mObserver->onHotplug(true);
             }
@@ -349,58 +355,92 @@ hwc2_error_t Hwc2Display::collectComposersForPresent() {
     return HWC2_ERROR_NONE;
 }
 
-// Scaled display frame to the framebuffer config if necessary
-// (i.e. not at the default resolution of 1080p)
-hwc2_error_t Hwc2Display::scalePresentLayers() {
+int32_t Hwc2Display::loadCalibrateInfo() {
     hwc2_config_t config;
     int32_t configWidth;
     int32_t configHeight;
-    uint32_t fbWidth;
-    uint32_t fbHeight;
-
     if (mModeMgr->getActiveConfig(&config) != HWC2_ERROR_NONE) {
-        MESON_LOGE("[%s]: getActiveConfig failed!", __func__);
-        return HWC2_ERROR_NOT_VALIDATED;
+        MESON_ASSERT(0, "[%s]: getHwcDisplayHeight failed!", __func__);
+        return -ENOENT;
     }
     if (mModeMgr->getDisplayAttribute(config,
             HWC2_ATTRIBUTE_WIDTH, &configWidth) != HWC2_ERROR_NONE) {
-        MESON_LOGE("[%s]: getHwcDisplayWidth failed!", __func__);
-        return HWC2_ERROR_NOT_VALIDATED;
+        MESON_ASSERT(0, "[%s]: getHwcDisplayHeight failed!", __func__);
+        return -ENOENT;
     }
     if (mModeMgr->getDisplayAttribute(config,
             HWC2_ATTRIBUTE_HEIGHT, &configHeight) != HWC2_ERROR_NONE) {
-        MESON_LOGE("[%s]: getHwcDisplayHeight failed!", __func__);
-        return HWC2_ERROR_NOT_VALIDATED;
+        MESON_ASSERT(0, "[%s]: getHwcDisplayHeight failed!", __func__);
+        return -ENOENT;
     }
-    HwcConfig::getFramebufferSize(0, fbWidth, fbHeight);
 
-    if (configWidth == (int32_t)fbWidth && configHeight == (int32_t)fbHeight) {
-        //MESON_LOGD("[%s]: display frame no need scaled.", __func__);
-        return HWC2_ERROR_NONE;
+    if (mDisplayMode.pixelW == 0 || mDisplayMode.pixelH == 0) {
+        MESON_ASSERT(0, "[%s]: Displaymode is invalid(%s, %dx%d)!",
+                __func__, mDisplayMode.name, mDisplayMode.pixelW, mDisplayMode.pixelH);
+        return -ENOENT;
+    }
+
+    /*default info*/
+    mCalibrateInfo.framebuffer_w = configWidth;
+    mCalibrateInfo.framebuffer_h = configHeight;
+    mCalibrateInfo.crtc_display_x = 0;
+    mCalibrateInfo.crtc_display_y = 0;
+    mCalibrateInfo.crtc_display_w = mDisplayMode.pixelW;
+    mCalibrateInfo.crtc_display_h = mDisplayMode.pixelH;
+
+    if (!HwcConfig::preDisplayCalibrateEnabled()) {
+        /*get post calibrate info.*/
+        /*for interlaced, we do thing, osd driver will take care of it.*/
+        int calibrateCoordinates[4];
+        std::string dispModeStr(mDisplayMode.name);
+        if (0 == sc_get_osd_position(dispModeStr, calibrateCoordinates)) {
+            mCalibrateInfo.crtc_display_x = calibrateCoordinates[0];
+            mCalibrateInfo.crtc_display_y = calibrateCoordinates[1];
+            mCalibrateInfo.crtc_display_w = calibrateCoordinates[2];
+            mCalibrateInfo.crtc_display_h = calibrateCoordinates[3];
+        } else {
+            MESON_LOGE("(%s): sc_get_osd_position failed", __func__);
+        }
+    }
+    return 0;
+}
+
+// Scaled display frame to the framebuffer config if necessary
+// (i.e. not at the default resolution of 1080p)
+int32_t Hwc2Display::adjustDisplayFrame() {
+    bool bNoScale = false;
+    if (mCalibrateInfo.framebuffer_w == mCalibrateInfo.crtc_display_w &&
+        mCalibrateInfo.framebuffer_h == mCalibrateInfo.crtc_display_h) {
+        bNoScale = true;
     }
 
     Hwc2Layer * layer;
     for (auto it = mPresentLayers.begin() ; it != mPresentLayers.end(); it++) {
         layer = (Hwc2Layer*)(it->get());
-
-        float fl = layer->mBackupDisplayFrame.left   / (float)configWidth;
-        float ft = layer->mBackupDisplayFrame.top    / (float)configHeight;
-        float fr = layer->mBackupDisplayFrame.right  / (float)configWidth;
-        float fb = layer->mBackupDisplayFrame.bottom / (float)configHeight;
-
-        layer->mDisplayFrame.left   = fl * fbWidth;
-        layer->mDisplayFrame.top    = ft * fbHeight;
-        layer->mDisplayFrame.right  = fr * fbWidth;
-        layer->mDisplayFrame.bottom = fb * fbHeight;
+        if (bNoScale) {
+            layer->mDisplayFrame = layer->mBackupDisplayFrame;
+        } else {
+            layer->mDisplayFrame.left = (uint32_t)ceilf(layer->mBackupDisplayFrame.left *
+                mCalibrateInfo.crtc_display_w / mCalibrateInfo.framebuffer_w) +
+                mCalibrateInfo.crtc_display_x;
+            layer->mDisplayFrame.top = (uint32_t)ceilf(layer->mBackupDisplayFrame.top *
+                mCalibrateInfo.crtc_display_h / mCalibrateInfo.framebuffer_h) +
+                mCalibrateInfo.crtc_display_y;
+            layer->mDisplayFrame.right = (uint32_t)ceilf(layer->mBackupDisplayFrame.right *
+                mCalibrateInfo.crtc_display_w / mCalibrateInfo.framebuffer_w) +
+                mCalibrateInfo.crtc_display_x;
+            layer->mDisplayFrame.bottom = (uint32_t)ceilf(layer->mBackupDisplayFrame.bottom *
+                mCalibrateInfo.crtc_display_h / mCalibrateInfo.framebuffer_h) +
+                mCalibrateInfo.crtc_display_y;
+        }
     }
 
-    return HWC2_ERROR_NONE;
+    return 0;
 }
 
 hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
     uint32_t* outNumRequests) {
     std::lock_guard<std::mutex> lock(mMutex);
-
     /*clear data used in composition.*/
     mPresentLayers.clear();
     mPresentComposers.clear();
@@ -414,15 +454,6 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
     if (ret != HWC2_ERROR_NONE) {
         return ret;
     }
-
-    if (mPresentLayers.size() > 0) {
-        ret = scalePresentLayers();
-        if (ret != HWC2_ERROR_NONE) {
-            MESON_ASSERT(0, "[%s]: scaled layers display frame faild!", __func__);
-            return ret;
-        }
-    }
-
     ret = collectComposersForPresent();
     if (ret != HWC2_ERROR_NONE) {
         return ret;
@@ -437,7 +468,6 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
     if (DebugHelper::getInstance().disableUiHwc() || mForceClientComposer) {
         compositionFlags |= COMPOSE_FORCE_CLIENT;
     }
-
 #ifdef HWC_ENABLE_SECURE_LAYER
     if (!mConnector->isSecure()) {
         compositionFlags |= COMPOSE_HIDE_SECURE_FB;
@@ -453,13 +483,17 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
             mSkipComposition = true;
         }
     }
-
+    /*do composition*/
     if (!mSkipComposition) {
         mPowerMode->setScreenStatus(mPresentLayers.size() > 0 ? false : true);
-
+        /*update calibrate info.*/
+        loadCalibrateInfo();
+        /*update displayframe before do composition.*/
+        if (mPresentLayers.size() > 0)
+            adjustDisplayFrame();
         /*setup composition strategy.*/
         mCompositionStrategy->setup(mPresentLayers,
-            mPresentComposers, mPresentPlanes, compositionFlags);
+            mPresentComposers, mPresentPlanes, mCrtc, compositionFlags);
         if (mCompositionStrategy->decideComposition() < 0) {
             return HWC2_ERROR_NO_RESOURCES;
         }
@@ -574,10 +608,6 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
         *outPresentFence = -1;
     } else {
         int32_t outFence = -1;
-        /*Pre page flip, set display position*/
-        if (mCrtc->prePageFlip() != 0) {
-            return HWC2_ERROR_NOT_VALIDATED;
-        }
         /*Start to compose, set up plane info.*/
         if (mCompositionStrategy->commit() != 0) {
             return HWC2_ERROR_NOT_VALIDATED;
@@ -633,6 +663,7 @@ hwc2_error_t Hwc2Display::getReleaseFences(uint32_t* outNumElements,
 
 hwc2_error_t Hwc2Display::setClientTarget(buffer_handle_t target,
     int32_t acquireFence, int32_t dataspace, hwc_region_t damage) {
+    std::lock_guard<std::mutex> lock(mMutex);
     /*create DrmFramebuffer for client target.*/
     std::shared_ptr<DrmFramebuffer> clientFb =  std::make_shared<DrmFramebuffer>(
         target, acquireFence);
@@ -641,6 +672,14 @@ hwc2_error_t Hwc2Display::setClientTarget(buffer_handle_t target,
     clientFb->mPlaneAlpha = 1.0f;
     clientFb->mTransform = 0;
     clientFb->mDataspace = dataspace;
+
+    /*client target is always full screen, just post to crtc display axis.*/
+    clientFb->mDisplayFrame.left = mCalibrateInfo.crtc_display_x;
+    clientFb->mDisplayFrame.top = mCalibrateInfo.crtc_display_y;
+    clientFb->mDisplayFrame.right = mCalibrateInfo.crtc_display_x +
+        mCalibrateInfo.crtc_display_w;
+    clientFb->mDisplayFrame.bottom = mCalibrateInfo.crtc_display_y +
+        mCalibrateInfo.crtc_display_h;
 
     /*set framebuffer to client composer.*/
     std::shared_ptr<IComposer> clientComposer =
@@ -774,10 +813,15 @@ void Hwc2Display::dump(String8 & dumpstr) {
     /*dump*/
     dumpstr.append("---------------------------------------------------------"
         "-----------------------------\n");
-    dumpstr.appendFormat("Display %d (%s, %s, %s):\n",
+    dumpstr.appendFormat("Display %d (%s, %s, %s, %d-%d):\n",
         mHwId, getName(), mModeMgr->getName(),
-        mForceClientComposer ? "Client-Comp" : "HW-Comp");
-    dumpstr.append("\n");
+        mForceClientComposer ? "Client-Comp" : "HW-Comp",
+        mPowerMode->getMode(), mPowerMode->getScreenStatus());
+    /*calibration info*/
+    dumpstr.appendFormat("Display Calibration:(%dx%d)->(%dx%d,%dx%d)\n",
+        mCalibrateInfo.framebuffer_w, mCalibrateInfo.framebuffer_h,
+        mCalibrateInfo.crtc_display_x, mCalibrateInfo.crtc_display_y,
+        mCalibrateInfo.crtc_display_w, mCalibrateInfo.crtc_display_h);
 
     /* HDR info */
     dumpstr.append("HDR Capabilities:\n");

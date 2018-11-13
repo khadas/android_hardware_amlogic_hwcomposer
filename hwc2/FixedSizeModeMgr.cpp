@@ -28,12 +28,16 @@ const char * FixedSizeModeMgr::getName() {
     return "FixedSizeMode";
 }
 
+void FixedSizeModeMgr::setFramebufferSize(uint32_t w, uint32_t h) {
+    mCurMode.pixelW = w;
+    mCurMode.pixelH = h;
+}
+
 void FixedSizeModeMgr::setDisplayResources(
     std::shared_ptr<HwDisplayCrtc> & crtc,
     std::shared_ptr<HwDisplayConnector> & connector) {
     mConnector = connector;
     mCrtc = crtc;
-    mCrtc->parseDftFbSize(mCurMode.pixelW, mCurMode.pixelH);
 }
 
 int32_t FixedSizeModeMgr::update() {

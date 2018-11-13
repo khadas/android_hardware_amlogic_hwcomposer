@@ -27,6 +27,7 @@ public:
     hwc_modes_policy_t getPolicyType();
     const char * getName();
 
+    void setFramebufferSize(uint32_t w, uint32_t h);
     void setDisplayResources(
         std::shared_ptr<HwDisplayCrtc> & crtc,
         std::shared_ptr<HwDisplayConnector> & connector);

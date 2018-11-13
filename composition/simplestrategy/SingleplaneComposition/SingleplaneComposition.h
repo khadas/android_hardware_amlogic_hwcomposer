@@ -34,6 +34,7 @@ public:
     void setup(std::vector<std::shared_ptr<DrmFramebuffer>> & layers,
         std::vector<std::shared_ptr<IComposer>> & composers,
         std::vector<std::shared_ptr<HwDisplayPlane>> & planes,
+        std::shared_ptr<HwDisplayCrtc> & crtc,
         uint32_t flags);
 
     int decideComposition();
@@ -62,6 +63,9 @@ protected:
     std::shared_ptr<IComposer> mDummyComposer;
     std::shared_ptr<IComposer> mClientComposer;
     std::vector<std::shared_ptr<IComposer>> mComposers;
+
+    /*crtc*/
+    std::shared_ptr<HwDisplayCrtc> mCrtc;
 
     /*display planes*/
     std::shared_ptr<HwDisplayPlane> mCursorPlane;

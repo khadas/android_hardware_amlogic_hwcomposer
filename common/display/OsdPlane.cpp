@@ -75,7 +75,7 @@ uint32_t OsdPlane::getCapabilities() {
 
 int32_t OsdPlane::getFixedZorder() {
     if (mCapability & PLANE_SUPPORT_ZORDER) {
-        return MAX_PLANE_ZORDER;
+        return INVALID_ZORDER;
     }
 
     return OSD_PLANE_FIXED_ZORDER;
@@ -115,6 +115,12 @@ bool OsdPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
             return false;
     }
 
+    uint32_t sourceWidth = fb->mSourceCrop.bottom - fb->mSourceCrop.top;
+    uint32_t sourceHeight = fb->mSourceCrop.right - fb->mSourceCrop.left;
+    if (sourceWidth > OSD_INPUT_MAX_HEIGHT ||sourceHeight > OSD_INPUT_MAX_WIDTH)
+        return false;
+    if (sourceWidth < OSD_INPUT_MIN_HEIGHT ||sourceHeight < OSD_INPUT_MIN_WIDTH)
+        return false;
     return true;
 }
 

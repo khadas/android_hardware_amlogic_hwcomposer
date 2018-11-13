@@ -129,6 +129,14 @@ bool HwcConfig::softwareVsyncEnabled() {
 #endif
 }
 
+bool HwcConfig::preDisplayCalibrateEnabled() {
+#ifdef HWC_ENABLE_PRE_DISPLAY_CALIBRATE
+    return true;
+#else
+    return false;
+#endif
+}
+
 bool HwcConfig::primaryHotplugEnabled() {
 #ifdef HWC_ENABLE_PRIMARY_HOTPLUG
     return true;
@@ -180,6 +188,7 @@ void HwcConfig::dump(String8 & dumpstr) {
             dumpstr.appendFormat("\t SecureLayer: %s", secureLayerProcessEnabled() ? "Y" : "N");
             dumpstr.append("\n");
             dumpstr.appendFormat("\t FracRefreshRate: %s", fracRefreshRateEnabled() ? "Y" : "N");
+            dumpstr.appendFormat("\t PreDisplayCalibrate: %s", preDisplayCalibrateEnabled() ? "Y" : "N");
             dumpstr.append("\n");
         }
     }

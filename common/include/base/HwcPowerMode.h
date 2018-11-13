@@ -11,6 +11,12 @@
 #define HWC_POWER_MODE_H
 #include <BasicTypes.h>
 
+typedef enum {
+    MESON_POWER_BOOT = 0,
+    MESON_POWER_CONNECTOR_IN,
+    MESON_POWER_CONNECTOR_OUT,
+} meson_power_mode_t;
+
 class HwcPowerMode {
 public:
     HwcPowerMode();
@@ -23,12 +29,8 @@ public:
 
     bool needBlankScreen(bool bLayerPresent);
 
-public:
-    typedef enum {
-        MESON_POWER_BOOT = 0,
-        MESON_POWER_CONNECTOR_IN,
-        MESON_POWER_CONNECTOR_OUT,
-    } meson_power_mode_t;
+    meson_power_mode_t getMode();
+
 
 protected:
     bool mScreenBlank;

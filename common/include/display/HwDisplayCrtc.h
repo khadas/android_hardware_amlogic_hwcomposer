@@ -33,27 +33,33 @@ public:
     /*set current display mode.*/
     int32_t setMode(drm_mode_info_t & mode);
 
-    int32_t parseDftFbSize(uint32_t & width, uint32_t & height);
+    /*Functions for compose & pageflip*/
+    /*set the crtc display axis, and source axis,
+    * it is used to do scale in vpu.
+    */
+    int32_t setDisplayFrame(display_zoom_info_t & info);
+    /*
+    * set if we need compose all ui layers into one display channel.
+    * TODO: need pass it in a general way.
+    */
+    int32_t setOsdChannels(int32_t channels);
 
-    int32_t prePageFlip();
-    int32_t pageFlip(int32_t &out_fence);
+    int32_t pageFlip(int32_t & out_fence);
 
 protected:
-    int32_t getZoomInfo(display_zoom_info_t & zoomInfo);
     void closeLogoDisplay();
-
 
 protected:
     int32_t mId;
     int mDrvFd;
+    uint32_t mOsdChannels;
 
-    uint32_t mFbWidth, mFbHeight;
     bool mFirstPresent;
-
-    display_zoom_info_t mBackupZoomInfo;
+    bool mConnected;
 
     drm_mode_info_t mCurModeInfo;
-    bool mConnected;
+    display_zoom_info_t mScaleInfo;
+
     std::map<uint32_t, drm_mode_info_t> mModes;
     std::shared_ptr<HwDisplayConnector>  mConnector;
     std::map<uint32_t, std::shared_ptr<HwDisplayPlane>> mPlanes;

@@ -90,23 +90,6 @@ void DrmFramebuffer::clearBufferInfo() {
     mSecure         = false;
 }
 
-bool DrmFramebuffer::isScaled() {
-    if (mFbType == DRM_FB_COLOR)
-        return false;
-
-    bool rtn = false;
-    int displayWidth = mDisplayFrame.right - mDisplayFrame.left;
-    int displayHeight = mDisplayFrame.bottom - mDisplayFrame.top;
-    if (displayWidth > 0 && displayHeight > 0) {
-        int srcWidth = mSourceCrop.right - mSourceCrop.left;
-        int srcHeight = mSourceCrop.bottom - mSourceCrop.top;
-        if (srcWidth != displayWidth || srcHeight != displayHeight)
-            rtn = true;
-    }
-
-    return rtn;
-}
-
 bool DrmFramebuffer::isRotated() {
     return mTransform != 0;
 }

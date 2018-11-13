@@ -22,8 +22,10 @@ HwDisplayCrtc::HwDisplayCrtc(int drvFd, int32_t id) {
     mId = id;
     mDrvFd = drvFd;
     mFirstPresent = true;
-    memset(&mBackupZoomInfo,0,sizeof(mBackupZoomInfo));
-    parseDftFbSize(mFbWidth, mFbHeight);
+    /*for old vpu, always one channel.
+    *for new vpu, it can be 1 or 2.
+    */
+    mOsdChannels = 1;
 }
 
 HwDisplayCrtc::~HwDisplayCrtc() {
@@ -65,12 +67,11 @@ int32_t HwDisplayCrtc::setMode(drm_mode_info_t & mode) {
 
 int32_t HwDisplayCrtc::getMode(drm_mode_info_t & mode) {
     std::lock_guard<std::mutex> lock(mMutex);
-    if (mConnected) {
-        mode = mCurModeInfo;
-        return 0;
-    } else {
+    if (!mConnected || mCurModeInfo.name[0] == 0)
         return -1;
-    }
+
+    mode = mCurModeInfo;
+    return 0;
 }
 
 int32_t HwDisplayCrtc::update() {
@@ -84,9 +85,9 @@ int32_t HwDisplayCrtc::update() {
             MESON_ASSERT(0," %s GetDisplayMode by sc failed.", __func__);
         }
 
-        if (displayMode.empty())
+        if (displayMode.empty()) {
              MESON_LOGE("displaymode should not null when connected.");
-        else {
+        } else {
             MESON_LOGI("hw crtc update to mode: (%s)", displayMode.c_str());
             for (auto it = mModes.begin(); it != mModes.end(); it ++) {
                 if (strcmp(it->second.name, displayMode.c_str()) == 0) {
@@ -96,48 +97,40 @@ int32_t HwDisplayCrtc::update() {
                 }
             }
         }
-    } else {
-        /*use a null name*/
-        strcpy(mCurModeInfo.name, "null");
     }
 
     return 0;
 }
 
-int32_t HwDisplayCrtc::parseDftFbSize(uint32_t & width, uint32_t & height) {
-    HwcConfig::getFramebufferSize(0, width, height);
+int32_t HwDisplayCrtc::setDisplayFrame(display_zoom_info_t & info) {
+    mScaleInfo = info;
+    /*not used now, clear to 0.*/
+    mScaleInfo.crtc_w = 0;
+    mScaleInfo.crtc_h = 0;
     return 0;
 }
 
-int32_t HwDisplayCrtc::prePageFlip() {
+int32_t HwDisplayCrtc::setOsdChannels(int32_t channels) {
+    mOsdChannels = channels;
+    return 0;
+}
+
+int32_t HwDisplayCrtc::pageFlip(int32_t &out_fence) {
     if (mFirstPresent) {
         mFirstPresent = false;
         closeLogoDisplay();
     }
 
-    display_zoom_info_t zoomInfo;
-    getZoomInfo(zoomInfo);
-    if (memcmp(&mBackupZoomInfo, &zoomInfo, sizeof(mBackupZoomInfo))) {
-        mBackupZoomInfo = zoomInfo;
-        for (auto it = mPlanes.begin(); it!=mPlanes.end(); ++it) {
-            it->second->updateZoomInfo(zoomInfo);
-        }
-    }
-    return 0;
-}
-
-int32_t HwDisplayCrtc::pageFlip(int32_t &out_fence) {
     osd_page_flip_info_t flipInfo;
-
-    flipInfo.background_w = mBackupZoomInfo.framebuffer_w;
-    flipInfo.background_h = mBackupZoomInfo.framebuffer_h;
-    flipInfo.fullScreen_w = mBackupZoomInfo.crtc_w;
-    flipInfo.fullScreen_h = mBackupZoomInfo.crtc_h;
-
-    flipInfo.curPosition_x = mBackupZoomInfo.crtc_display_x;
-    flipInfo.curPosition_y = mBackupZoomInfo.crtc_display_y;
-    flipInfo.curPosition_w = mBackupZoomInfo.crtc_display_w;
-    flipInfo.curPosition_h = mBackupZoomInfo.crtc_display_h;
+    flipInfo.background_w = mScaleInfo.framebuffer_w;
+    flipInfo.background_h = mScaleInfo.framebuffer_h;
+    flipInfo.fullScreen_w = mScaleInfo.framebuffer_w;
+    flipInfo.fullScreen_h = mScaleInfo.framebuffer_h;
+    flipInfo.curPosition_x = mScaleInfo.crtc_display_x;
+    flipInfo.curPosition_y = mScaleInfo.crtc_display_y;
+    flipInfo.curPosition_w = mScaleInfo.crtc_display_w;
+    flipInfo.curPosition_h = mScaleInfo.crtc_display_h;
+    flipInfo.hdr_mode = (mOsdChannels == 1) ? 1 : 0;
 
     ioctl(mDrvFd, FBIOPUT_OSD_DO_HWC, &flipInfo);
 
@@ -158,42 +151,4 @@ void HwDisplayCrtc::closeLogoDisplay() {
     sysfs_set_string(DISPLAY_FB0_FREESCALE_SWTICH, "0x10001");
 }
 
-int32_t HwDisplayCrtc::getZoomInfo(display_zoom_info_t & zoomInfo) {
-    std::lock_guard<std::mutex> lock(mMutex);
-
-    int crtc_display[4];
-    vmode_e vmode = vmode_name_to_mode(mCurModeInfo.name);
-    const struct vinfo_s* vinfo = get_tv_info(vmode);
-    if (vmode == VMODE_MAX || vinfo == NULL) {
-         MESON_LOGD("Invalid display mode %s", mCurModeInfo.name);
-         return -ENOENT;
-    }
-
-    zoomInfo.framebuffer_w = mFbWidth;
-    zoomInfo.framebuffer_h = mFbHeight;
-    zoomInfo.crtc_w = vinfo->width;
-    zoomInfo.crtc_h = vinfo->field_height;
-
-    std::string dispModeStr(mCurModeInfo.name);
-    if (0 == sc_get_osd_position(dispModeStr, crtc_display)) {
-        zoomInfo.crtc_display_x = crtc_display[0];
-        zoomInfo.crtc_display_y = crtc_display[1];
-        zoomInfo.crtc_display_w = crtc_display[2];
-        zoomInfo.crtc_display_h = crtc_display[3];
-
-        /*for interlaced.*/
-        if (vinfo->field_height != vinfo->height) {
-            zoomInfo.crtc_display_y = vinfo->field_height * zoomInfo.crtc_display_y / vinfo->height;
-            zoomInfo.crtc_display_h = vinfo->field_height * zoomInfo.crtc_display_h / vinfo->height;
-        }
-        return 0;
-    } else {
-        MESON_LOGE("GetOsdPosition by sc failed, set to no scaled value.");
-        zoomInfo.crtc_display_x = 0;
-        zoomInfo.crtc_display_y = 0;
-        zoomInfo.crtc_display_w = zoomInfo.crtc_w;
-        zoomInfo.crtc_display_h = zoomInfo.crtc_h;
-        return -ENOENT;
-    }
-}
 

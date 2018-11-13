@@ -24,7 +24,6 @@ public:
     uint32_t getPossibleCrtcs();
     bool isFbSupport(std::shared_ptr<DrmFramebuffer> & fb);
 
-    int32_t updateZoomInfo(display_zoom_info_t zoomInfo);
     int32_t setPlane(std::shared_ptr<DrmFramebuffer> & fb, uint32_t zorder);
     int32_t blank(int blankOp);
 
@@ -49,8 +48,6 @@ protected:
     int32_t mBackupTransform;
     drm_rect_t mBackupDisplayFrame;
     bool mNeedUpdateAxis;
-
-    display_zoom_info_t mZoomInfo;
 };
 
  #endif/*LEGACY_VIDEO_PLANE_H*/

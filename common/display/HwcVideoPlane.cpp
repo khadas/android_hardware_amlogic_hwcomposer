@@ -34,7 +34,7 @@ uint32_t HwcVideoPlane::getCapabilities() {
 }
 
 int32_t HwcVideoPlane::getFixedZorder() {
-    return MAX_PLANE_ZORDER;
+    return INVALID_ZORDER;
 }
 
 uint32_t HwcVideoPlane::getPossibleCrtcs() {
@@ -46,11 +46,6 @@ bool HwcVideoPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
         return true;
 
     return false;
-}
-
-int32_t HwcVideoPlane::updateZoomInfo(display_zoom_info_t zoomInfo __unused) {
-    MESON_LOG_EMPTY_FUN();
-    return 0;
 }
 
 int32_t HwcVideoPlane::setPlane(

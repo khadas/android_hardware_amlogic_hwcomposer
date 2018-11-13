@@ -103,9 +103,12 @@ protected:
     hwc2_error_t collectPlanesForPresent();
     hwc2_error_t collectCompositionRequest(
             uint32_t* outNumTypes, uint32_t* outNumRequests);
-    hwc2_error_t scalePresentLayers();
 
     void loadDisplayResources();
+
+    /*for calibrate display frame.*/
+    int32_t loadCalibrateInfo();
+    int32_t adjustDisplayFrame();
 
     /*Layer id sequence no.*/
     void initLayerIdGenerator();
@@ -154,8 +157,12 @@ protected:
 
     std::shared_ptr<HwcPowerMode> mPowerMode;
     bool mSkipComposition;
-
     bool mSignalHpd;
+
+    uint32_t mFbWidth;
+    uint32_t mFbHeight;
+    drm_mode_info_t mDisplayMode;
+    display_zoom_info_t mCalibrateInfo;
 
     std::mutex mMutex;
 };
