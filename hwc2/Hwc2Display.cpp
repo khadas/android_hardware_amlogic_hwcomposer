@@ -288,23 +288,23 @@ hwc2_error_t Hwc2Display::collectLayersForPresent() {
             continue;
         }
 
-#ifdef HWC_ENABLE_HEADLESS_MODE
-        layer->mCompositionType = MESON_COMPOSITION_DUMMY;
-#else
-        if (layer->mHwcCompositionType == HWC2_COMPOSITION_CLIENT) {
-            layer->mCompositionType = MESON_COMPOSITION_CLIENT;
+        if (HwcConfig::isHeadlessMode()) {
+            layer->mCompositionType = MESON_COMPOSITION_DUMMY;
         } else {
-            /*
-            * Other layers need further handle:
-            * 1) HWC2_COMPOSITION_DEVICE
-            * 2) HWC2_COMPOSITION_SOLID_COLOR
-            * 3) HWC2_COMPOSITION_CURSOR
-            * 4) HWC2_COMPOSITION_SIDEBAND
-            */
-            /*composition type unknown, set to none first.*/
-            layer->mCompositionType = MESON_COMPOSITION_UNDETERMINED;
+            if (layer->mHwcCompositionType == HWC2_COMPOSITION_CLIENT) {
+                layer->mCompositionType = MESON_COMPOSITION_CLIENT;
+            } else {
+                /*
+                * Other layers need further handle:
+                * 1) HWC2_COMPOSITION_DEVICE
+                * 2) HWC2_COMPOSITION_SOLID_COLOR
+                * 3) HWC2_COMPOSITION_CURSOR
+                * 4) HWC2_COMPOSITION_SIDEBAND
+                */
+                /*composition type unknown, set to none first.*/
+                layer->mCompositionType = MESON_COMPOSITION_UNDETERMINED;
+            }
         }
-#endif
     }
 
     if (mPresentLayers.size() > 1) {

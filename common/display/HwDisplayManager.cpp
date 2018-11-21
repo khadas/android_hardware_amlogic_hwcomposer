@@ -286,11 +286,6 @@ int32_t HwDisplayManager::loadConnector(uint32_t connector_id) {
 
 int32_t HwDisplayManager::loadPlanes() {
     /* scan /dev/graphics/fbx to get planes */
-#ifdef HWC_ENABLE_HEADLESS_MODE
-    int plane_idx = OSD_PLANE_IDX_MIN;
-    std::shared_ptr<DummyPlane> plane = std::make_shared<DummyPlane>(-1, plane_idx);
-    mPlanes.emplace(plane_idx, plane);
-#else
     int fd = -1;
     char path[64];
     int count_osd = 0, count_video = 0;
@@ -355,7 +350,6 @@ int32_t HwDisplayManager::loadPlanes() {
     } while(fd >= 0);
 
     MESON_LOGD("get osd planes (%d), video planes (%d)", count_osd, count_video);
-#endif
 
     return 0;
 }
