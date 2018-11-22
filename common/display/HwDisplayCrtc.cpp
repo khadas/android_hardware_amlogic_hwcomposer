@@ -18,6 +18,8 @@
 #include "AmVinfo.h"
 #include "AmFramebuffer.h"
 
+static vframe_master_display_colour_s_t nullHdr;
+
 HwDisplayCrtc::HwDisplayCrtc(int drvFd, int32_t id) {
     mId = id;
     mDrvFd = drvFd;
@@ -26,6 +28,8 @@ HwDisplayCrtc::HwDisplayCrtc(int drvFd, int32_t id) {
     *for new vpu, it can be 1 or 2.
     */
     mOsdChannels = 1;
+    memset(&hdrVideoInfo, 0, sizeof(hdrVideoInfo));
+    memset(&nullHdr, 0, sizeof(nullHdr));
 }
 
 HwDisplayCrtc::~HwDisplayCrtc() {
@@ -144,6 +148,101 @@ int32_t HwDisplayCrtc::pageFlip(int32_t &out_fence) {
     }
 
     return 0;
+}
+
+int32_t HwDisplayCrtc::getHdrMetadataKeys(
+    std::vector<drm_hdr_meatadata_t> & keys) {
+    static drm_hdr_meatadata_t supportedKeys[] = {
+        DRM_DISPLAY_RED_PRIMARY_X,
+        DRM_DISPLAY_RED_PRIMARY_Y,
+        DRM_DISPLAY_GREEN_PRIMARY_X,
+        DRM_DISPLAY_GREEN_PRIMARY_Y,
+        DRM_DISPLAY_BLUE_PRIMARY_X,
+        DRM_DISPLAY_BLUE_PRIMARY_Y,
+        DRM_WHITE_POINT_X,
+        DRM_WHITE_POINT_Y,
+        DRM_MAX_LUMINANCE,
+        DRM_MIN_LUMINANCE,
+        DRM_MAX_CONTENT_LIGHT_LEVEL,
+        DRM_MAX_FRAME_AVERAGE_LIGHT_LEVEL,
+    };
+
+    for (uint32_t i = 0;i < sizeof(supportedKeys)/sizeof(drm_hdr_meatadata_t); i++) {
+        keys.push_back(supportedKeys[i]);
+    }
+
+    return 0;
+}
+
+int32_t HwDisplayCrtc::setHdrMetadata(
+    std::map<drm_hdr_meatadata_t, float> & hdrmedata) {
+    if (updateHdrMetadata(hdrmedata) == true)
+        return set_hdr_info(hdrVideoInfo);
+
+    return 0;
+}
+
+bool HwDisplayCrtc::updateHdrMetadata(
+    std::map<drm_hdr_meatadata_t, float> & hdrmedata) {
+    vframe_master_display_colour_s_t newHdr;
+    memset(&newHdr,0,sizeof(vframe_master_display_colour_s_t));
+    if (!hdrmedata.empty()) {
+        for (auto iter = hdrmedata.begin(); iter != hdrmedata.end(); ++iter) {
+            switch (iter->first) {
+                case DRM_DISPLAY_RED_PRIMARY_X:
+                    newHdr.primaries[2][0] = (u32)(iter->second * 50000); //mR.x
+                    break;
+                case DRM_DISPLAY_RED_PRIMARY_Y:
+                    newHdr.primaries[2][1] = (u32)(iter->second * 50000); //mR.Y
+                    break;
+                case DRM_DISPLAY_GREEN_PRIMARY_X:
+                    newHdr.primaries[0][0] = (u32)(iter->second * 50000);//mG.x
+                    break;
+                case DRM_DISPLAY_GREEN_PRIMARY_Y:
+                    newHdr.primaries[0][1] = (u32)(iter->second * 50000);//mG.y
+                    break;
+                case DRM_DISPLAY_BLUE_PRIMARY_X:
+                    newHdr.primaries[1][0] = (u32)(iter->second * 50000);//mB.x
+                    break;
+                case DRM_DISPLAY_BLUE_PRIMARY_Y:
+                    newHdr.primaries[1][1] = (u32)(iter->second * 50000);//mB.Y
+                    break;
+                case DRM_WHITE_POINT_X:
+                    newHdr.white_point[0] = (u32)(iter->second * 50000);//mW.x
+                    break;
+                case DRM_WHITE_POINT_Y:
+                    newHdr.white_point[1] = (u32)(iter->second * 50000);//mW.Y
+                    break;
+                case DRM_MAX_LUMINANCE:
+                    newHdr.luminance[0] = (u32)(iter->second * 1000); //mMaxDL
+                    break;
+                case DRM_MIN_LUMINANCE:
+                    newHdr.luminance[1] = (u32)(iter->second * 10000);//mMinDL
+                    break;
+                case DRM_MAX_CONTENT_LIGHT_LEVEL:
+                    newHdr.content_light_level.max_content = (u32)(iter->second); //mMaxCLL
+                    newHdr.content_light_level.present_flag = 1;
+                    break;
+                case DRM_MAX_FRAME_AVERAGE_LIGHT_LEVEL:
+                    newHdr.content_light_level.max_pic_average = (u32)(iter->second);//mMaxFALL
+                    newHdr.content_light_level.present_flag = 1;
+                    break;
+                default:
+                    MESON_LOGE("unkown key %d",iter->first);
+                    break;
+            }
+        }
+    }
+
+    if (memcmp(&hdrVideoInfo, &nullHdr, sizeof(vframe_master_display_colour_s_t)) == 0)
+        return false;
+    newHdr.present_flag = 1;
+
+    if (memcmp(&hdrVideoInfo, &newHdr, sizeof(vframe_master_display_colour_s_t)) == 0)
+        return false;
+
+    hdrVideoInfo = newHdr;
+    return true;
 }
 
 void HwDisplayCrtc::closeLogoDisplay() {

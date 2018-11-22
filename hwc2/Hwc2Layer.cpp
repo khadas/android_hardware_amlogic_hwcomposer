@@ -205,6 +205,19 @@ hwc2_error_t Hwc2Layer::setZorder(uint32_t z) {
     return HWC2_ERROR_NONE;
 }
 
+#ifdef HWC_HDR_METADATA_SUPPORT
+int32_t Hwc2Layer::setPerFrameMetadata(
+    uint32_t numElements, const int32_t* /*hw2_per_frame_metadata_key_t*/ keys,
+    const float* metadata) {
+    mHdrMetaData.clear();
+    for (uint32_t i = 0; i < numElements; i++) {
+        mHdrMetaData.insert({static_cast<drm_hdr_meatadata_t>(keys[i]),metadata[i]});
+    }
+    return HWC2_ERROR_NONE;
+}
+#endif
+
+
 int32_t Hwc2Layer::commitCompType(
     hwc2_composition_t hwcComp) {
     if (mHwcCompositionType != hwcComp) {

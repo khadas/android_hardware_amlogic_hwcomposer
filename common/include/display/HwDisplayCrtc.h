@@ -14,6 +14,7 @@
 #include <BasicTypes.h>
 #include <HwDisplayConnector.h>
 #include <HwDisplayPlane.h>
+#include <tvp/OmxUtil.h>
 
 class HwDisplayCrtc {
 public:
@@ -24,9 +25,12 @@ public:
                    std::map<uint32_t, std::shared_ptr<HwDisplayPlane>> planes);
 
     /*load the fixed informations: displaymode list, hdr cap, etc...*/
-     int32_t loadProperities();
+    int32_t loadProperities();
+    int32_t getHdrMetadataKeys(std::vector<drm_hdr_meatadata_t> & keys);
+
     /*update the dynamic informations, current display mode now.*/
      int32_t update();
+    int32_t setHdrMetadata(std::map<drm_hdr_meatadata_t, float> & hdrmedata);
 
     /*get current display mode.*/
     int32_t getMode(drm_mode_info_t & mode);
@@ -48,6 +52,7 @@ public:
 
 protected:
     void closeLogoDisplay();
+    bool updateHdrMetadata(std::map<drm_hdr_meatadata_t, float> & hdrmedata);
 
 protected:
     int32_t mId;
@@ -63,6 +68,8 @@ protected:
     std::map<uint32_t, drm_mode_info_t> mModes;
     std::shared_ptr<HwDisplayConnector>  mConnector;
     std::map<uint32_t, std::shared_ptr<HwDisplayPlane>> mPlanes;
+
+    vframe_master_display_colour_s_t hdrVideoInfo;
 
     std::mutex mMutex;
 };

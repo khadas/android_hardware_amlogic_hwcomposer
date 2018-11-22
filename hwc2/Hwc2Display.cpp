@@ -100,6 +100,9 @@ void Hwc2Display::loadDisplayResources() {
     mCrtc->loadProperities();
     mModeMgr->setDisplayResources(mCrtc, mConnector);
     mConnector->getHdrCapabilities(&mHdrCaps);
+#ifdef HWC_HDR_METADATA_SUPPORT
+    mCrtc->getHdrMetadataKeys(mHdrKeys);
+#endif
 
     /*update composition strategy.*/
     uint32_t strategyFlags = 0;
@@ -126,6 +129,19 @@ const char * Hwc2Display::getName() {
 const drm_hdr_capabilities_t * Hwc2Display::getHdrCapabilities() {
     return &mHdrCaps;
 }
+
+#ifdef HWC_HDR_METADATA_SUPPORT
+hwc2_error_t Hwc2Display::getFrameMetadataKeys(
+    uint32_t* outNumKeys, int32_t* outKeys) {
+    *outNumKeys = mHdrKeys.size();
+    if (NULL != outKeys) {
+        for (uint32_t i = 0; i < *outNumKeys; i++)
+            outKeys[i] = mHdrKeys[i];
+    }
+
+    return HWC2_ERROR_NONE;
+}
+#endif
 
 hwc2_error_t Hwc2Display::setVsyncEnable(hwc2_vsync_t enabled) {
     HwDisplayManager::getInstance().enableVBlank(enabled);
@@ -612,6 +628,17 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
         if (mCompositionStrategy->commit() != 0) {
             return HWC2_ERROR_NOT_VALIDATED;
         }
+
+        #ifdef HWC_HDR_METADATA_SUPPORT
+        /*set hdr metadata info.*/
+        for (auto it = mPresentLayers.begin() ; it != mPresentLayers.end(); it++) {
+            if ((*it)->mHdrMetaData.empty() == false) {
+                mCrtc->setHdrMetadata((*it)->mHdrMetaData);
+                break;
+            }
+        }
+        #endif
+
         /* Page flip */
         if (mCrtc->pageFlip(outFence) < 0) {
             return HWC2_ERROR_UNSUPPORTED;

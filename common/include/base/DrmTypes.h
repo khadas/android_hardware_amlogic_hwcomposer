@@ -113,6 +113,33 @@ typedef struct drm_hdr_capabilities {
     int minLuminance;
 } drm_hdr_capabilities_t;
 
+/*same as hwc2_per_frame_metadata_key_t*/
+typedef enum {
+    /* SMPTE ST 2084:2014.
+     * Coordinates defined in CIE 1931 xy chromaticity space
+     */
+    DRM_DISPLAY_RED_PRIMARY_X = 0,
+    DRM_DISPLAY_RED_PRIMARY_Y = 1,
+    DRM_DISPLAY_GREEN_PRIMARY_X = 2,
+    DRM_DISPLAY_GREEN_PRIMARY_Y = 3,
+    DRM_DISPLAY_BLUE_PRIMARY_X = 4,
+    DRM_DISPLAY_BLUE_PRIMARY_Y = 5,
+    DRM_WHITE_POINT_X = 6,
+    DRM_WHITE_POINT_Y = 7,
+    /* SMPTE ST 2084:2014.
+     * Units: nits
+     * max as defined by ST 2048: 10,000 nits
+     */
+    DRM_MAX_LUMINANCE = 8,
+    DRM_MIN_LUMINANCE = 9,
+
+    /* CTA 861.3
+     * Units: nits
+     */
+    DRM_MAX_CONTENT_LIGHT_LEVEL = 10,
+    DRM_MAX_FRAME_AVERAGE_LIGHT_LEVEL = 11,
+} drm_hdr_meatadata_t;
+
 /*
 display_zoom_info used to pass the calibrate display frame.
 Now, it is used to pass the scale info of current vpu.

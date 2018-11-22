@@ -14,15 +14,17 @@
 
 #include <fcntl.h>
 #include <sys/ioctl.h>
-//#include <media/stagefright/foundation/ADebug.h>
-
-#include <cutils/log.h>
+#include <unistd.h>
 #include <string.h>
+#include <cutils/log.h>
+//#include <media/stagefright/foundation/ADebug.h>
+#include "OmxUtil.h"
 
 #define AMSTREAM_IOC_MAGIC  'S'
 
 #define AMSTREAM_IOC_SET_OMX_VPTS  _IOW(AMSTREAM_IOC_MAGIC, 0xaf, int)
 #define AMSTREAM_IOC_SET_VIDEO_DISABLE  _IOW(AMSTREAM_IOC_MAGIC, 0x49, int)
+#define AMSTREAM_IOC_SET_HDR_INFO    _IOW((AMSTREAM_IOC_MAGIC), 0xb3, int)
 
 static int amvideo_handle = -1;
 
@@ -45,11 +47,15 @@ void closeamvideo() {
     }
 }
 
-static int setomxpts(int time_video) {
+int setomxdisplaymode() {
+    return ioctl(amvideo_handle, AMSTREAM_IOC_SET_VIDEO_DISABLE, 2);
+
+}
+int setomxpts(int time_video) {
     return ioctl(amvideo_handle, AMSTREAM_IOC_SET_OMX_VPTS, (unsigned long)&time_video);
 }
 
-static int setomxpts(uint32_t* omx_info) {
+int setomxpts(uint32_t* omx_info) {
     return ioctl(amvideo_handle, AMSTREAM_IOC_SET_OMX_VPTS, (unsigned long)omx_info);
 }
 
@@ -61,6 +67,7 @@ void set_omx_pts(char* data, int* handle) {
     if (strncmp(data, TVP_SECRET, strlen(TVP_SECRET)) == 0) {
         if (*handle == -1 || amvideo_handle == -1) {
              *handle = openamvideo();
+            ALOGI("open amvideo handle 0x%x\n", *handle);
             if (*handle == -1)
                 ALOGW("can not open amvideo");
         }
@@ -97,10 +104,10 @@ void set_omx_pts(char* data, int* handle) {
                 omx_info[3] = frame_num;
                 omx_info[4] = 0; // 0:need reset omx_pts;1:do not need reset omx_pts
                 if (omx_version >= 3) {
-                     omx_info[5] = session;
-                 } else {
-                     omx_info[5] = 0; // Reserved
-                 }
+                    omx_info[5] = session;
+                } else {
+                    omx_info[5] = 0; // Reserved
+                }
                 ret = setomxpts(omx_info);
             } else
                 ret = setomxpts(time_video);
@@ -110,5 +117,12 @@ void set_omx_pts(char* data, int* handle) {
         }
         memcpy((char*)data + sizeof(TVP_SECRET) + sizeof(signed long long), TVP_SECRET_RENDER, sizeof(TVP_SECRET_RENDER));
     }
+}
+
+int set_hdr_info(vframe_master_display_colour_s_t & vf_hdr) {
+    if (amvideo_handle == -1) {
+        openamvideo();
+    }
+    return ioctl(amvideo_handle, AMSTREAM_IOC_SET_HDR_INFO, (unsigned long)&vf_hdr);
 }
 

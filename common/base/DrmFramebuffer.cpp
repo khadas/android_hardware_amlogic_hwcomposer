@@ -52,6 +52,7 @@ int32_t DrmFramebuffer::getReleaseFence() {
 
 void DrmFramebuffer::reset() {
     clearBufferInfo();
+    mHdrMetaData.clear();
     mBlendMode       = DRM_BLEND_MODE_INVALID;
     mPlaneAlpha      = 1.0;
     mTransform       = 0;

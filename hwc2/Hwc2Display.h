@@ -44,6 +44,10 @@ public:
     /*Connector releated.*/
     virtual const char * getName();
     virtual const drm_hdr_capabilities_t * getHdrCapabilities();
+#ifdef HWC_HDR_METADATA_SUPPORT
+    virtual hwc2_error_t getFrameMetadataKeys (
+        uint32_t* outNumKeys, int32_t* outKeys);
+#endif
 
     /*Vsync*/
     virtual hwc2_error_t setVsyncEnable(hwc2_vsync_t enabled);
@@ -164,6 +168,9 @@ protected:
     drm_mode_info_t mDisplayMode;
     display_zoom_info_t mCalibrateInfo;
 
+#ifdef HWC_HDR_METADATA_SUPPORT
+    std::vector<drm_hdr_meatadata_t> mHdrKeys;
+#endif
     std::mutex mMutex;
 };
 

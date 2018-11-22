@@ -32,6 +32,11 @@ ifeq ($(USE_HWC1), true)
 LOCAL_CFLAGS += -DENABLE_MESON_HWC1
 else ifeq ($(USE_HWC2), true)
 LOCAL_CFLAGS += -DENABLE_MESON_HWC2
+
+ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 28 && echo OK),OK)
+LOCAL_CFLAGS += -DHWC_HDR_METADATA_SUPPORT
+endif
+
 else
 $(error "need config hwc api version")
 endif

@@ -34,6 +34,11 @@ public:
     hwc2_error_t setCompositionType(hwc2_composition_t type);
     hwc2_error_t setDataspace(android_dataspace_t dataspace);
     hwc2_error_t setZorder(uint32_t z);
+#ifdef HWC_HDR_METADATA_SUPPORT
+    int32_t setPerFrameMetadata(
+            uint32_t numElements, const int32_t* /*hw2_per_frame_metadata_key_t*/ keys,
+            const float* metadata);
+#endif
 
 /*Extend api.*/
 public:

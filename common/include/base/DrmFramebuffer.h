@@ -55,6 +55,7 @@ public:
 
     int32_t mCompositionType;
 
+    std::map<drm_hdr_meatadata_t, float> mHdrMetaData;
 protected:
     std::shared_ptr<DrmFence> mAcquireFence;
     std::shared_ptr<DrmFence> mReleaseFence;

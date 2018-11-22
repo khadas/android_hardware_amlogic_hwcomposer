@@ -466,6 +466,26 @@ int32_t  MesonHwc2::setLayerZorder(hwc2_display_t display,
     return hwcLayer->setZorder(z);
 }
 
+#ifdef HWC_HDR_METADATA_SUPPORT
+int32_t MesonHwc2::setLayerPerFrameMetadata(
+        hwc2_display_t display, hwc2_layer_t layer,
+        uint32_t numElements, const int32_t* /*hw2_per_frame_metadata_key_t*/ keys,
+        const float* metadata) {
+    GET_HWC_DISPLAY(display);
+    GET_HWC_LAYER(hwcDisplay, layer);
+    return hwcLayer->setPerFrameMetadata(numElements, keys, metadata);
+}
+
+int32_t MesonHwc2::getPerFrameMetadataKeys(
+        hwc2_display_t display,
+        uint32_t* outNumKeys,
+        int32_t* /*hwc2_per_frame_metadata_key_t*/ outKeys) {
+    GET_HWC_DISPLAY(display);
+    return hwcDisplay->getFrameMetadataKeys(outNumKeys, outKeys);
+}
+#endif
+
+
 /**********************Internal Implement********************/
 
 class MesonHwc2Observer : public Hwc2DisplayObserver {
