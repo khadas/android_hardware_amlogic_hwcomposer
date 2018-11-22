@@ -96,8 +96,8 @@ bool OsdPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
                 return false;
         case DRM_FB_SCANOUT:
             break;
-        case DRM_FB_COLOR:
-            return true;
+        //case DRM_FB_COLOR:
+            //return true;
         default:
             return false;
     }
