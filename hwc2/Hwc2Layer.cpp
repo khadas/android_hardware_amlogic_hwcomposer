@@ -9,6 +9,7 @@
 
 #include <MesonLog.h>
 #include <math.h>
+#include <sys/mman.h>
 
 #include "Hwc2Layer.h"
 #include "Hwc2Base.h"
@@ -20,6 +21,73 @@ Hwc2Layer::Hwc2Layer() : DrmFramebuffer(){
 
 Hwc2Layer::~Hwc2Layer() {
     MESON_LOGD("Destroy Hwc2Layer (%p - %llu)", this, getUniqueId());
+}
+
+hwc2_error_t Hwc2Layer::handleDimLayer(buffer_handle_t buffer) {
+    int bufFd = am_gralloc_get_buffer_fd(buffer);
+    int bufFormat = am_gralloc_get_format(buffer);
+
+    /* Number of pixel components in memory
+     * (i.e. R.G.B.A | R.G.B)
+     */
+    int components = 4;
+
+    switch (bufFormat)
+    {
+        case HAL_PIXEL_FORMAT_BGRA_8888:
+        case HAL_PIXEL_FORMAT_RGBA_8888:
+        case HAL_PIXEL_FORMAT_RGBX_8888:
+            components = 4;
+            break;
+        case HAL_PIXEL_FORMAT_RGB_888:
+        case HAL_PIXEL_FORMAT_RGB_565:
+            components = 3;
+            break;
+        default:
+            MESON_LOGE("Need to expand the format(%d), check it out!", bufFormat);
+            break;
+    }
+    char *base = (char *)mmap(NULL, components, PROT_READ, MAP_SHARED, bufFd, 0);
+    int color[components];
+    memcpy(color, base, components);
+
+    switch (bufFormat)
+    {
+        case HAL_PIXEL_FORMAT_BGRA_8888:
+            mColor.b = color[0];
+            mColor.g = color[1];
+            mColor.r = color[2];
+            mColor.a = color[3];
+            break;
+        case HAL_PIXEL_FORMAT_RGBA_8888:
+        case HAL_PIXEL_FORMAT_RGBX_8888:
+            mColor.r = color[0];
+            mColor.g = color[1];
+            mColor.b = color[2];
+            mColor.a = color[3];
+            break;
+        case HAL_PIXEL_FORMAT_RGB_565:
+            mColor.r = color[0];
+            mColor.g = color[1];
+            mColor.b = color[2];
+            mColor.a = 255;
+            break;
+        case HAL_PIXEL_FORMAT_RGB_888:
+            mColor.b = color[0];
+            mColor.g = color[1];
+            mColor.r = color[2];
+            mColor.a = 255;
+            break;
+        default:
+            MESON_LOGE("Need to expand the format(%d), check it out!", bufFormat);
+            break;
+    }
+
+    MESON_LOGV("Dim layer format: %d, RGBA: (%d, %d, %d, %d)", bufFormat,
+        mColor.r, mColor.g, mColor.b, mColor.a);
+
+    mFbType = DRM_FB_COLOR;
+    return HWC2_ERROR_NONE;
 }
 
 hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) {
@@ -39,6 +107,9 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
         mFbType = DRM_FB_VIDEO_OMX_PTS;
     } else if (am_gralloc_is_overlay_buffer(buffer)) {
         mFbType = DRM_FB_VIDEO_OVERLAY;
+    } else if (am_gralloc_get_width(buffer) <= 1 && am_gralloc_get_height(buffer) <= 1) {
+        //For the buffer which size is 1x1, we treat it as a dim layer.
+        handleDimLayer(buffer);
     } else if (am_gralloc_is_coherent_buffer(buffer)) {
         mFbType = DRM_FB_SCANOUT;
     } else {
