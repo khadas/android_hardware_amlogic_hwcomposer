@@ -103,16 +103,28 @@ bool OsdPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
     }
 
     int format = am_gralloc_get_format(fb->mBufferHandle);
-    switch (format) {
-        case HAL_PIXEL_FORMAT_RGBA_8888:
-        case HAL_PIXEL_FORMAT_RGBX_8888:
-        case HAL_PIXEL_FORMAT_RGB_888:
-        case HAL_PIXEL_FORMAT_RGB_565:
-        case HAL_PIXEL_FORMAT_BGRA_8888:
-            break;
-        default:
-            MESON_LOGE("Layer format %d not support.", format);
-            return false;
+    int afbc = am_gralloc_get_vpu_afbc_mask(fb->mBufferHandle);
+    if (afbc == 0) {
+        switch (format) {
+            case HAL_PIXEL_FORMAT_RGBA_8888:
+            case HAL_PIXEL_FORMAT_RGBX_8888:
+            case HAL_PIXEL_FORMAT_RGB_888:
+            case HAL_PIXEL_FORMAT_RGB_565:
+            case HAL_PIXEL_FORMAT_BGRA_8888:
+                break;
+            default:
+                MESON_LOGE("afbc: %d, Layer format %d not support.", afbc, format);
+                return false;
+        }
+    } else {
+        switch (format) {
+            case HAL_PIXEL_FORMAT_RGBA_8888:
+            case HAL_PIXEL_FORMAT_RGBX_8888:
+                break;
+            default:
+                MESON_LOGE("afbc: %d, Layer format %d not support.", afbc, format);
+                return false;
+        }
     }
 
     uint32_t sourceWidth = fb->mSourceCrop.bottom - fb->mSourceCrop.top;
