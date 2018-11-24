@@ -190,7 +190,7 @@ void Hwc2Display::onHotplug(bool connected) {
     }
     mPowerMode->setConnectorStatus(false);
 
-    if (mObserver != NULL) {
+    if (mObserver != NULL && mModeMgr->getPolicyType() != FIXED_SIZE_POLICY) {
         mObserver->onHotplug(false);
     }
 }
@@ -203,22 +203,26 @@ void Hwc2Display::onModeChanged(int stage) {
             if (mSignalHpd) {
                 loadDisplayResources();
                 mCrtc->update();
-                mModeMgr->update();
-                mObserver->onHotplug(true);
-                mSignalHpd = false;
+                if (mCrtc->getMode(mDisplayMode) == 0) {
+                    mModeMgr->update();
+                    mObserver->onHotplug(true);
+                    mSignalHpd = false;
+                }
             } else {
                 mCrtc->update();
                 mModeMgr->update();
+
+                /*Workaround: needed for NTS test.*/
+                if (HwcConfig::primaryHotplugEnabled()
+                    && mCrtc->getMode(mDisplayMode) == 0
+                    && mModeMgr->getPolicyType() == FIXED_SIZE_POLICY) {
+                    mObserver->onHotplug(true);
+                }
             }
 
             if (mCrtc->getMode(mDisplayMode) == 0)
                 mPowerMode->setConnectorStatus(true);
 
-            /*Update info to surfaceflinger by hotplug.
-             * need surfaceflinger to update*/
-            if (mModeMgr->getPolicyType() == FIXED_SIZE_POLICY) {
-                mObserver->onHotplug(true);
-            }
 
             /*last call refresh*/
             mObserver->refresh();

@@ -91,10 +91,10 @@ hwc2_error_t  FixedSizeModeMgr::getDisplayAttribute(
             }
             break;
         case HWC2_ATTRIBUTE_DPI_X:
-            *outValue = mCurMode.dpiX;
+            *outValue = mCurMode.dpiX * 1000.0f;
             break;
         case HWC2_ATTRIBUTE_DPI_Y:
-            *outValue = mCurMode.dpiY;
+            *outValue = mCurMode.dpiY * 1000.0f;
             break;
         default:
             MESON_LOGE("Unkown display attribute(%d)", attribute);

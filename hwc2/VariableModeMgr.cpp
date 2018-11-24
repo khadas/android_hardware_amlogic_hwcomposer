@@ -222,10 +222,10 @@ hwc2_error_t  VariableModeMgr::getDisplayAttribute(
             #endif
                 break;
             case HWC2_ATTRIBUTE_DPI_X:
-                *outValue = curMode.dpiX;
+                *outValue = curMode.dpiX * 1000.0f;
                 break;
             case HWC2_ATTRIBUTE_DPI_Y:
-                *outValue = curMode.dpiY;
+                *outValue = curMode.dpiY * 1000.0f;
                 break;
             default:
                 MESON_LOGE("Unkown display attribute(%d)", attribute);
