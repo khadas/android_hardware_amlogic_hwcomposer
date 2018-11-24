@@ -97,6 +97,9 @@ endif
 ifeq ($(HWC_ENABLE_SOFTWARE_VSYNC), true)
 LOCAL_CFLAGS += -DHWC_ENABLE_SOFTWARE_VSYNC
 endif
+ifeq ($(ENABLE_PRIMARY_DISPLAY_HOTPLUG), true) #Used for NTS test
+HWC_ENABLE_PRIMARY_HOTPLUG := true
+endif
 ifeq ($(HWC_ENABLE_PRIMARY_HOTPLUG), true) #need surfaceflinger modifications
 LOCAL_CFLAGS += -DHWC_ENABLE_PRIMARY_HOTPLUG
 endif
