@@ -19,6 +19,8 @@
 #define VIDEO_PLANE_DIN_ONE       3  // video1: video fb input
 #define VIDEO_PLANE_DIN_TWO       4  // video2: video fb input
 
+#define FORCE_CLIENT_COMPOSER_DEBUG  1
+
 #define OSD_SCALER_INPUT_MAX_WIDTH (1920)
 #define OSD_SCALER_INPUT_MAX_HEIGH (1080)
 
@@ -803,6 +805,10 @@ void MultiplanesComposition::setup(
     if (reqFlag & COMPOSE_FORCE_CLIENT) {
         mForceClientComposer = true;
     }
+
+#if FORCE_CLIENT_COMPOSER_DEBUG
+    mForceClientComposer = true;
+#endif
 
     mCrtc = crtc;
 
