@@ -63,6 +63,7 @@ hwc2_error_t VirtualDisplay::setPowerMode(hwc2_power_mode_t mode) {
 
 hwc2_error_t VirtualDisplay::setFormat(int32_t* format) {
     MESON_LOGD("VirtualDisplay setformat (%d)", *format);
+    UNUSED(format);
     return HWC2_ERROR_NONE;
 }
 

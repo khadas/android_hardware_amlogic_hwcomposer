@@ -342,6 +342,7 @@ int MultiplanesComposition::confirmComposerRange() {
         mMinComposerZorder, mMaxComposerZorder);
     MESON_LOGD("Fb default valid: %d, need compose num %d | %d | %d ",
         ret, belowClientNum, insideClientNum, upClientNum);
+    UNUSED(ret);
 
     MESON_LOGD("fb vs plane: %d | %d, client: %d",
         osdFbsNum, osdPlanesNum, mHaveClient);
@@ -584,10 +585,12 @@ Limitation:
 2. din0 should input the base fb.
 */
 void MultiplanesComposition::handleVPULimit(bool video) {
+    UNUSED(video);
+    MESON_ASSERT(video == false, "handleVPULimit havenot support video");
+
     if (mFramebuffers.size() == 0)
         return ;
 
-    MESON_ASSERT(video == false, "handleVPULimit havenot support video");
 
     if (mMaxComposerZorder != INVALID_ZORDER &&
         mMinComposerZorder != INVALID_ZORDER) {
