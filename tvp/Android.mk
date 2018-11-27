@@ -1,13 +1,11 @@
-LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 
-LOCAL_SRC_FILES:=                     \
-        OmxUtil.cpp            \
+LOCAL_SRC_FILES := \
+        ./tvp/OmxUtil.cpp
 
 LOCAL_C_INCLUDES := \
-	system/core/libcutils/include \
-	system/core/liblog/include \
-	frameworks/av/media/libstagefright/foundation/include
+        ./tvp \
+        system/core/include
 
 LOCAL_MODULE:= libomxutil
 

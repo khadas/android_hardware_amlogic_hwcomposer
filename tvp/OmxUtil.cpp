@@ -119,14 +119,9 @@ void set_omx_pts(char* data, int* handle) {
     }
 }
 
-int set_hdr_info(vframe_master_display_colour_s_t vf_hdr, int* handle) {
-    if (*handle == -1 || amvideo_handle == -1) {
-        *handle = openamvideo();
-            ALOGI("open amvideo handle 0x%x\n", *handle);
-        if (*handle == -1) {
-            ALOGW("can not open amvideo");
-            return -1;
-        }
+int set_hdr_info(vframe_master_display_colour_s_t & vf_hdr) {
+    if (amvideo_handle == -1) {
+        openamvideo();
     }
     return ioctl(amvideo_handle, AMSTREAM_IOC_SET_HDR_INFO, (unsigned long)&vf_hdr);
 }

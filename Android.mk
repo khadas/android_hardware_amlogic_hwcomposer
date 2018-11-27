@@ -13,23 +13,234 @@
 # limitations under the License.
 
 LOCAL_PATH := $(call my-dir)
-LOCAL_ROOT_PATH := $(call my-dir)
 
-# USE_HWC2_CPP := true
+include $(LOCAL_PATH)/tvp/Android.mk
 
-# ifeq ($(USE_HWC2_CPP),true)
-#     include $(LOCAL_PATH)/hwc2/platforms/Android.mk
-# else
-#     include $(LOCAL_PATH)/hwc2_old/Android.mk
-# endif
+include $(CLEAR_VARS)
 
-USE_HWC2 := true
-ifeq ($(USE_HWC2),true)
-    include $(LOCAL_PATH)/hwc2/platforms/Android.mk
-else
-    include $(LOCAL_PATH)/hwc1.4/Android.mk
+LOCAL_MODULE_RELATIVE_PATH := hw
+LOCAL_CPPFLAGS += -std=c++14
+LOCAL_CFLAGS += -DPLATFORM_SDK_VERSION=$(PLATFORM_SDK_VERSION)
+
+ifeq ($(TARGET_BUILD_VARIANT), user)
+LOCAL_CFLAGS += -DHWC_RELEASE=1
 endif
 
-# include $(LOCAL_PATH)/hwc2/platforms/Android.mk
+#*********************************HWC CONFIGS************************
+#HWC API Version Config
+ifeq ($(USE_HWC1), true)
+LOCAL_CFLAGS += -DENABLE_MESON_HWC1
+else ifeq ($(USE_HWC2), true)
+LOCAL_CFLAGS += -DENABLE_MESON_HWC2
 
-include $(LOCAL_ROOT_PATH)/tvp/Android.mk
+ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 28 && echo OK),OK)
+LOCAL_CFLAGS += -DHWC_HDR_METADATA_SUPPORT
+endif
+
+else
+$(error "need config hwc api version")
+endif
+
+#HWC DISPLAY Config
+ifneq ($(HWC_DISPLAY_NUM),)
+    LOCAL_CFLAGS += -DHWC_DISPLAY_NUM=$(HWC_DISPLAY_NUM)
+else
+$(error "need config hwc crtc num")
+endif
+
+#FRAMEBUFFER CONFIG
+#Primary
+ifneq ($(HWC_PRIMARY_FRAMEBUFFER_WIDTH)$(HWC_PRIMARY_FRAMEBUFFER_HEIGHT),)
+    LOCAL_CFLAGS += -DHWC_PRIMARY_FRAMEBUFFER_WIDTH=$(HWC_PRIMARY_FRAMEBUFFER_WIDTH)
+    LOCAL_CFLAGS += -DHWC_PRIMARY_FRAMEBUFFER_HEIGHT=$(HWC_PRIMARY_FRAMEBUFFER_HEIGHT)
+endif
+#Extend, if needed.
+ifneq ($(HWC_EXTEND_FRAMEBUFFER_WIDTH)$(HWC_EXTEND_FRAMEBUFFER_HEIGHT),)
+    LOCAL_CFLAGS += -DHWC_EXTEND_FRAMEBUFFER_WIDTH=$(HWC_EXTEND_FRAMEBUFFER_WIDTH)
+    LOCAL_CFLAGS += -DHWC_EXTEND_FRAMEBUFFER_HEIGHT=$(HWC_EXTEND_FRAMEBUFFER_HEIGHT)
+endif
+
+#CONNECTOR
+#Primary
+ifneq ($(HWC_PRIMARY_CONNECTOR_TYPE),)
+    LOCAL_CFLAGS += -DHWC_PRIMARY_CONNECTOR_TYPE=\"$(HWC_PRIMARY_CONNECTOR_TYPE)\"
+else
+$(error "need config hwc primary connector type")
+endif
+#Extend, if needed.
+ifneq ($(HWC_EXTEND_CONNECTOR_TYPE),)
+    LOCAL_CFLAGS += -DHWC_EXTEND_CONNECTOR_TYPE=\"$(HWC_EXTEND_CONNECTOR_TYPE)\"
+endif
+
+#HEADLESS MODE
+ifeq ($(HWC_ENABLE_HEADLESS_MODE), true)
+LOCAL_CFLAGS += -DHWC_ENABLE_HEADLESS_MODE
+LOCAL_CFLAGS += -DHWC_HEADLESS_REFRESHRATE=5
+endif
+
+#Active Mode
+ifeq ($(HWC_ENABLE_ACTIVE_MODE), true)
+LOCAL_CFLAGS += -DHWC_ENABLE_ACTIVE_MODE
+endif
+ifeq ($(HWC_ENABLE_FRACTIONAL_REFRESH_RATE), true)
+LOCAL_CFLAGS += -DENABLE_FRACTIONAL_REFRESH_RATE
+endif
+
+#Display Calibrate
+ifeq ($(HWC_ENABLE_PRE_DISPLAY_CALIBRATE), true)
+#pre display calibrate means calibrate in surfacefligner,
+#all the coordinates got by hwc already calibrated.
+LOCAL_CFLAGS += -DHWC_ENABLE_PRE_DISPLAY_CALIBRATE
+endif
+
+#HWC Feature Config
+ifeq ($(HWC_ENABLE_SOFTWARE_VSYNC), true)
+LOCAL_CFLAGS += -DHWC_ENABLE_SOFTWARE_VSYNC
+endif
+ifeq ($(HWC_ENABLE_PRIMARY_HOTPLUG), true) #need surfaceflinger modifications
+LOCAL_CFLAGS += -DHWC_ENABLE_PRIMARY_HOTPLUG
+endif
+ifeq ($(HWC_ENABLE_SECURE_LAYER_PROCESS), true)
+LOCAL_CFLAGS += -DHWC_ENABLE_SECURE_LAYER_PROCESS
+endif
+ifeq ($(HWC_DISABLE_CURSOR_PLANE), true)
+LOCAL_CFLAGS += -DHWC_DISABLE_CURSOR_PLANE
+endif
+
+#the following feature havenot finish.
+ifeq ($(HWC_ENABLE_GE2D_COMPOSITION), true)
+LOCAL_CFLAGS += -DHWC_ENABLE_GE2D_COMPOSITION
+endif
+ifeq ($(HWC_ENABLE_DISPLAY_MODE_MANAGEMENT), true)
+LOCAL_CFLAGS += -DHWC_ENABLE_DISPLAY_MODE_MANAGEMENT
+endif
+#*********************************HWC CONFIGS END************************
+
+
+LOCAL_C_INCLUDES := \
+    $(LOCAL_PATH)/common/include/display \
+    $(LOCAL_PATH)/common/include/composer \
+    $(LOCAL_PATH)/common/include/base \
+    $(LOCAL_PATH)/common/include/utils \
+    $(LOCAL_PATH)/common/include/debug \
+    $(LOCAL_PATH)/composition/include \
+    system/core/libsync \
+    system/core/libsync/include \
+    system/core/include \
+    system/core/include/system \
+    vendor/amlogic/system/libge2d/inlcude \
+    system/core/libion/include/ \
+    system/core/libion/kernel-headers
+
+LOCAL_C_INCLUDES += \
+    hardware/amlogic/gralloc/amlogic \
+    hardware/amlogic/gralloc \
+    $(TOP)/hardware/amlogic/media/amavutils/include \
+    $(TOP)/vendor/amlogic/frameworks/services/systemcontrol
+
+LOCAL_COMMON_BASE_FILES := \
+    common/base/DrmFramebuffer.cpp \
+    common/base/DrmSync.cpp \
+    common/base/DrmTypes.cpp \
+    common/base/HwcConfig.cpp \
+    common/base/HwcPowerMode.cpp
+
+LOCAL_COMMON_DISPLAY_FILES  := \
+    common/display/HwDisplayManager.cpp \
+    common/display/HwDisplayVsync.cpp \
+    common/display/HwDisplayCrtc.cpp \
+    common/display/HwDisplayPlane.cpp \
+    common/display/DummyPlane.cpp \
+    common/display/OsdPlane.cpp \
+    common/display/CursorPlane.cpp \
+    common/display/LegacyVideoPlane.cpp \
+    common/display/HwcVideoPlane.cpp \
+    common/display/HwConnectorFactory.cpp \
+    common/display/HwDisplayConnector.cpp \
+    common/display/HwDisplayEventListener.cpp \
+    common/display/ConnectorHdmi.cpp \
+    common/display/ConnectorPanel.cpp \
+    common/display/AmVinfo.cpp
+
+LOCAL_COMMON_UTILS_FILES  := \
+    common/utils/misc.cpp \
+    common/utils/systemcontrol.cpp \
+    common/utils/BitsMap.cpp \
+    common/utils/EventThread.cpp \
+    common/debug/DebugHelper.cpp
+
+LOCAL_COMPOSITION_FILES := \
+    composition/Composition.cpp \
+    composition/CompositionStrategyFactory.cpp \
+    composition/composer/ComposerFactory.cpp \
+    composition/composer/ClientComposer.cpp \
+    composition/composer/DummyComposer.cpp \
+    composition/simplestrategy/SingleplaneComposition/SingleplaneComposition.cpp \
+    composition/simplestrategy/MultiplanesComposition/MultiplanesComposition.cpp
+ifeq ($(TARGET_SUPPORT_GE2D_COMPOSITION),true)
+LOCAL_COMPOSITION_FILES += \
+    common/composer/GE2DComposer.cpp
+endif
+
+ifeq ($(USE_HWC1),true)
+#LOCAL_HWC_FILES :=
+endif
+
+ifeq ($(USE_HWC2),true)
+LOCAL_HWC_FILES := \
+    hwc2/Hwc2Base.cpp \
+    hwc2/Hwc2Display.cpp \
+    hwc2/Hwc2Layer.cpp \
+    hwc2/Hwc2Module.cpp \
+    hwc2/HwcModeMgr.cpp \
+    hwc2/FixedSizeModeMgr.cpp \
+    hwc2/VariableModeMgr.cpp \
+    hwc2/VirtualDisplay.cpp \
+    hwc2/MesonHwc2.cpp
+endif
+
+LOCAL_SHARED_LIBRARIES := \
+    libamgralloc_ext \
+    libcutils \
+    liblog \
+    libdl \
+    libhardware \
+    libutils \
+    libsync \
+    libion \
+    libge2d \
+    libbinder\
+    libsystemcontrolservice
+
+LOCAL_STATIC_LIBRARIES := \
+    libomxutil
+
+#For Android p,and later
+ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 28 && echo OK),OK)
+LOCAL_PROPRIETARY_MODULE := true
+# added for treble
+LOCAL_SHARED_LIBRARIES += \
+    vendor.amlogic.hardware.systemcontrol@1.0 \
+    libbase \
+    libhidlbase \
+    libhidltransport
+
+LOCAL_C_INCLUDES += \
+    $(TOP)/vendor/amlogic/frameworks/services/systemcontrol
+endif
+
+LOCAL_SRC_FILES := \
+    $(LOCAL_COMMON_BASE_FILES) \
+    $(LOCAL_COMMON_COMPOSER_FILES) \
+    $(LOCAL_COMMON_DISPLAY_FILES) \
+    $(LOCAL_COMMON_UTILS_FILES) \
+    $(LOCAL_COMPOSITION_FILES) \
+    $(LOCAL_HWC_FILES)
+#LOCAL_ALLOW_UNDEFINED_SYMBOLS:=true;
+
+LOCAL_SHARED_LIBRARIES += libamavutils_alsa
+
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE := hwcomposer.amlogic
+
+include $(BUILD_SHARED_LIBRARY)

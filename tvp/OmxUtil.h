@@ -32,7 +32,5 @@ int setomxdisplaymode();
 int setomxpts(int time_video);
 int setomxpts(uint32_t* omx_info);
 void set_omx_pts(char* data, int* handle);
-int set_hdr_info(vframe_master_display_colour_s_t vf_hdr, int* handle);
-
-
+int set_hdr_info(vframe_master_display_colour_s_t & vf_hdr);
 
