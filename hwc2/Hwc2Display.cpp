@@ -127,6 +127,15 @@ const char * Hwc2Display::getName() {
 }
 
 const drm_hdr_capabilities_t * Hwc2Display::getHdrCapabilities() {
+    if (HwcConfig::defaultHdrCapEnabled()) {
+        constexpr int sDefaultMinLumiance = 0;
+        constexpr int sDefaultMaxLumiance = 500;
+        mHdrCaps.HLGSupported = true;
+        mHdrCaps.HDR10Supported = true;
+        mHdrCaps.maxLuminance = sDefaultMaxLumiance;
+        mHdrCaps.avgLuminance = sDefaultMaxLumiance;
+        mHdrCaps.minLuminance = sDefaultMinLumiance;
+    }
     return &mHdrCaps;
 }
 

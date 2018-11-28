@@ -37,6 +37,7 @@ public:
     static bool primaryHotplugEnabled();
     static bool secureLayerProcessEnabled();
     static bool cursorPlaneDisabled();
+    static bool defaultHdrCapEnabled();
 
     static void dump(String8 & dumpstr);
 };

@@ -161,6 +161,14 @@ bool HwcConfig::cursorPlaneDisabled() {
 #endif
 }
 
+bool HwcConfig::defaultHdrCapEnabled() {
+#ifdef HWC_ENABLE_DEFAULT_HDR_CAPABILITIES
+    return true;
+#else
+    return false;
+#endif
+}
+
 void HwcConfig::dump(String8 & dumpstr) {
     #ifdef HWC_RELEASE
     dumpstr.append("HwcConfigs (RELEASE):\n");
