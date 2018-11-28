@@ -82,8 +82,8 @@ int32_t Hwc2Display::initialize() {
     loadDisplayResources();
     mCrtc->update();
     mModeMgr->update();
-    mPowerMode->setConnectorStatus(mConnector->isConnected());
-    mCrtc->getMode(mDisplayMode);
+    if (mCrtc->getMode(mDisplayMode) == 0)
+        mPowerMode->setConnectorStatus(true);
 
     MESON_LOG_FUN_LEAVE();
     return 0;
@@ -121,6 +121,15 @@ void Hwc2Display::loadDisplayResources() {
     MESON_ASSERT(mCompositionStrategy, "Hwc2Display load composition strategy failed.");
     MESON_LOG_FUN_LEAVE();
 }
+
+#if 0
+void Hwc2Display::updateDisplayResources() {
+    mCrtc->update();
+    mModeMgr->update();
+    if (mCrtc->getMode(mDisplayMode) == 0)
+        mPowerMode->setConnectorStatus(true);
+}
+#endif
 
 const char * Hwc2Display::getName() {
     return mConnector->getName();
@@ -222,7 +231,6 @@ void Hwc2Display::onModeChanged(int stage) {
 
             if (mCrtc->getMode(mDisplayMode) == 0)
                 mPowerMode->setConnectorStatus(true);
-
 
             /*last call refresh*/
             mObserver->refresh();

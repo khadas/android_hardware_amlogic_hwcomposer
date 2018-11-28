@@ -13,7 +13,7 @@
 HwcPowerMode::HwcPowerMode() {
     mPowerMode = MESON_POWER_BOOT;
     mScreenBlank = true;
-    mConnectorPresent = true;
+    mConnectorPresent = false;
 }
 
 HwcPowerMode::~HwcPowerMode() {
