@@ -109,6 +109,7 @@ protected:
             uint32_t* outNumTypes, uint32_t* outNumRequests);
 
     void loadDisplayResources();
+    //void updateDisplayResources();
 
     /*for calibrate display frame.*/
     int32_t loadCalibrateInfo();
