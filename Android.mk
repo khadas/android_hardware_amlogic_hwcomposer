@@ -106,9 +106,6 @@ endif
 ifeq ($(HWC_DISABLE_CURSOR_PLANE), true)
 LOCAL_CFLAGS += -DHWC_DISABLE_CURSOR_PLANE
 endif
-ifeq ($(TARGET_USE_DEFAULT_HDR_PROPERTY),true)
-LOCAL_CFLAGS += -DUSE_DEFAULT_HDR_CAP
-endif
 
 #the following feature havenot finish.
 ifeq ($(HWC_ENABLE_GE2D_COMPOSITION), true)

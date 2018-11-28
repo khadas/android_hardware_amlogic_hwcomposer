@@ -23,9 +23,6 @@
 #include <EventThread.h>
 #include <systemcontrol.h>
 
-constexpr static float sDefaultMinLumiance = 0.0;
-constexpr static float sDefaultMaxLumiance = 500.0;
-
 Hwc2Display::Hwc2Display(hw_display_id dspId,
     std::shared_ptr<Hwc2DisplayObserver> observer) {
     mHwId = dspId;
@@ -130,14 +127,6 @@ const char * Hwc2Display::getName() {
 }
 
 const drm_hdr_capabilities_t * Hwc2Display::getHdrCapabilities() {
-#ifdef USE_DEFAULT_HDR_CAP
-    mHdrCaps.HLGSupported = true;
-    mHdrCaps.HDR10Supported = true;
-    mHdrCaps.maxLuminance = sDefaultMaxLumiance;
-    mHdrCaps.avgLuminance = sDefaultMaxLumiance;
-    mHdrCaps.minLuminance = sDefaultMinLumiance;
-#endif
-
     return &mHdrCaps;
 }
 
