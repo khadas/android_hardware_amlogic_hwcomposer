@@ -133,7 +133,7 @@ void HwDisplayManager::handle(drm_display_event event, int val) {
     std::map<hw_display_id, HwDisplayObserver *>::iterator it;
     switch (event) {
         case DRM_EVENT_HDMITX_HOTPLUG:
-        case DRM_EVENT_HDMITX_HDCP:
+        //case DRM_EVENT_HDMITX_HDCP: /*TODO: Need to be handled separately.*/
             {
                 MESON_LOGD("Hotplug observer size %d to handle value %d.",
                     mObserver.size(), val);
