@@ -388,8 +388,8 @@ int SingleplaneComposition::commit() {
 
     auto planeit = mUnusedPlanes.begin();
     for (;planeit != mUnusedPlanes.end(); ++planeit) {
-        (*planeit)->blank(BLANK_FOR_NO_CONENT);
-        dumpUnusedPlane(*planeit, BLANK_FOR_NO_CONENT);
+        (*planeit)->blank(BLANK_FOR_NO_CONTENT);
+        dumpUnusedPlane(*planeit, BLANK_FOR_NO_CONTENT);
     }
 
     /*set crtc info.*/

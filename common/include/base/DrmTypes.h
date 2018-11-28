@@ -85,7 +85,7 @@ typedef enum {
 
 typedef enum {
     UNBLANK = 0,
-    BLANK_FOR_NO_CONENT = 1,
+    BLANK_FOR_NO_CONTENT = 1,
     BLANK_FOR_SECURE_CONTENT = 2,
 } drm_plane_blank_t;
 
