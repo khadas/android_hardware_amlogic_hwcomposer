@@ -965,8 +965,8 @@ int MultiplanesComposition::commit() {
 
     auto planeIt = mOtherPlanes.begin();
     for (; planeIt != mOtherPlanes.end(); ++planeIt) {
-        (*planeIt)->blank(BLANK_FOR_NO_CONENT);
-        dumpUnusedPlane(*planeIt, BLANK_FOR_NO_CONENT);
+        (*planeIt)->blank(BLANK_FOR_NO_CONTENT);
+        dumpUnusedPlane(*planeIt, BLANK_FOR_NO_CONTENT);
     }
 
     /*set crtc info.*/

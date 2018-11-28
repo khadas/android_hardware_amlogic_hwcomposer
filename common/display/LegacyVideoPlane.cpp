@@ -125,13 +125,12 @@ int32_t LegacyVideoPlane::setPlane(
 int32_t LegacyVideoPlane::blank(int blankOp) {
     MESON_LOGD("LegacyVideoPlane  blank (%d)", blankOp);
 
-    if (blankOp == BLANK_FOR_SECURE_CONTENT
-        || blankOp == BLANK_FOR_NO_CONENT) {
+    if (blankOp == BLANK_FOR_SECURE_CONTENT) {
         setMute(true);
         return 0;
-    }
-
-    if (blankOp == UNBLANK) {
+    } else if (blankOp == BLANK_FOR_NO_CONTENT) {
+        setMute(true);
+    } else if (blankOp == UNBLANK) {
         setMute(false);
     }
 
@@ -140,14 +139,14 @@ int32_t LegacyVideoPlane::blank(int blankOp) {
 
     int blankStatus = 0;
     getVideodisableStatus(blankStatus);
-
-    if (blankOp == BLANK_FOR_NO_CONENT && blankStatus == 0) {
+    if (blankOp == BLANK_FOR_NO_CONTENT && (blankStatus == 0 || blankStatus == 2)) {
         setVideodisableStatus(1);
     }
 
-    if (blankOp == UNBLANK && blankStatus > 0) {
-        setVideodisableStatus(0);
+    if (blankOp == UNBLANK && blankStatus == 1) {
+        setVideodisableStatus(2);
     }
+
     return 0;
 }
 

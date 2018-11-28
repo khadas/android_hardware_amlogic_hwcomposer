@@ -66,7 +66,7 @@ const char * drmPlaneBlankToString(drm_plane_blank_t blankType) {
         case UNBLANK:
             typeStr = "UnBlank";
             break;
-        case BLANK_FOR_NO_CONENT:
+        case BLANK_FOR_NO_CONTENT:
             typeStr = "Blank";
             break;
         case BLANK_FOR_SECURE_CONTENT:
