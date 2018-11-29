@@ -43,7 +43,6 @@ int32_t HwDisplayVsync::setPeriod(nsecs_t period) {
 
 int32_t HwDisplayVsync::setEnabled(bool enabled) {
     std::unique_lock<std::mutex> stateLock(mStatLock);
-    //MESON_LOGV("HwDisplayVsync: setEnabled %d", enabled);
     mEnabled = enabled;
     stateLock.unlock();
     mStateCondition.notify_all();
