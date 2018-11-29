@@ -153,7 +153,19 @@ hwc2_error_t Hwc2Display::getFrameMetadataKeys(
 #endif
 
 hwc2_error_t Hwc2Display::setVsyncEnable(hwc2_vsync_t enabled) {
-    HwDisplayManager::getInstance().enableVBlank(enabled);
+    bool state;
+    switch (enabled) {
+        case HWC2_VSYNC_ENABLE:
+            state = true;
+            break;
+        case HWC2_VSYNC_DISABLE:
+            state = false;
+            break;
+        default:
+            MESON_LOGE("[%s]: set vsync state invalid %d.", __func__, enabled);
+            return HWC2_ERROR_BAD_PARAMETER;
+    }
+    HwDisplayManager::getInstance().enableVBlank(state);
     return HWC2_ERROR_NONE;
 }
 
