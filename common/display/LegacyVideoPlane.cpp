@@ -31,6 +31,7 @@ LegacyVideoPlane::LegacyVideoPlane(int32_t drvFd, uint32_t id)
     }
 
     mOmxKeepLastFrame = 0;
+    mLegacyVideoFb.reset();
     getOmxKeepLastFrame(mOmxKeepLastFrame);
 }
 
@@ -92,7 +93,7 @@ int32_t LegacyVideoPlane::setPlane(
     std::shared_ptr<DrmFramebuffer> & fb,
     uint32_t zorder __unused) {
     buffer_handle_t buf = fb->mBufferHandle;
-
+    mLegacyVideoFb = fb;
     /*set video axis.*/
     if (shouldUpdateAxis(fb)) {
         char videoAxisStr[MAX_STR_LEN] = {0};
@@ -123,7 +124,8 @@ int32_t LegacyVideoPlane::setPlane(
 }
 
 int32_t LegacyVideoPlane::blank(int blankOp) {
-    MESON_LOGD("LegacyVideoPlane  blank (%d)", blankOp);
+    if (mLegacyVideoFb == NULL)
+        return 0;
 
     if (blankOp == BLANK_FOR_SECURE_CONTENT) {
         setMute(true);
@@ -132,20 +134,37 @@ int32_t LegacyVideoPlane::blank(int blankOp) {
         setMute(true);
     } else if (blankOp == UNBLANK) {
         setMute(false);
+    } else {
+        MESON_LOGI("not support blank type: %d", blankOp);
     }
-
-    if (!mOmxKeepLastFrame)
-        return 0;
 
     int blankStatus = 0;
     getVideodisableStatus(blankStatus);
-    if (blankOp == BLANK_FOR_NO_CONTENT && (blankStatus == 0 || blankStatus == 2)) {
-        setVideodisableStatus(1);
+
+    if (mLegacyVideoFb->mFbType == DRM_FB_VIDEO_OVERLAY) {
+        if (blankOp == BLANK_FOR_NO_CONTENT && (blankStatus == 0 || blankStatus == 2)) {
+            setVideodisableStatus(1);
+        }
+
+        if (blankOp == UNBLANK && (blankStatus == 1 || blankStatus == 2)) {
+            setVideodisableStatus(0);
+        }
+    } else if (mLegacyVideoFb->mFbType == DRM_FB_VIDEO_SIDEBAND || mLegacyVideoFb->mFbType == DRM_FB_VIDEO_OMX_PTS) {
+        if (mOmxKeepLastFrame) {
+            if (blankOp == BLANK_FOR_NO_CONTENT && (blankStatus == 0 || blankStatus == 2)) {
+                setVideodisableStatus(1);
+            }
+
+            if (blankOp == UNBLANK && blankStatus == 1) {
+                setVideodisableStatus(2);
+            }
+        }
+    } else {
+        MESON_LOGI("not support video fb type: %d", mLegacyVideoFb->mFbType);
     }
 
-    if (blankOp == UNBLANK && blankStatus == 1) {
-        setVideodisableStatus(2);
-    }
+    if (blankOp == BLANK_FOR_NO_CONTENT)
+        mLegacyVideoFb.reset();
 
     return 0;
 }
