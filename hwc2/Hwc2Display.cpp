@@ -506,7 +506,9 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
 
     /*collect composition flag*/
     uint32_t compositionFlags = 0;
-    if (DebugHelper::getInstance().disableUiHwc() || mForceClientComposer) {
+    if (mForceClientComposer ||
+        DebugHelper::getInstance().disableUiHwc() ||
+        HwcConfig::forceClientEnabled()) {
         compositionFlags |= COMPOSE_FORCE_CLIENT;
     }
 #ifdef HWC_ENABLE_SECURE_LAYER
@@ -695,17 +697,20 @@ hwc2_error_t Hwc2Display::getReleaseFences(uint32_t* outNumElements,
     if (outLayers && outFences)
         needInfo = true;
 
+    /*
+    * Return release fence for all layers, not only DEVICE composition Layers,
+    * for we donot know if it is DEVICE compositin in last composition.
+    */
     for (auto it = mPresentLayers.begin(); it != mPresentLayers.end(); it++) {
         Hwc2Layer *layer = (Hwc2Layer*)(it->get());
-        if (HWC2_COMPOSITION_DEVICE == layer->mHwcCompositionType) {
-            num++;
-            if (needInfo) {
-                int32_t releaseFence = layer->getReleaseFence();
-                *outLayers = layer->getUniqueId();
-                *outFences = releaseFence;
-                outLayers++;
-                outFences++;
-            }
+        num++;
+        if (needInfo) {
+            int32_t releaseFence = layer->getReleaseFence();
+            *outLayers = layer->getUniqueId();
+            *outFences = releaseFence;
+            outLayers++;
+            outFences++;
+            layer->clearReleaseFence();
         }
     }
 
@@ -865,12 +870,12 @@ void Hwc2Display::dump(String8 & dumpstr) {
     /*dump*/
     dumpstr.append("---------------------------------------------------------"
         "-----------------------------\n");
-    dumpstr.appendFormat("Display %d (%s, %s, %s, %d-%d):\n",
-        mHwId, getName(), mModeMgr->getName(),
-        mForceClientComposer ? "Client-Comp" : "HW-Comp",
+    dumpstr.appendFormat("Display %d (%s, %s) \n",
+        mHwId, getName(), mForceClientComposer ? "Client-Comp" : "HW-Comp");
+    dumpstr.appendFormat("Power: (%d-%d) \n",
         mPowerMode->getMode(), mPowerMode->getScreenStatus());
     /*calibration info*/
-    dumpstr.appendFormat("Display Calibration:(%dx%d)->(%dx%d,%dx%d)\n",
+    dumpstr.appendFormat("Calibration: (%dx%d)->(%dx%d,%dx%d)\n",
         mCalibrateInfo.framebuffer_w, mCalibrateInfo.framebuffer_h,
         mCalibrateInfo.crtc_display_x, mCalibrateInfo.crtc_display_y,
         mCalibrateInfo.crtc_display_w, mCalibrateInfo.crtc_display_h);

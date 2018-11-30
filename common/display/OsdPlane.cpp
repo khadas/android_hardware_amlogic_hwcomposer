@@ -198,7 +198,7 @@ int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb, uint32_t zorder)
         return -EINVAL;
     }
 
-    if (mDrmFb) {
+    if (mDrmFb.get()) {
     /* dup a out fence fd for layer's release fence, we can't close this fd
     * now, cause display retire fence will also use this fd. will be closed
     * on SF side*/
@@ -220,6 +220,9 @@ int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> &fb, uint32_t zorder)
 int32_t OsdPlane::blank(int blankOp) {
     //MESON_LOGE("osd%d plane set blank %d", mId-30, blankOp);
     bool bBlank = (blankOp == UNBLANK) ? false : true;
+
+    if (bBlank)
+        mDrmFb.reset();
 
     if (mBlank != bBlank) {
         uint32_t val = bBlank ? 1 : 0;

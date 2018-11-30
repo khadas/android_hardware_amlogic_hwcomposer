@@ -169,6 +169,14 @@ bool HwcConfig::defaultHdrCapEnabled() {
 #endif
 }
 
+bool HwcConfig::forceClientEnabled() {
+#ifdef HWC_FORCE_CLIENT_COMPOSITION
+    return true;
+#else
+    return false;
+#endif
+}
+
 void HwcConfig::dump(String8 & dumpstr) {
     #ifdef HWC_RELEASE
     dumpstr.append("HwcConfigs (RELEASE):\n");
@@ -197,6 +205,9 @@ void HwcConfig::dump(String8 & dumpstr) {
             dumpstr.append("\n");
             dumpstr.appendFormat("\t FracRefreshRate: %s", fracRefreshRateEnabled() ? "Y" : "N");
             dumpstr.appendFormat("\t PreDisplayCalibrate: %s", preDisplayCalibrateEnabled() ? "Y" : "N");
+            dumpstr.append("\n");
+            dumpstr.appendFormat("\t DefaultHdr: %s", defaultHdrCapEnabled() ? "Y" : "N");
+            dumpstr.appendFormat("\t ForceClient: %s", forceClientEnabled() ? "Y" : "N");
             dumpstr.append("\n");
         }
     }
