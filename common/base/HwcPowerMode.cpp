@@ -48,10 +48,8 @@ bool HwcPowerMode::needBlankScreen(bool bLayerPresent) {
         case MESON_POWER_BOOT:
             return !(mConnectorPresent && bLayerPresent);
         case MESON_POWER_CONNECTOR_IN:
-            MESON_LOGD("[%s]: power connector in.", __func__);
             return false;
         case MESON_POWER_CONNECTOR_OUT:
-            MESON_LOGD("[%s]: power connector out.", __func__);
             return true;
         default:
             MESON_LOGE("Unkown power mode (%d).", mPowerMode);

@@ -197,7 +197,6 @@ int32_t LegacyVideoPlane::setMute(bool status) {
             MESON_LOGE("status video (%d) vs (%d)", mPlaneMute, val);
         }
 #endif
-        MESON_LOGD("Already set video to (%d)", status);
     }
 
     return 0;

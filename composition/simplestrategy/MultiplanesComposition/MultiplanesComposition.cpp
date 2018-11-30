@@ -12,7 +12,7 @@
 #include <MesonLog.h>
 
 #define LEGACY_VIDEO_MODE_SWITCH  1  // Only use in current device (Only one leagcy video plane)
-#define OSD_OUTPUT_ONE_CHANNEL 1
+#define OSD_OUTPUT_ONE_CHANNEL    1
 #define OSD_PLANE_DIN_ZERO        0  // din0: osd fb input
 #define OSD_PLANE_DIN_ONE         1  // din1: osd fb input
 #define OSD_PLANE_DIN_TWO         2  // din2: osd fb input
@@ -103,7 +103,6 @@ int MultiplanesComposition::handleVideoComposition() {
         for (int i = 0; i < pairSize; i++) {
             if (fb->mFbType == planeCompPairs[i].srcFb) {
                 uint32_t presentZorder = fb->mZorder;
-                MESON_LOGD("video zorder: %d", fb->mZorder);
                 destComp = planeCompPairs[i].destComp;
                 if (planeCompPairs[i].destPlane == LEGACY_VIDEO_PLANE) {
                     if (mLegacyVideoPlane.get()) {
@@ -189,7 +188,6 @@ int MultiplanesComposition::pickoutOsdFbs() {
                      */
                     auto plane = mOsdPlanes.begin();
                     if (bClientLayer || (*plane)->isFbSupport(fb) == false) {
-                        MESON_LOGD("client: %d, fb %d is not support, set to compose.", bClientLayer, fb->mZorder);
                         if (mMinComposerZorder == INVALID_ZORDER ||
                             mMaxComposerZorder == INVALID_ZORDER) {
                             mMinComposerZorder = fb->mZorder;
@@ -253,7 +251,6 @@ int MultiplanesComposition::pickoutOsdFbs() {
         uiFbIt = mFramebuffers.end();
         uiFbIt --;
         uint32_t uiFbMaxZorder = uiFbIt->second->mZorder;
-        MESON_LOGD("%s : UI fb range (%d ~ %d).", __func__, uiFbMinZorder, uiFbMaxZorder);
 
         for (auto videoFbIt = mOverlayFbs.begin(); videoFbIt != mOverlayFbs.end(); ) {
             std::shared_ptr<DrmFramebuffer> videoFb = *videoFbIt;
@@ -273,14 +270,9 @@ int MultiplanesComposition::pickoutOsdFbs() {
                 }
                 ++videoFbIt;
             } else {
-                MESON_LOGD("Video (z=%d) is on top/bottom, not overlay candidate, remove.",
-                    videoFb->mZorder);
                 videoFbIt = mOverlayFbs.erase(videoFbIt);
             }
         }
-
-        MESON_LOGD("%s : after adjust , UI fb range (%d ~ %d).",
-            __func__, uiFbMinZorder, uiFbMaxZorder);
     }
 #endif
 
@@ -336,14 +328,7 @@ int MultiplanesComposition::confirmComposerRange() {
         return 0;
     }
     int ret = countComposerFbs(belowClientNum, upClientNum, insideClientNum);
-    MESON_LOGD("default compose range: (%d ~ %d)",
-        mMinComposerZorder, mMaxComposerZorder);
-    MESON_LOGD("Fb default valid: %d, need compose num %d | %d | %d ",
-        ret, belowClientNum, insideClientNum, upClientNum);
     UNUSED(ret);
-
-    MESON_LOGD("fb vs plane: %d | %d, client: %d",
-        osdFbsNum, osdPlanesNum, mHaveClient);
     if (osdFbsNum > osdPlanesNum) { // CASE 1: osdFbsNum > osdPlanesNum , need compose more fbs.*/
         /* CASE 1_1: mMinComposerZorder != INVALID_ZORDER, need do compose. */
         int minNeedComposedFbs = osdFbsNum - insideClientNum - osdPlanesNum + 1;  // minimum OSD Fbs need to be composered
@@ -364,8 +349,6 @@ int MultiplanesComposition::confirmComposerRange() {
                     minNeedComposedFbs = 0;
                 } else {
                     minNeedComposedFbs -= belowClientNum;
-                    MESON_LOGD("Compose from begin, still need %d fbs.",
-                        minNeedComposedFbs);
                 }
                 /* confirm the minimum zorder value. */
                 mMinComposerZorder = fbIt->second->mZorder;
@@ -382,8 +365,6 @@ int MultiplanesComposition::confirmComposerRange() {
                     }
                     /* we can confirm the maximum zorder value. */
                     mMaxComposerZorder = fbIt->second->mZorder;
-                    MESON_LOGD("osd fb > plane, has default range, confirm range(%d ~ %d)",
-                        mMinComposerZorder, mMaxComposerZorder);
                 }
             }
         }  else {
@@ -398,8 +379,6 @@ int MultiplanesComposition::confirmComposerRange() {
                     break;
                 }
             }
-            MESON_LOGD("osd fb > plane, no default range, confirm range(%d ~ %d)",
-                mMinComposerZorder, mMaxComposerZorder);
         }
     }
 
@@ -470,12 +449,10 @@ int MultiplanesComposition::setOsdFbs2PlanePairs() {
          */
         /* Pick any available plane */
         if (bDin1 == false) {
-            MESON_LOGD("din1-zorder: %d", fb->mZorder);
             mDisplayPairs.push_back(
                 DisplayPair{OSD_PLANE_DIN_ONE, fb->mZorder, fb, mOsdPlanes[OSD_PLANE_DIN_ONE]});
             bDin1 = true;
         } else {
-            MESON_LOGD("din2-zorder: %d", fb->mZorder);
             mDisplayPairs.push_back(
                 DisplayPair{OSD_PLANE_DIN_TWO, fb->mZorder, fb, mOsdPlanes[OSD_PLANE_DIN_TWO]});
             bDin2 = true;
@@ -520,7 +497,6 @@ int MultiplanesComposition::selectComposer() {
         mComposer = mClientComposer;
 
     /* set composed fb composition type */
-    //MESON_LOGD("Use composer (%s)", mComposer->getName());
     for (auto it = mComposerFbs.begin(); it != mComposerFbs.end(); ++it) {
         (*it)->mCompositionType = mComposer->getType();
     }
@@ -533,7 +509,6 @@ int MultiplanesComposition::fillComposerFbs() {
     std::shared_ptr<DrmFramebuffer> fb;
     if (mMaxComposerZorder != INVALID_ZORDER &&
         mMinComposerZorder != INVALID_ZORDER) {
-        MESON_LOGE("fillComposerFbs %d - %d", mMinComposerZorder, mMaxComposerZorder);
         auto fbIt = mFramebuffers.begin();
         auto lastComposeFbIt = mFramebuffers.end();
         while (fbIt != mFramebuffers.end()) {
@@ -558,8 +533,6 @@ int MultiplanesComposition::fillComposerFbs() {
         if (IS_FB_COMPOSED(videoFb)) {
             ++videoFbIt;
         } else {
-            MESON_LOGD("Video (z=%d) is on top/bottom, remove.",
-                videoFb->mZorder);
             videoFbIt = mOverlayFbs.erase(videoFbIt);
         }
     }
@@ -591,7 +564,6 @@ void MultiplanesComposition::handleVPULimit(bool video) {
 
     if (mFramebuffers.size() == 0)
         return ;
-
 
     if (mMaxComposerZorder != INVALID_ZORDER &&
         mMinComposerZorder != INVALID_ZORDER) {
@@ -647,8 +619,6 @@ void MultiplanesComposition::handleVPULimit(bool video) {
         /* All Scale Fbs and no default composer range, select begin Fbs to composer. */
         mMinComposerZorder = mFramebuffers.begin()->second->mZorder;
         mMaxComposerZorder = mMinComposerZorder;
-        MESON_LOGD("No suitable scale ratio, select bottom fb:%d to compose.",
-            mMinComposerZorder);
     } else {
         /*set display offset, the offset will be updated when commit() if reffb is composed*/
         mOsdDisplayFrame.crtc_display_x = minXOffset;

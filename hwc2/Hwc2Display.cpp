@@ -279,16 +279,12 @@ hwc2_error_t Hwc2Display::createLayer(hwc2_layer_t * outLayer) {
     *outLayer = idx;
     layer->setUniqueId(*outLayer);
     mLayers.emplace(*outLayer, layer);
-    MESON_LOGD("createLayer (%d-%p)", idx, layer.get());
 
     return HWC2_ERROR_NONE;
 }
 
 hwc2_error_t Hwc2Display::destroyLayer(hwc2_layer_t  inLayer) {
     std::lock_guard<std::mutex> lock(mMutex);
-
-    MESON_LOGD("destoryLayer (%" PRId64 ")", inLayer);
-
     DebugHelper::getInstance().removeDebugLayer((int)inLayer);
 
     mLayers.erase(inLayer);
@@ -604,8 +600,6 @@ hwc2_error_t Hwc2Display::collectCompositionRequest(
 
     *outNumRequests = mOverlayLayers.size();
     *outNumTypes    = mChangedLayers.size();
-    MESON_LOGV("layer requests: %d, type changed: %d",
-        *outNumRequests, *outNumTypes);
 
     return ((*outNumTypes) > 0) ? HWC2_ERROR_HAS_CHANGES : HWC2_ERROR_NONE;
 }

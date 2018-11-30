@@ -145,9 +145,6 @@ int32_t sc_get_osd_position(std::string &dispmode, int *position) {
             position[1] = top;
             position[2] = width;
             position[3] = height;
-
-            MESON_LOGI("sc_get_osd_position x:%d y:%d w:%d h:%d",
-                 position[0], position[1], position[2], position[3]);
         }
     });
 
@@ -226,8 +223,6 @@ int32_t sc_get_osd_position(std::string &dispmode, int *position) {
     position[1] = top;
     position[2] = width;
     position[3] = height;
-    MESON_LOGI("sc_get_osd_position x:%d y:%d w:%d h:%d",
-         position[0], position[1], position[2], position[3]);
     return 0;
 }
 
