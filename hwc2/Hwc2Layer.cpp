@@ -20,7 +20,6 @@ Hwc2Layer::Hwc2Layer() : DrmFramebuffer(){
 }
 
 Hwc2Layer::~Hwc2Layer() {
-    MESON_LOGD("Destroy Hwc2Layer (%p - %llu)", this, getUniqueId());
 }
 
 hwc2_error_t Hwc2Layer::handleDimLayer(buffer_handle_t buffer) {
@@ -118,7 +117,6 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
 
     mSecure = am_gralloc_is_secure_buffer(mBufferHandle);
 
-    MESON_LOGD("layer (%llu) setBuffer [%p, %d]", getUniqueId(), (void*)buffer, acquireFence);
     return HWC2_ERROR_NONE;
 }
 

@@ -309,7 +309,6 @@ int SingleplaneComposition::buildOsdComposition() {
                 mComposer = mClientComposer;
 
             /*set composed fb composition type*/
-            MESON_LOGD("Use composer (%s) .", mComposer->getName());
             for (; it != mFramebuffers.end(); ++it) {
                 (*it)->mCompositionType = mComposer->getType();
             }
