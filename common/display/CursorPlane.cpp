@@ -133,21 +133,19 @@ int32_t CursorPlane::updateCursorBuffer() {
             bppX = BPP_2;
             break;
         default:
-            MESON_LOGD("Get error format, use the default value.");
+            MESON_LOGE("Get error format, use the default value.");
             break;
     }
     cbwidth = HWC_ALIGN(bppX * mPlaneInfo.buf_w, BYTE_ALIGN_32) / bppX;
 
-    MESON_LOGI("This is a Sprite, hnd->width is %d(%d), hnd->height is %d",
-                mPlaneInfo.buf_w, cbwidth, mPlaneInfo.buf_h);
     if (mPlaneInfo.info.xres != (uint32_t)cbwidth || mPlaneInfo.info.yres != (uint32_t)mPlaneInfo.buf_h) {
-        MESON_LOGI("disp: %d cursor need to redrew", mDrvFd);
         updatePlaneInfo(cbwidth, mPlaneInfo.buf_h);
         cbuffer = mmap(NULL, mPlaneInfo.fbSize, PROT_READ|PROT_WRITE, MAP_SHARED, mDrvFd, 0);
         if (cbuffer != MAP_FAILED) {
             memset(cbuffer, 1, mPlaneInfo.fbSize);
+            int bufSize = mPlaneInfo.stride * mPlaneInfo.buf_h * bppX;
             unsigned char *base = (unsigned char*)mmap(
-                                NULL, mPlaneInfo.fbSize, PROT_READ|PROT_WRITE,
+                                NULL, bufSize, PROT_READ|PROT_WRITE,
                                 MAP_SHARED, mPlaneInfo.shared_fd, 0);
 
             char* cpyDst = (char*)cbuffer;
@@ -158,10 +156,12 @@ int32_t CursorPlane::updateCursorBuffer() {
                 cpySrc += bppX * mPlaneInfo.stride;
             }
             munmap(cbuffer, mPlaneInfo.fbSize);
+            munmap(base, bufSize);
             MESON_LOGI("setCursor ok");
         } else {
-           MESON_LOGE("Cursor plane buffer mmap fail!");
-           return -EBADF;
+            MESON_LOGE("Cursor plane buffer mmap fail!");
+            munmap(cbuffer, mPlaneInfo.fbSize);
+            return -EBADF;
         }
     }
 
