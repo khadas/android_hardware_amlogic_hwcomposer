@@ -47,7 +47,14 @@ int32_t DrmFramebuffer::setReleaseFence(int32_t fenceFd) {
 }
 
 int32_t DrmFramebuffer::getReleaseFence() {
-    return mReleaseFence->dup();
+    if (mReleaseFence.get())
+        return mReleaseFence->dup();
+    return -1;
+}
+
+int32_t DrmFramebuffer::clearReleaseFence() {
+    mReleaseFence.reset();
+    return 0;
 }
 
 void DrmFramebuffer::reset() {

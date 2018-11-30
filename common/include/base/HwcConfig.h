@@ -38,6 +38,7 @@ public:
     static bool secureLayerProcessEnabled();
     static bool cursorPlaneDisabled();
     static bool defaultHdrCapEnabled();
+    static bool forceClientEnabled();
 
     static void dump(String8 & dumpstr);
 };

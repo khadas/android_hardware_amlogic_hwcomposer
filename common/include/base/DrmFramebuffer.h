@@ -30,6 +30,7 @@ public:
     int32_t setReleaseFence(int32_t fenceFd);
     /*dup current release fence.*/
     int32_t getReleaseFence();
+    int32_t clearReleaseFence();
 
     bool isRotated();
 
