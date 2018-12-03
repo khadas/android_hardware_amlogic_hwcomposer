@@ -280,29 +280,27 @@ int32_t  MesonHwc2::getDisplayAttribute(hwc2_display_t display,
 /*************Virtual display api below*************/
 int32_t MesonHwc2::createVirtualDisplay(uint32_t width, uint32_t height,
     int32_t* format, hwc2_display_t* outDisplay) {
-    hwc2_display_t id = getVirtualDisplayId();
-    std::shared_ptr<VirtualDisplay> disp = std::make_shared<VirtualDisplay>(width, height);
-    disp->initialize();
-    disp->setFormat(format);
-    mDisplays.emplace(id, disp);
-
-    *outDisplay = id;
+    MESON_LOG_EMPTY_FUN();
+    UNUSED(width);
+    UNUSED(height);
+    UNUSED(format);
+    UNUSED(outDisplay);
     return HWC2_ERROR_NONE;
 }
 
 int32_t MesonHwc2::destroyVirtualDisplay(hwc2_display_t display) {
-    CHECK_DISPLAY_VALID(display);
-    mDisplays.erase(display);
-    freeVirtualDisplayId(display);
+    MESON_LOG_EMPTY_FUN();
+    UNUSED(display);
     return HWC2_ERROR_NONE;
 }
 
 int32_t MesonHwc2::setOutputBuffer(hwc2_display_t display,
     buffer_handle_t buffer, int32_t releaseFence) {
-    GET_HWC_DISPLAY(display);
-
-    VirtualDisplay * disp = (VirtualDisplay *)hwcDisplay.get();
-    return disp->setOutputBuffer(buffer, releaseFence);
+    MESON_LOG_EMPTY_FUN();
+    UNUSED(display);
+    UNUSED(buffer);
+    UNUSED(releaseFence);
+    return HWC2_ERROR_NONE;
 }
 
 uint32_t MesonHwc2::getMaxVirtualDisplayCount() {
