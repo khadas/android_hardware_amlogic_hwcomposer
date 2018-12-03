@@ -204,7 +204,6 @@ LOCAL_HWC_FILES := \
     hwc2/HwcModeMgr.cpp \
     hwc2/FixedSizeModeMgr.cpp \
     hwc2/VariableModeMgr.cpp \
-    hwc2/VirtualDisplay.cpp \
     hwc2/MesonHwc2.cpp
 endif
 
