@@ -916,8 +916,7 @@ int MultiplanesComposition::commit() {
         }
 
         /* Set display info. */
-        plane->setPlane(fb, presentZorder);
-        plane->blank(blankFlag);
+        plane->setPlane(fb, presentZorder, blankFlag);
     }
 
     /* Blank un-used plane. */
@@ -932,7 +931,7 @@ int MultiplanesComposition::commit() {
 
     auto planeIt = mOtherPlanes.begin();
     for (; planeIt != mOtherPlanes.end(); ++planeIt) {
-        (*planeIt)->blank(BLANK_FOR_NO_CONTENT);
+        (*planeIt)->setPlane(NULL, HWC_PLANE_FAKE_ZORDER, BLANK_FOR_NO_CONTENT);
         dumpUnusedPlane(*planeIt, BLANK_FOR_NO_CONTENT);
     }
 

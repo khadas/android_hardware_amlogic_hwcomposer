@@ -28,8 +28,8 @@ public:
     virtual uint32_t getPossibleCrtcs() = 0;
     virtual bool isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) = 0;
 
-    virtual int32_t setPlane(std::shared_ptr<DrmFramebuffer> & fb, uint32_t zorder) = 0;
-    virtual int32_t blank(int blankOp) = 0;
+    virtual int32_t setPlane(std::shared_ptr<DrmFramebuffer> fb,
+        uint32_t zorder, int blankOp) = 0;
 
     /*For debug, plane return a invalid type.*/
     virtual void setIdle(bool idle) { mIdle = idle;}
