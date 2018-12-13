@@ -27,8 +27,7 @@ public:
     uint32_t getPossibleCrtcs();
     bool isFbSupport(std::shared_ptr<DrmFramebuffer> & fb);
 
-    int32_t setPlane(std::shared_ptr<DrmFramebuffer> & fb, uint32_t zorder);
-    int32_t blank(int blankOp);
+    int32_t setPlane(std::shared_ptr<DrmFramebuffer> fb, uint32_t zorder, int blankOp);
 
     void dump(String8 & dumpstr);
 

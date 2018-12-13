@@ -373,8 +373,7 @@ int SingleplaneComposition::commit() {
         }
 
         /*set display info*/
-        plane->setPlane(fb, z);
-        plane->blank(blankFlag);
+        plane->setPlane(fb, z, blankFlag);
     }
 
     /*blank useless plane.*/
@@ -387,7 +386,7 @@ int SingleplaneComposition::commit() {
 
     auto planeit = mUnusedPlanes.begin();
     for (;planeit != mUnusedPlanes.end(); ++planeit) {
-        (*planeit)->blank(BLANK_FOR_NO_CONTENT);
+        (*planeit)->setPlane(NULL, HWC_PLANE_FAKE_ZORDER, BLANK_FOR_NO_CONTENT);
         dumpUnusedPlane(*planeit, BLANK_FOR_NO_CONTENT);
     }
 

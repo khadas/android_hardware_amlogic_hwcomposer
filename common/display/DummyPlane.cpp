@@ -18,16 +18,12 @@ uint32_t DummyPlane::getPlaneType() {
 }
 
 int32_t DummyPlane::setPlane(
-    std::shared_ptr<DrmFramebuffer> & fb __unused,
-    uint32_t zorder __unused) {
+    std::shared_ptr<DrmFramebuffer> fb __unused,
+    uint32_t zorder __unused, int blankOp __unused) {
     return 0;
 }
 
 uint32_t DummyPlane::getCapabilities() {
-    return 0;
-}
-
-int32_t DummyPlane::blank(int blankOp __unused) {
     return 0;
 }
 

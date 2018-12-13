@@ -47,6 +47,8 @@ typedef enum {
 #define DUMP_APPEND_EMPTY_PLANE_INFO() \
     mDumpStr.appendFormat("%10s|%8s|%14s|\n", " ", " ", " ");
 
+#define HWC_PLANE_FAKE_ZORDER (1)
+
 /*Base compostion strategy class.*/
 class ICompositionStrategy {
 public:

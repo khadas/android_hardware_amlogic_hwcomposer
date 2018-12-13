@@ -49,8 +49,8 @@ bool HwcVideoPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
 }
 
 int32_t HwcVideoPlane::setPlane(
-    std::shared_ptr<DrmFramebuffer> & fb __unused,
-    uint32_t zorder __unused) {
+    std::shared_ptr<DrmFramebuffer> fb __unused,
+    uint32_t zorder __unused, int blankOp __unused) {
     if (mDrvFd < 0) {
         MESON_LOGE("osd plane fd is not valiable!");
         return -EBADF;
@@ -111,22 +111,6 @@ int32_t HwcVideoPlane::setPlane(
 
     mPlaneInfo.in_fen_fd  = -1;
     mPlaneInfo.out_fen_fd = -1;
-#endif
-    return 0;
-}
-
-int32_t HwcVideoPlane::blank(int blankOp __unused) {
-#if 0
-    MESON_LOGD("HwcVideo-%d plane set blank %d", mId, blankOp);
-    bool bBlank = (blankOp == UNBLANK) ? false : true;
-    if (mBlank != bBlank) {
-        uint32_t val = bBlank ? 1 : 0;
-        if (ioctl(mDrvFd, FBIOPUT_OSD_SYNC_BLANK, &val) != 0) {
-            MESON_LOGE("osd plane blank ioctl (%d) return(%d)", bBlank, errno);
-            return -EINVAL;
-        }
-        mBlank = bBlank;
-    }
 #endif
     return 0;
 }

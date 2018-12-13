@@ -22,7 +22,7 @@ static inline size_t round_up_to_page_size(size_t x)
 CursorPlane::CursorPlane(int32_t drvFd, uint32_t id)
     : HwDisplayPlane(drvFd, id),
       mLastTransform(0),
-      mCursorPlaneBlank(false),
+      mBlank(true),
       mDrmFb(NULL) {
     snprintf(mName, 64, "CURSOR-%d", id);
 }
@@ -89,29 +89,42 @@ int32_t CursorPlane::updateZoomInfo(display_zoom_info_t zoomInfo) {
 #endif
 
 int32_t CursorPlane::setPlane(
-    std::shared_ptr<DrmFramebuffer> &fb,
-    uint32_t zorder __unused) {
+    std::shared_ptr<DrmFramebuffer> fb,
+    uint32_t zorder __unused, int blankOp) {
     if (mDrvFd < 0) {
         MESON_LOGE("cursor plane fd is not valiable!");
         return -EBADF;
     }
 
-    drm_rect_t disFrame      = fb->mDisplayFrame;
-    buffer_handle_t buf      = fb->mBufferHandle;
+    if (fb) {
+        drm_rect_t disFrame      = fb->mDisplayFrame;
+        buffer_handle_t buf      = fb->mBufferHandle;
 
-    /* osd request plane zorder > 0 */
-    mPlaneInfo.zorder        = fb->mZorder + 1;
-    mPlaneInfo.transform     = fb->mTransform;
-    mPlaneInfo.dst_x         = disFrame.left;
-    mPlaneInfo.dst_y         = disFrame.top;
-    mPlaneInfo.format        = am_gralloc_get_format(buf);
-    mPlaneInfo.shared_fd     = am_gralloc_get_buffer_fd(buf);
-    mPlaneInfo.stride        = am_gralloc_get_stride_in_pixel(buf);
-    mPlaneInfo.buf_w         = am_gralloc_get_width(buf);
-    mPlaneInfo.buf_h         = am_gralloc_get_height(buf);
+        /* osd request plane zorder > 0 */
+        mPlaneInfo.zorder        = fb->mZorder + 1;
+        mPlaneInfo.transform     = fb->mTransform;
+        mPlaneInfo.dst_x         = disFrame.left;
+        mPlaneInfo.dst_y         = disFrame.top;
+        mPlaneInfo.format        = am_gralloc_get_format(buf);
+        mPlaneInfo.shared_fd     = am_gralloc_get_buffer_fd(buf);
+        mPlaneInfo.stride        = am_gralloc_get_stride_in_pixel(buf);
+        mPlaneInfo.buf_w         = am_gralloc_get_width(buf);
+        mPlaneInfo.buf_h         = am_gralloc_get_height(buf);
 
-    updateCursorBuffer();
-    setCursorPosition(mPlaneInfo.dst_x, mPlaneInfo.dst_y);
+        updateCursorBuffer();
+        setCursorPosition(mPlaneInfo.dst_x, mPlaneInfo.dst_y);
+    }
+
+    bool bBlank = blankOp == UNBLANK ? false : true;
+    if (mBlank != bBlank) {
+        uint32_t val = bBlank ? 1 : 0;
+        if (ioctl(mDrvFd, FBIOPUT_OSD_SYNC_BLANK, &val) != 0) {
+            MESON_LOGE("cursor plane blank ioctl (%d) return(%d)", bBlank, errno);
+            return -EINVAL;
+        }
+        mBlank = bBlank;
+    }
+
     mDrmFb = fb;
     return 0;
 }
@@ -281,24 +294,8 @@ int32_t CursorPlane::setCursorPosition(int32_t x, int32_t y) {
     return 0;
 }
 
-int32_t CursorPlane::blank(int blankOp) {
-    //MESON_LOGD("cursor plane blank: %d(%d)", blank, mCursorPlaneBlank);
-    bool bBlank = (blankOp == UNBLANK) ? false : true;
-
-    if (mCursorPlaneBlank != bBlank) {
-        uint32_t val = bBlank ? 1 : 0;
-        if (ioctl(mDrvFd, FBIOPUT_OSD_SYNC_BLANK, &val) != 0) {
-            MESON_LOGE("cursor plane blank ioctl (%d) return(%d)", bBlank, errno);
-            return -EINVAL;
-        }
-        mCursorPlaneBlank = bBlank;
-    }
-
-    return 0;
-}
-
 void CursorPlane::dump(String8 & dumpstr) {
-    if (!mCursorPlaneBlank) {
+    if (!mBlank) {
         dumpstr.appendFormat("  osd%1d | %3d |\n",
                  mId - 30,
                  mPlaneInfo.zorder);
