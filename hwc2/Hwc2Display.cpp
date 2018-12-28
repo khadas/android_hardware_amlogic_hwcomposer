@@ -32,6 +32,7 @@ Hwc2Display::Hwc2Display(hw_display_id dspId,
     mSignalHpd = false;
     memset(&mHdrCaps, 0, sizeof(mHdrCaps));
     memset(mColorMatrix, 0, sizeof(float) * 16);
+    memset(&mCalibrateCoordinates, 0, sizeof(int) * 4);
 }
 
 Hwc2Display::~Hwc2Display() {
@@ -439,13 +440,14 @@ int32_t Hwc2Display::loadCalibrateInfo() {
         int calibrateCoordinates[4];
         std::string dispModeStr(mDisplayMode.name);
         if (0 == sc_get_osd_position(dispModeStr, calibrateCoordinates)) {
-            mCalibrateInfo.crtc_display_x = calibrateCoordinates[0];
-            mCalibrateInfo.crtc_display_y = calibrateCoordinates[1];
-            mCalibrateInfo.crtc_display_w = calibrateCoordinates[2];
-            mCalibrateInfo.crtc_display_h = calibrateCoordinates[3];
+            memcpy(mCalibrateCoordinates, calibrateCoordinates, sizeof(int) * 4);
         } else {
-            MESON_LOGE("(%s): sc_get_osd_position failed", __func__);
+            MESON_LOGD("(%s): sc_get_osd_position failed, use backup coordinates.", __func__);
         }
+        mCalibrateInfo.crtc_display_x = mCalibrateCoordinates[0];
+        mCalibrateInfo.crtc_display_y = mCalibrateCoordinates[1];
+        mCalibrateInfo.crtc_display_w = mCalibrateCoordinates[2];
+        mCalibrateInfo.crtc_display_h = mCalibrateCoordinates[3];
     }
     return 0;
 }

@@ -35,7 +35,6 @@ using ::android::hardware::Return;
         } \
     }
 
-
 /*HIDL BASED SYSTEMCONTROL SERVICE PROXY.*/
 #if PLATFORM_SDK_VERSION >= 26
 
@@ -65,7 +64,8 @@ static void load_sc_proxy() {
     gSCDeathRecipient = new SystemControlDeathRecipient();
     Return<bool> linked = gSC->linkToDeath(gSCDeathRecipient, /*cookie*/ 0);
     if (!linked.isOk()) {
-        MESON_LOGE("Transaction error in linking to system service death: %s", linked.description().c_str());
+        MESON_LOGE("Transaction error in linking to system service death: %s",
+            linked.description().c_str());
     } else if (!linked) {
         MESON_LOGE("Unable to link to system service death notifications");
     } else {
@@ -138,7 +138,7 @@ int32_t sc_set_display_mode(std::string &dispmode) {
 int32_t sc_get_osd_position(std::string &dispmode, int *position) {
     CHK_SC_PROXY();
 
-    gSC->getPosition(dispmode, [&position](const Result &ret,
+    auto out = gSC->getPosition(dispmode, [&position](const Result &ret,
                         int left, int top, int width, int height) {
         if (ret == Result::OK) {
             position[0] = left;
@@ -147,6 +147,11 @@ int32_t sc_get_osd_position(std::string &dispmode, int *position) {
             position[3] = height;
         }
     });
+
+    if (!out.isOk()) {
+        MESON_LOGE("[%s]: getPosition result fail.", __func__);
+        return -EFAULT;
+    }
 
     return 0;
 }
