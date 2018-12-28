@@ -168,6 +168,7 @@ protected:
     uint32_t mFbHeight;
     drm_mode_info_t mDisplayMode;
     display_zoom_info_t mCalibrateInfo;
+    int mCalibrateCoordinates[4];
 
 #ifdef HWC_HDR_METADATA_SUPPORT
     std::vector<drm_hdr_meatadata_t> mHdrKeys;
