@@ -84,6 +84,7 @@ int32_t HwDisplayCrtc::update() {
     memset(&mCurModeInfo, 0, sizeof(drm_mode_info_t));
     if (mConnected) {
         /*1. update current displayMode.*/
+        mConnector->update();
         std::string displayMode;
         if (0 != sc_get_display_mode(displayMode)) {
             MESON_ASSERT(0," %s GetDisplayMode by sc failed.", __func__);

@@ -27,6 +27,10 @@ int32_t ConnectorPanel::loadProperities() {
     return 0;
 }
 
+int32_t ConnectorPanel::update() {
+    return 0;
+}
+
 const char * ConnectorPanel::getName() {
     return mName;
 }

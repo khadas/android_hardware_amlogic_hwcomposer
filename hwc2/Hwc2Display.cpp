@@ -205,6 +205,22 @@ void Hwc2Display::onHotplug(bool connected) {
     }
 }
 
+void Hwc2Display::onUpdate(bool bHdcp) {
+    std::lock_guard<std::mutex> lock(mMutex);
+    MESON_LOGD("On update: [%s]", bHdcp == true ? "HDCP verify success" : "HDCP verify fail");
+
+    if (bHdcp) {
+        if (mObserver != NULL) {
+            if (mCrtc != NULL) {
+                mCrtc->update();
+                mObserver->refresh();
+            }
+        } else {
+            MESON_LOGE("No display oberserve register to display (%s)", getName());
+        }
+    }
+}
+
 void Hwc2Display::onModeChanged(int stage) {
     std::lock_guard<std::mutex> lock(mMutex);
     MESON_LOGD("On mode change state: [%s]", stage == 1 ? "Complete" : "Begin to change");
@@ -517,11 +533,12 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
         HwcConfig::forceClientEnabled()) {
         compositionFlags |= COMPOSE_FORCE_CLIENT;
     }
-#ifdef HWC_ENABLE_SECURE_LAYER
-    if (!mConnector->isSecure()) {
-        compositionFlags |= COMPOSE_HIDE_SECURE_FB;
+
+    if (HwcConfig::secureLayerProcessEnabled()) {
+        if (!mConnector->isSecure()) {
+            compositionFlags |= COMPOSE_HIDE_SECURE_FB;
+        }
     }
-#endif
 
     /*check power mode*/
     if (mPowerMode->needBlankScreen(mPresentLayers.size())) {

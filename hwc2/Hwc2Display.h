@@ -98,6 +98,7 @@ public:
 public:
     void onVsync(int64_t timestamp);
     void onHotplug(bool connected);
+    void onUpdate(bool bHdcp);
     void onModeChanged(int stage);
 
 protected:
