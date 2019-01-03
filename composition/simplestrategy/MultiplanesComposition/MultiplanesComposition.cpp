@@ -952,7 +952,7 @@ int MultiplanesComposition::commit() {
         uint32_t presentZorder = displayIt->presentZorder;
         std::shared_ptr<DrmFramebuffer> fb = displayIt->fb;
         std::shared_ptr<HwDisplayPlane> plane = displayIt->plane;
-        bool blankFlag = (mHideSecureLayer && fb->mSecure) ?
+        int blankFlag = (mHideSecureLayer && fb->mSecure) ?
             BLANK_FOR_SECURE_CONTENT : UNBLANK;
 
         if (composerOutput.get() &&

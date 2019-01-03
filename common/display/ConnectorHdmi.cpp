@@ -54,6 +54,17 @@ int32_t ConnectorHdmi::loadProperities() {
     return 0;
 }
 
+int32_t ConnectorHdmi::update() {
+    MESON_LOG_FUN_ENTER();
+    mConnected = checkConnectState();
+    if (mConnected) {
+        sc_get_hdmitx_hdcp_state(mSecure);
+    }
+
+    MESON_LOG_FUN_LEAVE();
+    return 0;
+}
+
 const char * ConnectorHdmi::getName() {
     return mName;
 }

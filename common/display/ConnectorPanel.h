@@ -17,6 +17,7 @@ public:
     virtual ~ConnectorPanel();
 
     virtual int32_t loadProperities();
+    virtual int32_t update();
 
     virtual const char * getName();
     virtual drm_connector_type_t getType();

@@ -26,6 +26,7 @@ public:
     virtual ~HwDisplayObserver() {}
     virtual void onVsync(int64_t timestamp) = 0;
     virtual void onHotplug(bool connected) = 0;
+    virtual void onUpdate(bool bHdcp) = 0;
     virtual void onModeChanged(int stage) = 0;
 };
 

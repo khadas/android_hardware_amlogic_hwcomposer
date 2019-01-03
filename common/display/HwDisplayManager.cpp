@@ -134,7 +134,6 @@ void HwDisplayManager::handle(drm_display_event event, int val) {
     std::map<hw_display_id, HwDisplayObserver *>::iterator it;
     switch (event) {
         case DRM_EVENT_HDMITX_HOTPLUG:
-        //case DRM_EVENT_HDMITX_HDCP: /*TODO: Need to be handled separately.*/
             {
                 MESON_LOGD("Hotplug observer size %d to handle value %d.",
                     mObserver.size(), val);
@@ -146,6 +145,22 @@ void HwDisplayManager::handle(drm_display_event event, int val) {
                                 it->second->onHotplug((val == 0) ? false : true);
                                 break;
                         }
+            }
+            break;
+        case DRM_EVENT_HDMITX_HDCP:
+            {
+                MESON_LOGD("Hdcp observer size %d to handle value %d.",
+                    mObserver.size(), val);
+                for (it = mObserver.begin(); it != mObserver.end(); ++it) {
+                    for (uint32_t i = 0; i < count_pipes; i++) {
+                        if (pipes[i].crtc_id == it->first &&
+                            mConnectors[pipes[i].connector_id]->getType() ==
+                                DRM_MODE_CONNECTOR_HDMI) {
+                                it->second->onUpdate((val == 0) ? false : true);
+                                break;
+                        }
+                    }
+                }
             }
             break;
         case DRM_EVENT_MODE_CHANGED:
