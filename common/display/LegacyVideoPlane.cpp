@@ -93,6 +93,17 @@ int32_t LegacyVideoPlane::setPlane(
     std::shared_ptr<DrmFramebuffer> & fb,
     uint32_t zorder __unused) {
     buffer_handle_t buf = fb->mBufferHandle;
+
+    /*this is added to slove this situation:
+     *when source has the signal, then playing video in MoivePlayer.
+     *Then, back to home from MoviePlayer.Garbage appears.
+     */
+    if ((mLegacyVideoFb) && (fb)) {
+       if (mLegacyVideoFb->mFbType == DRM_FB_VIDEO_OMX_PTS && fb->mFbType != DRM_FB_VIDEO_OMX_PTS) {
+            setVideodisableStatus(2);
+       }
+    }
+
     mLegacyVideoFb = fb;
     /*set video axis.*/
     if (shouldUpdateAxis(fb)) {
