@@ -39,10 +39,35 @@ void HwDisplayConnector::loadPhysicalSize() {
 
 int32_t HwDisplayConnector::addDisplayMode(std::string& mode) {
     vmode_e vmode = vmode_name_to_mode(mode.c_str());
-    const struct vinfo_s* vinfo = get_tv_info(vmode);
-    if (vmode == VMODE_MAX || vinfo == NULL) {
-        MESON_LOGE("addSupportedConfig meet error mode (%s, %d)", mode.c_str(), vmode);
-        return -ENOENT;
+    struct vinfo_s info;
+    const struct vinfo_s* vinfo = NULL;
+
+    if (VMODE_LCD == vmode) {
+        /*panel display info is not fixed, need read from vout*/
+        struct vinfo_base_s baseinfo;
+        int ret = read_vout_info(&baseinfo);
+        if (ret == 0) {
+            vinfo = &info;
+
+            info.name = mode.c_str();
+            info.mode = vmode;
+            info.width = baseinfo.width;
+            info.height = baseinfo.height;
+            info.field_height = baseinfo.field_height;
+            info.aspect_ratio_num = baseinfo.aspect_ratio_num;
+            info.aspect_ratio_den = baseinfo.aspect_ratio_den;
+            info.sync_duration_num = baseinfo.sync_duration_num;
+            info.sync_duration_den = baseinfo.sync_duration_den;
+        } else {
+            MESON_LOGE("addDisplayMode(%s) read_vout_info failed.", mode.c_str());
+            return -ENOENT;
+        }
+    } else {
+        vinfo = get_tv_info(vmode);
+        if (vmode == VMODE_MAX || vinfo == NULL) {
+            MESON_LOGE("addSupportedConfig meet error mode (%s, %d)", mode.c_str(), vmode);
+            return -ENOENT;
+        }
     }
 
     uint32_t dpiX  = DEFAULT_DISPLAY_DPI, dpiY = DEFAULT_DISPLAY_DPI;
@@ -63,7 +88,9 @@ int32_t HwDisplayConnector::addDisplayMode(std::string& mode) {
 
     mDisplayModes.emplace(mDisplayModes.size(), modeInfo);
 
-    MESON_LOGI("add display mode (%s)", mode.c_str());
+    MESON_LOGI("add display mode (%s, %dx%d, %f)",
+        mode.c_str(), vinfo->width, vinfo->height,
+        (float)vinfo->sync_duration_num/vinfo->sync_duration_den);
     return 0;
 }
 
