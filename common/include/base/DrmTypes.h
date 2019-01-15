@@ -54,6 +54,7 @@ typedef enum drm_fb_type {
     DRM_FB_VIDEO_SIDEBAND,
     /*no image data, but with pts.*/
     DRM_FB_VIDEO_OMX_PTS,
+    DRM_FB_VIDEO_OMX_PTS_SECOND,
     /*no image data, but with pts.*/
     DRM_FB_VIDEO_OMX_V4L,
 } drm_fb_type_t;
@@ -72,6 +73,7 @@ typedef enum {
     OSD_PLANE,
     CURSOR_PLANE,
     LEGACY_VIDEO_PLANE,
+    LEGACY_EXT_VIDEO_PLANE,
     HWC_VIDEO_PLANE,
 } drm_plane_type_t;
 

@@ -52,7 +52,7 @@ int32_t HwcVideoPlane::setPlane(
     std::shared_ptr<DrmFramebuffer> fb __unused,
     uint32_t zorder __unused, int blankOp __unused) {
     if (mDrvFd < 0) {
-        MESON_LOGE("osd plane fd is not valiable!");
+        MESON_LOGE("hwcvideo plane fd is not valiable!");
         return -EBADF;
     }
 #if 0

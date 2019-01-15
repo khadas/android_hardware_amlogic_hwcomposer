@@ -53,6 +53,8 @@ const char * drmPlaneTypeToString(drm_plane_type_t planetype) {
             return "CURSOR";
         case LEGACY_VIDEO_PLANE:
             return "AmVideo";
+        case LEGACY_EXT_VIDEO_PLANE:
+            return "AmExtVideo";
         case HWC_VIDEO_PLANE:
             return "HwcVideo";
         default:

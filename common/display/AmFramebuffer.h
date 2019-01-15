@@ -74,10 +74,25 @@ enum {
 #define AMSTREAM_IOC_GET_OMX_INFO \
     _IOR((AMSTREAM_IOC_MAGIC), 0xb2, unsigned int)
 
+#define AMSTREAM_IOC_GLOBAL_GET_VIDEOPIP_OUTPUT \
+    _IOR(AMSTREAM_IOC_MAGIC, 0x2b, int)
+#define AMSTREAM_IOC_GLOBAL_SET_VIDEOPIP_OUTPUT \
+    _IOW(AMSTREAM_IOC_MAGIC, 0x2c, int)
+#define AMSTREAM_IOC_GET_VIDEOPIP_DISABLE \
+    _IOR((AMSTREAM_IOC_MAGIC), 0x2d, int)
+#define AMSTREAM_IOC_SET_VIDEOPIP_DISABLE \
+    _IOW((AMSTREAM_IOC_MAGIC), 0x2e, int)
+
+#define AMSTREAM_IOC_SET_ZORDER \
+    _IOW((AMSTREAM_IOC_MAGIC), 0x38, unsigned int)
+#define AMSTREAM_IOC_SET_PIP_ZORDER \
+    _IOW((AMSTREAM_IOC_MAGIC), 0x36, unsigned int)
+
 /*Legacy fb sysfs*/
 #define SYSFS_DISPLAY_MODE              "/sys/class/display/mode"
 #define SYSFS_DISPLAY_AXIS              "/sys/class/display/axis"
 #define SYSFS_VIDEO_AXIS                "/sys/class/video/axis"
+#define SYSFS_VIDEO_AXIS_PIP            "/sys/class/video/axis_pip"
 #define DISPLAY_FB1_SCALE_AXIS          "/sys/class/graphics/fb1/scale_axis"
 #define DISPLAY_FB1_SCALE               "/sys/class/graphics/fb1/scale"
 /*legacy logo switch*/

@@ -7,7 +7,7 @@
  * Description:
  */
 
-#include "LegacyVideoPlane.h"
+#include "LegacyExtVideoPlane.h"
 #include "AmFramebuffer.h"
 
 #include <misc.h>
@@ -20,57 +20,55 @@
 
 //#define AMVIDEO_DEBUG
 
-LegacyVideoPlane::LegacyVideoPlane(int32_t drvFd, uint32_t id)
+LegacyExtVideoPlane::LegacyExtVideoPlane(int32_t drvFd, uint32_t id)
     : HwDisplayPlane(drvFd, id),
     mNeedUpdateAxis(false) {
     snprintf(mName, 64, "AmVideo-%d", id);
 
     if (getMute(mPlaneMute) != 0) {
-        MESON_LOGE("get video mute failed.");
+        MESON_LOGE("get pip video mute failed.");
         mPlaneMute = false;
     }
 
     mOmxKeepLastFrame = 0;
-    mVideoType = DRM_FB_UNDEFINED;
-    mLegacyVideoFb.reset();
+    mLegacyExtVideoFb.reset();
     getOmxKeepLastFrame(mOmxKeepLastFrame);
 }
 
-LegacyVideoPlane::~LegacyVideoPlane() {
+LegacyExtVideoPlane::~LegacyExtVideoPlane() {
 
 }
 
-uint32_t LegacyVideoPlane::getPlaneType() {
-    return LEGACY_VIDEO_PLANE;
+uint32_t LegacyExtVideoPlane::getPlaneType() {
+    return LEGACY_EXT_VIDEO_PLANE;
 }
 
-const char * LegacyVideoPlane::getName() {
+const char * LegacyExtVideoPlane::getName() {
     return mName;
 }
 
-uint32_t LegacyVideoPlane::getCapabilities() {
+uint32_t LegacyExtVideoPlane::getCapabilities() {
     return 0;
 }
 
-int32_t LegacyVideoPlane::getFixedZorder() {
-    /*Legacy video plane not support PLANE_SUPPORT_ZORDER, always at bottom*/
-    return LEGACY_VIDEO_PLANE_FIXED_ZORDER;
+int32_t LegacyExtVideoPlane::getFixedZorder() {
+    return INVALID_ZORDER;
 }
 
-uint32_t LegacyVideoPlane::getPossibleCrtcs() {
+uint32_t LegacyExtVideoPlane::getPossibleCrtcs() {
     return 1 << 0;
 }
 
-bool LegacyVideoPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
+bool LegacyExtVideoPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
     if (fb->mFbType == DRM_FB_VIDEO_OVERLAY ||
         fb->mFbType == DRM_FB_VIDEO_SIDEBAND ||
-        fb->mFbType == DRM_FB_VIDEO_OMX_PTS)
+        fb->mFbType == DRM_FB_VIDEO_OMX_PTS_SECOND)
         return true;
 
     return false;
 }
 
-bool LegacyVideoPlane::shouldUpdateAxis(
+bool LegacyExtVideoPlane::shouldUpdateAxis(
     std::shared_ptr<DrmFramebuffer> &fb) {
     bool bUpdate = false;
 
@@ -90,7 +88,7 @@ bool LegacyVideoPlane::shouldUpdateAxis(
     return bUpdate;
 }
 
-int32_t LegacyVideoPlane::setPlane(
+int32_t LegacyExtVideoPlane::setPlane(
     std::shared_ptr<DrmFramebuffer> fb,
     uint32_t zorder, int blankOp) {
     if (fb) {
@@ -98,14 +96,13 @@ int32_t LegacyVideoPlane::setPlane(
          *when source has the signal, then playing video in MoivePlayer.
          *Then, back to home from MoviePlayer.Garbage appears.
          */
-        if (mLegacyVideoFb &&
-            mVideoType == DRM_FB_VIDEO_OMX_PTS &&
-            fb->mFbType != DRM_FB_VIDEO_OMX_PTS) {
-            setVideodisableStatus(2);
+        if ((mLegacyExtVideoFb) && (fb)) {
+           if (mLegacyExtVideoFb->mFbType == DRM_FB_VIDEO_OMX_PTS_SECOND && fb->mFbType != DRM_FB_VIDEO_OMX_PTS_SECOND) {
+                setVideodisableStatus(2);
+           }
         }
 
-        mLegacyVideoFb = fb;
-        mVideoType = mLegacyVideoFb->mFbType;
+        mLegacyExtVideoFb = fb;
 
         buffer_handle_t buf = fb->mBufferHandle;
         /*set video axis.*/
@@ -114,7 +111,7 @@ int32_t LegacyVideoPlane::setPlane(
             drm_rect_t * videoAxis = &(fb->mDisplayFrame);
             sprintf(videoAxisStr, "%d %d %d %d", videoAxis->left, videoAxis->top,
                 videoAxis->right - 1, videoAxis->bottom - 1);
-            sysfs_set_string(SYSFS_VIDEO_AXIS, videoAxisStr);
+            sysfs_set_string(SYSFS_VIDEO_AXIS_PIP, videoAxisStr);
         }
 
         /*set omx pts.*/
@@ -129,15 +126,15 @@ int32_t LegacyVideoPlane::setPlane(
                 set_omx_pts(base, &mDrvFd);
                 setZorder(zorder);
                 munmap(base, buffer->size);
-                MESON_LOGV("set omx pts ok.");
+                MESON_LOGV("PIP set omx pts ok.");
             } else {
-                MESON_LOGE("set omx pts failed.");
+                MESON_LOGE("PIP set omx pts failed.");
             }
         }
     }
 
     /*Update video plane blank status.*/
-    if (!mLegacyVideoFb)
+    if (!mLegacyExtVideoFb)
         return 0;
 
     if (blankOp == BLANK_FOR_SECURE_CONTENT) {
@@ -148,13 +145,13 @@ int32_t LegacyVideoPlane::setPlane(
     } else if (blankOp == UNBLANK) {
         setMute(false);
     } else {
-        MESON_LOGE("not support blank type: %d", blankOp);
+        MESON_LOGE("PIP not support blank type: %d", blankOp);
     }
 
     int blankStatus = 0;
     getVideodisableStatus(blankStatus);
 
-    if (mVideoType == DRM_FB_VIDEO_OVERLAY) {
+    if (mLegacyExtVideoFb->mFbType == DRM_FB_VIDEO_OVERLAY) {
         if (blankOp == BLANK_FOR_NO_CONTENT && (blankStatus == 0 || blankStatus == 2)) {
             setVideodisableStatus(1);
         }
@@ -162,7 +159,7 @@ int32_t LegacyVideoPlane::setPlane(
         if (blankOp == UNBLANK && (blankStatus == 1 || blankStatus == 2)) {
             setVideodisableStatus(0);
         }
-    } else if (mVideoType == DRM_FB_VIDEO_SIDEBAND || mVideoType == DRM_FB_VIDEO_OMX_PTS) {
+    } else if (mLegacyExtVideoFb->mFbType == DRM_FB_VIDEO_SIDEBAND || mLegacyExtVideoFb->mFbType == DRM_FB_VIDEO_OMX_PTS_SECOND) {
         if (mOmxKeepLastFrame) {
             if (blankOp == BLANK_FOR_NO_CONTENT && (blankStatus == 0 || blankStatus == 2)) {
                 setVideodisableStatus(1);
@@ -173,21 +170,19 @@ int32_t LegacyVideoPlane::setPlane(
             }
         }
     } else {
-        MESON_LOGI("not support video fb type: %d", mVideoType);
+        MESON_LOGI("PIP not support video fb type: %d", mLegacyExtVideoFb->mFbType);
     }
 
-    if (blankOp == BLANK_FOR_NO_CONTENT) {
-        mVideoType = DRM_FB_UNDEFINED;
-        mLegacyVideoFb.reset();
-    }
+    if (blankOp == BLANK_FOR_NO_CONTENT)
+        mLegacyExtVideoFb.reset();
 
     return 0;
 }
 
-int32_t LegacyVideoPlane::getMute(bool & staus) {
+int32_t LegacyExtVideoPlane::getMute(bool & staus) {
     uint32_t val = 1;
-    if (ioctl(mDrvFd, AMSTREAM_IOC_GLOBAL_GET_VIDEO_OUTPUT, &val) != 0) {
-        MESON_LOGE("AMSTREAM_GET_VIDEO_OUTPUT ioctl fail(%d)", errno);
+    if (ioctl(mDrvFd, AMSTREAM_IOC_GLOBAL_GET_VIDEOPIP_OUTPUT, &val) != 0) {
+        MESON_LOGE("AMSTREAM_IOC_GLOBAL_GET_VIDEOPIP_OUTPUT ioctl fail(%d)", errno);
         return -EINVAL;
     }
     staus = (val == 0) ? true : false;
@@ -195,12 +190,12 @@ int32_t LegacyVideoPlane::getMute(bool & staus) {
     return 0;
 }
 
-int32_t LegacyVideoPlane::setMute(bool status) {
+int32_t LegacyExtVideoPlane::setMute(bool status) {
     if (mPlaneMute != status) {
-        MESON_LOGD("muteVideo to %d", status);
+        MESON_LOGD("muteVideopip to %d", status);
         uint32_t val = status ? 0 : 1;
-        if (ioctl(mDrvFd, AMSTREAM_IOC_GLOBAL_SET_VIDEO_OUTPUT, val) != 0) {
-            MESON_LOGE("AMSTREAM_SET_VIDEO_OUTPUT ioctl (%d) return(%d)", status, errno);
+        if (ioctl(mDrvFd, AMSTREAM_IOC_GLOBAL_SET_VIDEOPIP_OUTPUT, val) != 0) {
+            MESON_LOGE("AMSTREAM_IOC_GLOBAL_SET_VIDEOPIP_OUTPUT ioctl (%d) return(%d)", status, errno);
             return -EINVAL;
         }
         mPlaneMute = status;
@@ -217,33 +212,33 @@ int32_t LegacyVideoPlane::setMute(bool status) {
     return 0;
 }
 
-int32_t LegacyVideoPlane::setZorder(uint32_t zorder) {
-    if (ioctl(mDrvFd, AMSTREAM_IOC_SET_ZORDER, &zorder) != 0) {
-        MESON_LOGE("AMSTREAM_IOC_SET_ZORDER ioctl return(%d)", errno);
+int32_t LegacyExtVideoPlane::setZorder(uint32_t zorder) {
+    if (ioctl(mDrvFd, AMSTREAM_IOC_SET_PIP_ZORDER, &zorder) != 0) {
+        MESON_LOGE("AMSTREAM_IOC_SET_PIP_ZORDER ioctl return(%d)", errno);
         return -EINVAL;
     }
     return 0;
 }
 
-int32_t LegacyVideoPlane::getVideodisableStatus(int& status) {
-    int ret = ioctl(mDrvFd, AMSTREAM_IOC_GET_VIDEO_DISABLE_MODE, &status);
+int32_t LegacyExtVideoPlane::getVideodisableStatus(int& status) {
+    int ret = ioctl(mDrvFd, AMSTREAM_IOC_GET_VIDEOPIP_DISABLE, &status);
     if (ret < 0) {
-        MESON_LOGE("getvideodisable error, ret=%d", ret);
+        MESON_LOGE("getvideopipdisable error, ret=%d", ret);
         return ret;
     }
     return 0;
 }
 
-int32_t LegacyVideoPlane::setVideodisableStatus(int status) {
-    int ret = ioctl(mDrvFd, AMSTREAM_IOC_SET_VIDEO_DISABLE_MODE, &status);
+int32_t LegacyExtVideoPlane::setVideodisableStatus(int status) {
+    int ret = ioctl(mDrvFd, AMSTREAM_IOC_SET_VIDEOPIP_DISABLE, &status);
     if (ret < 0) {
-        MESON_LOGE("setvideodisable error, ret=%d", ret);
+        MESON_LOGE("setvideopipdisable error, ret=%d", ret);
         return ret;
     }
     return 0;
 }
 
-int32_t LegacyVideoPlane::getOmxKeepLastFrame(unsigned int & keep) {
+int32_t LegacyExtVideoPlane::getOmxKeepLastFrame(unsigned int & keep) {
     int omx_info = 0;
     int ret = ioctl(mDrvFd, AMSTREAM_IOC_GET_OMX_INFO, (unsigned long)&omx_info);
     if (ret < 0) {
@@ -256,7 +251,7 @@ int32_t LegacyVideoPlane::getOmxKeepLastFrame(unsigned int & keep) {
     return ret;
 }
 
-void LegacyVideoPlane::dump(String8 & dumpstr __unused) {
+void LegacyExtVideoPlane::dump(String8 & dumpstr __unused) {
     MESON_LOG_EMPTY_FUN();
 }
 
