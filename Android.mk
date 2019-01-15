@@ -163,6 +163,7 @@ LOCAL_COMMON_DISPLAY_FILES  := \
     common/display/OsdPlane.cpp \
     common/display/CursorPlane.cpp \
     common/display/LegacyVideoPlane.cpp \
+    common/display/LegacyExtVideoPlane.cpp \
     common/display/HwcVideoPlane.cpp \
     common/display/HwConnectorFactory.cpp \
     common/display/HwDisplayConnector.cpp \

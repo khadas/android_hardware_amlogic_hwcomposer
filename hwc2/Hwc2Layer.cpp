@@ -111,7 +111,14 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
     /*} else if (am_gralloc_is_omx_v4l_buffer(buffer)) {
         mFbType = DRM_FB_VIDEO_OMX_V4L;*/
     } else if (am_gralloc_is_omx_metadata_buffer(buffer)) {
-        mFbType = DRM_FB_VIDEO_OMX_PTS;
+        int tunnel = 0;
+        int ret = am_gralloc_get_omx_metadata_tunnel(buffer, &tunnel);
+        if (ret != 0)
+            return HWC2_ERROR_BAD_LAYER;
+        if (tunnel == 0)
+            mFbType = DRM_FB_VIDEO_OMX_PTS;
+        else
+            mFbType = DRM_FB_VIDEO_OMX_PTS_SECOND;
     } else if (am_gralloc_is_overlay_buffer(buffer)) {
         mFbType = DRM_FB_VIDEO_OVERLAY;
     } else if (am_gralloc_get_width(buffer) <= 1 && am_gralloc_get_height(buffer) <= 1) {

@@ -81,6 +81,7 @@ protected:
     void handleOverlayVideoZorder();
     int checkCommitZorder();
     void handleVPULimit(bool video);
+    void handleDispayLayerZorder();
     int handleOsdComposition();
     int handleOsdCompostionWithVideo();
 
@@ -115,7 +116,8 @@ protected:
     std::vector<std::shared_ptr<HwDisplayPlane>> mOsdPlanes;
 
     std::shared_ptr<HwDisplayPlane> mHwcVideoPlane;             // Future  VIDEO support : 2 HwcVideoPlane
-    std::shared_ptr<HwDisplayPlane> mLegacyVideoPlane;          // Current VIDEO support : 1 LegacyVideoPlane + 1 HwcVideoPlane
+    std::shared_ptr<HwDisplayPlane> mLegacyVideoPlane;          // Current VIDEO support : 1 LegacyVideoPlane + 1 LegacyExtVideoPlane
+    std::shared_ptr<HwDisplayPlane> mLegacyExtVideoPlane;
     std::vector<std::shared_ptr<HwDisplayPlane>> mOtherPlanes;
 
     /* Use for composer */

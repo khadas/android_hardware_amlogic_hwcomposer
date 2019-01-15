@@ -21,6 +21,7 @@
 #include "OsdPlane.h"
 #include "CursorPlane.h"
 #include "LegacyVideoPlane.h"
+#include "LegacyExtVideoPlane.h"
 #include "HwcVideoPlane.h"
 #include "AmFramebuffer.h"
 
@@ -327,9 +328,13 @@ int32_t HwDisplayManager::loadPlanes() {
         }
         fd = open(path, O_RDWR, 0);
         if (fd >= 0) {
-            plane_idx = video_idx_max + idx;
+            plane_idx = video_idx_max + count_video;
             std::shared_ptr<LegacyVideoPlane> plane = std::make_shared<LegacyVideoPlane>(fd, plane_idx);
             mPlanes.emplace(plane_idx, plane);
+            count_video ++;
+            plane_idx = plane_idx + count_video;
+            std::shared_ptr<LegacyExtVideoPlane> extPlane = std::make_shared<LegacyExtVideoPlane>(fd, plane_idx);
+            mPlanes.emplace(plane_idx, extPlane);
             count_video ++;
         }
         idx ++;
