@@ -17,7 +17,7 @@ int32_t HwcConfig::getFramebufferSize(int disp, uint32_t & width, uint32_t & hei
     char uiMode[PROPERTY_VALUE_MAX] = {0};
     if (disp == 0) {
         /*primary display*/
-        if (sys_get_string_prop("ro.ui_mode", uiMode) > 0) {
+        if (sys_get_string_prop("vendor.ui_mode", uiMode) > 0) {
             if (!strncmp(uiMode, "720", 3)) {
                 width  = 1280;
                 height = 720;
@@ -25,7 +25,7 @@ int32_t HwcConfig::getFramebufferSize(int disp, uint32_t & width, uint32_t & hei
                 width  = 1920;
                 height = 1080;
             } else {
-                MESON_ASSERT(0, "%s: get not support mode [%s] from ro.ui_mode",
+                MESON_ASSERT(0, "%s: get not support mode [%s] from vendor.ui_mode",
                     __func__, uiMode);
             }
         } else {
