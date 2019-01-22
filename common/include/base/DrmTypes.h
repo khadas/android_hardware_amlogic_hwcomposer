@@ -39,6 +39,8 @@ typedef struct drm_color {
 
 typedef enum drm_fb_type {
     /*scattered buffer, can be used for rendering.*/
+    DRM_FB_UNDEFINED = 0,
+    /*scattered buffer, can be used for rendering.*/
     DRM_FB_RENDER = 1,
     /*contiguous buffer, can be used for scanout.*/
     DRM_FB_SCANOUT,
