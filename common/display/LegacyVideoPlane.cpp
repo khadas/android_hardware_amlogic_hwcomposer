@@ -31,6 +31,7 @@ LegacyVideoPlane::LegacyVideoPlane(int32_t drvFd, uint32_t id)
     }
 
     mOmxKeepLastFrame = 0;
+    mVideoType = DRM_FB_UNDEFINED;
     mLegacyVideoFb.reset();
     getOmxKeepLastFrame(mOmxKeepLastFrame);
 }
@@ -97,13 +98,14 @@ int32_t LegacyVideoPlane::setPlane(
          *when source has the signal, then playing video in MoivePlayer.
          *Then, back to home from MoviePlayer.Garbage appears.
          */
-        if ((mLegacyVideoFb) && (fb)) {
-           if (mLegacyVideoFb->mFbType == DRM_FB_VIDEO_OMX_PTS && fb->mFbType != DRM_FB_VIDEO_OMX_PTS) {
-                setVideodisableStatus(2);
-           }
+        if (mLegacyVideoFb &&
+            mVideoType == DRM_FB_VIDEO_OMX_PTS &&
+            fb->mFbType != DRM_FB_VIDEO_OMX_PTS) {
+            setVideodisableStatus(2);
         }
 
         mLegacyVideoFb = fb;
+        mVideoType = mLegacyVideoFb->mFbType;
 
         buffer_handle_t buf = fb->mBufferHandle;
         /*set video axis.*/
@@ -151,7 +153,7 @@ int32_t LegacyVideoPlane::setPlane(
     int blankStatus = 0;
     getVideodisableStatus(blankStatus);
 
-    if (mLegacyVideoFb->mFbType == DRM_FB_VIDEO_OVERLAY) {
+    if (mVideoType == DRM_FB_VIDEO_OVERLAY) {
         if (blankOp == BLANK_FOR_NO_CONTENT && (blankStatus == 0 || blankStatus == 2)) {
             setVideodisableStatus(1);
         }
@@ -159,7 +161,7 @@ int32_t LegacyVideoPlane::setPlane(
         if (blankOp == UNBLANK && (blankStatus == 1 || blankStatus == 2)) {
             setVideodisableStatus(0);
         }
-    } else if (mLegacyVideoFb->mFbType == DRM_FB_VIDEO_SIDEBAND || mLegacyVideoFb->mFbType == DRM_FB_VIDEO_OMX_PTS) {
+    } else if (mVideoType == DRM_FB_VIDEO_SIDEBAND || mVideoType == DRM_FB_VIDEO_OMX_PTS) {
         if (mOmxKeepLastFrame) {
             if (blankOp == BLANK_FOR_NO_CONTENT && (blankStatus == 0 || blankStatus == 2)) {
                 setVideodisableStatus(1);
@@ -170,11 +172,13 @@ int32_t LegacyVideoPlane::setPlane(
             }
         }
     } else {
-        MESON_LOGI("not support video fb type: %d", mLegacyVideoFb->mFbType);
+        MESON_LOGI("not support video fb type: %d", mVideoType);
     }
 
-    if (blankOp == BLANK_FOR_NO_CONTENT)
+    if (blankOp == BLANK_FOR_NO_CONTENT) {
+        mVideoType = DRM_FB_UNDEFINED;
         mLegacyVideoFb.reset();
+    }
 
     return 0;
 }
