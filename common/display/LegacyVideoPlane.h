@@ -48,6 +48,7 @@ protected:
     drm_rect_t mBackupDisplayFrame;
     bool mNeedUpdateAxis;
     std::shared_ptr<DrmFramebuffer> mLegacyVideoFb;
+    drm_fb_type_t mVideoType;
 };
 
  #endif/*LEGACY_VIDEO_PLANE_H*/
