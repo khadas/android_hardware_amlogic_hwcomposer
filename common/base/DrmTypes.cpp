@@ -27,11 +27,17 @@ const char * drmFbTypeToString(drm_fb_type_t fbtype) {
         case DRM_FB_VIDEO_OMX_PTS:
             typeStr = "omx-pts";
             break;
+        case DRM_FB_VIDEO_OMX_PTS_SECOND:
+            typeStr = "omx-pts-2";
+            break;
         case DRM_FB_VIDEO_OVERLAY:
             typeStr = "video";
             break;
         case DRM_FB_VIDEO_SIDEBAND:
             typeStr = "sideband";
+            break;
+        case DRM_FB_VIDEO_SIDEBAND_SECOND:
+            typeStr = "sideband-2";
             break;
         case DRM_FB_VIDEO_OMX_V4L:
             typeStr = "omx-v4l";

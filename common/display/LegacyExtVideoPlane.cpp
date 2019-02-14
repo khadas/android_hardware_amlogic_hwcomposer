@@ -60,8 +60,7 @@ uint32_t LegacyExtVideoPlane::getPossibleCrtcs() {
 }
 
 bool LegacyExtVideoPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
-    if (fb->mFbType == DRM_FB_VIDEO_OVERLAY ||
-        fb->mFbType == DRM_FB_VIDEO_SIDEBAND ||
+    if (fb->mFbType == DRM_FB_VIDEO_SIDEBAND_SECOND ||
         fb->mFbType == DRM_FB_VIDEO_OMX_PTS_SECOND)
         return true;
 
@@ -159,7 +158,7 @@ int32_t LegacyExtVideoPlane::setPlane(
         if (blankOp == UNBLANK && (blankStatus == 1 || blankStatus == 2)) {
             setVideodisableStatus(0);
         }
-    } else if (mLegacyExtVideoFb->mFbType == DRM_FB_VIDEO_SIDEBAND || mLegacyExtVideoFb->mFbType == DRM_FB_VIDEO_OMX_PTS_SECOND) {
+    } else if (mLegacyExtVideoFb->mFbType == DRM_FB_VIDEO_SIDEBAND_SECOND || mLegacyExtVideoFb->mFbType == DRM_FB_VIDEO_OMX_PTS_SECOND) {
         if (mOmxKeepLastFrame) {
             if (blankOp == BLANK_FOR_NO_CONTENT && (blankStatus == 0 || blankStatus == 2)) {
                 setVideodisableStatus(1);
