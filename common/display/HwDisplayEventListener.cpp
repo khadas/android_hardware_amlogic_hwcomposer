@@ -125,7 +125,6 @@ void HwDisplayEventListener::handleUevent() {
             char * msg = mUeventMsg;
             while (*msg) {
                 MESON_LOGD("received Uevent: %s", msg);
-
                 if (strstr(msg, uevent.stateEnable)) {
                     handle(uevent.eventType, 1);
                     return;

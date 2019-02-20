@@ -150,18 +150,18 @@ Now, it is used to pass the scale info of current vpu.
 So, the crtc_display_w may be not follow the crtc size.
 */
 typedef struct display_zoom_info {
-    unsigned int framebuffer_w;
-    unsigned int framebuffer_h;
+    int32_t framebuffer_w;
+    int32_t framebuffer_h;
 
     /*crtc w,h not used now.*/
-    unsigned int crtc_w;
-    unsigned int crtc_h;
+    int32_t crtc_w;
+    int32_t  crtc_h;
 
     /*scaled display axis*/
-    unsigned int crtc_display_x;
-    unsigned int crtc_display_y;
-    unsigned int crtc_display_w;
-    unsigned int crtc_display_h;
+    int32_t crtc_display_x;
+    int32_t crtc_display_y;
+    int32_t crtc_display_w;
+    int32_t crtc_display_h;
 } display_zoom_info_t;
 
 /*the invalid zorder value defination.*/

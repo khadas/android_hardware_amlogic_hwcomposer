@@ -199,9 +199,9 @@ hwc2_error_t  VariableModeMgr::getDisplayAttribute(
 
     std::map<uint32_t, drm_mode_info_t>::iterator it;
     if (CALL_FROM_SF == caller) {
-        it = mHwcActiveModes.find(config);
-    } else if (CALL_FROM_HWC == caller) {
         it = mSfActiveModes.find(config);
+    } else if (CALL_FROM_HWC == caller) {
+        it = mHwcActiveModes.find(config);
     }
 
     if (it != mHwcActiveModes.end() || it != mSfActiveModes.end()) {

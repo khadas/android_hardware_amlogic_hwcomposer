@@ -102,6 +102,10 @@ int32_t HwDisplayCrtc::update() {
                 }
             }
         }
+    } else {
+        /*clear mode info.*/
+        memset(&mCurModeInfo, 0, sizeof(mCurModeInfo));
+        strcpy(mCurModeInfo.name, "null");
     }
 
     return 0;

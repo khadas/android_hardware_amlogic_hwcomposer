@@ -106,11 +106,11 @@ protected:
     hwc2_error_t collectLayersForPresent();
     hwc2_error_t collectComposersForPresent();
     hwc2_error_t collectPlanesForPresent();
+    hwc2_error_t collectCompositionStgForPresent();
     hwc2_error_t collectCompositionRequest(
             uint32_t* outNumTypes, uint32_t* outNumRequests);
 
     void loadDisplayResources();
-    //void updateDisplayResources();
 
     /*for calibrate display frame.*/
     int32_t loadCalibrateInfo();
@@ -153,6 +153,7 @@ protected:
     std::vector<std::shared_ptr<DrmFramebuffer>> mPresentLayers;
     std::vector<std::shared_ptr<IComposer>> mPresentComposers;
     std::vector<std::shared_ptr<HwDisplayPlane>> mPresentPlanes;
+    std::shared_ptr<ICompositionStrategy> mPresentCompositionStg;
 
     std::vector<hwc2_layer_t> mChangedLayers;
     std::vector<hwc2_layer_t> mOverlayLayers;
@@ -164,6 +165,7 @@ protected:
     std::shared_ptr<HwcPowerMode> mPowerMode;
     bool mSkipComposition;
     bool mSignalHpd;
+    bool mValidateDisplay;
 
     uint32_t mFbWidth;
     uint32_t mFbHeight;

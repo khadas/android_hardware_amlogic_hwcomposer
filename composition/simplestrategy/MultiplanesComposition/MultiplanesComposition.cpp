@@ -11,7 +11,7 @@
 #include <DrmTypes.h>
 #include <MesonLog.h>
 
-#define LEGACY_VIDEO_MODE_SWITCH       0    // Only use in current device (Only one leagcy video plane)
+#define LEGACY_VIDEO_MODE_SWITCH       0    // Only use in current device (Only one legacy video plane)
 #define OSD_OUTPUT_ONE_CHANNEL         1
 #define OSD_PLANE_DIN_ZERO             0    // din0: osd fb input
 #define OSD_PLANE_DIN_ONE              1    // din1: osd fb input
@@ -245,29 +245,28 @@ int MultiplanesComposition::pickoutOsdFbs() {
         mDummyComposer->addInputs(dummyFbs, dummyOverlayFbs);
     }
 
-/* Only support one leagcy video in current times. */
+/* Only support one legacy video in current times. */
 #if LEGACY_VIDEO_MODE_SWITCH
     if (!mOverlayFbs.empty() && !mFramebuffers.empty()) {
         auto osdFbIt = mFramebuffers.begin();
         uint32_t minOsdFbZorder = osdFbIt->second->mZorder;
         osdFbIt = mFramebuffers.end();
         osdFbIt --;
-        //uint32_t maxOsdFbZorder = osdFbIt->second->mZorder;
 
         /* Current only input one Legacy video fb. */
-        std::shared_ptr<DrmFramebuffer> leagcyVideoFb = *(mOverlayFbs.begin());
-        if (leagcyVideoFb->mZorder > minOsdFbZorder) {
+        std::shared_ptr<DrmFramebuffer> legacyVideoFb = *(mOverlayFbs.begin());
+        if (legacyVideoFb->mZorder > minOsdFbZorder) {
             mMinComposerZorder = mFramebuffers.begin()->second->mZorder;
-            /* Leagcy video is always on the bottom.
+            /* Legacy video is always on the bottom.
              * SO, all fbs below leagcyVideo zorder need to compose.
              * Set maxClientZorder = leagcyVideoZorder
              */
-            if (mMaxComposerZorder == INVALID_ZORDER || leagcyVideoFb->mZorder > mMaxComposerZorder) {
-                mMaxComposerZorder = leagcyVideoFb->mZorder;
+            if (mMaxComposerZorder == INVALID_ZORDER || legacyVideoFb->mZorder > mMaxComposerZorder) {
+                mMaxComposerZorder = legacyVideoFb->mZorder;
             }
         }
     }
-#else // If only one leagcy video in current times, don't need to check inside video flag.
+#else // If only one legacy video in current times, don't need to check inside video flag.
     /* 1. check mInsideVideoFbsFlag = false
      * 2. for HDR mode, adjust compose range.
      */
@@ -382,15 +381,16 @@ int MultiplanesComposition::confirmComposerRange() {
                 /* compose fb from maximum zorder. */
                 if (minNeedComposedFbs > 0) {
                     MESON_ASSERT(upClientNum > 0, "upClientNum should > 0.");
-                    fbIt = mFramebuffers.find(mMaxComposerZorder);
-                    fbIt ++;
+                    fbIt = mFramebuffers.upper_bound(mMaxComposerZorder);
                     for (; fbIt != mFramebuffers.end(); ++ fbIt) {
                         minNeedComposedFbs --;
                         if (minNeedComposedFbs <= 0)
                             break;
                     }
+
                     /* we can confirm the maximum zorder value. */
-                    mMaxComposerZorder = fbIt->second->mZorder;
+                    if (fbIt != mFramebuffers.end())
+                        mMaxComposerZorder = fbIt->second->mZorder;
                 }
             }
         }  else {
