@@ -122,9 +122,11 @@ typedef struct osd_plane_info_t {
     int             afbc_inter_format;
     unsigned int    zorder;
     unsigned int    blend_mode;
-    unsigned char  plane_alpha;
-    unsigned char  dim_layer;
-    unsigned int  dim_color;
+    unsigned char   plane_alpha;
+    unsigned char   dim_layer;
+    unsigned int    dim_color;
+    int             fb_width;
+    int             fb_height;
     int             reserve;
 } osd_plane_info_t;
 
