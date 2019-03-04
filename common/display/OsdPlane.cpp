@@ -170,6 +170,13 @@ int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> fb, uint32_t zorder, 
         mPlaneInfo.dst_h         = disFrame.bottom  - disFrame.top;
         mPlaneInfo.blend_mode    = fb->mBlendMode;
         mPlaneInfo.op           |= OSD_BLANK_OP_BIT;
+        if (fb->mBufferHandle != NULL) {
+            mPlaneInfo.fb_width  = am_gralloc_get_width(fb->mBufferHandle);
+            mPlaneInfo.fb_height = am_gralloc_get_height(fb->mBufferHandle);
+        } else {
+            mPlaneInfo.fb_width  = -1;
+            mPlaneInfo.fb_height = -1;
+        }
 
         if (fb->mFbType == DRM_FB_COLOR) {
             /*reset buffer layer info*/
