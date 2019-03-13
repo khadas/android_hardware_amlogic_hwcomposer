@@ -142,21 +142,18 @@ hwc2_error_t Hwc2Layer::setSidebandStream(const native_handle_t* stream) {
     setBufferInfo(stream, -1);
 
     int channel = 0;
-    int ret = am_gralloc_get_sideband_channel(stream, &channel);
-    if (ret != 0)
-        return HWC2_ERROR_BAD_LAYER;
-    if (channel == AM_VIDEO_DEFAULT) {
-        mFbType = DRM_FB_VIDEO_SIDEBAND;
-    } else if (channel == AM_VIDEO_EXTERNAL) {
+    am_gralloc_get_sideband_channel(stream, &channel);
+    if (channel == AM_VIDEO_EXTERNAL) {
         mFbType = DRM_FB_VIDEO_SIDEBAND_SECOND;
     } else {
-        MESON_LOGE("sideband channel:%d is not supported!", channel);
+        mFbType = DRM_FB_VIDEO_SIDEBAND;
     }
 
     mSecure = false;
     setVisible(true);
 
     return HWC2_ERROR_NONE;
+
 }
 
 hwc2_error_t Hwc2Layer::setColor(hwc_color_t color) {
