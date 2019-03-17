@@ -58,7 +58,7 @@ int32_t LegacyVideoPlane::getFixedZorder() {
 }
 
 uint32_t LegacyVideoPlane::getPossibleCrtcs() {
-    return 1 << 0;
+    return CRTC_VOUT1;
 }
 
 bool LegacyVideoPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {

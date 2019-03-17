@@ -20,10 +20,14 @@
 
 #define DEFAULT_DISPLAY_DPI 160
 
+class HwDisplayCrtc;
+
 class HwDisplayConnector {
 public:
     HwDisplayConnector(int32_t drvFd, uint32_t id);
     virtual ~HwDisplayConnector();
+
+    virtual int32_t setCrtc(HwDisplayCrtc * crtc);
 
     virtual int32_t loadProperities() = 0;
     virtual int32_t update() = 0;
@@ -52,6 +56,7 @@ protected:
     uint32_t mPhyWidth;
     uint32_t mPhyHeight;
 
+    HwDisplayCrtc * mCrtc;
     std::map<uint32_t, drm_mode_info_t> mDisplayModes;
 };
 

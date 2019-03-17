@@ -10,11 +10,14 @@
 #ifndef IHWC_MODE_MGR_H
 #define IHWC_MODE_MGR_H
 
-#include <hardware/hwcomposer2.h>
 #include <BasicTypes.h>
 #include <HwDisplayConnector.h>
 #include <HwDisplayCrtc.h>
-#include <HwcConfig.h>
+
+typedef enum {
+    FIXED_SIZE_POLICY = 0,
+    FULL_ACTIVE_POLICY
+} hwc_modes_policy_t;
 
 /*
  *For different connectors, we need different manage strategy.
@@ -34,14 +37,16 @@ public:
         std::shared_ptr<HwDisplayConnector> & connector) = 0;
     virtual int32_t update() = 0;
 
-    virtual hwc2_error_t  getDisplayConfigs(
-        uint32_t* outNumConfigs, hwc2_config_t* outConfigs) = 0;
-    virtual hwc2_error_t  getDisplayAttribute(
-        hwc2_config_t config, int32_t attribute, int32_t* outValue,
+    virtual int32_t getDisplayMode(drm_mode_info_t & mode) = 0;
+
+    virtual int32_t  getDisplayConfigs(
+        uint32_t* outNumConfigs, uint32_t* outConfigs) = 0;
+    virtual int32_t  getDisplayAttribute(
+        uint32_t config, int32_t attribute, int32_t* outValue,
         int32_t caller = CALL_FROM_HWC) = 0;
-    virtual hwc2_error_t getActiveConfig(hwc2_config_t* outConfig,
+    virtual int32_t getActiveConfig(uint32_t * outConfig,
         int32_t caller = CALL_FROM_HWC) = 0;
-    virtual hwc2_error_t setActiveConfig(hwc2_config_t config) = 0;
+    virtual int32_t setActiveConfig(uint32_t config) = 0;
 
     virtual void dump(String8 & dumpstr) = 0;
 };

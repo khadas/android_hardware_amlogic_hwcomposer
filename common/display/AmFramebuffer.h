@@ -161,7 +161,6 @@ typedef struct osd_page_flip_info_t {
 } osd_page_flip_info_t;
 
 /*fake index for display components.*/
-#define CRTC_IDX_MIN (10)
 #define CONNECTOR_IDX_MIN (20)
 #define OSD_PLANE_IDX_MIN (30)
 #define VIDEO_PLANE_IDX_MIN (40)

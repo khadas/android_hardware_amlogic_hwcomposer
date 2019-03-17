@@ -23,6 +23,8 @@ ANDROID_SINGLETON_STATIC_INSTANCE(HwDisplayEventListener)
     "change@/devices/virtual/amhdmitx/amhdmitx0/hdcp"
 #define VOUT_MODE_EVENT \
     "change@/devices/platform/vout/extcon/setmode"
+#define VOUT2_MODE_EVENT \
+    "change@/devices/platform/vout2/extcon/setmode2"
 
 #define UEVENT_MAX_LEN (4096)
 
@@ -47,7 +49,9 @@ static drm_uevent_info_t mUeventParser[] = {
         NEW_EVENT_STATE_ENABLE, NEW_EVENT_STATE_DISABLE},
     {HDMITX_HDCP_EVENT, DRM_EVENT_HDMITX_HDCP,
         NEW_EVENT_STATE_ENABLE, NEW_EVENT_STATE_DISABLE},
-    {VOUT_MODE_EVENT, DRM_EVENT_MODE_CHANGED,
+    {VOUT_MODE_EVENT, DRM_EVENT_VOUT1_MODE_CHANGED,
+        VOUT_EVENT_MODESWITCH_COMPLETE, VOUT_EVENT_MODESWITCH_BEGIN},
+    {VOUT2_MODE_EVENT, DRM_EVENT_VOUT2_MODE_CHANGED,
         VOUT_EVENT_MODESWITCH_COMPLETE, VOUT_EVENT_MODESWITCH_BEGIN}
 };
 #else
@@ -56,7 +60,9 @@ static drm_uevent_info_t mUeventParser[] = {
         OLD_EVENT_STATE_ENABLE, OLD_EVENT_STATE_DISABLE},
     {HDMITX_HDCP_EVENT, DRM_EVENT_HDMITX_HDCP,
         OLD_EVENT_STATE_ENABLE, OLD_EVENT_STATE_DISABLE},
-    {VOUT_MODE_EVENT, DRM_EVENT_MODE_CHANGED,
+    {VOUT_MODE_EVENT, DRM_EVENT_VOUT1_MODE_CHANGED,
+        OLD_EVENT_STATE_ENABLE, OLD_EVENT_STATE_DISABLE}
+    {VOUT2_MODE_EVENT, DRM_EVENT_VOUT2_MODE_CHANGED,
         OLD_EVENT_STATE_ENABLE, OLD_EVENT_STATE_DISABLE}
 };
 #endif
@@ -186,7 +192,8 @@ int32_t HwDisplayEventListener::registerHandler(
     switch (event) {
         case DRM_EVENT_HDMITX_HOTPLUG:
         case DRM_EVENT_HDMITX_HDCP:
-        case DRM_EVENT_MODE_CHANGED:
+        case DRM_EVENT_VOUT1_MODE_CHANGED:
+        case DRM_EVENT_VOUT2_MODE_CHANGED:
         case DRM_EVENT_ALL:
             mEventHandler.insert(std::make_pair(event, handler));
             createThread();

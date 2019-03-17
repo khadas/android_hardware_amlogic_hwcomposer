@@ -50,7 +50,7 @@ int32_t HwcConfig::getFramebufferSize(int disp, uint32_t & width, uint32_t & hei
     return 0;
 }
 
-int32_t HwcConfig::getDisplayNum() {
+uint32_t HwcConfig::getDisplayNum() {
     return HWC_DISPLAY_NUM;
 }
 

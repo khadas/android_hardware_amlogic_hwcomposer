@@ -10,6 +10,7 @@
 #include "HwConnectorFactory.h"
 #include "ConnectorHdmi.h"
 #include "ConnectorPanel.h"
+#include "ConnectorDummy.h"
 
 std::shared_ptr<HwDisplayConnector> HwConnectorFactory::create(
     drm_connector_type_t connectorType,
@@ -22,6 +23,9 @@ std::shared_ptr<HwDisplayConnector> HwConnectorFactory::create(
             break;
         case DRM_MODE_CONNECTOR_PANEL:
             connector =  std::make_shared<ConnectorPanel>(connectorDrv, connectorId);
+            break;
+        case DRM_MODE_CONNECTOR_DUMMY:
+            connector =  std::make_shared<ConnectorDummy>(connectorDrv, connectorId);
             break;
         case DRM_MODE_CONNECTOR_CVBS:
         default:

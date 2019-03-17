@@ -68,6 +68,7 @@ typedef struct drm_mode_info {
     uint32_t pixelW, pixelH;
     float refreshRate;
 } drm_mode_info_t;
+#define DRM_DISPLAY_MODE_NULL ("null")
 
 typedef enum {
     INVALID_PLANE = 0,
@@ -97,7 +98,8 @@ typedef enum {
 typedef enum {
     DRM_EVENT_HDMITX_HOTPLUG = 1,
     DRM_EVENT_HDMITX_HDCP,
-    DRM_EVENT_MODE_CHANGED,
+    DRM_EVENT_VOUT1_MODE_CHANGED,
+    DRM_EVENT_VOUT2_MODE_CHANGED,
     DRM_EVENT_ALL = 0xFF
 } drm_display_event;
 
@@ -105,6 +107,7 @@ typedef enum {
     DRM_MODE_CONNECTOR_HDMI = 0,
     DRM_MODE_CONNECTOR_CVBS,
     DRM_MODE_CONNECTOR_PANEL,
+    DRM_MODE_CONNECTOR_DUMMY,
     DRM_MODE_CONNECTOR_INVALID = 0xFF,
 } drm_connector_type_t;
 

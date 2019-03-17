@@ -48,10 +48,10 @@ int32_t OsdPlane::getProperties() {
 
     /*set possible crtc*/
     if (capacity & OSD_VIU1) {
-        mPossibleCrtcs |= 1 << 0;
+        mPossibleCrtcs |= CRTC_VOUT1;
     }
     if (capacity & OSD_VIU2) {
-        mPossibleCrtcs |= 1 << 1;
+        mPossibleCrtcs |= CRTC_VOUT2;
     }
 
     return 0;
@@ -243,7 +243,6 @@ int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> fb, uint32_t zorder, 
         mDrmFb.reset();
     else
         mDrmFb = fb;
-
     return 0;
 }
 

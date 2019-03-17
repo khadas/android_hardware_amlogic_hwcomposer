@@ -31,6 +31,8 @@
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 #define VOUT_DEV "/dev/display"
+#define VOUT2_DEV "/dev/display2"
+
 
 /* vout_ioctl */
 #define VOUT_IOC_TYPE            'C'
@@ -1012,11 +1014,16 @@ const struct vinfo_s * findMatchedMode(u32 width, u32 height, u32 refreshrate) {
 	return NULL;
 }
 
-int read_vout_info(struct vinfo_base_s * info) {
+int read_vout_info(int idx, struct vinfo_base_s * info) {
 	if (!info)
 		return -ENOBUFS;
 
-	int voutdev = open(VOUT_DEV, O_RDONLY);
+        const char * devpath = VOUT_DEV;
+        if (idx == 2) {
+            devpath = VOUT2_DEV;
+        }
+
+	int voutdev = open(devpath, O_RDONLY);
 	if (voutdev < 0) {
 		return -EBADFD;
 	}

@@ -13,6 +13,8 @@
 #include <fcntl.h>
 #include <inttypes.h>
 
+#include <utils/String16.h>
+
 #if PLATFORM_SDK_VERSION >=  26
 #include <vendor/amlogic/hardware/systemcontrol/1.0/ISystemControl.h>
 using ::vendor::amlogic::hardware::systemcontrol::V1_0::ISystemControl;
@@ -21,7 +23,6 @@ using ::android::hardware::hidl_vec;
 using ::android::hardware::hidl_string;
 using ::android::hardware::Return;
 #else
-#include <utils/String16.h>
 #include <ISystemControlService.h>
 #include <binder/IServiceManager.h>
 #endif
@@ -156,6 +157,37 @@ int32_t sc_get_osd_position(std::string &dispmode, int *position) {
     return 0;
 }
 
+int32_t sc_write_sysfs(const char * path, std::string & val) {
+    CHK_SC_PROXY();
+
+    Result ret = gSC->writeSysfs(path, val);
+    if (ret == Result::OK) {
+        return 0;
+    } else {
+        MESON_LOGE("syscontrol::setActiveDispMode FAIL.");
+        return -EFAULT;
+    }
+}
+
+int32_t sc_read_sysfs(const char * path, std::string & val) {
+    CHK_SC_PROXY();
+
+    gSC->readSysfs(path, [&val](
+        const Result &ret, const hidl_string & retval) {
+        if (Result::OK == ret) {
+            val = retval.c_str();
+        } else {
+            val.clear();
+        }
+    });
+
+    if (val.empty()) {
+        MESON_LOGE("syscontrol::getActiveDispMode FAIL.");
+        return -EFAULT;
+    }
+    return 0;
+}
+
 #else
 
 static sp<ISystemControlService> gSC = NULL;
@@ -229,6 +261,30 @@ int32_t sc_get_osd_position(std::string &dispmode, int *position) {
     position[2] = width;
     position[3] = height;
     return 0;
+}
+
+int32_t sc_write_sysfs(const char * path, std::string &dispmode) {
+    CHK_SC_PROXY();
+
+    Result ret = gSC->writeSysfs(dispmode);
+    if (ret == Result::OK) {
+        return 0;
+    } else {
+        MESON_LOGE("syscontrol::setActiveDispMode FAIL.");
+        return -EFAULT;
+    }
+}
+
+int32_t sc_read_sysfs(const char * path, std::string &dispmode) {
+    CHK_SC_PROXY();
+
+    Result ret = gSC->readSysfs(dispmode);
+    if (ret == Result::OK) {
+        return 0;
+    } else {
+        MESON_LOGE("syscontrol::setActiveDispMode FAIL.");
+        return -EFAULT;
+    }
 }
 
 #endif
