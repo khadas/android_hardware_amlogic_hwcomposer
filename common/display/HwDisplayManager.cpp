@@ -28,10 +28,10 @@
 ANDROID_SINGLETON_STATIC_INSTANCE(HwDisplayManager)
 
 HwDisplayManager::HwDisplayManager() {
-    loadDrmResources();
+    mVsync = std::make_shared<HwcVsync>();
+    mVsync->setObserver(this);
 
-    bool bSoftwareVsync = HwcConfig::softwareVsyncEnabled();
-    mVsync = std::make_shared<HwDisplayVsync>(bSoftwareVsync, this);
+    loadDrmResources();
 
     HwDisplayEventListener::getInstance().registerHandler(DRM_EVENT_ALL, this);
 }
@@ -163,7 +163,7 @@ void HwDisplayManager::handle(drm_display_event event, int val) {
                 }
             }
             break;
-        case DRM_EVENT_MODE_CHANGED:
+        case DRM_EVENT_VOUT1_MODE_CHANGED:
             {
                 if (count_crtcs > 1) {
                     MESON_ASSERT(0, " %s Dual display not supported.", __func__);
@@ -243,7 +243,9 @@ int32_t HwDisplayManager::loadDrmResources() {
     count_connectors = count_crtcs;
 
     crtc_ids = new uint32_t [count_crtcs];
-    crtc_ids[0] = CRTC_IDX_MIN + 0;
+    crtc_ids[0] = CRTC_VOUT1;
+    if (count_crtcs > 1)
+        crtc_ids[1] = CRTC_VOUT2;
 
     count_connectors = 1;
     connector_ids = new uint32_t [count_connectors];
@@ -376,7 +378,7 @@ int32_t HwDisplayManager::loadPlanes() {
 
 int32_t HwDisplayManager::buildDisplayPipes() {
     /*TODO: need update for dual display.*/
-
+    std::vector<std::shared_ptr<HwDisplayPlane>> planes;
     count_pipes = 1;
 
     pipes[0].crtc_id = crtc_ids[0];
@@ -386,7 +388,8 @@ int32_t HwDisplayManager::buildDisplayPipes() {
     int i = 0;
     auto it = mPlanes.begin();
     for (; it!=mPlanes.end(); ++it) {
-        if (it->second->getPossibleCrtcs() & 1) {
+        if (it->second->getPossibleCrtcs() & CRTC_VOUT1) {
+            planes.push_back(it->second);
             pipes[0].plane_ids[i] = it->first;
             i++;
         }
@@ -399,7 +402,12 @@ int32_t HwDisplayManager::buildDisplayPipes() {
 
     crtc = mCrtcs.find(pipes[0].crtc_id)->second;
     connector = mConnectors.find(pipes[0].connector_id)->second;
-    crtc->setUp(connector, mPlanes);
+    crtc->bind(connector, planes);
+
+    if (HwcConfig::softwareVsyncEnabled())
+        mVsync->setSoftwareMode();
+    else
+        mVsync->setHwMode(crtc);
     return 0;
 }
 

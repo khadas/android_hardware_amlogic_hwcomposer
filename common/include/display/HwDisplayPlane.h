@@ -12,6 +12,7 @@
 
 #include <stdlib.h>
 #include <DrmFramebuffer.h>
+#include <HwDisplayCrtc.h>
 
 class HwDisplayPlane {
 public:

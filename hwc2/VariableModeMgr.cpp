@@ -9,8 +9,10 @@
 
 #include "VariableModeMgr.h"
 
+#include <HwcConfig.h>
 #include <MesonLog.h>
 #include <systemcontrol.h>
+#include <hardware/hwcomposer2.h>
 
 #include <string>
 
@@ -137,8 +139,12 @@ int32_t VariableModeMgr::update() {
     return 0;
 }
 
-hwc2_error_t VariableModeMgr::getDisplayConfigs(
-    uint32_t * outNumConfigs, hwc2_config_t * outConfigs) {
+int32_t VariableModeMgr::getDisplayMode(drm_mode_info_t & mode) {
+    return mCrtc->getMode(mode);
+}
+
+int32_t VariableModeMgr::getDisplayConfigs(
+    uint32_t * outNumConfigs, uint32_t * outConfigs) {
     *outNumConfigs = mHwcActiveModes.size();
 
     if (outConfigs) {
@@ -153,7 +159,7 @@ hwc2_error_t VariableModeMgr::getDisplayConfigs(
     return HWC2_ERROR_NONE;
 }
 
-hwc2_error_t VariableModeMgr::updateHwcDispConfigs() {
+int32_t VariableModeMgr::updateHwcDispConfigs() {
     std::map<uint32_t, drm_mode_info_t> activeModes;
     mHwcActiveModes.clear();
 
@@ -178,7 +184,7 @@ hwc2_error_t VariableModeMgr::updateHwcDispConfigs() {
     return HWC2_ERROR_NONE;
 }
 
-hwc2_error_t VariableModeMgr::updateSfDispConfigs() {
+int32_t VariableModeMgr::updateSfDispConfigs() {
     // clear display modes
     mSfActiveModes.clear();
 
@@ -190,8 +196,8 @@ hwc2_error_t VariableModeMgr::updateSfDispConfigs() {
     return HWC2_ERROR_NONE;
 }
 
-hwc2_error_t  VariableModeMgr::getDisplayAttribute(
-    hwc2_config_t config, int32_t attribute, int32_t * outValue, int32_t caller) {
+int32_t  VariableModeMgr::getDisplayAttribute(
+    uint32_t config, int32_t attribute, int32_t * outValue, int32_t caller) {
     MESON_LOGV("getDisplayAttribute: config %d, fakeConfig %d,"
         "HwcActiveConfig %d, SfActiveConfig %d, mExtModeSet %d, caller (%s)",
         config, mFakeConfigId, mHwcActiveConfigId, mSfActiveConfigId, mExtModeSet,
@@ -239,7 +245,7 @@ hwc2_error_t  VariableModeMgr::getDisplayAttribute(
     }
 }
 
-hwc2_error_t  VariableModeMgr::updateHwcActiveConfig(
+int32_t  VariableModeMgr::updateHwcActiveConfig(
     const char * activeMode) {
     mActiveConfigStr = activeMode;
 
@@ -266,8 +272,8 @@ hwc2_error_t  VariableModeMgr::updateHwcActiveConfig(
     return HWC2_ERROR_NONE;
 }
 
-hwc2_error_t VariableModeMgr::getActiveConfig(
-    hwc2_config_t * outConfig, int32_t caller) {
+int32_t VariableModeMgr::getActiveConfig(
+    uint32_t * outConfig, int32_t caller) {
     if (CALL_FROM_SF == caller) {
         *outConfig = mExtModeSet ? mSfActiveConfigId : mFakeConfigId;
     } else if (CALL_FROM_HWC == caller) {
@@ -279,8 +285,8 @@ hwc2_error_t VariableModeMgr::getActiveConfig(
     return HWC2_ERROR_NONE;
 }
 
-hwc2_error_t VariableModeMgr::setActiveConfig(
-    hwc2_config_t config) {
+int32_t VariableModeMgr::setActiveConfig(
+    uint32_t config) {
     std::map<uint32_t, drm_mode_info_t>::iterator it =
         mSfActiveModes.find(config);
     if (it != mSfActiveModes.end()) {

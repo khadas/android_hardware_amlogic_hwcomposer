@@ -16,9 +16,10 @@
 #include <HwDisplayCrtc.h>
 #include <HwDisplayPlane.h>
 #include <HwDisplayConnector.h>
-#include <HwDisplayVsync.h>
 #include <HwDisplayDefs.h>
 #include <HwDisplayEventListener.h>
+#include <HwcVsync.h>
+
 
 class HwDisplayObserver {
 public:
@@ -33,7 +34,7 @@ public:
 class HwDisplayManager
     :   public android::Singleton<HwDisplayManager>,
         public HwDisplayEventHandler,
-        public HwVsyncObserver {
+        public HwcVsyncObserver {
 friend class HwDisplayCrtc;
 friend class HwDisplayConnector;
 friend class HwDisplayPlane;
@@ -110,7 +111,7 @@ protected:
     std::map<uint32_t, std::shared_ptr<HwDisplayCrtc>> mCrtcs;
     std::map<uint32_t, std::shared_ptr<HwDisplayConnector>> mConnectors;
     std::map<uint32_t, std::shared_ptr<HwDisplayPlane>> mPlanes;
-    std::shared_ptr<HwDisplayVsync> mVsync;
+    std::shared_ptr<HwcVsync> mVsync;
     std::map<hw_display_id, HwDisplayObserver * > mObserver;
 
     std::mutex mMutex;

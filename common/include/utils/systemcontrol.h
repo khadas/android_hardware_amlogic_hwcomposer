@@ -17,4 +17,8 @@ int32_t sc_get_display_mode(std::string &dispmode);
 int32_t sc_set_display_mode(std::string &dispmode);
 int32_t sc_get_osd_position(std::string &dispmode, int *position);
 
+int32_t sc_write_sysfs(const char * path, std::string & val);
+int32_t sc_read_sysfs(const char * path, std::string & val);
+
+
 #endif/*SYSTEM_CONTROL_H*/

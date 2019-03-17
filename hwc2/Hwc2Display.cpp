@@ -792,7 +792,7 @@ hwc2_error_t  Hwc2Display::getDisplayConfigs(
     uint32_t* outNumConfigs,
     hwc2_config_t* outConfigs) {
     if (mModeMgr != NULL) {
-        return mModeMgr->getDisplayConfigs(outNumConfigs, outConfigs);
+        return (hwc2_error_t)mModeMgr->getDisplayConfigs(outNumConfigs, outConfigs);
     } else {
         MESON_LOGE("Hwc2Display getDisplayConfigs (%s) miss valid DisplayConfigure.",
             getName());
@@ -805,7 +805,8 @@ hwc2_error_t  Hwc2Display::getDisplayAttribute(
     int32_t attribute,
     int32_t* outValue) {
     if (mModeMgr != NULL) {
-        return mModeMgr->getDisplayAttribute(config, attribute, outValue, CALL_FROM_SF);
+        return (hwc2_error_t)mModeMgr->getDisplayAttribute(
+            config, attribute, outValue, CALL_FROM_SF);
     } else {
         MESON_LOGE("Hwc2Display (%s) getDisplayAttribute miss valid DisplayConfigure.",
             getName());
@@ -816,7 +817,7 @@ hwc2_error_t  Hwc2Display::getDisplayAttribute(
 hwc2_error_t Hwc2Display::getActiveConfig(
     hwc2_config_t* outConfig) {
     if (mModeMgr != NULL) {
-        return mModeMgr->getActiveConfig(outConfig, CALL_FROM_SF);
+        return (hwc2_error_t)mModeMgr->getActiveConfig(outConfig, CALL_FROM_SF);
     } else {
         MESON_LOGE("Hwc2Display (%s) getActiveConfig miss valid DisplayConfigure.",
             getName());
@@ -827,7 +828,7 @@ hwc2_error_t Hwc2Display::getActiveConfig(
 hwc2_error_t Hwc2Display::setActiveConfig(
     hwc2_config_t config) {
     if (mModeMgr != NULL) {
-        return mModeMgr->setActiveConfig(config);
+        return (hwc2_error_t)mModeMgr->setActiveConfig(config);
     } else {
         MESON_LOGE("Display (%s) setActiveConfig miss valid DisplayConfigure.",
             getName());

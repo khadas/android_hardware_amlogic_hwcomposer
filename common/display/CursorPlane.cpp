@@ -48,7 +48,7 @@ int32_t CursorPlane::getFixedZorder() {
 }
 
 uint32_t CursorPlane::getPossibleCrtcs() {
-    return 1 << 0;
+    return CRTC_VOUT1;
 }
 
 bool CursorPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {

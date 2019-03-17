@@ -38,7 +38,7 @@ int32_t HwcVideoPlane::getFixedZorder() {
 }
 
 uint32_t HwcVideoPlane::getPossibleCrtcs() {
-    return 1 << 0;
+    return CRTC_VOUT1;
 }
 
 bool HwcVideoPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {

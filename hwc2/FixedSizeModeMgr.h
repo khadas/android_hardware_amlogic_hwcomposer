@@ -33,12 +33,14 @@ public:
         std::shared_ptr<HwDisplayConnector> & connector);
     int32_t update();
 
-    hwc2_error_t  getDisplayConfigs(
-        uint32_t* outNumConfigs, hwc2_config_t* outConfigs);
-    hwc2_error_t  getDisplayAttribute(
-        hwc2_config_t config, int32_t attribute, int32_t* outValue, int32_t caller);
-    hwc2_error_t getActiveConfig(hwc2_config_t* outConfig, int32_t caller);
-    hwc2_error_t setActiveConfig(hwc2_config_t config);
+    int32_t getDisplayMode(drm_mode_info_t & mode);
+
+    int32_t  getDisplayConfigs(
+        uint32_t * outNumConfigs, uint32_t * outConfigs);
+    int32_t  getDisplayAttribute(
+        uint32_t config, int32_t attribute, int32_t* outValue, int32_t caller);
+    int32_t getActiveConfig(uint32_t * outConfig, int32_t caller);
+    int32_t setActiveConfig(uint32_t config);
 
     void dump(String8 & dumpstr);
 

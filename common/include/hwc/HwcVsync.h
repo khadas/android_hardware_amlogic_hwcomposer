@@ -12,22 +12,26 @@
 
 #include <mutex>
 #include <condition_variable>
-
 #include <utils/threads.h>
 #include <time.h>
 #include <pthread.h>
 
-class HwVsyncObserver {
+#include <HwDisplayCrtc.h>
+
+class HwcVsyncObserver {
 public:
-    HwVsyncObserver() {}
-    virtual ~HwVsyncObserver() {}
+    virtual ~HwcVsyncObserver() {}
     virtual void onVsync(int64_t timestamp) = 0;
 };
 
-class HwDisplayVsync {
+class HwcVsync {
 public:
-    HwDisplayVsync(bool softwareVsync, HwVsyncObserver * observer);
-    ~HwDisplayVsync();
+    HwcVsync();
+    ~HwcVsync();
+
+    int32_t setObserver(HwcVsyncObserver * observer);
+    int32_t setSoftwareMode();
+    int32_t setHwMode(std::shared_ptr<HwDisplayCrtc> & crtc);
 
     int32_t setEnabled(bool enabled);
 
@@ -40,7 +44,6 @@ protected:
     static void * vsyncThread(void * data);
     int32_t waitSoftwareVsync(nsecs_t& vsync_timestamp);
 
-
 protected:
     bool mSoftVsync;
     bool mEnabled;
@@ -48,7 +51,8 @@ protected:
     nsecs_t mPeriod;
     nsecs_t mPreTimeStamp;
 
-    HwVsyncObserver * mObserver;
+    HwcVsyncObserver * mObserver;
+    std::shared_ptr<HwDisplayCrtc> mCrtc;
 
     std::mutex mStatLock;
     std::condition_variable mStateCondition;

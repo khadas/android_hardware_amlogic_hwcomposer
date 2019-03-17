@@ -16,13 +16,19 @@
 #include <HwDisplayPlane.h>
 #include <tvp/OmxUtil.h>
 
+class HwDisplayPlane;
+
+#define CRTC_VOUT1 (1 << 0)
+#define CRTC_VOUT2 (1 << 1)
+
 class HwDisplayCrtc {
 public:
     HwDisplayCrtc(int drvFd, int32_t id);
     ~HwDisplayCrtc();
 
-    int32_t setUp(std::shared_ptr<HwDisplayConnector>  connector,
-                   std::map<uint32_t, std::shared_ptr<HwDisplayPlane>> planes);
+    int32_t bind(std::shared_ptr<HwDisplayConnector>  connector,
+                   std::vector<std::shared_ptr<HwDisplayPlane>> planes);
+    int32_t unbind();
 
     /*load the fixed informations: displaymode list, hdr cap, etc...*/
     int32_t loadProperities();
@@ -36,6 +42,10 @@ public:
     int32_t getMode(drm_mode_info_t & mode);
     /*set current display mode.*/
     int32_t setMode(drm_mode_info_t & mode);
+
+    int32_t waitVBlank(nsecs_t & timestamp);
+
+    int32_t getId();
 
     /*Functions for compose & pageflip*/
     /*set the crtc display axis, and source axis,
@@ -54,6 +64,9 @@ protected:
     void closeLogoDisplay();
     bool updateHdrMetadata(std::map<drm_hdr_meatadata_t, float> & hdrmedata);
 
+    int32_t readCurDisplayMode(std::string & dispmode);
+    int32_t writeCurDisplayMode(std::string & dispmode);
+
 protected:
     int32_t mId;
     int mDrvFd;
@@ -67,7 +80,7 @@ protected:
 
     std::map<uint32_t, drm_mode_info_t> mModes;
     std::shared_ptr<HwDisplayConnector>  mConnector;
-    std::map<uint32_t, std::shared_ptr<HwDisplayPlane>> mPlanes;
+    std::vector<std::shared_ptr<HwDisplayPlane>> mPlanes;
 
     vframe_master_display_colour_s_t hdrVideoInfo;
 

@@ -48,6 +48,19 @@ else
 $(error "need config hwc crtc num")
 endif
 
+#PIPELIEN CONFIG
+#Primary
+ifneq ($(HWC_PIPELINE),)
+    LOCAL_CFLAGS += -DHWC_PIPELINE=\"$(HWC_PIPELINE)\"
+else
+    $(info "no pipeline configed, will use default")
+endif
+
+#Vdin fb postprocessor type
+ifneq ($(HWC_VDIN_FBPROCESSOR),)
+    LOCAL_CFLAGS += -DHWC_VDIN_FBPROCESSOR=\"$(HWC_VDIN_FBPROCESSOR)\"
+endif
+
 #FRAMEBUFFER CONFIG
 #Primary
 ifneq ($(HWC_PRIMARY_FRAMEBUFFER_WIDTH)$(HWC_PRIMARY_FRAMEBUFFER_HEIGHT),)
@@ -132,6 +145,7 @@ LOCAL_C_INCLUDES := \
     $(LOCAL_PATH)/common/include/base \
     $(LOCAL_PATH)/common/include/utils \
     $(LOCAL_PATH)/common/include/debug \
+    $(LOCAL_PATH)/common/include/hwc \
     $(LOCAL_PATH)/composition/include \
     system/core/libsync \
     system/core/libsync/include \
@@ -156,7 +170,6 @@ LOCAL_COMMON_BASE_FILES := \
 
 LOCAL_COMMON_DISPLAY_FILES  := \
     common/display/HwDisplayManager.cpp \
-    common/display/HwDisplayVsync.cpp \
     common/display/HwDisplayCrtc.cpp \
     common/display/HwDisplayPlane.cpp \
     common/display/DummyPlane.cpp \
@@ -170,6 +183,7 @@ LOCAL_COMMON_DISPLAY_FILES  := \
     common/display/HwDisplayEventListener.cpp \
     common/display/ConnectorHdmi.cpp \
     common/display/ConnectorPanel.cpp \
+    common/display/ConnectorDummy.cpp \
     common/display/AmVinfo.cpp
 
 LOCAL_COMMON_UTILS_FILES  := \
@@ -178,6 +192,8 @@ LOCAL_COMMON_UTILS_FILES  := \
     common/utils/BitsMap.cpp \
     common/utils/EventThread.cpp \
     common/debug/DebugHelper.cpp
+LOCAL_COMMON_HWC_FILES := \
+    common/hwc/HwcVsync.cpp
 
 LOCAL_COMPOSITION_FILES := \
     composition/Composition.cpp \
@@ -244,6 +260,7 @@ LOCAL_SRC_FILES := \
     $(LOCAL_COMMON_COMPOSER_FILES) \
     $(LOCAL_COMMON_DISPLAY_FILES) \
     $(LOCAL_COMMON_UTILS_FILES) \
+    $(LOCAL_COMMON_HWC_FILES) \
     $(LOCAL_COMPOSITION_FILES) \
     $(LOCAL_HWC_FILES)
 #LOCAL_ALLOW_UNDEFINED_SYMBOLS:=true;

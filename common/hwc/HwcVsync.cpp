@@ -8,15 +8,13 @@
  */
 
 #include <MesonLog.h>
-#include <HwDisplayVsync.h>
-#include <HwDisplayManager.h>
+#include <HwcVsync.h>
+#include <HwDisplayCrtc.h>
 
 #define SF_VSYNC_DFT_PERIOD 60
 
-HwDisplayVsync::HwDisplayVsync(bool softwareVsync,
-    HwVsyncObserver * observer) {
-    mSoftVsync = softwareVsync;
-    mObserver = observer;
+HwcVsync::HwcVsync() {
+    mSoftVsync = true;
     mEnabled = false;
     mPreTimeStamp = 0;
 
@@ -28,7 +26,7 @@ HwDisplayVsync::HwDisplayVsync(bool softwareVsync,
     }
 }
 
-HwDisplayVsync::~HwDisplayVsync() {
+HwcVsync::~HwcVsync() {
     std::unique_lock<std::mutex> stateLock(mStatLock);
     mExit = true;
     stateLock.unlock();
@@ -36,12 +34,32 @@ HwDisplayVsync::~HwDisplayVsync() {
     pthread_join(hw_vsync_thread, NULL);
 }
 
-int32_t HwDisplayVsync::setPeriod(nsecs_t period) {
-    mPeriod = period;
+int32_t HwcVsync::setObserver(HwcVsyncObserver * observer) {
+    mObserver = observer;
     return 0;
 }
 
-int32_t HwDisplayVsync::setEnabled(bool enabled) {
+int32_t HwcVsync::setSoftwareMode() {
+    std::unique_lock<std::mutex> stateLock(mStatLock);
+    mSoftVsync = true;
+    mCrtc.reset();
+    return 0;
+}
+
+int32_t HwcVsync::setHwMode(std::shared_ptr<HwDisplayCrtc> & crtc) {
+    std::unique_lock<std::mutex> stateLock(mStatLock);
+    mCrtc = crtc;
+    mSoftVsync = false;
+    return 0;
+}
+
+int32_t HwcVsync::setPeriod(nsecs_t period) {
+    if (mSoftVsync)
+        mPeriod = period;
+    return 0;
+}
+
+int32_t HwcVsync::setEnabled(bool enabled) {
     std::unique_lock<std::mutex> stateLock(mStatLock);
     mEnabled = enabled;
     stateLock.unlock();
@@ -49,8 +67,8 @@ int32_t HwDisplayVsync::setEnabled(bool enabled) {
     return 0;
 }
 
-void * HwDisplayVsync::vsyncThread(void * data) {
-    HwDisplayVsync* pThis = (HwDisplayVsync*)data;
+void * HwcVsync::vsyncThread(void * data) {
+    HwcVsync* pThis = (HwcVsync*)data;
     MESON_LOGV("HwDisplayVsync: vsyncThread start.");
 
     while (true) {
@@ -70,7 +88,7 @@ void * HwDisplayVsync::vsyncThread(void * data) {
         if (pThis->mSoftVsync) {
             ret = pThis->waitSoftwareVsync(timestamp);
         } else {
-            ret = HwDisplayManager::getInstance().waitVBlank(timestamp);
+            ret = pThis->mCrtc->waitVBlank(timestamp);
         }
         bool debug = false;
         if (debug) {
@@ -88,7 +106,7 @@ void * HwDisplayVsync::vsyncThread(void * data) {
     return NULL;
 }
 
-int32_t HwDisplayVsync::waitSoftwareVsync(nsecs_t& vsync_timestamp) {
+int32_t HwcVsync::waitSoftwareVsync(nsecs_t& vsync_timestamp) {
     static nsecs_t vsync_time = 0;
     static nsecs_t old_vsync_period = 0;
     nsecs_t now = systemTime(CLOCK_MONOTONIC);

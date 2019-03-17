@@ -9,6 +9,9 @@
 
 #include "FixedSizeModeMgr.h"
 #include <MesonLog.h>
+#include <HwcConfig.h>
+#include <hardware/hwcomposer2.h>
+
 
 #define DEFUALT_DPI (159)
 #define DEFAULT_REFRESH_RATE (60.0f)
@@ -64,8 +67,12 @@ int32_t FixedSizeModeMgr::update() {
     return 0;
 }
 
-hwc2_error_t  FixedSizeModeMgr::getDisplayConfigs(
-    uint32_t * outNumConfigs, hwc2_config_t * outConfigs) {
+int32_t FixedSizeModeMgr::getDisplayMode(drm_mode_info_t & mode) {
+    return mCrtc->getMode(mode);
+}
+
+int32_t  FixedSizeModeMgr::getDisplayConfigs(
+    uint32_t * outNumConfigs, uint32_t * outConfigs) {
     *outNumConfigs = 1;
     if (outConfigs) {
         *outConfigs = 0;
@@ -73,8 +80,8 @@ hwc2_error_t  FixedSizeModeMgr::getDisplayConfigs(
     return HWC2_ERROR_NONE;
 }
 
-hwc2_error_t  FixedSizeModeMgr::getDisplayAttribute(
-    hwc2_config_t config __unused, int32_t attribute, int32_t * outValue,
+int32_t  FixedSizeModeMgr::getDisplayAttribute(
+    uint32_t config __unused, int32_t attribute, int32_t * outValue,
     int32_t caller __unused) {
     switch (attribute) {
         case HWC2_ATTRIBUTE_WIDTH:
@@ -104,14 +111,14 @@ hwc2_error_t  FixedSizeModeMgr::getDisplayAttribute(
     return HWC2_ERROR_NONE;
 }
 
-hwc2_error_t FixedSizeModeMgr::getActiveConfig(
-    hwc2_config_t * outConfig, int32_t caller __unused) {
+int32_t FixedSizeModeMgr::getActiveConfig(
+    uint32_t * outConfig, int32_t caller __unused) {
     *outConfig = 0;
     return HWC2_ERROR_NONE;
 }
 
-hwc2_error_t FixedSizeModeMgr::setActiveConfig(
-    hwc2_config_t config) {
+int32_t FixedSizeModeMgr::setActiveConfig(
+    uint32_t config) {
     if (config > 0) {
         MESON_LOGE("FixedSizeModeMgr dont support config (%d)", config);
     }

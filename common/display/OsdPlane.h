@@ -36,9 +36,7 @@ protected:
 
 private:
     bool mBlank;
-
-    uint32_t mPossibleCrtcs;;
-
+    uint32_t mPossibleCrtcs;
     osd_plane_info_t mPlaneInfo;
     std::shared_ptr<DrmFramebuffer> mDrmFb;
 
