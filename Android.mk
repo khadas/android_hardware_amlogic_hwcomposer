@@ -95,6 +95,7 @@ endif
 ifeq ($(HWC_ENABLE_ACTIVE_MODE), true)
 LOCAL_CFLAGS += -DHWC_ENABLE_ACTIVE_MODE
 endif
+
 ifeq ($(HWC_ENABLE_FRACTIONAL_REFRESH_RATE), true)
 LOCAL_CFLAGS += -DENABLE_FRACTIONAL_REFRESH_RATE
 endif
@@ -165,7 +166,6 @@ LOCAL_COMMON_BASE_FILES := \
     common/base/DrmFramebuffer.cpp \
     common/base/DrmSync.cpp \
     common/base/DrmTypes.cpp \
-    common/base/HwcConfig.cpp \
     common/base/HwcPowerMode.cpp
 
 LOCAL_COMMON_DISPLAY_FILES  := \
@@ -192,8 +192,11 @@ LOCAL_COMMON_UTILS_FILES  := \
     common/utils/BitsMap.cpp \
     common/utils/EventThread.cpp \
     common/debug/DebugHelper.cpp
+
 LOCAL_COMMON_HWC_FILES := \
-    common/hwc/HwcVsync.cpp
+    common/hwc/HwcVsync.cpp \
+    common/hwc/HwcConfig.cpp \
+    common/hwc/HwcDisplayPipeMgr.cpp
 
 LOCAL_COMPOSITION_FILES := \
     composition/Composition.cpp \

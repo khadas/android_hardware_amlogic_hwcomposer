@@ -51,6 +51,7 @@ private:
     bool mConnected;
     bool mSecure;
 
+    bool mFracMode;
     std::vector<float> mFracRefreshRates;
     drm_hdr_capabilities mHdrCapabilities;
 };
