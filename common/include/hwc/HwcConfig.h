@@ -28,6 +28,26 @@ typedef enum {
     extend:
     viu2 + connector from config*/
     HWC_PIPE_DEFAULT = 0,
+
+    /*primary:
+    viu2 + connector from config
+    extend:
+    viu1 + connector from config*/
+    HWC_PIPE_VIU2_VIU1 = 0,
+
+    /*primary:
+        when postprocessor disable: viu1 -> conntector
+        when postprocessor enable: viu1->vdin->viu2->conntector
+    extend:
+        NONE*/
+    HWC_PIPE_VIU1VDINVIU2,
+
+    /*primary:
+        for headless mode.
+    extend:
+        NONE
+    */
+    HWC_PIPE_DUMMY,
 } hwc_pipe_policy_t;
 
 class HwcConfig {
@@ -37,7 +57,9 @@ public:
 
     static hwc_connector_t getConnectorType(int disp);
     static hwc_pipe_policy_t getPipeline();
+
     static hwc_modes_policy_t getModePolicy(int disp);
+
     static bool isHeadlessMode();
     static int32_t headlessRefreshRate();
 

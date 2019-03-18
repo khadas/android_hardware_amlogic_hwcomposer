@@ -8,7 +8,6 @@
  */
 
 #include <misc.h>
-
 #include <fcntl.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -17,6 +16,7 @@
 #include <cutils/properties.h>
 
 #include <MesonLog.h>
+
 
 bool sys_get_bool_prop(const char *prop, bool defVal) {
     return property_get_bool(prop, defVal);

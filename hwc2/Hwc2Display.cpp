@@ -47,6 +47,10 @@ Hwc2Display::~Hwc2Display() {
 
     mVsync.reset();
     mModeMgr.reset();
+
+    if (mPostProcessor != NULL)
+        mPostProcessor->stop();
+    mPostProcessor.reset();
 }
 
 int32_t Hwc2Display::setModeMgr(std::shared_ptr<HwcModeMgr> & mgr) {
@@ -126,14 +130,14 @@ int32_t Hwc2Display::setDisplayResource(
     return 0;
 }
 
-#if 0
-void Hwc2Display::updateDisplayResources() {
-    mCrtc->update();
-    mModeMgr->update();
-    if (mCrtc->getMode(mDisplayMode) == 0)
-        mPowerMode->setConnectorStatus(true);
+int32_t Hwc2Display::setPostProcessor(
+    std::shared_ptr<HwcPostProcessor> processor) {
+    std::lock_guard<std::mutex> lock(mMutex);
+    mPostProcessor = processor;
+    mProcessorFlags = 0;
+    return 0;
 }
-#endif
+
 int32_t Hwc2Display::setVsync(std::shared_ptr<HwcVsync> vsync) {
     std::lock_guard<std::mutex> lock(mMutex);
     mVsync = vsync;
@@ -236,15 +240,13 @@ void Hwc2Display::onModeChanged(int stage) {
         if (mObserver != NULL) {
             if (mSignalHpd) {
                 mCrtc->loadProperities();
-                mModeMgr->setDisplayResources(mCrtc, mConnector);
                 mConnector->getHdrCapabilities(&mHdrCaps);
 #ifdef HWC_HDR_METADATA_SUPPORT
                 mCrtc->getHdrMetadataKeys(mHdrKeys);
 #endif
-
                 mCrtc->update();
-                if (mCrtc->getMode(mDisplayMode) == 0) {
-                    mModeMgr->update();
+                mModeMgr->update();
+                if (mModeMgr->getDisplayMode(mDisplayMode) == 0) {
                     mObserver->onHotplug(true);
                     mSignalHpd = false;
                 }
@@ -254,13 +256,13 @@ void Hwc2Display::onModeChanged(int stage) {
 
                 /*Workaround: needed for NTS test.*/
                 if (HwcConfig::primaryHotplugEnabled()
-                    && mCrtc->getMode(mDisplayMode) == 0
+                    && mModeMgr->getDisplayMode(mDisplayMode) == 0
                     && mModeMgr->getPolicyType() == FIXED_SIZE_POLICY) {
                     mObserver->onHotplug(true);
                 }
             }
 
-            if (mCrtc->getMode(mDisplayMode) == 0) {
+            if (mModeMgr->getDisplayMode(mDisplayMode) == 0) {
                 mPowerMode->setConnectorStatus(true);
             }
 
@@ -593,6 +595,8 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
 
         /*collect changed dispplay, layer, compostiion.*/
         ret = collectCompositionRequest(outNumTypes, outNumRequests);
+    } else {
+        mProcessorFlags |= PRESENT_BLANK;
     }
 
     /* If mValidateDisplay = false, hwc will not handle presentDisplay. */
@@ -633,6 +637,8 @@ hwc2_error_t Hwc2Display::collectCompositionRequest(
                 mFailedDeviceComp = true;
             }
         }
+        if (expectedHwcComposition == HWC2_COMPOSITION_SIDEBAND)
+            mProcessorFlags |= PRESENT_SIDEBAND;
     }
 
     /*collcet client clear layer.*/
@@ -731,6 +737,12 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
         if (mCrtc->pageFlip(outFence) < 0) {
             return HWC2_ERROR_UNSUPPORTED;
         }
+        if (mPostProcessor != NULL) {
+            int32_t displayFence = ::dup(outFence);
+            mPostProcessor->present(mProcessorFlags, displayFence);
+            mProcessorFlags = 0;
+        }
+
         *outPresentFence = outFence;
     }
 

@@ -8,9 +8,8 @@
  */
 
 #include <MesonLog.h>
+#include <BasicTypes.h>
 #include "VirtualDisplay.h"
-
-#define UNUSED(x) (void)x
 
 VirtualDisplay::VirtualDisplay(uint32_t width, uint32_t height)
     : Hwc2Display(MESON_DUMMY_DISPLAY_ID, NULL) {

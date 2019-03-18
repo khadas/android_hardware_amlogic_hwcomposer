@@ -11,7 +11,7 @@
 #define MISC_H
 
 #include <stdlib.h>
-
+#include <native_handle.h>
 #if PLATFORM_SDK_VERSION < 28
 #include <gralloc_priv.h>
 #endif

@@ -12,15 +12,15 @@
 #include <HwDisplayManager.h>
 #include <HwDisplayPlane.h>
 #include <HwDisplayConnector.h>
-#include <MesonLog.h>
-
 #include <HwcConfig.h>
+#include <MesonLog.h>
 
 ANDROID_SINGLETON_STATIC_INSTANCE(HwcDisplayPipeMgr)
 
 HwcDisplayPipeMgr::PipeStat::PipeStat() {
     cfg.hwcCrtcId = cfg.modeCrtcId = 0;
     cfg.hwcConnectorType = cfg.modeConnectorType = DRM_MODE_CONNECTOR_INVALID;
+    cfg.hwcPostprocessorType = INVALID_POST_PROCESSOR;
 }
 
 HwcDisplayPipeMgr::PipeStat::~PipeStat() {
@@ -29,6 +29,7 @@ HwcDisplayPipeMgr::PipeStat::~PipeStat() {
     hwcConnector.reset();
     hwcPlanes.clear();
 
+    hwcPostProcessor.reset();
     modeMgr.reset();
     modeCrtc.reset();
     modeConnector.reset();
@@ -36,7 +37,7 @@ HwcDisplayPipeMgr::PipeStat::~PipeStat() {
 
 HwcDisplayPipeMgr::HwcDisplayPipeMgr() {
     /*load hw display resource.*/
-
+    mPostProcessor = false;
     mPipePolicy =  HwcConfig::getPipeline();
 
     HwDisplayManager::getInstance().getCrtcs(mCrtcs);
@@ -115,6 +116,17 @@ int32_t HwcDisplayPipeMgr::getConnector(
     return 0;
 }
 
+int32_t HwcDisplayPipeMgr::getPostProcessor(
+    hwc_post_processor_t type, std::shared_ptr<HwcPostProcessor> & processor) {
+    if (INVALID_POST_PROCESSOR == type) {
+        processor = NULL;
+        return 0;
+    }
+
+    MESON_ASSERT(0, "NO IMPLEMENT.");
+    return 0;
+}
+
 drm_connector_type_t HwcDisplayPipeMgr::chooseConnector(
     hwc_connector_t config) {
     switch (config) {
@@ -145,10 +157,27 @@ int32_t HwcDisplayPipeMgr::getDisplayPipe(
             } else if (hwcdisp == 1) {
                 cfg.hwcCrtcId = CRTC_VOUT2;
             }
+            cfg.hwcPostprocessorType = INVALID_POST_PROCESSOR;
             cfg.modeCrtcId = cfg.hwcCrtcId;
             cfg.modeConnectorType = cfg.hwcConnectorType = connector;
             break;
 
+        case HWC_PIPE_VIU1VDINVIU2:
+            MESON_ASSERT(hwcdisp == 0, "Only one display for this policy.");
+            cfg.hwcPostprocessorType = INVALID_POST_PROCESSOR;//VDIN_POST_PROCESSOR;
+            if (mPostProcessor) {
+                cfg.hwcCrtcId = CRTC_VOUT1;
+                cfg.hwcConnectorType = DRM_MODE_CONNECTOR_DUMMY;
+
+                cfg.modeCrtcId = CRTC_VOUT2;
+                cfg.modeConnectorType = connector;
+            } else {
+                cfg.modeCrtcId = cfg.hwcCrtcId = CRTC_VOUT1;
+                cfg.modeConnectorType = cfg.hwcConnectorType = connector;
+            }
+            break;
+
+        case HWC_PIPE_DUMMY:
         default:
             MESON_ASSERT(0, "Unsupported pipe %d ", mPipePolicy);
             break;
@@ -163,7 +192,7 @@ int32_t HwcDisplayPipeMgr::initDisplays() {
 }
 
 int32_t HwcDisplayPipeMgr::updatePipe() {
-    MESON_LOGE("HwcDisplayPipeMgr::updatePipe.");
+    MESON_LOGD("HwcDisplayPipeMgr::updatePipe.");
 
     for (uint32_t i = 0; i < HwcConfig::getDisplayNum(); i++) {
         auto statIt = mPipeStats.find(i);
@@ -188,6 +217,11 @@ int32_t HwcDisplayPipeMgr::updatePipe() {
             stat->cfg.hwcConnectorType = cfg.hwcConnectorType;
             resChanged = true;
         }
+        if (cfg.hwcPostprocessorType != stat->cfg.hwcPostprocessorType) {
+            getPostProcessor(cfg.hwcPostprocessorType, stat->hwcPostProcessor);
+            stat->cfg.hwcPostprocessorType = cfg.hwcPostprocessorType;
+            resChanged = true;
+        }
         if (cfg.modeCrtcId != stat->cfg.modeCrtcId) {
             getCrtc(cfg.modeCrtcId, stat->modeCrtc);
             stat->cfg.modeCrtcId = cfg.modeCrtcId;
@@ -200,7 +234,7 @@ int32_t HwcDisplayPipeMgr::updatePipe() {
         }
 
         if (resChanged) {
-            MESON_LOGE("HwcDisplayPipeMgr::updatePipe %d changed", i);
+            MESON_LOGD("HwcDisplayPipeMgr::updatePipe %d changed", i);
             stat->hwcCrtc->bind(stat->hwcConnector, stat->hwcPlanes);
             stat->hwcCrtc->loadProperities();
             stat->hwcCrtc->update();
@@ -266,12 +300,11 @@ void HwcDisplayPipeMgr::handle(drm_display_event event, int val) {
                     crtcid = CRTC_VOUT2;
                 for (auto statIt : mPipeStats) {
                     if (statIt.second->modeCrtc->getId() == crtcid) {
-                        statIt.second->hwcDisplay->onModeChanged(val);
-
-                        /*update display dynamic info.*/
-                        drm_mode_info_t mode;
                         statIt.second->modeCrtc->update();
                         statIt.second->modeMgr->update();
+                        statIt.second->hwcDisplay->onModeChanged(val);
+                        /*update display dynamic info.*/
+                        drm_mode_info_t mode;
                         if (HwcConfig::softwareVsyncEnabled()) {
                             if (0 == statIt.second->modeMgr->getDisplayMode(mode)) {
                                 statIt.second->hwcVsync->setPeriod(1e9 / mode.refreshRate);
@@ -286,5 +319,66 @@ void HwcDisplayPipeMgr::handle(drm_display_event event, int val) {
             MESON_LOGE("Receive unhandled event %d", event);
             break;
     }
+}
+
+int32_t HwcDisplayPipeMgr::update(uint32_t flags) {
+    MESON_LOGE("HwcDisplayPipeMgr::update %x", flags);
+
+    std::lock_guard<std::mutex> lock(mMutex);
+    /*handle postprocessor on display -*/
+    if ((flags & rPostProcessorStart) || (flags & rPostProcessorStop)) {
+        bool bEnable = flags & rPostProcessorStart ? true : false;
+
+        /*handle for different pipeline config*/
+        if (mPipePolicy == HWC_PIPE_VIU1VDINVIU2) {
+            std::shared_ptr<PipeStat> stat = mPipeStats.find(0)->second;
+            if (mPostProcessor == bEnable)
+                return 0;
+
+            mPostProcessor = bEnable;
+
+            if (!bEnable) {
+                stat->hwcPostProcessor->stop();
+                stat->hwcDisplay->setPostProcessor(NULL);
+            }
+
+            drm_mode_info_t curMode;
+            /*get current display mode.*/
+            stat->modeCrtc->getMode(curMode);
+
+            MESON_LOGE("get cur mode %s",curMode.name);
+            /*reset vout displaymode, for we need do pipeline switch*/
+            stat->hwcCrtc->unbind();
+            stat->modeCrtc->unbind();
+            /*update display pipe.*/
+            updatePipe();
+
+            if (bEnable) {
+                /*set viu1 to dummyplane */
+                std::map<uint32_t, drm_mode_info_t> modes;
+                stat->hwcConnector->getModes(modes);
+                MESON_ASSERT(modes.size() > 0, "no modes got.");
+
+                MESON_LOGE("bEnable: get mode %s",modes[0].name);
+                stat->hwcCrtc->setMode(modes[0]);
+                /*set viu2 to plane*/
+                stat->modeCrtc->setMode(curMode);
+                stat->modeMgr->update();
+            } else {
+                /*set viu1 to plane */
+                stat->modeCrtc->setMode(curMode);
+                stat->modeMgr->update();
+                /*viu2 keep null.*/
+            }
+
+            if (bEnable) {
+                stat->hwcDisplay->setPostProcessor(stat->hwcPostProcessor);
+                stat->hwcPostProcessor->start();
+            }
+        }
+
+    }
+
+    return 0;
 }
 

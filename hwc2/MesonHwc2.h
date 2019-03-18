@@ -112,6 +112,13 @@ public:
 
     void dump(uint32_t* outSize, char* outBuffer);
 
+/*amlogic ext display interface*/
+public:
+    int32_t setPostProcessor(bool bEnable);
+
+    uint32_t getDisplayRequest();
+    int32_t handleDisplayRequest(uint32_t request);
+
 /*implement*/
 public:
     void refresh(hwc2_display_t  display);
@@ -140,6 +147,8 @@ protected:
     hwc2_callback_data_t mVsyncData;
 
     uint32_t mVirtualDisplayIds;
+
+    uint32_t mDisplayRequests;
 };
 
 #endif/*MESON_HWC2_H*/

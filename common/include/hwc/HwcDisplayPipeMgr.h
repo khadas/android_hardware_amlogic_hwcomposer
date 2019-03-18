@@ -59,6 +59,7 @@ public:
         uint32_t disp, std::shared_ptr<HwcDisplay> & hwcDisp);
 
     int32_t initDisplays();
+    int32_t update(uint32_t flags);
 
     void handle(drm_display_event event, int val);
 
@@ -67,6 +68,7 @@ protected:
         public:
             int32_t hwcCrtcId;
             drm_connector_type_t hwcConnectorType;
+            hwc_post_processor_t hwcPostprocessorType;
 
             int32_t modeCrtcId;
             drm_connector_type_t modeConnectorType;
@@ -84,11 +86,11 @@ protected:
         std::vector<std::shared_ptr<HwDisplayPlane>> hwcPlanes;
         std::shared_ptr<HwDisplayConnector> hwcConnector;
         std::shared_ptr<HwcVsync> hwcVsync;
+        std::shared_ptr<HwcPostProcessor> hwcPostProcessor;
 
         std::shared_ptr<HwcModeMgr> modeMgr;
         std::shared_ptr<HwDisplayCrtc> modeCrtc;
         std::shared_ptr<HwDisplayConnector> modeConnector;
-
     };
 
 protected:
@@ -102,16 +104,20 @@ protected:
         int32_t crtcid, std::vector<std::shared_ptr<HwDisplayPlane>> & planes);
     int32_t getConnector(
         drm_connector_type_t type, std::shared_ptr<HwDisplayConnector> & connector);
+    int32_t getPostProcessor(
+        hwc_post_processor_t type, std::shared_ptr<HwcPostProcessor> & processor);
     drm_connector_type_t chooseConnector(hwc_connector_t config);
 
 protected:
     std::vector<std::shared_ptr<HwDisplayPlane>> mPlanes;
     std::vector<std::shared_ptr<HwDisplayCrtc>> mCrtcs;
     std::map<drm_connector_type_t, std::shared_ptr<HwDisplayConnector>> mConnectors;
+    std::map<hwc_post_processor_t, std::shared_ptr<HwcPostProcessor>> mProcessors;
 
     hwc_pipe_policy_t mPipePolicy;
     std::map<uint32_t, std::shared_ptr<PipeStat>> mPipeStats;
 
+    bool mPostProcessor;
     std::mutex mMutex;
 };
 

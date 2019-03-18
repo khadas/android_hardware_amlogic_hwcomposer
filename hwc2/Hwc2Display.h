@@ -101,9 +101,11 @@ public:
         std::shared_ptr<HwDisplayCrtc> & crtc,
         std::shared_ptr<HwDisplayConnector> & connector,
         std::vector<std::shared_ptr<HwDisplayPlane>> & planes);
-
     virtual int32_t setModeMgr(std::shared_ptr<HwcModeMgr> & mgr);
+    virtual int32_t setPostProcessor(
+        std::shared_ptr<HwcPostProcessor> processor);
     virtual int32_t setVsync(std::shared_ptr<HwcVsync> vsync);
+
     virtual void onVsync(int64_t timestamp);
     virtual void onHotplug(bool connected);
     virtual void onUpdate(bool bHdcp);
@@ -176,6 +178,9 @@ protected:
     drm_mode_info_t mDisplayMode;
     display_zoom_info_t mCalibrateInfo;
     int mCalibrateCoordinates[4];
+
+    std::shared_ptr<HwcPostProcessor> mPostProcessor;
+    int32_t mProcessorFlags;
 
 #ifdef HWC_HDR_METADATA_SUPPORT
     std::vector<drm_hdr_meatadata_t> mHdrKeys;
