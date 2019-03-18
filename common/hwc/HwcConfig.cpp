@@ -54,8 +54,8 @@ uint32_t HwcConfig::getDisplayNum() {
     return HWC_DISPLAY_NUM;
 }
 
-drm_connector_type_t HwcConfig::getConnectorType(int disp) {
-    drm_connector_type_t connector_type = DRM_MODE_CONNECTOR_INVALID;
+hwc_connector_t HwcConfig::getConnectorType(int disp) {
+    hwc_connector_t connector_type = HWC_CONNECTOR_NULL;
     const char * connectorstr = NULL;
     if (disp == 0) {
         #ifdef HWC_PRIMARY_CONNECTOR_TYPE
@@ -73,11 +73,14 @@ drm_connector_type_t HwcConfig::getConnectorType(int disp) {
 
     if (connectorstr != NULL) {
         if (strcasecmp(connectorstr, "hdmi") == 0) {
-            connector_type = DRM_MODE_CONNECTOR_HDMI;
+            /*TODO: udpate to HWC_HDMI_CVBS.*/
+            connector_type = HWC_HDMI_ONLY;
         } else if (strcasecmp(connectorstr, "panel") == 0) {
-            connector_type = DRM_MODE_CONNECTOR_PANEL;
+            connector_type = HWC_PANEL_ONLY;
         } else if (strcasecmp(connectorstr, "cvbs") == 0) {
-            connector_type = DRM_MODE_CONNECTOR_CVBS;
+            connector_type = HWC_CVBS_ONLY;
+        } else if (strcasecmp(connectorstr, "hdmi-only") == 0) {
+            connector_type = HWC_HDMI_ONLY;
         } else {
             MESON_LOGE("%s-%d get connector type failed.", __func__, disp);
         }
@@ -88,7 +91,23 @@ drm_connector_type_t HwcConfig::getConnectorType(int disp) {
     return connector_type;
 }
 
-hwc_modes_policy_t HwcConfig::getModePolicy() {
+hwc_pipe_policy_t HwcConfig::getPipeline() {
+    const char * pipeStr = "default";
+#ifdef HWC_PIPELINE
+    pipeStr = HWC_PIPELINE;
+#endif
+
+    if (strcasecmp(pipeStr, "default") == 0)
+        return HWC_PIPE_DEFAULT;
+    else
+        MESON_ASSERT(0, "getPipeline %s failed.", pipeStr);
+
+    return HWC_PIPE_DEFAULT;
+}
+
+hwc_modes_policy_t HwcConfig::getModePolicy(int disp) {
+    MESON_ASSERT(disp == 0, "ModePolicy doesnnot support external display.");
+    UNUSED(disp);
 #ifdef HWC_ENABLE_ACTIVE_MODE
     return FULL_ACTIVE_POLICY;
 #else
@@ -110,14 +129,6 @@ int32_t HwcConfig::headlessRefreshRate() {
 #else
         MESON_ASSERT(0, "HWC_HEADLESS_REFRESHRATE not set.");
         return 1;
-#endif
-}
-
-bool HwcConfig::fracRefreshRateEnabled() {
-#ifdef ENABLE_FRACTIONAL_REFRESH_RATE
-    return true;
-#else
-    return false;
 #endif
 }
 
@@ -190,12 +201,14 @@ void HwcConfig::dump(String8 & dumpstr) {
     } else {
         int displaynum = getDisplayNum();
         for (int i = 0; i < displaynum; i++) {
-            dumpstr.appendFormat("Display:(%d) \n", i);
             uint32_t w,h;
             getFramebufferSize(i, w, h);
-            dumpstr.appendFormat("\t Fb: %d x %d", w, h);
-            dumpstr.appendFormat("\t Conntecor: %d", getConnectorType(i));
-            dumpstr.appendFormat("\t ModePolicy: %d", getModePolicy());
+
+            dumpstr.appendFormat("Display (%d) %d x %d :\n", i, w, h);
+            dumpstr.appendFormat("\t ConntecorConfig: %d", getConnectorType(i));
+            dumpstr.appendFormat("\t ModePolicy: %d", getModePolicy(i));
+            dumpstr.append("\n");
+            dumpstr.appendFormat("\t PipelineConfig: %d", getPipeline());
             dumpstr.append("\n");
             dumpstr.appendFormat("\t SoftwareVsync: %s", softwareVsyncEnabled() ? "Y" : "N");
             dumpstr.appendFormat("\t CursorPlane: %s", cursorPlaneDisabled() ? "N" : "Y");
@@ -203,10 +216,9 @@ void HwcConfig::dump(String8 & dumpstr) {
             dumpstr.appendFormat("\t PrimaryHotplug: %s", primaryHotplugEnabled() ? "Y" : "N");
             dumpstr.appendFormat("\t SecureLayer: %s", secureLayerProcessEnabled() ? "Y" : "N");
             dumpstr.append("\n");
-            dumpstr.appendFormat("\t FracRefreshRate: %s", fracRefreshRateEnabled() ? "Y" : "N");
             dumpstr.appendFormat("\t PreDisplayCalibrate: %s", preDisplayCalibrateEnabled() ? "Y" : "N");
-            dumpstr.append("\n");
             dumpstr.appendFormat("\t DefaultHdr: %s", defaultHdrCapEnabled() ? "Y" : "N");
+            dumpstr.append("\n");
             dumpstr.appendFormat("\t ForceClient: %s", forceClientEnabled() ? "Y" : "N");
             dumpstr.append("\n");
         }

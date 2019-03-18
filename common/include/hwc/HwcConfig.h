@@ -14,15 +14,32 @@
 #include <BasicTypes.h>
 #include <HwcModeMgr.h>
 
+typedef enum {
+    HWC_HDMI_CVBS = 0,
+    HWC_PANEL_ONLY,
+    HWC_CVBS_ONLY,
+    HWC_HDMI_ONLY,
+    HWC_CONNECTOR_NULL,
+} hwc_connector_t;
+
+typedef enum {
+    /*primary:
+    viu1 + connector from config
+    extend:
+    viu2 + connector from config*/
+    HWC_PIPE_DEFAULT = 0,
+} hwc_pipe_policy_t;
+
 class HwcConfig {
 public:
     static uint32_t getDisplayNum();
-    static drm_connector_type_t getConnectorType(int disp);
     static int32_t getFramebufferSize(int disp, uint32_t & width, uint32_t & height);
-    static hwc_modes_policy_t getModePolicy();
+
+    static hwc_connector_t getConnectorType(int disp);
+    static hwc_pipe_policy_t getPipeline();
+    static hwc_modes_policy_t getModePolicy(int disp);
     static bool isHeadlessMode();
     static int32_t headlessRefreshRate();
-    static bool fracRefreshRateEnabled();
 
     /*get feature */
     static bool preDisplayCalibrateEnabled();

@@ -7,19 +7,23 @@
  * Description:
  */
 
+#include <unistd.h>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+
 #include <BasicTypes.h>
 #include <MesonLog.h>
 #include <DebugHelper.h>
-#include <unistd.h>
 #include <HwcConfig.h>
+#include <HwcVsync.h>
+#include <HwcDisplayPipeMgr.h>
+#include <misc.h>
 
 #include "MesonHwc2Defs.h"
 #include "MesonHwc2.h"
 #include "VirtualDisplay.h"
 
-#include <thread>
-#include <mutex>
-#include <condition_variable>
 
 #define CHECK_DISPLAY_VALID(display)    \
     if (isDisplayValid(display) == false) { \
@@ -65,7 +69,6 @@ void MesonHwc2::dump(uint32_t* outSize, char* outBuffer) {
 
     if (DebugHelper::getInstance().dumpDetailInfo()) {
         HwcConfig::dump(dumpstr);
-        HwDisplayManager::getInstance().dump(dumpstr);
     }
 
     // dump composer status
@@ -486,7 +489,8 @@ int32_t MesonHwc2::getPerFrameMetadataKeys(
 
 /**********************Internal Implement********************/
 
-class MesonHwc2Observer : public Hwc2DisplayObserver {
+class MesonHwc2Observer
+    : public Hwc2DisplayObserver, public HwcVsyncObserver{
 public:
     MesonHwc2Observer(hwc2_display_t display, MesonHwc2 * hwc) {
         mDispId = display;
@@ -563,30 +567,17 @@ void MesonHwc2::onHotplug(hwc2_display_t display, bool connected) {
 }
 
 int32_t MesonHwc2::initialize() {
-    uint32_t hwNum, hwcIdx;
-    hw_display_id hwId;
-
-    if (HwDisplayManager::getInstance().getHwDisplayIds(&hwNum, NULL) != 0)
-        return HWC2_ERROR_NO_RESOURCES;
-
-    hw_display_id * hwIds = new hw_display_id[hwNum];
-    if (HwDisplayManager::getInstance().getHwDisplayIds(&hwNum, hwIds) != 0)
-        return HWC2_ERROR_NO_RESOURCES;
-
-    /*TODO: how to confirm which hw display is primary display? */
-    if (hwNum > HWC_NUM_PHYSICAL_DISPLAY_TYPES)
-        hwNum = HWC_NUM_PHYSICAL_DISPLAY_TYPES;
-
-    for (hwcIdx = 0; hwcIdx < hwNum; ++hwcIdx) {
-        std::shared_ptr<Hwc2DisplayObserver> displayObserver =
-                std::make_shared<MesonHwc2Observer>(hwcIdx, this);
-        hwId = hwIds[hwcIdx];
-
-        std::shared_ptr<Hwc2Display> disp =
-            std::make_shared<Hwc2Display>(hwId, displayObserver);
+    for (uint32_t i = 0; i < HwcConfig::getDisplayNum(); i ++) {
+        /*create hwc2display*/
+        auto displayObserver = std::make_shared<MesonHwc2Observer>(i, this);
+        auto disp = std::make_shared<Hwc2Display>(displayObserver);
         disp->initialize();
-        mDisplays.emplace(hwcIdx, disp);
+        mDisplays.emplace(i, disp);
+        auto baseDisp = std::dynamic_pointer_cast<HwcDisplay>(disp);
+        HwcDisplayPipeMgr::getInstance().setHwcDisplay(i, baseDisp);
     }
+
+    HwcDisplayPipeMgr::getInstance().initDisplays();
 
     return HWC2_ERROR_NONE;
 }

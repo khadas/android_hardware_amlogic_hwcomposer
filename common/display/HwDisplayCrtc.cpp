@@ -8,7 +8,6 @@
  */
 #include <HwDisplayManager.h>
 #include <HwDisplayCrtc.h>
-#include <HwcConfig.h>
 #include <MesonLog.h>
 #include <DebugHelper.h>
 #include <cutils/properties.h>

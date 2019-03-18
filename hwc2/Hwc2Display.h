@@ -14,11 +14,10 @@
 #include <unordered_map>
 #include <hardware/hwcomposer2.h>
 
-#include <HwDisplayManager.h>
-#include <HwDisplayPlane.h>
-#include <HwDisplayConnector.h>
 #include <BitsMap.h>
+#include <HwcDisplay.h>
 #include <HwcPowerMode.h>
+#include <HwcVsync.h>
 
 #include <ComposerFactory.h>
 #include <IComposer.h>
@@ -38,7 +37,14 @@ public:
     virtual void onHotplug(bool connected) = 0;
 };
 
-class Hwc2Display : public HwDisplayObserver {
+class Hwc2Display
+    : public HwcDisplay, public HwcVsyncObserver {
+public:
+    Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer);
+    virtual ~Hwc2Display();
+
+    virtual void dump(String8 & dumpstr);
+
 /*HWC2 interfaces.*/
 public:
     /*Connector releated.*/
@@ -87,19 +93,21 @@ public:
     virtual hwc2_error_t getActiveConfig(hwc2_config_t* outConfig);
     virtual hwc2_error_t setActiveConfig(hwc2_config_t config);
 
-/*Additional interfaces.*/
+/*HwcDisplay interface*/
 public:
-    Hwc2Display(hw_display_id dspId, std::shared_ptr<Hwc2DisplayObserver> observer);
-    virtual ~Hwc2Display();
     virtual int32_t initialize();
-    virtual void dump(String8 & dumpstr);
 
-/*Additional interfaces for hw display.*/
-public:
-    void onVsync(int64_t timestamp);
-    void onHotplug(bool connected);
-    void onUpdate(bool bHdcp);
-    void onModeChanged(int stage);
+    virtual int32_t setDisplayResource(
+        std::shared_ptr<HwDisplayCrtc> & crtc,
+        std::shared_ptr<HwDisplayConnector> & connector,
+        std::vector<std::shared_ptr<HwDisplayPlane>> & planes);
+
+    virtual int32_t setModeMgr(std::shared_ptr<HwcModeMgr> & mgr);
+    virtual int32_t setVsync(std::shared_ptr<HwcVsync> vsync);
+    virtual void onVsync(int64_t timestamp);
+    virtual void onHotplug(bool connected);
+    virtual void onUpdate(bool bHdcp);
+    virtual void onModeChanged(int stage);
 
 protected:
     /* For compose. */
@@ -109,8 +117,6 @@ protected:
     hwc2_error_t collectCompositionStgForPresent();
     hwc2_error_t collectCompositionRequest(
             uint32_t* outNumTypes, uint32_t* outNumRequests);
-
-    void loadDisplayResources();
 
     /*for calibrate display frame.*/
     int32_t loadCalibrateInfo();
@@ -132,7 +138,6 @@ protected:
     drm_hdr_capabilities_t mHdrCaps;
 
     /*hw releated components*/
-    hw_display_id mHwId;
     std::shared_ptr<HwDisplayCrtc> mCrtc;
     std::shared_ptr<HwDisplayConnector> mConnector;
     std::vector<std::shared_ptr<HwDisplayPlane>> mPlanes;
@@ -144,6 +149,7 @@ protected:
 
     /*display configs*/
     std::shared_ptr<HwcModeMgr> mModeMgr;
+    std::shared_ptr<HwcVsync> mVsync;
 
     /*layer id generate*/
     std::shared_ptr<BitsMap> mLayersBitmap;
@@ -167,8 +173,6 @@ protected:
     bool mSignalHpd;
     bool mValidateDisplay;
 
-    uint32_t mFbWidth;
-    uint32_t mFbHeight;
     drm_mode_info_t mDisplayMode;
     display_zoom_info_t mCalibrateInfo;
     int mCalibrateCoordinates[4];

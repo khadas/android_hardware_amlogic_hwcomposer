@@ -58,36 +58,6 @@ bool CursorPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
     return false;
 }
 
-#if 0
-int32_t CursorPlane::updateZoomInfo(display_zoom_info_t zoomInfo) {
-    char axis[MAX_STR_LEN] = {0};
-    int x, y, w, h;
-    int dftFbWidth, dftFbHeight;
-    x = zoomInfo.crtc_display_x;
-    y = zoomInfo.crtc_display_y;
-    w = zoomInfo.crtc_display_w;
-    h = zoomInfo.crtc_display_h;
-    dftFbWidth  = zoomInfo.framebuffer_w;
-    dftFbHeight = zoomInfo.framebuffer_h;
-
-    sprintf(axis, "%d %d %d %d %d %d 18 18",
-        x, y, dftFbWidth, dftFbHeight, x, y);
-    sysfs_set_string(SYSFS_DISPLAY_AXIS, axis);
-    MESON_LOGD("update display axis: %s", axis);
-
-    sprintf(axis, "%d %d %d %d", dftFbWidth, dftFbHeight, w, h);
-    sysfs_set_string(DISPLAY_FB1_SCALE_AXIS, axis);
-    MESON_LOGD("update fb1 scale axis: %s", axis);
-    if ((dftFbWidth != w) || (dftFbHeight != h)) {
-        sysfs_set_string(DISPLAY_FB1_SCALE, "0x10001");
-    } else {
-        sysfs_set_string(DISPLAY_FB1_SCALE, "0");
-    }
-
-    return 0;
-}
-#endif
-
 int32_t CursorPlane::setPlane(
     std::shared_ptr<DrmFramebuffer> fb,
     uint32_t zorder __unused, int blankOp) {
