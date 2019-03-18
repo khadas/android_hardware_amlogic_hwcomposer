@@ -148,13 +148,15 @@ LOCAL_C_INCLUDES := \
     $(LOCAL_PATH)/common/include/debug \
     $(LOCAL_PATH)/common/include/hwc \
     $(LOCAL_PATH)/composition/include \
+    $(LOCAL_PATH)/postprocessor/include \
     system/core/libsync \
     system/core/libsync/include \
     system/core/include \
     system/core/include/system \
-    vendor/amlogic/system/libge2d/inlcude \
+    system/core/libcutils/include_vndk/cutils \
     system/core/libion/include/ \
-    system/core/libion/kernel-headers
+    system/core/libion/kernel-headers \
+    hardware/libhardware/include/hardware
 
 LOCAL_C_INCLUDES += \
     hardware/amlogic/gralloc/amlogic \
@@ -237,6 +239,7 @@ LOCAL_SHARED_LIBRARIES := \
     libsync \
     libion \
     libge2d \
+    libui \
     libbinder\
     libsystemcontrolservice
 

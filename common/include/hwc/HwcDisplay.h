@@ -16,6 +16,8 @@
 #include <HwcModeMgr.h>
 #include <HwcVsync.h>
 
+#include <HwcPostProcessor.h>
+
 
 class HwcDisplay {
 public:
@@ -29,7 +31,10 @@ public:
         std::shared_ptr<HwDisplayConnector> & connector,
         std::vector<std::shared_ptr<HwDisplayPlane>> & planes) = 0;
     virtual int32_t setModeMgr(std::shared_ptr<HwcModeMgr> & mgr) = 0;
+    virtual int32_t setPostProcessor(
+        std::shared_ptr<HwcPostProcessor> processor) = 0;
     virtual int32_t setVsync(std::shared_ptr<HwcVsync> vsync) = 0;
+
     virtual void onHotplug(bool connected) = 0;
     virtual void onUpdate(bool bHdcp) = 0;
     virtual void onModeChanged(int stage) = 0;

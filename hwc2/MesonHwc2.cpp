@@ -52,7 +52,6 @@
         return HWC2_ERROR_BAD_LAYER; \
     }
 
-
 /************************************************************
 *                        Hal Interface
 ************************************************************/
@@ -349,6 +348,12 @@ int32_t MesonHwc2::getReleaseFences(hwc2_display_t display,
 int32_t MesonHwc2::validateDisplay(hwc2_display_t display,
     uint32_t* outNumTypes, uint32_t* outNumRequests) {
     GET_HWC_DISPLAY(display);
+
+    /*handle display request*/
+    uint32_t request = getDisplayRequest();
+    if (request != 0)
+        handleDisplayRequest(request);
+
     return hwcDisplay->validateDisplay(outNumTypes,
         outNumRequests);
 }
@@ -486,6 +491,26 @@ int32_t MesonHwc2::getPerFrameMetadataKeys(
 }
 #endif
 
+/**********************Amlogic ext display interface*******************/
+int32_t MesonHwc2::setPostProcessor(bool bEnable) {
+    MESON_LOGE("setPostProcessor %d", bEnable);
+    mDisplayRequests |= bEnable ? rPostProcessorStart : rPostProcessorStop;
+    return 0;
+}
+
+uint32_t MesonHwc2::getDisplayRequest() {
+    /*record and reset requests.*/
+    uint32_t request = mDisplayRequests;
+    mDisplayRequests = 0;
+
+    MESON_LOGE("getDisplayRequest %x", request);
+    return request;
+}
+
+int32_t MesonHwc2::handleDisplayRequest(uint32_t request) {
+    HwcDisplayPipeMgr::getInstance().update(request);
+    return 0;
+}
 
 /**********************Internal Implement********************/
 
@@ -526,6 +551,7 @@ MesonHwc2::MesonHwc2() {
     mRefreshData = NULL;
     mVsyncFn = NULL;
     mVsyncData = NULL;
+    mDisplayRequests = 0;
     initialize();
 }
 
