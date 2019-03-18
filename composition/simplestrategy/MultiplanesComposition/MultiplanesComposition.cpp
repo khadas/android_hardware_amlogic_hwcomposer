@@ -21,6 +21,7 @@
 #define OSD_FB_BEGIN_ZORDER            65   // osd zorder: 65 - 128
 #define TOP_VIDEO_FB_BEGIN_ZORDER      129  // top video zorder: 129 - 192
 #define BOTTOM_VIDEO_FB_BEGIN_ZORDER   1    // bottom video zorder: 1 - 64
+#define PIP_VIDEO_DISPLAYFRAME_SIZE    16
 
 
 #define OSD_SCALER_INPUT_MAX_WIDTH (1920)
@@ -122,7 +123,12 @@ int MultiplanesComposition::handleVideoComposition() {
                     fb->mCompositionType = destComp;
                     break;
                 } else if (planeCompPairs[i].destPlane == LEGACY_EXT_VIDEO_PLANE) {
-                    if (mLegacyExtVideoPlane.get()) {
+                    int32_t width = 0, height = 0;
+                    width = abs(fb->mDisplayFrame.right - fb->mDisplayFrame.left);
+                    height = abs(fb->mDisplayFrame.bottom - fb->mDisplayFrame.top);
+                    if (width <= PIP_VIDEO_DISPLAYFRAME_SIZE && height <= PIP_VIDEO_DISPLAYFRAME_SIZE) {
+                        destComp = MESON_COMPOSITION_DUMMY;
+                    } else if (mLegacyExtVideoPlane.get()) {
                         mDisplayPairs.push_back(DisplayPair{VIDEO_PLANE_DIN_TWO, presentZorder, fb, mLegacyExtVideoPlane});
                         mLegacyExtVideoPlane.reset();
                     } else {
