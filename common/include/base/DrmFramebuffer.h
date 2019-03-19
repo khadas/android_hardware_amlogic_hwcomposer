@@ -25,12 +25,16 @@ public:
     DrmFramebuffer(const native_handle_t * bufferhnd, int32_t acquireFence);
     virtual ~DrmFramebuffer();
 
+    int32_t setAcquireFence(int32_t fenceFd);
     std::shared_ptr<DrmFence> getAcquireFence();
 
     int32_t setReleaseFence(int32_t fenceFd);
     /*dup current release fence.*/
     int32_t getReleaseFence();
     int32_t clearReleaseFence();
+
+    int32_t lock(void ** addr);
+    int32_t unlock();
 
     bool isRotated();
 
@@ -60,6 +64,7 @@ public:
 protected:
     std::shared_ptr<DrmFence> mAcquireFence;
     std::shared_ptr<DrmFence> mReleaseFence;
+    void * mMapBase;
 };
 
 #endif/*DRM_FRAMEBUFFER_H*/

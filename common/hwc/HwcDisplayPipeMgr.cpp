@@ -12,8 +12,10 @@
 #include <HwDisplayManager.h>
 #include <HwDisplayPlane.h>
 #include <HwDisplayConnector.h>
-#include <HwcConfig.h>
 #include <MesonLog.h>
+
+#include <VdinPostProcessor.h>
+#include <HwcConfig.h>
 
 ANDROID_SINGLETON_STATIC_INSTANCE(HwcDisplayPipeMgr)
 
@@ -118,12 +120,32 @@ int32_t HwcDisplayPipeMgr::getConnector(
 
 int32_t HwcDisplayPipeMgr::getPostProcessor(
     hwc_post_processor_t type, std::shared_ptr<HwcPostProcessor> & processor) {
-    if (INVALID_POST_PROCESSOR == type) {
-        processor = NULL;
-        return 0;
+    auto it = mProcessors.find(type);
+    if (it != mProcessors.end()) {
+        processor = it->second;
+    } else {
+        if (mPipePolicy == HWC_PIPE_VIU1VDINVIU2 && type == VDIN_POST_PROCESSOR) {
+            /*use the primary fb size for viu2.*/
+            uint32_t w, h;
+            HwcConfig::getFramebufferSize(0, w, h);
+
+            std::shared_ptr<HwDisplayCrtc> crtc;
+            std::vector<std::shared_ptr<HwDisplayPlane>> planes;
+            getCrtc(CRTC_VOUT2, crtc);
+            getPlanes(CRTC_VOUT2, planes);
+            std::shared_ptr<FbProcessor> fbprocessor;
+            createFbProcessor(HwcConfig::getVdinFbProcessor(), fbprocessor);
+
+            std::shared_ptr<VdinPostProcessor> vdinProcessor =
+                std::make_shared<VdinPostProcessor>();
+            vdinProcessor->setVout(crtc, planes, w, h);
+            vdinProcessor->setFbProcessor(fbprocessor);
+
+            processor = std::dynamic_pointer_cast<HwcPostProcessor>(vdinProcessor);
+            mProcessors.emplace(type, processor);
+        }
     }
 
-    MESON_ASSERT(0, "NO IMPLEMENT.");
     return 0;
 }
 
@@ -164,11 +186,10 @@ int32_t HwcDisplayPipeMgr::getDisplayPipe(
 
         case HWC_PIPE_VIU1VDINVIU2:
             MESON_ASSERT(hwcdisp == 0, "Only one display for this policy.");
-            cfg.hwcPostprocessorType = INVALID_POST_PROCESSOR;//VDIN_POST_PROCESSOR;
+            cfg.hwcPostprocessorType = VDIN_POST_PROCESSOR;
             if (mPostProcessor) {
                 cfg.hwcCrtcId = CRTC_VOUT1;
                 cfg.hwcConnectorType = DRM_MODE_CONNECTOR_DUMMY;
-
                 cfg.modeCrtcId = CRTC_VOUT2;
                 cfg.modeConnectorType = connector;
             } else {
@@ -376,7 +397,6 @@ int32_t HwcDisplayPipeMgr::update(uint32_t flags) {
                 stat->hwcPostProcessor->start();
             }
         }
-
     }
 
     return 0;

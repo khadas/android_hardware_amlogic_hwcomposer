@@ -260,8 +260,8 @@ int MultiplanesComposition::pickoutOsdFbs() {
         if (legacyVideoFb->mZorder > minOsdFbZorder) {
             mMinComposerZorder = mFramebuffers.begin()->second->mZorder;
             /* Legacy video is always on the bottom.
-             * SO, all fbs below leagcyVideo zorder need to compose.
-             * Set maxClientZorder = leagcyVideoZorder
+             * SO, all fbs below legacyVideo zorder need to compose.
+             * Set maxClientZorder = legacyVideoZorder
              */
             if (mMaxComposerZorder == INVALID_ZORDER || legacyVideoFb->mZorder > mMaxComposerZorder) {
                 mMaxComposerZorder = legacyVideoFb->mZorder;
@@ -434,7 +434,7 @@ int32_t compareFbScale(
     else if (widthCompare > 0 && heighCompare > 0)
         return 1;
     else {
-        MESON_LOGE("compareFbScale failed %d ,%d, %d, %d",
+        MESON_LOGW("compareFbScale failed %d ,%d, %d, %d",
             widthCompare, heighCompare,
             bDisplayWidth, bDisplayHeight);
         return -1;

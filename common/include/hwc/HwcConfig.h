@@ -12,13 +12,14 @@
 
 #include <DrmTypes.h>
 #include <BasicTypes.h>
+#include <FbProcessor.h>
 #include <HwcModeMgr.h>
 
 typedef enum {
-    HWC_HDMI_CVBS = 0,
+    HWC_HDMI_ONLY = 0,
     HWC_PANEL_ONLY,
+    HWC_HDMI_CVBS,
     HWC_CVBS_ONLY,
-    HWC_HDMI_ONLY,
     HWC_CONNECTOR_NULL,
 } hwc_connector_t;
 
@@ -57,6 +58,7 @@ public:
 
     static hwc_connector_t getConnectorType(int disp);
     static hwc_pipe_policy_t getPipeline();
+    static meson_fb_processor_t getVdinFbProcessor();
 
     static hwc_modes_policy_t getModePolicy(int disp);
 

@@ -28,15 +28,14 @@ int32_t sysfs_get_string(const char* path, char *str);
 int32_t sysfs_get_string_ex(const char* path, char *str, int32_t size, bool needOriginalData);
 int32_t sysfs_set_string(const char *path, const char *val);
 
-#if PLATFORM_SDK_VERSION < 28
-/*
- * cloneNativeHandle
- *
- * creates a native_handle_t and initializes it from another native_handle_t.
- * Must be destroyed with native_handle_delete().
- *
- */
-native_handle_t* native_handle_clone(const native_handle_t* handle);
-#endif
+native_handle_t * gralloc_alloc_dma_buf(int w, int h, int format, bool bScanout, bool afbc = false);
+int32_t gralloc_free_dma_buf(native_handle_t * hnd);
+
+native_handle_t * gralloc_ref_dma_buf(const native_handle_t * hnd);
+int32_t gralloc_unref_dma_buf(native_handle_t * hnd);
+
+int32_t gralloc_lock_dma_buf(native_handle_t * handle, void** vaddr);
+int32_t gralloc_unlock_dma_buf(native_handle_t * handle);
+
 
 #endif/*MISC_H*/

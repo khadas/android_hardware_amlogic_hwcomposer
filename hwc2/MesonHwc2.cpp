@@ -24,6 +24,8 @@
 #include "MesonHwc2.h"
 #include "VirtualDisplay.h"
 
+#define GET_REQUEST_FROM_PROP 1
+
 
 #define CHECK_DISPLAY_VALID(display)    \
     if (isDisplayValid(display) == false) { \
@@ -499,11 +501,32 @@ int32_t MesonHwc2::setPostProcessor(bool bEnable) {
 }
 
 uint32_t MesonHwc2::getDisplayRequest() {
+    /*read extend prop to update display request.*/
+#ifdef GET_REQUEST_FROM_PROP
+    if (HwcConfig::getPipeline() == HWC_PIPE_VIU1VDINVIU2) {
+        char val[PROP_VALUE_LEN_MAX];
+        /*keystone*/
+        static bool bKeystoneEnable = false;
+        bool bVal = false;
+        if (sys_get_string_prop("persist.vendor.hwc.keystone", val) > 0 &&
+            strcmp(val, "0") != 0) {
+            bVal = true;
+        }
+
+        if (bVal != bKeystoneEnable) {
+            setPostProcessor(bVal);
+            bKeystoneEnable = bVal;
+        }
+    }
+#endif
+
     /*record and reset requests.*/
     uint32_t request = mDisplayRequests;
     mDisplayRequests = 0;
 
-    MESON_LOGE("getDisplayRequest %x", request);
+    if (request > 0) {
+        MESON_LOGD("getDisplayRequest %x", request);
+    }
     return request;
 }
 

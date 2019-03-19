@@ -186,7 +186,8 @@ LOCAL_COMMON_DISPLAY_FILES  := \
     common/display/ConnectorHdmi.cpp \
     common/display/ConnectorPanel.cpp \
     common/display/ConnectorDummy.cpp \
-    common/display/AmVinfo.cpp
+    common/display/AmVinfo.cpp \
+    common/display/Vdin.cpp
 
 LOCAL_COMMON_UTILS_FILES  := \
     common/utils/misc.cpp \
@@ -212,6 +213,12 @@ ifeq ($(TARGET_SUPPORT_GE2D_COMPOSITION),true)
 LOCAL_COMPOSITION_FILES += \
     common/composer/GE2DComposer.cpp
 endif
+
+LOCAL_PROCESSOR_FILES := \
+    postprocessor/VdinPostProcessor.cpp \
+    postprocessor/fbprocessor/FbProcessor.cpp \
+    postprocessor/fbprocessor/DummyProcessor.cpp \
+    postprocessor/fbprocessor/CopyProcessor.cpp
 
 ifeq ($(USE_HWC1),true)
 #LOCAL_HWC_FILES :=
@@ -268,6 +275,7 @@ LOCAL_SRC_FILES := \
     $(LOCAL_COMMON_UTILS_FILES) \
     $(LOCAL_COMMON_HWC_FILES) \
     $(LOCAL_COMPOSITION_FILES) \
+    $(LOCAL_PROCESSOR_FILES) \
     $(LOCAL_HWC_FILES)
 #LOCAL_ALLOW_UNDEFINED_SYMBOLS:=true;
 
