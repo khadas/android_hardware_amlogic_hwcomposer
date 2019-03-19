@@ -41,7 +41,10 @@
             abort(); \
         }
 #else
-#define MESON_ASSERT(condition,fmt,...) ((void)0)
+#define MESON_ASSERT(condition,fmt,...) \
+        if (!(condition)) { \
+            ALOGE(fmt, ##__VA_ARGS__); \
+        }
 #endif
 
 #if MESON_DEBUG_LEVEL > 2

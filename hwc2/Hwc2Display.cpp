@@ -595,7 +595,9 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
 
         /*collect changed dispplay, layer, compostiion.*/
         ret = collectCompositionRequest(outNumTypes, outNumRequests);
-    } else {
+    }
+
+    if (mPowerMode->getScreenStatus()) {
         mProcessorFlags |= PRESENT_BLANK;
     }
 
