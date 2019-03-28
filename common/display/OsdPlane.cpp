@@ -102,8 +102,21 @@ bool OsdPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
             return false;
     }
 
+    unsigned int blendMode = fb->mBlendMode;
+    if (blendMode != DRM_BLEND_MODE_NONE
+        && blendMode != DRM_BLEND_MODE_PREMULTIPLIED
+        && blendMode != DRM_BLEND_MODE_COVERAGE) {
+        MESON_LOGE("Blend mode is invalid!");
+        return false;
+    }
+
     int format = am_gralloc_get_format(fb->mBufferHandle);
     int afbc = am_gralloc_get_vpu_afbc_mask(fb->mBufferHandle);
+
+    if (blendMode == DRM_BLEND_MODE_NONE && format == HAL_PIXEL_FORMAT_BGRA_8888) {
+        MESON_LOGE("blend mode: %u, Layer format %d not support.", blendMode, format);
+        return false;
+    }
     if (afbc == 0) {
         switch (format) {
             case HAL_PIXEL_FORMAT_RGBA_8888:
@@ -170,6 +183,7 @@ int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> fb, uint32_t zorder, 
         mPlaneInfo.dst_h         = disFrame.bottom  - disFrame.top;
         mPlaneInfo.blend_mode    = fb->mBlendMode;
         mPlaneInfo.op           |= OSD_BLANK_OP_BIT;
+
         if (fb->mBufferHandle != NULL) {
             mPlaneInfo.fb_width  = am_gralloc_get_width(fb->mBufferHandle);
             mPlaneInfo.fb_height = am_gralloc_get_height(fb->mBufferHandle);
@@ -203,6 +217,15 @@ int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> fb, uint32_t zorder, 
             mPlaneInfo.pixel_stride  = am_gralloc_get_stride_in_pixel(buf);
             mPlaneInfo.afbc_inter_format = am_gralloc_get_vpu_afbc_mask(buf);
             mPlaneInfo.plane_alpha   = (unsigned char)255 * fb->mPlaneAlpha; //kenrel need alpha 0 ~ 255
+
+            /*
+              OSD only handle premultiplied and coverage,
+              So HWC set format to RGBX when blend mode is NONE.
+            */
+            if (mPlaneInfo.blend_mode == DRM_BLEND_MODE_NONE
+                && mPlaneInfo.format == HAL_PIXEL_FORMAT_RGBA_8888) {
+                mPlaneInfo.format = HAL_PIXEL_FORMAT_RGBX_8888;
+            }
         }
 
         if (DebugHelper::getInstance().discardInFence()) {
