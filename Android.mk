@@ -14,6 +14,13 @@
 
 LOCAL_PATH := $(call my-dir)
 
+HWC_CPP_FLAGS := -std=c++14
+
+HWC_C_FLAGS := -DPLATFORM_SDK_VERSION=$(PLATFORM_SDK_VERSION)
+ifeq ($(TARGET_BUILD_VARIANT), user)
+HWC_C_FLAGS += -DHWC_RELEASE=1
+endif
+
 #common hwc make configs.
 HWC_SHARED_LIBS := \
     libamgralloc_ext \
@@ -40,12 +47,17 @@ else
 HWC_SHARED_LIBS += libsystemcontrolservice
 endif
 
-HWC_C_FLAGS := -DPLATFORM_SDK_VERSION=$(PLATFORM_SDK_VERSION)
-
-ifeq ($(TARGET_BUILD_VARIANT), user)
-HWC_C_FLAGS += -DHWC_RELEASE=1
+ifeq ($(HWC_ENABLE_KEYSTONE_CORRECTION), true)
+HWC_C_FLAGS += -DHWC_ENABLE_KEYSTONE_CORRECTION
+HWC_SHARED_LIBS += libkeystonecorrection
 endif
 
-HWC_CPP_FLAGS := -std=c++14
+#the following feature havenot finish.
+ifeq ($(HWC_ENABLE_GE2D_COMPOSITION), true)
+HWC_C_FLAGS += -DHWC_ENABLE_GE2D_COMPOSITION
+endif
+ifeq ($(HWC_ENABLE_DISPLAY_MODE_MANAGEMENT), true)
+HWC_C_FLAGS += -DHWC_ENABLE_DISPLAY_MODE_MANAGEMENT
+endif
 
 include $(call all-makefiles-under, $(LOCAL_PATH))

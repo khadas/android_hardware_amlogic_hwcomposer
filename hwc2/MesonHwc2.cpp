@@ -19,6 +19,7 @@
 #include <HwcVsync.h>
 #include <HwcDisplayPipeMgr.h>
 #include <misc.h>
+#include <systemcontrol.h>
 
 #include "MesonHwc2Defs.h"
 #include "MesonHwc2.h"
@@ -357,6 +358,7 @@ int32_t MesonHwc2::validateDisplay(hwc2_display_t display,
 
     /*handle display request*/
     uint32_t request = getDisplayRequest();
+    setCalibrateInfo(display);
     if (request != 0)
         handleDisplayRequest(request);
 
@@ -504,6 +506,42 @@ int32_t MesonHwc2::setPostProcessor(bool bEnable) {
     return 0;
 }
 
+int32_t MesonHwc2::setCalibrateInfo(hwc2_display_t display){
+    GET_HWC_DISPLAY(display);
+    int32_t caliX,caliY,caliW,caliH;
+    int cali[4];
+    drm_mode_info_t mDispMode;
+    hwcDisplay->getDispMode(mDispMode);
+    if (mSetKeystoneCalibrateInfo) {
+        caliX = 1;
+        caliY = 1;
+        caliW = mDispMode.pixelW - 2;
+        caliH = mDispMode.pixelH - 2;
+    } else {
+        /*default info*/
+        caliX = 0;
+        caliY = 0;
+        caliW = mDispMode.pixelW;
+        caliH = mDispMode.pixelH;
+        if (!HwcConfig::preDisplayCalibrateEnabled()) {
+            /*get post calibrate info.*/
+            /*for interlaced, we do thing, osd driver will take care of it.*/
+            int calibrateCoordinates[4];
+            std::string dispModeStr(mDispMode.name);
+            if (0 == sc_get_osd_position(dispModeStr, calibrateCoordinates)) {
+                memcpy(cali, calibrateCoordinates, sizeof(int) * 4);
+            } else {
+                MESON_LOGD("(%s): sc_get_osd_position failed, use backup coordinates.", __func__);
+            }
+            caliX = cali[0];
+            caliY = cali[1];
+            caliW = cali[2];
+            caliH = cali[3];
+        }
+    }
+    return hwcDisplay->setCalibrateInfo(caliX,caliY,caliW,caliH);
+}
+
 uint32_t MesonHwc2::getDisplayRequest() {
     /*read extend prop to update display request.*/
 #ifdef GET_REQUEST_FROM_PROP
@@ -521,6 +559,7 @@ uint32_t MesonHwc2::getDisplayRequest() {
             setPostProcessor(bVal);
             bKeystoneEnable = bVal;
         }
+        mSetKeystoneCalibrateInfo = bVal;
     }
 #endif
 

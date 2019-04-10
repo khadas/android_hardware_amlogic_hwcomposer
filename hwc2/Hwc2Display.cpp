@@ -161,6 +161,10 @@ const drm_hdr_capabilities_t * Hwc2Display::getHdrCapabilities() {
     return &mHdrCaps;
 }
 
+void Hwc2Display::getDispMode(drm_mode_info_t & dispMode){
+    dispMode = mDisplayMode;
+}
+
 #ifdef HWC_HDR_METADATA_SUPPORT
 hwc2_error_t Hwc2Display::getFrameMetadataKeys(
     uint32_t* outNumKeys, int32_t* outKeys) {
@@ -441,6 +445,16 @@ hwc2_error_t Hwc2Display::collectCompositionStgForPresent() {
     return HWC2_ERROR_NONE;
 }
 
+hwc2_error_t Hwc2Display::setCalibrateInfo(int32_t caliX,int32_t caliY,int32_t caliW,int32_t caliH){
+
+    mCalibrateCoordinates[0] = caliX;
+    mCalibrateCoordinates[1] = caliY;
+    mCalibrateCoordinates[2] = caliW;
+    mCalibrateCoordinates[3] = caliH;
+
+    return HWC2_ERROR_NONE;
+}
+
 int32_t Hwc2Display::loadCalibrateInfo() {
     hwc2_config_t config;
     int32_t configWidth;
@@ -469,26 +483,11 @@ int32_t Hwc2Display::loadCalibrateInfo() {
     /*default info*/
     mCalibrateInfo.framebuffer_w = configWidth;
     mCalibrateInfo.framebuffer_h = configHeight;
-    mCalibrateInfo.crtc_display_x = 0;
-    mCalibrateInfo.crtc_display_y = 0;
-    mCalibrateInfo.crtc_display_w = mDisplayMode.pixelW;
-    mCalibrateInfo.crtc_display_h = mDisplayMode.pixelH;
+    mCalibrateInfo.crtc_display_x = mCalibrateCoordinates[0];
+    mCalibrateInfo.crtc_display_y = mCalibrateCoordinates[1];
+    mCalibrateInfo.crtc_display_w = mCalibrateCoordinates[2];
+    mCalibrateInfo.crtc_display_h = mCalibrateCoordinates[3];
 
-    if (!HwcConfig::preDisplayCalibrateEnabled()) {
-        /*get post calibrate info.*/
-        /*for interlaced, we do thing, osd driver will take care of it.*/
-        int calibrateCoordinates[4];
-        std::string dispModeStr(mDisplayMode.name);
-        if (0 == sc_get_osd_position(dispModeStr, calibrateCoordinates)) {
-            memcpy(mCalibrateCoordinates, calibrateCoordinates, sizeof(int) * 4);
-        } else {
-            MESON_LOGD("(%s): sc_get_osd_position failed, use backup coordinates.", __func__);
-        }
-        mCalibrateInfo.crtc_display_x = mCalibrateCoordinates[0];
-        mCalibrateInfo.crtc_display_y = mCalibrateCoordinates[1];
-        mCalibrateInfo.crtc_display_w = mCalibrateCoordinates[2];
-        mCalibrateInfo.crtc_display_h = mCalibrateCoordinates[3];
-    }
     return 0;
 }
 
