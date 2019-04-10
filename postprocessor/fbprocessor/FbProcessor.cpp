@@ -12,6 +12,10 @@
 #include "DummyProcessor.h"
 #include "CopyProcessor.h"
 
+/*in libkeystonecorrection.so*/
+extern int32_t createKeystoneCorrection(
+    std::shared_ptr<FbProcessor> & processor);
+
 int32_t createFbProcessor(
     meson_fb_processor_t type,
     std::shared_ptr<FbProcessor> & processor) {
@@ -23,9 +27,11 @@ int32_t createFbProcessor(
         case FB_COPY_PROCESSOR:
             processor = std::make_shared<CopyProcessor>();
             break;
+#ifdef HWC_ENABLE_KEYSTONE_CORRECTION
         case FB_KEYSTONE_PROCESSOR:
-            MESON_ASSERT(0, "NO IMEPLEMENT.");
+            ret = createKeystoneCorrection(processor);
             break;
+#endif
         default:
             MESON_ASSERT(0, "unknown processor type %d", type);
             processor = NULL;

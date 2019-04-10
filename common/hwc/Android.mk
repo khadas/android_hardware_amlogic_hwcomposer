@@ -112,13 +112,6 @@ ifeq ($(TARGET_APP_LAYER_USE_CONTINUOUS_BUFFER),false)
 LOCAL_CFLAGS += -DHWC_FORCE_CLIENT_COMPOSITION
 endif
 
-#the following feature havenot finish.
-ifeq ($(HWC_ENABLE_GE2D_COMPOSITION), true)
-LOCAL_CFLAGS += -DHWC_ENABLE_GE2D_COMPOSITION
-endif
-ifeq ($(HWC_ENABLE_DISPLAY_MODE_MANAGEMENT), true)
-LOCAL_CFLAGS += -DHWC_ENABLE_DISPLAY_MODE_MANAGEMENT
-endif
 #*********************************HWC CONFIGS END************************
 
 LOCAL_SRC_FILES := \

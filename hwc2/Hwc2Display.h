@@ -92,6 +92,7 @@ public:
         hwc2_config_t config, int32_t attribute, int32_t* outValue);
     virtual hwc2_error_t getActiveConfig(hwc2_config_t* outConfig);
     virtual hwc2_error_t setActiveConfig(hwc2_config_t config);
+    virtual hwc2_error_t setCalibrateInfo(int32_t caliX,int32_t caliY,int32_t caliW,int32_t caliH);
 
 /*HwcDisplay interface*/
 public:
@@ -110,6 +111,7 @@ public:
     virtual void onHotplug(bool connected);
     virtual void onUpdate(bool bHdcp);
     virtual void onModeChanged(int stage);
+    virtual void getDispMode(drm_mode_info_t & dispMode);
 
 protected:
     /* For compose. */
