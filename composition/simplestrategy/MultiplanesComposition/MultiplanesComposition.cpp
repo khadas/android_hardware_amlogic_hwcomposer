@@ -937,15 +937,21 @@ int MultiplanesComposition::decideComposition() {
     } else {
         handleOsdCompostionWithVideo();
     }
+
+    /* record overlayFbs and start to compose */
+    if (mComposer.get()) {
+        mComposer->prepare();
+        mComposer->addInputs(mComposerFbs, mOverlayFbs);
+    }
+
     return ret;
 }
 
 /* Commit DisplayPair to display. */
 int MultiplanesComposition::commit() {
-    /* Start compose, and replace composer output with din0 Pair. */
+    /* replace composer output with din0 Pair. */
     std::shared_ptr<DrmFramebuffer> composerOutput;
     if (mComposer.get()) {
-        mComposer->addInputs(mComposerFbs, mOverlayFbs);
         mComposer->start();
         composerOutput = mComposer->getOutput();
     }
