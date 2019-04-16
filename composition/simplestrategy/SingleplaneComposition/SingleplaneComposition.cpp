@@ -130,6 +130,13 @@ int SingleplaneComposition::decideComposition() {
     applyCompositionFlags();
 
     buildOsdComposition();
+
+    /* record overlayFbs and start to compose */
+    if (mComposer.get()) {
+        mComposer->prepare();
+        mComposer->addInputs(mFramebuffers, mOverlayFbs);
+    }
+
     return 0;
 }
 
@@ -322,7 +329,6 @@ int SingleplaneComposition::commit() {
     /*start compose, and add composer output.*/
     std::shared_ptr<DrmFramebuffer> composeOutput;
     if (mComposer.get()) {
-        mComposer->addInputs(mFramebuffers, mOverlayFbs);
         mComposer->start();
         composeOutput = mComposer->getOutput();
         mDisplayPairs.push_back(DisplayPair{composeOutput, mOsdPlane});
