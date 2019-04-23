@@ -294,7 +294,7 @@ static const struct vinfo_s tv_info[] = {
 	},
 	{ /* VMODE_768P_50hz */
 		.name              = "768p50hz",
-		.mode              = VMODE_768P,
+		.mode              = VMODE_768P_50HZ,
 		.width             = 1280,
 		.height            = 768,
 		.field_height      = 768,
