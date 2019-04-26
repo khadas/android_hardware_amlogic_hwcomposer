@@ -99,9 +99,19 @@ int32_t LegacyExtVideoPlane::setPlane(
         mLegacyExtVideoFb = fb;
 
         buffer_handle_t buf = fb->mBufferHandle;
+        /*set video crop:echo top left bottom right > /sys/class/video/crop_pip*/
+        if (fb->mFbType == DRM_FB_VIDEO_OMX_PTS_SECOND) {
+            char videoCropStr[AXIS_STR_LEN] = {0};
+            sprintf(videoCropStr, "%d %d %d %d",
+                fb->mSourceCrop.top, fb->mSourceCrop.left,
+                am_gralloc_get_height(buf) - fb->mSourceCrop.bottom,
+                am_gralloc_get_width(buf) - fb->mSourceCrop.right);
+            sysfs_set_string(SYSFS_VIDEO_CROP_PIP, videoCropStr);
+        }
+
         /*set video axis.*/
         if (shouldUpdateAxis(fb)) {
-            char videoAxisStr[MAX_STR_LEN] = {0};
+            char videoAxisStr[AXIS_STR_LEN] = {0};
             drm_rect_t * videoAxis = &(fb->mDisplayFrame);
             sprintf(videoAxisStr, "%d %d %d %d", videoAxis->left, videoAxis->top,
                 videoAxis->right - 1, videoAxis->bottom - 1);
