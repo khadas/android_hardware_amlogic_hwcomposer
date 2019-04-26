@@ -93,8 +93,12 @@ enum {
 #define SYSFS_DISPLAY_AXIS              "/sys/class/display/axis"
 #define SYSFS_VIDEO_AXIS                "/sys/class/video/axis"
 #define SYSFS_VIDEO_AXIS_PIP            "/sys/class/video/axis_pip"
+#define SYSFS_VIDEO_CROP                "/sys/class/video/crop"
+#define SYSFS_VIDEO_CROP_PIP                "/sys/class/video/crop_pip"
 #define DISPLAY_FB1_SCALE_AXIS          "/sys/class/graphics/fb1/scale_axis"
 #define DISPLAY_FB1_SCALE               "/sys/class/graphics/fb1/scale"
+
+#define AXIS_STR_LEN                            32
 /*legacy logo switch*/
 #define DISPLAY_LOGO_INDEX              "/sys/module/fb/parameters/osd_logo_index"
 #define DISPLAY_FB0_FREESCALE_SWTICH    "/sys/class/graphics/fb0/free_scale_switch"
