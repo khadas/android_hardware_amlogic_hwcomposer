@@ -116,7 +116,6 @@ hwc_pipe_policy_t HwcConfig::getPipeline() {
 }
 
 hwc_modes_policy_t HwcConfig::getModePolicy(int disp) {
-    MESON_ASSERT(disp == 0, "ModePolicy doesnnot support external display.");
     UNUSED(disp);
 #ifdef HWC_ENABLE_ACTIVE_MODE
     return FULL_ACTIVE_POLICY;
@@ -160,6 +159,14 @@ bool HwcConfig::preDisplayCalibrateEnabled() {
 
 bool HwcConfig::primaryHotplugEnabled() {
 #ifdef HWC_ENABLE_PRIMARY_HOTPLUG
+    return true;
+#else
+    return false;
+#endif
+}
+
+bool HwcConfig::enableExtendDisplay() {
+#ifdef HWC_EXTEND_CONNECTOR_TYPE
     return true;
 #else
     return false;
