@@ -68,6 +68,7 @@ public:
     static bool preDisplayCalibrateEnabled();
     static bool softwareVsyncEnabled();
     static bool primaryHotplugEnabled();
+    static bool enableExtendDisplay();
     static bool secureLayerProcessEnabled();
     static bool cursorPlaneDisabled();
     static bool defaultHdrCapEnabled();

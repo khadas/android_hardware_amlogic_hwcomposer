@@ -130,6 +130,9 @@ int32_t MesonHwc2::registerCallback(int32_t descriptor,
         */
             if (mHotplugFn) {
                 mHotplugFn(mHotplugData, HWC_DISPLAY_PRIMARY, true);
+                if (HwcConfig::enableExtendDisplay() == true) {
+                    mHotplugFn(mHotplugData, HWC_DISPLAY_EXTERNAL, true);
+                }
             }
             break;
         case HWC2_CALLBACK_REFRESH:

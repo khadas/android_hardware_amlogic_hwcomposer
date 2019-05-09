@@ -122,9 +122,9 @@ int32_t VariableModeMgr::update() {
 
     if (mConnector->isConnected()) {
         updateHwcDispConfigs();
-        std::string dispmode;
-        if (0 == sc_get_display_mode(dispmode) && dispmode.compare("null") != 0) {
-            updateHwcActiveConfig(dispmode.data());
+        drm_mode_info_t dispmode;
+        if (getDisplayMode(dispmode) == 0) {
+            updateHwcActiveConfig(dispmode.name);
         } else {
             useFakeMode = true;
             MESON_LOGD("Get invalid display mode.");
