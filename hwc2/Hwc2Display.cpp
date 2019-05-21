@@ -371,6 +371,9 @@ hwc2_error_t Hwc2Display::collectLayersForPresent() {
     for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
         std::shared_ptr<Hwc2Layer> layer = it->second;
         std::shared_ptr<DrmFramebuffer> buffer = layer;
+        if (layer->isVisible() == false) {
+            continue;
+        }
         mPresentLayers.push_back(buffer);
 
         if (isLayerHideForDebug(it->first)) {
@@ -692,9 +695,15 @@ hwc2_error_t Hwc2Display::getChangedCompositionTypes(
 
 hwc2_error_t Hwc2Display::acceptDisplayChanges() {
    /* commit composition type */
-    for (auto it = mPresentLayers.begin() ; it != mPresentLayers.end(); it++) {
+    for (auto it = mPresentLayers.begin(); it != mPresentLayers.end(); it++) {
         Hwc2Layer * layer = (Hwc2Layer*)(it->get());
         layer->commitCompType(mesonComp2Hwc2Comp(layer));
+    }
+
+    /* clear hwc layers visible flag */
+    for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
+        std::shared_ptr<Hwc2Layer> layer = it->second;
+        layer->setVisible(false);
     }
 
     return HWC2_ERROR_NONE;

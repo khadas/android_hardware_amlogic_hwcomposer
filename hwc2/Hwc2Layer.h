@@ -52,6 +52,9 @@ public:
 
     int32_t commitCompType(hwc2_composition_t hwcComp);
 
+    bool isVisible() { return mVisible;}
+    void setVisible(bool visible);
+
 public:
     android_dataspace_t mDataSpace;
     hwc2_composition_t mHwcCompositionType;
@@ -62,6 +65,9 @@ public:
 
 protected:
     hwc2_error_t handleDimLayer(buffer_handle_t buffer);
+
+protected:
+    bool mVisible;
 
 };
 
