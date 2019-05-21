@@ -17,6 +17,7 @@
 
 Hwc2Layer::Hwc2Layer() : DrmFramebuffer(){
     mDataSpace = HAL_DATASPACE_UNKNOWN;
+    mVisible = false;
 }
 
 Hwc2Layer::~Hwc2Layer() {
@@ -131,6 +132,7 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
     }
 
     mSecure = am_gralloc_is_secure_buffer(mBufferHandle);
+    setVisible(true);
 
     return HWC2_ERROR_NONE;
 }
@@ -141,6 +143,8 @@ hwc2_error_t Hwc2Layer::setSidebandStream(const native_handle_t* stream) {
 
     mFbType = DRM_FB_VIDEO_SIDEBAND;
     mSecure = false;
+    setVisible(true);
+
     return HWC2_ERROR_NONE;
 }
 
@@ -153,6 +157,8 @@ hwc2_error_t Hwc2Layer::setColor(hwc_color_t color) {
     mColor.a = color.a;
 
     mFbType = DRM_FB_COLOR;
+    setVisible(true);
+
     return HWC2_ERROR_NONE;
 }
 
@@ -245,5 +251,9 @@ void Hwc2Layer::setUniqueId(hwc2_layer_t id) {
 
 hwc2_layer_t Hwc2Layer::getUniqueId() {
     return mId;
+}
+
+void Hwc2Layer::setVisible(bool visible) {
+    mVisible = visible;
 }
 
