@@ -102,8 +102,14 @@ int32_t ConnectorHdmi::loadDisplayModes() {
     #if WORKAROUND_FOR_CVBS_HDMI_AUTOSWITCH
     std::string cvbs576("576cvbs");
     std::string cvbs480("480cvbs");
+    std::string pal_m("pal_m");
+    std::string pal_n("pal_n");
+    std::string ntsc_m("ntsc_m");
     addDisplayMode(cvbs576);
     addDisplayMode(cvbs480);
+    addDisplayMode(pal_m);
+    addDisplayMode(pal_n);
+    addDisplayMode(ntsc_m);
     #endif
 
     if (sc_get_hdmitx_mode_list(supportDispModes) < 0) {
