@@ -91,6 +91,9 @@ enum vmode_e {
 	VMODE_1080FP50HZ,
 	VMODE_1080FP60HZ,
 	VMODE_LCD,
+	VMODE_PAL_M,
+	VMODE_PAL_N,
+	VMODE_NTSC_M,
 	VMODE_NULL, /* null mode is used as temporary witch mode state */
 	VMODE_MAX,
 	VMODE_INIT_NULL,
