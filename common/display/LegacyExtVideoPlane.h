@@ -47,7 +47,6 @@ protected:
 
     int32_t mBackupTransform;
     drm_rect_t mBackupDisplayFrame;
-    bool mNeedUpdateAxis;
     std::shared_ptr<DrmFramebuffer> mLegacyExtVideoFb;
 };
 
