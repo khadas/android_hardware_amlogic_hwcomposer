@@ -21,8 +21,7 @@
 //#define AMVIDEO_DEBUG
 
 LegacyVideoPlane::LegacyVideoPlane(int32_t drvFd, uint32_t id)
-    : HwDisplayPlane(drvFd, id),
-    mNeedUpdateAxis(false) {
+    : HwDisplayPlane(drvFd, id) {
     snprintf(mName, 64, "AmVideo-%d", id);
 
     if (getMute(mPlaneMute) != 0) {
@@ -33,6 +32,7 @@ LegacyVideoPlane::LegacyVideoPlane(int32_t drvFd, uint32_t id)
     mOmxKeepLastFrame = 0;
     mVideoType = DRM_FB_UNDEFINED;
     mLegacyVideoFb.reset();
+    memset(&mBackupDisplayFrame, 0, sizeof(drm_rect_t));
     getOmxKeepLastFrame(mOmxKeepLastFrame);
 }
 
@@ -74,14 +74,7 @@ bool LegacyVideoPlane::shouldUpdateAxis(
     std::shared_ptr<DrmFramebuffer> &fb) {
     bool bUpdate = false;
 
-    // TODO: we need to update video axis while mode or freescale state is changed.
-    if (mNeedUpdateAxis) {
-        mNeedUpdateAxis = false;
-        bUpdate = true;
-    }
-
     drm_rect_t *displayFrame = &(fb->mDisplayFrame);
-
     if (memcmp(&mBackupDisplayFrame, displayFrame, sizeof(drm_rect_t))) {
         memcpy(&mBackupDisplayFrame, displayFrame, sizeof(drm_rect_t));
         bUpdate = true;
@@ -127,13 +120,14 @@ int32_t LegacyVideoPlane::setPlane(
 
             if (base != MAP_FAILED) {
                 set_omx_pts(base, &mDrvFd);
-                setZorder(zorder);
                 munmap(base, buffer->size);
                 MESON_LOGV("set omx pts ok.");
             } else {
                 MESON_LOGE("set omx pts failed.");
             }
         }
+
+        setZorder(zorder);
     }
 
     /*Update video plane blank status.*/
@@ -178,6 +172,7 @@ int32_t LegacyVideoPlane::setPlane(
 
     if (blankOp == BLANK_FOR_NO_CONTENT) {
         mVideoType = DRM_FB_UNDEFINED;
+        memset(&mBackupDisplayFrame, 0, sizeof(drm_rect_t));
         mLegacyVideoFb.reset();
     }
 

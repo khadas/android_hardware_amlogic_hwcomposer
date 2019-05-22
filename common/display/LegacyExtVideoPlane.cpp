@@ -21,8 +21,7 @@
 //#define AMVIDEO_DEBUG
 
 LegacyExtVideoPlane::LegacyExtVideoPlane(int32_t drvFd, uint32_t id)
-    : HwDisplayPlane(drvFd, id),
-    mNeedUpdateAxis(false) {
+    : HwDisplayPlane(drvFd, id) {
     snprintf(mName, 64, "AmVideo-%d", id);
 
     if (getMute(mPlaneMute) != 0) {
@@ -32,6 +31,7 @@ LegacyExtVideoPlane::LegacyExtVideoPlane(int32_t drvFd, uint32_t id)
 
     mOmxKeepLastFrame = 0;
     mLegacyExtVideoFb.reset();
+    memset(&mBackupDisplayFrame, 0, sizeof(drm_rect_t));
     getOmxKeepLastFrame(mOmxKeepLastFrame);
 }
 
@@ -71,12 +71,6 @@ bool LegacyExtVideoPlane::shouldUpdateAxis(
     std::shared_ptr<DrmFramebuffer> &fb) {
     bool bUpdate = false;
 
-    // TODO: we need to update video axis while mode or freescale state is changed.
-    if (mNeedUpdateAxis) {
-        mNeedUpdateAxis = false;
-        bUpdate = true;
-    }
-
     drm_rect_t *displayFrame = &(fb->mDisplayFrame);
 
     if (memcmp(&mBackupDisplayFrame, displayFrame, sizeof(drm_rect_t))) {
@@ -96,7 +90,8 @@ int32_t LegacyExtVideoPlane::setPlane(
          *Then, back to home from MoviePlayer.Garbage appears.
          */
         if ((mLegacyExtVideoFb) && (fb)) {
-           if (mLegacyExtVideoFb->mFbType == DRM_FB_VIDEO_OMX_PTS_SECOND && fb->mFbType != DRM_FB_VIDEO_OMX_PTS_SECOND) {
+           if (mLegacyExtVideoFb->mFbType == DRM_FB_VIDEO_OMX_PTS_SECOND &&
+                fb->mFbType != DRM_FB_VIDEO_OMX_PTS_SECOND) {
                 setVideodisableStatus(2);
            }
         }
@@ -123,13 +118,14 @@ int32_t LegacyExtVideoPlane::setPlane(
 
             if (base != MAP_FAILED) {
                 set_omx_pts(base, &mDrvFd);
-                setZorder(zorder);
                 munmap(base, buffer->size);
                 MESON_LOGV("PIP set omx pts ok.");
             } else {
                 MESON_LOGE("PIP set omx pts failed.");
             }
         }
+
+        setZorder(zorder);
     }
 
     /*Update video plane blank status.*/
@@ -158,7 +154,8 @@ int32_t LegacyExtVideoPlane::setPlane(
         if (blankOp == UNBLANK && (blankStatus == 1 || blankStatus == 2)) {
             setVideodisableStatus(0);
         }
-    } else if (mLegacyExtVideoFb->mFbType == DRM_FB_VIDEO_SIDEBAND_SECOND || mLegacyExtVideoFb->mFbType == DRM_FB_VIDEO_OMX_PTS_SECOND) {
+    } else if (mLegacyExtVideoFb->mFbType == DRM_FB_VIDEO_SIDEBAND_SECOND ||
+        mLegacyExtVideoFb->mFbType == DRM_FB_VIDEO_OMX_PTS_SECOND) {
         if (mOmxKeepLastFrame) {
             if (blankOp == BLANK_FOR_NO_CONTENT && (blankStatus == 0 || blankStatus == 2)) {
                 setVideodisableStatus(1);
@@ -172,8 +169,10 @@ int32_t LegacyExtVideoPlane::setPlane(
         MESON_LOGI("PIP not support video fb type: %d", mLegacyExtVideoFb->mFbType);
     }
 
-    if (blankOp == BLANK_FOR_NO_CONTENT)
+    if (blankOp == BLANK_FOR_NO_CONTENT) {
         mLegacyExtVideoFb.reset();
+        memset(&mBackupDisplayFrame, 0, sizeof(drm_rect_t));
+    }
 
     return 0;
 }
