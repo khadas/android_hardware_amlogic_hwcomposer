@@ -126,6 +126,7 @@ void set_omx_pts(char* data, int* handle) {
                     offset += sizeof(uint32_t);
                     if (omx_version >= 3) {
                         memcpy(&session, (char*)data+offset, sizeof(uint32_t));
+                        offset += sizeof(uint32_t);
                     }
                 }
                 if (strncmp(data+offset, TVP_SECRET_DEV_ID, strlen(TVP_SECRET_DEV_ID)) == 0) {
