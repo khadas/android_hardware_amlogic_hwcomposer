@@ -15,6 +15,8 @@
 #include <Composition.h>
 #include <DrmFramebuffer.h>
 
+#include <hardware/hwcomposer_defs.h>
+
 class IComposer {
 public:
     IComposer() { }

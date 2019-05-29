@@ -11,10 +11,10 @@
 #include "AmFramebuffer.h"
 
 #include <misc.h>
-#include <sys/ioctl.h>
-#include <tvp/OmxUtil.h>
+#include <OmxUtil.h>
 #include <MesonLog.h>
-#include <gralloc_priv.h>
+
+#include <sys/ioctl.h>
 #include <math.h>
 
 
@@ -98,7 +98,7 @@ int32_t LegacyExtVideoPlane::setPlane(
 
         mLegacyExtVideoFb = fb;
 
-        buffer_handle_t buf = fb->mBufferHandle;
+        native_handle_t * buf = fb->mBufferHandle;
         /*set video crop:echo top left bottom right > /sys/class/video/crop_pip*/
         if (fb->mFbType == DRM_FB_VIDEO_OMX_PTS_SECOND) {
             char videoCropStr[AXIS_STR_LEN] = {0};
@@ -120,18 +120,12 @@ int32_t LegacyExtVideoPlane::setPlane(
 
         /*set omx pts.*/
         if (am_gralloc_is_omx_metadata_buffer(buf)) {
-            private_handle_t const* buffer = private_handle_t::dynamicCast(buf);
-
-            char *base = (char*)mmap(
-                NULL, buffer->size, PROT_READ|PROT_WRITE,
-                MAP_SHARED, buffer->share_fd, 0);
-
-            if (base != MAP_FAILED) {
+            char *base = NULL;
+            if (0 == gralloc_lock_dma_buf(buf, (void **)&base)) {
                 set_omx_pts(base, &mDrvFd);
-                munmap(base, buffer->size);
-                MESON_LOGV("PIP set omx pts ok.");
+                gralloc_unlock_dma_buf(buf);
             } else {
-                MESON_LOGE("PIP set omx pts failed.");
+                MESON_LOGE("set omx pts failed.");
             }
         }
 

@@ -10,7 +10,9 @@
 #ifndef DRM_TYPES_H
 #define DRM_TYPES_H
 
-#include <hardware/hwcomposer_defs.h>
+#include <stdint.h>
+#include <sys/cdefs.h>
+#include <system/graphics-base.h>
 
 /* blend mode for compoistion or display.
  * The define is same as hwc2_blend_mode.

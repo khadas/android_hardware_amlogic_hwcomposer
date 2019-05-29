@@ -11,7 +11,6 @@
 #include <MesonLog.h>
 #include <misc.h>
 #include <systemcontrol.h>
-#include <HwcConfig.h>
 
 #include "AmVinfo.h"
 #include "ConnectorHdmi.h"

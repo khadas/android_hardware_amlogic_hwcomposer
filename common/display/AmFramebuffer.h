@@ -21,6 +21,11 @@ Amlogic defined ioctl, masks.
 #define BYTE_ALIGN_32 32
 #define HWC_ALIGN( value, base ) (((value) + ((base) - 1)) & ~((base) - 1))
 
+#define DISPLAY_MODE_LEN (64)
+
+#define AXIS_STR_LEN            (32)
+
+
 enum {
     OSD_HW_CURSOR = (1 << 0),
     OSD_UBOOT_LOGO = (1 << 1),
@@ -98,7 +103,6 @@ enum {
 #define DISPLAY_FB1_SCALE_AXIS          "/sys/class/graphics/fb1/scale_axis"
 #define DISPLAY_FB1_SCALE               "/sys/class/graphics/fb1/scale"
 
-#define AXIS_STR_LEN                            32
 /*legacy logo switch*/
 #define DISPLAY_LOGO_INDEX              "/sys/module/fb/parameters/osd_logo_index"
 #define DISPLAY_FB0_FREESCALE_SWTICH    "/sys/class/graphics/fb0/free_scale_switch"

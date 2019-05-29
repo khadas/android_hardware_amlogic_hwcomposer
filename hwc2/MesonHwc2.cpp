@@ -66,7 +66,11 @@ void MesonHwc2::dump(uint32_t* outSize, char* outBuffer) {
     String8 dumpstr;
     DebugHelper::getInstance().resolveCmd();
 
-    dumpstr.append("\nMesonHwc2 state:\n");
+#ifdef HWC_RELEASE
+    dumpstr.append("\nMesonHwc2 state(RELEASE):\n");
+#else
+    dumpstr.append("\nMesonHwc2 state(DEBUG):\n");
+#endif
 
     if (DebugHelper::getInstance().dumpDetailInfo()) {
         HwcConfig::dump(dumpstr);

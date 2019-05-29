@@ -12,19 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+ifeq ($(USE_HWC1), true)
+
 LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
-LOCAL_SRC_FILES := OmxUtil.cpp
+$(error "have not implement hwc 1.0.")
 
-LOCAL_C_INCLUDES := system/core/include
-
-LOCAL_MODULE:= libomxutil
-
-LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)
-
-ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 26 && echo OK),OK)
-LOCAL_PROPRIETARY_MODULE := true
-endif
+LOCAL_MODULE := hwc.api_static
 
 include $(BUILD_STATIC_LIBRARY)
+
+endif

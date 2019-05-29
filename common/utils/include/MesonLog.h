@@ -12,7 +12,7 @@
 
 #define LOG_TAG "MesonHwc"
 #define LOG_NDEBUG 0
-#include <cutils/log.h>
+#include <log/log.h>
 #include <stdlib.h>
 
 #ifdef HWC_RELEASE

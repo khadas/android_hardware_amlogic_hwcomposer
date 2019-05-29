@@ -8,6 +8,7 @@
  */
 
 #include "ClientComposer.h"
+#include <DrmTypes.h>
 #include <MesonLog.h>
 
 ClientComposer::ClientComposer() {

@@ -13,18 +13,4 @@
 # limitations under the License.
 
 LOCAL_PATH := $(call my-dir)
-include $(CLEAR_VARS)
-
-LOCAL_SRC_FILES := OmxUtil.cpp
-
-LOCAL_C_INCLUDES := system/core/include
-
-LOCAL_MODULE:= libomxutil
-
-LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)
-
-ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 26 && echo OK),OK)
-LOCAL_PROPRIETARY_MODULE := true
-endif
-
-include $(BUILD_STATIC_LIBRARY)
+include $(call all-makefiles-under, $(LOCAL_PATH))

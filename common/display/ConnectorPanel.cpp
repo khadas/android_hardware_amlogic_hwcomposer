@@ -52,8 +52,8 @@ bool ConnectorPanel::isSecure(){
 }
 
 int32_t ConnectorPanel::loadDisplayModes() {
-    char axis[MAX_STR_LEN] = {0};
-    sysfs_get_string(SYSFS_DISPLAY_MODE, axis);
+    char axis[DISPLAY_MODE_LEN] = {0};
+    sysfs_get_string(SYSFS_DISPLAY_MODE, axis, DISPLAY_MODE_LEN);
     MESON_LOGD("get display mode: %s", axis);
     std::string dispmode = axis;
     addDisplayMode(dispmode);

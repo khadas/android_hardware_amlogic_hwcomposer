@@ -23,11 +23,6 @@ using namespace android;
 
 using namespace std;
 
-enum {
-    CALL_FROM_SF = 0,
-    CALL_FROM_HWC = 1,
-};
-
 #define UNUSED(x) (void)x
 
 #endif/*BASIC_TYPES_H*/

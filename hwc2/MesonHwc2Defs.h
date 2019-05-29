@@ -9,8 +9,6 @@
 
  #ifndef MESON_HWC2_DEFS_H
 #define MESON_HWC2_DEFS_H
-#include <graphics.h>
-
 
 #define MESON_VIRTUAL_DISPLAY_ID_START (3)
 #define MESON_VIRTUAL_DISPLAY_MAX_COUNT (0)
