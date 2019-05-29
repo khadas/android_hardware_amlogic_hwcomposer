@@ -13,18 +13,35 @@
 # limitations under the License.
 
 LOCAL_PATH := $(call my-dir)
+
 include $(CLEAR_VARS)
 
-LOCAL_SRC_FILES := OmxUtil.cpp
-
-LOCAL_C_INCLUDES := system/core/include
-
-LOCAL_MODULE:= libomxutil
-
-LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_PATH)
-
-ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 26 && echo OK),OK)
+ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 28 && echo OK),OK)
 LOCAL_PROPRIETARY_MODULE := true
 endif
+
+LOCAL_CPPFLAGS := $(HWC_CPP_FLAGS)
+LOCAL_CFLAGS := $(HWC_C_FLAGS)
+LOCAL_SHARED_LIBRARIES := $(HWC_SHARED_LIBS)
+
+LOCAL_SRC_FILES := \
+    BitsMap.cpp \
+    misc.cpp \
+    systemcontrol.cpp
+
+LOCAL_C_INCLUDES := \
+    hardware/libhardware/include \
+    system/core/include \
+    frameworks/native/include \
+    frameworks/native/libs/arect/include \
+    hardware/amlogic/gralloc/amlogic \
+    vendor/amlogic/frameworks/services/systemcontrol \
+    $(LOCAL_PATH)/include
+
+LOCAL_EXPORT_C_INCLUDE_DIRS := \
+    system/core/include \
+    $(LOCAL_PATH)/include
+
+LOCAL_MODULE := hwc.utils_static
 
 include $(BUILD_STATIC_LIBRARY)

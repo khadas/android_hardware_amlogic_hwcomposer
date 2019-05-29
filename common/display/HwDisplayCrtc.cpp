@@ -13,6 +13,7 @@
 #include <cutils/properties.h>
 #include <systemcontrol.h>
 #include <misc.h>
+#include <OmxUtil.h>
 
 #include "AmVinfo.h"
 #include "AmFramebuffer.h"
@@ -33,11 +34,13 @@ HwDisplayCrtc::HwDisplayCrtc(int drvFd, int32_t id) {
     *for new vpu, it can be 1 or 2.
     */
     mOsdChannels = 1;
-    memset(&hdrVideoInfo, 0, sizeof(hdrVideoInfo));
     memset(&nullHdr, 0, sizeof(nullHdr));
+
+    hdrVideoInfo = malloc(sizeof(vframe_master_display_colour_s_t));
 }
 
 HwDisplayCrtc::~HwDisplayCrtc() {
+    free(hdrVideoInfo);
 }
 
 int32_t HwDisplayCrtc::bind(
@@ -221,7 +224,7 @@ int32_t HwDisplayCrtc::getHdrMetadataKeys(
 int32_t HwDisplayCrtc::setHdrMetadata(
     std::map<drm_hdr_meatadata_t, float> & hdrmedata) {
     if (updateHdrMetadata(hdrmedata) == true)
-        return set_hdr_info(hdrVideoInfo);
+        return set_hdr_info((vframe_master_display_colour_s_t*)hdrVideoInfo);
 
     return 0;
 }
@@ -278,14 +281,16 @@ bool HwDisplayCrtc::updateHdrMetadata(
         }
     }
 
-    if (memcmp(&hdrVideoInfo, &nullHdr, sizeof(vframe_master_display_colour_s_t)) == 0)
+    if (memcmp(hdrVideoInfo, &nullHdr, sizeof(vframe_master_display_colour_s_t)) == 0)
         return false;
     newHdr.present_flag = 1;
 
-    if (memcmp(&hdrVideoInfo, &newHdr, sizeof(vframe_master_display_colour_s_t)) == 0)
+    if (memcmp(hdrVideoInfo, &newHdr, sizeof(vframe_master_display_colour_s_t)) == 0)
         return false;
 
-    hdrVideoInfo = newHdr;
+    vframe_master_display_colour_s_t * hdrinfo =
+        (vframe_master_display_colour_s_t *)hdrVideoInfo;
+    *hdrinfo = newHdr;
     return true;
 }
 

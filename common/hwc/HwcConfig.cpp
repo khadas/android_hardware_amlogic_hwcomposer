@@ -218,12 +218,6 @@ bool HwcConfig::forceClientEnabled() {
 }
 
 void HwcConfig::dump(String8 & dumpstr) {
-    #ifdef HWC_RELEASE
-    dumpstr.append("HwcConfigs (RELEASE):\n");
-    #else
-    dumpstr.append("HwcConfigs (DEBUG):\n");
-    #endif
-
     if (isHeadlessMode()) {
         dumpstr.appendFormat("\t HeadlessMode refreshrate: %d", headlessRefreshRate());
         dumpstr.append("\n");

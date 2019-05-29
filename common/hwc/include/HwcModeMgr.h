@@ -19,6 +19,11 @@ typedef enum {
     FULL_ACTIVE_POLICY
 } hwc_modes_policy_t;
 
+enum {
+    CALL_FROM_SF = 0,
+    CALL_FROM_HWC = 1,
+};
+
 /*
  *For different connectors, we need different manage strategy.
  *This class defines basic interface to manage display modes.

@@ -7,7 +7,6 @@
  * Description:
  */
 
-#include <misc.h>
 #include <BasicTypes.h>
 #include <MesonLog.h>
 
@@ -15,8 +14,7 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
-#include <properties.h>
-#include <gralloc.h>
+#include <cutils/properties.h>
 #include <am_gralloc_ext.h>
 
 #if PLATFORM_SDK_VERSION >= 28
@@ -24,6 +22,8 @@
 #include <ui/GraphicBufferAllocator.h>
 #include <ui/GraphicBufferMapper.h>
 #endif
+
+#include <misc.h>
 
 bool sys_get_bool_prop(const char *prop, bool defVal) {
     return property_get_bool(prop, defVal);
@@ -82,9 +82,9 @@ int32_t sysfs_get_string_ex(const char* path, char *str, int32_t size,
     return 0;
 }
 
-int32_t sysfs_get_string(const char* path, char *str) {
-    char buf[MAX_STR_LEN+1] = {0};
-    sysfs_get_string_ex(path, (char*)buf, MAX_STR_LEN, false);
+int32_t sysfs_get_string(const char* path, char *str, int32_t len) {
+    char * buf = new char[len];
+    sysfs_get_string_ex(path, (char*)buf, len, false);
     strcpy(str, buf);
     return 0;
 }
@@ -106,7 +106,7 @@ int32_t sysfs_set_string(const char *path, const char *val) {
 int32_t sysfs_get_int(const char* path, int32_t def) {
     int32_t val = def;
     char str[64];
-    if (sysfs_get_string(path, str) == 0) {
+    if (sysfs_get_string(path, str, 64) == 0) {
         val = atoi(str);
         MESON_LOGD("sysfs(%s) read int32_t (%d)", path, val);
     }

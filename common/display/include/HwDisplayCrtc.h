@@ -14,7 +14,6 @@
 #include <BasicTypes.h>
 #include <HwDisplayConnector.h>
 #include <HwDisplayPlane.h>
-#include <tvp/OmxUtil.h>
 
 class HwDisplayPlane;
 
@@ -82,7 +81,7 @@ protected:
     std::shared_ptr<HwDisplayConnector>  mConnector;
     std::vector<std::shared_ptr<HwDisplayPlane>> mPlanes;
 
-    vframe_master_display_colour_s_t hdrVideoInfo;
+    void * hdrVideoInfo;
 
     std::mutex mMutex;
 };
