@@ -201,18 +201,24 @@ hwc2_error_t Hwc2Display::setVsyncEnable(hwc2_vsync_t enabled) {
 // shall wait for SystemControl before it can update its state and notify FWK
 // accordingly.
 void Hwc2Display::onHotplug(bool connected) {
-    std::lock_guard<std::mutex> lock(mMutex);
-    MESON_LOGD("On hot plug: [%s]", connected == true ? "Plug in" : "Plug out");
+    bool bSendHotplug = false;
+    {
+        std::lock_guard<std::mutex> lock(mMutex);
+        MESON_LOGD("On hot plug: [%s]", connected == true ? "Plug in" : "Plug out");
 
-    if (connected) {
-        mSignalHpd = true;
-        return;
+        if (connected) {
+            mSignalHpd = true;
+            return;
+        }
+        mPowerMode->setConnectorStatus(false);
+        if (mObserver != NULL && mModeMgr->getPolicyType() != FIXED_SIZE_POLICY) {
+            bSendHotplug = true;
+        }
     }
-    mPowerMode->setConnectorStatus(false);
 
-    if (mObserver != NULL && mModeMgr->getPolicyType() != FIXED_SIZE_POLICY) {
+    /*call hotplug out of lock, SF may call some hwc function to cause deadlock.*/
+    if (bSendHotplug)
         mObserver->onHotplug(false);
-    }
 }
 
 void Hwc2Display::onUpdate(bool bHdcp) {
@@ -238,44 +244,52 @@ void Hwc2Display::onVsync(int64_t timestamp) {
 }
 
 void Hwc2Display::onModeChanged(int stage) {
-    std::lock_guard<std::mutex> lock(mMutex);
-    MESON_LOGD("On mode change state: [%s]", stage == 1 ? "Complete" : "Begin to change");
-    if (stage == 1) {
-        if (mObserver != NULL) {
-            if (mSignalHpd) {
-                mCrtc->loadProperities();
-                mConnector->getHdrCapabilities(&mHdrCaps);
+    bool bSendHotplug = false;
+    {
+        std::lock_guard<std::mutex> lock(mMutex);
+        MESON_LOGD("On mode change state: [%s]", stage == 1 ? "Complete" : "Begin to change");
+        if (stage == 1) {
+            if (mObserver != NULL) {
+                if (mSignalHpd) {
+                    mCrtc->loadProperities();
+                    mConnector->getHdrCapabilities(&mHdrCaps);
 #ifdef HWC_HDR_METADATA_SUPPORT
-                mCrtc->getHdrMetadataKeys(mHdrKeys);
+                    mCrtc->getHdrMetadataKeys(mHdrKeys);
 #endif
-                mCrtc->update();
-                mModeMgr->update();
+                    mCrtc->update();
+                    mModeMgr->update();
+                    if (mModeMgr->getDisplayMode(mDisplayMode) == 0) {
+                        bSendHotplug = true;
+                        mSignalHpd = false;
+                    }
+                } else {
+                    mCrtc->update();
+                    mModeMgr->update();
+
+                    /*Workaround: needed for NTS test.*/
+                    if (HwcConfig::primaryHotplugEnabled()
+                        && mModeMgr->getDisplayMode(mDisplayMode) == 0
+                        && mModeMgr->getPolicyType() == FIXED_SIZE_POLICY) {
+                        bSendHotplug = true;
+                    }
+                }
+
                 if (mModeMgr->getDisplayMode(mDisplayMode) == 0) {
-                    mObserver->onHotplug(true);
-                    mSignalHpd = false;
+                    mPowerMode->setConnectorStatus(true);
                 }
+
             } else {
-                mCrtc->update();
-                mModeMgr->update();
-
-                /*Workaround: needed for NTS test.*/
-                if (HwcConfig::primaryHotplugEnabled()
-                    && mModeMgr->getDisplayMode(mDisplayMode) == 0
-                    && mModeMgr->getPolicyType() == FIXED_SIZE_POLICY) {
-                    mObserver->onHotplug(true);
-                }
+                MESON_LOGE("No display oberserve register to display (%s)", getName());
             }
-
-            if (mModeMgr->getDisplayMode(mDisplayMode) == 0) {
-                mPowerMode->setConnectorStatus(true);
-            }
-
-            /*last call refresh*/
-            mObserver->refresh();
-        } else {
-            MESON_LOGE("No display oberserve register to display (%s)", getName());
         }
     }
+
+    /*call hotplug out of lock, SF may call some hwc function to cause deadlock.*/
+    if (bSendHotplug)
+        mObserver->onHotplug(true);
+
+    /*last call refresh*/
+    mObserver->refresh();
 }
 
 /*
