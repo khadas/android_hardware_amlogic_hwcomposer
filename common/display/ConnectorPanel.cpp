@@ -6,12 +6,12 @@
  *
  * Description:
  */
-
 #include "ConnectorPanel.h"
-#include "AmFramebuffer.h"
-
+#include <HwDisplayCrtc.h>
 #include <misc.h>
 #include <MesonLog.h>
+#include "AmFramebuffer.h"
+#include "AmVinfo.h"
 
 ConnectorPanel::ConnectorPanel(int32_t drvFd, uint32_t id)
     :   HwDisplayConnector(drvFd, id) {
@@ -52,19 +52,37 @@ bool ConnectorPanel::isSecure(){
 }
 
 int32_t ConnectorPanel::loadDisplayModes() {
-    char axis[DISPLAY_MODE_LEN] = {0};
-    sysfs_get_string(SYSFS_DISPLAY_MODE, axis, DISPLAY_MODE_LEN);
-    MESON_LOGD("get display mode: %s", axis);
-    std::string dispmode = axis;
-    addDisplayMode(dispmode);
-    const unsigned int pos = dispmode.find("60hz", 0);
-    if (pos != std::string::npos) {
-        dispmode.replace(pos, 4, "50hz");
-        addDisplayMode(dispmode);
-    } else {
-        MESON_LOGE("loadDisplayModes can not find 60hz in %s", dispmode.c_str());
+    mDisplayModes.clear();
+
+    std::string dispmode;
+    vmode_e vmode = VMODE_MAX;
+    if (NULL != mCrtc) {
+        mCrtc->readCurDisplayMode(dispmode);
+        vmode = vmode_name_to_mode(dispmode.c_str());
     }
 
+    if (vmode == VMODE_MAX) {
+        drm_mode_info_t modeInfo = {
+            "panel",
+            DEFAULT_DISPLAY_DPI,
+            DEFAULT_DISPLAY_DPI,
+            1920,
+            1080,
+            60};
+        mDisplayModes.emplace(mDisplayModes.size(), modeInfo);
+        MESON_LOGE("use default value,get display mode: %s", dispmode.c_str());
+    } else {
+        addDisplayMode(dispmode);
+
+        //for tv display mode.
+        const unsigned int pos = dispmode.find("60hz", 0);
+        if (pos != std::string::npos) {
+            dispmode.replace(pos, 4, "50hz");
+            addDisplayMode(dispmode);
+        } else {
+            MESON_LOGE("loadDisplayModes can not find 60hz in %s", dispmode.c_str());
+        }
+    }
     return 0;
 }
 

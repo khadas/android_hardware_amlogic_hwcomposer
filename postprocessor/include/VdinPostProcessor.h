@@ -66,6 +66,10 @@ protected:
         PROCESS_IDLE,/*nothing to do, util new cmd coming.*/
     };
 
+    enum {
+        PRESENT_UPDATE_PROCESSOR = PRESENT_MAX << 1,
+    };
+
     std::shared_ptr<HwDisplayCrtc> mVout;
     std::shared_ptr<HwDisplayPlane> mDisplayPlane;
     std::vector<std::shared_ptr<HwDisplayPlane>> mPlanes;
@@ -79,11 +83,13 @@ protected:
     std::vector<buffer_handle_t> mVdinHnds;
     std::vector<std::shared_ptr<DrmFramebuffer>> mVdinFbs;
     std::queue<int> mVdinQueue;
+    int mVdinBufOnScreen;
 
     std::queue<int> mCmdQ;
     int mProcessMode;
 
     std::shared_ptr<FbProcessor> mFbProcessor;
+    std::shared_ptr<FbProcessor> mReqFbProcessor;
 
     int mStat;
     pthread_t mThread;

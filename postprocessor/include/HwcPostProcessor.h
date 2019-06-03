@@ -12,12 +12,16 @@
 
 typedef enum {
     VDIN_POST_PROCESSOR = 0,
-    INVALID_POST_PROCESSOR,
+
+    /*add new procesor before invalid*/
+    INVALID_POST_PROCESSOR = 0xff,
 } hwc_post_processor_t;
 
 enum {
     PRESENT_BLANK = 1<< 0,
     PRESENT_SIDEBAND = 1 << 1,
+    PRESENT_MAX = 1 << 16,
+    /*postprocessor can use its self flags after PRESENT_MAX*/
 };
 
 class HwcPostProcessor {

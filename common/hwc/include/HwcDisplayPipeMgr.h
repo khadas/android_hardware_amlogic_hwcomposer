@@ -18,6 +18,7 @@
 #include <HwcVsync.h>
 #include <HwcConfig.h>
 #include <HwDisplayEventListener.h>
+#include <VdinPostProcessor.h>
 
 /*
  * manage  <Hwc2Display, HwDisplayPipe> according to
@@ -36,6 +37,9 @@ enum {
 
     rCalibrationSet = 1 << 6,
     rCalibrationSetExt = 1 << 7,
+
+    rKeystoneEnable = 1 << 8,
+    rKeystoneDisable = 1 << 9,
 };
 
 /*events*/
@@ -46,6 +50,7 @@ enum {
     eDisplayModeChange = 1 << 2,
     eDisplayModeExtChange = 1 << 3,
 };
+
 
 class HwcDisplayPipeMgr
     :   public android::Singleton<HwcDisplayPipeMgr>,
@@ -117,7 +122,6 @@ protected:
     hwc_pipe_policy_t mPipePolicy;
     std::map<uint32_t, std::shared_ptr<PipeStat>> mPipeStats;
 
-    bool mPostProcessor;
     std::mutex mMutex;
 };
 

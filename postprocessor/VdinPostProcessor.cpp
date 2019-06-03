@@ -24,7 +24,6 @@
 /*vdin will keep one frame always*/
 #define VDIN_CAP_CNT (VDIN_BUF_CNT - 1)
 
-
 VdinPostProcessor::VdinPostProcessor() {
     mExitThread = true;
     mStat = PROCESSOR_STOP;
@@ -34,6 +33,7 @@ VdinPostProcessor::~VdinPostProcessor() {
     mVdinFbs.clear();
     mPlanes.clear();
 
+    mReqFbProcessor.reset();
     mFbProcessor.reset();
 }
 
@@ -41,6 +41,7 @@ int32_t VdinPostProcessor::setVout(
     std::shared_ptr<HwDisplayCrtc> & crtc,
     std::vector<std::shared_ptr<HwDisplayPlane>> & planes,
     int w, int h) {
+    MESON_LOGE("vdinpostprocessor setvout");
     mVout = crtc;
     mPlanes = planes;
     auto it = mPlanes.begin();
@@ -102,9 +103,10 @@ int32_t VdinPostProcessor::startVdin() {
     Vdin::getInstance().getStreamInfo(w, h, format);
     MESON_ASSERT(format == HAL_PIXEL_FORMAT_RGB_888,
         "Only support HAL_PIXEL_FORMAT_RGB_888");
-   Vdin::getInstance().setStreamInfo(format, VDIN_BUF_CNT);
-
+    Vdin::getInstance().setStreamInfo(format, VDIN_BUF_CNT);
+    mVdinBufOnScreen = -1;
     mVdinFbs.clear();
+
     for (int i = 0;i < VDIN_BUF_CNT;i ++) {
         buffer_handle_t hnd = gralloc_alloc_dma_buf(w, h, format, true, false);
         MESON_ASSERT(hnd != NULL && am_gralloc_get_buffer_fd(hnd) >= 0,
@@ -115,7 +117,6 @@ int32_t VdinPostProcessor::startVdin() {
         mVdinFbs.push_back(buf);
         mVdinHnds.push_back(hnd);
     }
-
     return Vdin::getInstance().start();
 }
 
@@ -130,26 +131,32 @@ int32_t VdinPostProcessor::stopVdin() {
     while (!mVdinQueue.empty()) {
         mVdinQueue.pop();
     }
+    mVdinBufOnScreen = -1;
     return 0;
 }
 
 int32_t VdinPostProcessor::setFbProcessor(
     std::shared_ptr<FbProcessor> & processor) {
-    mFbProcessor = processor;
+    std::unique_lock<std::mutex> cmdLock(mMutex);
+
+    if (mStat == PROCESSOR_START) {
+        MESON_ASSERT(mReqFbProcessor == NULL, "set fb processor too fast.");
+        mReqFbProcessor = processor;
+        mCmdQ.push(PRESENT_UPDATE_PROCESSOR);
+        cmdLock.unlock();
+        mCmdCond.notify_one();
+    } else {
+        mFbProcessor = processor;
+        mReqFbProcessor = NULL;
+    }
+
     return 0;
 }
 
 int32_t VdinPostProcessor::start() {
     std::lock_guard<std::mutex> lock(mMutex);
-
     if (mStat == PROCESSOR_START)
         return 0;
-
-    MESON_LOGD("VdinPostProcessor::start");
-    if (mFbProcessor.get() == NULL ||
-        mDisplayPlane.get() == NULL) {
-        return -EINVAL;
-    }
 
     if (mVoutHnds.size() == 0) {
         for (int i = 0;i < VOUT_BUF_CNT;i ++) {
@@ -170,10 +177,10 @@ int32_t VdinPostProcessor::start() {
 }
 
 int32_t VdinPostProcessor::stop() {
+    std::unique_lock<std::mutex> cmdLock(mMutex);
     if (mStat == PROCESSOR_STOP)
         return 0;
 
-    std::unique_lock<std::mutex> cmdLock(mMutex);
     mExitThread = true;
     cmdLock.unlock();
     mCmdCond.notify_one();
@@ -206,13 +213,12 @@ int32_t VdinPostProcessor::present(int flags, int32_t fence) {
     if (fence >= 0)
         close(fence);
 
+    std::unique_lock<std::mutex> cmdLock(mMutex);
     if (mStat == PROCESSOR_STOP)
         return 0;
 
-    std::unique_lock<std::mutex> cmdLock(mMutex);
-
 #ifdef VDIN_POSTPROCESS_DEBUG
-    MESON_LOGD("VdinPostProcessor::present %d @ %d", flags, mStat);
+    MESON_LOGE("VdinPostProcessor::present %d @ %d", flags, mStat);
 #endif
 
     /*First present comes, we need start processor thread.*/
@@ -234,7 +240,6 @@ int32_t VdinPostProcessor::present(int flags, int32_t fence) {
 void * VdinPostProcessor::threadMain(void * data) {
     MESON_ASSERT(data, "vdin data should not be NULL.");
     VdinPostProcessor * pThis = (VdinPostProcessor *) data;
-
     if (pThis->mFbProcessor)
         pThis->mFbProcessor->setup();
 
@@ -244,7 +249,7 @@ void * VdinPostProcessor::threadMain(void * data) {
     }
     pThis->stopVdin();
 
-    /*blank vout.*/
+    /*blank vout, for we will read the buffer on screen.*/
     pThis->postVout(NULL);
 
     if (pThis->mFbProcessor)
@@ -262,6 +267,15 @@ int32_t VdinPostProcessor::process() {
         mCmdQ.pop();
         if (cmd & PRESENT_SIDEBAND) {
             mProcessMode = PROCESS_ALWAYS;
+        } else if (cmd & PRESENT_UPDATE_PROCESSOR) {
+            if (mFbProcessor != mReqFbProcessor) {
+                if (mFbProcessor != NULL)
+                    mFbProcessor->teardown();
+                mFbProcessor = mReqFbProcessor;
+                mReqFbProcessor = NULL;
+                if (mFbProcessor != NULL)
+                    mFbProcessor->setup();
+            }
         } else if ((cmd & PRESENT_BLANK) || (cmd == 0)) {
             mProcessMode = PROCESS_ONCE;
             capCnt = VDIN_CAP_CNT;
@@ -283,13 +297,14 @@ int32_t VdinPostProcessor::process() {
         capCnt = VDIN_CAP_CNT;
     }
 
+    int deqVdinBufs = mVdinQueue.size() + (mVdinBufOnScreen >= 0 ? 1 : 0);
 #ifdef VDIN_POSTPROCESS_DEBUG
     MESON_LOGD("VdinPostProcessor processMode(%d) capCnt(%d) vdinkeep (%d)",
-        mProcessMode, capCnt, mVdinQueue.size());
+        mProcessMode, capCnt, deqVdinBufs);
 #endif
 
     /*all vdin bufs consumed, go to idle.*/
-    if (capCnt <= 0 && mVdinQueue.size() == VDIN_CAP_CNT) {
+    if (capCnt <= 0 &&  deqVdinBufs == VDIN_CAP_CNT) {
         if (mProcessMode == PROCESS_ONCE) {
             MESON_LOGD("PROCESS_ONCE -> PROCESS_IDLE.");
             mProcessMode = PROCESS_IDLE;
@@ -311,6 +326,7 @@ int32_t VdinPostProcessor::process() {
             capCnt --;
         }
 
+        /*read vdin and process.*/
         if (Vdin::getInstance().dequeueBuffer(vdinIdx) == 0) {
             MESON_ASSERT(vdinIdx >= 0 && !mVoutQueue.empty(), "idx always >= 0.");
 #ifdef VDIN_POSTPROCESS_DEBUG
@@ -318,25 +334,40 @@ int32_t VdinPostProcessor::process() {
 #endif
             infb = mVdinFbs[vdinIdx];
 
-            /*get ouput buf, and wait it ready.*/
-            outfb = mVoutQueue.front();
-            int releaseFence = outfb->getReleaseFence();
-            if (releaseFence >= 0) {
-                DrmFence fence(releaseFence);
-                fence.wait(3000);
-                outfb->clearReleaseFence();
+            if (mFbProcessor != NULL) {
+                /*get ouput buf, and wait it ready.*/
+                outfb = mVoutQueue.front();
+                int releaseFence = outfb->getReleaseFence();
+                if (releaseFence >= 0) {
+                    DrmFence fence(releaseFence);
+                    fence.wait(3000);
+                    outfb->clearReleaseFence();
+                }
+                mVoutQueue.pop();
+                /*do processor*/
+                mFbProcessor->process(infb, outfb);
+                /*post outbuf to vout, and return to vout queue.*/
+                postVout(outfb);
+                /*push back vout buf.*/
+                mVoutQueue.push(outfb);
+                /*push back last displayed buf*/
+                if (mVdinBufOnScreen >= 0) {
+                    mVdinQueue.push(mVdinBufOnScreen);
+                    mVdinBufOnScreen = -1;
+                }
+                /*push back vdin buf.*/
+                mVdinQueue.push(vdinIdx);
+            } else {
+                /*null procesor, post vdin buf to vout directlly.*/
+                postVout(infb);
+                /*push back last displayed buf*/
+                if (mVdinBufOnScreen >= 0) {
+                    mVdinQueue.push(mVdinBufOnScreen);
+                    mVdinBufOnScreen = -1;
+                }
+                /*keep current display buf.*/
+                mVdinBufOnScreen = vdinIdx;
             }
-            mVoutQueue.pop();
-
-            /*Should be a block process.*/
-            mFbProcessor->process(infb, outfb);
-
-            /*post outbuf to vout, and return to vout queue.*/
-            postVout(outfb);
-            mVoutQueue.push(outfb);
-
-            /*hold the buffer now.*/
-            mVdinQueue.push(vdinIdx);
         } else {
             MESON_LOGE("Vdin dequeue failed, still need cap %d", capCnt);
         }

@@ -136,13 +136,15 @@ int32_t HwDisplayCrtc::update() {
         if (displayMode.empty()) {
              MESON_LOGE("displaymode should not null when connected.");
         } else {
-            MESON_LOGI("hw crtc update to mode: (%s)", displayMode.c_str());
             for (auto it = mModes.begin(); it != mModes.end(); it ++) {
+                MESON_LOGD("update: (%s) mode (%s)", displayMode.c_str(), it->second.name);
                 if (strcmp(it->second.name, displayMode.c_str()) == 0) {
                     memcpy(&mCurModeInfo, &it->second, sizeof(drm_mode_info_t));
                     break;
                 }
             }
+            MESON_LOGD("crtc(%d) update (%s) (%d) -> (%s).",
+                mId, displayMode.c_str(), mModes.size(), mCurModeInfo.name);
         }
     } else {
         /*clear mode info.*/
@@ -313,7 +315,7 @@ int32_t  HwDisplayCrtc::readCurDisplayMode(std::string & dispmode) {
 int32_t HwDisplayCrtc::writeCurDisplayMode(std::string & dispmode) {
     int32_t ret = 0;
     if (mId == CRTC_VOUT1) {
-        ret = sc_set_display_mode(dispmode);
+        ret = sc_write_sysfs(VIU1_DISPLAY_MODE_SYSFS, dispmode);
     } else if (mId == CRTC_VOUT2) {
         ret = sc_write_sysfs(VIU2_DISPLAY_MODE_SYSFS, dispmode);
     }

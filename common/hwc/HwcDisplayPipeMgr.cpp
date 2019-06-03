@@ -39,7 +39,6 @@ HwcDisplayPipeMgr::PipeStat::~PipeStat() {
 
 HwcDisplayPipeMgr::HwcDisplayPipeMgr() {
     /*load hw display resource.*/
-    mPostProcessor = false;
     mPipePolicy =  HwcConfig::getPipeline();
 
     HwDisplayManager::getInstance().getCrtcs(mCrtcs);
@@ -124,7 +123,10 @@ int32_t HwcDisplayPipeMgr::getPostProcessor(
     if (it != mProcessors.end()) {
         processor = it->second;
     } else {
-        if (mPipePolicy == HWC_PIPE_VIU1VDINVIU2 && type == VDIN_POST_PROCESSOR) {
+        if (mPipePolicy == HWC_PIPE_VIU1VDINVIU2) {
+            MESON_ASSERT(type == VDIN_POST_PROCESSOR,
+                "only support VDIN_POST_PROCESSOR.");
+
             /*use the primary fb size for viu2.*/
             uint32_t w, h;
             HwcConfig::getFramebufferSize(0, w, h);
@@ -133,14 +135,10 @@ int32_t HwcDisplayPipeMgr::getPostProcessor(
             std::vector<std::shared_ptr<HwDisplayPlane>> planes;
             getCrtc(CRTC_VOUT2, crtc);
             getPlanes(CRTC_VOUT2, planes);
-            std::shared_ptr<FbProcessor> fbprocessor;
-            createFbProcessor(HwcConfig::getVdinFbProcessor(), fbprocessor);
 
             std::shared_ptr<VdinPostProcessor> vdinProcessor =
                 std::make_shared<VdinPostProcessor>();
             vdinProcessor->setVout(crtc, planes, w, h);
-            vdinProcessor->setFbProcessor(fbprocessor);
-
             processor = std::dynamic_pointer_cast<HwcPostProcessor>(vdinProcessor);
             mProcessors.emplace(type, processor);
         }
@@ -187,15 +185,10 @@ int32_t HwcDisplayPipeMgr::getDisplayPipe(
         case HWC_PIPE_VIU1VDINVIU2:
             MESON_ASSERT(hwcdisp == 0, "Only one display for this policy.");
             cfg.hwcPostprocessorType = VDIN_POST_PROCESSOR;
-            if (mPostProcessor) {
-                cfg.hwcCrtcId = CRTC_VOUT1;
-                cfg.hwcConnectorType = DRM_MODE_CONNECTOR_DUMMY;
-                cfg.modeCrtcId = CRTC_VOUT2;
-                cfg.modeConnectorType = connector;
-            } else {
-                cfg.modeCrtcId = cfg.hwcCrtcId = CRTC_VOUT1;
-                cfg.modeConnectorType = cfg.hwcConnectorType = connector;
-            }
+            cfg.hwcCrtcId = CRTC_VOUT1;
+            cfg.hwcConnectorType = DRM_MODE_CONNECTOR_DUMMY;
+            cfg.modeCrtcId = CRTC_VOUT2;
+            cfg.modeConnectorType = connector;
             break;
 
         case HWC_PIPE_DUMMY:
@@ -209,7 +202,28 @@ int32_t HwcDisplayPipeMgr::getDisplayPipe(
 
 int32_t HwcDisplayPipeMgr::initDisplays() {
     std::lock_guard<std::mutex> lock(mMutex);
-    return updatePipe();
+    updatePipe();
+    if (mPipePolicy == HWC_PIPE_VIU1VDINVIU2) {
+        std::shared_ptr<PipeStat> stat = mPipeStats.find(0)->second;
+
+        /*set viu2 to plane*/
+        std::map<uint32_t, drm_mode_info_t> curModes;
+        stat->modeConnector->getModes(curModes);
+        stat->modeCrtc->setMode(curModes[0]);
+        MESON_LOGE("initDisplays viu2: get mode (%s)",curModes[0].name);
+
+        /*set viu1 to dummyplane */
+        std::map<uint32_t, drm_mode_info_t> modes;
+        stat->hwcConnector->getModes(modes);
+        MESON_ASSERT(modes.size() > 0, "no modes got.");
+
+        MESON_LOGE("initDisplays viu1: get modes %s",modes[0].name);
+        stat->hwcCrtc->setMode(modes[0]);
+
+
+        stat->modeMgr->update();
+    }
+    return 0;
 }
 
 int32_t HwcDisplayPipeMgr::updatePipe() {
@@ -281,6 +295,11 @@ int32_t HwcDisplayPipeMgr::updatePipe() {
             stat->hwcDisplay->setModeMgr(stat->modeMgr);
             stat->hwcDisplay->setDisplayResource(
                 stat->hwcCrtc, stat->hwcConnector, stat->hwcPlanes);
+
+            if (stat->hwcPostProcessor) {
+                stat->hwcDisplay->setPostProcessor(stat->hwcPostProcessor);
+                stat->hwcPostProcessor->start();
+            }
         }
     }
 
@@ -344,58 +363,26 @@ void HwcDisplayPipeMgr::handle(drm_display_event event, int val) {
 
 int32_t HwcDisplayPipeMgr::update(uint32_t flags) {
     MESON_LOGE("HwcDisplayPipeMgr::update %x", flags);
-
     std::lock_guard<std::mutex> lock(mMutex);
-    /*handle postprocessor on display -*/
-    if ((flags & rPostProcessorStart) || (flags & rPostProcessorStop)) {
-        bool bEnable = flags & rPostProcessorStart ? true : false;
 
+    if ((flags & rKeystoneEnable) || (flags & rKeystoneDisable)) {
         /*handle for different pipeline config*/
         if (mPipePolicy == HWC_PIPE_VIU1VDINVIU2) {
+            bool bSetKeystone = flags & rKeystoneEnable ? true : false;
             std::shared_ptr<PipeStat> stat = mPipeStats.find(0)->second;
-            if (mPostProcessor == bEnable)
-                return 0;
+            VdinPostProcessor * vdinProcessor =
+                (VdinPostProcessor *)stat->hwcPostProcessor.get();
+            MESON_ASSERT(vdinProcessor != NULL, "vdinProcessor should not NULL.");
+            std::shared_ptr<FbProcessor> fbprocessor = NULL;
 
-            mPostProcessor = bEnable;
-
-            if (!bEnable) {
-                stat->hwcPostProcessor->stop();
-                stat->hwcDisplay->setPostProcessor(NULL);
-            }
-
-            drm_mode_info_t curMode;
-            /*get current display mode.*/
-            stat->modeCrtc->getMode(curMode);
-
-            MESON_LOGE("get cur mode %s",curMode.name);
-            /*reset vout displaymode, for we need do pipeline switch*/
-            stat->hwcCrtc->unbind();
-            stat->modeCrtc->unbind();
-            /*update display pipe.*/
-            updatePipe();
-
-            if (bEnable) {
-                /*set viu1 to dummyplane */
-                std::map<uint32_t, drm_mode_info_t> modes;
-                stat->hwcConnector->getModes(modes);
-                MESON_ASSERT(modes.size() > 0, "no modes got.");
-
-                MESON_LOGE("bEnable: get mode %s",modes[0].name);
-                stat->hwcCrtc->setMode(modes[0]);
-                /*set viu2 to plane*/
-                stat->modeCrtc->setMode(curMode);
-                stat->modeMgr->update();
+            if (bSetKeystone) {
+                MESON_LOGE("keystone open");
+                createFbProcessor(FB_KEYSTONE_PROCESSOR, fbprocessor);
             } else {
-                /*set viu1 to plane */
-                stat->modeCrtc->setMode(curMode);
-                stat->modeMgr->update();
-                /*viu2 keep null.*/
+                MESON_LOGE("keystone close");
+                fbprocessor = NULL;
             }
-
-            if (bEnable) {
-                stat->hwcDisplay->setPostProcessor(stat->hwcPostProcessor);
-                stat->hwcPostProcessor->start();
-            }
+            vdinProcessor->setFbProcessor(fbprocessor);
         }
     }
 

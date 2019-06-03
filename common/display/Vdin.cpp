@@ -137,7 +137,11 @@ int32_t Vdin::dequeueBuffer(int & idx) {
     int pollrtn = 0;
     do {
         pollrtn = poll(fds, 1, POLL_TIMEOUT_MS);
-    } while (!(pollrtn > 0 && fds[0].revents == POLLIN));
+        if (pollrtn > 0 && fds[0].revents == POLLIN)
+            break;
+        else
+            MESON_LOGE("Vdin poll timeout.");
+    } while (1);
 
     int dequeuIdx = -1;
     if(read(mDev, &dequeuIdx, sizeof(int)) > 0) {

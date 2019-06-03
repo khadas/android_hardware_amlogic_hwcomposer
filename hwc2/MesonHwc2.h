@@ -150,9 +150,6 @@ protected:
     uint32_t mVirtualDisplayIds;
 
     uint32_t mDisplayRequests;
-
-    bool mSetKeystoneCalibrateInfo;
-
 };
 
 #endif/*MESON_HWC2_H*/

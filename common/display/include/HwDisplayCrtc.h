@@ -59,12 +59,13 @@ public:
 
     int32_t pageFlip(int32_t & out_fence);
 
+    int32_t readCurDisplayMode(std::string & dispmode);
+    int32_t writeCurDisplayMode(std::string & dispmode);
+
+
 protected:
     void closeLogoDisplay();
     bool updateHdrMetadata(std::map<drm_hdr_meatadata_t, float> & hdrmedata);
-
-    int32_t readCurDisplayMode(std::string & dispmode);
-    int32_t writeCurDisplayMode(std::string & dispmode);
 
 protected:
     int32_t mId;

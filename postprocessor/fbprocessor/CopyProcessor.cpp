@@ -22,6 +22,7 @@ int32_t CopyProcessor::setup() {
 int32_t CopyProcessor::process(
     std::shared_ptr<DrmFramebuffer> & inputfb,
     std::shared_ptr<DrmFramebuffer> & outfb) {
+
     void * inmem = NULL, * outmem = NULL;
     int infmt = am_gralloc_get_format (inputfb->mBufferHandle);
     int outfmt = am_gralloc_get_format (outfb->mBufferHandle);
