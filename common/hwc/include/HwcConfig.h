@@ -58,7 +58,6 @@ public:
 
     static hwc_connector_t getConnectorType(int disp);
     static hwc_pipe_policy_t getPipeline();
-    static meson_fb_processor_t getVdinFbProcessor();
 
     static hwc_modes_policy_t getModePolicy(int disp);
 

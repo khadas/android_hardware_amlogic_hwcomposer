@@ -355,7 +355,6 @@ int32_t MesonHwc2::getReleaseFences(hwc2_display_t display,
 int32_t MesonHwc2::validateDisplay(hwc2_display_t display,
     uint32_t* outNumTypes, uint32_t* outNumRequests) {
     GET_HWC_DISPLAY(display);
-
     /*handle display request*/
     uint32_t request = getDisplayRequest();
     setCalibrateInfo(display);
@@ -501,7 +500,6 @@ int32_t MesonHwc2::getPerFrameMetadataKeys(
 
 /**********************Amlogic ext display interface*******************/
 int32_t MesonHwc2::setPostProcessor(bool bEnable) {
-    MESON_LOGE("setPostProcessor %d", bEnable);
     mDisplayRequests |= bEnable ? rPostProcessorStart : rPostProcessorStop;
     return 0;
 }
@@ -512,7 +510,7 @@ int32_t MesonHwc2::setCalibrateInfo(hwc2_display_t display){
     int cali[4];
     drm_mode_info_t mDispMode;
     hwcDisplay->getDispMode(mDispMode);
-    if (mSetKeystoneCalibrateInfo) {
+    if (HwcConfig::getPipeline() == HWC_PIPE_VIU1VDINVIU2) {
         caliX = 1;
         caliY = 1;
         caliW = mDispMode.pixelW - 2;
@@ -546,29 +544,25 @@ uint32_t MesonHwc2::getDisplayRequest() {
     /*read extend prop to update display request.*/
 #ifdef GET_REQUEST_FROM_PROP
     if (HwcConfig::getPipeline() == HWC_PIPE_VIU1VDINVIU2) {
+        static bool bKeystone = false;
         char val[PROP_VALUE_LEN_MAX];
-        /*keystone*/
-        static bool bKeystoneEnable = false;
         bool bVal = false;
         if (sys_get_string_prop("persist.vendor.hwc.keystone", val) > 0 &&
             strcmp(val, "0") != 0) {
             bVal = true;
         }
 
-        if (bVal != bKeystoneEnable) {
-            setPostProcessor(bVal);
-            bKeystoneEnable = bVal;
+        if (bKeystone != bVal) {
+            mDisplayRequests |= bVal ? rKeystoneEnable : rKeystoneDisable;
+            bKeystone = bVal;
         }
-        mSetKeystoneCalibrateInfo = bVal;
     }
 #endif
-
     /*record and reset requests.*/
     uint32_t request = mDisplayRequests;
     mDisplayRequests = 0;
-
     if (request > 0) {
-        MESON_LOGD("getDisplayRequest %x", request);
+        MESON_LOGE("getDisplayRequest %x", request);
     }
     return request;
 }

@@ -125,25 +125,6 @@ hwc_modes_policy_t HwcConfig::getModePolicy(int disp) {
 #endif
 }
 
-meson_fb_processor_t HwcConfig::getVdinFbProcessor() {
-    const char * processorStr = NULL;
-#ifdef HWC_VDIN_FBPROCESSOR
-    processorStr = HWC_VDIN_FBPROCESSOR;
-#endif
-
-    /*dummy is for test.*/
-    if (processorStr == NULL || strcasecmp(processorStr, "DUMMY") == 0)
-        return FB_DUMMY_PROCESSOR;
-    else if (strcasecmp(processorStr, "COPY") == 0)
-        return FB_COPY_PROCESSOR;
-    else if (strcasecmp(processorStr, "KEYSTONE") == 0)
-        return FB_KEYSTONE_PROCESSOR;
-    else
-        MESON_ASSERT(0, "getVdinPostProcessor type %s failed.", processorStr);
-
-    return FB_DUMMY_PROCESSOR;
-}
-
 bool HwcConfig::isHeadlessMode() {
 #ifdef HWC_ENABLE_HEADLESS_MODE
         return true;
@@ -232,7 +213,6 @@ void HwcConfig::dump(String8 & dumpstr) {
             dumpstr.appendFormat("\t ModePolicy: %d", getModePolicy(i));
             dumpstr.append("\n");
             dumpstr.appendFormat("\t PipelineConfig: %d", getPipeline());
-            dumpstr.appendFormat("\t VdinFbProcessor: %d", getVdinFbProcessor());
             dumpstr.append("\n");
             dumpstr.appendFormat("\t SoftwareVsync: %s", softwareVsyncEnabled() ? "Y" : "N");
             dumpstr.appendFormat("\t CursorPlane: %s", cursorPlaneDisabled() ? "N" : "Y");
