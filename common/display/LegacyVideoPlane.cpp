@@ -32,6 +32,7 @@ LegacyVideoPlane::LegacyVideoPlane(int32_t drvFd, uint32_t id)
     mOmxKeepLastFrame = 0;
     mVideoType = DRM_FB_UNDEFINED;
     mLegacyVideoFb.reset();
+    mBackupTransform = 0xff;
     memset(&mBackupDisplayFrame, 0, sizeof(drm_rect_t));
     getOmxKeepLastFrame(mOmxKeepLastFrame);
 }
@@ -80,6 +81,11 @@ bool LegacyVideoPlane::shouldUpdateAxis(
         bUpdate = true;
     }
 
+    if (mBackupTransform != fb->mTransform) {
+        mBackupTransform = fb->mTransform;
+        bUpdate = true;
+    }
+
     return bUpdate;
 }
 
@@ -113,13 +119,36 @@ int32_t LegacyVideoPlane::setPlane(
         }
 #endif
 
-        /*set video axis.*/
+        /*set video axis & rotation.*/
         if (shouldUpdateAxis(fb)) {
-            char videoAxisStr[AXIS_STR_LEN] = {0};
+            char videoValStr[AXIS_STR_LEN] = {0};
+
             drm_rect_t * videoAxis = &(fb->mDisplayFrame);
-            sprintf(videoAxisStr, "%d %d %d %d", videoAxis->left, videoAxis->top,
+            sprintf(videoValStr, "%d %d %d %d", videoAxis->left, videoAxis->top,
                 videoAxis->right - 1, videoAxis->bottom - 1);
-            sysfs_set_string(SYSFS_VIDEO_AXIS, videoAxisStr);
+            sysfs_set_string(SYSFS_VIDEO_AXIS, videoValStr);
+
+            int rotation = 0;
+            switch (mLegacyVideoFb->mTransform) {
+                case 0:
+                    rotation = 0;
+                    break;
+                case HAL_TRANSFORM_ROT_90:
+                    rotation = 90;
+                    break;
+                case HAL_TRANSFORM_ROT_180:
+                    rotation = 180;
+                    break;
+                case HAL_TRANSFORM_ROT_270:
+                    rotation = 270;
+                    break;
+                default:
+                    rotation = 0;
+                    break;
+            };
+            rotation = (rotation / 90) & 3;
+            sprintf(videoValStr, "%d", rotation);
+            sysfs_set_string(SYSFS_PPMGR_ANGLE, videoValStr);
         }
 
         /*set omx pts.*/
@@ -179,6 +208,7 @@ int32_t LegacyVideoPlane::setPlane(
     if (blankOp == BLANK_FOR_NO_CONTENT) {
         mVideoType = DRM_FB_UNDEFINED;
         memset(&mBackupDisplayFrame, 0, sizeof(drm_rect_t));
+        mBackupTransform = 0xff;
         mLegacyVideoFb.reset();
     }
 
