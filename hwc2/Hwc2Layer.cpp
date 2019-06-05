@@ -16,8 +16,8 @@
 
 
 Hwc2Layer::Hwc2Layer() : DrmFramebuffer(){
-    mDataSpace = HAL_DATASPACE_UNKNOWN;
-    mVisible = false;
+    mDataSpace    = HAL_DATASPACE_UNKNOWN;
+    mUpdateZorder = false;
 }
 
 Hwc2Layer::~Hwc2Layer() {
@@ -132,8 +132,6 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
     }
 
     mSecure = am_gralloc_is_secure_buffer(mBufferHandle);
-    setVisible(true);
-
     return HWC2_ERROR_NONE;
 }
 
@@ -150,8 +148,6 @@ hwc2_error_t Hwc2Layer::setSidebandStream(const native_handle_t* stream) {
     }
 
     mSecure = false;
-    setVisible(true);
-
     return HWC2_ERROR_NONE;
 
 }
@@ -165,8 +161,6 @@ hwc2_error_t Hwc2Layer::setColor(hwc_color_t color) {
     mColor.a = color.a;
 
     mFbType = DRM_FB_COLOR;
-    setVisible(true);
-
     return HWC2_ERROR_NONE;
 }
 
@@ -229,6 +223,7 @@ hwc2_error_t Hwc2Layer::setDataspace(android_dataspace_t dataspace) {
 
 hwc2_error_t Hwc2Layer::setZorder(uint32_t z) {
     mZorder = z;
+    updateZorder(true);
     return HWC2_ERROR_NONE;
 }
 
@@ -261,7 +256,7 @@ hwc2_layer_t Hwc2Layer::getUniqueId() {
     return mId;
 }
 
-void Hwc2Layer::setVisible(bool visible) {
-    mVisible = visible;
+void Hwc2Layer::updateZorder(bool update) {
+    mUpdateZorder = update;
 }
 

@@ -1018,9 +1018,13 @@ int MultiplanesComposition::commit() {
 
     if (mDisplayRefFb.get()) {
         if (IS_FB_COMPOSED(mDisplayRefFb)) {
-            mDisplayRefFb = composerOutput;
-            mOsdDisplayFrame.crtc_display_x = composerOutput->mDisplayFrame.left;
-            mOsdDisplayFrame.crtc_display_y = composerOutput->mDisplayFrame.top;
+            if (composerOutput.get()) {
+                mDisplayRefFb = composerOutput;
+            } else {
+                MESON_LOGE("Output of cient composer is NULL!");
+            }
+            mOsdDisplayFrame.crtc_display_x = mDisplayRefFb->mDisplayFrame.left;
+            mOsdDisplayFrame.crtc_display_y = mDisplayRefFb->mDisplayFrame.top;
         }
 
         mOsdDisplayFrame.framebuffer_w = mDisplayRefFb->mSourceCrop.right -
