@@ -52,8 +52,8 @@ public:
 
     int32_t commitCompType(hwc2_composition_t hwcComp);
 
-    bool isVisible() { return mVisible;}
-    void setVisible(bool visible);
+    bool isUpdateZorder() { return mUpdateZorder;}
+    void updateZorder(bool update);
 
 public:
     android_dataspace_t mDataSpace;
@@ -67,7 +67,7 @@ protected:
     hwc2_error_t handleDimLayer(buffer_handle_t buffer);
 
 protected:
-    bool mVisible;
+    bool mUpdateZorder;
 
 };
 

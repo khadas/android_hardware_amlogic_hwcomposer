@@ -386,10 +386,20 @@ hwc2_error_t Hwc2Display::collectLayersForPresent() {
     */
     mPresentLayers.reserve(10);
 
+    /*Check if layer list is changed or not*/
+    bool bUpdateLayerList = false;
+    for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
+        std::shared_ptr<Hwc2Layer> layer = it->second;
+        if (layer->isUpdateZorder() == true) {
+            bUpdateLayerList = true;
+            break;
+        }
+    }
+
     for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
         std::shared_ptr<Hwc2Layer> layer = it->second;
         std::shared_ptr<DrmFramebuffer> buffer = layer;
-        if (layer->isVisible() == false) {
+        if (bUpdateLayerList == true && layer->isUpdateZorder() == false) {
             continue;
         }
         mPresentLayers.push_back(buffer);
@@ -713,10 +723,10 @@ hwc2_error_t Hwc2Display::acceptDisplayChanges() {
         layer->commitCompType(mesonComp2Hwc2Comp(layer));
     }
 
-    /* clear hwc layers visible flag */
+    /* set updateZorder flag to false */
     for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
         std::shared_ptr<Hwc2Layer> layer = it->second;
-        layer->setVisible(false);
+        layer->updateZorder(false);
     }
 
     return HWC2_ERROR_NONE;
