@@ -220,8 +220,8 @@ int32_t HwcDisplayPipeMgr::initDisplays() {
         MESON_LOGE("initDisplays viu1: get modes %s",modes[0].name);
         stat->hwcCrtc->setMode(modes[0]);
 
-
         stat->modeMgr->update();
+
     }
     return 0;
 }
@@ -316,6 +316,7 @@ void HwcDisplayPipeMgr::handle(drm_display_event event, int val) {
                 MESON_LOGD("Hdcp handle value %d.", val);
                 for (auto statIt : mPipeStats) {
                     if (statIt.second->modeConnector->getType() == DRM_MODE_CONNECTOR_HDMI) {
+                        statIt.second->modeCrtc->update();
                         statIt.second->hwcDisplay->onUpdate((val == 0) ? false : true);
                     }
                 }
@@ -335,19 +336,23 @@ void HwcDisplayPipeMgr::handle(drm_display_event event, int val) {
         case DRM_EVENT_VOUT1_MODE_CHANGED:
         case DRM_EVENT_VOUT2_MODE_CHANGED:
             {
-                int crtcid = CRTC_VOUT1;
-                if (event == DRM_EVENT_VOUT2_MODE_CHANGED)
-                    crtcid = CRTC_VOUT2;
-                for (auto statIt : mPipeStats) {
-                    if (statIt.second->modeCrtc->getId() == crtcid) {
-                        statIt.second->modeCrtc->update();
-                        statIt.second->modeMgr->update();
-                        statIt.second->hwcDisplay->onModeChanged(val);
-                        /*update display dynamic info.*/
-                        drm_mode_info_t mode;
-                        if (HwcConfig::softwareVsyncEnabled()) {
-                            if (0 == statIt.second->modeMgr->getDisplayMode(mode)) {
-                                statIt.second->hwcVsync->setPeriod(1e9 / mode.refreshRate);
+                MESON_LOGD("ModeChange state: [%s]", val == 1 ? "Complete" : "Begin to change");
+                if (val == 1) {
+                    int crtcid = CRTC_VOUT1;
+                    if (event == DRM_EVENT_VOUT2_MODE_CHANGED)
+                        crtcid = CRTC_VOUT2;
+                    for (auto statIt : mPipeStats) {
+                        if (statIt.second->modeCrtc->getId() == crtcid) {
+                            statIt.second->modeCrtc->loadProperities();
+                            statIt.second->modeCrtc->update();
+                            statIt.second->modeMgr->update();
+                            statIt.second->hwcDisplay->onModeChanged(val);
+                            /*update display dynamic info.*/
+                            drm_mode_info_t mode;
+                            if (HwcConfig::softwareVsyncEnabled()) {
+                                if (0 == statIt.second->modeMgr->getDisplayMode(mode)) {
+                                    statIt.second->hwcVsync->setPeriod(1e9 / mode.refreshRate);
+                                }
                             }
                         }
                     }
