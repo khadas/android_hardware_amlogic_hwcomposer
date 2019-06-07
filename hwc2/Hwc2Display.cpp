@@ -119,8 +119,6 @@ int32_t Hwc2Display::setDisplayResource(
         mCompositionStrategy = newCompositionStrategy;
     }
 
-    /*update display static info.*/
-    mCrtc->loadProperities();
     mConnector->getHdrCapabilities(&mHdrCaps);
 #ifdef HWC_HDR_METADATA_SUPPORT
     mCrtc->getHdrMetadataKeys(mHdrKeys);
@@ -201,7 +199,7 @@ hwc2_error_t Hwc2Display::setVsyncEnable(hwc2_vsync_t enabled) {
 // shall wait for SystemControl before it can update its state and notify FWK
 // accordingly.
 void Hwc2Display::onHotplug(bool connected) {
-    bool bSendHotplug = false;
+    bool bSendPlugOut = false;
     {
         std::lock_guard<std::mutex> lock(mMutex);
         MESON_LOGD("On hot plug: [%s]", connected == true ? "Plug in" : "Plug out");
@@ -212,12 +210,12 @@ void Hwc2Display::onHotplug(bool connected) {
         }
         mPowerMode->setConnectorStatus(false);
         if (mObserver != NULL && mModeMgr->getPolicyType() != FIXED_SIZE_POLICY) {
-            bSendHotplug = true;
+            bSendPlugOut = true;
         }
     }
 
     /*call hotplug out of lock, SF may call some hwc function to cause deadlock.*/
-    if (bSendHotplug)
+    if (bSendPlugOut)
         mObserver->onHotplug(false);
 }
 
@@ -227,10 +225,7 @@ void Hwc2Display::onUpdate(bool bHdcp) {
 
     if (bHdcp) {
         if (mObserver != NULL) {
-            if (mCrtc != NULL) {
-                mCrtc->update();
-                mObserver->refresh();
-            }
+            mObserver->refresh();
         } else {
             MESON_LOGE("No display oberserve register to display (%s)", getName());
         }
@@ -244,40 +239,34 @@ void Hwc2Display::onVsync(int64_t timestamp) {
 }
 
 void Hwc2Display::onModeChanged(int stage) {
-    bool bSendHotplug = false;
+    bool bSendPlugIn = false;
     {
         std::lock_guard<std::mutex> lock(mMutex);
         MESON_LOGD("On mode change state: [%s]", stage == 1 ? "Complete" : "Begin to change");
         if (stage == 1) {
             if (mObserver != NULL) {
+                /*plug in and set displaymode ok, update inforamtion.*/
                 if (mSignalHpd) {
-                    mCrtc->loadProperities();
                     mConnector->getHdrCapabilities(&mHdrCaps);
 #ifdef HWC_HDR_METADATA_SUPPORT
                     mCrtc->getHdrMetadataKeys(mHdrKeys);
 #endif
-                    mCrtc->update();
-                    mModeMgr->update();
-                    if (mModeMgr->getDisplayMode(mDisplayMode) == 0) {
-                        bSendHotplug = true;
-                        mSignalHpd = false;
-                    }
-                } else {
-                    mCrtc->update();
-                    mModeMgr->update();
-
-                    /*Workaround: needed for NTS test.*/
-                    if (HwcConfig::primaryHotplugEnabled()
-                        && mModeMgr->getDisplayMode(mDisplayMode) == 0
-                        && mModeMgr->getPolicyType() == FIXED_SIZE_POLICY) {
-                        bSendHotplug = true;
-                    }
                 }
 
+                /*update mode success.*/
                 if (mModeMgr->getDisplayMode(mDisplayMode) == 0) {
                     mPowerMode->setConnectorStatus(true);
+                    if (mSignalHpd) {
+                        bSendPlugIn = true;
+                        mSignalHpd = false;
+                    } else {
+                        /*Workaround: needed for NTS test.*/
+                        if (HwcConfig::primaryHotplugEnabled()
+                            && mModeMgr->getPolicyType() == FIXED_SIZE_POLICY) {
+                            bSendPlugIn = true;
+                        }
+                    }
                 }
-
             } else {
                 MESON_LOGE("No display oberserve register to display (%s)", getName());
             }
@@ -285,9 +274,8 @@ void Hwc2Display::onModeChanged(int stage) {
     }
 
     /*call hotplug out of lock, SF may call some hwc function to cause deadlock.*/
-    if (bSendHotplug)
+    if (bSendPlugIn)
         mObserver->onHotplug(true);
-
     /*last call refresh*/
     mObserver->refresh();
 }
