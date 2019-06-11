@@ -33,7 +33,9 @@ VdinPostProcessor::~VdinPostProcessor() {
     mVdinFbs.clear();
     mPlanes.clear();
 
-    mReqFbProcessor.reset();
+    while (!mReqFbProcessor.empty()) {
+        mReqFbProcessor.pop();
+    }
     mFbProcessor.reset();
 }
 
@@ -140,14 +142,13 @@ int32_t VdinPostProcessor::setFbProcessor(
     std::unique_lock<std::mutex> cmdLock(mMutex);
 
     if (mStat == PROCESSOR_START) {
-        MESON_ASSERT(mReqFbProcessor == NULL, "set fb processor too fast.");
-        mReqFbProcessor = processor;
+        mReqFbProcessor.push(processor);
         mCmdQ.push(PRESENT_UPDATE_PROCESSOR);
         cmdLock.unlock();
         mCmdCond.notify_one();
     } else {
         mFbProcessor = processor;
-        mReqFbProcessor = NULL;
+        mReqFbProcessor.push(NULL);
     }
 
     return 0;
@@ -230,7 +231,8 @@ int32_t VdinPostProcessor::present(int flags, int32_t fence) {
         }
     }
 
-    mCmdQ.push(flags);
+    if (mCmdQ.size() == 0 || mCmdQ.back() != flags)
+        mCmdQ.push(flags);
 
     cmdLock.unlock();
     mCmdCond.notify_one();
@@ -268,11 +270,11 @@ int32_t VdinPostProcessor::process() {
         if (cmd & PRESENT_SIDEBAND) {
             mProcessMode = PROCESS_ALWAYS;
         } else if (cmd & PRESENT_UPDATE_PROCESSOR) {
-            if (mFbProcessor != mReqFbProcessor) {
+            if (mFbProcessor != mReqFbProcessor.front()) {
                 if (mFbProcessor != NULL)
                     mFbProcessor->teardown();
-                mFbProcessor = mReqFbProcessor;
-                mReqFbProcessor = NULL;
+                mFbProcessor = mReqFbProcessor.front();
+                mReqFbProcessor.pop();
                 if (mFbProcessor != NULL)
                     mFbProcessor->setup();
             }

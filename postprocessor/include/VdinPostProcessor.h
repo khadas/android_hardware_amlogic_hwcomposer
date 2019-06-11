@@ -89,7 +89,7 @@ protected:
     int mProcessMode;
 
     std::shared_ptr<FbProcessor> mFbProcessor;
-    std::shared_ptr<FbProcessor> mReqFbProcessor;
+    std::queue<std::shared_ptr<FbProcessor>> mReqFbProcessor;
 
     int mStat;
     pthread_t mThread;
