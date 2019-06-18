@@ -123,6 +123,8 @@ protected:
     std::map<uint32_t, std::shared_ptr<PipeStat>> mPipeStats;
 
     std::mutex mMutex;
+
+    bool mPostProcessor;
 };
 
 #endif

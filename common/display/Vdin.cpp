@@ -22,7 +22,7 @@
 ANDROID_SINGLETON_STATIC_INSTANCE(Vdin)
 
 #define VDIN1_DEV "/dev/vdin1"
-#define POLL_TIMEOUT_MS (100000)
+#define POLL_TIMEOUT_MS (1000)
 
 #define _TM_T 'T'
 #define TVIN_IOC_S_VDIN_V4L2START  _IOW(_TM_T, 0x25, struct vdin_v4l2_param_s)
@@ -134,21 +134,15 @@ int32_t Vdin::dequeueBuffer(int & idx) {
     fds[0].events = POLLIN;
     fds[0].revents = 0;
 
-    int pollrtn = 0;
-    do {
-        pollrtn = poll(fds, 1, POLL_TIMEOUT_MS);
-        if (pollrtn > 0 && fds[0].revents == POLLIN)
-            break;
-        else
-            MESON_LOGE("Vdin poll timeout.");
-    } while (1);
-
     int dequeuIdx = -1;
-    if(read(mDev, &dequeuIdx, sizeof(int)) > 0) {
-        idx = dequeuIdx;
+    int pollrtn = poll(fds, 1, POLL_TIMEOUT_MS);
+    if (pollrtn > 0 && fds[0].revents == POLLIN) {
+        if(read(mDev, &dequeuIdx, sizeof(int)) > 0) {
+            idx = dequeuIdx;
+        }
     }
 
-    if (idx < 0)
+    if (dequeuIdx < 0)
         return -EFAULT;
 
     return 0;
