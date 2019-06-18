@@ -30,13 +30,7 @@ VdinPostProcessor::VdinPostProcessor() {
 }
 
 VdinPostProcessor::~VdinPostProcessor() {
-    mVdinFbs.clear();
     mPlanes.clear();
-
-    while (!mReqFbProcessor.empty()) {
-        mReqFbProcessor.pop();
-    }
-    mFbProcessor.reset();
 }
 
 int32_t VdinPostProcessor::setVout(
@@ -192,12 +186,15 @@ int32_t VdinPostProcessor::stop() {
     while (!mCmdQ.empty()) {
         mCmdQ.pop();
     }
+    while(!mReqFbProcessor.empty()) {
+        mReqFbProcessor.pop();
+    }
+    mFbProcessor.reset();
 
     /*clear queues.*/
     while (!mVoutQueue.empty()) {
         mVoutQueue.pop();
     }
-
     for (auto it = mVoutHnds.begin(); it != mVoutHnds.end(); it ++) {
         gralloc_free_dma_buf((native_handle_t * )*it);
     }
@@ -274,10 +271,10 @@ int32_t VdinPostProcessor::process() {
                 if (mFbProcessor != NULL)
                     mFbProcessor->teardown();
                 mFbProcessor = mReqFbProcessor.front();
-                mReqFbProcessor.pop();
                 if (mFbProcessor != NULL)
                     mFbProcessor->setup();
             }
+            mReqFbProcessor.pop();
         } else if ((cmd & PRESENT_BLANK) || (cmd == 0)) {
             mProcessMode = PROCESS_ONCE;
             capCnt = VDIN_CAP_CNT;

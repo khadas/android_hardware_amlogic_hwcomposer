@@ -544,17 +544,31 @@ uint32_t MesonHwc2::getDisplayRequest() {
     /*read extend prop to update display request.*/
 #ifdef GET_REQUEST_FROM_PROP
     if (HwcConfig::getPipeline() == HWC_PIPE_VIU1VDINVIU2) {
+        static bool b3dMode = false;
         static bool bKeystone = false;
         char val[PROP_VALUE_LEN_MAX];
         bool bVal = false;
-        if (sys_get_string_prop("persist.vendor.hwc.keystone", val) > 0 &&
-            strcmp(val, "0") != 0) {
-            bVal = true;
+
+        /*get 3dmode status*/
+        bVal = !sys_get_bool_prop("vendor.hwc.postprocessor", true);
+        if (b3dMode != bVal) {
+            mDisplayRequests |= bVal ? rPostProcessorStop : rPostProcessorStart;
+            b3dMode = bVal;
+            if (b3dMode)
+                bKeystone = false;
         }
 
-        if (bKeystone != bVal) {
-            mDisplayRequests |= bVal ? rKeystoneEnable : rKeystoneDisable;
-            bKeystone = bVal;
+        if (!b3dMode) {
+            /*get keystone status*/
+            bVal = false;
+            if (sys_get_string_prop("persist.vendor.hwc.keystone", val) > 0 &&
+                strcmp(val, "0") != 0) {
+                bVal = true;
+            }
+            if (bKeystone != bVal) {
+                mDisplayRequests |= bVal ? rKeystoneEnable : rKeystoneDisable;
+                bKeystone = bVal;
+            }
         }
     }
 #endif
