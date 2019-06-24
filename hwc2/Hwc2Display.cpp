@@ -518,16 +518,16 @@ int32_t Hwc2Display::adjustDisplayFrame() {
         if (bNoScale) {
             layer->mDisplayFrame = layer->mBackupDisplayFrame;
         } else {
-            layer->mDisplayFrame.left = (uint32_t)ceilf(layer->mBackupDisplayFrame.left *
+            layer->mDisplayFrame.left = (int32_t)ceilf(layer->mBackupDisplayFrame.left *
                 mCalibrateInfo.crtc_display_w / mCalibrateInfo.framebuffer_w) +
                 mCalibrateInfo.crtc_display_x;
-            layer->mDisplayFrame.top = (uint32_t)ceilf(layer->mBackupDisplayFrame.top *
+            layer->mDisplayFrame.top = (int32_t)ceilf(layer->mBackupDisplayFrame.top *
                 mCalibrateInfo.crtc_display_h / mCalibrateInfo.framebuffer_h) +
                 mCalibrateInfo.crtc_display_y;
-            layer->mDisplayFrame.right = (uint32_t)ceilf(layer->mBackupDisplayFrame.right *
+            layer->mDisplayFrame.right = (int32_t)ceilf(layer->mBackupDisplayFrame.right *
                 mCalibrateInfo.crtc_display_w / mCalibrateInfo.framebuffer_w) +
                 mCalibrateInfo.crtc_display_x;
-            layer->mDisplayFrame.bottom = (uint32_t)ceilf(layer->mBackupDisplayFrame.bottom *
+            layer->mDisplayFrame.bottom = (int32_t)ceilf(layer->mBackupDisplayFrame.bottom *
                 mCalibrateInfo.crtc_display_h / mCalibrateInfo.framebuffer_h) +
                 mCalibrateInfo.crtc_display_y;
         }
