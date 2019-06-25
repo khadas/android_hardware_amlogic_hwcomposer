@@ -33,7 +33,7 @@ public:
 private:
     int32_t setCursorPosition(int32_t x, int32_t y);
     int32_t updatePlaneInfo(int xres, int yres);
-    int32_t updateCursorBuffer();
+    int32_t updateCursorBuffer(std::shared_ptr<DrmFramebuffer> & fb);
 
     char mName[64];
     int32_t mLastTransform;

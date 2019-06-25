@@ -11,13 +11,8 @@
 
 #include "CursorPlane.h"
 
-/*TMP: due to gralloc not sync*/
-#if PLATFORM_SDK_VERSION >= 28
-static inline size_t round_up_to_page_size(size_t x)
-{
-	return (x + (PAGE_SIZE - 1)) & ~(PAGE_SIZE - 1);
-}
-#endif
+#define DEFAULT_CUSOR_SIZE (256)
+#define CUSOR_BPP (4)
 
 CursorPlane::CursorPlane(int32_t drvFd, uint32_t id)
     : HwDisplayPlane(drvFd, id),
@@ -25,6 +20,16 @@ CursorPlane::CursorPlane(int32_t drvFd, uint32_t id)
       mBlank(true),
       mDrmFb(NULL) {
     snprintf(mName, 64, "CURSOR-%d", id);
+
+    /*call mmap here to let osd alloc buffer from ion*/
+    updatePlaneInfo(DEFAULT_CUSOR_SIZE, DEFAULT_CUSOR_SIZE);
+    void *cbuffer =
+        mmap(NULL, mPlaneInfo.fbSize, PROT_READ|PROT_WRITE, MAP_SHARED, mDrvFd, 0);
+    if (cbuffer != MAP_FAILED) {
+        munmap(cbuffer, mPlaneInfo.fbSize);
+    } else {
+        MESON_LOGE("Cursor plane buffer mmap fail!");
+    }
 }
 
 CursorPlane::~CursorPlane() {
@@ -52,8 +57,10 @@ uint32_t CursorPlane::getPossibleCrtcs() {
 }
 
 bool CursorPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
-    if (fb->mFbType == DRM_FB_CURSOR)
+    if (fb->mFbType == DRM_FB_CURSOR &&
+        am_gralloc_get_format(fb->mBufferHandle) == HAL_PIXEL_FORMAT_RGBA_8888) {
         return true;
+    }
 
     return false;
 }
@@ -81,7 +88,7 @@ int32_t CursorPlane::setPlane(
         mPlaneInfo.buf_w         = am_gralloc_get_width(buf);
         mPlaneInfo.buf_h         = am_gralloc_get_height(buf);
 
-        updateCursorBuffer();
+        updateCursorBuffer(fb);
         setCursorPosition(mPlaneInfo.dst_x, mPlaneInfo.dst_y);
     }
 
@@ -99,51 +106,36 @@ int32_t CursorPlane::setPlane(
     return 0;
 }
 
-int32_t CursorPlane::updateCursorBuffer() {
-    void *cbuffer;
-    int cbwidth = 0, bppX = BPP_4;
-    switch (mPlaneInfo.format)
-    {
-        case HAL_PIXEL_FORMAT_BGRA_8888:
-        case HAL_PIXEL_FORMAT_RGBA_8888:
-        case HAL_PIXEL_FORMAT_RGBX_8888:
-            bppX = BPP_4;
-            break;
-        case HAL_PIXEL_FORMAT_RGB_888:
-            bppX = BPP_3;
-            break;
-        case HAL_PIXEL_FORMAT_RGB_565:
-            bppX = BPP_2;
-            break;
-        default:
-            MESON_LOGE("Get error format, use the default value.");
-            break;
-    }
-    cbwidth = HWC_ALIGN(bppX * mPlaneInfo.buf_w, BYTE_ALIGN_32) / bppX;
+int32_t CursorPlane::updateCursorBuffer(
+    std::shared_ptr<DrmFramebuffer> & fb) {
+    int cbwidth =
+        HWC_ALIGN(CUSOR_BPP * mPlaneInfo.buf_w, CUSOR_BPP * 8) /CUSOR_BPP;
 
-    if (mPlaneInfo.info.xres != (uint32_t)cbwidth || mPlaneInfo.info.yres != (uint32_t)mPlaneInfo.buf_h) {
+    if (mPlaneInfo.info.xres != (uint32_t)cbwidth ||
+        mPlaneInfo.info.yres != (uint32_t)mPlaneInfo.buf_h) {
         updatePlaneInfo(cbwidth, mPlaneInfo.buf_h);
-        cbuffer = mmap(NULL, mPlaneInfo.fbSize, PROT_READ|PROT_WRITE, MAP_SHARED, mDrvFd, 0);
+        void *cbuffer =
+            mmap(NULL, mPlaneInfo.fbSize, PROT_READ|PROT_WRITE, MAP_SHARED, mDrvFd, 0);
         if (cbuffer != MAP_FAILED) {
             memset(cbuffer, 1, mPlaneInfo.fbSize);
-            int bufSize = mPlaneInfo.stride * mPlaneInfo.buf_h * bppX;
-            unsigned char *base = (unsigned char*)mmap(
-                                NULL, bufSize, PROT_READ|PROT_WRITE,
-                                MAP_SHARED, mPlaneInfo.shared_fd, 0);
 
-            char* cpyDst = (char*)cbuffer;
-            char* cpySrc = (char*)base;
-            for (int irow = 0; irow < mPlaneInfo.buf_h; irow++) {
-                memcpy(cpyDst, cpySrc, bppX * mPlaneInfo.buf_w);
-                cpyDst += bppX * cbwidth;
-                cpySrc += bppX * mPlaneInfo.stride;
+            /*copy to dev buffer*/
+            unsigned char *base = NULL;
+            if (0 == gralloc_lock_dma_buf(fb->mBufferHandle, (void **)&base)) {
+                char* cpyDst = (char*)cbuffer;
+                char* cpySrc = (char*)base;
+                for (int irow = 0; irow < mPlaneInfo.buf_h; irow++) {
+                    memcpy(cpyDst, cpySrc, CUSOR_BPP * mPlaneInfo.buf_w);
+                    cpyDst += CUSOR_BPP * cbwidth;
+                    cpySrc += CUSOR_BPP * mPlaneInfo.stride;
+                }
+                gralloc_unlock_dma_buf(fb->mBufferHandle);
             }
+
             munmap(cbuffer, mPlaneInfo.fbSize);
-            munmap(base, bufSize);
-            MESON_LOGI("setCursor ok");
+            MESON_LOGV("setCursor ok");
         } else {
             MESON_LOGE("Cursor plane buffer mmap fail!");
-            munmap(cbuffer, mPlaneInfo.fbSize);
             return -EBADF;
         }
     }
@@ -225,8 +217,7 @@ int32_t CursorPlane::updatePlaneInfo(int xres, int yres) {
     mPlaneInfo.finfo = finfo;
     MESON_LOGD("updatePlaneInfo: finfo.line_length is 0x%x,info.yres_virtual is 0x%x",
                     finfo.line_length, info.yres_virtual);
-    mPlaneInfo.fbSize = round_up_to_page_size(finfo.line_length * info.yres_virtual);
-
+    mPlaneInfo.fbSize = HWC_ALIGN(finfo.line_length * info.yres_virtual, PAGE_SIZE);
     return 0;
 }
 
