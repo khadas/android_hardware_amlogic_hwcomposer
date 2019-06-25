@@ -15,16 +15,10 @@
 /*
 Amlogic defined ioctl, masks.
 */
-#define BPP_2 2
-#define BPP_3 3
-#define BPP_4 4
-#define BYTE_ALIGN_32 32
 #define HWC_ALIGN( value, base ) (((value) + ((base) - 1)) & ~((base) - 1))
 
 #define DISPLAY_MODE_LEN (64)
-
 #define AXIS_STR_LEN            (32)
-
 
 enum {
     OSD_HW_CURSOR = (1 << 0),
