@@ -22,7 +22,7 @@
 ANDROID_SINGLETON_STATIC_INSTANCE(Vdin)
 
 #define VDIN1_DEV "/dev/vdin1"
-#define POLL_TIMEOUT_MS (1000)
+#define POLL_TIMEOUT_MS (20)
 
 #define _TM_T 'T'
 #define TVIN_IOC_S_VDIN_V4L2START  _IOW(_TM_T, 0x25, struct vdin_v4l2_param_s)

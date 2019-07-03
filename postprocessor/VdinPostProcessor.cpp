@@ -19,7 +19,7 @@
 
 #define DEFAULT_FB_ZORDER (1)
 
-#define VDIN_BUF_CNT (4)
+#define VDIN_BUF_CNT (6)
 #define VOUT_BUF_CNT (3)
 /*vdin will keep one frame always*/
 #define VDIN_CAP_CNT (VDIN_BUF_CNT - 1)
