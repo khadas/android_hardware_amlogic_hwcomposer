@@ -101,6 +101,7 @@ int32_t LegacyVideoPlane::setPlane(
         mVideoType = mLegacyVideoFb->mFbType;
 
         native_handle_t * buf = fb->mBufferHandle;
+#if 0
         /*set video crop:echo top left bottom right > /sys/class/video/crop*/
         if (mVideoType == DRM_FB_VIDEO_OMX_PTS) {
             char videoCropStr[AXIS_STR_LEN] = {0};
@@ -110,6 +111,7 @@ int32_t LegacyVideoPlane::setPlane(
                 am_gralloc_get_width(buf) - fb->mSourceCrop.right);
             sysfs_set_string(SYSFS_VIDEO_CROP, videoCropStr);
         }
+#endif
 
         /*set video axis.*/
         if (shouldUpdateAxis(fb)) {
