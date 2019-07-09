@@ -40,7 +40,11 @@ HwcDisplayPipeMgr::PipeStat::~PipeStat() {
 HwcDisplayPipeMgr::HwcDisplayPipeMgr() {
     /*load hw display resource.*/
     mPipePolicy =  HwcConfig::getPipeline();
-    mPostProcessor = true;
+
+    if (HwcConfig::alwaysVdinLoopback())
+        mPostProcessor = true;
+    else
+        mPostProcessor = false;
 
     HwDisplayManager::getInstance().getCrtcs(mCrtcs);
     HwDisplayManager::getInstance().getPlanes(mPlanes);
@@ -230,21 +234,24 @@ int32_t HwcDisplayPipeMgr::initDisplays() {
      } else if (mPipePolicy == HWC_PIPE_VIU1VDINVIU2) {
         std::shared_ptr<PipeStat> stat = mPipeStats.find(0)->second;
 
-        /*set viu2 to plane*/
         std::map<uint32_t, drm_mode_info_t> viu2modes;
         stat->modeConnector->getModes(viu2modes);
         stat->modeCrtc->setMode(viu2modes[0]);
         MESON_LOGI("initDisplays viu2: set mode (%s)",viu2modes[0].name);
 
-        /*set viu1 to dummyplane */
-        std::map<uint32_t, drm_mode_info_t> viu1modes;
-        stat->hwcConnector->getModes(viu1modes);
-        MESON_ASSERT(viu1modes.size() > 0, "no modes got.");
-        MESON_LOGI("initDisplays viu1: set mode (%s)",viu1modes[0].name);
-        stat->hwcCrtc->setMode(viu1modes[0]);
+        if (mPostProcessor) {
+            /*set viu1 to dummyplane */
+            std::map<uint32_t, drm_mode_info_t> viu1modes;
+            stat->hwcConnector->getModes(viu1modes);
+            MESON_ASSERT(viu1modes.size() > 0, "no modes got.");
+            MESON_LOGE("initDisplays viu1: get modes %s",viu1modes[0].name);
+            stat->hwcCrtc->setMode(viu1modes[0]);
+        }
 
         stat->modeMgr->update();
-        stat->hwcPostProcessor->start();
+
+        if (mPostProcessor && stat->hwcPostProcessor)
+            stat->hwcPostProcessor->start();
     }
 
     return 0;

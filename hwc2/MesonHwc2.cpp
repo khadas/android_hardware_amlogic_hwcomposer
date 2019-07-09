@@ -552,24 +552,37 @@ uint32_t MesonHwc2::getDisplayRequest() {
         char val[PROP_VALUE_LEN_MAX];
         bool bVal = false;
 
-        /*get 3dmode status*/
-        bVal = !sys_get_bool_prop("vendor.hwc.postprocessor", true);
-        if (b3dMode != bVal) {
-            mDisplayRequests |= bVal ? rPostProcessorStop : rPostProcessorStart;
-            b3dMode = bVal;
-            if (b3dMode)
-                bKeystone = false;
-        }
+        if (HwcConfig::alwaysVdinLoopback()) {
+            /*get 3dmode status*/
+            bVal = !sys_get_bool_prop("vendor.hwc.postprocessor", true);
+            if (b3dMode != bVal) {
+                mDisplayRequests |= bVal ? rPostProcessorStop : rPostProcessorStart;
+                b3dMode = bVal;
+                if (b3dMode)
+                    bKeystone = false;
+            }
 
-        if (!b3dMode) {
-            /*get keystone status*/
+            if (!b3dMode) {
+                /*get keystone status*/
+                bVal = false;
+                if (sys_get_string_prop("persist.vendor.hwc.keystone", val) > 0 &&
+                    strcmp(val, "0") != 0) {
+                    bVal = true;
+                }
+                if (bKeystone != bVal) {
+                    mDisplayRequests |= bVal ? rKeystoneEnable : rKeystoneDisable;
+                    bKeystone = bVal;
+                }
+            }
+        } else {
             bVal = false;
             if (sys_get_string_prop("persist.vendor.hwc.keystone", val) > 0 &&
                 strcmp(val, "0") != 0) {
                 bVal = true;
             }
             if (bKeystone != bVal) {
-                mDisplayRequests |= bVal ? rKeystoneEnable : rKeystoneDisable;
+                mDisplayRequests |= bVal ?
+                    (rPostProcessorStart | rKeystoneEnable) : rPostProcessorStop;
                 bKeystone = bVal;
             }
         }

@@ -74,6 +74,9 @@ public:
     static bool defaultHdrCapEnabled();
     static bool forceClientEnabled();
 
+    static bool alwaysVdinLoopback();
+
+
     static void dump(String8 & dumpstr);
 };
 #endif/*HWC_CONFIG_H*/

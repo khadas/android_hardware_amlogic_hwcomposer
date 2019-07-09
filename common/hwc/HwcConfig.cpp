@@ -205,6 +205,14 @@ bool HwcConfig::forceClientEnabled() {
 #endif
 }
 
+bool HwcConfig::alwaysVdinLoopback() {
+#ifdef HWC_PIPE_VIU1VDINVIU2_ALWAYS_LOOPBACK
+    return true;
+#else
+    return false;
+#endif
+}
+
 void HwcConfig::dump(String8 & dumpstr) {
     if (isHeadlessMode()) {
         dumpstr.appendFormat("\t HeadlessMode refreshrate: %d", headlessRefreshRate());
