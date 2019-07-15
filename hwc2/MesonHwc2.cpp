@@ -510,7 +510,7 @@ int32_t MesonHwc2::setPostProcessor(bool bEnable) {
 int32_t MesonHwc2::setCalibrateInfo(hwc2_display_t display){
     GET_HWC_DISPLAY(display);
     int32_t caliX,caliY,caliW,caliH;
-    int cali[4];
+    static int cali[4];
     drm_mode_info_t mDispMode;
     hwcDisplay->getDispMode(mDispMode);
     if (HwcConfig::getPipeline() == HWC_PIPE_VIU1VDINVIU2) {
