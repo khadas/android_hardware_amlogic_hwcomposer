@@ -160,6 +160,10 @@ int32_t Vdin::start() {
         return rtn;
     }
 
+    /*all fd passed to drv, reset to -1.*/
+    for (int i = 0;i < mCanvasCnt; i++)
+        mCanvas[i].fd = -1;
+
     if (ioctl(mDev, TVIN_IOC_S_VDIN_V4L2START, &mCapParams) < 0) {
         int rtn = -errno;
         MESON_ASSERT(0, "Vdin start ioctl failed (%d) ", rtn);
