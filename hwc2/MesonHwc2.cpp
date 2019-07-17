@@ -27,7 +27,6 @@
 
 #define GET_REQUEST_FROM_PROP 1
 
-
 #define CHECK_DISPLAY_VALID(display)    \
     if (isDisplayValid(display) == false) { \
         MESON_LOGE("(%s) met invalid display id (%d)", \
@@ -55,6 +54,11 @@
         return HWC2_ERROR_BAD_LAYER; \
     }
 
+
+#ifdef GET_REQUEST_FROM_PROP
+static bool m3DMode = false;
+static bool mKeyStoneMode = false;
+#endif
 /************************************************************
 *                        Hal Interface
 ************************************************************/
@@ -513,11 +517,19 @@ int32_t MesonHwc2::setCalibrateInfo(hwc2_display_t display){
     static int cali[4];
     drm_mode_info_t mDispMode;
     hwcDisplay->getDispMode(mDispMode);
+
     if (HwcConfig::getPipeline() == HWC_PIPE_VIU1VDINVIU2) {
-        caliX = 1;
-        caliY = 1;
-        caliW = mDispMode.pixelW - 2;
-        caliH = mDispMode.pixelH - 2;
+        caliX = caliY = 0;
+        caliW = mDispMode.pixelW;
+        caliH = mDispMode.pixelH;
+#ifdef GET_REQUEST_FROM_PROP
+        if (mKeyStoneMode) {
+            caliX = 1;
+            caliY = 1;
+            caliW = mDispMode.pixelW - 2;
+            caliH = mDispMode.pixelH - 2;
+        }
+#endif
     } else {
         /*default info*/
         caliX = 0;
@@ -547,31 +559,29 @@ uint32_t MesonHwc2::getDisplayRequest() {
     /*read extend prop to update display request.*/
 #ifdef GET_REQUEST_FROM_PROP
     if (HwcConfig::getPipeline() == HWC_PIPE_VIU1VDINVIU2) {
-        static bool b3dMode = false;
-        static bool bKeystone = false;
         char val[PROP_VALUE_LEN_MAX];
         bool bVal = false;
 
         if (HwcConfig::alwaysVdinLoopback()) {
             /*get 3dmode status*/
             bVal = !sys_get_bool_prop("vendor.hwc.postprocessor", true);
-            if (b3dMode != bVal) {
+            if (m3DMode != bVal) {
                 mDisplayRequests |= bVal ? rPostProcessorStop : rPostProcessorStart;
-                b3dMode = bVal;
-                if (b3dMode)
-                    bKeystone = false;
+                m3DMode = bVal;
+                if (m3DMode)
+                    mKeyStoneMode = false;
             }
 
-            if (!b3dMode) {
+            if (!m3DMode) {
                 /*get keystone status*/
                 bVal = false;
                 if (sys_get_string_prop("persist.vendor.hwc.keystone", val) > 0 &&
                     strcmp(val, "0") != 0) {
                     bVal = true;
                 }
-                if (bKeystone != bVal) {
+                if (mKeyStoneMode != bVal) {
                     mDisplayRequests |= bVal ? rKeystoneEnable : rKeystoneDisable;
-                    bKeystone = bVal;
+                    mKeyStoneMode = bVal;
                 }
             }
         } else {
@@ -580,10 +590,10 @@ uint32_t MesonHwc2::getDisplayRequest() {
                 strcmp(val, "0") != 0) {
                 bVal = true;
             }
-            if (bKeystone != bVal) {
+            if (mKeyStoneMode != bVal) {
                 mDisplayRequests |= bVal ?
                     (rPostProcessorStart | rKeystoneEnable) : rPostProcessorStop;
-                bKeystone = bVal;
+                mKeyStoneMode = bVal;
             }
         }
     }
