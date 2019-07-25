@@ -183,7 +183,7 @@ int32_t HwDisplayManager::loadPlanes() {
     video_idx_max = video_idx_max + count_video;
     idx = 0;
     do {
-        snprintf(path, 64, "/dev/video_hwc%u", idx);
+        snprintf(path, 64, "/dev/video_composer.%u", idx);
         fd = open(path, O_RDWR, 0);
         if (fd >= 0) {
             plane_idx = video_idx_max + idx;

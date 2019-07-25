@@ -109,8 +109,10 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
     /*set mFbType by usage of GraphicBuffer.*/
     if (mHwcCompositionType == HWC2_COMPOSITION_CURSOR) {
         mFbType = DRM_FB_CURSOR;
-    /*} else if (am_gralloc_is_omx_v4l_buffer(buffer)) {
-        mFbType = DRM_FB_VIDEO_OMX_V4L;*/
+    } else if (am_gralloc_is_video_dma_buffer(buffer)) {
+		mFbType = DRM_FB_VIDEO_DMABUF;
+    } else if (am_gralloc_is_omx_v4l_buffer(buffer)) {
+        mFbType = DRM_FB_VIDEO_OMX_V4L;
     } else if (am_gralloc_is_omx_metadata_buffer(buffer)) {
         int tunnel = 0;
         int ret = am_gralloc_get_omx_metadata_tunnel(buffer, &tunnel);

@@ -12,6 +12,7 @@
 #include "ClientComposer.h"
 #include "DummyComposer.h"
 #include "Ge2dComposer.h"
+#include "DiComposer.h"
 
 int32_t ComposerFactory::create(meson_composer_t type,
     std::shared_ptr<IComposer> & composer) {
@@ -29,6 +30,9 @@ int32_t ComposerFactory::create(meson_composer_t type,
             composer = std::make_shared<Ge2dComposer>();
             break;
 #endif
+		case MESON_DI_COMPOSER:
+			composer = std::make_shared<DiComposer>();
+			break;
         default:
             MESON_LOGE("Can't create Uunkown composer (%d)\n", type);
             composer = NULL;

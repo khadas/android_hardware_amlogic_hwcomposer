@@ -80,6 +80,8 @@ int32_t Hwc2Display::initialize() {
     ComposerFactory::create(MESON_GE2D_COMPOSER, composer);
     mComposers.emplace(MESON_GE2D_COMPOSER, std::move(composer));
 #endif
+	ComposerFactory::create(MESON_DI_COMPOSER, composer);
+	mComposers.emplace(MESON_DI_COMPOSER, std::move(composer));
 
     initLayerIdGenerator();
 
@@ -105,7 +107,7 @@ int32_t Hwc2Display::setDisplayResource(
         if ((*it)->getPlaneType() == OSD_PLANE) {
             osdPlanes ++;
             if (osdPlanes > 1) {
-                strategyFlags |= MUTLI_OSD_PLANES;
+                strategyFlags |= MULTI_PLANES_WITH_DI;
                 break;
             }
         }

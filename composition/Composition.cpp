@@ -11,7 +11,8 @@
 bool isVideoPlaneComposition(int meson_composition_type) {
     if (meson_composition_type == MESON_COMPOSITION_PLANE_AMVIDEO
         || meson_composition_type == MESON_COMPOSITION_PLANE_AMVIDEO_SIDEBAND
-        || meson_composition_type == MESON_COMPOSITION_PLANE_HWCVIDEO) {
+        || meson_composition_type == MESON_COMPOSITION_PLANE_HWCVIDEO
+        || meson_composition_type == MESON_COMPOSITION_PLANE_DI_VIDEO) {
         return true;
     }
 
@@ -21,7 +22,8 @@ bool isVideoPlaneComposition(int meson_composition_type) {
 bool isComposerComposition(int meson_composition_type) {
     if (meson_composition_type == MESON_COMPOSITION_CLIENT
         || meson_composition_type == MESON_COMPOSITION_GE2D
-        || meson_composition_type == MESON_COMPOSITION_DUMMY)
+        || meson_composition_type == MESON_COMPOSITION_DUMMY
+        || meson_composition_type == MESON_COMPOSITION_DI)
         return true;
     else
         return false;
@@ -43,12 +45,18 @@ const char* compositionTypeToString(
         case MESON_COMPOSITION_GE2D:
             compStr = "GE2D";
             break;
+	case MESON_COMPOSITION_DI:
+	    compStr = "DI";
+	    break;
         case MESON_COMPOSITION_PLANE_AMVIDEO:
             compStr = "AMVIDEO";
             break;
         case MESON_COMPOSITION_PLANE_AMVIDEO_SIDEBAND:
             compStr = "SIDEBAND";
             break;
+	case MESON_COMPOSITION_PLANE_DI_VIDEO:
+	    compStr = "DIVIDEO";
+	    break;
         case MESON_COMPOSITION_PLANE_OSD:
             compStr = "OSD";
             break;

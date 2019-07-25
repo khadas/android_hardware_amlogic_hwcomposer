@@ -37,6 +37,7 @@ static int videosync_handle = -1;
 #define TVP_SECRET_VERSION "version="
 #define TVP_SECRET_FRAME_NUM "frame_num="
 #define TVP_SECRET_DEV_ID "dev_id="
+#define OMX_V4LVIDEO "amlogic_omx_v4lvideo"
 
 int openamvideo() {
     amvideo_handle = open("/dev/amvideo",O_RDWR | O_NONBLOCK);
@@ -167,5 +168,20 @@ int set_hdr_info(vframe_master_display_colour_s_t * vf_hdr) {
         openamvideo();
     }
     return ioctl(amvideo_handle, AMSTREAM_IOC_SET_HDR_INFO, (unsigned long)vf_hdr);
+}
+
+void set_v4lvideo_sync_info(char* data) {
+    if (data == NULL) {
+        ALOGE("set_v4lvideo_sync_info: hnd->base is NULL!!!!");
+        return;
+    }
+    if (strncmp(data, OMX_V4LVIDEO, strlen(OMX_V4LVIDEO)) == 0) {
+        if (strncmp(data+sizeof(TVP_SECRET), TVP_SECRET_RENDER, strlen(TVP_SECRET_RENDER)) == 0)
+            return;
+        int offset = 0;
+        offset += sizeof(OMX_V4LVIDEO);
+        memcpy((char*)data + sizeof(OMX_V4LVIDEO), TVP_SECRET_RENDER, sizeof(TVP_SECRET_RENDER));
+        offset += sizeof(TVP_SECRET_RENDER);
+    }
 }
 

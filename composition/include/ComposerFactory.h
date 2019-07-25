@@ -15,6 +15,7 @@ typedef enum {
     MESON_CLIENT_COMPOSER = 0,
     MESON_DUMMY_COMPOSER,
     MESON_GE2D_COMPOSER,
+    MESON_DI_COMPOSER,
     /*MESON_GPU_COMPOSER,*/
 } meson_composer_t;
 

@@ -29,8 +29,10 @@ LOCAL_SRC_FILES := \
     composer/ComposerFactory.cpp \
     composer/ClientComposer.cpp \
     composer/DummyComposer.cpp \
+    composer/DiComposer.cpp \
     simplestrategy/SingleplaneComposition/SingleplaneComposition.cpp \
-    simplestrategy/MultiplanesComposition/MultiplanesComposition.cpp
+    simplestrategy/MultiplanesComposition/MultiplanesComposition.cpp \
+    simplestrategy/MultiplanesWithDiComposition/MultiplanesWithDiComposition.cpp
 
 ifeq ($(TARGET_SUPPORT_GE2D_COMPOSITION),true)
 LOCAL_SRC_FILES += \
@@ -39,6 +41,7 @@ endif
 
 LOCAL_C_INCLUDES := \
     hardware/libhardware/include \
+    $(LOCAL_PATH)/../common/display/ \
     $(LOCAL_PATH)/include
 
 LOCAL_STATIC_LIBRARIES := \
