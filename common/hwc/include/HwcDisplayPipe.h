@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Amlogic, Inc. All rights reserved.
+ * Copyright (c) 2019 Amlogic, Inc. All rights reserved.
  *
  * This source code is subject to the terms and conditions defined in the
  * file 'LICENSE' which is part of this source code package.
@@ -7,23 +7,34 @@
  * Description:
  */
 
-#ifndef HWC2_DISPLAY_PIPE_MGR_H
-#define HWC2_DISPLAY_PIPE_MGR_H
-
-#include <hardware/hardware.h>
-#include <hardware/hwcomposer2.h>
+#ifndef HWC_DISPLAY_PIPE_H
+#define HWC_DISPLAY_PIPE_H
 
 #include <BasicTypes.h>
+#include <HwDisplayConnector.h>
+#include <HwDisplayCrtc.h>
+#include <HwDisplayEventListener.h>
 #include <HwcDisplay.h>
 #include <HwcVsync.h>
-#include <HwcConfig.h>
-#include <HwDisplayEventListener.h>
-#include <VdinPostProcessor.h>
+#include <HwcPostProcessor.h>
+#include <HwcModeMgr.h>
 
-/*
- * manage  <Hwc2Display, HwDisplayPipe> according to
- * hwcconfig.
- */
+#include <MesonLog.h>
+
+typedef enum {
+    /*primary:
+    viu1 + connector from config
+    extend:
+    viu2 + connector from config*/
+    HWC_PIPE_DEFAULT = 0,
+
+    /*primary:
+        when postprocessor disable: viu1 -> conntector
+        when postprocessor enable: viu1->vdin->viu2->conntector
+    extend:
+        NONE*/
+    HWC_PIPE_VIU1VDINVIU2,
+} hwc_pipe_policy_t;
 
 /*requests*/
 enum {
@@ -51,32 +62,24 @@ enum {
     eDisplayModeExtChange = 1 << 3,
 };
 
-
-class HwcDisplayPipeMgr
-    :   public android::Singleton<HwcDisplayPipeMgr>,
-        public HwDisplayEventHandler {
-
+class HwcDisplayPipe :  public HwDisplayEventHandler {
 public:
-    HwcDisplayPipeMgr();
-    ~HwcDisplayPipeMgr();
+    HwcDisplayPipe();
+    virtual ~HwcDisplayPipe();
 
-    int32_t setHwcDisplay(
-        uint32_t disp, std::shared_ptr<HwcDisplay> & hwcDisp);
-
-    int32_t initDisplays();
-    int32_t update(uint32_t flags);
-
-    void handle(drm_display_event event, int val);
+    virtual int32_t init(std::map<uint32_t, std::shared_ptr<HwcDisplay>> & hwcDisps);
+    virtual int32_t handleRequest(uint32_t flags);
+    virtual void handleEvent(drm_display_event event, int val);
 
 protected:
     class PipeCfg {
-        public:
-            int32_t hwcCrtcId;
-            drm_connector_type_t hwcConnectorType;
-            hwc_post_processor_t hwcPostprocessorType;
+    public:
+        int32_t hwcCrtcId;
+        drm_connector_type_t hwcConnectorType;
+        hwc_post_processor_t hwcPostprocessorType;
 
-            int32_t modeCrtcId;
-            drm_connector_type_t modeConnectorType;
+        int32_t modeCrtcId;
+        drm_connector_type_t modeConnectorType;
     };
 
     class PipeStat {
@@ -99,32 +102,29 @@ protected:
     };
 
 protected:
-    int32_t updatePipe();
+    /*load display pipe config*/
+    virtual int32_t updatePipe();
+    virtual int32_t getPipeCfg(uint32_t hwcid, PipeCfg & cfg) = 0;
+    virtual drm_connector_type_t getConnetorCfg(uint32_t hwcid);
 
-    int32_t getDisplayPipe(
-        uint32_t hwcdisp, PipeCfg & cfgor);
+    /*load display resource*/
     int32_t getCrtc(
         int32_t crtcid, std::shared_ptr<HwDisplayCrtc> & crtc);
     int32_t getPlanes(
         int32_t crtcid, std::vector<std::shared_ptr<HwDisplayPlane>> & planes);
     int32_t getConnector(
         drm_connector_type_t type, std::shared_ptr<HwDisplayConnector> & connector);
-    int32_t getPostProcessor(
+    virtual int32_t getPostProcessor(
         hwc_post_processor_t type, std::shared_ptr<HwcPostProcessor> & processor);
-    drm_connector_type_t chooseConnector(hwc_connector_t config);
 
 protected:
     std::vector<std::shared_ptr<HwDisplayPlane>> mPlanes;
     std::vector<std::shared_ptr<HwDisplayCrtc>> mCrtcs;
     std::map<drm_connector_type_t, std::shared_ptr<HwDisplayConnector>> mConnectors;
-    std::map<hwc_post_processor_t, std::shared_ptr<HwcPostProcessor>> mProcessors;
-
-    hwc_pipe_policy_t mPipePolicy;
     std::map<uint32_t, std::shared_ptr<PipeStat>> mPipeStats;
-
     std::mutex mMutex;
-
-    bool mPostProcessor;
 };
+
+std::shared_ptr<HwcDisplayPipe> createDisplayPipe(hwc_pipe_policy_t pipet);
 
 #endif

@@ -11,8 +11,10 @@
 
 #include <map>
 #include <hardware/hardware.h>
+#include <HwcDisplayPipe.h>
 
 #include "Hwc2Display.h"
+
 
 class MesonHwc2 {
 /*hwc2 interface*/
@@ -139,6 +141,8 @@ protected:
 
 protected:
     std::map<hwc2_display_t, std::shared_ptr<Hwc2Display>> mDisplays;
+
+    std::shared_ptr<HwcDisplayPipe> mDisplayPipe;
 
     HWC2_PFN_HOTPLUG mHotplugFn;
     hwc2_callback_data_t mHotplugData;

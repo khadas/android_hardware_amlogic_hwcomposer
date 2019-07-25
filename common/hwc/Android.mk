@@ -120,8 +120,10 @@ endif
 LOCAL_SRC_FILES := \
     HwcVsync.cpp \
     HwcConfig.cpp \
-    HwcDisplayPipeMgr.cpp \
-    HwcPowerMode.cpp
+    HwcPowerMode.cpp \
+    HwcDisplayPipe.cpp \
+    FixedDisplayPipe.cpp \
+    LoopbackDisplayPipe.cpp
 
 LOCAL_C_INCLUDES := \
     hardware/libhardware/include \

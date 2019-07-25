@@ -14,6 +14,7 @@
 #include <BasicTypes.h>
 #include <FbProcessor.h>
 #include <HwcModeMgr.h>
+#include <HwcDisplayPipe.h>
 
 typedef enum {
     HWC_HDMI_ONLY = 0,
@@ -23,33 +24,6 @@ typedef enum {
     HWC_CONNECTOR_NULL,
 } hwc_connector_t;
 
-typedef enum {
-    /*primary:
-    viu1 + connector from config
-    extend:
-    viu2 + connector from config*/
-    HWC_PIPE_DEFAULT = 0,
-
-    /*primary:
-    viu2 + connector from config
-    extend:
-    viu1 + connector from config*/
-    HWC_PIPE_VIU2_VIU1 = 0,
-
-    /*primary:
-        when postprocessor disable: viu1 -> conntector
-        when postprocessor enable: viu1->vdin->viu2->conntector
-    extend:
-        NONE*/
-    HWC_PIPE_VIU1VDINVIU2,
-
-    /*primary:
-        for headless mode.
-    extend:
-        NONE
-    */
-    HWC_PIPE_DUMMY,
-} hwc_pipe_policy_t;
 
 class HwcConfig {
 public:
@@ -68,7 +42,6 @@ public:
     static bool preDisplayCalibrateEnabled();
     static bool softwareVsyncEnabled();
     static bool primaryHotplugEnabled();
-    static bool enableExtendDisplay();
     static bool secureLayerProcessEnabled();
     static bool cursorPlaneDisabled();
     static bool defaultHdrCapEnabled();
