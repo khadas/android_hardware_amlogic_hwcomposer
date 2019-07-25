@@ -24,7 +24,7 @@ public:
   virtual ~HwDisplayEventHandler() {
   }
 
-  virtual void handle(drm_display_event event, int val) = 0;
+  virtual void handleEvent(drm_display_event event, int val) = 0;
 };
 
 class HwDisplayEventListener

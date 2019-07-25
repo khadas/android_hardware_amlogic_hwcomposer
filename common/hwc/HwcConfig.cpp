@@ -99,14 +99,8 @@ hwc_pipe_policy_t HwcConfig::getPipeline() {
 
     if (strcasecmp(pipeStr, "default") == 0) {
          return HWC_PIPE_DEFAULT;
-    } else if (strcasecmp(pipeStr, "VIU2_VIU1") == 0) {
-        MESON_ASSERT(0, "NO IMPLEMENT");
-         return HWC_PIPE_VIU2_VIU1;
     } else if (strcasecmp(pipeStr, "VIU1VDINVIU2") == 0) {
          return HWC_PIPE_VIU1VDINVIU2;
-    } else if (strcasecmp(pipeStr, "dummy") == 0) {
-        MESON_ASSERT(0, "NO IMPLEMENT");
-         return HWC_PIPE_DUMMY;
     } else {
          MESON_ASSERT(0, "getPipeline %s failed.", pipeStr);
         return HWC_PIPE_DEFAULT;
@@ -159,14 +153,6 @@ bool HwcConfig::preDisplayCalibrateEnabled() {
 
 bool HwcConfig::primaryHotplugEnabled() {
 #ifdef HWC_ENABLE_PRIMARY_HOTPLUG
-    return true;
-#else
-    return false;
-#endif
-}
-
-bool HwcConfig::enableExtendDisplay() {
-#ifdef HWC_EXTEND_CONNECTOR_TYPE
     return true;
 #else
     return false;
