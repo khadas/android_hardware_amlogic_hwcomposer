@@ -9,6 +9,7 @@
 
 #include "HwConnectorFactory.h"
 #include "ConnectorHdmi.h"
+#include "ConnectorCvbs.h"
 #include "ConnectorPanel.h"
 #include "ConnectorDummy.h"
 
@@ -28,6 +29,8 @@ std::shared_ptr<HwDisplayConnector> HwConnectorFactory::create(
             connector =  std::make_shared<ConnectorDummy>(connectorDrv, connectorId);
             break;
         case DRM_MODE_CONNECTOR_CVBS:
+            connector =  std::make_shared<ConnectorCvbs>(connectorDrv, connectorId);
+            break;
         default:
             break;
     }

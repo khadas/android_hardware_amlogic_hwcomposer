@@ -128,9 +128,10 @@ int32_t HwDisplayCrtc::update() {
     /*update dynamic information which may change.*/
     std::lock_guard<std::mutex> lock(mMutex);
     memset(&mCurModeInfo, 0, sizeof(drm_mode_info_t));
+    if (mConnector)
+        mConnector->update();
     if (mConnected) {
         /*1. update current displayMode.*/
-        mConnector->update();
         std::string displayMode;
         readCurDisplayMode(displayMode);
         if (displayMode.empty()) {
@@ -150,6 +151,7 @@ int32_t HwDisplayCrtc::update() {
         /*clear mode info.*/
         memset(&mCurModeInfo, 0, sizeof(mCurModeInfo));
         strcpy(mCurModeInfo.name, DRM_DISPLAY_MODE_NULL);
+        setMode(mCurModeInfo);
     }
 
     return 0;

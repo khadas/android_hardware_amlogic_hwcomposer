@@ -37,6 +37,7 @@ LOCAL_SRC_FILES := \
     HwDisplayConnector.cpp \
     HwDisplayEventListener.cpp \
     ConnectorHdmi.cpp \
+    ConnectorCvbs.cpp \
     ConnectorPanel.cpp \
     ConnectorDummy.cpp \
     AmVinfo.cpp \
