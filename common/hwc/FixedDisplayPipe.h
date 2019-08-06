@@ -17,7 +17,12 @@ public:
     ~FixedDisplayPipe();
 
     int32_t init(std::map<uint32_t, std::shared_ptr<HwcDisplay>> & hwcDisps);
+    void handleEvent(drm_display_event event, int val);
+
+protected:
     int32_t getPipeCfg(uint32_t hwcid, PipeCfg & cfg);
+    drm_connector_type_t getConnetorCfg(uint32_t hwcid);
+
 };
 
 #endif

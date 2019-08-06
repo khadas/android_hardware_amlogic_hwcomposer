@@ -73,8 +73,7 @@ hwc_connector_t HwcConfig::getConnectorType(int disp) {
 
     if (connectorstr != NULL) {
         if (strcasecmp(connectorstr, "hdmi") == 0) {
-            /*TODO: udpate to HWC_HDMI_CVBS.*/
-            connector_type = HWC_HDMI_ONLY;
+            connector_type = HWC_HDMI_CVBS;
         } else if (strcasecmp(connectorstr, "panel") == 0) {
             connector_type = HWC_PANEL_ONLY;
         } else if (strcasecmp(connectorstr, "cvbs") == 0) {

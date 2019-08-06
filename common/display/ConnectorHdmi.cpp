@@ -26,8 +26,6 @@ enum {
 #define HDMI_FRAC_RATE_POLICY "/sys/class/amhdmitx/amhdmitx0/frac_rate_policy"
 #define HDMI_TX_HPD_STATE   "/sys/class/amhdmitx/amhdmitx0/hpd_state"
 
-#define WORKAROUND_FOR_CVBS_HDMI_AUTOSWITCH 0
-
 ConnectorHdmi::ConnectorHdmi(int32_t drvFd, uint32_t id)
     :   HwDisplayConnector(drvFd, id) {
     mConnected = false;
@@ -46,9 +44,8 @@ ConnectorHdmi::~ConnectorHdmi() {
 
 int32_t ConnectorHdmi::loadProperities() {
     MESON_LOG_FUN_ENTER();
-    mConnected = checkConnectState();
+    update();
     if (mConnected) {
-        sc_get_hdmitx_hdcp_state(mSecure);
         loadPhysicalSize();
         loadDisplayModes();
         parseHdrCapabilities();
@@ -64,6 +61,8 @@ int32_t ConnectorHdmi::update() {
     if (mConnected) {
         sc_get_hdmitx_hdcp_state(mSecure);
     }
+
+    MESON_LOGE("ConnectorHdmi::update to %d", mConnected);
 
     MESON_LOG_FUN_LEAVE();
     return 0;
@@ -90,11 +89,7 @@ bool ConnectorHdmi::isSecure() {
 }
 
 bool ConnectorHdmi::checkConnectState() {
-#if WORKAROUND_FOR_CVBS_HDMI_AUTOSWITCH
-    return true;
-#else
     return sysfs_get_int(HDMI_TX_HPD_STATE, 0) == 1 ? true : false;
-#endif
 }
 
 int32_t ConnectorHdmi::loadDisplayModes() {
@@ -102,19 +97,6 @@ int32_t ConnectorHdmi::loadDisplayModes() {
     std::string::size_type pos;
     mFracRefreshRates.clear();
     mDisplayModes.clear();
-
-    #if WORKAROUND_FOR_CVBS_HDMI_AUTOSWITCH
-    std::string cvbs576("576cvbs");
-    std::string cvbs480("480cvbs");
-    std::string pal_m("pal_m");
-    std::string pal_n("pal_n");
-    std::string ntsc_m("ntsc_m");
-    addDisplayMode(cvbs576);
-    addDisplayMode(cvbs480);
-    addDisplayMode(pal_m);
-    addDisplayMode(pal_n);
-    addDisplayMode(ntsc_m);
-    #endif
 
     if (sc_get_hdmitx_mode_list(supportDispModes) < 0) {
         MESON_LOGE("SupportDispModeList null!!!");
