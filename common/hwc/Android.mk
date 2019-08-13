@@ -78,10 +78,6 @@ ifeq ($(HWC_ENABLE_ACTIVE_MODE), true)
 LOCAL_CFLAGS += -DHWC_ENABLE_ACTIVE_MODE
 endif
 
-ifeq ($(HWC_ENABLE_FRACTIONAL_REFRESH_RATE), true)
-LOCAL_CFLAGS += -DENABLE_FRACTIONAL_REFRESH_RATE
-endif
-
 #Display Calibrate
 ifeq ($(HWC_ENABLE_PRE_DISPLAY_CALIBRATE), true)
 #pre display calibrate means calibrate in surfacefligner,

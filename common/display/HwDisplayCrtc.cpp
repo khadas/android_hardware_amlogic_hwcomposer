@@ -13,6 +13,7 @@
 #include <cutils/properties.h>
 #include <systemcontrol.h>
 #include <misc.h>
+#include <math.h>
 #include <OmxUtil.h>
 
 #include "AmVinfo.h"
@@ -60,8 +61,8 @@ int32_t HwDisplayCrtc::unbind() {
         0, 0,
         60.0
     };
-    setMode(nullMode);
-
+    std::string dispmode(nullMode.name);
+    writeCurDisplayMode(dispmode);
     if (mConnector.get())
         mConnector->setCrtc(NULL);
     mConnector.reset();
@@ -94,9 +95,9 @@ int32_t HwDisplayCrtc::getId() {
 
 int32_t HwDisplayCrtc::setMode(drm_mode_info_t & mode) {
     /*DRM_DISPLAY_MODE_NULL is always allowed.*/
-    MESON_LOGI("Crtc active mode: %s", mode.name);
+    MESON_LOGI("Crtc setMode: %s", mode.name);
     std::string dispmode(mode.name);
-    return writeCurDisplayMode(dispmode);
+    return sc_set_display_mode(dispmode);
 }
 
 int32_t HwDisplayCrtc::getMode(drm_mode_info_t & mode) {
@@ -139,7 +140,8 @@ int32_t HwDisplayCrtc::update() {
         } else {
             for (auto it = mModes.begin(); it != mModes.end(); it ++) {
                 MESON_LOGD("update: (%s) mode (%s)", displayMode.c_str(), it->second.name);
-                if (strcmp(it->second.name, displayMode.c_str()) == 0) {
+                if (strcmp(it->second.name, displayMode.c_str()) == 0
+                     && it->second.refreshRate == floor(it->second.refreshRate)) {
                     memcpy(&mCurModeInfo, &it->second, sizeof(drm_mode_info_t));
                     break;
                 }

@@ -111,8 +111,10 @@ hwc_pipe_policy_t HwcConfig::getPipeline() {
 
 hwc_modes_policy_t HwcConfig::getModePolicy(int disp) {
     UNUSED(disp);
-#ifdef HWC_ENABLE_ACTIVE_MODE
+#ifdef HWC_ENABLE_FULL_ACTIVE_MODE
     return FULL_ACTIVE_POLICY;
+#elif defined HWC_ENABLE_ACTIVE_MODE
+    return ACTIVE_MODE_POLICY;
 #else
     return FIXED_SIZE_POLICY;
 #endif

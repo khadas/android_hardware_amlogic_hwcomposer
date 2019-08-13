@@ -365,8 +365,9 @@ int32_t MesonHwc2::validateDisplay(hwc2_display_t display,
     /*handle display request*/
     uint32_t request = getDisplayRequest();
     setCalibrateInfo(display);
-    if (request != 0)
+    if (request != 0) {
         handleDisplayRequest(request);
+    }
 
     return hwcDisplay->validateDisplay(outNumTypes,
         outNumRequests);
@@ -544,7 +545,7 @@ int32_t MesonHwc2::setCalibrateInfo(hwc2_display_t display){
             if (0 == sc_get_osd_position(dispModeStr, calibrateCoordinates)) {
                 memcpy(cali, calibrateCoordinates, sizeof(int) * 4);
             } else {
-                MESON_LOGD("(%s): sc_get_osd_position failed, use backup coordinates.", __func__);
+               MESON_LOGD("(%s): sc_get_osd_position failed, use backup coordinates.", __func__);
             }
             caliX = cali[0];
             caliY = cali[1];
