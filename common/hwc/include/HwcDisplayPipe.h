@@ -23,17 +23,22 @@
 
 typedef enum {
     /*primary:
+    viu1 + connector from config*/
+    HWC_PIPE_DEFAULT = 0,
+
+    /* two display:
     viu1 + connector from config
     extend:
     viu2 + connector from config*/
-    HWC_PIPE_DEFAULT = 0,
+    HWC_PIPE_DUAL,
 
     /*primary:
         when postprocessor disable: viu1 -> conntector
         when postprocessor enable: viu1->vdin->viu2->conntector
     extend:
         NONE*/
-    HWC_PIPE_VIU1VDINVIU2,
+    HWC_PIPE_LOOPBACK,
+
 } hwc_pipe_policy_t;
 
 /*requests*/
@@ -84,9 +89,10 @@ protected:
 
     class PipeStat {
     public:
-        PipeStat();
+        PipeStat(uint32_t id);
         ~PipeStat();
 
+        uint32_t hwcId;
         PipeCfg cfg;
 
         std::shared_ptr<HwcDisplay> hwcDisplay;
@@ -103,9 +109,11 @@ protected:
 
 protected:
     /*load display pipe config*/
-    virtual int32_t updatePipe();
+    virtual int32_t updatePipe(std::shared_ptr<PipeStat> & stat);
     virtual int32_t getPipeCfg(uint32_t hwcid, PipeCfg & cfg) = 0;
     virtual drm_connector_type_t getConnetorCfg(uint32_t hwcid);
+
+    virtual int32_t initDisplayMode(std::shared_ptr<PipeStat> & stat);
 
     /*load display resource*/
     int32_t getCrtc(

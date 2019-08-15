@@ -117,7 +117,7 @@ int32_t  sc_get_display_mode(std::string & dispmode) {
     });
 
     if (dispmode.empty()) {
-        MESON_LOGE("syscontrol::getActiveDispMode FAIL.");
+        MESON_LOGE("sc_get_display_mode FAIL.");
         return -EFAULT;
     }
 
@@ -131,7 +131,7 @@ int32_t sc_set_display_mode(std::string &dispmode) {
     if (ret == Result::OK) {
         return 0;
     } else {
-        MESON_LOGE("syscontrol::setActiveDispMode FAIL.");
+        MESON_LOGE("sc_set_display_mode FAIL.");
         return -EFAULT;
     }
 }
@@ -150,7 +150,7 @@ int32_t sc_get_osd_position(std::string &dispmode, int *position) {
     });
 
     if (!out.isOk()) {
-        MESON_LOGE("[%s]: getPosition result fail.", __func__);
+        MESON_LOGE("sc_get_osd_positionc fail.");
         return -EFAULT;
     }
 
@@ -164,7 +164,7 @@ int32_t sc_write_sysfs(const char * path, std::string & val) {
     if (ret == Result::OK) {
         return 0;
     } else {
-        MESON_LOGE("syscontrol::setActiveDispMode FAIL.");
+        MESON_LOGE("sc_write_sysfs FAIL.");
         return -EFAULT;
     }
 }
@@ -182,9 +182,29 @@ int32_t sc_read_sysfs(const char * path, std::string & val) {
     });
 
     if (val.empty()) {
-        MESON_LOGE("syscontrol::getActiveDispMode FAIL.");
+        MESON_LOGE("sc_read_sysfs FAIL.");
         return -EFAULT;
     }
+    return 0;
+}
+
+int32_t sc_read_bootenv(const char * key, std::string & val) {
+    CHK_SC_PROXY();
+
+    gSC->getBootEnv(key, [&val](
+        const Result &ret, const hidl_string & retval) {
+        if (Result::OK == ret) {
+            val = retval.c_str();
+        } else {
+            val.clear();
+        }
+    });
+
+    if (val.empty()) {
+        MESON_LOGE("sc_read_bootenv FAIL.");
+        return -EFAULT;
+    }
+
     return 0;
 }
 
@@ -234,7 +254,7 @@ int32_t  sc_get_display_mode(std::string & dispmode) {
     if (gSC->getActiveDispMode(&dispmode)) {
         return 0;
     } else {
-        MESON_LOGE("syscontrol::getActiveDispMode FAIL.");
+        MESON_LOGE("sc_get_display_mode FAIL.");
         return -EFAULT;
     }
 }
@@ -245,7 +265,7 @@ int32_t sc_set_display_mode(std::string &dispmode) {
     if (gSC->setActiveDispMode(dispmode)) {
         return 0;
     } else {
-        MESON_LOGE("syscontrol::setActiveDispMode FAIL.");
+        MESON_LOGE("sc_set_display_mode FAIL.");
         return -EFAULT;
     }
 }
@@ -270,7 +290,7 @@ int32_t sc_write_sysfs(const char * path, std::string &dispmode) {
     if (ret == Result::OK) {
         return 0;
     } else {
-        MESON_LOGE("syscontrol::setActiveDispMode FAIL.");
+        MESON_LOGE("sc_write_sysfs FAIL.");
         return -EFAULT;
     }
 }
@@ -282,7 +302,7 @@ int32_t sc_read_sysfs(const char * path, std::string &dispmode) {
     if (ret == Result::OK) {
         return 0;
     } else {
-        MESON_LOGE("syscontrol::setActiveDispMode FAIL.");
+        MESON_LOGE("sc_read_sysfs FAIL.");
         return -EFAULT;
     }
 }

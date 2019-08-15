@@ -112,6 +112,10 @@ ifeq ($(TARGET_APP_LAYER_USE_CONTINUOUS_BUFFER),false)
 LOCAL_CFLAGS += -DHWC_FORCE_CLIENT_COMPOSITION
 endif
 
+ifeq ($(HWC_DYNAMIC_SWITCH_CONNECTOR), true)
+LOCAL_CFLAGS += -DHWC_DYNAMIC_SWITCH_CONNECTOR
+endif
+
 #*********************************HWC CONFIGS END************************
 
 LOCAL_SRC_FILES := \
@@ -120,7 +124,8 @@ LOCAL_SRC_FILES := \
     HwcPowerMode.cpp \
     HwcDisplayPipe.cpp \
     FixedDisplayPipe.cpp \
-    LoopbackDisplayPipe.cpp
+    LoopbackDisplayPipe.cpp \
+    DualDisplayPipe.cpp
 
 LOCAL_C_INCLUDES := \
     hardware/libhardware/include \
