@@ -20,5 +20,6 @@ int32_t sc_get_osd_position(std::string &dispmode, int *position);
 int32_t sc_write_sysfs(const char * path, std::string & val);
 int32_t sc_read_sysfs(const char * path, std::string & val);
 
+int32_t sc_read_bootenv(const char * key, std::string & val);
 
 #endif/*SYSTEM_CONTROL_H*/

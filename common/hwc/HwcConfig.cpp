@@ -99,11 +99,12 @@ hwc_pipe_policy_t HwcConfig::getPipeline() {
 
     if (strcasecmp(pipeStr, "default") == 0) {
          return HWC_PIPE_DEFAULT;
+     } else if (strcasecmp(pipeStr, "dual") == 0) {
+          return HWC_PIPE_DUAL;
     } else if (strcasecmp(pipeStr, "VIU1VDINVIU2") == 0) {
-         return HWC_PIPE_VIU1VDINVIU2;
+         return HWC_PIPE_LOOPBACK;
     } else {
          MESON_ASSERT(0, "getPipeline %s failed.", pipeStr);
-        return HWC_PIPE_DEFAULT;
     }
 
     return HWC_PIPE_DEFAULT;

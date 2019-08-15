@@ -518,7 +518,7 @@ int32_t MesonHwc2::setCalibrateInfo(hwc2_display_t display){
     drm_mode_info_t mDispMode;
     hwcDisplay->getDispMode(mDispMode);
 
-    if (HwcConfig::getPipeline() == HWC_PIPE_VIU1VDINVIU2) {
+    if (HwcConfig::getPipeline() == HWC_PIPE_LOOPBACK) {
         caliX = caliY = 0;
         caliW = mDispMode.pixelW;
         caliH = mDispMode.pixelH;
@@ -558,7 +558,7 @@ int32_t MesonHwc2::setCalibrateInfo(hwc2_display_t display){
 uint32_t MesonHwc2::getDisplayRequest() {
     /*read extend prop to update display request.*/
 #ifdef GET_REQUEST_FROM_PROP
-    if (HwcConfig::getPipeline() == HWC_PIPE_VIU1VDINVIU2) {
+    if (HwcConfig::getPipeline() == HWC_PIPE_LOOPBACK) {
         char val[PROP_VALUE_LEN_MAX];
         bool bVal = false;
 

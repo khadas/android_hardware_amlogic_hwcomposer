@@ -56,7 +56,7 @@ int32_t LoopbackDisplayPipe::init(
 int32_t LoopbackDisplayPipe::getPipeCfg(uint32_t hwcid, PipeCfg & cfg) {
     MESON_ASSERT(hwcid == 0, "Only one display for this policy.");
     drm_connector_type_t  connector = getConnetorCfg(hwcid);
-    MESON_ASSERT(connector == HWC_PANEL_ONLY, "unsupported connector config");
+    MESON_ASSERT(connector == DRM_MODE_CONNECTOR_PANEL, "unsupported connector config");
 
     if (mPostProcessor) {
         cfg.hwcCrtcId = CRTC_VOUT1;
@@ -115,7 +115,7 @@ int32_t LoopbackDisplayPipe::handleRequest(uint32_t flags) {
             stat->hwcCrtc->unbind();
             stat->modeCrtc->unbind();
             /*update display pipe.*/
-            updatePipe();
+            updatePipe(stat);
 
             if (bEnable) {
                 /*set viu2 to plane*/
