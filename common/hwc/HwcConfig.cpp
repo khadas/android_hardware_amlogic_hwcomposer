@@ -98,13 +98,13 @@ hwc_pipe_policy_t HwcConfig::getPipeline() {
 #endif
 
     if (strcasecmp(pipeStr, "default") == 0) {
-         return HWC_PIPE_DEFAULT;
-     } else if (strcasecmp(pipeStr, "dual") == 0) {
-          return HWC_PIPE_DUAL;
+        return HWC_PIPE_DEFAULT;
+    } else if (strcasecmp(pipeStr, "dual") == 0) {
+        return HWC_PIPE_DUAL;
     } else if (strcasecmp(pipeStr, "VIU1VDINVIU2") == 0) {
-         return HWC_PIPE_LOOPBACK;
+        return HWC_PIPE_LOOPBACK;
     } else {
-         MESON_ASSERT(0, "getPipeline %s failed.", pipeStr);
+        MESON_ASSERT(0, "getPipeline %s failed.", pipeStr);
     }
 
     return HWC_PIPE_DEFAULT;
@@ -200,6 +200,22 @@ bool HwcConfig::alwaysVdinLoopback() {
 #endif
 }
 
+bool HwcConfig::dynamicSwitchConnectorEnabled() {
+#ifdef HWC_DYNAMIC_SWITCH_CONNECTOR
+    return true;
+#else
+    return false;
+#endif
+}
+
+bool HwcConfig::dynamicSwitchViuEnabled() {
+#ifdef HWC_DYNAMIC_SWITCH_VIU
+    return true;
+#else
+    return false;
+#endif
+}
+
 void HwcConfig::dump(String8 & dumpstr) {
     if (isHeadlessMode()) {
         dumpstr.appendFormat("\t HeadlessMode refreshrate: %d", headlessRefreshRate());
@@ -226,6 +242,10 @@ void HwcConfig::dump(String8 & dumpstr) {
             dumpstr.appendFormat("\t DefaultHdr: %s", defaultHdrCapEnabled() ? "Y" : "N");
             dumpstr.append("\n");
             dumpstr.appendFormat("\t ForceClient: %s", forceClientEnabled() ? "Y" : "N");
+            dumpstr.append("\n");
+            dumpstr.appendFormat("\t DynamicSwitchConnector: %s", dynamicSwitchConnectorEnabled() ? "Y" : "N");
+            dumpstr.append("\n");
+            dumpstr.appendFormat("\t DynamicSwitchViu: %s", dynamicSwitchViuEnabled() ? "Y" : "N");
             dumpstr.append("\n");
         }
     }

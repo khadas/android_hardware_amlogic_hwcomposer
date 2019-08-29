@@ -48,7 +48,8 @@ public:
     static bool forceClientEnabled();
 
     static bool alwaysVdinLoopback();
-
+    static bool dynamicSwitchConnectorEnabled();
+    static bool dynamicSwitchViuEnabled();
 
     static void dump(String8 & dumpstr);
 };
