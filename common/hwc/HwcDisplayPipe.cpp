@@ -87,6 +87,7 @@ int32_t HwcDisplayPipe::getCrtc(
 
 int32_t HwcDisplayPipe::getPlanes(
     int32_t crtcid, std::vector<std::shared_ptr<HwDisplayPlane>> & planes) {
+    planes.clear();
     for (auto planeIt = mPlanes.begin(); planeIt != mPlanes.end(); ++ planeIt) {
         std::shared_ptr<HwDisplayPlane> plane = *planeIt;
         if (plane->getPossibleCrtcs() & crtcid) {

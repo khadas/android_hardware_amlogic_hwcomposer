@@ -22,7 +22,7 @@ static vframe_master_display_colour_s_t nullHdr;
 
 #define VIU1_DISPLAY_MODE_SYSFS "/sys/class/display/mode"
 #define VIU2_DISPLAY_MODE_SYSFS "/sys/class/display2/mode"
-
+#define VIU_DISPLAY_ATTR_SYSFS "/sys/class/amhdmitx/amhdmitx0/attr"
 
 HwDisplayCrtc::HwDisplayCrtc(int drvFd, int32_t id) {
     MESON_ASSERT(id == CRTC_VOUT1 || id == CRTC_VOUT2, "Invalid crtc id %d", id);
@@ -323,3 +323,9 @@ int32_t HwDisplayCrtc::writeCurDisplayMode(std::string & dispmode) {
     return ret;
 }
 
+int32_t HwDisplayCrtc::writeCurDisplayAttr(std::string & dispattr) {
+    int32_t ret = 0;
+    ret = sc_write_sysfs(VIU_DISPLAY_ATTR_SYSFS, dispattr);
+
+    return ret;
+}

@@ -115,7 +115,9 @@ endif
 ifeq ($(HWC_DYNAMIC_SWITCH_CONNECTOR), true)
 LOCAL_CFLAGS += -DHWC_DYNAMIC_SWITCH_CONNECTOR
 endif
-
+ifeq ($(HWC_DYNAMIC_SWITCH_VIU), true)
+LOCAL_CFLAGS += -DHWC_DYNAMIC_SWITCH_VIU
+endif
 #*********************************HWC CONFIGS END************************
 
 LOCAL_SRC_FILES := \

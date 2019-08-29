@@ -26,7 +26,7 @@ enum {
 #define HDMI_FRAC_RATE_POLICY "/sys/class/amhdmitx/amhdmitx0/frac_rate_policy"
 #define HDMI_TX_HPD_STATE   "/sys/class/amhdmitx/amhdmitx0/hpd_state"
 
-#define WORKAROUND_FOR_CVBS_HDMI_AUTOSWITCH 1
+#define WORKAROUND_FOR_CVBS_HDMI_AUTOSWITCH 0
 
 ConnectorHdmi::ConnectorHdmi(int32_t drvFd, uint32_t id)
     :   HwDisplayConnector(drvFd, id) {
