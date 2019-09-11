@@ -208,6 +208,26 @@ int32_t sc_read_bootenv(const char * key, std::string & val) {
     return 0;
 }
 
+bool  sc_get_pref_display_mode(std::string & dispmode) {
+    CHK_SC_PROXY();
+
+    gSC->getPrefHdmiDispMode([&dispmode](
+        const Result & ret, const hidl_string & supportDispModes) {
+        if (Result::OK == ret) {
+            dispmode = supportDispModes.c_str();
+        } else {
+            dispmode.clear();
+        }
+    });
+
+    if (dispmode.empty()) {
+        MESON_LOGE("sc_get_pref_display_mode FAIL.");
+        return false;
+    }
+
+    return true;
+}
+
 #else
 
 static sp<ISystemControlService> gSC = NULL;

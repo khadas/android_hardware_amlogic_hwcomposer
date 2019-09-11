@@ -105,4 +105,3 @@ int32_t HwDisplayConnector::addDisplayMode(std::string& mode) {
         (float)vinfo->sync_duration_num/vinfo->sync_duration_den);
     return 0;
 }
-
