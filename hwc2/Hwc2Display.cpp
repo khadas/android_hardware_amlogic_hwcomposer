@@ -138,6 +138,9 @@ int32_t Hwc2Display::setPostProcessor(
 
 int32_t Hwc2Display::setVsync(std::shared_ptr<HwcVsync> vsync) {
     std::lock_guard<std::mutex> lock(mMutex);
+    if (vsync)
+        vsync->setObserver(this);
+
     mVsync = vsync;
     return 0;
 }
