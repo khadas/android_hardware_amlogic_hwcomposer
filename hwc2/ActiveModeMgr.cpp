@@ -247,8 +247,6 @@ int32_t ActiveModeMgr::updateSfDispConfigs() {
     for (tmpIt = tmpList.begin(); tmpIt != tmpList.end(); ++tmpIt) {
         drm_mode_info_t config = tmpIt->second;
         float cRate = config.refreshRate;
-        bool cPolicy = isFracRate(config.refreshRate);
-        MESON_LOGD("cRate%f cPolicy%d", cRate, cPolicy);
         //judge whether it is the current display mode and add it to the end of the SF list
         if ((cRate != mActiveHwcRate)) {
             mSfActiveModes.emplace(mSfActiveModes.size(), tmpIt->second);
