@@ -97,7 +97,7 @@ int32_t HwDisplayCrtc::setMode(drm_mode_info_t & mode) {
     /*DRM_DISPLAY_MODE_NULL is always allowed.*/
     MESON_LOGI("Crtc setMode: %s", mode.name);
     std::string dispmode(mode.name);
-    return sc_set_display_mode(dispmode);
+    return writeCurDisplayMode(dispmode);
 }
 
 int32_t HwDisplayCrtc::getMode(drm_mode_info_t & mode) {
@@ -319,7 +319,10 @@ int32_t  HwDisplayCrtc::readCurDisplayMode(std::string & dispmode) {
 int32_t HwDisplayCrtc::writeCurDisplayMode(std::string & dispmode) {
     int32_t ret = 0;
     if (mId == CRTC_VOUT1) {
-        ret = sc_write_sysfs(VIU1_DISPLAY_MODE_SYSFS, dispmode);
+        if (!strcmp(dispmode.c_str(), DRM_DISPLAY_MODE_NULL))
+            ret = sc_write_sysfs(VIU1_DISPLAY_MODE_SYSFS, dispmode);
+        else
+            ret = sc_set_display_mode(dispmode);
     } else if (mId == CRTC_VOUT2) {
         ret = sc_write_sysfs(VIU2_DISPLAY_MODE_SYSFS, dispmode);
     }
