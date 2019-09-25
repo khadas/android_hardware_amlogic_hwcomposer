@@ -50,6 +50,7 @@ int32_t DualDisplayPipe::init(
     /*set vout displaymode*/
     for (auto stat : mPipeStats) {
         drm_mode_info_t curMode;
+        strcpy(displayMode.name, DRM_DISPLAY_MODE_NULL);
         if (stat.second->modeCrtc->getMode(curMode) < 0 &&
             stat.second->modeConnector->isConnected()) {
             /*do not do crtc/connector update after set displaymode,
@@ -91,7 +92,6 @@ int32_t DualDisplayPipe::init(
                     break;
             };
             MESON_LOGI("init set mode (%s)",displayMode.name);
-            //stat.second->modeCrtc->setMode(displayMode);
         }
     }
     return 0;
@@ -191,6 +191,9 @@ void DualDisplayPipe::handleEvent(drm_display_event event, int val) {
                     sc_set_display_mode(prefdisplayMode);
                 } else if (statIt.second->modeConnector->getType() == DRM_MODE_CONNECTOR_PANEL) {
                     strcpy(displayMode.name, DRM_DISPLAY_MODE_PANEL);
+                    statIt.second->modeCrtc->setMode(displayMode);
+                } else {
+                    strcpy(displayMode.name, DRM_DISPLAY_MODE_NULL);
                     statIt.second->modeCrtc->setMode(displayMode);
                 }
                 MESON_LOGI("DualDisplayPipe::handleEvent set mode (%s)",displayMode.name);
