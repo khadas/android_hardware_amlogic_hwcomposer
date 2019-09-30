@@ -209,6 +209,7 @@ int MultiplanesComposition::pickoutOsdFbs() {
             case MESON_COMPOSITION_CLIENT:
                 mHaveClient  = true;
                 bClientLayer = true;
+                [[clang::fallthrough]];
             case MESON_COMPOSITION_UNDETERMINED:
                 {
                     /* we thought plane with same type have some scanout capacity.

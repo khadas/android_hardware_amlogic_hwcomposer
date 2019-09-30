@@ -336,6 +336,22 @@ int32_t getPerFrameMetadataKeys(
 }
 #endif
 
+int32_t getRenderIntents(
+        hwc2_device_t* device, hwc2_display_t display, int32_t mode,
+        uint32_t* outNumIntents,
+        int32_t* /*android_render_intent_v1_1_t*/ outIntents) {
+    GET_MESON_HWC();
+    return mesonhwc->getRenderIntents(display, mode, outNumIntents, outIntents);
+}
+
+int32_t setColorModeWithRenderIntent (
+        hwc2_device_t* device, hwc2_display_t display,
+        int32_t /*android_color_mode_t*/ mode,
+        int32_t /*android_render_intent_v1_1_t */ intent) {
+    GET_MESON_HWC();
+    return mesonhwc->setColorModeWithRenderIntent(display, mode, intent);
+}
+
 hwc2_function_pointer_t hwc2_getFunction(struct hwc2_device* device __unused,
         int32_t descriptor) {
     switch (descriptor) {
@@ -431,6 +447,10 @@ hwc2_function_pointer_t hwc2_getFunction(struct hwc2_device* device __unused,
         case HWC2_FUNCTION_GET_PER_FRAME_METADATA_KEYS:
             return reinterpret_cast<hwc2_function_pointer_t>(getPerFrameMetadataKeys);
 #endif
+        case HWC2_FUNCTION_GET_RENDER_INTENTS:
+            return reinterpret_cast<hwc2_function_pointer_t>(getRenderIntents);
+        case HWC2_FUNCTION_SET_COLOR_MODE_WITH_RENDER_INTENT:
+            return reinterpret_cast<hwc2_function_pointer_t>(setColorModeWithRenderIntent);
         default:
             MESON_LOGE("Unkown function description (%d)", descriptor);
             break;

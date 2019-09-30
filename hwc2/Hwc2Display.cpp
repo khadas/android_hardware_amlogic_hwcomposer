@@ -335,8 +335,11 @@ hwc2_error_t Hwc2Display::createLayer(hwc2_layer_t * outLayer) {
 
 hwc2_error_t Hwc2Display::destroyLayer(hwc2_layer_t  inLayer) {
     std::lock_guard<std::mutex> lock(mMutex);
-    DebugHelper::getInstance().removeDebugLayer((int)inLayer);
+    auto layerit = mLayers.find(inLayer);
+    if (layerit == mLayers.end())
+        return HWC2_ERROR_BAD_LAYER;
 
+    DebugHelper::getInstance().removeDebugLayer((int)inLayer);
     mLayers.erase(inLayer);
     destroyLayerId(inLayer);
     return HWC2_ERROR_NONE;
@@ -350,7 +353,6 @@ hwc2_error_t Hwc2Display::setCursorPosition(hwc2_layer_t layer __unused,
 
 hwc2_error_t Hwc2Display::setColorTransform(const float* matrix,
     android_color_transform_t hint) {
-
     if (hint == HAL_COLOR_TRANSFORM_IDENTITY) {
         mForceClientComposer = false;
         memset(mColorMatrix, 0, sizeof(float) * 16);
@@ -361,9 +363,18 @@ hwc2_error_t Hwc2Display::setColorTransform(const float* matrix,
     return HWC2_ERROR_NONE;
 }
 
-hwc2_error_t Hwc2Display::setPowerMode(hwc2_power_mode_t mode __unused) {
-    MESON_LOG_EMPTY_FUN();
-    return HWC2_ERROR_NONE;
+hwc2_error_t Hwc2Display::setPowerMode(hwc2_power_mode_t mode) {
+    switch(mode) {
+        case HWC2_POWER_MODE_ON:
+        case HWC2_POWER_MODE_OFF:
+            MESON_LOG_EMPTY_FUN();
+            return HWC2_ERROR_NONE;
+        case HWC2_POWER_MODE_DOZE:
+        case HWC2_POWER_MODE_DOZE_SUSPEND:
+            return HWC2_ERROR_UNSUPPORTED;
+        default:
+            return HWC2_ERROR_BAD_PARAMETER;
+    };
 }
 
 std::shared_ptr<Hwc2Layer> Hwc2Display::getLayerById(hwc2_layer_t id) {

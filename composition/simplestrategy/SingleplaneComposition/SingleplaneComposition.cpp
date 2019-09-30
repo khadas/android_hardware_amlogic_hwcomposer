@@ -253,6 +253,7 @@ int SingleplaneComposition::buildOsdComposition() {
                 break;
             case MESON_COMPOSITION_CLIENT:
                 bHaveClient = true;
+                [[clang::fallthrough]];
             case MESON_COMPOSITION_UNDETERMINED:
                 if (minZ == INVALID_ZORDER) {
                     minZ = maxZ = fb->mZorder;

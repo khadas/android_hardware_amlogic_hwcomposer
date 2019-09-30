@@ -113,6 +113,11 @@ public:
             int32_t* /*hwc2_per_frame_metadata_key_t*/ outKeys);
 #endif
 
+    int32_t getRenderIntents(hwc2_display_t display,
+            int32_t mode, uint32_t* outNumIntents, int32_t* outIntents);
+    int32_t setColorModeWithRenderIntent (hwc2_display_t display,
+            int32_t mode, int32_t intent);
+
     void dump(uint32_t* outSize, char* outBuffer);
 
 /*amlogic ext display interface*/

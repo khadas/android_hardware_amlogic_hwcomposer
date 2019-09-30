@@ -94,6 +94,7 @@ bool OsdPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
         case DRM_FB_CURSOR:
             if (!am_gralloc_is_coherent_buffer(fb->mBufferHandle))
                 return false;
+            break;
         case DRM_FB_SCANOUT:
             break;
         //case DRM_FB_COLOR:
