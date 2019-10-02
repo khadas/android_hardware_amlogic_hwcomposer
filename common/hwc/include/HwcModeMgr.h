@@ -17,7 +17,8 @@
 typedef enum {
     FIXED_SIZE_POLICY = 0,
     FULL_ACTIVE_POLICY = 1,
-    ACTIVE_MODE_POLICY
+    ACTIVE_MODE_POLICY,
+    REAL_MODE_POLICY,
 } hwc_modes_policy_t;
 
 enum {

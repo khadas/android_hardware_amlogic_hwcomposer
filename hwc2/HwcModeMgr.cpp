@@ -11,7 +11,7 @@
 #include "FixedSizeModeMgr.h"
 #include "VariableModeMgr.h"
 #include "ActiveModeMgr.h"
-
+#include "RealModeMgr.h"
 
 std::shared_ptr<HwcModeMgr> createModeMgr(
     hwc_modes_policy_t policy) {
@@ -23,6 +23,9 @@ std::shared_ptr<HwcModeMgr> createModeMgr(
         return std::shared_ptr<HwcModeMgr>(std::move(modeMgr));
     } else if (policy == ACTIVE_MODE_POLICY) {
         HwcModeMgr * modeMgr = (HwcModeMgr *) new ActiveModeMgr();
+        return std::shared_ptr<HwcModeMgr>(std::move(modeMgr));
+    } else if (policy == REAL_MODE_POLICY){
+        HwcModeMgr * modeMgr = (HwcModeMgr *) new RealModeMgr();
         return std::shared_ptr<HwcModeMgr>(std::move(modeMgr));
     } else {
         return NULL;

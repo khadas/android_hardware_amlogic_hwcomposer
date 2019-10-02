@@ -115,6 +115,8 @@ hwc_modes_policy_t HwcConfig::getModePolicy(int disp) {
     return FULL_ACTIVE_POLICY;
 #elif defined HWC_ENABLE_ACTIVE_MODE
     return ACTIVE_MODE_POLICY;
+#elif defined HWC_ENABLE_REAL_MODE
+    return REAL_MODE_POLICY;
 #else
     return FIXED_SIZE_POLICY;
 #endif
