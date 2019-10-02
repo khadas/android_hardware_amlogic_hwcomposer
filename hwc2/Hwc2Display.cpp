@@ -295,8 +295,11 @@ void Hwc2Display::onModeChanged(int stage) {
                         if (HwcConfig::primaryHotplugEnabled()
                             && mModeMgr->getPolicyType() == FIXED_SIZE_POLICY) {
                             bSendPlugIn = true;
-                        } else if (mModeMgr->getPolicyType() == ACTIVE_MODE_POLICY)
+                        } else if (mModeMgr->getPolicyType() == ACTIVE_MODE_POLICY) {
                             bSendPlugIn = true;
+                        } else if (mModeMgr->getPolicyType() == REAL_MODE_POLICY) {
+                            bSendPlugIn = true;
+                        }
                     }
                 }
             } else {
@@ -858,6 +861,16 @@ hwc2_error_t Hwc2Display::setClientTarget(buffer_handle_t target,
     clientFb->mTransform = 0;
     clientFb->mDataspace = dataspace;
 
+    /* real mode set real source crop */
+    if (HwcConfig::getModePolicy(0) ==  REAL_MODE_POLICY) {
+        drm_mode_info_t mode;
+        mModeMgr->getDisplayMode(mode);
+        clientFb->mSourceCrop.right = ((int32_t)mode.pixelW < clientFb->mSourceCrop.right)
+            ? mode.pixelW : clientFb->mSourceCrop.right;
+        clientFb->mSourceCrop.bottom = ((int32_t)mode.pixelH < clientFb->mSourceCrop.bottom)
+            ? mode.pixelH : clientFb->mSourceCrop.bottom;
+    }
+
     /*client target is always full screen, just post to crtc display axis.*/
     clientFb->mDisplayFrame.left = mCalibrateInfo.crtc_display_x;
     clientFb->mDisplayFrame.top = mCalibrateInfo.crtc_display_y;
@@ -986,6 +999,30 @@ void Hwc2Display::dumpPresentLayers(String8 & dumpstr) {
         "-------------------------------\n");
 }
 
+void Hwc2Display::dumpHwDisplayPlane(String8 &dumpstr) {
+    if (DebugHelper::getInstance().dumpDetailInfo()) {
+        dumpstr.append("HwDisplayPlane Info:\n");
+        dumpstr.append("------------------------------------------------------------"
+                "-----------------------------------------------------------------\n");
+        dumpstr.append("|  ID   |Zorder| type |     source crop     |      dis Frame"
+                "      | fd | fm | b_st | p_st | blend | alpha |  op  | afbc fm  |\n");
+        dumpstr.append("+-------+------+------+---------------------+-----------------"
+                "----+----+----+------+------+-------+-------+------+----------+\n");
+
+        /* dump osd plane */
+        for (auto  it = mPresentPlanes.begin(); it != mPresentPlanes.end(); it++) {
+            std::shared_ptr<HwDisplayPlane> plane = *it;
+            if (!strncmp("OSD", plane->getName(), 3)) {
+                plane->dump(dumpstr);
+                break;
+            }
+        }
+        dumpstr.append("------------------------------------------------------------"
+                "-----------------------------------------------------------------\n");
+        dumpstr.append("\n");
+    }
+}
+
 void Hwc2Display::dump(String8 & dumpstr) {
     /*update for debug*/
     if (DebugHelper::getInstance().debugHideLayers() ||
@@ -1049,5 +1086,6 @@ void Hwc2Display::dump(String8 & dumpstr) {
     }
 
     dumpstr.append("\n");
+    dumpHwDisplayPlane(dumpstr);
 }
 
