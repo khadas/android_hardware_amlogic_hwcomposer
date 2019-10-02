@@ -34,6 +34,9 @@ ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 28 && echo OK),OK)
 LOCAL_CFLAGS += -DHWC_HDR_METADATA_SUPPORT
 endif
 
+ifeq ($(HWC_SUPPORT_MODES_LIST), true)
+LOCAL_CFLAGS += -DHWC_SUPPORT_MODES_LIST
+endif
 
 LOCAL_SRC_FILES := \
     Hwc2Base.cpp \
@@ -44,6 +47,7 @@ LOCAL_SRC_FILES := \
     FixedSizeModeMgr.cpp \
     VariableModeMgr.cpp \
     ActiveModeMgr.cpp \
+    RealModeMgr.cpp \
     MesonHwc2.cpp
 
 LOCAL_C_INCLUDES := \

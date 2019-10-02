@@ -279,8 +279,8 @@ int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> fb, uint32_t zorder, 
 
 void OsdPlane::dump(String8 & dumpstr) {
     if (!mBlank) {
-        dumpstr.appendFormat("osd%2d "
-                "     %3d | %1d | %4d, %4d, %4d, %4d |  %4d, %4d, %4d, %4d | %2d | %2d | %4d |"
+        dumpstr.appendFormat("| osd%2d |"
+                " %4d | %4d | %4d %4d %4d %4d | %4d %4d %4d %4d | %2d | %2d | %4d |"
                 " %4d | %5d | %5d | %4x |%8x  |\n",
                  mId,
                  mPlaneInfo.zorder,

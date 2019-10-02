@@ -136,6 +136,7 @@ protected:
     void dumpPresentLayers(String8 & dumpstr);
     bool isLayerHideForDebug(hwc2_layer_t id);
     bool isPlaneHideForDebug(int id);
+    void dumpHwDisplayPlane(String8 &dumpstr);
 
 protected:
     std::unordered_map<hwc2_layer_t, std::shared_ptr<Hwc2Layer>> mLayers;
