@@ -15,6 +15,7 @@
 #define DRM_DISPLAY_MODE_PANEL ("panel")
 #define DRM_DISPLAY_MODE_DEFAULT ("1080p60hz")
 #define DRM_DISPLAY_ATTR_DEFAULT ("444,8bit")
+#define LCD_MUTE   "/sys/class/lcd/test"
 
 DualDisplayPipe::DualDisplayPipe()
     : HwcDisplayPipe() {
@@ -190,8 +191,30 @@ void DualDisplayPipe::handleEvent(drm_display_event event, int val) {
                     }
                     sc_set_display_mode(prefdisplayMode);
                 } else if (statIt.second->modeConnector->getType() == DRM_MODE_CONNECTOR_PANEL) {
+                    std::string lcd_mute("8");
+                    sc_write_sysfs(LCD_MUTE, lcd_mute);
+                    MESON_LOGD("DualDisplayPipe::handleEvent lcd mute");
                     strcpy(displayMode.name, DRM_DISPLAY_MODE_PANEL);
                     statIt.second->modeCrtc->setMode(displayMode);
+                    /*mode change config move here for dual display panle*/
+                    statIt.second->modeCrtc->loadProperities();
+                    statIt.second->modeCrtc->update();
+                    statIt.second->modeMgr->update();
+                    statIt.second->hwcDisplay->onModeChanged(val);
+                    /*update display dynamic info.*/
+                    drm_mode_info_t mode;
+                    if (HwcConfig::softwareVsyncEnabled()) {
+                        if (0 == statIt.second->modeMgr->getDisplayMode(mode)) {
+                            statIt.second->hwcVsync->setPeriod(1e9 / mode.refreshRate);
+                        }
+                    }
+                    if (mode.refreshRate)
+                        usleep(1000000 / mode.refreshRate);
+                    else
+                        usleep(20000);
+                    std::string lcd_unmute("0");
+                    sc_write_sysfs(LCD_MUTE, lcd_unmute);
+                    MESON_LOGD("HwcDisplayPipe::handleEvent lcd unmute");
                 } else {
                     strcpy(displayMode.name, DRM_DISPLAY_MODE_NULL);
                     statIt.second->modeCrtc->setMode(displayMode);
