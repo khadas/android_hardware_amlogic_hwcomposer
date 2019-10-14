@@ -35,6 +35,19 @@ int32_t DualDisplayPipe::init(
     MESON_ASSERT(HwcConfig::getDisplayNum() == 2,
         "DualDisplayPipe need 2 hwc display.");
 
+    /*check dual pipeline display mode both init status*/
+    bool init = true;
+    for (auto stat : mPipeStats) {
+        drm_mode_info_t curMode;
+        int32_t ret = stat.second->modeCrtc->getMode(curMode);
+        if ((ret < 0 || !strcmp(curMode.name, DRM_DISPLAY_MODE_NULL)) &&
+            stat.second->modeConnector->isConnected()) {
+            init = false;
+        }
+    }
+    if (init == true)
+        return 0;
+    /*reinit dual display pipeline display mode*/
     static drm_mode_info_t displayMode = {
         DRM_DISPLAY_MODE_NULL,
         0, 0,
@@ -42,58 +55,44 @@ int32_t DualDisplayPipe::init(
         60.0
     };
     /*reset dual pipeline displaymode to NULL*/
-    if (HwcConfig::dynamicSwitchViuEnabled() == true ||
-            HwcConfig::dynamicSwitchConnectorEnabled() == true) {
-        for (auto stat : mPipeStats) {
-            stat.second->modeCrtc->setMode(displayMode);
-        }
+    for (auto stat : mPipeStats) {
+        stat.second->modeCrtc->setMode(displayMode);
     }
     /*set vout displaymode*/
     for (auto stat : mPipeStats) {
-        drm_mode_info_t curMode;
-        strcpy(displayMode.name, DRM_DISPLAY_MODE_NULL);
-        if (stat.second->modeCrtc->getMode(curMode) < 0 &&
-            stat.second->modeConnector->isConnected()) {
-            /*do not do crtc/connector update after set displaymode,
-            will do it when we get mode change event.*/
-            initDisplayMode(stat.second);
-        }
-        if (HwcConfig::dynamicSwitchViuEnabled() == true ||
-            HwcConfig::dynamicSwitchConnectorEnabled() == true) {
-            switch (stat.second->cfg.modeConnectorType) {
-                case DRM_MODE_CONNECTOR_CVBS:
-                    {
-                        /*ToDo: add cvbs support*/
-                    }
-                    break;
-                case DRM_MODE_CONNECTOR_HDMI:
-                    {
-                        if (mHdmi_connected == true) {
-                            /*get hdmi prefect display mode firstly for init default config*/
-                            std::string prefdisplayMode;
-                            if (sc_get_pref_display_mode(prefdisplayMode) == false) {
-                                strcpy(displayMode.name, DRM_DISPLAY_MODE_DEFAULT);
-                                prefdisplayMode = DRM_DISPLAY_MODE_DEFAULT;
-                                MESON_LOGI("sc_get_pref_display_mode fail! use default mode");
-                            } else {
-                                strcpy(displayMode.name, prefdisplayMode.c_str());
-                            }
-                            sc_set_display_mode(prefdisplayMode);
+        switch (stat.second->cfg.modeConnectorType) {
+            case DRM_MODE_CONNECTOR_CVBS:
+                {
+                    /*ToDo: add cvbs support*/
+                }
+                break;
+            case DRM_MODE_CONNECTOR_HDMI:
+                {
+                    if (mHdmi_connected == true) {
+                        /*get hdmi prefect display mode firstly for init default config*/
+                        std::string prefdisplayMode;
+                        if (sc_get_pref_display_mode(prefdisplayMode) == false) {
+                            strcpy(displayMode.name, DRM_DISPLAY_MODE_DEFAULT);
+                            prefdisplayMode = DRM_DISPLAY_MODE_DEFAULT;
+                            MESON_LOGI("sc_get_pref_display_mode fail! use default mode");
+                        } else {
+                            strcpy(displayMode.name, prefdisplayMode.c_str());
                         }
+                        sc_set_display_mode(prefdisplayMode);
                     }
-                    break;
-                case DRM_MODE_CONNECTOR_PANEL:
-                    {
-                        strcpy(displayMode.name, DRM_DISPLAY_MODE_PANEL);
-                        stat.second->modeCrtc->setMode(displayMode);
-                    }
-                    break;
-                default:
-                    MESON_LOGE("Do Nothing in updateDisplayMode .");
-                    break;
-            };
-            MESON_LOGI("init set mode (%s)",displayMode.name);
-        }
+                }
+                break;
+            case DRM_MODE_CONNECTOR_PANEL:
+                {
+                    strcpy(displayMode.name, DRM_DISPLAY_MODE_PANEL);
+                    stat.second->modeCrtc->setMode(displayMode);
+                }
+                break;
+            default:
+                MESON_LOGE("Do Nothing in updateDisplayMode .");
+                break;
+        };
+        MESON_LOGI("init set mode (%s)",displayMode.name);
     }
     return 0;
 }
