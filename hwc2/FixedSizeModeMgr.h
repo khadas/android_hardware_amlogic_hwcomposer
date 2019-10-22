@@ -51,6 +51,9 @@ protected:
     std::map<uint32_t, drm_mode_info_t> mModes;
     drm_mode_info_t mCurMode;
 
+    uint32_t mFbWidth;
+    uint32_t mFbHeight;
+
 };
 
 #endif/*FIXED_SIZE_MODE_MGR_H*/

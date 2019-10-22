@@ -280,6 +280,17 @@ void HwcDisplayPipe::handleEvent(drm_display_event event, int val) {
                     if (statIt.second->modeConnector->getType() == DRM_MODE_CONNECTOR_HDMI) {
                         statIt.second->modeConnector->update();
                         statIt.second->hwcDisplay->onHotplug(connected);
+                    } else if (statIt.second->modeConnector->getType() == DRM_MODE_CONNECTOR_CVBS) {
+                        /*
+                         * Now Hdmi is plugIn. Switch from cvbs to hdmi.
+                         * onHotplug DISCONNECT for CVBS in onHotplug(true) of Hwc2Display.
+                         * onHotplug CONNECT for hdmi in onModeChanged() of Hwc2Display
+                         * when displayPipe is ready.
+                         */
+                        if (connected == true) {
+                            MESON_LOGD("hdmi connected, switch from cvbs");
+                            statIt.second->hwcDisplay->onHotplug(connected);
+                        }
                     }
                 }
             }
