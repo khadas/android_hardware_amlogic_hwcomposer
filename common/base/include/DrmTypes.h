@@ -52,8 +52,10 @@ typedef enum drm_fb_type {
     DRM_FB_CURSOR,
     /*buffer with overlay flag, no image data*/
     DRM_FB_VIDEO_OVERLAY,
-    /*special handle for video/TV, no image data*/
+    /*special handle for video, no image data*/
     DRM_FB_VIDEO_SIDEBAND,
+    /* TV sidebande handle */
+    DRM_FB_VIDEO_SIDEBAND_TV,
     DRM_FB_VIDEO_SIDEBAND_SECOND,
     /*no image data, but with pts.*/
     DRM_FB_VIDEO_OMX_PTS,

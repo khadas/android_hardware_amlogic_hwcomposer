@@ -153,13 +153,21 @@ hwc2_error_t Hwc2Layer::setSidebandStream(const native_handle_t* stream) {
     clearBufferInfo();
     setBufferInfo(stream, -1);
 
-    int channel = 0;
-    am_gralloc_get_sideband_channel(stream, &channel);
-    if (channel == AM_VIDEO_EXTERNAL) {
-        mFbType = DRM_FB_VIDEO_SIDEBAND_SECOND;
+    int type = AM_INVALID_SIDEBAND;
+    am_gralloc_get_sideband_type(stream, &type);
+    if (type == AM_TV_SIDEBAND) {
+        mFbType = DRM_FB_VIDEO_SIDEBAND_TV;
     } else {
-        mFbType = DRM_FB_VIDEO_SIDEBAND;
+        int channel = 0;
+        am_gralloc_get_sideband_channel(stream, &channel);
+        if (channel == AM_VIDEO_EXTERNAL) {
+            mFbType = DRM_FB_VIDEO_SIDEBAND_SECOND;
+        } else {
+            mFbType = DRM_FB_VIDEO_SIDEBAND;
+        }
     }
+
+    MESON_LOGD("setsidebandstream %p get type = %d, mfbtype=%d", stream, type, mFbType);
 
     mSecure = false;
     return HWC2_ERROR_NONE;
