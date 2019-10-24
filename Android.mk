@@ -39,8 +39,7 @@ HWC_SHARED_LIBS +=\
     vendor.amlogic.hardware.systemcontrol@1.0 \
     vendor.amlogic.hardware.systemcontrol@1.1 \
     libbase \
-    libhidlbase \
-    libhidltransport
+    libhidlbase
 else
 HWC_SHARED_LIBS += libsystemcontrolservice
 endif
