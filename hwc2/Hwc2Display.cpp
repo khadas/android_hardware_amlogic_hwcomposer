@@ -749,7 +749,8 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
         *outPresentFence = -1;
     } else {
         if (mValidateDisplay == false) {
-            return HWC2_ERROR_NOT_VALIDATED;
+            MESON_LOGD("presentDisplay without validateDisplay");
+            return HWC2_ERROR_NONE;
         }
         mValidateDisplay = false;
         int32_t outFence = -1;
