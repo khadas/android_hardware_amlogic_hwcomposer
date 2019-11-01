@@ -542,6 +542,51 @@ int32_t MesonHwc2::getPerFrameMetadataKeys(
 }
 #endif
 
+int32_t MesonHwc2::getDisplayIdentificationData(hwc2_display_t display, uint8_t* outPort,
+            uint32_t* outDataSize, uint8_t* outData) {
+    std::vector<uint8_t> edid;
+    uint32_t port;
+    GET_HWC_DISPLAY(display);
+    if (0 != hwcDisplay->getDisplayIdentificationData(port, edid)) {
+        return HWC2_ERROR_UNSUPPORTED;
+    }
+    if (outData == nullptr) {
+        *outDataSize = edid.size();
+    } else {
+        if (*outDataSize != edid.size()) {
+            return HWC2_ERROR_BAD_PARAMETER;
+        }
+        memcpy(outData, edid.data(), sizeof(uint8_t) * edid.size());
+    }
+    *outPort = (uint8_t)port;
+    return HWC2_ERROR_NONE;
+}
+
+int32_t MesonHwc2::getDisplayCapabilities(hwc2_display_t display, uint32_t* outNumCapabilities, uint32_t* outCapabilities) {
+    GET_HWC_DISPLAY(display);
+    if (outCapabilities == nullptr) {
+        *outNumCapabilities = 1;
+    } else {
+        if (*outNumCapabilities != 1) {
+            return HWC2_ERROR_BAD_PARAMETER;
+        }
+        outCapabilities[0] = HWC2_DISPLAY_CAPABILITY_INVALID;
+    }
+    return HWC2_ERROR_NONE;
+}
+
+int32_t MesonHwc2::getDisplayBrightnessSupport(hwc2_display_t display, bool* outSupport) {
+    GET_HWC_DISPLAY(display);
+    *outSupport = false;
+    return HWC2_ERROR_NONE;
+}
+
+int32_t MesonHwc2::setDisplayBrightness(hwc2_display_t display, float brightness) {
+    GET_HWC_DISPLAY(display);
+    (void) brightness;
+    return HWC2_ERROR_UNSUPPORTED;
+}
+
 /**********************Amlogic ext display interface*******************/
 int32_t MesonHwc2::setPostProcessor(bool bEnable) {
     mDisplayRequests |= bEnable ? rPostProcessorStart : rPostProcessorStop;

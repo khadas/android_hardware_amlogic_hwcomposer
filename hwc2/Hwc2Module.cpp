@@ -352,6 +352,34 @@ int32_t setColorModeWithRenderIntent (
     return mesonhwc->setColorModeWithRenderIntent(display, mode, intent);
 }
 
+int32_t getDisplayIdentificationData (
+        hwc2_device_t* device, hwc2_display_t display, uint8_t* outPort,
+        uint32_t* outDataSize, uint8_t* outData) {
+    GET_MESON_HWC();
+    return mesonhwc->getDisplayIdentificationData(display, outPort, outDataSize, outData);
+}
+
+int32_t getDisplayCapabilities (
+        hwc2_device_t* device, hwc2_display_t display, uint32_t* outNumCapabilities,
+        uint32_t* outCapabilities) {
+    GET_MESON_HWC();
+    return mesonhwc->getDisplayCapabilities(display, outNumCapabilities, outCapabilities);
+}
+
+int32_t getDisplayBrightnessSupport (hwc2_device_t* device,
+        hwc2_display_t display, bool* outSupport) {
+    GET_MESON_HWC();
+    return mesonhwc->getDisplayBrightnessSupport(display, outSupport);
+}
+
+int32_t setDisplayBrightness (hwc2_device_t* device,
+        hwc2_display_t display, float brightness) {
+    GET_MESON_HWC();
+    return mesonhwc->setDisplayBrightness(display, brightness);
+}
+
+
+
 hwc2_function_pointer_t hwc2_getFunction(struct hwc2_device* device __unused,
         int32_t descriptor) {
     switch (descriptor) {
@@ -451,6 +479,14 @@ hwc2_function_pointer_t hwc2_getFunction(struct hwc2_device* device __unused,
             return reinterpret_cast<hwc2_function_pointer_t>(getRenderIntents);
         case HWC2_FUNCTION_SET_COLOR_MODE_WITH_RENDER_INTENT:
             return reinterpret_cast<hwc2_function_pointer_t>(setColorModeWithRenderIntent);
+        case HWC2_FUNCTION_GET_DISPLAY_IDENTIFICATION_DATA:
+            return reinterpret_cast<hwc2_function_pointer_t>(getDisplayIdentificationData);
+        case HWC2_FUNCTION_GET_DISPLAY_CAPABILITIES:
+            return reinterpret_cast<hwc2_function_pointer_t>(getDisplayCapabilities);
+        case HWC2_FUNCTION_GET_DISPLAY_BRIGHTNESS_SUPPORT:
+            return reinterpret_cast<hwc2_function_pointer_t>(getDisplayBrightnessSupport);
+        case HWC2_FUNCTION_SET_DISPLAY_BRIGHTNESS:
+            return reinterpret_cast<hwc2_function_pointer_t>(setDisplayBrightness);
         default:
             MESON_LOGE("Unkown function description (%d)", descriptor);
             break;
@@ -519,7 +555,7 @@ hwc_module_t HAL_MODULE_INFO_SYM = {
     .common = {
         .tag = HARDWARE_MODULE_TAG,
         .version_major = 2,
-        .version_minor = 0,
+        .version_minor = 3,
         .id = HWC_HARDWARE_MODULE_ID,
         .name = "amlogic hwc module",
         .author = "Amlogic Graphic",

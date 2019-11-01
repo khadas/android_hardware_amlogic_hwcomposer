@@ -33,6 +33,7 @@ public:
     virtual void dump(String8& dumpstr);
 
     virtual int32_t setMode(drm_mode_info_t & mode);
+    int32_t getIdentificationData(std::vector<uint8_t>& idOut) override;
 
 protected:
     virtual int32_t addDisplayMode(std::string& mode);
@@ -44,6 +45,10 @@ protected:
     /*parse hdr info.*/
     int32_t getLineValue(const char *lineStr, const char *magicStr);
     int32_t parseHdrCapabilities();
+    virtual void parseEDID();
+
+    std::vector<uint8_t> mEDID;
+    bool mIsEDIDValid;
 
 private:
     char mName[64];

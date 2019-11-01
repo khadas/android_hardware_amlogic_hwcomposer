@@ -30,6 +30,11 @@ int32_t HwDisplayConnector::getModes(
     return 0;
 }
 
+int32_t HwDisplayConnector::getIdentificationData(std::vector<uint8_t>& idOut) {
+    (void) idOut;
+    return -ENOSYS;
+}
+
 void HwDisplayConnector::loadPhysicalSize() {
     struct vinfo_base_s info;
     if (!mCrtc)

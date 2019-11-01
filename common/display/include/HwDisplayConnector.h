@@ -41,9 +41,12 @@ public:
     virtual bool isConnected() = 0;
 
     virtual void getHdrCapabilities(drm_hdr_capabilities * caps) = 0;
+    virtual int32_t getIdentificationData(std::vector<uint8_t>& idOut);
+
     virtual void dump(String8 & dumpstr) = 0;
 
-    virtual int32_t setMode(drm_mode_info_t & mode __unused) { return 0;}
+    virtual int32_t setMode(drm_mode_info_t & mode __unused) { return 0;};
+    virtual uint32_t getId() { return mId;};
 
     protected:
     virtual void loadPhysicalSize();

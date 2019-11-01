@@ -488,6 +488,16 @@ hwc2_error_t Hwc2Display::setCalibrateInfo(int32_t caliX,int32_t caliY,int32_t c
     return HWC2_ERROR_NONE;
 }
 
+
+int32_t Hwc2Display::getDisplayIdentificationData(uint32_t &outPort,
+        std::vector<uint8_t> &outData) {
+    int32_t ret = mConnector->getIdentificationData(outData);
+    if (0 == ret) {
+        outPort = mConnector->getId();
+    }
+    return ret;
+}
+
 int32_t Hwc2Display::loadCalibrateInfo() {
     hwc2_config_t config;
     int32_t configWidth;

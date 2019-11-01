@@ -118,6 +118,13 @@ public:
     int32_t setColorModeWithRenderIntent (hwc2_display_t display,
             int32_t mode, int32_t intent);
 
+
+    int32_t getDisplayIdentificationData(hwc2_display_t display, uint8_t* outPort,
+            uint32_t* outDataSize, uint8_t* outData);
+    int32_t getDisplayCapabilities(hwc2_display_t display, uint32_t* outNumCapabilities, uint32_t* outCapabilities);
+    int32_t getDisplayBrightnessSupport(hwc2_display_t display, bool* outSupport);
+    int32_t setDisplayBrightness(hwc2_display_t display, float brightness);
+
     void dump(uint32_t* outSize, char* outBuffer);
 
 /*amlogic ext display interface*/

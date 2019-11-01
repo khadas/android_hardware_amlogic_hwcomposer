@@ -11,6 +11,7 @@
 #define HWC2_DISPLAY_H
 
 #include <map>
+#include <vector>
 #include <unordered_map>
 #include <hardware/hwcomposer2.h>
 
@@ -93,6 +94,8 @@ public:
     virtual hwc2_error_t getActiveConfig(hwc2_config_t* outConfig);
     virtual hwc2_error_t setActiveConfig(hwc2_config_t config);
     virtual hwc2_error_t setCalibrateInfo(int32_t caliX,int32_t caliY,int32_t caliW,int32_t caliH);
+    virtual int32_t getDisplayIdentificationData(uint32_t &outPort,
+            std::vector<uint8_t> &outData);
 
 /*HwcDisplay interface*/
 public:

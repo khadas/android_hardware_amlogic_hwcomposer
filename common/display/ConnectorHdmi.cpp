@@ -14,6 +14,7 @@
 
 #include "AmVinfo.h"
 #include "ConnectorHdmi.h"
+#include <sstream>
 
 enum {
     REFRESH_24kHZ = 24,
@@ -28,6 +29,7 @@ enum {
 
 ConnectorHdmi::ConnectorHdmi(int32_t drvFd, uint32_t id)
     :   HwDisplayConnector(drvFd, id) {
+    mIsEDIDValid = false;
     mConnected = false;
     mSecure = false;
 #ifdef ENABLE_FRACTIONAL_REFRESH_RATE
@@ -35,7 +37,6 @@ ConnectorHdmi::ConnectorHdmi(int32_t drvFd, uint32_t id)
 #else
     mFracMode = false;
 #endif
-
     snprintf(mName, 64, "HDMI-%d", id);
 }
 
@@ -49,6 +50,7 @@ int32_t ConnectorHdmi::loadProperities() {
         loadPhysicalSize();
         loadDisplayModes();
         parseHdrCapabilities();
+        parseEDID();
     }
 
     MESON_LOG_FUN_LEAVE();
@@ -178,6 +180,14 @@ int32_t ConnectorHdmi::setMode(drm_mode_info_t & mode) {
     }
 
     switchRatePolicy(false);
+    return 0;
+}
+
+int32_t ConnectorHdmi::getIdentificationData(std::vector<uint8_t>& idOut) {
+    if (!mIsEDIDValid) {
+        return -EAGAIN;
+    }
+    idOut = mEDID;
     return 0;
 }
 
@@ -350,5 +360,42 @@ int32_t ConnectorHdmi::parseHdrCapabilities() {
 exit:
     close(fd);
     return NO_ERROR;
+}
+
+void ConnectorHdmi::parseEDID() {
+    std::string edid;
+    int i, pos, len, ret = 0;
+    unsigned int xData;
+    const char* HDMI_TX_RAWEEDID = "/sys/class/amhdmitx/amhdmitx0/rawedid";
+    std::string str = "0123456789ABCDEF";
+    std::stringstream ss;
+    mIsEDIDValid = false;
+
+    if (0 != sc_read_sysfs(HDMI_TX_RAWEEDID, edid)) {
+        MESON_LOGE("Get raw EDIE FAIL.");
+        return;
+    }
+    if (edid.length() % 2 != 0) {
+        MESON_LOGE("Can't to parse the EDIE:(len=%d)%s", edid.length(), edid.c_str());
+        return;
+    }
+    len = edid.length() / 2;
+    mEDID.resize(len);
+    pos = 0;
+    for (i = 0; i < len; i++) {
+        ret = sscanf(edid.c_str() + pos, "%2x", &xData);
+        if (ret != 1) {
+            MESON_LOGE("Fail to parse EDIE:(len=%d)%s", edid.length(), edid.c_str());
+            return;
+        }
+        pos = pos + 2;
+        mEDID[i] = (uint8_t) xData;
+    }
+    for (auto i : mEDID) {
+        ss << str[(unsigned char)i >> 4] << str[(unsigned char)i &0xf];
+    }
+    MESON_LOGV("Update EDID:%s", ss.str().c_str());
+    mIsEDIDValid = true;
+    return;
 }
 
