@@ -164,8 +164,14 @@ void DualDisplayPipe::handleEvent(drm_display_event event, int val) {
         if (mPrimaryConnectorType != DRM_MODE_CONNECTOR_INVALID &&
             mExtendConnectorType != DRM_MODE_CONNECTOR_INVALID) {
             for (auto statIt : mPipeStats) {
-                /*reset vout displaymode, for we need do pipeline switch*/
-                statIt.second->hwcCrtc->unbind();
+                PipeCfg cfg;
+                getPipeCfg(statIt.second->hwcId, cfg);
+                if ((statIt.second->cfg.modeConnectorType != cfg.modeConnectorType) ||
+                        (statIt.second->cfg.hwcCrtcId != cfg.hwcCrtcId)) {
+                    /* If display pip stat resource change, then
+                     * reset vout displaymode, for we need do pipeline switch*/
+                    statIt.second->hwcCrtc->unbind();
+                }
             }
             /*update display pipe.*/
             for (auto statIt : mPipeStats) {
