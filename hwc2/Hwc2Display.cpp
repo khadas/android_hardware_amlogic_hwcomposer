@@ -318,7 +318,8 @@ void Hwc2Display::onModeChanged(int stage) {
                     } else {
                         /*Workaround: needed for NTS test.*/
                         if (HwcConfig::primaryHotplugEnabled()
-                            && mModeMgr->getPolicyType() == FIXED_SIZE_POLICY) {
+                            && (mModeMgr->getPolicyType() == FIXED_SIZE_POLICY ||
+                                mModeMgr->getPolicyType() == REAL_MODE_POLICY)) {
                             bSendPlugIn = true;
                         } else if (mModeMgr->getPolicyType() == ACTIVE_MODE_POLICY) {
                             bSendPlugIn = true;
@@ -1019,6 +1020,21 @@ bool Hwc2Display::isPlaneHideForDebug(int id) {
     return false;
 }
 
+hwc2_error_t Hwc2Display::getDisplayCapabilities(
+            uint32_t* outNumCapabilities, uint32_t* outCapabilities) {
+    if (outCapabilities == nullptr) {
+        if (mConnector->isConnected() == false)
+            *outNumCapabilities = 1;
+        else
+            *outNumCapabilities = 0;
+    } else {
+        if (mConnector->isConnected() == false && *outNumCapabilities == 1) {
+            outCapabilities[0] = HWC2_DISPLAY_CAPABILITY_INVALID;
+        }
+    }
+    return HWC2_ERROR_NONE;
+}
+
 void Hwc2Display::dumpPresentLayers(String8 & dumpstr) {
     dumpstr.append("----------------------------------------------------------"
         "-----------------------------------\n");
@@ -1066,7 +1082,6 @@ void Hwc2Display::dumpHwDisplayPlane(String8 &dumpstr) {
             std::shared_ptr<HwDisplayPlane> plane = *it;
             if (!strncmp("OSD", plane->getName(), 3)) {
                 plane->dump(dumpstr);
-                break;
             }
         }
         dumpstr.append("------------------------------------------------------------"

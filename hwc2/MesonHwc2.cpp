@@ -571,15 +571,7 @@ int32_t MesonHwc2::getDisplayIdentificationData(hwc2_display_t display, uint8_t*
 
 int32_t MesonHwc2::getDisplayCapabilities(hwc2_display_t display, uint32_t* outNumCapabilities, uint32_t* outCapabilities) {
     GET_HWC_DISPLAY(display);
-    if (outCapabilities == nullptr) {
-        *outNumCapabilities = 1;
-    } else {
-        if (*outNumCapabilities != 1) {
-            return HWC2_ERROR_BAD_PARAMETER;
-        }
-        outCapabilities[0] = HWC2_DISPLAY_CAPABILITY_INVALID;
-    }
-    return HWC2_ERROR_NONE;
+    return hwcDisplay->getDisplayCapabilities(outNumCapabilities, outCapabilities);
 }
 
 int32_t MesonHwc2::getDisplayBrightnessSupport(hwc2_display_t display, bool* outSupport) {

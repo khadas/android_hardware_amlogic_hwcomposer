@@ -96,6 +96,8 @@ public:
     virtual hwc2_error_t setCalibrateInfo(int32_t caliX,int32_t caliY,int32_t caliW,int32_t caliH);
     virtual int32_t getDisplayIdentificationData(uint32_t &outPort,
             std::vector<uint8_t> &outData);
+    virtual hwc2_error_t getDisplayCapabilities(
+            uint32_t* outNumCapabilities, uint32_t* outCapabilities);
 
 /*HwcDisplay interface*/
 public:

@@ -20,8 +20,8 @@ static const drm_mode_info_t defaultMode = {
     .name              = "null",
     .dpiX              = DEFUALT_DPI,
     .dpiY              = DEFUALT_DPI,
-    .pixelW            = 1920,
-    .pixelH            = 1080,
+    .pixelW            = 720,
+    .pixelH            = 480,
     .refreshRate       = DEFAULT_REFRESH_RATE,
 };
 
@@ -76,6 +76,10 @@ int32_t RealModeMgr::update() {
     drm_mode_info_t realMode;
     std::map<uint32_t, drm_mode_info_t> supportModes;
 
+#ifdef HWC_SUPPORT_MODES_LIST
+    /* reset ModeList */
+    reset();
+#endif
     if (mConnector->isConnected()) {
         std::lock_guard<std::mutex> lock(mMutex);
         mConnector->getModes(supportModes);
@@ -85,35 +89,23 @@ int32_t RealModeMgr::update() {
                 useFakeMode = false;
             }
         }
-        if (useFakeMode) {
-            mCurMode = defaultMode;
-        }
 
 #ifdef HWC_SUPPORT_MODES_LIST
-        reset();
         for (auto it = supportModes.begin(); it != supportModes.end(); it++) {
-            if (!strncmp(mCurMode.name, it->second.name, DRM_DISPLAY_MODE_LEN)
-                && mCurMode.refreshRate == it->second.refreshRate) {
-                if (useFakeMode) {
-                    mCurMode.dpiX = it->second.dpiX;
-                    mCurMode.dpiY = it->second.dpiY;
-                }
-                mModes.emplace(mModes.size(), mCurMode);
-            } else {
-                mModes.emplace(mModes.size(), it->second);
-            }
+            mModes.emplace(mModes.size(), it->second);
         }
-
-        if (useFakeMode) {
-            mModes.emplace(mModes.size(), mCurMode);
-        }
-        updateActiveConfig(mCurMode.name);
 #endif
     }
 
-#ifndef HWC_SUPPORT_MODES_LIST
-    if (useFakeMode)
-            mCurMode = defaultMode;
+    if (useFakeMode) {
+        mCurMode = defaultMode;
+#ifdef HWC_SUPPORT_MODES_LIST
+        mModes.emplace(mModes.size(), mCurMode);
+#endif
+    }
+
+#ifdef HWC_SUPPORT_MODES_LIST
+    updateActiveConfig(mCurMode.name);
 #endif
 
     return HWC2_ERROR_NONE;
@@ -161,10 +153,10 @@ int32_t  RealModeMgr::getDisplayAttribute(
 #endif
         switch (attribute) {
             case HWC2_ATTRIBUTE_WIDTH:
-                *outValue = curMode.pixelW > mHwcFbWidth ? mHwcFbWidth : curMode.pixelW;
+                *outValue = curMode.pixelW;
                 break;
             case HWC2_ATTRIBUTE_HEIGHT:
-                *outValue = curMode.pixelH > mHwcFbHeight ? mHwcFbHeight : curMode.pixelH;
+                *outValue = curMode.pixelH;
                 break;
             case HWC2_ATTRIBUTE_VSYNC_PERIOD:
                 if (HwcConfig::isHeadlessMode()) {
