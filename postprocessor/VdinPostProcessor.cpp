@@ -14,12 +14,13 @@
 #include <Vdin.h>
 #include "VdinPostProcessor.h"
 
-//#define VDIN_POSTPROCESS_DEBUG 1
+//#define PROCESS_DEBUG 1
+//#define POST_FRAME_DEBUG 1
 //#define VDIN_CAP_ALWAYS_ON 1
 
 #define DEFAULT_FB_ZORDER (1)
 
-#define VDIN_BUF_CNT (4)
+#define VDIN_BUF_CNT (6)
 #define VOUT_BUF_CNT (3)
 /*vdin will keep one frame always*/
 #define VDIN_CAP_CNT (VDIN_BUF_CNT - 1)
@@ -83,13 +84,29 @@ int32_t VdinPostProcessor::postVout(std::shared_ptr<DrmFramebuffer> fb) {
         (*it)->setPlane(NULL, DEFAULT_FB_ZORDER, BLANK_FOR_NO_CONTENT);
     }
 
-    int32_t fencefd;
+    static int32_t fencefd = -1;
+    static nsecs_t post_start;
+
+    fencefd = -1;
     mVout->setOsdChannels(1);
+    post_start = systemTime(CLOCK_MONOTONIC);
     if (mVout->pageFlip(fencefd) < 0) {
         MESON_LOGE("VdinPostProcessor, page flip failed.");
         return -EIO;
     }
-    close(fencefd);
+
+    if (fencefd >= 0) {
+#if POST_FRAME_DEBUG
+        DrmFence fence(fencefd);
+        fence.waitForever("vout2");
+        float post_time = (float)(systemTime(CLOCK_MONOTONIC) - post_start)/ 1000000.0;
+        if (post_time >= 18.0f)
+            MESON_LOGE("last present fence timeout  (%d)(%f)!", fencefd, post_time);
+#else
+        close(fencefd);
+#endif
+        fencefd = -1;
+    }
 
     return 0;
 }
@@ -215,7 +232,7 @@ int32_t VdinPostProcessor::present(int flags, int32_t fence) {
     if (mStat == PROCESSOR_STOP)
         return 0;
 
-#ifdef VDIN_POSTPROCESS_DEBUG
+#ifdef PROCESS_DEBUG
     MESON_LOGE("VdinPostProcessor::present %d @ %d", flags, mStat);
 #endif
 
@@ -258,6 +275,12 @@ void * VdinPostProcessor::threadMain(void * data) {
     return NULL;
 }
 
+#ifdef POST_FRAME_DEBUG
+const int track_frames = 120;
+static int frames = 0, skip_frames = 0;
+static nsecs_t track_start;
+#endif
+
 int32_t VdinPostProcessor::process() {
     std::unique_lock<std::mutex> lock(mMutex);
     static int capCnt = 0;
@@ -286,8 +309,18 @@ int32_t VdinPostProcessor::process() {
         mCmdCond.wait(lock);
         return 0;
     }
+
 #ifdef VDIN_CAP_ALWAYS_ON
     mProcessMode = PROCESS_ALWAYS;
+#endif
+#ifdef POST_FRAME_DEBUG
+    bool debug_cap_always = sys_get_bool_prop("vendor.hwc.cap-always", false);
+    if (debug_cap_always == true) {
+        mProcessMode = PROCESS_ALWAYS;
+    } else if (mProcessMode == PROCESS_ALWAYS) {
+        mProcessMode = PROCESS_ONCE;
+        capCnt = VDIN_CAP_CNT;
+    }
 #endif
     lock.unlock();
 
@@ -297,7 +330,7 @@ int32_t VdinPostProcessor::process() {
     }
 
     int deqVdinBufs = mVdinQueue.size() + (mVdinBufOnScreen >= 0 ? 1 : 0);
-#ifdef VDIN_POSTPROCESS_DEBUG
+#ifdef PROCESS_DEBUG
     MESON_LOGD("VdinPostProcessor processMode(%d) capCnt(%d) vdinkeep (%d)",
         mProcessMode, capCnt, deqVdinBufs);
 #endif
@@ -318,19 +351,40 @@ int32_t VdinPostProcessor::process() {
         while (capCnt > 0 && mVdinQueue.size() > 0) {
             vdinIdx = mVdinQueue.front();
             Vdin::getInstance().queueBuffer(nullfb, vdinIdx);
-#ifdef VDIN_POSTPROCESS_DEBUG
+#ifdef PROCESS_DEBUG
             MESON_LOGE("Vdin::queue %d", vdinIdx);
 #endif
             mVdinQueue.pop();
             capCnt --;
         }
 
+#ifdef POST_FRAME_DEBUG
+        if (frames == 0) {
+            track_start = systemTime(CLOCK_MONOTONIC);
+        }
+#endif
+
         /*read vdin and process.*/
         if (Vdin::getInstance().dequeueBuffer(vdinIdx) == 0) {
             MESON_ASSERT(vdinIdx >= 0 && !mVoutQueue.empty(), "idx always >= 0.");
-#ifdef VDIN_POSTPROCESS_DEBUG
+#ifdef PROCESS_DEBUG
             MESON_LOGE("Vdin::dequeue %d", vdinIdx);
 #endif
+
+#ifdef POST_FRAME_DEBUG
+            frames ++;
+            if (frames >= track_frames) {
+                if (skip_frames > 0) {
+                    nsecs_t elapse_time = systemTime(CLOCK_MONOTONIC) - track_start;
+                    float fps = (float)frames * 1000000000.0/elapse_time;
+                    MESON_LOGE("VdinPostProcessor: FPS (%f)=(%d, %d)/(%lld)",
+                        fps, frames, skip_frames, elapse_time);
+                }
+                track_start = 0;
+                skip_frames = frames = 0 ;
+            }
+#endif
+
             infb = mVdinFbs[vdinIdx];
 
             if (mFbProcessor != NULL) {
@@ -369,6 +423,9 @@ int32_t VdinPostProcessor::process() {
             }
         } else {
             MESON_LOGE("Vdin dequeue failed, still need cap %d", capCnt);
+#ifdef POST_FRAME_DEBUG
+            skip_frames ++;
+#endif
         }
     }
 

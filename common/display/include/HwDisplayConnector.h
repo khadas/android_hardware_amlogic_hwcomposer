@@ -43,9 +43,9 @@ public:
     virtual void getHdrCapabilities(drm_hdr_capabilities * caps) = 0;
     virtual void dump(String8 & dumpstr) = 0;
 
-protected:
     virtual int32_t setMode(drm_mode_info_t & mode __unused) { return 0;}
 
+    protected:
     virtual void loadPhysicalSize();
     virtual int32_t addDisplayMode(std::string& mode);
 
