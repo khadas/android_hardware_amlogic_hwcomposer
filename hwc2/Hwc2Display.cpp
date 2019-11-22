@@ -138,6 +138,9 @@ int32_t Hwc2Display::setPostProcessor(
 
 int32_t Hwc2Display::setVsync(std::shared_ptr<HwcVsync> vsync) {
     std::lock_guard<std::mutex> lock(mMutex);
+    if (vsync)
+        vsync->setObserver(this);
+
     mVsync = vsync;
     return 0;
 }
@@ -209,7 +212,8 @@ void Hwc2Display::onHotplug(bool connected) {
             return;
         }
         mPowerMode->setConnectorStatus(false);
-        if (mObserver != NULL && mModeMgr->getPolicyType() != FIXED_SIZE_POLICY) {
+        if (mObserver != NULL && mModeMgr->getPolicyType() != FIXED_SIZE_POLICY
+            && mModeMgr->getPolicyType() != ACTIVE_MODE_POLICY) {
             bSendPlugOut = true;
         }
     }
@@ -255,6 +259,7 @@ void Hwc2Display::onModeChanged(int stage) {
 
                 /*update mode success.*/
                 if (mModeMgr->getDisplayMode(mDisplayMode) == 0) {
+                    MESON_LOGD("Hwc2Display::onModeChanged getDisplayMode [%s]", mDisplayMode.name);
                     mPowerMode->setConnectorStatus(true);
                     if (mSignalHpd) {
                         bSendPlugIn = true;
@@ -264,7 +269,8 @@ void Hwc2Display::onModeChanged(int stage) {
                         if (HwcConfig::primaryHotplugEnabled()
                             && mModeMgr->getPolicyType() == FIXED_SIZE_POLICY) {
                             bSendPlugIn = true;
-                        }
+                        } else if (mModeMgr->getPolicyType() == ACTIVE_MODE_POLICY)
+                            bSendPlugIn = true;
                     }
                 }
             } else {
@@ -272,10 +278,14 @@ void Hwc2Display::onModeChanged(int stage) {
             }
         }
     }
-
     /*call hotplug out of lock, SF may call some hwc function to cause deadlock.*/
-    if (bSendPlugIn)
+    if (bSendPlugIn && mModeMgr->needCallHotPlug()) {
+        MESON_LOGD("mObserver->onHotplug(true)");
         mObserver->onHotplug(true);
+    } else {
+        MESON_LOGD("mModeMgr->resetTags");
+        mModeMgr->resetTags();
+    }
     /*last call refresh*/
     mObserver->refresh();
 }
@@ -491,7 +501,8 @@ int32_t Hwc2Display::loadCalibrateInfo() {
                 __func__, mDisplayMode.name, mDisplayMode.pixelW, mDisplayMode.pixelH);
         return -ENOENT;
     }
-
+/*    MESON_LOGD("(%s): loadCalibrateInfo:(%s) pixelW (%d) pixelH (%d) ", __func__,
+        mDisplayMode.name , mDisplayMode.pixelW, mDisplayMode.pixelH);*/
     /*default info*/
     mCalibrateInfo.framebuffer_w = configWidth;
     mCalibrateInfo.framebuffer_h = configHeight;
@@ -518,16 +529,16 @@ int32_t Hwc2Display::adjustDisplayFrame() {
         if (bNoScale) {
             layer->mDisplayFrame = layer->mBackupDisplayFrame;
         } else {
-            layer->mDisplayFrame.left = (uint32_t)ceilf(layer->mBackupDisplayFrame.left *
+            layer->mDisplayFrame.left = (int32_t)ceilf(layer->mBackupDisplayFrame.left *
                 mCalibrateInfo.crtc_display_w / mCalibrateInfo.framebuffer_w) +
                 mCalibrateInfo.crtc_display_x;
-            layer->mDisplayFrame.top = (uint32_t)ceilf(layer->mBackupDisplayFrame.top *
+            layer->mDisplayFrame.top = (int32_t)ceilf(layer->mBackupDisplayFrame.top *
                 mCalibrateInfo.crtc_display_h / mCalibrateInfo.framebuffer_h) +
                 mCalibrateInfo.crtc_display_y;
-            layer->mDisplayFrame.right = (uint32_t)ceilf(layer->mBackupDisplayFrame.right *
+            layer->mDisplayFrame.right = (int32_t)ceilf(layer->mBackupDisplayFrame.right *
                 mCalibrateInfo.crtc_display_w / mCalibrateInfo.framebuffer_w) +
                 mCalibrateInfo.crtc_display_x;
-            layer->mDisplayFrame.bottom = (uint32_t)ceilf(layer->mBackupDisplayFrame.bottom *
+            layer->mDisplayFrame.bottom = (int32_t)ceilf(layer->mBackupDisplayFrame.bottom *
                 mCalibrateInfo.crtc_display_h / mCalibrateInfo.framebuffer_h) +
                 mCalibrateInfo.crtc_display_y;
         }

@@ -32,7 +32,6 @@ public:
 
     virtual void dump(String8& dumpstr);
 
-protected:
     virtual int32_t setMode(drm_mode_info_t & mode);
 
 protected:

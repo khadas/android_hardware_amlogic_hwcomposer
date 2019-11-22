@@ -29,19 +29,19 @@ public:
 
     void setFramebufferSize(uint32_t w, uint32_t h);
     void setDisplayResources(
-        std::shared_ptr<HwDisplayCrtc> & crtc,
-        std::shared_ptr<HwDisplayConnector> & connector);
+    std::shared_ptr<HwDisplayCrtc> & crtc,
+    std::shared_ptr<HwDisplayConnector> & connector);
     int32_t update();
-
+    bool needCallHotPlug(){return true;};
     int32_t getDisplayMode(drm_mode_info_t & mode);
 
     int32_t  getDisplayConfigs(
-        uint32_t * outNumConfigs, uint32_t * outConfigs);
+    uint32_t * outNumConfigs, uint32_t * outConfigs);
     int32_t  getDisplayAttribute(
-        uint32_t config, int32_t attribute, int32_t* outValue, int32_t caller);
+    uint32_t config, int32_t attribute, int32_t* outValue, int32_t caller);
     int32_t getActiveConfig(uint32_t * outConfig, int32_t caller);
     int32_t setActiveConfig(uint32_t config);
-
+    void resetTags(){};
     void dump(String8 & dumpstr);
 
 protected:

@@ -13,6 +13,7 @@
 #include <cutils/properties.h>
 #include <systemcontrol.h>
 #include <misc.h>
+#include <math.h>
 #include <OmxUtil.h>
 
 #include "AmVinfo.h"
@@ -60,8 +61,8 @@ int32_t HwDisplayCrtc::unbind() {
         0, 0,
         60.0
     };
-    setMode(nullMode);
-
+    std::string dispmode(nullMode.name);
+    writeCurDisplayMode(dispmode);
     if (mConnector.get())
         mConnector->setCrtc(NULL);
     mConnector.reset();
@@ -94,7 +95,7 @@ int32_t HwDisplayCrtc::getId() {
 
 int32_t HwDisplayCrtc::setMode(drm_mode_info_t & mode) {
     /*DRM_DISPLAY_MODE_NULL is always allowed.*/
-    MESON_LOGI("Crtc active mode: %s", mode.name);
+    MESON_LOGI("Crtc setMode: %s", mode.name);
     std::string dispmode(mode.name);
     return writeCurDisplayMode(dispmode);
 }
@@ -139,7 +140,8 @@ int32_t HwDisplayCrtc::update() {
         } else {
             for (auto it = mModes.begin(); it != mModes.end(); it ++) {
                 MESON_LOGD("update: (%s) mode (%s)", displayMode.c_str(), it->second.name);
-                if (strcmp(it->second.name, displayMode.c_str()) == 0) {
+                if (strcmp(it->second.name, displayMode.c_str()) == 0
+                     && it->second.refreshRate == floor(it->second.refreshRate)) {
                     memcpy(&mCurModeInfo, &it->second, sizeof(drm_mode_info_t));
                     break;
                 }
@@ -317,7 +319,10 @@ int32_t  HwDisplayCrtc::readCurDisplayMode(std::string & dispmode) {
 int32_t HwDisplayCrtc::writeCurDisplayMode(std::string & dispmode) {
     int32_t ret = 0;
     if (mId == CRTC_VOUT1) {
-        ret = sc_write_sysfs(VIU1_DISPLAY_MODE_SYSFS, dispmode);
+        if (!strcmp(dispmode.c_str(), DRM_DISPLAY_MODE_NULL))
+            ret = sc_write_sysfs(VIU1_DISPLAY_MODE_SYSFS, dispmode);
+        else
+            ret = sc_set_display_mode(dispmode);
     } else if (mId == CRTC_VOUT2) {
         ret = sc_write_sysfs(VIU2_DISPLAY_MODE_SYSFS, dispmode);
     }

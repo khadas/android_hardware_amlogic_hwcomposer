@@ -22,7 +22,7 @@
 ANDROID_SINGLETON_STATIC_INSTANCE(Vdin)
 
 #define VDIN1_DEV "/dev/vdin1"
-#define POLL_TIMEOUT_MS (1000)
+#define POLL_TIMEOUT_MS (20)
 
 #define _TM_T 'T'
 #define TVIN_IOC_S_VDIN_V4L2START  _IOW(_TM_T, 0x25, struct vdin_v4l2_param_s)
@@ -159,6 +159,10 @@ int32_t Vdin::start() {
         MESON_ASSERT(0, "TVIN_IOC_S_CANVAS_ADDR failed (%d) ", rtn);
         return rtn;
     }
+
+    /*all fd passed to drv, reset to -1.*/
+    for (int i = 0;i < mCanvasCnt; i++)
+        mCanvas[i].fd = -1;
 
     if (ioctl(mDev, TVIN_IOC_S_VDIN_V4L2START, &mCapParams) < 0) {
         int rtn = -errno;

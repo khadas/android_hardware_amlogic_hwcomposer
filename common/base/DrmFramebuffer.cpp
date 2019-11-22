@@ -12,13 +12,15 @@
 #include <misc.h>
 
 DrmFramebuffer::DrmFramebuffer()
-    : mBufferHandle(NULL) {
+      : mBufferHandle(NULL),
+        mMapBase(NULL) {
     reset();
 }
 
 DrmFramebuffer::DrmFramebuffer(
     const native_handle_t * bufferhnd, int32_t acquireFence)
-    : mBufferHandle(NULL) {
+      : mBufferHandle(NULL),
+        mMapBase(NULL) {
     reset();
     setBufferInfo(bufferhnd, acquireFence);
 
