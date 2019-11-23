@@ -103,6 +103,8 @@ int MultiplanesComposition::handleVideoComposition() {
             MESON_COMPOSITION_PLANE_AMVIDEO},
         {DRM_FB_VIDEO_OMX_V4L, HWC_VIDEO_PLANE,
             MESON_COMPOSITION_PLANE_HWCVIDEO},
+        {DRM_FB_VIDEO_OMX2_V4L2, HWC_VIDEO_PLANE,
+            MESON_COMPOSITION_PLANE_HWCVIDEO},
     };
     static int pairSize = sizeof(planeCompPairs) / sizeof(struct planeComp);
 

@@ -10,6 +10,7 @@
 #include <MesonLog.h>
 #include <math.h>
 #include <sys/mman.h>
+#include <cutils/properties.h>
 
 #include "Hwc2Layer.h"
 #include "Hwc2Base.h"
@@ -109,10 +110,12 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
     /*set mFbType by usage of GraphicBuffer.*/
     if (mHwcCompositionType == HWC2_COMPOSITION_CURSOR) {
         mFbType = DRM_FB_CURSOR;
-    } else if (am_gralloc_is_video_dma_buffer(buffer)) {
-		mFbType = DRM_FB_VIDEO_DMABUF;
     } else if (am_gralloc_is_omx_v4l_buffer(buffer)) {
         mFbType = DRM_FB_VIDEO_OMX_V4L;
+    } else if (am_gralloc_is_omx2_v4l2_buffer(buffer)) {
+        mFbType = DRM_FB_VIDEO_OMX2_V4L2;
+    } else if (am_gralloc_is_video_dma_buffer(buffer)) {
+                mFbType = DRM_FB_VIDEO_DMABUF;
     } else if (am_gralloc_is_omx_metadata_buffer(buffer)) {
         int tunnel = 0;
         int ret = am_gralloc_get_omx_metadata_tunnel(buffer, &tunnel);
@@ -131,6 +134,15 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
         mFbType = DRM_FB_SCANOUT;
     } else {
         mFbType = DRM_FB_RENDER;
+    }
+
+	char fbtype_str[PROPERTY_VALUE_MAX];
+	int fbtype = 0;
+	if (property_get("vendor.v4l2.fbtype", fbtype_str, "12") >0) {
+		fbtype = atoi(fbtype_str);
+        if (mFbType == DRM_FB_VIDEO_OMX2_V4L2) {
+            mFbType = (drm_fb_type_t)fbtype;
+        }
     }
 
     mSecure = am_gralloc_is_secure_buffer(mBufferHandle);

@@ -61,6 +61,8 @@ typedef enum drm_fb_type {
     /*no image data, but with pts.*/
     DRM_FB_VIDEO_OMX_V4L,
     DRM_FB_VIDEO_DMABUF,
+    /*no image data, but with vf.*/
+    DRM_FB_VIDEO_OMX2_V4L2,
 } drm_fb_type_t;
 
 #define DRM_DISPLAY_MODE_LEN (64)

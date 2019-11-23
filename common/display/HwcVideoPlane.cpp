@@ -45,7 +45,8 @@ uint32_t HwcVideoPlane::getPossibleCrtcs() {
 }
 
 bool HwcVideoPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
-    if (fb->mFbType == DRM_FB_VIDEO_OMX_V4L)
+    if (fb->mFbType == DRM_FB_VIDEO_OMX_V4L ||
+        fb->mFbType == DRM_FB_VIDEO_OMX2_V4L2)
         return true;
 
     return false;
@@ -78,7 +79,8 @@ int32_t HwcVideoPlane::setComposePlane(
 			buffer_handle_t buf = fb->mBufferHandle;
 			drm_rect_t dispFrame = fb->mDisplayFrame;
 			drm_rect_t srcCrop = fb->mSourceCrop;
-			if (fb->mFbType == DRM_FB_VIDEO_OMX_V4L) {
+			if (fb->mFbType == DRM_FB_VIDEO_OMX_V4L ||
+                fb->mFbType == DRM_FB_VIDEO_OMX2_V4L2) {
 				vFrameInfo->fd = am_gralloc_get_omx_v4l_file(buf);
 				vFrameInfo->type = 0;
 			} else if (fb->mFbType == DRM_FB_VIDEO_DMABUF) {
