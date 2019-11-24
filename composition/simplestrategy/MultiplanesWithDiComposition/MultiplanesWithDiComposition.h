@@ -84,11 +84,11 @@ protected:
     void handleDispayLayerZorder();
     int handleOsdComposition();
     int handleOsdCompostionWithVideo();
-	void handleDiComposition();
+    void handleDiComposition();
     int32_t compareFbScale(drm_rect_t & aSrc, drm_rect_t & aDst, drm_rect_t & bSrc, drm_rect_t & bDst);
 
 protected:
-	struct DisplayPair {
+    struct DisplayPair {
         uint32_t din;                           // 0: din0, 1: din1, 2:din2, 3:video1, 4:video2
         uint32_t presentZorder;
         std::shared_ptr<DrmFramebuffer> fb;     // UI or Video from SF
@@ -135,9 +135,9 @@ protected:
     uint32_t mMinVideoZorder;
     uint32_t mMaxVideoZorder;
 
-	std::shared_ptr<IComposer> mDiComposer;
-	std::vector<std::shared_ptr<DrmFramebuffer>> mDiInFbs;
-	std::vector<std::shared_ptr<DrmFramebuffer>> mDiOutFbs;
+    std::shared_ptr<IComposer> mDiComposer;
+    std::vector<std::shared_ptr<DrmFramebuffer>> mDiInFbs;
+    std::vector<std::shared_ptr<DrmFramebuffer>> mDiOutFbs;
 };
 
 

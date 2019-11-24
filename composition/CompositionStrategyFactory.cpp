@@ -23,9 +23,9 @@ std::shared_ptr<ICompositionStrategy> CompositionStrategyFactory::create(
             return std::make_shared<MultiplanesComposition>();
         }
 
-	if (flags & MULTI_PLANES_WITH_DI) {
-		return std::make_shared<MultiplanesWithDiComposition>();
-	}
+        if (flags & MULTI_PLANES_WITH_DI) {
+            return std::make_shared<MultiplanesWithDiComposition>();
+        }
 
        return std::make_shared<SingleplaneComposition>();
     }

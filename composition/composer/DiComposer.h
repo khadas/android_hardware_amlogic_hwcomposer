@@ -44,8 +44,8 @@ public:
     std::shared_ptr<DrmFramebuffer> getOutput();
 
 protected:
-	std::vector<std::shared_ptr<DrmFramebuffer>> mVideoComposerIn;
-	std::vector<std::shared_ptr<DrmFramebuffer>> mVideoComposerOut;
+    std::vector<std::shared_ptr<DrmFramebuffer>> mVideoComposerIn;
+    std::vector<std::shared_ptr<DrmFramebuffer>> mVideoComposerOut;
 
 
 };

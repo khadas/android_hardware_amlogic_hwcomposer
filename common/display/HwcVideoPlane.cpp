@@ -55,83 +55,83 @@ bool HwcVideoPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
 int32_t HwcVideoPlane::setComposePlane(
     DiComposerPair *difbs, int blankOp) {
     u32 i;
-	video_frame_info_t *vFrameInfo;
+    video_frame_info_t *vFrameInfo;
     int video_composer_enable;
-	std::shared_ptr<DrmFramebuffer> fb;
+    std::shared_ptr<DrmFramebuffer> fb;
     native_handle_t * buf;
     char *base = NULL;
 
-	if (mDrvFd < 0) {
+    if (mDrvFd < 0) {
         MESON_LOGE("hwcvideo plane fd is not valiable!");
         return -EBADF;
     }
 
-	bool bBlank = blankOp == UNBLANK ? false : true;
+    bool bBlank = blankOp == UNBLANK ? false : true;
 
-	if (!bBlank) {
+    if (!bBlank) {
 
-		memset(&mVideoFramesInfo, 0, sizeof(mVideoFramesInfo));
-		mFramesCount = difbs->composefbs.size();
-		for (i = 0; i < mFramesCount; i++) {
-			vFrameInfo = &mVideoFramesInfo.frame_info[i];
-			fb = difbs->composefbs[i];
+        memset(&mVideoFramesInfo, 0, sizeof(mVideoFramesInfo));
+        mFramesCount = difbs->composefbs.size();
+        for (i = 0; i < mFramesCount; i++) {
+            vFrameInfo = &mVideoFramesInfo.frame_info[i];
+            fb = difbs->composefbs[i];
 
-			buffer_handle_t buf = fb->mBufferHandle;
-			drm_rect_t dispFrame = fb->mDisplayFrame;
-			drm_rect_t srcCrop = fb->mSourceCrop;
-			if (fb->mFbType == DRM_FB_VIDEO_OMX_V4L ||
+            buffer_handle_t buf = fb->mBufferHandle;
+            drm_rect_t dispFrame = fb->mDisplayFrame;
+            drm_rect_t srcCrop = fb->mSourceCrop;
+            if (fb->mFbType == DRM_FB_VIDEO_OMX_V4L ||
                 fb->mFbType == DRM_FB_VIDEO_OMX2_V4L2) {
-				vFrameInfo->fd = am_gralloc_get_omx_v4l_file(buf);
-				vFrameInfo->type = 0;
-			} else if (fb->mFbType == DRM_FB_VIDEO_DMABUF) {
-				vFrameInfo->fd = am_gralloc_get_video_dma_buf_fd(buf);
-				vFrameInfo->type = 1;
-			} else if (fb->mFbType == DRM_FB_VIDEO_SIDEBAND ||
-				fb->mFbType == DRM_FB_VIDEO_SIDEBAND_SECOND) {
-				vFrameInfo->type = 2;
-			}
+                vFrameInfo->fd = am_gralloc_get_omx_v4l_file(buf);
+                vFrameInfo->type = 0;
+            } else if (fb->mFbType == DRM_FB_VIDEO_DMABUF) {
+                vFrameInfo->fd = am_gralloc_get_video_dma_buf_fd(buf);
+                vFrameInfo->type = 1;
+            } else if (fb->mFbType == DRM_FB_VIDEO_SIDEBAND ||
+                fb->mFbType == DRM_FB_VIDEO_SIDEBAND_SECOND) {
+                vFrameInfo->type = 2;
+            }
 
-			vFrameInfo->dst_x = dispFrame.left;
-			vFrameInfo->dst_y = dispFrame.top;
-			vFrameInfo->dst_w = dispFrame.right - dispFrame.left;
-			vFrameInfo->dst_h = dispFrame.bottom - dispFrame.top;
+            vFrameInfo->dst_x = dispFrame.left;
+            vFrameInfo->dst_y = dispFrame.top;
+            vFrameInfo->dst_w = dispFrame.right - dispFrame.left;
+            vFrameInfo->dst_h = dispFrame.bottom - dispFrame.top;
 
-			vFrameInfo->crop_x = srcCrop.left;
-			vFrameInfo->crop_y = srcCrop.top;
-			vFrameInfo->crop_w = srcCrop.right - srcCrop.left;
-			vFrameInfo->crop_h = srcCrop.bottom - srcCrop.top;
-			vFrameInfo->buffer_w = am_gralloc_get_width(buf);
-			vFrameInfo->buffer_h = am_gralloc_get_height(buf);
-			vFrameInfo->zorder = fb->mZorder;
-			vFrameInfo->transform = fb->mTransform;
-		}
-		mVideoFramesInfo.frame_count = mFramesCount;
-		mVideoFramesInfo.layer_index = mId;
-		mVideoFramesInfo.disp_zorder = difbs->zorder;
+            vFrameInfo->crop_x = srcCrop.left;
+            vFrameInfo->crop_y = srcCrop.top;
+            vFrameInfo->crop_w = srcCrop.right - srcCrop.left;
+            vFrameInfo->crop_h = srcCrop.bottom - srcCrop.top;
+            vFrameInfo->buffer_w = am_gralloc_get_width(buf);
+            vFrameInfo->buffer_h = am_gralloc_get_height(buf);
+            vFrameInfo->zorder = fb->mZorder;
+            vFrameInfo->transform = fb->mTransform;
+        }
+        mVideoFramesInfo.frame_count = mFramesCount;
+        mVideoFramesInfo.layer_index = mId;
+        mVideoFramesInfo.disp_zorder = difbs->zorder;
 
-		if (!mStatus) {
+        if (!mStatus) {
             video_composer_enable = 1;
-			MESON_LOGE("di composer device %d set enable.\n", mDrvFd);
-			if (ioctl(mDrvFd, VIDEO_COMPOSER_IOCTL_SET_ENABLE, &video_composer_enable) != 0) {
-				MESON_LOGE("video composer: ioctl error, %s(%d), mDrvFd = %d",
-					strerror(errno), errno, mDrvFd);
-				return -1;
-			}
-			mStatus = 1;
-		}
+            MESON_LOGE("di composer device %d set enable.\n", mDrvFd);
+            if (ioctl(mDrvFd, VIDEO_COMPOSER_IOCTL_SET_ENABLE, &video_composer_enable) != 0) {
+                MESON_LOGE("video composer: ioctl error, %s(%d), mDrvFd = %d",
+                    strerror(errno), errno, mDrvFd);
+                return -1;
+            }
+            mStatus = 1;
+        }
 
-		MESON_LOGE("di composer device %d set frame.\n", mDrvFd);
-		if (ioctl(mDrvFd, VIDEO_COMPOSER_IOCTL_SET_FRAMES, &mVideoFramesInfo) != 0) {
-			MESON_LOGE("video composer: ioctl error, %s(%d), mDrvFd = %d",
-				strerror(errno), errno, mDrvFd);
-			return -1;
-		}
+        MESON_LOGE("di composer device %d set frame.\n", mDrvFd);
+        if (ioctl(mDrvFd, VIDEO_COMPOSER_IOCTL_SET_FRAMES, &mVideoFramesInfo) != 0) {
+            MESON_LOGE("video composer: ioctl error, %s(%d), mDrvFd = %d",
+                strerror(errno), errno, mDrvFd);
+            return -1;
+        }
 
-		for (i = 0; i < mFramesCount; i++) {
-			vFrameInfo = &mVideoFramesInfo.frame_info[i];
-			fb = difbs->composefbs[i];
+        for (i = 0; i < mFramesCount; i++) {
+            vFrameInfo = &mVideoFramesInfo.frame_info[i];
+            fb = difbs->composefbs[i];
 
-			if (fb) {
+            if (fb) {
                 buf = fb->mBufferHandle;
                 if (0 == gralloc_lock_dma_buf(buf, (void **)&base)) {
                     set_v4lvideo_sync_info(base);
@@ -139,111 +139,111 @@ int32_t HwcVideoPlane::setComposePlane(
                 } else {
                     MESON_LOGE("set_v4lvideo_sync_info failed.");
                 }
-			/* dup a out fence fd for layer's release fence, we can't close this fd
-			* now, cause display retire fence will also use this fd. will be closed
-			* on SF side*/
-				if (DebugHelper::getInstance().discardOutFence()) {
-					MESON_LOGE("di composer set release fence: -1.\n");
-					fb->setReleaseFence(-1);
-				} else {
-					MESON_LOGE("di composer set release fence: %u.\n", vFrameInfo->composer_fen_fd);
-					if (i > 0)
-						fb->setReleaseFence((vFrameInfo->composer_fen_fd >= 0) ? dup(vFrameInfo->composer_fen_fd) : -1);
-					else if (i == 0)
-						fb->setReleaseFence((vFrameInfo->composer_fen_fd >= 0) ? vFrameInfo->composer_fen_fd : -1);
-				}
-			}
-		}
-	}else {
-		memset(&mVideoFramesInfo, 0, sizeof(mVideoFramesInfo));
+               /* dup a out fence fd for layer's release fence, we can't close this fd
+                * now, cause display retire fence will also use this fd. will be closed
+                * on SF side*/
+                if (DebugHelper::getInstance().discardOutFence()) {
+                    MESON_LOGE("di composer set release fence: -1.\n");
+                    fb->setReleaseFence(-1);
+                } else {
+                    MESON_LOGE("di composer set release fence: %u.\n", vFrameInfo->composer_fen_fd);
+                    if (i > 0)
+                        fb->setReleaseFence((vFrameInfo->composer_fen_fd >= 0) ? dup(vFrameInfo->composer_fen_fd) : -1);
+                    else if (i == 0)
+                        fb->setReleaseFence((vFrameInfo->composer_fen_fd >= 0) ? vFrameInfo->composer_fen_fd : -1);
+                    }
+                }
+        }
+    }else {
+        memset(&mVideoFramesInfo, 0, sizeof(mVideoFramesInfo));
 
-		if (mStatus) {
+        if (mStatus) {
             video_composer_enable = 0;
-			MESON_LOGE("di composer device %d set disable.\n", mDrvFd);
-			if (ioctl(mDrvFd, VIDEO_COMPOSER_IOCTL_SET_ENABLE, &video_composer_enable) != 0) {
-				MESON_LOGE("video composer: ioctl error, %s(%d), mDrvFd = %d",
-					strerror(errno), errno, mDrvFd);
-				return -1;
-			}
-			mStatus = 0;
-		}
-	}
-	return 0;
+            MESON_LOGE("di composer device %d set disable.\n", mDrvFd);
+            if (ioctl(mDrvFd, VIDEO_COMPOSER_IOCTL_SET_ENABLE, &video_composer_enable) != 0) {
+                MESON_LOGE("video composer: ioctl error, %s(%d), mDrvFd = %d",
+                    strerror(errno), errno, mDrvFd);
+                return -1;
+            }
+            mStatus = 0;
+        }
+    }
+    return 0;
 }
 
 int32_t HwcVideoPlane::setPlane(
     std::shared_ptr<DrmFramebuffer> fb,
     uint32_t zorder __unused, int blankOp) {
     u32 i;
-	video_frame_info_t *vFrameInfo;
+    video_frame_info_t *vFrameInfo;
     int video_composer_enable;
 
-	if (mDrvFd < 0) {
+    if (mDrvFd < 0) {
         MESON_LOGE("hwcvideo plane fd is not valiable!");
         return -EBADF;
     }
 
-	bool bBlank = blankOp == UNBLANK ? false : true;
+    bool bBlank = blankOp == UNBLANK ? false : true;
 
-	if (!bBlank) {
+    if (!bBlank) {
 
-		memset(&mVideoFramesInfo, 0, sizeof(mVideoFramesInfo));
-		mFramesCount = 1;
-		for (i = 0; i < mFramesCount; i++) {
-			vFrameInfo = &mVideoFramesInfo.frame_info[i];
+        memset(&mVideoFramesInfo, 0, sizeof(mVideoFramesInfo));
+        mFramesCount = 1;
+        for (i = 0; i < mFramesCount; i++) {
+            vFrameInfo = &mVideoFramesInfo.frame_info[i];
 
-			buffer_handle_t buf = fb->mBufferHandle;
-			drm_rect_t dispFrame = fb->mDisplayFrame;
-			drm_rect_t srcCrop = fb->mSourceCrop;
-			vFrameInfo->fd = am_gralloc_get_omx_v4l_file(buf);
-			
-			vFrameInfo->dst_x = dispFrame.left;
-			vFrameInfo->dst_y = dispFrame.top;
-			vFrameInfo->dst_w = dispFrame.right - dispFrame.left;
-			vFrameInfo->dst_h = dispFrame.bottom - dispFrame.top;
+            buffer_handle_t buf = fb->mBufferHandle;
+            drm_rect_t dispFrame = fb->mDisplayFrame;
+            drm_rect_t srcCrop = fb->mSourceCrop;
+            vFrameInfo->fd = am_gralloc_get_omx_v4l_file(buf);
 
-			vFrameInfo->crop_x = srcCrop.left;
-			vFrameInfo->crop_y = srcCrop.top;
-			vFrameInfo->crop_w = srcCrop.right - srcCrop.left;
-			vFrameInfo->crop_h = srcCrop.bottom - srcCrop.top;
-			vFrameInfo->zorder = fb->mZorder + 1;
-			vFrameInfo->transform = fb->mTransform;
-		}
-		mVideoFramesInfo.frame_count = mFramesCount;
-		mVideoFramesInfo.layer_index = mId;
-		mVideoFramesInfo.disp_zorder = fb->mZorder + 1;
+            vFrameInfo->dst_x = dispFrame.left;
+            vFrameInfo->dst_y = dispFrame.top;
+            vFrameInfo->dst_w = dispFrame.right - dispFrame.left;
+            vFrameInfo->dst_h = dispFrame.bottom - dispFrame.top;
 
-		if (!mStatus) {
+            vFrameInfo->crop_x = srcCrop.left;
+            vFrameInfo->crop_y = srcCrop.top;
+            vFrameInfo->crop_w = srcCrop.right - srcCrop.left;
+            vFrameInfo->crop_h = srcCrop.bottom - srcCrop.top;
+            vFrameInfo->zorder = fb->mZorder + 1;
+            vFrameInfo->transform = fb->mTransform;
+        }
+        mVideoFramesInfo.frame_count = mFramesCount;
+        mVideoFramesInfo.layer_index = mId;
+        mVideoFramesInfo.disp_zorder = fb->mZorder + 1;
+
+        if (!mStatus) {
             video_composer_enable = 1;
-			MESON_LOGE("di composer device %d set enable.\n", mDrvFd);
-			if (ioctl(mDrvFd, VIDEO_COMPOSER_IOCTL_SET_ENABLE, &video_composer_enable) != 0) {
-				MESON_LOGE("video composer: ioctl error, %s(%d), mDrvFd = %d",
-					strerror(errno), errno, mDrvFd);
-				return -1;
-			}
-			mStatus = 1;
-		}
+            MESON_LOGE("di composer device %d set enable.\n", mDrvFd);
+            if (ioctl(mDrvFd, VIDEO_COMPOSER_IOCTL_SET_ENABLE, &video_composer_enable) != 0) {
+                MESON_LOGE("video composer: ioctl error, %s(%d), mDrvFd = %d",
+                    strerror(errno), errno, mDrvFd);
+                return -1;
+            }
+            mStatus = 1;
+        }
 
-		MESON_LOGE("di composer device %d set frame.\n", mDrvFd);
-		if (ioctl(mDrvFd, VIDEO_COMPOSER_IOCTL_SET_FRAMES, &mVideoFramesInfo) != 0) {
-			MESON_LOGE("video composer: ioctl error, %s(%d), mDrvFd = %d",
-				strerror(errno), errno, mDrvFd);
-			return -1;
-		}
-	}else {
-		memset(&mVideoFramesInfo, 0, sizeof(mVideoFramesInfo));	
+        MESON_LOGE("di composer device %d set frame.\n", mDrvFd);
+        if (ioctl(mDrvFd, VIDEO_COMPOSER_IOCTL_SET_FRAMES, &mVideoFramesInfo) != 0) {
+            MESON_LOGE("video composer: ioctl error, %s(%d), mDrvFd = %d",
+                strerror(errno), errno, mDrvFd);
+            return -1;
+        }
+    }else {
+        memset(&mVideoFramesInfo, 0, sizeof(mVideoFramesInfo));
 
-		if (mStatus) {
+        if (mStatus) {
             video_composer_enable = 0;
-			MESON_LOGE("di composer device %d set disable.\n", mDrvFd);
-			if (ioctl(mDrvFd, VIDEO_COMPOSER_IOCTL_SET_ENABLE, &video_composer_enable) != 0) {
-				MESON_LOGE("video composer: ioctl error, %s(%d), mDrvFd = %d",
-					strerror(errno), errno, mDrvFd);
-				return -1;
-			}
-			mStatus = 0;
-		}	
-	}
+            MESON_LOGE("di composer device %d set disable.\n", mDrvFd);
+            if (ioctl(mDrvFd, VIDEO_COMPOSER_IOCTL_SET_ENABLE, &video_composer_enable) != 0) {
+                MESON_LOGE("video composer: ioctl error, %s(%d), mDrvFd = %d",
+                    strerror(errno), errno, mDrvFd);
+                return -1;
+            }
+            mStatus = 0;
+        }
+    }
 #if 0
     drm_rect_t srcCrop       = fb->mSourceCrop;
     drm_rect_t disFrame      = fb->mDisplayFrame;
@@ -305,10 +305,10 @@ int32_t HwcVideoPlane::setPlane(
 }
 
 void HwcVideoPlane::dump(String8 & dumpstr __unused) {
-	u32 i;
-	video_frame_info_t *vFrameInfo;
-	for (i = 0; i < mFramesCount; i++) {
-		vFrameInfo = &mVideoFramesInfo.frame_info[i];
+    u32 i;
+    video_frame_info_t *vFrameInfo;
+    for (i = 0; i < mFramesCount; i++) {
+        vFrameInfo = &mVideoFramesInfo.frame_info[i];
         dumpstr.appendFormat("HwcVideo%2d "
                 "     %3d | %1d | %4d, %4d, %4d, %4d |  %4d, %4d, %4d, %4d | %2d | %2d",
                  mId,

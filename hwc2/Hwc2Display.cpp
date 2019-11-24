@@ -80,8 +80,8 @@ int32_t Hwc2Display::initialize() {
     ComposerFactory::create(MESON_GE2D_COMPOSER, composer);
     mComposers.emplace(MESON_GE2D_COMPOSER, std::move(composer));
 #endif
-	ComposerFactory::create(MESON_DI_COMPOSER, composer);
-	mComposers.emplace(MESON_DI_COMPOSER, std::move(composer));
+    ComposerFactory::create(MESON_DI_COMPOSER, composer);
+    mComposers.emplace(MESON_DI_COMPOSER, std::move(composer));
 
     initLayerIdGenerator();
 

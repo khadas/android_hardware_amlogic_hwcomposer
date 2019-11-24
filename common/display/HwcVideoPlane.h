@@ -22,38 +22,38 @@ typedef uint32_t u32;
 #define MAX_LAYER_COUNT 9
 
 typedef struct video_frame_info {
-	u32 fd;
-	u32 composer_fen_fd;
-	u32 disp_fen_fd;
-	u32 buffer_w;
-	u32 buffer_h;
-	u32 dst_x;
-	u32 dst_y;
-	u32 dst_w;
-	u32 dst_h;
-	u32 crop_x;
-	u32 crop_y;
-	u32 crop_w;
-	u32 crop_h;
-	u32 zorder;
-	u32 transform;
-	u32 type;
-	u32 reserved[4];
+    u32 fd;
+    u32 composer_fen_fd;
+    u32 disp_fen_fd;
+    u32 buffer_w;
+    u32 buffer_h;
+    u32 dst_x;
+    u32 dst_y;
+    u32 dst_w;
+    u32 dst_h;
+    u32 crop_x;
+    u32 crop_y;
+    u32 crop_w;
+    u32 crop_h;
+    u32 zorder;
+    u32 transform;
+    u32 type;
+    u32 reserved[4];
 } video_frame_info_t;
 
 typedef struct video_frames_info {
-	u32 frame_count;
-	video_frame_info_t frame_info[MAX_LAYER_COUNT];
-	u32 layer_index;
-	u32 disp_zorder;
-	u32 reserved[4];
+    u32 frame_count;
+    video_frame_info_t frame_info[MAX_LAYER_COUNT];
+    u32 layer_index;
+    u32 disp_zorder;
+    u32 reserved[4];
 } video_frames_info_t;
 
 struct DiComposerPair {
-		uint32_t zorder;
-		uint32_t num_composefbs;
-		std::vector<std::shared_ptr<DrmFramebuffer>> composefbs;
-		std::shared_ptr<HwDisplayPlane> plane;
+    uint32_t zorder;
+    uint32_t num_composefbs;
+    std::vector<std::shared_ptr<DrmFramebuffer>> composefbs;
+    std::shared_ptr<HwDisplayPlane> plane;
 };
 
 
@@ -70,15 +70,15 @@ public:
     bool isFbSupport(std::shared_ptr<DrmFramebuffer> & fb);
 
     int32_t setPlane(std::shared_ptr<DrmFramebuffer> fb, uint32_t zorder, int blankOp);
-	int32_t setComposePlane(DiComposerPair *difbs, int blankOp);
+    int32_t setComposePlane(DiComposerPair *difbs, int blankOp);
 
     void dump(String8 & dumpstr);
 
 protected:
     char mName[64];
-	u32 mFramesCount;
-	video_frames_info_t mVideoFramesInfo;
-	bool mStatus;
+    u32 mFramesCount;
+    video_frames_info_t mVideoFramesInfo;
+    bool mStatus;
 };
 
  #endif/*HWC_VIDEO_PLANE_H*/
