@@ -687,7 +687,7 @@ hwc2_error_t Hwc2Display::collectCompositionRequest(
                 mFailedDeviceComp = true;
             }
         }
-        if (expectedHwcComposition == HWC2_COMPOSITION_SIDEBAND)
+        if (expectedHwcComposition == HWC2_COMPOSITION_SIDEBAND || layer->mCompositionType == MESON_COMPOSITION_PLANE_AMVIDEO)
             mProcessorFlags |= PRESENT_SIDEBAND;
     }
 
