@@ -27,7 +27,7 @@
 #define AMSTREAM_IOC_SET_HDR_INFO    _IOW((AMSTREAM_IOC_MAGIC), 0xb3, int)
 
 #define VIDEOSYNC_IOC_MAGIC  'P'
-#define VIDEOSYNC_IOC_SET_OMX_VPTS  _IOW(VIDEOSYNC_IOC_MAGIC, 0x04, unsigned int)
+#define VIDEOSYNC_IOC_SET_OMX_VPTS  _IOW(VIDEOSYNC_IOC_MAGIC, 0x04, int)
 
 static int amvideo_handle = -1;
 static int videosync_handle = -1;
