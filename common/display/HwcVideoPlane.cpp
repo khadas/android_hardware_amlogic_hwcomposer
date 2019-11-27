@@ -58,8 +58,6 @@ int32_t HwcVideoPlane::setComposePlane(
     video_frame_info_t *vFrameInfo;
     int video_composer_enable;
     std::shared_ptr<DrmFramebuffer> fb;
-    native_handle_t * buf;
-    char *base = NULL;
 
     if (mDrvFd < 0) {
         MESON_LOGE("hwcvideo plane fd is not valiable!");
@@ -84,7 +82,7 @@ int32_t HwcVideoPlane::setComposePlane(
                 vFrameInfo->fd = am_gralloc_get_omx_v4l_file(buf);
                 vFrameInfo->type = 0;
             } else if (fb->mFbType == DRM_FB_VIDEO_DMABUF) {
-                vFrameInfo->fd = am_gralloc_get_video_dma_buf_fd(buf);
+                vFrameInfo->fd = am_gralloc_get_buffer_fd(buf);
                 vFrameInfo->type = 1;
             } else if (fb->mFbType == DRM_FB_VIDEO_SIDEBAND ||
                 fb->mFbType == DRM_FB_VIDEO_SIDEBAND_SECOND) {
@@ -132,13 +130,6 @@ int32_t HwcVideoPlane::setComposePlane(
             fb = difbs->composefbs[i];
 
             if (fb) {
-                buf = fb->mBufferHandle;
-                if (0 == gralloc_lock_dma_buf(buf, (void **)&base)) {
-                    set_v4lvideo_sync_info(base);
-                    gralloc_unlock_dma_buf(buf);
-                } else {
-                    MESON_LOGE("set_v4lvideo_sync_info failed.");
-                }
                /* dup a out fence fd for layer's release fence, we can't close this fd
                 * now, cause display retire fence will also use this fd. will be closed
                 * on SF side*/

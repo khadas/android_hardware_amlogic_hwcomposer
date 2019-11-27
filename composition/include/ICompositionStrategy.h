@@ -31,7 +31,7 @@ typedef enum {
 
 /*Macros for composition info dump.*/
 #define DUMP_ADD_LINE_DIVIDE() \
-    mDumpStr.append("+------+-------------+----------+--------+--------------+\n");
+    mDumpStr.append("+------+-------------+---------------+--------+--------------+\n");
 
 #define DUMP_APPEND_FB_INFO(fbZ, compType) \
     mDumpStr.appendFormat("|%6d|%13s|", fbZ, compositionTypeToString(compType));
@@ -40,12 +40,12 @@ typedef enum {
         mDumpStr.appendFormat("|%6s|%13s|", " ", " ");
 
 #define DUMP_APPEND_PLANE_INFO(planeName, planeZ, blankType) \
-    mDumpStr.appendFormat("%10s|%8d|%14s|\n", \
+    mDumpStr.appendFormat("%15s|%8d|%14s|\n", \
         planeName, planeZ, \
         drmPlaneBlankToString((drm_plane_blank_t)blankType));
 
 #define DUMP_APPEND_EMPTY_PLANE_INFO() \
-    mDumpStr.appendFormat("%10s|%8s|%14s|\n", " ", " ", " ");
+    mDumpStr.appendFormat("%15s|%8s|%14s|\n", " ", " ", " ");
 
 #define HWC_PLANE_FAKE_ZORDER (1)
 
@@ -78,10 +78,10 @@ public:
 
     virtual void dump(String8 & dumpstr) {
         dumpstr.appendFormat("Composition (%s):(0x%x)\n", getName(), mCompositionFlag);
-        dumpstr.append("---------------------------------------------------------\n");
-        dumpstr.append("| FbZ  |  Comp Type  |  Plane   | PlaneZ |  BlankStat   |\n");
+        dumpstr.append("--------------------------------------------------------------\n");
+        dumpstr.append("| FbZ  |  Comp Type  |    Plane      | PlaneZ |  BlankStat   |\n");
         dumpstr.append(mDumpStr);
-        dumpstr.append("---------------------------------------------------------\n");
+        dumpstr.append("--------------------------------------------------------------\n");
     }
 
 protected:

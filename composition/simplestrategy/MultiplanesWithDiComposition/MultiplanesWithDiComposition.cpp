@@ -844,6 +844,7 @@ void MultiplanesWithDiComposition::handleDiComposition()
     if (mDIComposerFbs.size() > 0) {
         //mDiComposer->start();
         std::shared_ptr<HwcVideoPlane>  hwcVideoPlane0, hwcVideoPlane1;
+        std::shared_ptr<HwDisplayPlane> hwcPlane;
         std::vector<std::shared_ptr<DrmFramebuffer>> composefbs0, composefbs1, commitfbs;
         DiComposerPair diComposerPair;
         drm_rect_t dispFrame, dispFrame1;
@@ -941,6 +942,7 @@ void MultiplanesWithDiComposition::handleDiComposition()
             it = mDIComposerFbs.erase(it);
         }
 
+        bool bDumpPlane = true;
         if (commitfbs.size() > 0) {
             fb = *commitfbs.begin();
             if (composefbs1.size() <= 1)
@@ -951,6 +953,14 @@ void MultiplanesWithDiComposition::handleDiComposition()
             MESON_LOGE("commit %d layers to video.composer0.\n", diComposerPair.num_composefbs);
             hwcVideoPlane0->setComposePlane(&diComposerPair, UNBLANK);
 
+            hwcPlane = hwcVideoPlane0;
+            for (auto it = commitfbs.begin(); it != commitfbs.end(); it++) {
+                if (bDumpPlane) {
+                    dumpFbAndPlane(*it, hwcPlane, diComposerPair.zorder, UNBLANK);
+                    bDumpPlane = false;
+                } else
+                    dumpComposedFb(*it);
+            }
         }
 
         if (composefbs1.size() > 0 ) {
@@ -967,6 +977,16 @@ void MultiplanesWithDiComposition::handleDiComposition()
 
             MESON_LOGE("commit %d layers to video.composer1.\n", diComposerPair.num_composefbs);
             hwcVideoPlane1->setComposePlane(&diComposerPair, UNBLANK);
+
+            hwcPlane = hwcVideoPlane1;
+            bDumpPlane = true;
+            for (auto it = composefbs1.begin(); it != composefbs1.end(); it++) {
+                if (bDumpPlane) {
+                    dumpFbAndPlane(*it, hwcPlane, diComposerPair.zorder, UNBLANK);
+                    bDumpPlane = false;
+                } else
+                    dumpComposedFb(*it);
+            }
         }
     }
 }
