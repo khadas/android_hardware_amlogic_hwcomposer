@@ -18,7 +18,7 @@ LOCAL_PROPRIETARY_MODULE := true
 LOCAL_SHARED_LIBRARIES := liblog libcutils libion
 
 LOCAL_C_INCLUDES := \
-	system/core/libion
+	system/memory/libion
 
 LOCAL_SRC_FILES := \
 	display_vdin1.cpp
