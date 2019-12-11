@@ -243,9 +243,12 @@ void ConnectorHdmi::dump(String8 & dumpstr) {
     dumpstr.append("  HDR Capabilities:\n");
     dumpstr.appendFormat("    DolbyVision1=%d\n",
         mHdrCapabilities.DolbyVisionSupported ? 1 : 0);
-    dumpstr.appendFormat("    HDR10=%d, maxLuminance=%d,"
-        "avgLuminance=%d, minLuminance=%d\n",
+    dumpstr.appendFormat("    HLG=%d\n",
+        mHdrCapabilities.HLGSupported ?  1 : 0);
+    dumpstr.appendFormat("    HDR10=%d, HDR10+=%d, "
+        "maxLuminance=%d, avgLuminance=%d, minLuminance=%d\n",
         mHdrCapabilities.HDR10Supported ? 1 : 0,
+        mHdrCapabilities.HDR10PlusSupported ? 1 : 0,
         mHdrCapabilities.maxLuminance,
         mHdrCapabilities.avgLuminance,
         mHdrCapabilities.minLuminance);
@@ -278,16 +281,18 @@ int32_t ConnectorHdmi::getLineValue(const char *lineStr, const char *magicStr) {
 
 /*******************************************
 * cat /sys/class/amhdmitx/amhdmitx0/hdr_cap
-* Supported EOTF:
-*     Traditional SDR: 1
-*     Traditional HDR: 0
-*     SMPTE ST 2084: 1
-*     Hybrif Log-Gamma: 1
-* Supported SMD type1: 1
-* Luminance Data
-*     Max: 0
-*     Avg: 0
-*     Min: 0
+* HDR10Plus Supported: 1
+* HDR Static Metadata:
+*     Supported EOTF:
+*         Traditional SDR: 1
+*         Traditional HDR: 0
+*         SMPTE ST 2084: 1
+*         Hybrif Log-Gamma: 1
+*     Supported SMD type1: 1
+*     Luminance Data
+*         Max: 0
+*         Avg: 0
+*         Min: 0
 * cat /sys/class/amhdmitx/amhdmitx0/dv_cap
 * DolbyVision1 RX support list:
 *     2160p30hz: 1
@@ -335,6 +340,11 @@ int32_t ConnectorHdmi::parseHdrCapabilities() {
         goto exit;
     }
 
+    pos = strstr(pos, "HDR10Plus Supported: ");
+    if ((NULL != pos) && ('1' == *(pos + strlen("HDR10Plus Supported: ")))) {
+        mHdrCapabilities.HDR10PlusSupported = true;
+    }
+
     pos = strstr(pos, "SMPTE ST 2084: ");
     if ((NULL != pos) && ('1' == *(pos + strlen("SMPTE ST 2084: ")))) {
         mHdrCapabilities.HDR10Supported = true;
@@ -349,10 +359,11 @@ int32_t ConnectorHdmi::parseHdrCapabilities() {
         mHdrCapabilities.HLGSupported = true;
     }
 
-    MESON_LOGD("dolby version:%d, hlg:%d, hdr:%d max:%d, avg:%d, min:%d\n",
+    MESON_LOGD("dolby version:%d, hlg:%d, hdr10:%d, hdr10+:%d max:%d, avg:%d, min:%d\n",
         mHdrCapabilities.DolbyVisionSupported ? 1:0,
         mHdrCapabilities.HLGSupported ? 1:0,
         mHdrCapabilities.HDR10Supported ? 1:0,
+        mHdrCapabilities.HDR10PlusSupported ? 1:0,
         mHdrCapabilities.maxLuminance,
         mHdrCapabilities.avgLuminance,
         mHdrCapabilities.minLuminance);

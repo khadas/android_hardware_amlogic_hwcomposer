@@ -250,6 +250,13 @@ int32_t MesonHwc2::getHdrCapabilities(hwc2_display_t display,
             }
         }
 
+        if (caps->HDR10PlusSupported) {
+            *outNumTypes = *outNumTypes + 1;
+            if (getInfo) {
+                *outTypes++ = HAL_HDR_HDR10_PLUS;
+            }
+        }
+
         if (getInfo) {
             *outMaxLuminance = caps->maxLuminance;
             *outMaxAverageLuminance = caps->avgLuminance;

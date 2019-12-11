@@ -1093,12 +1093,14 @@ void Hwc2Display::dump(String8 & dumpstr) {
         mHdrCaps.DolbyVisionSupported ?  1 : 0);
     dumpstr.appendFormat("    HLG=%d\n",
         mHdrCaps.HLGSupported ?  1 : 0);
-    dumpstr.appendFormat("    HDR10=%d, maxLuminance=%d,"
-        "avgLuminance=%d, minLuminance=%d\n",
+    dumpstr.appendFormat("    HDR10=%d, HDR10+=%d, "
+        "maxLuminance=%d, avgLuminance=%d, minLuminance=%d\n",
         mHdrCaps.HDR10Supported ? 1 : 0,
+        mHdrCaps.HDR10PlusSupported ? 1 : 0,
         mHdrCaps.maxLuminance,
         mHdrCaps.avgLuminance,
         mHdrCaps.minLuminance);
+
     dumpstr.append("\n");
 
     /* dump display configs*/
