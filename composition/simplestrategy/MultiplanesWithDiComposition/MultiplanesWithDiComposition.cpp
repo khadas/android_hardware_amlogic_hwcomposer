@@ -453,9 +453,9 @@ int32_t MultiplanesWithDiComposition::compareFbScale(
     else if (widthCompare > 0 && heighCompare > 0)
         return 1;
     else {
-        MESON_LOGW("compareFbScale failed %d ,%d, %d, %d",
-            widthCompare, heighCompare,
-            bDisplayWidth, bDisplayHeight);
+        //MESON_LOGW("compareFbScale failed %d ,%d, %d, %d",
+            //widthCompare, heighCompare,
+            //bDisplayWidth, bDisplayHeight);
         return -1;
     }
 }

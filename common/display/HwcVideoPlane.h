@@ -79,6 +79,9 @@ protected:
     u32 mFramesCount;
     video_frames_info_t mVideoFramesInfo;
     bool mStatus;
+
+    std::vector<std::shared_ptr<DrmFramebuffer>> mLastComposeFbs;
+    std::shared_ptr<DrmFence> mLastFence;
 };
 
  #endif/*HWC_VIDEO_PLANE_H*/
