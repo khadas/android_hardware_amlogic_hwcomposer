@@ -15,14 +15,15 @@
 //
 
 cc_binary {
-    name: "android.hardware.graphics.composer@2.3-service",
+    name: "android.hardware.graphics.composer@2.3-service.droidlogic",
     defaults: ["hidl_defaults"],
     vendor: true,
     relative_install_path: "hw",
     srcs: ["service.cpp"],
-    init_rc: ["android.hardware.graphics.composer@2.3-service.rc"],
+    vintf_fragments: ["android.hardware.graphics.composer@2.3-service.droidlogic.xml"],
+    init_rc: ["android.hardware.graphics.composer@2.3-service.droidlogic.rc"],
     header_libs: [
-        "android.hardware.graphics.composer@2.3-passthrough",
+        "android.hardware.graphics.composer@2.3-passthrough-vendor",
     ],
     shared_libs: [
         "android.hardware.graphics.composer@2.1",
@@ -42,5 +43,6 @@ cc_binary {
         "liblog",
         "libsync",
         "libutils",
+        "libamgralloc_ext_vendor@2",
     ],
 }

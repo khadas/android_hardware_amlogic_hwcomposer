@@ -15,15 +15,15 @@
 //
 
 cc_library_headers {
-    name: "android.hardware.graphics.composer@2.3-passthrough",
+    name: "android.hardware.graphics.composer@2.3-passthrough-vendor",
     defaults: ["hidl_defaults"],
     vendor: true,
     header_libs: [
-        "android.hardware.graphics.composer@2.2-passthrough",
+        "android.hardware.graphics.composer@2.2-passthrough-vendor",
         "android.hardware.graphics.composer@2.3-hal",
     ],
     export_header_lib_headers: [
-        "android.hardware.graphics.composer@2.2-passthrough",
+        "android.hardware.graphics.composer@2.2-passthrough-vendor",
         "android.hardware.graphics.composer@2.3-hal",
     ],
     export_include_dirs: ["include"],

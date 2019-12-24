@@ -29,6 +29,8 @@
 #include <android/hardware/graphics/mapper/3.0/IMapper.h>
 #include <log/log.h>
 
+#include "am_gralloc_ext.h"
+
 namespace android {
 namespace hardware {
 namespace graphics {
@@ -131,6 +133,19 @@ class ComposerHandleCache {
         STREAM,
     };
 
+    enum class DrmFbType {
+        DRM_FB_UNDEFINED = 0,
+        // scattered buffer, can be used for rendering.
+        DRM_FB_RENDER = 1,
+        // contiguous buffer, can be used for scanout.
+        DRM_FB_SCANOUT,
+        // no image data, fill with color.
+        DRM_FB_DIM,
+        // video type, used for video.
+        DRM_FB_VIDEO,
+        DRM_FB_VIDEO_OVERLAY,
+    };
+
     ComposerHandleCache(ComposerHandleImporter& importer, HandleType type, uint32_t cacheSize)
         : mImporter(importer), mHandleType(type), mHandles(cacheSize, nullptr) {}
 
@@ -190,21 +205,83 @@ class ComposerHandleCache {
         }
     }
 
+    // release cache
+    Error releaseCache(uint32_t slot) {
+        if (slot >= 0 && slot < mHandles.size()) {
+            slot++;
+            switch (mHandleType) {
+                case HandleType::BUFFER:
+                    for (; slot < mHandles.size(); slot++) {
+                        if (mHandles[slot])
+                            mImporter.freeBuffer(mHandles[slot]);
+                        mHandles[slot] = nullptr;
+                    }
+                    break;
+                case HandleType::STREAM:
+                    for (; slot < mHandles.size(); slot++) {
+                        if (mHandles[slot])
+                            mImporter.freeStream(mHandles[slot]);
+                        mHandles[slot] = nullptr;
+                    }
+                    break;
+                default:
+                    break;
+            }
+            return Error::NONE;
+        } else {
+            return Error::BAD_PARAMETER;
+        }
+    }
+
+    bool isChangedFromeVideoToUi(const native_handle_t* handle) {
+        bool changed = false;
+        if (am_gralloc_is_omx_v4l_buffer(handle) ||  am_gralloc_is_omx2_v4l2_buffer(handle) ||
+                am_gralloc_is_omx_metadata_buffer(handle)) {
+            mFbType = DrmFbType::DRM_FB_VIDEO;
+        } else if (am_gralloc_is_overlay_buffer(handle)) {
+            mFbType = DrmFbType::DRM_FB_VIDEO_OVERLAY;
+        } else if (am_gralloc_get_width(handle) <= 1 && am_gralloc_get_height(handle) <= 1) {
+            mFbType = DrmFbType::DRM_FB_DIM;
+        } else if (am_gralloc_is_coherent_buffer(handle)) {
+            if (mFbType == DrmFbType::DRM_FB_VIDEO) {
+                changed = true;
+            }
+            mFbType = DrmFbType::DRM_FB_SCANOUT;
+        } else {
+            if (mFbType == DrmFbType::DRM_FB_VIDEO) {
+                changed = true;
+            }
+            mFbType = DrmFbType::DRM_FB_RENDER;
+        }
+        return changed;
+    }
+
     // when fromCache is true, look up in the cache; otherwise, update the cache
     Error getHandle(uint32_t slot, bool fromCache, const native_handle_t* inHandle,
                     const native_handle_t** outHandle, const native_handle** outReplacedHandle) {
+
+        Error error = Error::NONE;
         if (fromCache) {
             *outReplacedHandle = nullptr;
-            return lookupCache(slot, outHandle);
+            error = lookupCache(slot, outHandle);
         } else {
             *outHandle = inHandle;
-            return updateCache(slot, inHandle, outReplacedHandle);
+            error = updateCache(slot, inHandle, outReplacedHandle);
         }
+
+        if (mHandleType == HandleType::BUFFER) {
+            bool changed = isChangedFromeVideoToUi(*outHandle);
+            if (changed)
+                releaseCache(slot);
+        }
+
+        return error;
     }
 
    private:
     ComposerHandleImporter& mImporter;
     HandleType mHandleType = HandleType::INVALID;
+    DrmFbType mFbType = DrmFbType::DRM_FB_UNDEFINED;
     std::vector<const native_handle_t*> mHandles;
 };
 
