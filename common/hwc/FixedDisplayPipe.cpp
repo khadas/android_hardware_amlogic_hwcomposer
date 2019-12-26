@@ -25,10 +25,8 @@ int32_t FixedDisplayPipe::init(
 }
 
 void FixedDisplayPipe::handleEvent(drm_display_event event, int val) {
-    HwcDisplayPipe::handleEvent(event, val);
-
-    std::lock_guard<std::mutex> lock(mMutex);
     if (event == DRM_EVENT_HDMITX_HOTPLUG) {
+        std::lock_guard<std::mutex> lock(mMutex);
         bool connected = (val == 0) ? false : true;
         std::shared_ptr<PipeStat> pipe;
         drm_connector_type_t targetConnector = DRM_MODE_CONNECTOR_INVALID;
@@ -57,11 +55,16 @@ void FixedDisplayPipe::handleEvent(drm_display_event event, int val) {
                     /*update display mode, workaround now.*/
                     initDisplayMode(pipe);
                 }
-                break;
-            } else if (connectorType == HWC_HDMI_ONLY && connected) {
-                initDisplayMode(pipe);
+                statIt.second->hwcDisplay->onHotplug(connected);
+            } else if (connectorType == HWC_HDMI_ONLY) {
+                if (connected) {
+                    initDisplayMode(pipe);
+                }
+                statIt.second->hwcDisplay->onHotplug(connected);
             }
         }
+    }else {
+        HwcDisplayPipe::handleEvent(event, val);
     }
 }
 

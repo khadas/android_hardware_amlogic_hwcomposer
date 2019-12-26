@@ -86,7 +86,6 @@ int32_t HwDisplayCrtc::unbind() {
             mConnector->setCrtc(NULL);
         mConnector.reset();
         mPlanes.clear();
-
         mBinded = false;
     }
     return 0;

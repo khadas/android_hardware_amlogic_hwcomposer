@@ -74,6 +74,7 @@ protected:
 
     bool mFirstPresent;
     bool mConnected;
+    bool mBinded;
 
     drm_mode_info_t mCurModeInfo;
     display_zoom_info_t mScaleInfo;
