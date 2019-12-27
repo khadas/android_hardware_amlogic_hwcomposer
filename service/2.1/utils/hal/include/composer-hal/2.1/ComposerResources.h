@@ -208,7 +208,6 @@ class ComposerHandleCache {
     // release cache
     Error releaseCache(uint32_t slot) {
         if (slot >= 0 && slot < mHandles.size()) {
-            slot++;
             switch (mHandleType) {
                 case HandleType::BUFFER:
                     for (; slot < mHandles.size(); slot++) {
@@ -243,12 +242,16 @@ class ComposerHandleCache {
         } else if (am_gralloc_get_width(handle) <= 1 && am_gralloc_get_height(handle) <= 1) {
             mFbType = DrmFbType::DRM_FB_DIM;
         } else if (am_gralloc_is_coherent_buffer(handle)) {
-            if (mFbType == DrmFbType::DRM_FB_VIDEO) {
+            if (mFbType == DrmFbType::DRM_FB_VIDEO ||
+                    mFbType == DrmFbType::DRM_FB_DIM ||
+                    mFbType == DrmFbType::DRM_FB_VIDEO_OVERLAY) {
                 changed = true;
             }
             mFbType = DrmFbType::DRM_FB_SCANOUT;
         } else {
-            if (mFbType == DrmFbType::DRM_FB_VIDEO) {
+            if (mFbType == DrmFbType::DRM_FB_VIDEO ||
+                    mFbType == DrmFbType::DRM_FB_DIM ||
+                    mFbType == DrmFbType::DRM_FB_VIDEO_OVERLAY) {
                 changed = true;
             }
             mFbType = DrmFbType::DRM_FB_RENDER;
@@ -271,8 +274,10 @@ class ComposerHandleCache {
 
         if (mHandleType == HandleType::BUFFER) {
             bool changed = isChangedFromeVideoToUi(*outHandle);
-            if (changed)
-                releaseCache(slot);
+            if (changed) {
+                ALOGD("FB type changed from video to UI, release cache");
+                releaseCache(0);
+            }
         }
 
         return error;
