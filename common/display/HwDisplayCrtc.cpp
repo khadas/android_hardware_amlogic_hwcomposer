@@ -177,7 +177,7 @@ int32_t HwDisplayCrtc::update() {
         #if 0
         strcpy(mCurModeInfo.name, DRM_DISPLAY_MODE_NULL);
         setMode(mCurModeInfo);
-        #else//amlogic fix
+        #else
         MESON_LOGD("crtc(%d) update with no connector", mId);
         #endif
     }
