@@ -111,6 +111,8 @@ int MultiplanesWithDiComposition::handleVideoComposition() {
             MESON_COMPOSITION_PLANE_DI_VIDEO},
         {DRM_FB_VIDEO_SIDEBAND_SECOND, HWC_VIDEO_PLANE,
             MESON_COMPOSITION_PLANE_DI_VIDEO},
+        {DRM_FB_VIDEO_SIDEBAND_TV, HWC_VIDEO_PLANE,
+            MESON_COMPOSITION_PLANE_DI_VIDEO},
         {DRM_FB_VIDEO_OMX_PTS_SECOND, LEGACY_EXT_VIDEO_PLANE,
             MESON_COMPOSITION_PLANE_AMVIDEO},
         {DRM_FB_VIDEO_OMX_V4L, HWC_VIDEO_PLANE,
@@ -832,7 +834,8 @@ zorder: 8 -- osd ---------                      | 8 -- osd ---------            
 
 void MultiplanesWithDiComposition::handleDiComposition()
 {
-    std::shared_ptr<DrmFramebuffer> fb, fb1, large_fb, sideband_fb;
+    std::shared_ptr<DrmFramebuffer> fb, fb1, large_fb;
+    std::vector<std::shared_ptr<DrmFramebuffer>> sideband_fbs;
     uint32_t zorder;
     std::multimap<int, std::shared_ptr<DrmFramebuffer>> video_type_maps;
     std::vector<std::shared_ptr<DrmFramebuffer>> no_overlap_fbs;
@@ -849,6 +852,7 @@ void MultiplanesWithDiComposition::handleDiComposition()
         DiComposerPair diComposerPair;
         drm_rect_t dispFrame, dispFrame1;
         bool is_overlap;
+        bool sideband_switch = false;
         composefbs0.clear();
         composefbs1.clear();
         hwcVideoPlane0 = std::static_pointer_cast<HwcVideoPlane>(mHwcVideoPlanes[0]);
@@ -862,9 +866,14 @@ void MultiplanesWithDiComposition::handleDiComposition()
             if (!large_fb)
                 large_fb = fb;
 
+            if (fb->mFbType == DRM_FB_VIDEO_SIDEBAND_TV) {
+                sideband_fbs.insert(sideband_fbs.begin(), fb);
+                continue;
+            }
+
             if (fb->mFbType == DRM_FB_VIDEO_SIDEBAND ||
                 fb->mFbType == DRM_FB_VIDEO_SIDEBAND_SECOND) {
-                sideband_fb = fb;
+                sideband_fbs.push_back(fb);
                 continue;
             }
 
@@ -913,8 +922,25 @@ void MultiplanesWithDiComposition::handleDiComposition()
             }
         }
 
-        if (sideband_fb)
-            composefbs0.insert(composefbs0.begin(), sideband_fb);
+        if (sideband_fbs.size() == 1) {
+            composefbs0.insert(composefbs0.begin(), *sideband_fbs.begin());
+            fb = *sideband_fbs.begin();
+
+            sideband_switch = (mSidebandType != fb->mFbType);
+            mSidebandType = fb->mFbType;
+        } else if (sideband_fbs.size() > 1) {
+            hwcVideoPlane0->setPlane(NULL, HWC_PLANE_FAKE_ZORDER, BLANK_FOR_NO_CONTENT);
+
+            for (auto it = mDIComposerFbs.begin(); it != mDIComposerFbs.end(); ) {
+                fb1 = *it;
+                if ((fb1->mFbType == DRM_FB_VIDEO_SIDEBAND ||
+                         fb1->mFbType == DRM_FB_VIDEO_SIDEBAND_SECOND ||
+                         fb1->mFbType == DRM_FB_VIDEO_SIDEBAND_TV)) {
+                    it = mDIComposerFbs.erase(it);
+                } else
+                    ++it;
+            }
+        }
 
         if (composefbs0.size() == 0) {
             /* find the biggest window and it can't overlap with other window.
@@ -950,7 +976,10 @@ void MultiplanesWithDiComposition::handleDiComposition()
             else if (composefbs1.size() > 1)
                 diComposerPair.zorder = zorder;
 
-            MESON_LOGE("commit %d layers to video.composer0.\n", diComposerPair.num_composefbs);
+            if (sideband_switch) {
+                MESON_LOGD("sideband_switch.\n");
+                hwcVideoPlane0->setPlane(NULL, HWC_PLANE_FAKE_ZORDER, BLANK_FOR_NO_CONTENT);
+            }
             hwcVideoPlane0->setComposePlane(&diComposerPair, UNBLANK);
 
             hwcPlane = hwcVideoPlane0;
@@ -975,7 +1004,6 @@ void MultiplanesWithDiComposition::handleDiComposition()
             else if (composefbs1.size() > 1)
                 diComposerPair.zorder = 0;
 
-            MESON_LOGE("commit %d layers to video.composer1.\n", diComposerPair.num_composefbs);
             hwcVideoPlane1->setComposePlane(&diComposerPair, UNBLANK);
 
             hwcPlane = hwcVideoPlane1;
@@ -1196,8 +1224,10 @@ int MultiplanesWithDiComposition::commit() {
 
     auto diIt = mHwcVideoPlanes.begin();
     for (; diIt != mHwcVideoPlanes.end(); ++diIt) {
-        if ((*diIt).get())
+        if ((*diIt).get()) {
             (*diIt)->setPlane(NULL, HWC_PLANE_FAKE_ZORDER, BLANK_FOR_NO_CONTENT);
+            dumpUnusedPlane(*diIt, BLANK_FOR_NO_CONTENT);
+        }
     }
 
     /*set crtc info.*/

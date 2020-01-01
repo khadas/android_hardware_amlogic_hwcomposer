@@ -54,7 +54,7 @@ typedef enum drm_fb_type {
     DRM_FB_VIDEO_OVERLAY,
     /*special handle for video, no image data*/
     DRM_FB_VIDEO_SIDEBAND,
-    /* TV sidebande handle */
+    /* TV sideband handle */
     DRM_FB_VIDEO_SIDEBAND_TV,
     DRM_FB_VIDEO_SIDEBAND_SECOND,
     /*no image data, but with pts.*/

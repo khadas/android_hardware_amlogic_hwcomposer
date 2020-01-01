@@ -127,6 +127,7 @@ protected:
     std::vector<std::shared_ptr<DrmFramebuffer>> mComposerFbs;  // Save Fbs that should be composered
     std::vector<std::shared_ptr<DrmFramebuffer>> mDIComposerFbs;
     std::list<DisplayPair> mDisplayPairs;
+    int mSidebandType;
 
     bool mHaveClient;
     bool mInsideVideoFbsFlag;      // Has VIDEO between different OSD ui layers.

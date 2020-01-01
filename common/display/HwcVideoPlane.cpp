@@ -83,7 +83,8 @@ int32_t HwcVideoPlane::setComposePlane(
             vFrameInfo->fd = am_gralloc_get_buffer_fd(buf);
             vFrameInfo->type = 1;
         } else if (fb->mFbType == DRM_FB_VIDEO_SIDEBAND ||
-            fb->mFbType == DRM_FB_VIDEO_SIDEBAND_SECOND) {
+            fb->mFbType == DRM_FB_VIDEO_SIDEBAND_SECOND ||
+            fb->mFbType == DRM_FB_VIDEO_SIDEBAND_TV) {
             vFrameInfo->type = 2;
         }
 
