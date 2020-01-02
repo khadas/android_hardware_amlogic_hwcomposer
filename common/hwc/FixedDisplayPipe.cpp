@@ -37,6 +37,11 @@ void FixedDisplayPipe::handleEvent(drm_display_event event, int val) {
                 targetConnector = connected ?
                     DRM_MODE_CONNECTOR_HDMI : DRM_MODE_CONNECTOR_CVBS;
 
+                /*update current connector status, now getpipecfg() need
+                * read connector status to decide connector.
+                */
+                statIt.second->modeConnector->update();
+
                 MESON_LOGD("handleEvent  DRM_EVENT_HDMITX_HOTPLUG %d VS %d",
                     pipe->cfg.hwcConnectorType, targetConnector);
                 if (pipe->cfg.hwcConnectorType != targetConnector) {
