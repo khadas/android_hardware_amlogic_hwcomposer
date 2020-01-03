@@ -10,8 +10,9 @@
 #include "MultiplanesWithDiComposition.h"
 #include <DrmTypes.h>
 #include <MesonLog.h>
+#include <sys/ioctl.h>
 #include "HwcVideoPlane.h"
-
+#include "am_gralloc_ext.h"
 
 
 #define LEGACY_VIDEO_MODE_SWITCH       0    // Only use in current device (Only one legacy video plane)
@@ -41,12 +42,28 @@
 #define IS_FB_COMPOSED(fb) \
     (fb->mZorder >= mMinComposerZorder && fb->mZorder <= mMaxComposerZorder)
 
+#define UVM_DEV_PATH "/dev/uvm"
+#define UVM_IOC_MAGIC 'U'
+#define UVM_IOC_SET_FD _IOWR(UVM_IOC_MAGIC, 3, struct uvm_fd_data)
+
+struct uvm_fd_data {
+    int fd;
+    int commit_display;
+};
 
 /* Constructor function */
-MultiplanesWithDiComposition::MultiplanesWithDiComposition() {}
+MultiplanesWithDiComposition::MultiplanesWithDiComposition() {
+    mUVMFd = open(UVM_DEV_PATH, O_RDONLY | O_CLOEXEC);
+    if (mUVMFd < 0) {
+        MESON_LOGE("open uvm device error");
+    }
+}
 
 /* Deconstructor function */
-MultiplanesWithDiComposition::~MultiplanesWithDiComposition() {}
+MultiplanesWithDiComposition::~MultiplanesWithDiComposition() {
+    if (mUVMFd >= 0)
+        close(mUVMFd);
+}
 
 /* Clean FrameBuffer, Composer and Plane. */
 void MultiplanesWithDiComposition::init() {
@@ -193,6 +210,31 @@ int MultiplanesWithDiComposition::applyCompositionFlags() {
         }
     }
 
+    return 0;
+}
+
+/* handle uvm, */
+int MultiplanesWithDiComposition::handleUVM() {
+    if (mUVMFd > 0) {
+        std::shared_ptr<DrmFramebuffer> fb;
+        auto fbIt = mFramebuffers.begin();
+        struct uvm_fd_data fd_data;
+
+        for (; fbIt != mFramebuffers.end(); ++fbIt) {
+            fb = fbIt->second;
+
+            if (am_gralloc_is_uvm_dma_buffer(fb->mBufferHandle)) {
+                fd_data.fd = am_gralloc_get_buffer_fd(fb->mBufferHandle);
+                fd_data.commit_display =
+                    (fb->mCompositionType == MESON_COMPOSITION_DUMMY) ? 0 : 1;
+
+                if (ioctl(mUVMFd, UVM_IOC_SET_FD, &fd_data) != 0) {
+                    MESON_LOGE("setUVM fd data ioctl error %s", strerror(errno));
+                    return -1;
+                }
+            }
+        }
+    }
     return 0;
 }
 
@@ -1137,6 +1179,9 @@ int MultiplanesWithDiComposition::decideComposition() {
 
     /* handle HDR mode, hide secure layer, and force client. */
     applyCompositionFlags();
+
+    /* handle uvm */
+    handleUVM();
 
     /* Remove dummy and video Fbs for later osd composition.
      * Pickout OSD Fbs.

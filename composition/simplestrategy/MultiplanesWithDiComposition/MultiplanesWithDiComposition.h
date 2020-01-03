@@ -86,6 +86,7 @@ protected:
     int handleOsdCompostionWithVideo();
     void handleDiComposition();
     int32_t compareFbScale(drm_rect_t & aSrc, drm_rect_t & aDst, drm_rect_t & bSrc, drm_rect_t & bDst);
+    int handleUVM();
 
 protected:
     struct DisplayPair {
@@ -139,6 +140,9 @@ protected:
     std::shared_ptr<IComposer> mDiComposer;
     std::vector<std::shared_ptr<DrmFramebuffer>> mDiInFbs;
     std::vector<std::shared_ptr<DrmFramebuffer>> mDiOutFbs;
+
+    /* Use for UVM */
+    int mUVMFd;
 };
 
 

@@ -29,7 +29,12 @@
 #include <android/hardware/graphics/mapper/3.0/IMapper.h>
 #include <log/log.h>
 
+#include <hwbinder/IPCThreadState.h>
 #include "am_gralloc_ext.h"
+
+#define UVM_DEV_PATH "/dev/uvm"
+#define UVM_IOC_MAGIC 'U'
+#define UVM_IOC_SET_PID _IOWR(UVM_IOC_MAGIC, 2, struct uvm_pid_data)
 
 namespace android {
 namespace hardware {
@@ -37,6 +42,47 @@ namespace graphics {
 namespace composer {
 namespace V2_1 {
 namespace hal {
+
+class ComposerUVMHandle {
+public:
+    ComposerUVMHandle() : mFd(-1) {}
+
+    ~ComposerUVMHandle() {
+        if (mFd >=0)
+            close(mFd);
+    }
+
+    int setUVM() {
+        ::android::hardware::IPCThreadState *ipc = ::android::hardware::IPCThreadState::self();
+        const pid_t pid = ipc->getCallingPid();
+
+        struct uvm_pid_data {
+            int pid;
+        } pid_data;
+
+        pid_data.pid = pid;
+
+        ALOGD("setUVM with pid %d", pid);
+        if (ioctl(mFd, UVM_IOC_SET_PID, &pid_data) != 0) {
+            ALOGE("setUVM pid %d ioctl error %s", pid, strerror(errno));
+            return -1;
+        }
+        return 0;
+    }
+
+    bool init() {
+        mFd = open(UVM_DEV_PATH, O_RDWR);
+        if (mFd <= 0) {
+            ALOGE("open uvm device error");
+            return false;
+        }
+        setUVM();
+        return true;
+    }
+
+private:
+    int mFd;
+};
 
 // wrapper for IMapper to import buffers and sideband streams
 class ComposerHandleImporter {
@@ -139,8 +185,6 @@ class ComposerHandleCache {
         DRM_FB_RENDER = 1,
         // contiguous buffer, can be used for scanout.
         DRM_FB_SCANOUT,
-        // no image data, fill with color.
-        DRM_FB_DIM,
         // video type, used for video.
         DRM_FB_VIDEO,
         DRM_FB_VIDEO_OVERLAY,
@@ -239,18 +283,14 @@ class ComposerHandleCache {
             mFbType = DrmFbType::DRM_FB_VIDEO;
         } else if (am_gralloc_is_overlay_buffer(handle)) {
             mFbType = DrmFbType::DRM_FB_VIDEO_OVERLAY;
-        } else if (am_gralloc_get_width(handle) <= 1 && am_gralloc_get_height(handle) <= 1) {
-            mFbType = DrmFbType::DRM_FB_DIM;
         } else if (am_gralloc_is_coherent_buffer(handle)) {
             if (mFbType == DrmFbType::DRM_FB_VIDEO ||
-                    mFbType == DrmFbType::DRM_FB_DIM ||
                     mFbType == DrmFbType::DRM_FB_VIDEO_OVERLAY) {
                 changed = true;
             }
             mFbType = DrmFbType::DRM_FB_SCANOUT;
         } else {
             if (mFbType == DrmFbType::DRM_FB_VIDEO ||
-                    mFbType == DrmFbType::DRM_FB_DIM ||
                     mFbType == DrmFbType::DRM_FB_VIDEO_OVERLAY) {
                 changed = true;
             }
@@ -406,7 +446,12 @@ class ComposerResources {
     ComposerResources() = default;
     virtual ~ComposerResources() = default;
 
-    bool init() { return mImporter.init(); }
+    bool init() {
+        bool result = mImporter.init();
+        mUVMHandle.init();
+
+        return result;
+    }
 
     using RemoveDisplay =
         std::function<void(Display display, bool isVirtual, const std::vector<Layer>& layers)>;
@@ -546,6 +591,7 @@ class ComposerResources {
     }
 
     ComposerHandleImporter mImporter;
+    ComposerUVMHandle mUVMHandle;
 
     std::mutex mDisplayResourcesMutex;
     std::unordered_map<Display, std::unique_ptr<ComposerDisplayResource>> mDisplayResources;
