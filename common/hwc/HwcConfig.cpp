@@ -13,6 +13,30 @@
 #include <systemcontrol.h>
 #include <misc.h>
 
+//hdmi only
+#define HWC_PRIMARY_FRAMEBUFFER_WIDTH       1920
+#define HWC_PRIMARY_FRAMEBUFFER_HEIGHT      1080
+#define HWC_PRIMARY_CONNECTOR_TYPE          "hdmi"
+#define HWC_DISPLAY_NUM                     1
+
+//hdmi and lcd
+#define LCD_HWC_PRIMARY_FRAMEBUFFER_WIDTH   1080
+#define LCD_HWC_PRIMARY_FRAMEBUFFER_HEIGHT  1920
+#define HWC_EXTEND_FRAMEBUFFER_WIDTH        1920
+#define HWC_EXTEND_FRAMEBUFFER_HEIGHT       1080
+#define LCD_HWC_DISPLAY_NUM                 2
+#define LCD_HWC_PRIMARY_CONNECTOR_TYPE      "panel"
+#define HWC_EXTEND_CONNECTOR_TYPE           "hdmi-only"
+#define HWC_PIPELINE                        "dual"
+
+int32_t HwcConfig::isLcdExist() {
+
+    char value[PROPERTY_VALUE_MAX];
+    property_get("sys.lcd.exist", value, "0");
+    int32_t exist = atoi(value);
+    return exist;
+}
+
 int32_t HwcConfig::getFramebufferSize(int disp, uint32_t & width, uint32_t & height) {
     char uiMode[PROPERTY_VALUE_MAX] = {0};
     if (disp == 0) {
@@ -29,21 +53,20 @@ int32_t HwcConfig::getFramebufferSize(int disp, uint32_t & width, uint32_t & hei
                     __func__, uiMode);
             }
         } else {
-        #ifdef HWC_PRIMARY_FRAMEBUFFER_WIDTH
-            width  = HWC_PRIMARY_FRAMEBUFFER_WIDTH;
-            height = HWC_PRIMARY_FRAMEBUFFER_HEIGHT;
-        #else
-            MESON_ASSERT(0, "HWC_PRIMARY_FRAMEBUFFER_WIDTH not set.");
-        #endif
+            if (isLcdExist() == 1) {
+               width = LCD_HWC_PRIMARY_FRAMEBUFFER_WIDTH;
+               height = LCD_HWC_PRIMARY_FRAMEBUFFER_HEIGHT;
+            } else {
+               width  = HWC_PRIMARY_FRAMEBUFFER_WIDTH;
+               height = HWC_PRIMARY_FRAMEBUFFER_HEIGHT;
+            }
         }
     } else {
     /*extend display*/
-    #ifdef HWC_EXTEND_FRAMEBUFFER_WIDTH
-        width = HWC_EXTEND_FRAMEBUFFER_WIDTH;
-        height = HWC_EXTEND_FRAMEBUFFER_HEIGHT;
-    #else
-        MESON_ASSERT(0, "HWC_EXTEND_FRAMEBUFFER_WIDTH not set.");
-    #endif
+        if (isLcdExist() == 1) {
+            width = HWC_EXTEND_FRAMEBUFFER_WIDTH;
+            height = HWC_EXTEND_FRAMEBUFFER_HEIGHT;
+        }
     }
 
     MESON_LOGI("HwcConfig::default frame buffer size (%d x %d)", width, height);
@@ -51,24 +74,23 @@ int32_t HwcConfig::getFramebufferSize(int disp, uint32_t & width, uint32_t & hei
 }
 
 uint32_t HwcConfig::getDisplayNum() {
-    return HWC_DISPLAY_NUM;
+    if (isLcdExist() == 1)
+       return LCD_HWC_DISPLAY_NUM;
+    else
+       return HWC_DISPLAY_NUM;
 }
 
 hwc_connector_t HwcConfig::getConnectorType(int disp) {
     hwc_connector_t connector_type = HWC_CONNECTOR_NULL;
     const char * connectorstr = NULL;
     if (disp == 0) {
-        #ifdef HWC_PRIMARY_CONNECTOR_TYPE
-            connectorstr = HWC_PRIMARY_CONNECTOR_TYPE;
-        #else
-            MESON_ASSERT(0, "HWC_PRIMARY_CONNECTOR_TYPE not set.");
-        #endif
+            if (isLcdExist() == 1)
+                connectorstr = LCD_HWC_PRIMARY_CONNECTOR_TYPE;
+            else
+                connectorstr = HWC_PRIMARY_CONNECTOR_TYPE;
     } else {
-        #ifdef HWC_EXTEND_CONNECTOR_TYPE
-            connectorstr = HWC_EXTEND_CONNECTOR_TYPE;
-        #else
-            MESON_ASSERT(0, "HWC_EXTEND_CONNECTOR_TYPE not set.");
-        #endif
+            if (isLcdExist() == 1)
+                connectorstr = HWC_EXTEND_CONNECTOR_TYPE;
     }
 
     if (connectorstr != NULL) {
@@ -92,9 +114,8 @@ hwc_connector_t HwcConfig::getConnectorType(int disp) {
 
 hwc_pipe_policy_t HwcConfig::getPipeline() {
     const char * pipeStr = "default";
-#ifdef HWC_PIPELINE
+    if (isLcdExist() == 1)
     pipeStr = HWC_PIPELINE;
-#endif
 
     if (strcasecmp(pipeStr, "default") == 0) {
         return HWC_PIPE_DEFAULT;
@@ -144,11 +165,10 @@ bool HwcConfig::softwareVsyncEnabled() {
 }
 
 bool HwcConfig::preDisplayCalibrateEnabled() {
-#ifdef HWC_ENABLE_PRE_DISPLAY_CALIBRATE
-    return true;
-#else
-    return false;
-#endif
+    if (isLcdExist() == 1)
+       return true;
+    else
+       return false;
 }
 
 bool HwcConfig::primaryHotplugEnabled() {
@@ -208,11 +228,10 @@ bool HwcConfig::dynamicSwitchConnectorEnabled() {
 }
 
 bool HwcConfig::dynamicSwitchViuEnabled() {
-#ifdef HWC_DYNAMIC_SWITCH_VIU
-    return true;
-#else
-    return false;
-#endif
+    if (isLcdExist() == 1)
+       return true;
+    else
+       return false;
 }
 
 void HwcConfig::dump(String8 & dumpstr) {
