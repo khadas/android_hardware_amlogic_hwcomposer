@@ -42,9 +42,10 @@ void FixedDisplayPipe::handleEvent(drm_display_event event, int val) {
                 MESON_LOGD("handleEvent  DRM_EVENT_HDMITX_HOTPLUG %d VS %d",
                     pipe->cfg.hwcConnectorType, targetConnector);
                 if (pipe->cfg.hwcConnectorType != targetConnector) {
-                    /*reset vout displaymode, it will be null.*/
+                    #if 0 /*TODO: for fixed pipe, let systemcontrol to set displaymode.*/
                     pipe->hwcCrtc->unbind();
                     pipe->modeCrtc->unbind();
+                    #endif
                     /* we need latest connector status, and no one will update
                     *connector not bind to crtc, we update here.
                     */

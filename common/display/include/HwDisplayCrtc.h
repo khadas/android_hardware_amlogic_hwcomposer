@@ -83,6 +83,7 @@ protected:
     std::vector<std::shared_ptr<HwDisplayPlane>> mPlanes;
 
     void * hdrVideoInfo;
+    bool mBinded;
 
     std::mutex mMutex;
 };
