@@ -31,6 +31,7 @@ HwDisplayCrtc::HwDisplayCrtc(int drvFd, int32_t id) {
     mId = id;
     mDrvFd = drvFd;
     mFirstPresent = true;
+    mBinded = false;
     /*for old vpu, always one channel.
     *for new vpu, it can be 1 or 2.
     */
@@ -38,6 +39,7 @@ HwDisplayCrtc::HwDisplayCrtc(int drvFd, int32_t id) {
     memset(&nullHdr, 0, sizeof(nullHdr));
 
     hdrVideoInfo = malloc(sizeof(vframe_master_display_colour_s_t));
+
 }
 
 HwDisplayCrtc::~HwDisplayCrtc() {
@@ -47,26 +49,38 @@ HwDisplayCrtc::~HwDisplayCrtc() {
 int32_t HwDisplayCrtc::bind(
     std::shared_ptr<HwDisplayConnector>  connector,
     std::vector<std::shared_ptr<HwDisplayPlane>> planes) {
-    MESON_ASSERT(connector != NULL && planes.size() > 0 , "crtc setup with invalid infos.");
+    if (mBinded) {
+        if (mConnector.get())
+            mConnector->setCrtc(NULL);
+        mConnector.reset();
+        mPlanes.clear();
+        mBinded =  false;
+    }
+
     mConnector = connector;
     mConnector->setCrtc(this);
     mPlanes = planes;
+    mBinded = true;
     return 0;
 }
 
 int32_t HwDisplayCrtc::unbind() {
-    static drm_mode_info_t nullMode = {
-        DRM_DISPLAY_MODE_NULL,
-        0, 0,
-        0, 0,
-        60.0
-    };
-    std::string dispmode(nullMode.name);
-    writeCurDisplayMode(dispmode);
-    if (mConnector.get())
-        mConnector->setCrtc(NULL);
-    mConnector.reset();
-    mPlanes.clear();
+    if (mBinded) {
+        static drm_mode_info_t nullMode = {
+            DRM_DISPLAY_MODE_NULL,
+            0, 0,
+            0, 0,
+            60.0
+        };
+        std::string dispmode(nullMode.name);
+        writeCurDisplayMode(dispmode);
+        if (mConnector.get())
+            mConnector->setCrtc(NULL);
+        mConnector.reset();
+        mPlanes.clear();
+
+        mBinded = false;
+    }
     return 0;
 }
 
@@ -150,10 +164,7 @@ int32_t HwDisplayCrtc::update() {
                 mId, displayMode.c_str(), mModes.size(), mCurModeInfo.name);
         }
     } else {
-        /*clear mode info.*/
-        memset(&mCurModeInfo, 0, sizeof(mCurModeInfo));
-        strcpy(mCurModeInfo.name, DRM_DISPLAY_MODE_NULL);
-        setMode(mCurModeInfo);
+        MESON_LOGD("crtc(%d) update with no connector", mId);
     }
 
     return 0;
