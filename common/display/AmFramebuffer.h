@@ -175,7 +175,7 @@ typedef struct osd_page_flip_info_t {
 
 #define OSD_INPUT_MAX_WIDTH (1920)
 #define OSD_INPUT_MAX_HEIGHT (1080)
-#define OSD_INPUT_MIN_WIDTH (32)
-#define OSD_INPUT_MIN_HEIGHT (32)
+#define OSD_INPUT_MIN_WIDTH (128)
+#define OSD_INPUT_MIN_HEIGHT (128)
 
 #endif/*AM_FRAMEBUFFER_H*/
