@@ -162,7 +162,7 @@ int32_t HwDisplayCrtc::update() {
             for (auto it = mModes.begin(); it != mModes.end(); it ++) {
                 MESON_LOGD("update: (%s) mode (%s)", displayMode.c_str(), it->second.name);
                 if (strcmp(it->second.name, displayMode.c_str()) == 0
-                     && it->second.refreshRate == floor(it->second.refreshRate)) {
+                     && it->second.refreshRate == it->second.refreshRate) {
                     memcpy(&mCurModeInfo, &it->second, sizeof(drm_mode_info_t));
                     break;
                 }

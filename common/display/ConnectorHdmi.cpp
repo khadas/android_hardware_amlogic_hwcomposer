@@ -32,12 +32,9 @@ ConnectorHdmi::ConnectorHdmi(int32_t drvFd, uint32_t id)
     mIsEDIDValid = false;
     mConnected = false;
     mSecure = false;
-#ifdef ENABLE_FRACTIONAL_REFRESH_RATE
-    mFracMode = true;
-#else
-    mFracMode = false;
-#endif
+    mFracMode = HWC_HDMI_FRAC_MODE;
     snprintf(mName, 64, "HDMI-%d", id);
+    MESON_LOGD("Connector hdmi (%s) frac mode (%d) created.", mName, mFracMode);
 }
 
 ConnectorHdmi::~ConnectorHdmi() {
@@ -143,23 +140,40 @@ int32_t ConnectorHdmi::addDisplayMode(std::string& mode) {
         (float)vinfo->sync_duration_num/vinfo->sync_duration_den};
     strcpy(modeInfo.name, mode.c_str());
 
-    if (mFracMode) {
-        // add frac refresh rate config, like 23.976hz, 29.97hz...
-        if (modeInfo.refreshRate == REFRESH_24kHZ
-            || modeInfo.refreshRate == REFRESH_30kHZ
-            || modeInfo.refreshRate == REFRESH_60kHZ
-            || modeInfo.refreshRate == REFRESH_120kHZ
-            || modeInfo.refreshRate == REFRESH_240kHZ) {
+    bool bFractionMode = false, bNonFractionMode = false;
+    if (mFracMode == MODE_ALL || mFracMode == MODE_FRACTION) {
+        bFractionMode = true;
+    }
+
+    // add frac refresh rate config, like 23.976hz, 29.97hz...
+    if (modeInfo.refreshRate == REFRESH_24kHZ
+        || modeInfo.refreshRate == REFRESH_30kHZ
+        || modeInfo.refreshRate == REFRESH_60kHZ
+        || modeInfo.refreshRate == REFRESH_120kHZ
+        || modeInfo.refreshRate == REFRESH_240kHZ) {
+        if (bFractionMode) {
             drm_mode_info_t fracMode = modeInfo;
             fracMode.refreshRate = (modeInfo.refreshRate * 1000) / (float)1001;
             mDisplayModes.emplace(mDisplayModes.size(), fracMode);
-            mFracRefreshRates.push_back(fracMode.refreshRate);
+            MESON_LOGI("add fraction display mode (%s)", fracMode.name);
+            if (bNonFractionMode  == true)
+                mFracRefreshRates.push_back(fracMode.refreshRate);
         }
+    } else {
+        /*for non fraction display mode, we also add it in MODE_FRACTION*/
+        bNonFractionMode = true;
     }
-    // add normal refresh rate config, like 24hz, 30hz...
-    mDisplayModes.emplace(mDisplayModes.size(), modeInfo);
 
-    MESON_LOGI("add display mode (%s)", mode.c_str());
+    if (mFracMode == MODE_ALL || mFracMode == MODE_NON_FRACTION) {
+        bNonFractionMode = true;
+    }
+
+    if (bNonFractionMode) {
+        // add normal refresh rate config, like 24hz, 30hz...
+        mDisplayModes.emplace(mDisplayModes.size(), modeInfo);
+        MESON_LOGI("add non fraction display mode (%s)", mode.c_str());
+    }
+
     return 0;
 }
 
@@ -168,7 +182,7 @@ int32_t ConnectorHdmi::getModes(std::map<uint32_t, drm_mode_info_t> & modes) {
 }
 
 int32_t ConnectorHdmi::setMode(drm_mode_info_t & mode) {
-    if (!mFracMode)
+    if (MODE_ALL == mFracMode)
         return 0;
 
     /*update rate policy.*/

@@ -47,13 +47,19 @@ protected:
     int32_t parseHdrCapabilities();
     virtual void parseEDID();
 
-    std::vector<uint8_t> mEDID;
-    bool mIsEDIDValid;
-
 private:
+    enum {
+        MODE_FRACTION = 0,
+        MODE_NON_FRACTION,
+        MODE_ALL
+    };
+
     char mName[64];
     bool mConnected;
     bool mSecure;
+
+    std::vector<uint8_t> mEDID;
+    bool mIsEDIDValid;
 
     bool mFracMode;
     std::vector<float> mFracRefreshRates;
