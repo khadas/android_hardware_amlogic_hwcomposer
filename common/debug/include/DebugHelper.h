@@ -23,6 +23,7 @@ public:
 
     /*dump internal info in hal dumpsys.*/
     inline bool dumpDetailInfo() {return mDumpDetail;}
+    inline bool enableVsyncDetail() {return mEnableVsyncDetail;}
 
     /*log informations.*/
     inline bool logCompositionDetail() {return mLogCompositionDetail;}
@@ -66,6 +67,7 @@ protected:
     bool mDumpUsage;
     bool mDisableUiHwc;
     bool mDumpDetail;
+    bool mEnableVsyncDetail;
 
     bool mLogCompositionDetail;
     bool mLogFps;

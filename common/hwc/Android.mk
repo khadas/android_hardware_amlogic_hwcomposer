@@ -141,6 +141,7 @@ LOCAL_STATIC_LIBRARIES := \
     hwc.utils_static \
     hwc.base_static \
     hwc.display_static \
+    hwc.debug_static \
     hwc.postprocessor_static
 
 LOCAL_EXPORT_C_INCLUDE_DIRS := \

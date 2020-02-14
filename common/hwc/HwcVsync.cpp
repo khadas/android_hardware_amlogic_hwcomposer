@@ -10,6 +10,7 @@
 #include <MesonLog.h>
 #include <HwcVsync.h>
 #include <HwDisplayCrtc.h>
+#include <DebugHelper.h>
 
 #define SF_VSYNC_DFT_PERIOD 60
 
@@ -19,6 +20,8 @@ HwcVsync::HwcVsync() {
     mPreTimeStamp = 0;
     mReqPeriod = 0;
     mVsyncTime = 0;
+    mExit = false;
+    mObserver = NULL;
 
     int ret;
     ret = pthread_create(&hw_vsync_thread, NULL, vsyncThread, this);
@@ -100,8 +103,7 @@ void * HwcVsync::vsyncThread(void * data) {
         } else {
             ret = pThis->waitHwVsync(timestamp);
         }
-        bool debug = true;
-        if (debug) {
+        if (DebugHelper::getInstance().enableVsyncDetail()) {
             nsecs_t period = timestamp - pThis->mPreTimeStamp;
             UNUSED(period);
             if (pThis->mPreTimeStamp != 0)
@@ -182,8 +184,11 @@ int32_t HwcVsync::waitSoftwareVsync(nsecs_t& vsync_timestamp) {
     return err;
 }
 
-void HwcVsync::dump(String8 & dumpstr) {
+void HwcVsync::dump(String8 &dumpstr) {
     dumpstr.appendFormat("HwcVsync mode(%s) period(%lld) \n",
         mSoftVsync ? "soft":"hw", mReqPeriod);
-}
+    dumpstr.appendFormat("    mEnabled:%d, mExit:%d\n", mEnabled, mExit);
 
+    if (mObserver)
+        dumpstr.appendFormat("    mObserver:%p\n", mObserver);
+}

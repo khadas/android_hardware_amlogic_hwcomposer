@@ -221,7 +221,7 @@ hwc2_error_t Hwc2Display::setVsyncEnable(hwc2_vsync_t enabled) {
             MESON_LOGE("[%s]: set vsync state invalid %d.", __func__, enabled);
             return HWC2_ERROR_BAD_PARAMETER;
     }
-
+    MESON_LOGD("setVsyncEnable: %s", state ? "true" : "false");
     mVsyncState = state;
     if (mVsync.get())
         mVsync->setEnabled(mVsyncState);

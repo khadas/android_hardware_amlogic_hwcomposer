@@ -21,6 +21,7 @@ ANDROID_SINGLETON_STATIC_INSTANCE(DebugHelper)
 #define COMMAND_CLEAR "--clear"
 #define COMMAND_NOHWC "--nohwc"
 #define COMMAND_DUMP_DETAIL "--detail"
+#define COMMAND_ENABLE_VSYNC_DETAIL "--vsync-detail"
 #define COMMAND_LOG_COMPOSITION_DETAIL "--composition-detail"
 #define COMMAND_LOG_FPS "--fps"
 #define COMMAND_SAVE_LAYER "--save-layer"
@@ -58,7 +59,8 @@ void DebugHelper::clearOnePassCmd() {
 
 void DebugHelper::clearPersistCmd() {
     mDisableUiHwc = false;
-    mDumpDetail = false;
+    mDumpDetail = true;
+    mEnableVsyncDetail = false;
 
     mLogFps = false;
     mLogCompositionDetail = false;
@@ -130,7 +132,7 @@ void DebugHelper::resolveCmd() {
     return;
 #else
     clearOnePassCmd();
-    mEnabled = sys_get_bool_prop(DEBUG_HELPER_ENABLE_PROP, false);
+    mEnabled = sys_get_bool_prop(DEBUG_HELPER_ENABLE_PROP, true);
 
     if (mEnabled) {
         char debugCmd[128] = {0};
@@ -170,6 +172,13 @@ void DebugHelper::resolveCmd() {
                     i++;
                     CHECK_CMD_INT_PARAMETER();
                     mDumpDetail = INT_PARAMERTER_TO_BOOL(paramArray[i]);
+                    continue;
+                }
+
+                if (strcmp(paramArray[i], COMMAND_ENABLE_VSYNC_DETAIL) == 0) {
+                    i++;
+                    CHECK_CMD_INT_PARAMETER();
+                    mEnableVsyncDetail = INT_PARAMERTER_TO_BOOL(paramArray[i]);
                     continue;
                 }
 
@@ -329,6 +338,7 @@ void DebugHelper::dump(String8 & dumpstr) {
             "\t " COMMAND_DUMP_DETAIL " 0|1: enable/dislabe dump detail internal info.\n"
             "\t " COMMAND_IN_FENCE " 0 | 1: pass in fence to display, or handle it in hwc.\n"
             "\t " COMMAND_OUT_FENCE " 0 | 1: return display out fence, or handle it in hwc.\n"
+            "\t " COMMAND_ENABLE_VSYNC_DETAIL " 0 | 1: enable/disable hwcVsync thread detail log.\n"
             "\t " COMMAND_LOG_COMPOSITION_DETAIL " 0|1: enable/disable composition detail info.\n"
             "\t " COMMAND_HIDE_LAYER "/" COMMAND_SHOW_LAYER " [layerId]: hide/unhide specific layers by zorder. \n"
             "\t " COMMAND_HIDE_PLANE "/" COMMAND_SHOW_PLANE " [planeId]: hide/unhide specific plane by plane id. \n"
@@ -345,6 +355,7 @@ void DebugHelper::dump(String8 & dumpstr) {
         dumpstr.append("Debug Command:\n");
         dumpstr.appendFormat(COMMAND_NOHWC " (%d)\n", mDisableUiHwc);
         dumpstr.appendFormat(COMMAND_DUMP_DETAIL " (%d)\n", mDumpDetail);
+        dumpstr.appendFormat(COMMAND_ENABLE_VSYNC_DETAIL " (%d)\n", mEnableVsyncDetail);
         dumpstr.appendFormat(COMMAND_IN_FENCE " (%d)\n", mDiscardInFence);
         dumpstr.appendFormat(COMMAND_OUT_FENCE " (%d)\n", mDiscardOutFence);
         dumpstr.appendFormat(COMMAND_LOG_COMPOSITION_DETAIL " (%d)\n", mLogCompositionDetail);
