@@ -236,6 +236,10 @@ int32_t HwcDisplayPipe::updatePipe(std::shared_ptr<PipeStat> & stat) {
         } else {
             stat->hwcVsync->setHwMode(stat->modeCrtc);
         }
+        drm_mode_info_t mode;
+        if (0 == stat->modeMgr->getDisplayMode(mode)) {
+            stat->hwcVsync->setPeriod(1e9 / mode.refreshRate);
+        }
 
         drm_mode_info_t mode;
         if (0 == stat->modeMgr->getDisplayMode(mode)) {
@@ -312,10 +316,8 @@ void HwcDisplayPipe::handleEvent(drm_display_event event, int val) {
                             statIt.second->hwcDisplay->onModeChanged(val);
                             /*update display dynamic info.*/
                             drm_mode_info_t mode;
-                            if (HwcConfig::softwareVsyncEnabled()) {
-                                if (0 == statIt.second->modeMgr->getDisplayMode(mode)) {
-                                    statIt.second->hwcVsync->setPeriod(1e9 / mode.refreshRate);
-                                }
+                            if (0 == statIt.second->modeMgr->getDisplayMode(mode)) {
+                                statIt.second->hwcVsync->setPeriod(1e9 / mode.refreshRate);
                             }
                         }
                     }

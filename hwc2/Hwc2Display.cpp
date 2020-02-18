@@ -1132,6 +1132,8 @@ void Hwc2Display::dump(String8 & dumpstr) {
     /* dump display configs*/
      mModeMgr->dump(dumpstr);
     dumpstr.append("\n");
+    mVsync->dump(dumpstr);
+    dumpstr.append("\n");
 
     /*dump detail debug info*/
     if (DebugHelper::getInstance().dumpDetailInfo()) {

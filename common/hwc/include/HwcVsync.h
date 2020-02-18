@@ -32,23 +32,22 @@ public:
     int32_t setObserver(HwcVsyncObserver * observer);
     int32_t setSoftwareMode();
     int32_t setHwMode(std::shared_ptr<HwDisplayCrtc> & crtc);
-
+    int32_t setPeriod(nsecs_t period);
     int32_t setEnabled(bool enabled);
 
-    /*for software vsync.*/
-    int32_t setPeriod(nsecs_t period);
-
-    void dump();
+    void dump(String8 & dumpstr);
 
 protected:
     static void * vsyncThread(void * data);
     int32_t waitSoftwareVsync(nsecs_t& vsync_timestamp);
+    int32_t waitHwVsync(nsecs_t& vsync_timestamp);
 
 protected:
     bool mSoftVsync;
     bool mEnabled;
     bool mExit;
-    nsecs_t mPeriod;
+    nsecs_t mVsyncTime;
+    nsecs_t mReqPeriod;
     nsecs_t mPreTimeStamp;
 
     HwcVsyncObserver * mObserver;
