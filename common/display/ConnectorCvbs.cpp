@@ -7,6 +7,7 @@
  * Description:
  */
 
+#include <MesonLog.h>
 #include <ConnectorCvbs.h>
 
 ConnectorCvbs::ConnectorCvbs(int32_t drvFd, uint32_t id)
@@ -59,7 +60,14 @@ bool ConnectorCvbs::isConnected() {
 }
 
 void ConnectorCvbs::getHdrCapabilities(drm_hdr_capabilities * caps) {
-    UNUSED(caps);
+    /* cvbs has no hdr capabilitites */
+    if (caps == nullptr) {
+        MESON_LOGE("[%s] parameter caps is null, please check", __func__);
+        return;
+    }
+
+    MESON_LOGD("cvbs connector getHadrCapabilities none");
+    memset(caps, 0, sizeof(drm_hdr_capabilities));
 }
 
 void ConnectorCvbs::dump(String8 & dumpstr) {
