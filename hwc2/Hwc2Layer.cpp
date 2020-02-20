@@ -107,6 +107,12 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
     clearBufferInfo();
     setBufferInfo(buffer, acquireFence);
 
+    if (buffer == NULL) {
+        MESON_LOGE("Receive null buffer, it is impossible.");
+        mFbType = DRM_FB_UNDEFINED;
+        return HWC2_ERROR_NONE;
+    }
+
     /*set mFbType by usage of GraphicBuffer.*/
     if (mHwcCompositionType == HWC2_COMPOSITION_CURSOR) {
         mFbType = DRM_FB_CURSOR;

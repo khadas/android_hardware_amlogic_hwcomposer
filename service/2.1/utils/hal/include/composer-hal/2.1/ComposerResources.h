@@ -302,22 +302,19 @@ class ComposerHandleCache {
     // when fromCache is true, look up in the cache; otherwise, update the cache
     Error getHandle(uint32_t slot, bool fromCache, const native_handle_t* inHandle,
                     const native_handle_t** outHandle, const native_handle** outReplacedHandle) {
-
         Error error = Error::NONE;
+
         if (fromCache) {
             *outReplacedHandle = nullptr;
             error = lookupCache(slot, outHandle);
         } else {
-            *outHandle = inHandle;
-            error = updateCache(slot, inHandle, outReplacedHandle);
-        }
-
-        if (mHandleType == HandleType::BUFFER) {
-            bool changed = isChangedFromeVideoToUi(*outHandle);
-            if (changed) {
-                ALOGD("FB type changed from video to UI, release cache");
+            if (mHandleType == HandleType::BUFFER && isChangedFromeVideoToUi(inHandle)) {
+                ALOGD("FB type changed from video to UI, fromcache(%d):slot(%d)", fromCache, slot);
                 releaseCache(0);
             }
+
+            *outHandle = inHandle;
+            error = updateCache(slot, inHandle, outReplacedHandle);
         }
 
         return error;
