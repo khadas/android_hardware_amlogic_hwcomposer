@@ -16,15 +16,6 @@
 #define DEFUALT_DPI (159)
 #define DEFAULT_REFRESH_RATE (60.0f)
 
-static drm_mode_info_t defaultMode = {
-    "dummy_hdmi",
-    DEFUALT_DPI,
-    DEFUALT_DPI,
-    720,
-    480,
-    DEFAULT_REFRESH_RATE
-};
-
 FixedSizeModeMgr::FixedSizeModeMgr() {
 }
 
@@ -59,10 +50,8 @@ int32_t FixedSizeModeMgr::update() {
     if (mConnector->isConnected() && 0 == mCrtc->getMode(realMode)) {
         if (realMode.name[0] != 0) {
             mCurMode.refreshRate = realMode.refreshRate;
-            mCurMode.dpiX = realMode.dpiX;
-            mCurMode.dpiY = realMode.dpiY;
-            mCurMode.pixelW = mFbWidth;
-            mCurMode.pixelH = mFbHeight;
+            mCurMode.dpiX = ((float)mCurMode.pixelW / realMode.pixelW) * realMode.dpiX;
+            mCurMode.dpiY = ((float)mCurMode.pixelH / realMode.pixelH) * realMode.dpiY;
             strncpy(mCurMode.name, realMode.name , DRM_DISPLAY_MODE_LEN);
             MESON_LOGI("ModeMgr update to (%s)", mCurMode.name);
             useFakeMode = false;
@@ -70,7 +59,8 @@ int32_t FixedSizeModeMgr::update() {
     }
 
     if (useFakeMode) {
-        mCurMode = defaultMode;
+        mCurMode.refreshRate = DEFAULT_REFRESH_RATE;
+        mCurMode.dpiX = mCurMode.dpiY = DEFUALT_DPI;
         strncpy(mCurMode.name, "NULL", DRM_DISPLAY_MODE_LEN);
     }
 

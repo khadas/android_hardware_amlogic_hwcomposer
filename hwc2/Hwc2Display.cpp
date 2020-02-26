@@ -236,19 +236,9 @@ hwc2_error_t Hwc2Display::setVsyncEnable(hwc2_vsync_t enabled) {
 void Hwc2Display::onHotplug(bool connected) {
     bool bSendPlugOut = false;
     MESON_LOGD("On hot plug: [%s]", connected == true ? "Plug in" : "Plug out");
-    /*
-     * call hotplug out of lock, SF may call some hwc function to cause deadlock.
-     * When a display is connected, First onHotplug DISCONNECT for the dummy config
-     * Swap out dummy display for the newly-connected display. OnHotplug CONNECT for
-     * the newly-connected display will be called onModeChanged function when the
-     * displayPip is Ready.
-     */
-    if (connected)
-        mObserver->onHotplug(false);
 
     {
         std::lock_guard<std::mutex> lock(mMutex);
-
         if (connected) {
             mSignalHpd = true;
             return;
@@ -259,17 +249,9 @@ void Hwc2Display::onHotplug(bool connected) {
         }
     }
 
-    /*
-     * call hotplug out of lock, SF may call some hwc function to cause deadlock.
-     * When a display is disconnected:
-     * onHotplug DISCONNECT for the current display
-     * Swap in dummy config [only 1 config 720x480, with no HDR capabilities]
-     * onHotplug CONNECT for the dummy config
-     */
-    if (mObserver) {
+    /*call hotplug out of lock, SF may call some hwc function to cause deadlock.*/
+    if (bSendPlugOut) {
         mObserver->onHotplug(false);
-        mModeMgr->update();
-        mObserver->onHotplug(true);
     }
 }
 
@@ -315,6 +297,7 @@ void Hwc2Display::onModeChanged(int stage) {
                     mPowerMode->setConnectorStatus(true);
                     if (mSignalHpd) {
                         bSendPlugIn = true;
+                        mSignalHpd = false;
                     } else {
                         /*Workaround: needed for NTS test.*/
                         if (HwcConfig::primaryHotplugEnabled()
@@ -335,11 +318,6 @@ void Hwc2Display::onModeChanged(int stage) {
     }
     /*call hotplug out of lock, SF may call some hwc function to cause deadlock.*/
     if (bSendPlugIn && mModeMgr->needCallHotPlug()) {
-        if (mSignalHpd == false)
-            mObserver->onHotplug(false);
-        else
-            mSignalHpd = false;
-
         MESON_LOGD("onModeChanged mObserver->onHotplug(true)");
         mObserver->onHotplug(true);
     } else {
