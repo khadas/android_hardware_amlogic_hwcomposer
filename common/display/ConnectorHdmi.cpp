@@ -354,12 +354,12 @@ int32_t ConnectorHdmi::parseHdrCapabilities() {
         goto exit;
     }
 
-    pos = strstr(pos, "HDR10Plus Supported: ");
+    if (pos != NULL) pos = strstr(pos, "HDR10Plus Supported: ");
     if ((NULL != pos) && ('1' == *(pos + strlen("HDR10Plus Supported: ")))) {
         mHdrCapabilities.HDR10PlusSupported = true;
     }
 
-    pos = strstr(pos, "SMPTE ST 2084: ");
+    if (pos != NULL) pos = strstr(pos, "SMPTE ST 2084: ");
     if ((NULL != pos) && ('1' == *(pos + strlen("SMPTE ST 2084: ")))) {
         mHdrCapabilities.HDR10Supported = true;
 
@@ -368,7 +368,7 @@ int32_t ConnectorHdmi::parseHdrCapabilities() {
         mHdrCapabilities.minLuminance = getLineValue(pos, "Min: ");
     }
 
-    pos = strstr(buf, "Hybrif Log-Gamma: ");
+    if (pos != NULL) pos = strstr(buf, "Hybrif Log-Gamma: ");
     if ((NULL != pos) && ('1' == *(pos + strlen("Hybrif Log-Gamma: ")))) {
         mHdrCapabilities.HLGSupported = true;
     }
