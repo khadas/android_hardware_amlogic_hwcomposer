@@ -13,6 +13,8 @@
 #include "AmFramebuffer.h"
 #include "AmVinfo.h"
 
+#define DV_SUPPORT_INFO_LEN_MAX (40)
+
 ConnectorPanel::ConnectorPanel(int32_t drvFd, uint32_t id)
     :   HwDisplayConnector(drvFd, id) {
     snprintf(mName, 64, "Panel-%d", id);
@@ -24,6 +26,7 @@ ConnectorPanel::~ConnectorPanel() {
 int32_t ConnectorPanel::loadProperities() {
     loadPhysicalSize();
     loadDisplayModes();
+    parseHdrCapabilities();
     return 0;
 }
 
@@ -86,9 +89,51 @@ int32_t ConnectorPanel::loadDisplayModes() {
     return 0;
 }
 
+int32_t ConnectorPanel::parseHdrCapabilities() {
+    const char *DV_PATH = "/sys/class/amdolby_vision/support_info";
+    char buf[DV_SUPPORT_INFO_LEN_MAX + 1] = {0};
+    int fd, len;
+
+    /*bit0: 0-> efuse, 1->no efuse; */
+    /*bit1: 1->ko loaded*/
+    /*bit2: 1-> value updated*/
+    int supportInfo;
+
+    constexpr int dvDriverEnabled = (1 << 2);
+    constexpr int dvSupported = ((1 << 0) | (1 << 1) | (1 <<2));
+    constexpr int sDefaultMinLumiance = 0;
+    constexpr int sDefaultMaxLumiance = 500;
+
+    memset(&mHdrCapabilities, 0, sizeof(drm_hdr_capabilities));
+    if ((fd = open(DV_PATH, O_RDONLY)) < 0) {
+        MESON_LOGE("open %s fail.\n", DV_PATH);
+    } else {
+        if ((len = read(fd, buf, DV_SUPPORT_INFO_LEN_MAX)) < 0) {
+            MESON_LOGE("read %s error: %s\n", DV_PATH, strerror(errno));
+        } else {
+            sscanf(buf, "%d", &supportInfo);
+            if ((supportInfo & dvDriverEnabled) == 0)
+                MESON_LOGE("dolby vision driver is not ready\n");
+
+            mHdrCapabilities.DolbyVisionSupported =
+                ((supportInfo & dvSupported) == dvSupported) ? true : false;
+        }
+        close(fd);
+    }
+
+    mHdrCapabilities.HLGSupported = true;
+    mHdrCapabilities.HDR10Supported = true;
+    mHdrCapabilities.maxLuminance = sDefaultMaxLumiance;
+    mHdrCapabilities.avgLuminance = sDefaultMaxLumiance;
+    mHdrCapabilities.minLuminance = sDefaultMinLumiance;
+
+    return NO_ERROR;
+}
+
 void ConnectorPanel::getHdrCapabilities(drm_hdr_capabilities * caps) {
+
     if (caps) {
-        memset(caps, 0, sizeof(drm_hdr_capabilities));
+        *caps = mHdrCapabilities;
     }
 }
 

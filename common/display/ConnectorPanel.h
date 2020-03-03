@@ -30,8 +30,12 @@ public:
 
 protected:
     int32_t loadDisplayModes();
+    int32_t parseHdrCapabilities();
 
     char mName[64];
+
+private:
+    drm_hdr_capabilities mHdrCapabilities;
 };
 
 #endif
