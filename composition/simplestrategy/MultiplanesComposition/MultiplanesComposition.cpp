@@ -924,6 +924,9 @@ int MultiplanesComposition::decideComposition() {
     int ret = 0;
     if (mFramebuffers.empty()) {
         MESON_LOGV("No layers to compose, exit.");
+        if (mClientComposer != NULL) {
+            mClientComposer->prepare();
+        }
         return ret;
     }
 
