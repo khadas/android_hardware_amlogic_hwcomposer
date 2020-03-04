@@ -208,6 +208,22 @@ int32_t sc_read_bootenv(const char * key, std::string & val) {
     return 0;
 }
 
+int32_t sc_set_property(const char * prop, const char *val ) {
+    CHK_SC_PROXY();
+
+    if (!prop || !val) {
+        return -EINVAL;
+    }
+
+    Result ret = gSC->setProperty(hidl_string(prop), hidl_string(val));
+    if (ret == Result::OK) {
+        return 0;
+    } else {
+        MESON_LOGE("sc_set_property prop:%s val:%s FAIL.", prop, val);
+        return -EFAULT;
+    }
+}
+
 bool  sc_get_pref_display_mode(std::string & dispmode) {
     CHK_SC_PROXY();
 
