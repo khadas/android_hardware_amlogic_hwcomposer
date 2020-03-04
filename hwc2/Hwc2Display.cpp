@@ -145,6 +145,32 @@ int32_t Hwc2Display::setVsync(std::shared_ptr<HwcVsync> vsync) {
     return 0;
 }
 
+/*
+ * Make sure all display planes are blank (since there is no layer)
+ *
+ * If composer service died, surfaceflinger will restart and frameBufferSurface will
+ * be recreated. But one framebuffer will be hold by the osd driver. If cma ion memory
+ * only configed to triple size of FrameBuffer, there will be one non continuous FrameBuffer
+ * and lead to messed display.
+ */
+int32_t Hwc2Display::blankDisplay() {
+    MESON_LOGD("blank all display planes");
+    std::lock_guard<std::mutex> lock(mMutex);
+
+    for (auto it = mPlanes.begin(); it != mPlanes.end(); ++ it) {
+        (*it)->setPlane(NULL, HWC_PLANE_FAKE_ZORDER, BLANK_FOR_NO_CONTENT);
+    }
+
+    int32_t fence = -1;
+    if (mCrtc && mCrtc->pageFlip(fence) == 0) {
+        std::shared_ptr<DrmFence> outfence =
+            std::make_shared<DrmFence>(fence);
+        outfence->wait(3000);
+    }
+
+    return 0;
+}
+
 const char * Hwc2Display::getName() {
     return mConnector->getName();
 }
@@ -617,6 +643,11 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
 
         /*collect changed dispplay, layer, compostiion.*/
         ret = collectCompositionRequest(outNumTypes, outNumRequests);
+    } else {
+        /* skip Composition */
+        std::shared_ptr<IComposer> clientComposer =
+            mComposers.find(MESON_CLIENT_COMPOSER)->second;
+        clientComposer->prepare();
     }
 
     if (mPowerMode->getScreenStatus()) {

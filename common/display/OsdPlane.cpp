@@ -13,7 +13,7 @@
 
 OsdPlane::OsdPlane(int32_t drvFd, uint32_t id)
     : HwDisplayPlane(drvFd, id),
-      mBlank(true),
+      mBlank(false),
       mPossibleCrtcs(0),
       mDrmFb(NULL) {
     snprintf(mName, 64, "OSD-%d", id);
