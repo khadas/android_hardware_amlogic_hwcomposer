@@ -684,10 +684,13 @@ void MesonHwc2::onHotplug(hwc2_display_t display, bool connected) {
         return;
     }
 
+    hwc2_connection_t connection =
+        connected ? HWC2_CONNECTION_CONNECTED : HWC2_CONNECTION_DISCONNECTED;
+
     if (mHotplugFn) {
-        MESON_LOGD("On hotplug, Fn: %p, Data: %p, display: %d(%d), connected: %d",
-                mHotplugFn, mHotplugData, (int)display, HWC_DISPLAY_PRIMARY, connected);
-        mHotplugFn(mHotplugData, display, connected);
+        MESON_LOGD("On hotplug, Fn: %p, Data: %p, display: %d(%d), connection: %d",
+                mHotplugFn, mHotplugData, (int)display, HWC_DISPLAY_PRIMARY, connection);
+        mHotplugFn(mHotplugData, display, connection);
     } else {
         MESON_LOGE("No hotplug callback registered.");
     }
