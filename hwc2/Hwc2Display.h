@@ -193,6 +193,8 @@ protected:
     std::vector<drm_hdr_meatadata_t> mHdrKeys;
 #endif
     std::mutex mMutex;
+
+    bool mVsyncState;
 };
 
 #endif/*HWC2_DISPLAY_H*/
