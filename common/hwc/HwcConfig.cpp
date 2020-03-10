@@ -140,7 +140,7 @@ int32_t HwcConfig::headlessRefreshRate() {
 }
 
 bool HwcConfig::softwareVsyncEnabled() {
-#if 1//def HWC_ENABLE_SOFTWARE_VSYNC
+#ifdef HWC_ENABLE_SOFTWARE_VSYNC
     return true;
 #else
     return false;

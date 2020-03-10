@@ -253,6 +253,11 @@ void Hwc2Display::onHotplug(bool connected) {
     if (bSendPlugOut) {
         mObserver->onHotplug(false);
     }
+
+    /* switch to software vsync when hdmi plug out and no cvbs mode */
+    if (mConnector && mConnector->getType() == DRM_MODE_CONNECTOR_HDMI) {
+        mVsync->setSoftwareMode();
+    }
 }
 
 void Hwc2Display::onUpdate(bool bHdcp) {

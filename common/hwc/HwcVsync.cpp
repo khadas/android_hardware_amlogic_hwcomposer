@@ -131,7 +131,6 @@ int32_t HwcVsync::waitHwVsync(nsecs_t& vsync_timestamp) {
         nsecs_t now = systemTime(CLOCK_MONOTONIC);
         mVsyncTime = mVsyncTime + cur_vsync_period +
             (now - mVsyncTime ) /cur_vsync_period * cur_vsync_period;
-        MESON_LOGE("Wait hw vsync %lld -  %lld", mVsyncTime, now);
 
         struct timespec spec;
         spec.tv_sec  = mVsyncTime / 1000000000;

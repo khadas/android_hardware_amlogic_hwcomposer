@@ -18,6 +18,7 @@
 #include <HwDisplayManager.h>
 
 #define HWC_BOOTED_PROP "vendor.sys.hwc.booted"
+#define DEFAULT_REFRESH_RATE (60.0f)
 
 HwcDisplayPipe::PipeStat::PipeStat(uint32_t id) {
     hwcId = id;
@@ -231,7 +232,10 @@ int32_t HwcDisplayPipe::updatePipe(std::shared_ptr<PipeStat> & stat) {
         stat->modeMgr->setDisplayResources(stat->modeCrtc, stat->modeConnector);
         stat->modeMgr->update();
 
-        if (HwcConfig::softwareVsyncEnabled()) {
+        MESON_LOGD("updatePipe connector:%s, connected:%d", stat->hwcConnector->getName(),
+                stat->hwcConnector->isConnected());
+
+        if (HwcConfig::softwareVsyncEnabled() || stat->hwcConnector->isConnected() == false) {
             stat->hwcVsync->setSoftwareMode();
         } else {
             stat->hwcVsync->setHwMode(stat->modeCrtc);
@@ -318,6 +322,15 @@ void HwcDisplayPipe::handleEvent(drm_display_event event, int val) {
                             drm_mode_info_t mode;
                             if (0 == statIt.second->modeMgr->getDisplayMode(mode)) {
                                 statIt.second->hwcVsync->setPeriod(1e9 / mode.refreshRate);
+                                if (HwcConfig::softwareVsyncEnabled()) {
+                                    statIt.second->hwcVsync->setSoftwareMode();
+                                } else {
+                                    statIt.second->hwcVsync->setHwMode(statIt.second->modeCrtc);
+                                }
+                            } else {
+                                /* could not get mode, switch to software vsync */
+                                statIt.second->hwcVsync->setPeriod(1e9 / DEFAULT_REFRESH_RATE);
+                                statIt.second->hwcVsync->setSoftwareMode();
                             }
                         }
                     }
