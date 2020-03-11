@@ -89,6 +89,7 @@ typedef enum {
     PLANE_NO_PRE_BLEND = (1 << 4),
     PLANE_PRE_BLEND_1 = (1 << 5),
     PLANE_PRE_BLEND_2  = (1 << 6),
+    PLANE_SUPPORT_AFBC  = (1 << 7),
 } drm_plane_capacity_t;
 
 typedef enum {

@@ -45,6 +45,9 @@ int32_t OsdPlane::getProperties() {
     if (capacity & OSD_FREESCALE) {
         mCapability |= PLANE_SUPPORT_FREE_SCALE;
     }
+    if (capacity & OSD_AFBC) {
+        mCapability |= PLANE_SUPPORT_AFBC;
+    }
 
     /*set possible crtc*/
     if (capacity & OSD_VIU1) {
@@ -130,13 +133,18 @@ bool OsdPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
                 return false;
         }
     } else {
-        switch (format) {
-            case HAL_PIXEL_FORMAT_RGBA_8888:
-            case HAL_PIXEL_FORMAT_RGBX_8888:
-                break;
-            default:
-                MESON_LOGE("afbc: %d, Layer format %d not support.", afbc, format);
-                return false;
+        if ((mCapability & PLANE_SUPPORT_AFBC) == PLANE_SUPPORT_AFBC) {
+            switch (format) {
+                case HAL_PIXEL_FORMAT_RGBA_8888:
+                case HAL_PIXEL_FORMAT_RGBX_8888:
+                    break;
+                default:
+                    MESON_LOGE("afbc: %d, Layer format %d not support.", afbc, format);
+                    return false;
+            }
+        } else {
+            MESON_LOGI("AFBC buffer && unsupported AFBC plane, turn to GPU composition");
+            return false;
         }
     }
 
