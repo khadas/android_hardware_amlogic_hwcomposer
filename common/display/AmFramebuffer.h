@@ -21,14 +21,15 @@ Amlogic defined ioctl, masks.
 #define AXIS_STR_LEN            (32)
 
 enum {
-    OSD_HW_CURSOR = (1 << 0),
-    OSD_UBOOT_LOGO = (1 << 1),
-    OSD_ZORDER = (1 << 2),
-    OSD_PRIMARY = (1 << 3),
-    OSD_FREESCALE = (1 << 4),
-    OSD_VIU2 = (1 << 29),
-    OSD_VIU1 = (1 << 30),
-    OSD_LAYER_ENABLE = (1 << 31)
+    OSD_HW_CURSOR     = (1 << 0),
+    OSD_UBOOT_LOGO    = (1 << 1),
+    OSD_ZORDER        = (1 << 2),
+    OSD_PRIMARY       = (1 << 3),
+    OSD_FREESCALE     = (1 << 4),
+    OSD_AFBC          = (1 << 5),
+    OSD_VIU2          = (1 << 29),
+    OSD_VIU1          = (1 << 30),
+    OSD_LAYER_ENABLE  = (1 << 31)
 };
 
 enum {
