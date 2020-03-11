@@ -10,12 +10,29 @@
 #include "SingleplaneComposition.h"
 #include <DrmTypes.h>
 #include <MesonLog.h>
+#include "HwcVideoPlane.h"
+#include <sys/ioctl.h>
+
+
+#define UVM_DEV_PATH "/dev/uvm"
+#define UVM_IOC_MAGIC 'U'
+#define UVM_IOC_SET_FD _IOWR(UVM_IOC_MAGIC, 3, struct uvm_fd_data)
+
+struct uvm_fd_data {
+    int fd;
+    int commit_display;
+};
 
 /*---------------------  SingleplaneComposition  ---------------------*/
 SingleplaneComposition::SingleplaneComposition() {
+    mUVMFd = open(UVM_DEV_PATH, O_RDONLY | O_CLOEXEC);
+    if (mUVMFd < 0) {
+        MESON_LOGE("open uvm device error");
+    }
 }
 
 SingleplaneComposition::~SingleplaneComposition() {
+    if (mUVMFd >= 0) close(mUVMFd);
 }
 
 /*---------------------  Setup composition  ---------------------*/
@@ -107,8 +124,10 @@ void SingleplaneComposition::setup(
             case LEGACY_VIDEO_PLANE:
                 mLegacyVideoPlane = plane;
                 break;
-            case INVALID_PLANE:
             case HWC_VIDEO_PLANE:
+                mHwcVideoPlane = plane;
+                break;
+            case INVALID_PLANE:
             default:
                 mUnusedPlanes.push_back(plane);
                 break;
@@ -129,6 +148,9 @@ int SingleplaneComposition::decideComposition() {
     /*hide secure layer, and force client.*/
     applyCompositionFlags();
 
+    /* handle uvm */
+    handleUVM();
+
     buildOsdComposition();
 
     /* record overlayFbs and start to compose */
@@ -139,6 +161,31 @@ int SingleplaneComposition::decideComposition() {
 
     return 0;
 }
+
+int SingleplaneComposition::handleUVM() {
+    if (mUVMFd > 0) {
+        std::shared_ptr<DrmFramebuffer> fb;
+        auto fbIt = mFramebuffers.begin();
+        struct uvm_fd_data fd_data;
+
+        for (; fbIt != mFramebuffers.end(); ++fbIt) {
+            fb = *fbIt;
+
+            if (am_gralloc_is_uvm_dma_buffer(fb->mBufferHandle)) {
+                fd_data.fd = am_gralloc_get_buffer_fd(fb->mBufferHandle);
+                fd_data.commit_display =
+                    (fb->mCompositionType == MESON_COMPOSITION_DUMMY) ? 0 : 1;
+
+                if (ioctl(mUVMFd, UVM_IOC_SET_FD, &fd_data) != 0) {
+                    MESON_LOGE("setUVM fd data ioctl error %s", strerror(errno));
+                    return -1;
+                }
+            }
+        }
+    }
+    return 0;
+}
+
 
 int SingleplaneComposition::processFbsOfExplicitComposition() {
     std::shared_ptr<DrmFramebuffer> fb;
@@ -159,6 +206,12 @@ int SingleplaneComposition::processFbsOfExplicitComposition() {
             MESON_COMPOSITION_PLANE_AMVIDEO_SIDEBAND},
         {DRM_FB_CURSOR, CURSOR_PLANE,
             MESON_COMPOSITION_PLANE_CURSOR},
+        {DRM_FB_VIDEO_OMX_V4L, HWC_VIDEO_PLANE,
+            MESON_COMPOSITION_PLANE_DI_VIDEO},
+        {DRM_FB_VIDEO_OMX2_V4L2, HWC_VIDEO_PLANE,
+            MESON_COMPOSITION_PLANE_DI_VIDEO},
+        {DRM_FB_VIDEO_DMABUF, HWC_VIDEO_PLANE,
+            MESON_COMPOSITION_PLANE_DI_VIDEO},
     };
     static int pairSize = sizeof(planeCompPairs) / sizeof(struct planeComp);
 
@@ -173,9 +226,24 @@ int SingleplaneComposition::processFbsOfExplicitComposition() {
                         mDisplayPairs.push_back(DisplayPair{fb, mLegacyVideoPlane});
                         mLegacyVideoPlane.reset();
                     } else {
-                        /*cursor plane used, handle it as a normal ui layer.*/
                         MESON_LOGE("too many layers need LEGACY_VIDEO_PLANE, discard. ");
                         destComp = MESON_COMPOSITION_DUMMY;
+                    }
+                    fb->mCompositionType = destComp;
+                    break;
+                } else if (planeCompPairs[i].destPlane == HWC_VIDEO_PLANE) {
+                    if (mHwcVideoPlane.get()) {
+                        mDisplayPairs.push_back(DisplayPair{fb, mHwcVideoPlane});
+                        mHwcVideoPlane.reset();
+                    } else {
+                        if (fb->mFbType == DRM_FB_VIDEO_DMABUF) {
+                            /*dma buf can be composed by gpu, handle it as a normal ui layer.*/
+                            MESON_LOGE("too many layers need HWC_VIDEO_PLANE, skip. ");
+                            destComp = MESON_COMPOSITION_UNDETERMINED;
+                        } else {
+                            MESON_LOGE("too many layers need HWC_VIDEO_PLANE, discard. ");
+                            destComp = MESON_COMPOSITION_DUMMY;
+                        }
                     }
                     fb->mCompositionType = destComp;
                     break;
@@ -250,6 +318,7 @@ int SingleplaneComposition::buildOsdComposition() {
                 break;
             case MESON_COMPOSITION_PLANE_AMVIDEO:
             case MESON_COMPOSITION_PLANE_AMVIDEO_SIDEBAND:
+            case MESON_COMPOSITION_PLANE_DI_VIDEO:
                 videoFb = fb;
                 bRemove = true;
                 break;
@@ -352,7 +421,6 @@ int SingleplaneComposition::commit() {
         * For osd, if the zorder is not fixed, set to default fixed osd plane.
         */
         uint32_t z  = plane->getFixedZorder();
-        MESON_ASSERT(z != INVALID_ZORDER, "Not support zorder.");
 
         if (composeOutput == fb) {
             /*dump composer info*/
@@ -379,6 +447,15 @@ int SingleplaneComposition::commit() {
                 fb->mDisplayFrame.left;
             osdDisplayFrame.crtc_display_h = fb->mDisplayFrame.bottom -
                 fb->mDisplayFrame.top;
+        } else if (plane->getPlaneType() == HWC_VIDEO_PLANE) {
+            DiComposerPair diComposerPair;
+            diComposerPair.num_composefbs = 1;
+            diComposerPair.composefbs.push_back(fb);
+            diComposerPair.zorder = HWC_PLANE_FAKE_ZORDER;
+
+            HwcVideoPlane * hwcVideoPlane = (HwcVideoPlane *)plane.get();
+            hwcVideoPlane->setComposePlane(&diComposerPair, UNBLANK);
+            continue;
         }
 
         /*set display info*/

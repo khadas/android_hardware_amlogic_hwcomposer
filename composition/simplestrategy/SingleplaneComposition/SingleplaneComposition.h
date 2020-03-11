@@ -43,6 +43,7 @@ public:
 protected:
     void cleanup();
 
+    int handleUVM();
     int applyCompositionFlags();
     int processFbsOfExplicitComposition();
     int buildOsdComposition();
@@ -71,6 +72,7 @@ protected:
     std::shared_ptr<HwDisplayPlane> mCursorPlane;
     std::shared_ptr<HwDisplayPlane> mOsdPlane;
     std::shared_ptr<HwDisplayPlane> mLegacyVideoPlane;
+    std::shared_ptr<HwDisplayPlane> mHwcVideoPlane;;
     std::vector<std::shared_ptr<HwDisplayPlane>> mUnusedPlanes;
 
     /*input fbs*/
@@ -80,6 +82,9 @@ protected:
     std::vector<std::shared_ptr<DrmFramebuffer>> mOverlayFbs;
     std::shared_ptr<IComposer> mComposer;
     std::list<DisplayPair> mDisplayPairs;
+
+    /* Use for UVM */
+    int mUVMFd;
 };
 
 #endif/*SINGLEPLANE_COMPOSITION_H*/
