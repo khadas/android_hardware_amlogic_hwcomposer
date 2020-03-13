@@ -82,7 +82,12 @@ int32_t DualDisplayPipe::init(
                             prefdisplayMode = DRM_DISPLAY_MODE_DEFAULT;
                             MESON_LOGI("sc_get_pref_display_mode fail! use default mode");
                         } else {
-                            strcpy(displayMode.name, prefdisplayMode.c_str());
+                            if (strcmp("null", prefdisplayMode.c_str()) == 0 ) {
+                                strcpy(displayMode.name, DRM_DISPLAY_MODE_DEFAULT);
+                                prefdisplayMode = DRM_DISPLAY_MODE_DEFAULT;
+                            } else {
+                                strcpy(displayMode.name, prefdisplayMode.c_str());
+                            }
                         }
                         sc_set_display_mode(prefdisplayMode);
                     }
@@ -208,7 +213,12 @@ void DualDisplayPipe::handleEvent(drm_display_event event, int val) {
                         prefdisplayMode = DRM_DISPLAY_MODE_DEFAULT;
                         MESON_LOGD("sc_get_pref_display_mode fail! use default mode");
                     } else {
-                        strcpy(displayMode.name, prefdisplayMode.c_str());
+                        if (strcmp("null", prefdisplayMode.c_str()) == 0 ) {
+                            strcpy(displayMode.name, DRM_DISPLAY_MODE_DEFAULT);
+                            prefdisplayMode = DRM_DISPLAY_MODE_DEFAULT;
+                        } else {
+                            strcpy(displayMode.name, prefdisplayMode.c_str());
+                        }
                     }
                 }
 
