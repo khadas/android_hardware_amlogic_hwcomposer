@@ -94,6 +94,8 @@ enum vmode_e {
 	VMODE_PAL_M,
 	VMODE_PAL_N,
 	VMODE_NTSC_M,
+	VMODE_3440_1440_50HZ,
+	VMODE_3440_1440_60HZ,
 	VMODE_NULL, /* null mode is used as temporary witch mode state */
 	VMODE_MAX,
 	VMODE_INIT_NULL,
