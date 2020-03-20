@@ -61,7 +61,7 @@ private:
     std::vector<uint8_t> mEDID;
     bool mIsEDIDValid;
 
-    bool mFracMode;
+    int32_t mFracMode;
     std::vector<float> mFracRefreshRates;
     drm_hdr_capabilities mHdrCapabilities;
 };

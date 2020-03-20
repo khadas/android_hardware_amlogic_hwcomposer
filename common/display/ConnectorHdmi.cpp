@@ -156,8 +156,7 @@ int32_t ConnectorHdmi::addDisplayMode(std::string& mode) {
             fracMode.refreshRate = (modeInfo.refreshRate * 1000) / (float)1001;
             mDisplayModes.emplace(mDisplayModes.size(), fracMode);
             MESON_LOGI("add fraction display mode (%s)", fracMode.name);
-            if (bNonFractionMode  == true)
-                mFracRefreshRates.push_back(fracMode.refreshRate);
+            mFracRefreshRates.push_back(fracMode.refreshRate);
         }
     } else {
         /*for non fraction display mode, we also add it in MODE_FRACTION*/
