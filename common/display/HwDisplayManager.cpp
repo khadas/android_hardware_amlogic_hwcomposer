@@ -189,6 +189,7 @@ int32_t HwDisplayManager::loadPlanes() {
             plane_idx = video_idx_max + idx;
             std::shared_ptr<HwcVideoPlane> plane =
                 std::make_shared<HwcVideoPlane>(fd, plane_idx);
+            plane->setAmVideoPath(idx);
             mPlanes.emplace(plane_idx, plane);
             count_video ++;
         }

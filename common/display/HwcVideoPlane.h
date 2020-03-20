@@ -69,10 +69,15 @@ public:
     uint32_t getPossibleCrtcs();
     bool isFbSupport(std::shared_ptr<DrmFramebuffer> & fb);
 
+    void setAmVideoPath(int32_t id);
     int32_t setPlane(std::shared_ptr<DrmFramebuffer> fb, uint32_t zorder, int blankOp);
     int32_t setComposePlane(DiComposerPair *difbs, int blankOp);
 
     void dump(String8 & dumpstr);
+
+protected:
+    int32_t getVideodisableStatus(int & status);
+    int32_t setVideodisableStatus(int status);
 
 protected:
     char mName[64];
@@ -82,6 +87,9 @@ protected:
 
     std::vector<std::shared_ptr<DrmFramebuffer>> mLastComposeFbs;
     std::shared_ptr<DrmFence> mLastFence;
+
+private:
+    char mAmVideosPath[64];
 };
 
  #endif/*HWC_VIDEO_PLANE_H*/

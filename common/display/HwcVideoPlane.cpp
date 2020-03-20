@@ -20,6 +20,7 @@ HwcVideoPlane::HwcVideoPlane(int32_t drvFd, uint32_t id)
     snprintf(mName, 64, "HwcVideo-%d", id);
     mLastComposeFbs.clear();
     mLastFence = std::make_shared<DrmFence>(-1);
+    memset(mAmVideosPath, 0, sizeof(mAmVideosPath));
 }
 
 HwcVideoPlane::~HwcVideoPlane() {
@@ -52,6 +53,66 @@ bool HwcVideoPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
         return true;
 
     return false;
+}
+
+void HwcVideoPlane::setAmVideoPath(int id) {
+    if (id == 0) {
+        strncpy(mAmVideosPath, "/sys/class/video/disable_video", sizeof(mAmVideosPath));
+    } else if (id == 1) {
+        strncpy(mAmVideosPath, "/sys/class/video/disable_videopip", sizeof(mAmVideosPath));
+    } else {
+        // nothing
+    }
+}
+
+int32_t HwcVideoPlane::getVideodisableStatus(int& status) {
+    /*fun is only called in updateVideodisableStatus(), mVideoDisableFd >= 0*/
+    char buf[32] = {0};
+    int ret;
+    int fd = -1;
+
+    if (strlen(mAmVideosPath) == 0)
+        return -1;
+
+    if ((fd = open(mAmVideosPath,  O_RDWR, 0)) < 0) {
+        MESON_LOGE("open %s failed", mAmVideosPath);
+        return -1;
+    }
+
+    if ((ret = read(fd, buf, sizeof(buf))) < 0) {
+        MESON_LOGE("get video disable failed, ret=%d error=%s", ret, strerror(errno));
+    } else {
+        sscanf(buf, "%d", &status);
+        ret = 0;
+    }
+
+    close(fd);
+    return ret;
+}
+
+int32_t HwcVideoPlane::setVideodisableStatus(int status) {
+    /*fun is only called in updateVideodisableStatus(), mVideoDisableFd >= 0*/
+    char buf[32] = {0};
+    int ret;
+    int fd = -1;
+
+    if (strlen(mAmVideosPath) == 0)
+        return -1;
+
+    if ((fd = open(mAmVideosPath,  O_RDWR, 0)) < 0) {
+        MESON_LOGE("open %s failed", mAmVideosPath);
+        return -1;
+    }
+
+    snprintf(buf, 32, "%d", status);
+    if ((ret = write(fd, buf, strnlen(buf, sizeof(buf)))) < 0) {
+        MESON_LOGE("set video disable failed, ret=%d", ret);
+    } else {
+        ret = 0;
+    }
+
+    close(fd);
+    return ret;
 }
 
 int32_t HwcVideoPlane::setComposePlane(
@@ -116,6 +177,22 @@ int32_t HwcVideoPlane::setComposePlane(
         mStatus = 1;
     }
 
+    /* update video plane disable status */
+    if (fb) {
+        int blankStatus = 0;
+        getVideodisableStatus(blankStatus);
+
+        /* the value of blankOp is UNBLANK */
+        if (fb->mFbType == DRM_FB_VIDEO_OMX_V4L ||
+            fb->mFbType == DRM_FB_VIDEO_OMX2_V4L2) {
+            if (blankStatus == 1) {
+                setVideodisableStatus(2);
+            }
+        } else {
+            MESON_LOGI("not support video fb type: %d", fb->mFbType);
+        }
+    }
+
     if (ioctl(mDrvFd, VIDEO_COMPOSER_IOCTL_SET_FRAMES, &mVideoFramesInfo) != 0) {
         MESON_LOGE("video composer: ioctl error, %s(%d), mDrvFd = %d",
             strerror(errno), errno, mDrvFd);
@@ -163,6 +240,22 @@ int32_t HwcVideoPlane::setPlane(
             return -1;
         }
         mStatus = 0;
+    }
+
+    /* update video plane disable status */
+    if (fb) {
+        int blankStatus = 0;
+        getVideodisableStatus(blankStatus);
+
+        /* the value of blankOp is UNBLANK */
+        if (fb->mFbType == DRM_FB_VIDEO_OMX_V4L ||
+            fb->mFbType == DRM_FB_VIDEO_OMX2_V4L2) {
+            if (blankStatus == 1) {
+                setVideodisableStatus(2);
+            }
+        } else {
+            MESON_LOGI("not support video fb type: %d", fb->mFbType);
+        }
     }
 
     /*update last frame release fence*/
