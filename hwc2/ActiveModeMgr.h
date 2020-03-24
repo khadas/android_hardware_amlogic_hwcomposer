@@ -49,7 +49,6 @@ protected:
     int32_t updateSfDispConfigs();
     int32_t updateHwcActiveConfig(const char * activeMode);
     int32_t updateSfActiveConfig(uint32_t config, drm_mode_info_t cfg);
-    void getActiveHwcMeta(const char * activeMode);
     bool isFracRate(float refreshRate);
     void reset();
     const drm_mode_info_t findMatchedMode(
@@ -62,11 +61,6 @@ protected:
 
     uint32_t mFbWidth;
     uint32_t mFbHeight;
-
-    //for activeHwc w&h&refresh rate
-    uint32_t mActiveHwcW;
-    uint32_t mActiveHwcH;
-    float mActiveHwcRate;
 
     bool mIsInit; // first boot flag
     bool mExtModeSet; // setActiveConfig() flag

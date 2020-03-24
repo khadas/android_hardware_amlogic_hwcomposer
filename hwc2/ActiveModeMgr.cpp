@@ -168,42 +168,37 @@ bool ActiveModeMgr::isFracRate(float refreshRate) {
     return refreshRate > floor(refreshRate) ? true : false;
 }
 
-void ActiveModeMgr::getActiveHwcMeta(const char * activeMode) {
-    for (auto it = mHwcActiveModes.begin(); it != mHwcActiveModes.end(); ++it) {
-        if (strncmp(activeMode, it->second.name, DRM_DISPLAY_MODE_LEN) == 0
-                && !isFracRate(it->second.refreshRate)) {
-            mActiveHwcH = it->second.pixelH;
-            mActiveHwcW = it->second.pixelW;
-            mActiveHwcRate = it->second.refreshRate;
-        }
-    }
-}
-
 int32_t ActiveModeMgr::updateHwcDispConfigs() {
     std::map<uint32_t, drm_mode_info_t> supportedModes;
     drm_mode_info_t activeMode;
     mHwcActiveModes.clear();
+    mHwcActiveConfigId = -1;
     MESON_LOGD("ActiveModeMgr::updateHwcDispConfigs()");
+
     mConnector->getModes(supportedModes);
     if (mCrtc->getMode(activeMode) != 0) {
         activeMode = mDefaultMode;
     }
     mActiveConfigStr = activeMode.name;
+
     for (auto it = supportedModes.begin(); it != supportedModes.end(); ++it) {
-        // skip default / fake active mode as we add it to the end
-        if (!strncmp(activeMode.name, it->second.name, DRM_DISPLAY_MODE_LEN)
-            && activeMode.refreshRate == it->second.refreshRate
-            && !isFracRate(activeMode.refreshRate)) {
+        MESON_LOGV("[%s]: add Hwc modes %s.", __func__, it->second.name);
+        mHwcActiveModes.emplace(mHwcActiveModes.size(), it->second);
+
+        if (!strncmp(activeMode.name, it->second.name, DRM_DISPLAY_MODE_LEN) &&
+            activeMode.refreshRate == it->second.refreshRate) {
+            mHwcActiveConfigId = mHwcActiveModes.size() - 1;
             mActiveConfigStr = activeMode.name;
-        } else {
-            MESON_LOGV("[%s]: add Hwc modes %s.", __func__, activeMode.name);
-            mHwcActiveModes.emplace(mHwcActiveModes.size(), it->second);
         }
     }
 
-    mHwcActiveModes.emplace(mHwcActiveModes.size(), activeMode);
     mConnector->setMode(activeMode);
-    mHwcActiveConfigId = mHwcActiveModes.size() - 1;
+
+    if (mHwcActiveModes.empty()) {
+        mHwcActiveModes.emplace(mHwcActiveModes.size(), mDefaultMode);
+        mHwcActiveConfigId = mHwcActiveModes.size() - 1;
+    }
+
     MESON_LOGD("[%s]: updateHwcDispConfigs Hwc active modes %s. refreshRate %f",
                 __func__, activeMode.name, activeMode.refreshRate);
     return HWC2_ERROR_NONE;
@@ -212,6 +207,7 @@ int32_t ActiveModeMgr::updateHwcDispConfigs() {
 int32_t ActiveModeMgr::updateSfDispConfigs() {
     // clear display modes
     mSfActiveModes.clear();
+    mSfActiveConfigId = -1;
 
     std::map<uint32_t, drm_mode_info_t> mTmpModes;
     mTmpModes = mHwcActiveModes;
@@ -242,25 +238,21 @@ int32_t ActiveModeMgr::updateSfDispConfigs() {
         }
     }
 
-    getActiveHwcMeta(mActiveConfigStr.c_str());
-
     for (tmpIt = tmpList.begin(); tmpIt != tmpList.end(); ++tmpIt) {
-        drm_mode_info_t config = tmpIt->second;
-        float cRate = config.refreshRate;
-        //judge whether it is the current display mode and add it to the end of the SF list
-        if ((cRate != mActiveHwcRate)) {
-            mSfActiveModes.emplace(mSfActiveModes.size(), tmpIt->second);
-        } else {
-            MESON_LOGD("curMode: %s", mActiveConfigStr.c_str());
+        mSfActiveModes.emplace(mSfActiveModes.size(), tmpIt->second);
+
+        auto it = mHwcActiveModes.find(mHwcActiveConfigId);
+        if (it != mHwcActiveModes.end()) {
+            if (!strncmp(it->second.name, tmpIt->second.name, DRM_DISPLAY_MODE_LEN)
+                && it->second.refreshRate == tmpIt->second.refreshRate) {
+                mSfActiveConfigId = mSfActiveModes.size() - 1;
+                MESON_LOGD("curMode: %s", mActiveConfigStr.c_str());
+            }
         }
     }
 
-    auto it = mHwcActiveModes.find(mHwcActiveConfigId);
-    if (it != mHwcActiveModes.end()) {
-        mSfActiveModes.emplace(mSfActiveModes.size(), it->second);
-    }
     MESON_LOGD("update Sf list with no default mode done, size (%zu)", mSfActiveModes.size());
-    mSfActiveConfigId = mSfActiveModes.size() - 1;
+
     mFakeConfigId = mSfActiveConfigId;
     return HWC2_ERROR_NONE;
 }
