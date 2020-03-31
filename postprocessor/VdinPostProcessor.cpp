@@ -177,6 +177,34 @@ int32_t VdinPostProcessor::setFbProcessor(
     return 0;
 }
 
+bool VdinPostProcessor::getScreencapFb(
+    std::shared_ptr<DrmFramebuffer> & capFb) {
+
+    bool ret = false;
+
+    scapfb = capFb;
+
+    createFbProcessor(FB_COPY_PROCESSOR, mSCapProcessor);
+
+    present(PRESENT_CAPSCREEN,-1);
+
+    nsecs_t start_time = systemTime(CLOCK_MONOTONIC);
+    nsecs_t duration = 0;
+
+    while ( mSCapProcessor != NULL ) {
+        duration = systemTime(CLOCK_MONOTONIC)- start_time;
+        usleep(5*1000);
+        MESON_LOGE("wait to get screencapfb time %lld",duration);
+    }
+
+    scapfb.reset();
+    if (mCapStatus == 0) {
+        ret = true;
+    }
+
+    return ret;
+}
+
 int32_t VdinPostProcessor::start() {
     std::lock_guard<std::mutex> lock(mMutex);
     if (mStat == PROCESSOR_START)
@@ -312,6 +340,10 @@ int32_t VdinPostProcessor::process() {
                     mFbProcessor->setup();
             }
             mReqFbProcessor.pop();
+        } else if ( cmd & PRESENT_CAPSCREEN) {
+            mSCapProcessor->setup() ;
+            mProcessMode = PROCESS_ONCE;
+            capCnt = VDIN_CAP_CNT;
         } else if ((cmd & PRESENT_BLANK) || (cmd == 0)) {
             mProcessMode = PROCESS_ONCE;
             capCnt = VDIN_CAP_CNT;
@@ -421,6 +453,12 @@ int32_t VdinPostProcessor::process() {
                         fence.wait(3000);
                     }
                     mVoutQueue.pop();
+                    if (mSCapProcessor != NULL) {
+                        mCapStatus = mSCapProcessor->process(infb,scapfb);
+                        mSCapProcessor->teardown();
+                        mSCapProcessor.reset();
+                    }
+
                     /*do processor*/
                     mFbProcessor->process(infb, outfb);
                     /*post outbuf to vout, and return to vout queue.*/

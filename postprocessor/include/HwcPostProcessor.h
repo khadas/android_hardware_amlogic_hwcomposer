@@ -20,6 +20,7 @@ typedef enum {
 enum {
     PRESENT_BLANK = 1<< 0,
     PRESENT_SIDEBAND = 1 << 1,
+    PRESENT_CAPSCREEN = 1 << 2,
     PRESENT_MAX = 1 << 16,
     /*postprocessor can use its self flags after PRESENT_MAX*/
 };
@@ -32,6 +33,7 @@ public:
     virtual int32_t stop() = 0;
     virtual bool running() = 0;
 
+    virtual bool getScreencapFb(std::shared_ptr<DrmFramebuffer> & capFb) = 0;
     virtual int32_t present(int32_t flags, int32_t fence) = 0;
 };
 

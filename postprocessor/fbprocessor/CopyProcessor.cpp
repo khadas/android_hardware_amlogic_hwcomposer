@@ -47,6 +47,9 @@ int32_t CopyProcessor::process(
                 src += instride * bytes;
                 dst += outstride * bytes;
             }
+        } else {
+            MESON_LOGE("infmt doesn't match outfmt, don't copy");
+            return -1;
         }
 
         inputfb->unlock();

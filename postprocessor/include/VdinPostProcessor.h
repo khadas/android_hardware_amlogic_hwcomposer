@@ -37,6 +37,7 @@ public:
         int w, int h);
     int32_t setFbProcessor(std::shared_ptr<FbProcessor> & processor);
 
+    bool getScreencapFb(std::shared_ptr<DrmFramebuffer> & capFb);
     int32_t start();
     int32_t stop();
     bool running();
@@ -92,6 +93,11 @@ protected:
 
     std::shared_ptr<FbProcessor> mFbProcessor;
     std::queue<std::shared_ptr<FbProcessor>> mReqFbProcessor;
+
+//only for screencap
+    std::shared_ptr<FbProcessor> mSCapProcessor;
+    std::shared_ptr<DrmFramebuffer> scapfb;
+    int32_t mCapStatus;
 
     int mStat;
     pthread_t mThread;

@@ -1273,7 +1273,7 @@ int32_t Hwc2Display::captureDisplayScreen(buffer_handle_t hnd) {
     ALOGD("hwc2Display:: captureDisplayScreen");
     if (mPostProcessor && hnd) {
         capBuffer = std::make_shared<DrmFramebuffer>(hnd, -1);
-        //ret = mPostProcessor->getScreencapFb(capBuffer);
+        ret = mPostProcessor->getScreencapFb(capBuffer);
         capBuffer.reset();
     }
 
