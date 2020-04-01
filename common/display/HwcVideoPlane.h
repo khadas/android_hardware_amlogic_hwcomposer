@@ -54,7 +54,6 @@ struct DiComposerPair {
     uint32_t zorder;
     uint32_t num_composefbs;
     std::vector<std::shared_ptr<DrmFramebuffer>> composefbs;
-    std::shared_ptr<HwDisplayPlane> plane;
 };
 
 
@@ -85,6 +84,7 @@ protected:
     u32 mFramesCount;
     video_frames_info_t mVideoFramesInfo;
     bool mStatus;
+    drm_fb_type_t mDisplayedVideoType;
 
     std::vector<std::shared_ptr<DrmFramebuffer>> mLastComposeFbs;
     std::shared_ptr<DrmFence> mLastFence;

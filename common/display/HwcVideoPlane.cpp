@@ -15,11 +15,22 @@
 #include <misc.h>
 
 
+inline bool isSidebandVideo(drm_fb_type_t fbtype) {
+    if (fbtype == DRM_FB_VIDEO_SIDEBAND ||
+        fbtype == DRM_FB_VIDEO_SIDEBAND_TV ||
+        fbtype == DRM_FB_VIDEO_SIDEBAND_SECOND) {
+        return true;
+    }
+
+    return false;
+}
+
 HwcVideoPlane::HwcVideoPlane(int32_t drvFd, uint32_t id)
     : HwDisplayPlane(drvFd, id) {
     snprintf(mName, 64, "HwcVideo-%d", id);
     mLastComposeFbs.clear();
     mLastFence = std::make_shared<DrmFence>(-1);
+    mDisplayedVideoType = DRM_FB_UNDEFINED;
     memset(mAmVideosPath, 0, sizeof(mAmVideosPath));
 }
 
@@ -130,6 +141,22 @@ int32_t HwcVideoPlane::setComposePlane(
 
     memset(&mVideoFramesInfo, 0, sizeof(mVideoFramesInfo));
     mFramesCount = difbs->composefbs.size();
+
+    if (mFramesCount > 0 &&
+        mDisplayedVideoType != DRM_FB_UNDEFINED) {
+        drm_fb_type_t type = difbs->composefbs[0]->mFbType;
+        if (type != mDisplayedVideoType) {
+            if (isSidebandVideo(type) && isSidebandVideo(mDisplayedVideoType)) {
+                int disable_composer = 0;
+                if (ioctl(mDrvFd, VIDEO_COMPOSER_IOCTL_SET_ENABLE, &disable_composer) != 0) {
+                    MESON_LOGE("video composer: ioctl error, %s(%d), mDrvFd = %d",
+                        strerror(errno), errno, mDrvFd);
+                }
+            }
+            mDisplayedVideoType = type;
+        }
+    }
+
     for (i = 0; i < mFramesCount; i++) {
         vFrameInfo = &mVideoFramesInfo.frame_info[i];
         fb = difbs->composefbs[i];
@@ -244,6 +271,10 @@ int32_t HwcVideoPlane::setPlane(
             return -1;
         }
         mStatus = 0;
+    }
+
+    if (mStatus == 0) {
+        mDisplayedVideoType = DRM_FB_UNDEFINED;
     }
 
     /* update video plane disable status */
