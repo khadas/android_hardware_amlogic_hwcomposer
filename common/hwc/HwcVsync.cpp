@@ -112,7 +112,7 @@ void * HwcVsync::vsyncThread(void * data) {
             pThis->mPreTimeStamp = timestamp;
         }
 
-        if ( ret == 0 && pThis->mObserver) {
+        if (pThis->mEnabled && ret == 0 && pThis->mObserver) {
             pThis->mObserver->onVsync(timestamp);
         } else {
             MESON_LOGE("HwcVsync vsync callback fail (%p)-(%d)-(%p)",
