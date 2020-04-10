@@ -14,24 +14,17 @@
 #include "HwcVideoPlane.h"
 #include "am_gralloc_ext.h"
 
-
-#define LEGACY_VIDEO_MODE_SWITCH       0    // Only use in current device (Only one legacy video plane)
+#define OSD_PLANE_NUM_MAX         3  // Maximum osd planes of support
 #define OSD_OUTPUT_ONE_CHANNEL         1
 #define OSD_PLANE_DIN_ZERO             0    // din0: osd fb input
 #define OSD_PLANE_DIN_ONE              1    // din1: osd fb input
 #define OSD_PLANE_DIN_TWO              2    // din2: osd fb input
 #define VIDEO_PLANE_DIN_ONE            3    // video1: video fb input
 #define VIDEO_PLANE_DIN_TWO            4    // video2: video fb input
-#define VIDEO_DI_IN0                   5    // DI input 0
-#define VIDEO_DI_IN1                   6    // DI input 1
-#define VIDEO_DI_IN2                   7    // DI input 2
-#define VIDEO_DI_IN3                   8    // DI input 3
 
 #define OSD_FB_BEGIN_ZORDER            65   // osd zorder: 65 - 128
 #define TOP_VIDEO_FB_BEGIN_ZORDER      129  // top video zorder: 129 - 192
 #define BOTTOM_VIDEO_FB_BEGIN_ZORDER   1    // bottom video zorder: 1 - 64
-#define PIP_VIDEO_DISPLAYFRAME_SIZE    16
-
 
 #define OSD_SCALER_INPUT_MAX_WIDTH (1920)
 #define OSD_SCALER_INPUT_MAX_HEIGH (1080)
@@ -39,7 +32,6 @@
 #define OSD_SCALER_INPUT_MARGIN (1.1)
 
 #define DI_VIDEO_COMPOSE_MAX 2
-
 
 #define IS_FB_COMPOSED(fb) \
     (fb->mZorder >= mMinComposerZorder && fb->mZorder <= mMaxComposerZorder)
@@ -92,8 +84,6 @@ void MultiplanesWithDiComposition::init() {
     /* Clean Plane */
     mOsdPlanes.clear();
     mHwcVideoPlanes.clear();
-    mLegacyVideoPlane.reset();
-    mLegacyExtVideoPlane.reset();
     mOtherPlanes.clear();
 
     /* Clean Composition members */
@@ -114,8 +104,7 @@ void MultiplanesWithDiComposition::init() {
 }
 
 /* Handle VIDEO Fbs and set VideoFbs2Plane pairs.
- * Current VIDEO plane support : 1 LegacyVideoPlane + 1 HwcVideoPlane
- * Future  VIDEO plane support : 2 HwcVideoPlane
+ * Current  VIDEO plane support : 2 HwcVideoPlane
  */
 int MultiplanesWithDiComposition::handleVideoComposition() {
     meson_compositon_t destComp;
@@ -124,18 +113,12 @@ int MultiplanesWithDiComposition::handleVideoComposition() {
         drm_plane_type_t destPlane;
         meson_compositon_t destComp;
     } planeCompPairs [] = {
-        {DRM_FB_VIDEO_OVERLAY, LEGACY_VIDEO_PLANE,
-            MESON_COMPOSITION_PLANE_AMVIDEO},
-        {DRM_FB_VIDEO_OMX_PTS, LEGACY_VIDEO_PLANE,
-            MESON_COMPOSITION_PLANE_AMVIDEO},
         {DRM_FB_VIDEO_SIDEBAND, HWC_VIDEO_PLANE,
             MESON_COMPOSITION_PLANE_DI_VIDEO},
         {DRM_FB_VIDEO_SIDEBAND_SECOND, HWC_VIDEO_PLANE,
             MESON_COMPOSITION_PLANE_DI_VIDEO},
         {DRM_FB_VIDEO_SIDEBAND_TV, HWC_VIDEO_PLANE,
             MESON_COMPOSITION_PLANE_DI_VIDEO},
-        {DRM_FB_VIDEO_OMX_PTS_SECOND, LEGACY_EXT_VIDEO_PLANE,
-            MESON_COMPOSITION_PLANE_AMVIDEO},
         {DRM_FB_VIDEO_OMX_V4L, HWC_VIDEO_PLANE,
             MESON_COMPOSITION_PLANE_DI_VIDEO},
         {DRM_FB_VIDEO_OMX2_V4L2, HWC_VIDEO_PLANE,
@@ -151,34 +134,8 @@ int MultiplanesWithDiComposition::handleVideoComposition() {
         fb = fbIt->second;
         for (int i = 0; i < pairSize; i++) {
             if (fb->mFbType == planeCompPairs[i].srcFb) {
-                uint32_t presentZorder = fb->mZorder;
                 destComp = planeCompPairs[i].destComp;
-                if (planeCompPairs[i].destPlane == LEGACY_VIDEO_PLANE) {
-                    if (mLegacyVideoPlane.get()) {
-                        mDisplayPairs.push_back(DisplayPair{VIDEO_PLANE_DIN_ONE, presentZorder, fb, mLegacyVideoPlane});
-                        mLegacyVideoPlane.reset();
-                    } else {
-                        MESON_LOGE("too many layers need LEGACY_VIDEO_PLANE, discard.");
-                        destComp = MESON_COMPOSITION_DUMMY;
-                    }
-                    fb->mCompositionType = destComp;
-                    break;
-                } else if (planeCompPairs[i].destPlane == LEGACY_EXT_VIDEO_PLANE) {
-                    int32_t width = 0, height = 0;
-                    width = abs(fb->mDisplayFrame.right - fb->mDisplayFrame.left);
-                    height = abs(fb->mDisplayFrame.bottom - fb->mDisplayFrame.top);
-                    if (width <= PIP_VIDEO_DISPLAYFRAME_SIZE && height <= PIP_VIDEO_DISPLAYFRAME_SIZE) {
-                        destComp = MESON_COMPOSITION_DUMMY;
-                    } else if (mLegacyExtVideoPlane.get()) {
-                        mDisplayPairs.push_back(DisplayPair{VIDEO_PLANE_DIN_TWO, presentZorder, fb, mLegacyExtVideoPlane});
-                        mLegacyExtVideoPlane.reset();
-                    } else {
-                        MESON_LOGE("too many layers need LEGACY_EXT_VIDEO_PLANE, discard.");
-                        destComp = MESON_COMPOSITION_DUMMY;
-                    }
-                    fb->mCompositionType = destComp;
-                    break;
-                } else if (planeCompPairs[i].destPlane == HWC_VIDEO_PLANE) {
+                if (planeCompPairs[i].destPlane == HWC_VIDEO_PLANE) {
                     mDIComposerFbs.push_back(fb);
                     MESON_ASSERT(mDIComposerFbs.size() <= MAX_LAYER_COUNT,
                         "More than four DI video layers !!!");
@@ -259,8 +216,6 @@ int MultiplanesWithDiComposition::pickoutOsdFbs() {
                 bRemove = true;
                 break;
 
-            case MESON_COMPOSITION_PLANE_AMVIDEO:
-            case MESON_COMPOSITION_PLANE_AMVIDEO_SIDEBAND:
             case MESON_COMPOSITION_PLANE_HWCVIDEO:
             case MESON_COMPOSITION_PLANE_DI_VIDEO:
                 mOverlayFbs.push_back(fb);
@@ -309,35 +264,6 @@ int MultiplanesWithDiComposition::pickoutOsdFbs() {
         mDummyComposer->addInputs(dummyFbs, dummyOverlayFbs);
     }
 
-/* USELESS now.
-    if (mDIComposerFbs.size() > 0) {
-        std::vector<std::shared_ptr<DrmFramebuffer>> diOverlayFbs;
-        mDiComposer->addInputs(mDIComposerFbs, diOverlayFbs);
-    }
-*/
-
-/* Only support one legacy video in current times. */
-#if LEGACY_VIDEO_MODE_SWITCH
-    if (!mOverlayFbs.empty() && !mFramebuffers.empty()) {
-        auto osdFbIt = mFramebuffers.begin();
-        uint32_t minOsdFbZorder = osdFbIt->second->mZorder;
-        osdFbIt = mFramebuffers.end();
-        osdFbIt --;
-
-        /* Current only input one Legacy video fb. */
-        std::shared_ptr<DrmFramebuffer> legacyVideoFb = *(mOverlayFbs.begin());
-        if (legacyVideoFb->mZorder > minOsdFbZorder) {
-            mMinComposerZorder = mFramebuffers.begin()->second->mZorder;
-            /* Legacy video is always on the bottom.
-             * SO, all fbs below legacyVideo zorder need to compose.
-             * Set maxClientZorder = legacyVideoZorder
-             */
-            if (mMaxComposerZorder == INVALID_ZORDER || legacyVideoFb->mZorder > mMaxComposerZorder) {
-                mMaxComposerZorder = legacyVideoFb->mZorder;
-            }
-        }
-    }
-#else // If only one legacy video in current times, don't need to check inside video flag.
     /* 1. check mInsideVideoFbsFlag = false
      * 2. for HDR mode, adjust compose range.
      */
@@ -381,7 +307,6 @@ int MultiplanesWithDiComposition::pickoutOsdFbs() {
             }
         }
     }
-#endif
 
     return 0;
 }
@@ -819,9 +744,7 @@ void MultiplanesWithDiComposition::handleDispayLayerZorder() {
     for (auto it = mDisplayPairs.begin(); it != mDisplayPairs.end(); ++it) {
         std::shared_ptr<DrmFramebuffer> fb = it->fb;
         std::shared_ptr<HwDisplayPlane> plane = it->plane;
-        if (LEGACY_VIDEO_PLANE == plane->getPlaneType() ||
-            LEGACY_EXT_VIDEO_PLANE == plane->getPlaneType() ||
-            HWC_VIDEO_PLANE == plane->getPlaneType()) {
+        if (HWC_VIDEO_PLANE == plane->getPlaneType()) {
             if (fb->mZorder > maxOsdZorder && topVideoNum != 1) {
                 it->presentZorder = it->presentZorder + TOP_VIDEO_FB_BEGIN_ZORDER; // top video zorder: 129 - 192
                 topVideoNum++;
@@ -1173,11 +1096,6 @@ void MultiplanesWithDiComposition::setup(
                     mClientComposer = composer;
                 break;
 
-            case MESON_COMPOSITION_DI:
-                if (mDiComposer == NULL)
-                    mDiComposer = composer;
-                break;
-
             default:
                 mOtherComposers.push_back(composer);
                 break;
@@ -1199,24 +1117,6 @@ void MultiplanesWithDiComposition::setup(
                 mHwcVideoPlanes.push_back(plane);
                 MESON_ASSERT(mHwcVideoPlanes.size() <= DI_VIDEO_COMPOSE_MAX,
                     "More than two DI video composer planes !!!");
-                break;
-
-            case LEGACY_VIDEO_PLANE:
-                if (mLegacyVideoPlane.get() == NULL) {
-                    mLegacyVideoPlane = plane;
-                } else {
-                    MESON_ASSERT(0, "More than one legacy_video osd plane, discard.");
-                    mOtherPlanes.push_back(plane);
-                }
-                break;
-
-            case LEGACY_EXT_VIDEO_PLANE:
-                if (mLegacyExtVideoPlane.get() == NULL) {
-                    mLegacyExtVideoPlane = plane;
-                } else {
-                    MESON_ASSERT(0, "More than one legacy_ext_video osd plane, discard.");
-                    mOtherPlanes.push_back(plane);
-                }
                 break;
 
             default:
@@ -1348,11 +1248,6 @@ int MultiplanesWithDiComposition::commit() {
     }
 
     /* Blank un-used plane. */
-    if (mLegacyVideoPlane.get())
-        mOtherPlanes.push_back(mLegacyVideoPlane);
-    if (mLegacyExtVideoPlane.get())
-        mOtherPlanes.push_back(mLegacyExtVideoPlane);
-
     auto planeIt = mHwcVideoPlanes.begin();
     for (; planeIt != mHwcVideoPlanes.end(); ++planeIt) {
         mOtherPlanes.push_back(*planeIt);
