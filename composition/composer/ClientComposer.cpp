@@ -19,7 +19,8 @@ ClientComposer::~ClientComposer() {
 
 bool ClientComposer::isFbsSupport(
     std::vector<std::shared_ptr<DrmFramebuffer>> & fbs __unused,
-    std::vector<std::shared_ptr<DrmFramebuffer>> & overlayfbs __unused) {
+    std::vector<std::shared_ptr<DrmFramebuffer>> & overlayfbs __unused,
+    int composeIdx __unused) {
     return true;
 }
 
@@ -29,15 +30,10 @@ int32_t ClientComposer::prepare() {
     return 0;
 }
 
-int32_t ClientComposer::addInput(
-    std::shared_ptr<DrmFramebuffer> & fb __unused,
-    bool bOverlay __unused) {
-    return 0;
-}
-
 int32_t ClientComposer::addInputs(
     std::vector<std::shared_ptr<DrmFramebuffer>> & fbs __unused,
-    std::vector<std::shared_ptr<DrmFramebuffer>> & overlayfbs) {
+    std::vector<std::shared_ptr<DrmFramebuffer>> & overlayfbs,
+    int composeIdx __unused) {
     mOverlayFbs = overlayfbs;
     return 0;
 }
@@ -50,16 +46,18 @@ int32_t ClientComposer::getOverlyFbs(
 
 int32_t ClientComposer::setOutput(
     std::shared_ptr<DrmFramebuffer> & fb,
-    hwc_region_t damage __unused) {
+    hwc_region_t damage __unused,
+    int composeIdx __unused) {
     mClientTarget = fb;
     return 0;
 }
 
-int32_t ClientComposer::start() {
+int32_t ClientComposer::start(int composeIdx __unused) {
     return 0;
 }
 
-std::shared_ptr<DrmFramebuffer> ClientComposer::getOutput() {
+std::shared_ptr<DrmFramebuffer> ClientComposer::getOutput(
+    int composeIdx __unused) {
     return mClientTarget;
 }
 

@@ -7,9 +7,31 @@
  * Description:
  */
 
+#include <BasicTypes.h>
 #include "DiComposer.h"
+#include <MesonLog.h>
 
-DiComposer::DiComposer() {
+struct DiComposerPair {
+    uint32_t zorder;
+    uint32_t num_composefbs;
+    std::vector<std::shared_ptr<DrmFramebuffer>> composefbs;
+};
+
+DiComposer::DiComposer()
+    : IComposer() {
+    int idx = 0;
+    do {
+         std::shared_ptr<VideoComposerDev> dev = getVideoComposerDev(idx);
+         if (!dev)
+            break;
+        std::shared_ptr<ComposerImpl> impl = std::make_shared<ComposerImpl>();
+        impl->composeDev = dev;
+        mComposerImpl.push_back(std::move(impl));
+        idx ++;
+    } while(1);
+
+    mImplNum = mComposerImpl.size();
+    MESON_ASSERT(mImplNum > 0, "DiComposer init fail.");
 }
 
 DiComposer::~DiComposer() {
@@ -17,23 +39,32 @@ DiComposer::~DiComposer() {
 
 bool DiComposer::isFbsSupport(
     std::vector<std::shared_ptr<DrmFramebuffer>> & fbs __unused,
-    std::vector<std::shared_ptr<DrmFramebuffer>> & overlayfbs __unused) {
+    std::vector<std::shared_ptr<DrmFramebuffer>> & overlayfbs __unused,
+    int composeIdx __unused) {
     return true;
 }
 
 int32_t DiComposer::prepare() {
-    return 0;
-}
+    /*clear impl data*/
+    for (auto it = mComposerImpl.begin(); it != mComposerImpl.end(); it ++) {
+        std::shared_ptr<ComposerImpl> impl = *it;
+        impl->inputFbs.clear();
+        impl->overlayFbs.clear();
+        impl->outputFb.reset();
+    }
 
-int32_t DiComposer::addInput(
-    std::shared_ptr<DrmFramebuffer> & fb __unused,
-    bool bOverlay __unused) {
     return 0;
 }
 
 int32_t DiComposer::addInputs(
-    std::vector<std::shared_ptr<DrmFramebuffer>> & fbs __unused,
-    std::vector<std::shared_ptr<DrmFramebuffer>> & overlayfbs __unused) {
+    std::vector<std::shared_ptr<DrmFramebuffer>> & fbs,
+    std::vector<std::shared_ptr<DrmFramebuffer>> & overlayfbs,
+    int composeIdx) {
+    MESON_ASSERT(composeIdx < mImplNum, "DiComposer composeidx %d err .", composeIdx);
+
+    std::shared_ptr<ComposerImpl> impl = mComposerImpl[composeIdx];
+    impl->inputFbs = fbs;
+    impl->overlayFbs = overlayfbs;
     return 0;
 }
 
@@ -43,17 +74,38 @@ int32_t DiComposer::getOverlyFbs(
 }
 
 int32_t DiComposer::setOutput(
-    std::shared_ptr<DrmFramebuffer> & fb __unused,
-    hwc_region_t damage __unused) {
+    std::shared_ptr<DrmFramebuffer> & fb,
+    hwc_region_t damage __unused,
+    int composeIdx) {
+    MESON_ASSERT(composeIdx < mImplNum, "DiComposer composeidx %d err .", composeIdx);
+
+    /*use fake fb, and read zorder from fb.*/
+    MESON_ASSERT(fb->mFbType == DRM_FB_DI_COMPOSE_OUTPUT,
+            "Di Composer only use fake output.");
+    std::shared_ptr<ComposerImpl> impl = mComposerImpl[composeIdx];
+    impl->outputFb = fb;
     return 0;
 }
 
-int32_t DiComposer::start() {
+int32_t DiComposer::start(int composeIdx) {
+    MESON_ASSERT(composeIdx < mImplNum, "DiComposer composeidx %d err .", composeIdx);
+
+    std::shared_ptr<ComposerImpl> impl = mComposerImpl[composeIdx];
+    int fenceFd = -1;
+
+    MESON_ASSERT(impl->outputFb.get(), "DiComposer (%d) no output set!", composeIdx);
+    impl->composeDev->enable(true);
+    impl->composeDev->setFrames(impl->inputFbs, fenceFd, impl->outputFb->mZorder);
+
+    /*??? release fence */
+
     return 0;
 }
 
-std::shared_ptr<DrmFramebuffer> DiComposer::getOutput() {
-    return NULL;
-}
+std::shared_ptr<DrmFramebuffer> DiComposer::getOutput(int composeIdx) {
+    MESON_ASSERT(composeIdx < mImplNum, "DiComposer composeidx %d err .", composeIdx);
 
+    std::shared_ptr<ComposerImpl> impl = mComposerImpl[composeIdx];
+    return impl->outputFb;
+}
 

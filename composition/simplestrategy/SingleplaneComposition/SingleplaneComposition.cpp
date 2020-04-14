@@ -207,11 +207,11 @@ int SingleplaneComposition::processFbsOfExplicitComposition() {
         {DRM_FB_CURSOR, CURSOR_PLANE,
             MESON_COMPOSITION_PLANE_CURSOR},
         {DRM_FB_VIDEO_OMX_V4L, HWC_VIDEO_PLANE,
-            MESON_COMPOSITION_PLANE_DI_VIDEO},
+            MESON_COMPOSITION_PLANE_HWCVIDEO},
         {DRM_FB_VIDEO_OMX2_V4L2, HWC_VIDEO_PLANE,
-            MESON_COMPOSITION_PLANE_DI_VIDEO},
+            MESON_COMPOSITION_PLANE_HWCVIDEO},
         {DRM_FB_VIDEO_DMABUF, HWC_VIDEO_PLANE,
-            MESON_COMPOSITION_PLANE_DI_VIDEO},
+            MESON_COMPOSITION_PLANE_HWCVIDEO},
     };
     static int pairSize = sizeof(planeCompPairs) / sizeof(struct planeComp);
 
@@ -318,7 +318,7 @@ int SingleplaneComposition::buildOsdComposition() {
                 break;
             case MESON_COMPOSITION_PLANE_AMVIDEO:
             case MESON_COMPOSITION_PLANE_AMVIDEO_SIDEBAND:
-            case MESON_COMPOSITION_PLANE_DI_VIDEO:
+            case MESON_COMPOSITION_PLANE_HWCVIDEO:
                 videoFb = fb;
                 bRemove = true;
                 break;
@@ -447,15 +447,6 @@ int SingleplaneComposition::commit() {
                 fb->mDisplayFrame.left;
             osdDisplayFrame.crtc_display_h = fb->mDisplayFrame.bottom -
                 fb->mDisplayFrame.top;
-        } else if (plane->getPlaneType() == HWC_VIDEO_PLANE) {
-            DiComposerPair diComposerPair;
-            diComposerPair.num_composefbs = 1;
-            diComposerPair.composefbs.push_back(fb);
-            diComposerPair.zorder = HWC_PLANE_FAKE_ZORDER;
-
-            HwcVideoPlane * hwcVideoPlane = (HwcVideoPlane *)plane.get();
-            hwcVideoPlane->setComposePlane(&diComposerPair, UNBLANK);
-            continue;
         }
 
         /*set display info*/
