@@ -469,6 +469,8 @@ int SingleplaneComposition::commit() {
         mUnusedPlanes.push_back(mLegacyVideoPlane);
     if (mOsdPlane.get())
         mUnusedPlanes.push_back(mOsdPlane);
+    if (mHwcVideoPlane.get())
+        mUnusedPlanes.push_back(mHwcVideoPlane);
 
     auto planeit = mUnusedPlanes.begin();
     for (;planeit != mUnusedPlanes.end(); ++planeit) {
