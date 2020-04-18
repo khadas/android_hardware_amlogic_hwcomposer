@@ -28,6 +28,11 @@ struct vdin_set_canvas_s {
     int index;
 };
 
+struct vdin_crc_info {
+    int index;
+    unsigned int val_crc;
+};
+
 /*Vdin1 used to capture data from vout0.*/
 class Vdin
     :   public android::Singleton<Vdin> {
@@ -40,7 +45,7 @@ public:
     int32_t setStreamInfo(int  format, int bufCnt);
 
     int32_t queueBuffer(std::shared_ptr<DrmFramebuffer> & fb, int idx);
-    int32_t dequeueBuffer(int & idx);
+    int32_t dequeueBuffer(vdin_crc_info & crcinfo);
 
     /*should call queueBuffer() before start.*/
     int32_t start();

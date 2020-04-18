@@ -46,6 +46,8 @@ public:
 protected:
     static void * threadMain(void * data);
 
+    void reset();
+
     int32_t process();
 
     int32_t startVdin();
@@ -97,6 +99,9 @@ protected:
 
     std::mutex mMutex;
     std::condition_variable mCmdCond;
+
+    bool crcvalStatus = true;
+    unsigned int crcVal = 0;
 
 };
 

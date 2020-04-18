@@ -34,6 +34,11 @@ VdinPostProcessor::~VdinPostProcessor() {
     mPlanes.clear();
 }
 
+void VdinPostProcessor::reset() {
+    crcvalStatus = true;
+    crcVal = 0;
+}
+
 int32_t VdinPostProcessor::setVout(
     std::shared_ptr<HwDisplayCrtc> & crtc,
     std::vector<std::shared_ptr<HwDisplayPlane>> & planes,
@@ -152,6 +157,10 @@ int32_t VdinPostProcessor::setFbProcessor(
     std::shared_ptr<FbProcessor> & processor) {
     std::unique_lock<std::mutex> cmdLock(mMutex);
 
+    if (processor == NULL) {
+        reset();
+    }
+
     if (mStat == PROCESSOR_START) {
         mReqFbProcessor.push(processor);
         mCmdQ.push(PRESENT_UPDATE_PROCESSOR);
@@ -256,6 +265,7 @@ int32_t VdinPostProcessor::present(int flags, int32_t fence) {
 void * VdinPostProcessor::threadMain(void * data) {
     MESON_ASSERT(data, "vdin data should not be NULL.");
     VdinPostProcessor * pThis = (VdinPostProcessor *) data;
+    pThis->reset();
     if (pThis->mFbProcessor)
         pThis->mFbProcessor->setup();
 
@@ -346,6 +356,7 @@ int32_t VdinPostProcessor::process() {
         std::shared_ptr<DrmFramebuffer> infb;
         std::shared_ptr<DrmFramebuffer> outfb;
         int vdinIdx = -1;
+        vdin_crc_info vdinCrc;
 
         /*Release buf to vdin here, for we may keeped all the buf..*/
         while (capCnt > 0 && mVdinQueue.size() > 0) {
@@ -365,7 +376,14 @@ int32_t VdinPostProcessor::process() {
 #endif
 
         /*read vdin and process.*/
-        if (Vdin::getInstance().dequeueBuffer(vdinIdx) == 0) {
+        if (Vdin::getInstance().dequeueBuffer(vdinCrc) == 0) {
+            if (crcVal == vdinCrc.val_crc) {
+                crcvalStatus = false;
+            } else {
+                crcvalStatus = true;
+            }
+            crcVal = vdinCrc.val_crc;
+            vdinIdx = vdinCrc.index;
             MESON_ASSERT(vdinIdx >= 0 && !mVoutQueue.empty(), "idx always >= 0.");
 #ifdef PROCESS_DEBUG
             MESON_LOGE("Vdin::dequeue %d", vdinIdx);
@@ -389,19 +407,21 @@ int32_t VdinPostProcessor::process() {
 
             if (mFbProcessor != NULL) {
                 /*get ouput buf, and wait it ready.*/
-                outfb = mVoutQueue.front();
-                int releaseFence = outfb->getPrevReleaseFence();
-                if (releaseFence >= 0) {
-                    DrmFence fence(releaseFence);
-                    fence.wait(3000);
+                if (crcvalStatus) {
+                    outfb = mVoutQueue.front();
+                    int releaseFence = outfb->getPrevReleaseFence();
+                    if (releaseFence >= 0) {
+                        DrmFence fence(releaseFence);
+                        fence.wait(3000);
+                    }
+                    mVoutQueue.pop();
+                    /*do processor*/
+                    mFbProcessor->process(infb, outfb);
+                    /*post outbuf to vout, and return to vout queue.*/
+                    postVout(outfb);
+                    /*push back vout buf.*/
+                    mVoutQueue.push(outfb);
                 }
-                mVoutQueue.pop();
-                /*do processor*/
-                mFbProcessor->process(infb, outfb);
-                /*post outbuf to vout, and return to vout queue.*/
-                postVout(outfb);
-                /*push back vout buf.*/
-                mVoutQueue.push(outfb);
                 /*push back last displayed buf*/
                 if (mVdinBufOnScreen >= 0) {
                     mVdinQueue.push(mVdinBufOnScreen);
