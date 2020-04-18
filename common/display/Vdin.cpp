@@ -6,6 +6,8 @@
  *
  * Description:
  */
+#define ATRACE_TAG ATRACE_TAG_GRAPHICS
+
 #include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -18,6 +20,7 @@
 #include <MesonLog.h>
 #include <HwDisplayCrtc.h>
 #include "AmVinfo.h"
+#include <utils/Trace.h>
 
 ANDROID_SINGLETON_STATIC_INSTANCE(Vdin)
 
@@ -114,6 +117,7 @@ void Vdin::releaseCanvas() {
 }
 
 int32_t Vdin::queueBuffer(std::shared_ptr<DrmFramebuffer> & fb, int idx) {
+    ATRACE_CALL();
     MESON_ASSERT(idx < VDIN_CANVAS_MAX_CNT, "queueBuffer idx is invalid.");
 
     if (mStatus == STREAMING_STOP) {
@@ -129,6 +133,7 @@ int32_t Vdin::queueBuffer(std::shared_ptr<DrmFramebuffer> & fb, int idx) {
 }
 
 int32_t Vdin::dequeueBuffer(vdin_crc_info & crcinfo) {
+    ATRACE_CALL();
     struct pollfd fds[1];
     fds[0].fd = mDev;
     fds[0].events = POLLIN;

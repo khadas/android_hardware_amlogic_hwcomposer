@@ -6,6 +6,7 @@
  *
  * Description:
  */
+#define ATRACE_TAG ATRACE_TAG_GRAPHICS
 
 #include <misc.h>
 #include <DrmTypes.h>
@@ -13,6 +14,7 @@
 #include <MesonLog.h>
 #include <Vdin.h>
 #include "VdinPostProcessor.h"
+#include <utils/Trace.h>
 
 //#define PROCESS_DEBUG 1
 //#define POST_FRAME_DEBUG 1
@@ -63,6 +65,7 @@ int32_t VdinPostProcessor::setVout(
 }
 
 int32_t VdinPostProcessor::postVout(std::shared_ptr<DrmFramebuffer> fb) {
+    ATRACE_CALL();
     if (fb.get() != NULL) {
         display_zoom_info_t osdDisplayFrame;
         osdDisplayFrame.framebuffer_w = fb->mSourceCrop.right - fb->mSourceCrop.left;
@@ -292,6 +295,7 @@ static nsecs_t track_start;
 #endif
 
 int32_t VdinPostProcessor::process() {
+    ATRACE_BEGIN("vdinpostprocessor_process");
     std::unique_lock<std::mutex> lock(mMutex);
     static int capCnt = 0;
     if (mCmdQ.size() > 0) {
@@ -317,6 +321,7 @@ int32_t VdinPostProcessor::process() {
         //wait new present cmd.
         MESON_LOGD("In idle, waiting new cmd.");
         mCmdCond.wait(lock);
+        ATRACE_END();
         return 0;
     }
 
@@ -448,6 +453,7 @@ int32_t VdinPostProcessor::process() {
         }
     }
 
+    ATRACE_END();
     return 0;
 }
 
