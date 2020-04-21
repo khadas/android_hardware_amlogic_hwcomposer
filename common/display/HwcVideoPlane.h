@@ -38,7 +38,8 @@ typedef struct video_frame_info {
     u32 zorder;
     u32 transform;
     u32 type;
-    u32 reserved[4];
+    u32 sideband_type;
+    u32 reserved[3];
 } video_frame_info_t;
 
 typedef struct video_frames_info {

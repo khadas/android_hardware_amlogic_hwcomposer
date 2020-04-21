@@ -126,6 +126,7 @@ int32_t HwcVideoPlane::setComposePlane(
     std::shared_ptr<DrmFramebuffer> fb;
     std::vector<std::shared_ptr<DrmFramebuffer>> composeFbs;
     std::shared_ptr<DrmFence> compseFence;
+    int sideband_type;
 
     memset(&mVideoFramesInfo, 0, sizeof(mVideoFramesInfo));
     mFramesCount = difbs->composefbs.size();
@@ -136,6 +137,7 @@ int32_t HwcVideoPlane::setComposePlane(
         buffer_handle_t buf = fb->mBufferHandle;
         drm_rect_t dispFrame = fb->mDisplayFrame;
         drm_rect_t srcCrop = fb->mSourceCrop;
+        vFrameInfo->sideband_type = 0;
         if (fb->mFbType == DRM_FB_VIDEO_OMX_V4L ||
             fb->mFbType == DRM_FB_VIDEO_OMX2_V4L2) {
             vFrameInfo->fd = am_gralloc_get_omx_v4l_file(buf);
@@ -147,6 +149,8 @@ int32_t HwcVideoPlane::setComposePlane(
             fb->mFbType == DRM_FB_VIDEO_SIDEBAND_SECOND ||
             fb->mFbType == DRM_FB_VIDEO_SIDEBAND_TV) {
             vFrameInfo->type = 2;
+            am_gralloc_get_sideband_type(buf, &sideband_type);
+            vFrameInfo->sideband_type = sideband_type;
         }
 
         vFrameInfo->dst_x = dispFrame.left;
