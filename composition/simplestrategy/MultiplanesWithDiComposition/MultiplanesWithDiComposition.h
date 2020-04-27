@@ -80,6 +80,7 @@ protected:
     int fillComposerFbs();
     void handleOverlayVideoZorder();
     int checkCommitZorder();
+    void handleVPUScaleLimit();
     void handleVPULimit(bool video);
     void handleDispayLayerZorder();
     int handleOsdComposition();

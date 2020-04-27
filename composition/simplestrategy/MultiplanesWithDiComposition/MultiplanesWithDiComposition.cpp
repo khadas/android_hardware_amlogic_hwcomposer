@@ -35,6 +35,8 @@
 
 #define OSD_SCALER_INPUT_MAX_WIDTH (1920)
 #define OSD_SCALER_INPUT_MAX_HEIGH (1080)
+#define OSD_SCALER_INPUT_FACTOR (3.0)
+#define OSD_SCALER_INPUT_MARGIN (1.1)
 
 #define DI_VIDEO_COMPOSE_MAX 2
 
@@ -645,6 +647,69 @@ void MultiplanesWithDiComposition::handleOverlayVideoZorder() {
 }
 
 /*
+ * Scale Limitation:
+ * 1. VPU only support composed 2 non afbc osd layers
+ * 2. For afbc layers,  exp_h = SourceFrame_height * 1/3 * 1.1;
+ *     when DisplayFrame_height < exp_h then only support two layers.
+ */
+void MultiplanesWithDiComposition::handleVPUScaleLimit() {
+    uint32_t nonAfbcFbsNumb = 0;
+    uint32_t limitCount = 0;
+
+    int belowClientNum  = 0;
+    int upClientNum     = 0;
+    int insideClientNum = 0;
+
+    std::shared_ptr<DrmFramebuffer> fb;
+    for (auto fbIt = mFramebuffers.begin(); fbIt != mFramebuffers.end(); ++fbIt) {
+        fb = fbIt->second;
+        float expHeight = (fb->mSourceCrop.bottom - fb->mSourceCrop.top) *
+            OSD_SCALER_INPUT_MARGIN / OSD_SCALER_INPUT_FACTOR;
+        float dispHeight = fb->mDisplayFrame.bottom -fb->mDisplayFrame.top;
+
+        /* osdComposed layers */
+        if (fb->mZorder < mMinComposerZorder || fb->mZorder > mMaxComposerZorder) {
+            /* it is non afbc layer */
+            if (am_gralloc_get_vpu_afbc_mask(fb->mBufferHandle) == 0) {
+                nonAfbcFbsNumb++;
+            }
+
+            if (expHeight > dispHeight) {
+                limitCount++;
+
+               if (fb->mZorder > mMaxComposerZorder)
+                   upClientNum++;
+               else
+                   belowClientNum++;
+            }
+        } else  {
+            insideClientNum++;
+        }
+    }
+
+    /* minus one layer for VPU composer */
+    if (limitCount >= 2 || nonAfbcFbsNumb > 2) {
+        if (upClientNum > 0) {
+            auto fbIt = mFramebuffers.upper_bound(mMaxComposerZorder);
+            if (fbIt != mFramebuffers.end())
+                mMaxComposerZorder = fbIt->second->mZorder;
+        } else if (belowClientNum > 0) {
+            if (mMinComposerZorder == INVALID_ZORDER) {
+                /* free to select one */
+                mMinComposerZorder = mFramebuffers.begin()->second->mZorder;
+                mMaxComposerZorder = mMinComposerZorder;
+            } else {
+                auto fbIt = mFramebuffers.lower_bound(mMinComposerZorder);
+                if (fbIt != mFramebuffers.begin() && fbIt != mFramebuffers.end()) {
+                    fbIt--;
+                    mMinComposerZorder = fbIt->second->mZorder;
+                }
+            }
+        }
+    }
+}
+
+/*
 Limitation:
 1. scale input should smaller than 1080P.
 2. din0 should input the base fb.
@@ -655,6 +720,8 @@ void MultiplanesWithDiComposition::handleVPULimit(bool video) {
 
     if (mFramebuffers.size() == 0)
         return ;
+
+    handleVPUScaleLimit();
 
     if (mMaxComposerZorder != INVALID_ZORDER &&
         mMinComposerZorder != INVALID_ZORDER) {
