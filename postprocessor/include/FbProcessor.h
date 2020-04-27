@@ -29,6 +29,7 @@ public:
         std::shared_ptr<DrmFramebuffer> & inputfb,
         std::shared_ptr<DrmFramebuffer> & outfb) = 0;
     virtual int32_t teardown() = 0;
+    virtual bool updateProcess() { return false;};
 };
 
 int32_t createFbProcessor(meson_fb_processor_t type, std::shared_ptr<FbProcessor> & processor);

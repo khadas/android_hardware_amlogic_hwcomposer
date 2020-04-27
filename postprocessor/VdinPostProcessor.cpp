@@ -412,7 +412,8 @@ int32_t VdinPostProcessor::process() {
 
             if (mFbProcessor != NULL) {
                 /*get ouput buf, and wait it ready.*/
-                if (crcvalStatus) {
+                bool mKeystoneCoordUpdated = mFbProcessor->updateProcess();
+                if (crcvalStatus || mKeystoneCoordUpdated == true) {
                     outfb = mVoutQueue.front();
                     int releaseFence = outfb->getPrevReleaseFence();
                     if (releaseFence >= 0) {
