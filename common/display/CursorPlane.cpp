@@ -109,7 +109,7 @@ int32_t CursorPlane::setPlane(
 int32_t CursorPlane::updateCursorBuffer(
     std::shared_ptr<DrmFramebuffer> & fb) {
     int cbwidth =
-        HWC_ALIGN(CUSOR_BPP * mPlaneInfo.buf_w, CUSOR_BPP * 8) /CUSOR_BPP;
+        HWC_ALIGN(CUSOR_BPP * mPlaneInfo.stride, CUSOR_BPP * 8) / CUSOR_BPP;
 
     if (mPlaneInfo.info.xres != (uint32_t)cbwidth ||
         mPlaneInfo.info.yres != (uint32_t)mPlaneInfo.buf_h) {
