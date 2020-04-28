@@ -26,6 +26,7 @@ static const drm_mode_info_t defaultMode = {
 };
 
 RealModeMgr::RealModeMgr() {
+    mCallOnHotPlug = true;
 }
 
 RealModeMgr::~RealModeMgr() {
@@ -72,6 +73,7 @@ void RealModeMgr::reset() {
 }
 
 int32_t RealModeMgr::update() {
+    std::lock_guard<std::mutex> lock(mMutex);
     bool useFakeMode = true;
     drm_mode_info_t realMode;
     std::map<uint32_t, drm_mode_info_t> supportModes;
@@ -81,7 +83,6 @@ int32_t RealModeMgr::update() {
     reset();
 #endif
     if (mConnector->isConnected()) {
-        std::lock_guard<std::mutex> lock(mMutex);
         mConnector->getModes(supportModes);
         if (mCrtc->getMode(realMode) == 0) {
             if (realMode.name[0] != 0) {
@@ -192,7 +193,7 @@ int32_t RealModeMgr::getActiveConfig(uint32_t * outConfig, int32_t caller __unus
 #else
     *outConfig = 0;
 #endif
-    MESON_LOGV("%s ActiveConfigid=%d", __func__, *outConfig);
+    MESON_LOGV("[%s] ActiveConfigid=%d", __func__, *outConfig);
 
     return HWC2_ERROR_NONE;
 }
@@ -203,6 +204,7 @@ int32_t RealModeMgr::setActiveConfig(uint32_t config) {
     std::map<uint32_t, drm_mode_info_t>::iterator it =
         mModes.find(config);
 
+    MESON_LOGV("[%s] %d", __func__, config);
     if (it != mModes.end()) {
         drm_mode_info_t cfg = it->second;
 
@@ -212,6 +214,8 @@ int32_t RealModeMgr::setActiveConfig(uint32_t config) {
             return HWC2_ERROR_NONE;
         }
 
+        mCallOnHotPlug = false;
+        mConnector->setMode(cfg);
         mCrtc->setMode(cfg);
     } else {
         MESON_LOGE("set invalild active config (%d)", config);
@@ -224,6 +228,10 @@ int32_t RealModeMgr::setActiveConfig(uint32_t config) {
 
     return HWC2_ERROR_NONE;
 }
+
+void RealModeMgr::resetTags() {
+    mCallOnHotPlug = true;
+};
 
 void RealModeMgr::dump(String8 & dumpstr) {
     dumpstr.appendFormat("RealModeMgr:(%s)\n", mCurMode.name);
