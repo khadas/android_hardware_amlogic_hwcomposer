@@ -442,6 +442,12 @@ int32_t VdinPostProcessor::process() {
 
             infb = mVdinFbs[vdinIdx];
 
+            if (mSCapProcessor != NULL) {
+                mCapStatus = mSCapProcessor->process(infb,scapfb);
+                mSCapProcessor->teardown();
+                mSCapProcessor.reset();
+            }
+
             if (mFbProcessor != NULL) {
                 /*get ouput buf, and wait it ready.*/
                 bool mKeystoneCoordUpdated = mFbProcessor->updateProcess();
@@ -453,11 +459,6 @@ int32_t VdinPostProcessor::process() {
                         fence.wait(3000);
                     }
                     mVoutQueue.pop();
-                    if (mSCapProcessor != NULL) {
-                        mCapStatus = mSCapProcessor->process(infb,scapfb);
-                        mSCapProcessor->teardown();
-                        mSCapProcessor.reset();
-                    }
 
                     /*do processor*/
                     mFbProcessor->process(infb, outfb);
