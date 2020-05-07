@@ -33,7 +33,12 @@ public:
         uint32_t zorder, int blankOp) = 0;
 
     /*For debug, plane return a invalid type.*/
-    virtual void setIdle(bool idle) { mIdle = idle;}
+    enum {
+        PLANE_DBG_IDLE = 1 << 0,
+        PLANE_DBG_PATTERN = 1 << 1,
+    };
+    virtual void setDebugFlag(int dbgFlag);
+
     virtual void dump(String8 & dumpstr) = 0;
 
     int32_t getDrvFd() {return mDrvFd;}
@@ -43,7 +48,8 @@ protected:
     int32_t mDrvFd;
     uint32_t mId;
     int32_t mCapability;
-    bool mIdle;
+    bool mDebugIdle;
+    bool mDebugPattern;
 };
 
  #endif/*HW_DISPLAY_PLANE_H*/

@@ -33,12 +33,14 @@ public:
 
 protected:
     int32_t getProperties();
+    void createPatternFb();
 
 private:
     bool mBlank;
     uint32_t mPossibleCrtcs;
     osd_plane_info_t mPlaneInfo;
     std::shared_ptr<DrmFramebuffer> mDrmFb;
+    std::shared_ptr<DrmFramebuffer> mPatternFb;
 
     char mName[64];
 };

@@ -140,7 +140,6 @@ protected:
     /*For debug*/
     void dumpPresentLayers(String8 & dumpstr);
     bool isLayerHideForDebug(hwc2_layer_t id);
-    bool isPlaneHideForDebug(int id);
     void dumpHwDisplayPlane(String8 &dumpstr);
 
 protected:

@@ -31,10 +31,16 @@ ANDROID_SINGLETON_STATIC_INSTANCE(DebugHelper)
 #define COMMAND_HIDE_LAYER "--hide-layer"
 #define COMMAND_SHOW_PLANE "--show-plane"
 #define COMMAND_HIDE_PLANE "--hide-plane"
+#define COMMAND_SHOW_PATTERN_ON_PLANE "--show-pattern"
+#define COMMAND_HIDE_PATTERN_ON_PLANE "--hide-pattern"
 #define COMMAND_MONITOR_DEVICE_COMPOSITION "--monitor-composition"
 #define COMMAND_DEVICE_COMPOSITION_THRESHOLD "--device-layers-threshold"
 
 #define MAX_DEBUG_COMMANDS (20)
+
+#define PLANE_DBG_IDLE (1 << 0)
+#define PLANE_DBG_PATTERN (1 << 1)
+
 
 #define INT_PARAMERTER_TO_BOOL(param)  \
         atoi(param) > 0 ? true : false
@@ -72,10 +78,10 @@ void DebugHelper::clearPersistCmd() {
 
     mHideLayers.clear();
     mSaveLayers.clear();
-    mHidePlanes.clear();
-
     mDebugHideLayer = false;
-    mDebugHidePlane = false;
+
+    mPlanesDebugFlag.clear();
+    mDebugPlane = false;
 }
 
 void DebugHelper::addHideLayer(int id) {
@@ -102,30 +108,32 @@ void DebugHelper::removeHideLayer(int id) {
     }
 }
 
-void DebugHelper::addHidePlane(int id) {
-    bool bExist = false;
-    std::vector<int>::iterator it;
-    for (it = mHidePlanes.begin(); it < mHidePlanes.end(); it++) {
-        if (*it == id) {
-            bExist = true;
-        }
+void DebugHelper::addPlaneDebugFlag(int id, int flag) {
+    auto it = mPlanesDebugFlag.find(id);
+    if (it != mPlanesDebugFlag.end()) {
+        int val = it->second;
+        val |= flag;
+        mPlanesDebugFlag.emplace(id, val);
+    } else {
+        mPlanesDebugFlag.emplace(id, flag);
     }
 
-    if (!bExist) {
-        mHidePlanes.push_back(id);
-    }
+    mDebugPlane = true;
 }
 
-void DebugHelper::removeHidePlane(int id) {
-    std::vector<int>::iterator it;
-    for (it = mHidePlanes.begin(); it < mHidePlanes.end(); it++) {
-        if (*it == id) {
-            mHidePlanes.erase(it);
-            break;
-        }
+void DebugHelper::removePlaneDebugFlag(int id, int flag) {
+    auto it = mPlanesDebugFlag.find(id);
+    if (it != mPlanesDebugFlag.end()) {
+        int val = it->second;
+        val &= ~flag;
+        if (val != 0)
+            mPlanesDebugFlag.emplace(id, val);
+        else
+            mPlanesDebugFlag.erase(id);
+    } else {
+        MESON_LOGE("remove plane (%d-%x) fail", id, flag);
     }
 }
-
 
 void DebugHelper::resolveCmd() {
 #ifdef HWC_RELEASE
@@ -257,8 +265,7 @@ void DebugHelper::resolveCmd() {
                     if (planeId < 0) {
                         MESON_LOGE("Show invalid plane (%d)", planeId);
                     } else {
-                        addHidePlane(planeId);
-                        mDebugHidePlane = true;
+                        addPlaneDebugFlag(planeId, PLANE_DBG_IDLE);
                     }
                     continue;
                 }
@@ -270,8 +277,31 @@ void DebugHelper::resolveCmd() {
                     if (planeId < 0) {
                         MESON_LOGE("Show invalid plane (%d)", planeId);
                     } else {
-                        removeHidePlane(planeId);
-                        mDebugHidePlane = true;
+                        removePlaneDebugFlag(planeId, PLANE_DBG_IDLE);
+                    }
+                    continue;
+                }
+
+                if (strcmp(paramArray[i], COMMAND_SHOW_PATTERN_ON_PLANE) == 0) {
+                    i++;
+                    CHECK_CMD_INT_PARAMETER();
+                    int planeId = atoi(paramArray[i]);
+                    if (planeId < 0) {
+                        MESON_LOGE("Show invalid plane (%d)", planeId);
+                    } else {
+                        addPlaneDebugFlag(planeId, PLANE_DBG_PATTERN);
+                    }
+                    continue;
+                }
+
+                if (strcmp(paramArray[i], COMMAND_HIDE_PATTERN_ON_PLANE) == 0) {
+                    i++;
+                    CHECK_CMD_INT_PARAMETER();
+                    int planeId = atoi(paramArray[i]);
+                    if (planeId < 0) {
+                        MESON_LOGE("Show invalid plane (%d)", planeId);
+                    } else {
+                        removePlaneDebugFlag(planeId, PLANE_DBG_PATTERN);
                     }
                     continue;
                 }
@@ -342,6 +372,7 @@ void DebugHelper::dump(String8 & dumpstr) {
             "\t " COMMAND_LOG_COMPOSITION_DETAIL " 0|1: enable/disable composition detail info.\n"
             "\t " COMMAND_HIDE_LAYER "/" COMMAND_SHOW_LAYER " [layerId]: hide/unhide specific layers by zorder. \n"
             "\t " COMMAND_HIDE_PLANE "/" COMMAND_SHOW_PLANE " [planeId]: hide/unhide specific plane by plane id. \n"
+            "\t " COMMAND_SHOW_PATTERN_ON_PLANE "/" COMMAND_HIDE_PATTERN_ON_PLANE " [planeId]: set/unset test pattern on plane id. \n"
             "\t " COMMAND_LOG_FPS " 0|1: start/stop log fps.\n"
             "\t " COMMAND_SAVE_LAYER " [layerId]: save specific layer's raw data by layer id. \n"
             "\t " COMMAND_MONITOR_DEVICE_COMPOSITION " 0|1: monitor non device composition. \n";
@@ -350,8 +381,6 @@ void DebugHelper::dump(String8 & dumpstr) {
         dumpstr.append(usage);
         dumpstr.append("\n");
     } else {
-        std::vector<int>::iterator it;
-
         dumpstr.append("Debug Command:\n");
         dumpstr.appendFormat(COMMAND_NOHWC " (%d)\n", mDisableUiHwc);
         dumpstr.appendFormat(COMMAND_DUMP_DETAIL " (%d)\n", mDumpDetail);
@@ -363,20 +392,21 @@ void DebugHelper::dump(String8 & dumpstr) {
         dumpstr.appendFormat(COMMAND_MONITOR_DEVICE_COMPOSITION " (%d)\n", mMonitorDeviceComposition);
         dumpstr.appendFormat(COMMAND_DEVICE_COMPOSITION_THRESHOLD " (%d)\n", mDeviceCompositionThreshold);
 
-        dumpstr.append(COMMAND_HIDE_PLANE " (");
-        for (it = mHidePlanes.begin(); it < mHidePlanes.end(); it++) {
-            dumpstr.appendFormat("%d    ", *it);
+        dumpstr.append(COMMAND_HIDE_PLANE "/" COMMAND_SHOW_PATTERN_ON_PLANE " (");
+
+        for (auto planeFlag = mPlanesDebugFlag.begin(); planeFlag != mPlanesDebugFlag.end(); planeFlag++) {
+            dumpstr.appendFormat("%d-%d   ", planeFlag->first, planeFlag->second);
         }
         dumpstr.append(")\n");
 
         dumpstr.append(COMMAND_HIDE_LAYER " (");
-        for (it = mHideLayers.begin(); it < mHideLayers.end(); it++) {
+        for (auto it = mHideLayers.begin(); it < mHideLayers.end(); it++) {
             dumpstr.appendFormat("%d    ", *it);
         }
         dumpstr.append(")\n");
 
         dumpstr.append(COMMAND_SAVE_LAYER " (");
-        for (it = mSaveLayers.begin(); it < mSaveLayers.end(); it++) {
+        for (auto it = mSaveLayers.begin(); it < mSaveLayers.end(); it++) {
             dumpstr.appendFormat("%d    ", *it);
         }
         dumpstr.append(")\n");

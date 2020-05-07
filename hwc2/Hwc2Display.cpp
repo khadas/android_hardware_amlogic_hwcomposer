@@ -496,12 +496,20 @@ hwc2_error_t Hwc2Display::collectLayersForPresent() {
 
 hwc2_error_t Hwc2Display::collectPlanesForPresent() {
     mPresentPlanes = mPlanes;
-    for (auto  it = mPresentPlanes.begin(); it != mPresentPlanes.end(); it++) {
-        std::shared_ptr<HwDisplayPlane> plane = *it;
-        if (isPlaneHideForDebug(plane->getPlaneId())) {
-            plane->setIdle(true);
-        } else {
-            plane->setIdle(false);
+
+    if (DebugHelper::getInstance().debugPlanes()) {
+        std::map<int, int> planeFlags;
+        DebugHelper::getInstance().getPlaneDebugFlags(planeFlags);
+
+        for (auto  it = mPresentPlanes.begin(); it != mPresentPlanes.end(); it++) {
+            std::shared_ptr<HwDisplayPlane> plane = *it;
+
+            auto dbgIt = planeFlags.find(plane->getPlaneId());
+            if (dbgIt != planeFlags.end()) {
+                plane->setDebugFlag(dbgIt->second);
+            } else {
+                plane->setDebugFlag(0);
+            }
         }
     }
 
@@ -988,21 +996,6 @@ bool Hwc2Display::isLayerHideForDebug(hwc2_layer_t id) {
     return false;
 }
 
-bool Hwc2Display::isPlaneHideForDebug(int id) {
-    std::vector<int> hidePlanes;
-    DebugHelper::getInstance().getHidePlanes(hidePlanes);
-    if (hidePlanes.empty())
-        return false;
-
-    for (auto it = hidePlanes.begin(); it < hidePlanes.end(); it++) {
-        if (*it == id) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
 hwc2_error_t Hwc2Display::getDisplayCapabilities(
             uint32_t* outNumCapabilities, uint32_t* outCapabilities) {
     if (outCapabilities == nullptr) {
@@ -1076,7 +1069,7 @@ void Hwc2Display::dumpHwDisplayPlane(String8 &dumpstr) {
 void Hwc2Display::dump(String8 & dumpstr) {
     /*update for debug*/
     if (DebugHelper::getInstance().debugHideLayers() ||
-        DebugHelper::getInstance().debugHidePlanes()) {
+        DebugHelper::getInstance().debugPlanes()) {
         //ask for auto refresh for debug layers update.
         if (mObserver != NULL) {
             mObserver->refresh();

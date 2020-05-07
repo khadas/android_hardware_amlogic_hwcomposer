@@ -13,10 +13,23 @@
 HwDisplayPlane::HwDisplayPlane(int32_t drvFd, uint32_t id) {
     mDrvFd = drvFd;
     mId = id;
-    mIdle = false;
+    mDebugIdle = false;
+    mDebugPattern = false;
 }
 
 HwDisplayPlane::~HwDisplayPlane() {
     close(mDrvFd);
+}
+
+void HwDisplayPlane::setDebugFlag(int dbgFlag) {
+    if (dbgFlag & PLANE_DBG_IDLE)
+        mDebugIdle = true;
+    else
+        mDebugIdle = false;
+
+    if (dbgFlag & PLANE_DBG_PATTERN)
+        mDebugPattern = true;
+    else
+        mDebugPattern = false;
 }
 

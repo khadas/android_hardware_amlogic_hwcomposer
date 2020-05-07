@@ -11,6 +11,8 @@
 #include <MesonLog.h>
 #include <DebugHelper.h>
 
+#define OSD_PATTERN_SIZE (128)
+
 OsdPlane::OsdPlane(int32_t drvFd, uint32_t id)
     : HwDisplayPlane(drvFd, id),
       mBlank(false),
@@ -65,7 +67,7 @@ const char * OsdPlane::getName() {
 }
 
 uint32_t OsdPlane::getPlaneType() {
-    if (mIdle) {
+    if (mDebugIdle) {
         return INVALID_PLANE;
     }
 
@@ -178,9 +180,17 @@ int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> fb, uint32_t zorder, 
             return 0;
         }
 
-        drm_rect_t srcCrop       = fb->mSourceCrop;
+        std::shared_ptr<DrmFramebuffer> postFb = fb;
+        if (mDebugPattern) {
+            if (!mPatternFb.get())
+                createPatternFb();
+            if (mPatternFb.get())
+                postFb = mPatternFb;
+        }
+
+        drm_rect_t srcCrop       = postFb->mSourceCrop;
+        buffer_handle_t buf      = postFb->mBufferHandle;
         drm_rect_t disFrame      = fb->mDisplayFrame;
-        buffer_handle_t buf      = fb->mBufferHandle;
 
         mPlaneInfo.xoffset       = srcCrop.left;
         mPlaneInfo.yoffset       = srcCrop.top;
@@ -194,8 +204,8 @@ int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> fb, uint32_t zorder, 
         mPlaneInfo.op           |= OSD_BLANK_OP_BIT;
 
         if (fb->mBufferHandle != NULL) {
-            mPlaneInfo.fb_width  = am_gralloc_get_width(fb->mBufferHandle);
-            mPlaneInfo.fb_height = am_gralloc_get_height(fb->mBufferHandle);
+            mPlaneInfo.fb_width  = am_gralloc_get_width(buf);
+            mPlaneInfo.fb_height = am_gralloc_get_height(buf);
         } else {
             mPlaneInfo.fb_width  = -1;
             mPlaneInfo.fb_height = -1;
@@ -276,6 +286,53 @@ int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> fb, uint32_t zorder, 
     else
         mDrmFb = fb;
     return 0;
+}
+
+void OsdPlane::createPatternFb() {
+    buffer_handle_t hnd = gralloc_alloc_dma_buf(
+        OSD_PATTERN_SIZE, OSD_PATTERN_SIZE,
+        HAL_PIXEL_FORMAT_RGBA_8888,
+        true, false);
+    mPatternFb = std::make_shared<DrmFramebuffer>(hnd, -1);
+
+    void * fbmem = NULL;
+    if (mPatternFb->lock(&fbmem) == 0) {
+        native_handle_t * handle = mPatternFb->mBufferHandle;
+        int w = am_gralloc_get_width(handle);
+        int h = am_gralloc_get_height(handle);
+        int type = mId % 3;
+        char r = 0, g = 0, b = 0;
+        switch (type) {
+            case 0:
+                 r = g = b = 255;
+                 break;
+            case 1:
+                r = 255;
+                break;
+            case 2:
+                g = 255;
+                break;
+             case 3:
+                b = 255;
+                break;
+            default:
+                r = g = b = 128;
+                break;
+        };
+        MESON_LOGD("Plane setpattern (%d-%d,%d,%d)", mId, r, g, b);
+
+        char * colorbuf = (char *) fbmem;
+        for (int ir = 0; ir < h; ir++) {
+            for (int ic = 0; ic < w; ic++) {
+                colorbuf[0] = r;
+                colorbuf[1] = g;
+                colorbuf[2] = b;
+                colorbuf[3] = 0xff;
+                colorbuf += 4;
+            }
+        }
+        mPatternFb->unlock();
+    }
 }
 
 void OsdPlane::dump(String8 & dumpstr) {

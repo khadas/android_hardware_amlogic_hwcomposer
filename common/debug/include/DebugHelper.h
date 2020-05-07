@@ -42,8 +42,8 @@ public:
     inline void getHideLayers(std::vector<int> & layers) {layers = mHideLayers;}
     inline bool debugHideLayers() {return mDebugHideLayer;}
 
-    inline void getHidePlanes(std::vector<int> & planes) {planes = mHidePlanes;}
-    inline bool debugHidePlanes() {return mDebugHidePlane;}
+    inline void getPlaneDebugFlags(std::map<int, int> & planeFlags) {planeFlags = mPlanesDebugFlag;}
+    inline bool debugPlanes() {return mDebugPlane;}
 
     /*save layer's raw data by layerid.*/
     inline void getSavedLayers(std::vector<int> & layers) {layers = mSaveLayers;}
@@ -59,8 +59,8 @@ protected:
     void addHideLayer(int id);
     void removeHideLayer(int id);
 
-    void addHidePlane(int id);
-    void removeHidePlane(int id);
+    void addPlaneDebugFlag(int id, int flag);
+    void removePlaneDebugFlag(int id, int flag);
 
 protected:
     bool mEnabled;
@@ -77,10 +77,10 @@ protected:
 
     std::vector<int> mSaveLayers;
     std::vector<int> mHideLayers;
-    std::vector<int> mHidePlanes;
-
     bool mDebugHideLayer;
-    bool mDebugHidePlane;
+
+    std::map<int, int> mPlanesDebugFlag;
+    bool mDebugPlane;
 
     /*handle osd in/out fence in hwc.*/
     bool mDiscardInFence;
