@@ -80,8 +80,11 @@ int32_t LoopbackDisplayPipe::getPipeCfg(uint32_t hwcid, PipeCfg & cfg) {
 int32_t LoopbackDisplayPipe::getPostProcessor(
     hwc_post_processor_t type,
     std::shared_ptr<HwcPostProcessor> & processor) {
-    MESON_ASSERT(type == VDIN_POST_PROCESSOR,
-        "only support VDIN_POST_PROCESSOR.");
+
+    if (type != VDIN_POST_PROCESSOR) {
+        processor = NULL;
+        return 0;
+    }
 
     if (!mVdinPostProcessor) {
         mVdinPostProcessor = std::make_shared<VdinPostProcessor>();
