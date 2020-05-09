@@ -61,6 +61,7 @@
 
 #ifdef GET_REQUEST_FROM_PROP
 static bool m3DMode = false;
+static bool mVdinPostMode = false;
 static bool mKeyStoneMode = false;
 #endif
 
@@ -94,6 +95,12 @@ void MesonHwc2::dump(uint32_t* outSize, char* outBuffer) {
     std::map<hwc2_display_t, std::shared_ptr<Hwc2Display>>::iterator it;
     for (it = mDisplays.begin(); it != mDisplays.end(); it++) {
         it->second->dump(dumpstr);
+    }
+
+    if (HwcConfig::getPipeline() == HWC_PIPE_LOOPBACK) {
+        dumpstr.appendFormat("m3DMode:%d\n", m3DMode);
+        dumpstr.appendFormat("mVdinPostMode:%d, mKeyStoneMode:%d\n",
+                mVdinPostMode, mKeyStoneMode);
     }
 
     DebugHelper::getInstance().dump(dumpstr);
@@ -705,17 +712,21 @@ uint32_t MesonHwc2::getDisplayRequest() {
         char val[PROP_VALUE_LEN_MAX];
         bool bVal = false;
 
+        /*get 3dmode status*/
+        bVal = sys_get_bool_prop("vendor.hwc.3dmode", false);
+        if (m3DMode != bVal) {
+            mDisplayRequests |= bVal ? r3DModeEnable : r3DModeDisable;
+            m3DMode = bVal;
+        }
+
         if (HwcConfig::alwaysVdinLoopback()) {
-            /*get 3dmode status*/
-            bVal = !sys_get_bool_prop("vendor.hwc.postprocessor", true);
-            if (m3DMode != bVal) {
-                mDisplayRequests |= bVal ? rPostProcessorStop : rPostProcessorStart;
-                m3DMode = bVal;
-                if (m3DMode)
-                    mKeyStoneMode = false;
+            bVal = sys_get_bool_prop("vendor.hwc.postprocessor", true);
+            if (mVdinPostMode != bVal) {
+                mDisplayRequests |= bVal ? rPostProcessorStart : rPostProcessorStop;
+                mVdinPostMode  = bVal;
             }
 
-            if (!m3DMode) {
+            if (mVdinPostMode) {
                 /*get keystone status*/
                 bVal = false;
                 if (sys_get_string_prop("persist.vendor.hwc.keystone", val) > 0 &&
@@ -726,6 +737,8 @@ uint32_t MesonHwc2::getDisplayRequest() {
                     mDisplayRequests |= bVal ? rKeystoneEnable : rKeystoneDisable;
                     mKeyStoneMode = bVal;
                 }
+            } else {
+                mKeyStoneMode = false;
             }
         } else {
             bVal = false;

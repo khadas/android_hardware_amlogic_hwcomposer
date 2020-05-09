@@ -59,6 +59,9 @@ enum {
 
     rKeystoneEnable = 1 << 8,
     rKeystoneDisable = 1 << 9,
+
+    r3DModeEnable = 1 << 10,
+    r3DModeDisable = 1 << 11,
 };
 
 /*events*/

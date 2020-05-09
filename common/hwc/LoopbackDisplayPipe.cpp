@@ -12,6 +12,8 @@
 #include <HwDisplayManager.h>
 #include <MesonLog.h>
 
+#define DEFAULT_3D_UI_REFRESH_RATE 30
+
 LoopbackDisplayPipe::LoopbackDisplayPipe()
     : HwcDisplayPipe() {
     if (HwcConfig::alwaysVdinLoopback())
@@ -141,6 +143,24 @@ int32_t LoopbackDisplayPipe::handleRequest(uint32_t flags) {
 
             if (bEnable)
                 stat->hwcPostProcessor->start();
+        }
+    }
+
+    /* switch vsync after pipe update */
+    if ((flags & r3DModeDisable) || (flags & r3DModeEnable)) {
+        bool bEnable = flags & r3DModeEnable ? true : false;
+        MESON_LOGV("Postprocessor enable event (%d)", bEnable);
+        if (bEnable) {
+            /* 3D Mode is Enable, enable software vsync and set vsync to 30 fps */
+            stat->hwcVsync->setPeriod(1e9 / DEFAULT_3D_UI_REFRESH_RATE);
+            stat->hwcVsync->setSoftwareMode();
+        } else {
+            /* switch back to hardware vsync */
+            drm_mode_info_t mode;
+            if (stat->modeMgr->getDisplayMode(mode) == 0) {
+                stat->hwcVsync->setPeriod(1e9 / mode.refreshRate);
+            }
+            stat->hwcVsync->setHwMode(stat->modeCrtc);
         }
     }
 
