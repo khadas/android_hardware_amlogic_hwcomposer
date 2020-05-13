@@ -21,6 +21,7 @@ public:
     int32_t init(std::map<uint32_t, std::shared_ptr<HwcDisplay>> & hwcDisps);
     int32_t getPipeCfg(uint32_t hwcdisp, PipeCfg & cfg);
     int32_t handleRequest(uint32_t flags);
+    void handleEvent(drm_display_event event, int val);
 
 protected:
     int32_t getPostProcessor(
@@ -28,6 +29,9 @@ protected:
 
 protected:
     bool mPostProcessor;
+    bool mVdin10bitIn;
+    uint32_t mFlags;
+
     std::shared_ptr<VdinPostProcessor> mVdinPostProcessor;
 };
 

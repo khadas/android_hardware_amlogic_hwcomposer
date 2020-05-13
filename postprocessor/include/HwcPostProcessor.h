@@ -31,10 +31,13 @@ public:
 
     virtual int32_t start() = 0;
     virtual int32_t stop() = 0;
+    virtual int32_t restart(int w, int h) = 0;
     virtual bool running() = 0;
 
     virtual bool getScreencapFb(std::shared_ptr<DrmFramebuffer> & capFb) = 0;
     virtual int32_t present(int32_t flags, int32_t fence) = 0;
+    virtual void dump(String8 & dumpstr) = 0;
+    virtual void dumpPlane(String8 & dumpstr) = 0;
 };
 
 #endif

@@ -259,6 +259,23 @@ int32_t VdinPostProcessor::stop() {
     return 0;
 }
 
+/*
+ * need restart vdinPostProcessor if vout mode changed
+ */
+int32_t VdinPostProcessor::restart(int w, int h) {
+    MESON_LOGD("VdinPostProcessor::restart (%d,%d)", w, h);
+    if (mVoutW != w || mVoutH !=h) {
+        std::shared_ptr<FbProcessor> backProcessor = mFbProcessor;
+        mVoutW = w;
+        mVoutH = h;
+        stop();
+        start();
+        setFbProcessor(backProcessor);
+    }
+
+    return 0;
+}
+
 bool VdinPostProcessor::running() {
     return mStat == PROCESSOR_START;
 }
@@ -516,3 +533,12 @@ int32_t VdinPostProcessor::process() {
     return 0;
 }
 
+void VdinPostProcessor::dumpPlane(String8 & dumpstr) {
+    mDisplayPlane->dump(dumpstr);
+}
+
+void VdinPostProcessor::dump(String8 & dumpstr) {
+    dumpstr.append("VdinPostProcessor:\n");
+    dumpstr.appendFormat("    mVoutW=%d, mVoutH=%d\n", mVoutW, mVoutH);
+    Vdin::getInstance().dump(dumpstr);
+}

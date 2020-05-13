@@ -40,9 +40,12 @@ public:
     bool getScreencapFb(std::shared_ptr<DrmFramebuffer> & capFb);
     int32_t start();
     int32_t stop();
+    int32_t restart(int w, int h);
     bool running();
 
     int32_t present(int flags, int32_t fence);
+    void dump(String8 & dumpstr);
+    void dumpPlane(String8 & dumpstr);
 
 protected:
     static void * threadMain(void * data);

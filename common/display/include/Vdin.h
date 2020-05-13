@@ -67,6 +67,7 @@ public:
     int32_t pause();
     /*stop capture, and clear info. Need setStreamInfo again before start.*/
     int32_t stop();
+    void dump(String8 & dumpstr);
 
 protected:
     void createCanvas(int bufCnt);

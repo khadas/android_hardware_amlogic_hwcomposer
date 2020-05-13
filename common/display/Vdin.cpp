@@ -51,7 +51,7 @@ Vdin::~Vdin() {
 int32_t Vdin::getStreamInfo(int & width, int & height, int & format) {
     /*read current */
     drm_mode_info_t modeInfo;
-    auto crtc = getHwDisplayManager()->getCrtcByPipe(DRM_PIPE_VOUT1);
+    auto crtc = getHwDisplayManager()->getCrtcByPipe(DRM_PIPE_VOUT2);
     if (crtc->getMode(modeInfo) != 0) {
         MESON_LOGE("getStreamInfo faild.");
         mCapParams.width = 1920;
@@ -207,3 +207,7 @@ int32_t Vdin::stop() {
     return 0;
 }
 
+void Vdin::dump(String8 & dumpstr) {
+    dumpstr.appendFormat("    Vdin mCapParam width=%d, height=%d\n",
+            mCapParams.width, mCapParams.height);
+}

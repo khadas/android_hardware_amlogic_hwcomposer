@@ -11,6 +11,7 @@
 #include <HwcConfig.h>
 #include <HwDisplayManager.h>
 #include <MesonLog.h>
+#include <AmVinfo.h>
 
 #define DEFAULT_3D_UI_REFRESH_RATE 30
 
@@ -20,6 +21,7 @@ LoopbackDisplayPipe::LoopbackDisplayPipe()
         mPostProcessor = true;
     else
         mPostProcessor = false;
+    mFlags = 0;
 }
 
 LoopbackDisplayPipe::~LoopbackDisplayPipe() {
@@ -99,8 +101,13 @@ int32_t LoopbackDisplayPipe::getPostProcessor(
 }
 
 int32_t LoopbackDisplayPipe::handleRequest(uint32_t flags) {
+    if (flags == 0 && mFlags == 0) {
+        return 0;
+    }
+
     MESON_LOGD("LoopbackDisplayPipe::handleRequest %x", flags);
     std::lock_guard<std::mutex> lock(mMutex);
+    flags |= mFlags;
 
     std::shared_ptr<PipeStat> stat = mPipeStats.find(0)->second;
     if ((flags & rPostProcessorStart) || (flags & rPostProcessorStop)) {
@@ -162,6 +169,32 @@ int32_t LoopbackDisplayPipe::handleRequest(uint32_t flags) {
             }
             stat->hwcVsync->setHwMode(stat->modeCrtc);
         }
+
+    }
+
+    if (mPostProcessor) {
+        /* restart vdinPostProcess when viu2 mode changed */
+        if (flags & rPostProcessorRestart) {
+            MESON_LOGD("LoopbackDisplayPipe restart postProcessor");
+            int width = 1920;
+            int height = 1080;
+
+            /*
+            drm_mode_info_t viu2Mode;
+            if (stat->modeCrtc->getMode(viu2Mode) == 0) {
+                width = viu2Mode.pixelW > width ? width : viu2Mode.pixelW;
+                height = viu2Mode.pixelH > height ? height : viu2Mode.pixelH;
+            }
+            */
+
+            struct vinfo_base_s info;
+            if (read_vout_info(DRM_PIPE_VOUT2, &info) == 0) {
+                width = info.width;
+                height = info.height;
+            }
+
+            stat->hwcPostProcessor->restart(width, height);
+        }
     }
 
     if (mPostProcessor) {
@@ -184,7 +217,21 @@ int32_t LoopbackDisplayPipe::handleRequest(uint32_t flags) {
         }
     }
 
+    /* reset mFlags */
+    mFlags = 0;
+
     return 0;
 }
 
+void LoopbackDisplayPipe::handleEvent(drm_display_event event, int val) {
+    HwcDisplayPipe::handleEvent(event, val);
 
+    if (event == DRM_EVENT_VOUT2_MODE_CHANGED) {
+        /* VIU2 mode changed */
+        if (val == 1) {
+            std::lock_guard<std::mutex> lock(mMutex);
+            MESON_LOGD("LoopbackDisplayPipe::handleEvent VIU2 mode change complete");
+            mFlags = rPostProcessorRestart;
+        }
+    }
+}

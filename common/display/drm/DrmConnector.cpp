@@ -19,7 +19,7 @@
 #include <misc.h>
 #include <systemcontrol.h>
 
-#include "../fbdev/AmVinfo.h"
+#include "../include/AmVinfo.h"
 
 #define EDID_MIN_LEN (128)
 

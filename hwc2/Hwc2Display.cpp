@@ -1610,6 +1610,11 @@ void Hwc2Display::dumpHwDisplayPlane(String8 &dumpstr) {
             plane->dump(dumpstr);
         }
     }
+
+    if (mPostProcessor != NULL) {
+        mPostProcessor-> dumpPlane(dumpstr);
+    }
+
     dumpstr.append("------------------------------------------------------------"
             "-----------------------------------------------------------------\n");
     dumpstr.append("\n");
@@ -1698,10 +1703,19 @@ void Hwc2Display::dump(String8 & dumpstr) {
         if (mCrtc)
             mCrtc->dump(dumpstr);
 
+        /* dump composition stragegy.*/
+        if (mPresentCompositionStg) {
+            mPresentCompositionStg->dump(dumpstr);
+            dumpstr.append("\n");
+        }
+        dumpstr.append("\n");
         dumpHwDisplayPlane(dumpstr);
     }
 
     dumpstr.append("\n");
+    if (mPostProcessor != NULL) {
+        mPostProcessor-> dump(dumpstr);
+    }
 }
 
 int32_t Hwc2Display::captureDisplayScreen(buffer_handle_t hnd) {

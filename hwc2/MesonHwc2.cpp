@@ -409,8 +409,8 @@ int32_t MesonHwc2::presentDisplay(hwc2_display_t display,
     GET_HWC_DISPLAY(display);
     /*handle display request*/
     uint32_t request = getDisplayRequest();
+    handleDisplayRequest(request);
     if (request != 0) {
-        handleDisplayRequest(request);
         hwcDisplay->outsideChanged();
     }
     return hwcDisplay->presentDisplay(outPresentFence);

@@ -62,6 +62,8 @@ enum {
 
     r3DModeEnable = 1 << 10,
     r3DModeDisable = 1 << 11,
+
+    rPostProcessorRestart = 1 << 12,
 };
 
 /*events*/
