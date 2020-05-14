@@ -322,7 +322,7 @@ static nsecs_t track_start;
 #endif
 
 int32_t VdinPostProcessor::process() {
-    ATRACE_BEGIN("vdinpostprocessor_process");
+    ATRACE_BEGIN("PostProcess");
     std::unique_lock<std::mutex> lock(mMutex);
     static int capCnt = 0;
     if (mCmdQ.size() > 0) {
@@ -392,7 +392,7 @@ int32_t VdinPostProcessor::process() {
         std::shared_ptr<DrmFramebuffer> infb;
         std::shared_ptr<DrmFramebuffer> outfb;
         int vdinIdx = -1;
-        vdin_crc_info vdinCrc;
+        vdin_vf_info vdinCrc;
 
         /*Release buf to vdin here, for we may keeped all the buf..*/
         while (capCnt > 0 && mVdinQueue.size() > 0) {
@@ -413,12 +413,12 @@ int32_t VdinPostProcessor::process() {
 
         /*read vdin and process.*/
         if (Vdin::getInstance().dequeueBuffer(vdinCrc) == 0) {
-            if (crcVal == vdinCrc.val_crc) {
+            if (crcVal == vdinCrc.crc) {
                 crcvalStatus = false;
             } else {
                 crcvalStatus = true;
             }
-            crcVal = vdinCrc.val_crc;
+            crcVal = vdinCrc.crc;
             vdinIdx = vdinCrc.index;
             MESON_ASSERT(vdinIdx >= 0 && !mVoutQueue.empty(), "idx always >= 0.");
 #ifdef PROCESS_DEBUG
@@ -460,7 +460,11 @@ int32_t VdinPostProcessor::process() {
                     mVoutQueue.pop();
 
                     /*do processor*/
-                    mFbProcessor->process(infb, outfb);
+                    {
+                        ATRACE_BEGIN("keystoneProcess");
+                        mFbProcessor->process(infb, outfb);
+                        ATRACE_END();
+                    }
                     /*post outbuf to vout, and return to vout queue.*/
                     postVout(outfb);
                     /*push back vout buf.*/
