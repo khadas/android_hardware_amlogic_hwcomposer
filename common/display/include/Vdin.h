@@ -28,9 +28,16 @@ struct vdin_set_canvas_s {
     int index;
 };
 
-struct vdin_crc_info {
+struct vdin_vf_info {
     int index;
-    unsigned int val_crc;
+    unsigned int crc;
+
+    /*
+     * [0]:vdin get frame time,
+     * [1]:vdin put frame time
+     * [2]:vdin read return time
+     */
+    long long ready_clock[3];/* ns */
 };
 
 /*Vdin1 used to capture data from vout0.*/
@@ -45,7 +52,7 @@ public:
     int32_t setStreamInfo(int  format, int bufCnt);
 
     int32_t queueBuffer(std::shared_ptr<DrmFramebuffer> & fb, int idx);
-    int32_t dequeueBuffer(vdin_crc_info & crcinfo);
+    int32_t dequeueBuffer(vdin_vf_info & crcinfo);
 
     /*should call queueBuffer() before start.*/
     int32_t start();

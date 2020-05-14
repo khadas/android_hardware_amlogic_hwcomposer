@@ -122,31 +122,39 @@ int32_t Vdin::queueBuffer(std::shared_ptr<DrmFramebuffer> & fb, int idx) {
     return 0;
 }
 
-int32_t Vdin::dequeueBuffer(vdin_crc_info & crcinfo) {
+int32_t Vdin::dequeueBuffer(vdin_vf_info & crcinfo) {
     ATRACE_CALL();
     struct pollfd fds[1];
     fds[0].fd = mDev;
     fds[0].events = POLLIN;
     fds[0].revents = 0;
 
-    struct vdin_crc_info crc;
-    crc.index = -1;
-    crc.val_crc = -1;
+    struct vdin_vf_info vInfo = {
+        .index = -1,
+        .crc = static_cast<unsigned int>(-1),
+        .ready_clock[0] = 0,
+        .ready_clock[1] = 0,
+        .ready_clock[2] = 0,
+    };
+
     int pollrtn = poll(fds, 1, POLL_TIMEOUT_MS);
     if (pollrtn > 0 && fds[0].revents == POLLIN) {
-        if (read(mDev, &crc, sizeof(struct vdin_crc_info)) > 0) {
-            crcinfo.index = crc.index;
-            crcinfo.val_crc = crc.val_crc;
-            MESON_LOGD("vdin::dequeueBuffer idx(%d) crcval(0x%x) ",crc.index,crc.val_crc);
+        if (read(mDev, &vInfo, sizeof(struct vdin_vf_info)) > 0) {
+            crcinfo.index = vInfo.index;
+            crcinfo.crc = vInfo.crc;
+            //MESON_LOGD("vdin::dequeueBuffer idx(%d) crcval(0x%x) ",vInfo.index,vInfo.crc);
         }
+
+        /* latency of dequeueBuffer to vdin put */
+        nsecs_t dequeueToPut = vInfo.ready_clock[2] - vInfo.ready_clock[1];
+        ATRACE_INT64("Vdin:dequeueToPut", dequeueToPut);
     }
 
-    if (crc.index < 0)
+    if (vInfo.index < 0)
         return -EFAULT;
 
     return 0;
 }
-
 
 int32_t Vdin::start() {
     if (mStatus == STREAMING_START)
