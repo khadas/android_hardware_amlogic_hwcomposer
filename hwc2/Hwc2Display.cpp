@@ -763,7 +763,7 @@ hwc2_error_t Hwc2Display::collectCompositionRequest(
 hwc2_error_t Hwc2Display::getDisplayRequests(
     int32_t* outDisplayRequests, uint32_t* outNumElements,
     hwc2_layer_t* outLayers,int32_t* outLayerRequests) {
-    *outDisplayRequests = HWC2_DISPLAY_REQUEST_FLIP_CLIENT_TARGET;
+    *outDisplayRequests = 0;
 
     /*check if need HWC2_LAYER_REQUEST_CLEAR_CLIENT_TARGET*/
     *outNumElements = mOverlayLayers.size();
