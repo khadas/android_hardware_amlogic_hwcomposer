@@ -1,5 +1,5 @@
 //
-// Copyright (C) 2018 The Android Open Source Project
+// Copyright 2019 The Android Open Source Project
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,28 +12,19 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+//
 
 cc_library_headers {
-    name: "android.hardware.graphics.composer@2.1-hal-vendor",
+    name: "android.hardware.graphics.composer@2.4-passthrough-vendor",
     defaults: ["hidl_defaults"],
     vendor: true,
-    shared_libs: [
-        "android.hardware.graphics.composer@2.1",
-        "android.hardware.graphics.composer@2.1-resources-vendor",
-        "libhardware", // TODO remove hwcomposer2.h dependency
-        "libamgralloc_ext_vendor@2",
-    ],
-    export_shared_lib_headers: [
-        "android.hardware.graphics.composer@2.1",
-        "android.hardware.graphics.composer@2.1-resources-vendor",
-        "libhardware",
-        "libamgralloc_ext_vendor@2",
-    ],
     header_libs: [
-        "android.hardware.graphics.composer@2.1-command-buffer",
+        "android.hardware.graphics.composer@2.3-passthrough-vendor",
+        "android.hardware.graphics.composer@2.4-hal",
     ],
     export_header_lib_headers: [
-        "android.hardware.graphics.composer@2.1-command-buffer",
+        "android.hardware.graphics.composer@2.3-passthrough-vendor",
+        "android.hardware.graphics.composer@2.4-hal",
     ],
     export_include_dirs: ["include"],
 }
