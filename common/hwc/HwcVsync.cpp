@@ -81,7 +81,6 @@ int32_t HwcVsync::setEnabled(bool enabled) {
 void * HwcVsync::vsyncThread(void * data) {
     HwcVsync* pThis = (HwcVsync*)data;
     MESON_LOGV("HwDisplayVsync: vsyncThread start - (%p).", pThis);
-    int print_cnt = 10;
 
     while (true) {
         {
