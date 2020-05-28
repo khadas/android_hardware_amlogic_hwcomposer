@@ -1,0 +1,86 @@
+// Copyright (C) 2008 The Android Open Source Project
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+cc_library_static {
+    name: "libmeson_display_adapter_local_static",
+    vendor_available: true,
+    recovery_available: true,
+
+    cflags: [
+      "-DRECOVERY_MODE",
+    ],
+    srcs: [
+      "adapter/DisplayAdapterRecovery.cpp",
+      "adapter/DisplayAdapterCommon.cpp",
+    ],
+
+    local_include_dirs: [
+      "include",
+      "adapter",
+    ],
+
+    static_libs: [
+        "libjsoncpp",
+    ],
+
+    shared_libs: [
+        "liblog",
+        "libcutils",
+    ],
+
+    export_include_dirs: [
+      "include",
+      "adapter",
+    ],
+}
+
+cc_library_shared {
+    name: "libmeson_display_adapter_remote@1",
+
+    cflags: [
+        "-Werror",
+        "-Wall",
+    ],
+
+    srcs: [
+        "adapter/DisplayAdapterRemote.cpp",
+        "adapter/DisplayAdapterCommon.cpp",
+        "adapter/DisplayClient.cpp",
+    ],
+
+    local_include_dirs: [
+      "include",
+      "adapter",
+    ],
+
+    shared_libs: [
+        "android.hardware.graphics.mapper@2.0",
+        "android.hardware.graphics.mapper@3.0",
+        "android.hardware.graphics.mapper@4.0",
+        "vendor.amlogic.display.meson_display_ipc@1.0",
+        "liblog",
+        "libcutils",
+        "libutils",
+        "libhidlbase",
+    ],
+
+    static_libs: [
+        "libjsoncpp",
+    ],
+
+    export_include_dirs: [
+      "include",
+      "adapter",
+    ],
+}

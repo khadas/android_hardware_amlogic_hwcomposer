@@ -1,0 +1,27 @@
+cc_binary {
+    name: "meson_display_screencap",
+
+//    cflags: [
+//        "-Wall",
+//        "-Werror",
+//    ],
+
+    srcs: [
+        "display_screencap.cpp",
+    ],
+
+    shared_libs: [
+        "liblog",
+        "libui",
+        "libcutils",
+        "libgui",
+        "libhwui",
+        "libamgralloc_ext@2",
+        "libmeson_display_adapter_remote@1",
+        "android.hardware.graphics.mapper@2.0",
+        "android.hardware.graphics.mapper@3.0",
+        "android.hardware.graphics.mapper@4.0",
+    ],
+
+    clang: true,
+}
