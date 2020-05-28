@@ -10,6 +10,7 @@
 #include <inttypes.h>
 
 #include "Hwc2Display.h"
+#include "Hwc2Layer.h"
 #include "Hwc2Base.h"
 
 #include <DrmTypes.h>
@@ -22,6 +23,10 @@
 #include <CompositionStrategyFactory.h>
 #include <EventThread.h>
 #include <systemcontrol.h>
+
+#include "am_gralloc_ext.h"
+
+#include "CopyProcessor.h"
 
 Hwc2Display::Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer) {
     mObserver = observer;
@@ -1136,3 +1141,16 @@ void Hwc2Display::dump(String8 & dumpstr) {
     dumpHwDisplayPlane(dumpstr);
 }
 
+int32_t Hwc2Display::captureDisplayScreen(buffer_handle_t hnd) {
+    int ret = -1;
+    std::shared_ptr<DrmFramebuffer> capBuffer;
+
+    ALOGD("hwc2Display:: captureDisplayScreen");
+    if (mPostProcessor && hnd) {
+        capBuffer = std::make_shared<DrmFramebuffer>(hnd, -1);
+        //ret = mPostProcessor->getScreencapFb(capBuffer);
+        capBuffer.reset();
+    }
+
+    return ret;
+}

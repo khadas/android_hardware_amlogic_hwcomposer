@@ -119,6 +119,10 @@ public:
     virtual void onModeChanged(int stage);
     virtual void getDispMode(drm_mode_info_t & dispMode);
 
+/* meson display ddk */
+public:
+    int32_t captureDisplayScreen(buffer_handle_t hnd);
+
 protected:
     /* For compose. */
     hwc2_error_t collectLayersForPresent();

@@ -128,6 +128,11 @@ LOCAL_SRC_FILES := \
     HwcVsync.cpp \
     HwcConfig.cpp \
     HwcPowerMode.cpp \
+    HwcModeMgr.cpp \
+    ActiveModeMgr.cpp \
+    RealModeMgr.cpp \
+    FixedSizeModeMgr.cpp \
+    VariableModeMgr.cpp \
     HwcDisplayPipe.cpp \
     FixedDisplayPipe.cpp \
     LoopbackDisplayPipe.cpp \

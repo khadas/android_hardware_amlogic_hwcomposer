@@ -9,6 +9,8 @@
 #include "CopyProcessor.h"
 #include <MesonLog.h>
 
+#include <ui/PixelFormat.h>
+
 CopyProcessor::CopyProcessor() {
 }
 
@@ -31,19 +33,19 @@ int32_t CopyProcessor::process(
     int instride = am_gralloc_get_stride_in_pixel(inputfb->mBufferHandle);
     int outstride = am_gralloc_get_stride_in_pixel(outfb->mBufferHandle);
 
-    //MESON_LOGD("CopyProcessor %dx%d(%d,%d), fmt %d, %d",
-    //    w, h, instride, outstride, infmt, outfmt);
+    MESON_LOGD("CopyProcessor %dx%d stride (%d,%d), fmt %d, %d",
+        w, h, instride, outstride, infmt, outfmt);
 
     if (inputfb->lock(&inmem) == 0 && outfb->lock(&outmem) == 0) {
         char * src =  (char *)inmem;
         char * dst =  (char *)outmem;
 
-        if (infmt == HAL_PIXEL_FORMAT_RGB_888 &&
-            outfmt == HAL_PIXEL_FORMAT_RGB_888) {
+        if (infmt == outfmt) {
+            int32_t bytes = bytesPerPixel(infmt);
             for (int ir = 0; ir < h; ir++) {
-                memcpy(dst, src, w * 3);
-                src += instride * 3;
-                dst += outstride * 3;
+                memcpy(dst, src, w * bytes);
+                src += instride * bytes;
+                dst += outstride * bytes;
             }
         }
 

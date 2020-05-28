@@ -11,12 +11,11 @@
 
 #include <map>
 #include <hardware/hardware.h>
-#include <HwcDisplayPipe.h>
+#include "HwcDisplayPipe.h"
 
 #include "Hwc2Display.h"
 
-
-class MesonHwc2 {
+class MesonHwc2 : public android::Singleton<MesonHwc2> {
 /*hwc2 interface*/
 public:
     void getCapabilities(uint32_t* outCount, int32_t* outCapabilities);
@@ -143,6 +142,10 @@ public:
 public:
     MesonHwc2();
     virtual ~MesonHwc2();
+
+/* for meson display service */
+public:
+    int32_t captureDisplayScreen(buffer_handle_t hnd);
 
 protected:
     int32_t initialize();

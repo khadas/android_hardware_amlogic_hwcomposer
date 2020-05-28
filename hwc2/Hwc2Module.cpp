@@ -14,6 +14,8 @@
 #include <MesonLog.h>
 
 #include "MesonHwc2.h"
+#include "DisplayAdapterLocal.h"
+#include "DisplayService.h"
 
 typedef struct hwc2_impl {
     hwc2_device_t base;
@@ -529,7 +531,7 @@ static int hwc2_device_open(
 
     /*init hwc device. */
     hwc2_impl_t * hwc = (hwc2_impl_t*)calloc(1, sizeof(hwc2_impl_t));
-    hwc->impl = new MesonHwc2();
+    hwc->impl =  &(MesonHwc2::getInstance());
 
     hwc->base.common.module = const_cast<hw_module_t*>(module);
     hwc->base.common.version = HWC_DEVICE_API_VERSION_2_0;
@@ -538,6 +540,11 @@ static int hwc2_device_open(
     hwc->base.getFunction = hwc2_getFunction;
 
     *device = reinterpret_cast<hw_device_t*>(hwc);
+    static meson::DisplayServer* server;
+    std::unique_ptr<meson::DisplayAdapter> adapter =
+        meson::DisplayAdapterLocal::create(meson::DisplayAdapter::BackendType::DISPLAY_TYPE_FBDEV);
+    server = new meson::DisplayServer(adapter);
+    UNUSED(server);
 
     return 0;
 }

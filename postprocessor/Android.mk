@@ -38,7 +38,8 @@ LOCAL_STATIC_LIBRARIES := \
     hwc.display_static
 
 LOCAL_EXPORT_C_INCLUDE_DIRS := \
-    $(LOCAL_PATH)/include
+    $(LOCAL_PATH)/include \
+    $(LOCAL_PATH)/fbprocessor
 
 LOCAL_MODULE := hwc.postprocessor_static
 

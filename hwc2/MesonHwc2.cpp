@@ -59,6 +59,9 @@
 static bool m3DMode = false;
 static bool mKeyStoneMode = false;
 #endif
+
+ANDROID_SINGLETON_STATIC_INSTANCE(MesonHwc2)
+
 /************************************************************
 *                        Hal Interface
 ************************************************************/
@@ -774,6 +777,11 @@ void MesonHwc2::onHotplug(hwc2_display_t display, bool connected) {
     } else {
         MESON_LOGE("No hotplug callback registered.");
     }
+}
+
+int32_t MesonHwc2::captureDisplayScreen(buffer_handle_t hnd) {
+    GET_HWC_DISPLAY(0);
+    return hwcDisplay->captureDisplayScreen(hnd);
 }
 
 int32_t MesonHwc2::initialize() {

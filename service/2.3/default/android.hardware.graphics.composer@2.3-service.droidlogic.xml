@@ -8,4 +8,13 @@
             <instance>default</instance>
         </interface>
     </hal>
+    <hal format="hidl">
+        <name>vendor.amlogic.display.meson_display_ipc</name>
+        <transport>hwbinder</transport>
+        <version>1.0</version>
+        <interface>
+            <name>IMesonDisplayIPC</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
 </manifest>

@@ -22,6 +22,10 @@
 
 class HwDisplayCrtc;
 
+namespace meson {
+    class DisplayAdapterLocal;
+};
+
 class HwDisplayConnector {
 public:
     HwDisplayConnector(int32_t drvFd, uint32_t id);
@@ -47,12 +51,12 @@ public:
 
     virtual int32_t setMode(drm_mode_info_t & mode __unused) { return 0;};
     virtual uint32_t getId() { return mId;};
+    friend meson::DisplayAdapterLocal;
 
-    protected:
+protected:
     virtual void loadPhysicalSize();
     virtual int32_t addDisplayMode(std::string& mode);
 
-protected:
     int32_t mDrvFd;
     uint32_t mId;
 
