@@ -77,7 +77,7 @@ void DisplayTypeConvToIndex(ConnectorType displayType, connector_index& type) {
         case DisplayAdapter::CONN_TYPE_PANEL:
             type = CONNECT_PANEL_INDEX;
             break;
-        case DisplayAdapter::CONN_TYPE_DUMMY:
+        default:
             type = CONNECT_DUMMY_INDEX;
             break;
     }
@@ -177,6 +177,22 @@ error_handle:
 bool DisplayAdapterLocal::captureDisplayScreen(const native_handle_t **outBufferHandle) {
     *outBufferHandle = nullptr;
     return true;
+}
+
+bool DisplayAdapterLocal::setDisplayRect(const Rect rect, ConnectorType displayType) {
+    bool ret = false;
+    UNUSED(rect);
+    UNUSED(displayType);
+    NOTIMPLEMENTED;
+    return ret;
+}
+
+bool DisplayAdapterLocal::getDisplayRect(Rect& rect, ConnectorType displayType) {
+    bool ret = false;
+    UNUSED(rect);
+    UNUSED(displayType);
+    NOTIMPLEMENTED;
+    return ret;
 }
 
 std::unique_ptr<DisplayAdapter> DisplayAdapterLocal::create(DisplayAdapter::BackendType type) {

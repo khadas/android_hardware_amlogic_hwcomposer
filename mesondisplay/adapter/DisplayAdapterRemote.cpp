@@ -13,7 +13,7 @@
 
 #define IF_SERVER_NOT_READY_RETURN(ret) \
     if (!connectServerIfNeed()) { \
-        DEBUG_INFO("Can't connect with server!"); \
+        DEBUG_INFO("Can't connect with MesonDisplay server!"); \
         return ret; \
     }
 
@@ -95,6 +95,32 @@ bool DisplayAdapterRemote::setPrefDisplayMode(const string& mode, ConnectorType 
 bool DisplayAdapterRemote::captureDisplayScreen(const native_handle_t **outBufferHandle) {
     IF_SERVER_NOT_READY_RETURN(false);
     return ipc->captureDisplayScreen(outBufferHandle);
+}
+
+bool DisplayAdapterRemote::setDisplayRect(const Rect rect, ConnectorType displayType) {
+    Json::Value cmd;
+    IF_SERVER_NOT_READY_RETURN(false);
+    cmd["cmd"] = "setDisplayViewPort";
+    cmd["rect"] = rect.toString().c_str();
+    cmd["p_displayType"] = displayType;
+    ipc->send_request(cmd);
+    return true;
+}
+
+
+bool DisplayAdapterRemote::getDisplayRect(Rect& rect, ConnectorType displayType) {
+    Json::Value cmd, ret;
+    IF_SERVER_NOT_READY_RETURN(false);
+    cmd["cmd"] = "getDisplayViewPort";
+    cmd["p_displayType"] = displayType;
+
+    ipc->send_request_wait_reply(cmd, ret);
+
+    if (ret.isMember("ret") && ret["ret"]["rect"].isString()) {
+        rect = ret["ret"]["rect"].asString().c_str();
+        return true;
+    } else
+        return false;
 }
 
 DisplayAdapterRemote::DisplayAdapterRemote() {

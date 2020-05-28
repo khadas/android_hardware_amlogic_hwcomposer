@@ -8,6 +8,7 @@
  */
 
 #include "DisplayAdapter.h"
+#include <inttypes.h>
 #include <json/json.h>
 namespace meson{
 

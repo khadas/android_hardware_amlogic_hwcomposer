@@ -34,6 +34,9 @@ void DisplayTypeConv(drm_connector_type_t& type, ConnectorType displayType) {
         case DisplayAdapter::CONN_TYPE_DUMMY:
             type = DRM_MODE_CONNECTOR_DUMMY;
             break;
+        case DisplayAdapter::CONN_TYPE_CVBS:
+            type = DRM_MODE_CONNECTOR_CVBS;
+            break;
     }
 }
 
@@ -132,6 +135,51 @@ bool DisplayAdapterLocal::captureDisplayScreen(const native_handle_t **outBuffer
     }
 
     return ret == 1 ? true : false;
+}
+
+bool DisplayAdapterLocal::setDisplayRect(const Rect rect, ConnectorType displayType) {
+    bool ret = false;
+    drm_connector_type_t type;
+    DisplayTypeConv(type, displayType);
+    std::shared_ptr<HwDisplayConnector> connector;
+    drm_rect_wh_t drm_rect;
+
+    DEBUG_INFO("SetDisplay[%s] DisplayRect to \"(%s)\"", type == DRM_MODE_CONNECTOR_HDMI ? "HDMI" :
+            type == DRM_MODE_CONNECTOR_PANEL ? "panel" : "cvbs", rect.toString().c_str());
+
+    drm_rect.x = rect.x;
+    drm_rect.y = rect.y;
+    drm_rect.w = rect.w;
+    drm_rect.h = rect.h;
+    HwDisplayManager::getInstance().getConnector(connector, type);
+    if (connector && connector->mCrtc) {
+        connector->mCrtc->setViewPort(drm_rect);
+        ret = true;
+    }
+    DEBUG_INFO("SetDisplayViewPort %s", ret ? "doen" : "faild");
+    return ret;
+}
+
+bool DisplayAdapterLocal::getDisplayRect(Rect& rect, ConnectorType displayType) {
+    bool ret = false;
+    drm_connector_type_t type;
+    DisplayTypeConv(type, displayType);
+    std::shared_ptr<HwDisplayConnector> connector;
+    drm_rect_wh_t drm_rect;
+
+    HwDisplayManager::getInstance().getConnector(connector, type);
+    if (connector && connector->mCrtc) {
+        connector->mCrtc->getViewPort(drm_rect);
+        DEBUG_INFO("SetDisplay[%s] view port to \"(%s)\"", type == DRM_MODE_CONNECTOR_HDMI ? "HDMI" :
+                type == DRM_MODE_CONNECTOR_PANEL ? "panel" : "cvbs", rect.toString().c_str());
+        rect.x = drm_rect.x;
+        rect.y = drm_rect.y;
+        rect.h = drm_rect.h;
+        rect.w = drm_rect.w;
+        ret = true;
+    }
+    DEBUG_INFO("SetDisplayViewPort %s", ret ? "doen" : "faild");
+    return ret;
 }
 
 std::unique_ptr<DisplayAdapter> DisplayAdapterLocal::create(DisplayAdapter::BackendType type) {

@@ -633,9 +633,9 @@ int32_t MesonHwc2::setPostProcessor(bool bEnable) {
 }
 
 int32_t MesonHwc2::setCalibrateInfo(hwc2_display_t display){
+    int32_t ret = HWC2_ERROR_NONE;
     GET_HWC_DISPLAY(display);
     int32_t caliX,caliY,caliW,caliH;
-    static int cali[4];
     drm_mode_info_t mDispMode;
     hwcDisplay->getDispMode(mDispMode);
 
@@ -651,29 +651,15 @@ int32_t MesonHwc2::setCalibrateInfo(hwc2_display_t display){
             caliH = mDispMode.pixelH - 2;
         }
 #endif
-    } else {
-        /*default info*/
+        ret = hwcDisplay->setCalibrateInfo(caliX,caliY,caliW,caliH);
+    } else if (HwcConfig::preDisplayCalibrateEnabled()) {
         caliX = 0;
         caliY = 0;
         caliW = mDispMode.pixelW;
         caliH = mDispMode.pixelH;
-        if (!HwcConfig::preDisplayCalibrateEnabled()) {
-            /*get post calibrate info.*/
-            /*for interlaced, we do thing, osd driver will take care of it.*/
-            int calibrateCoordinates[4];
-            std::string dispModeStr(mDispMode.name);
-            if (0 == sc_get_osd_position(dispModeStr, calibrateCoordinates)) {
-                memcpy(cali, calibrateCoordinates, sizeof(int) * 4);
-            } else {
-               MESON_LOGD("(%s): sc_get_osd_position failed, use backup coordinates.", __func__);
-            }
-            caliX = cali[0];
-            caliY = cali[1];
-            caliW = cali[2];
-            caliH = cali[3];
-        }
+        ret = hwcDisplay->setCalibrateInfo(caliX,caliY,caliW,caliH);
     }
-    return hwcDisplay->setCalibrateInfo(caliX,caliY,caliW,caliH);
+    return ret;
 }
 
 uint32_t MesonHwc2::getDisplayRequest() {

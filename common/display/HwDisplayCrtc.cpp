@@ -37,6 +37,7 @@ HwDisplayCrtc::HwDisplayCrtc(int drvFd, int32_t id) {
     */
     mOsdChannels = 1;
     memset(&nullHdr, 0, sizeof(nullHdr));
+    mViewPort.x = mViewPort.y = mViewPort.w = mViewPort.h = 0;
 
     hdrVideoInfo = malloc(sizeof(vframe_master_display_colour_s_t));
 
@@ -361,4 +362,14 @@ int32_t HwDisplayCrtc::writeCurDisplayAttr(std::string & dispattr) {
     ret = sc_write_sysfs(VIU_DISPLAY_ATTR_SYSFS, dispattr);
 
     return ret;
+}
+
+void HwDisplayCrtc::setViewPort(const drm_rect_wh_t viewPort) {
+    std::lock_guard<std::mutex> lock(mMutex);
+    mViewPort = viewPort;
+}
+
+void HwDisplayCrtc::getViewPort(drm_rect_wh_t & viewPort) {
+    std::lock_guard<std::mutex> lock(mMutex);
+    viewPort = mViewPort;
 }

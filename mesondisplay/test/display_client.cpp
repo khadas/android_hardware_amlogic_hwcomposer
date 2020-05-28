@@ -83,6 +83,10 @@ int main(int argc, char* argv[]) {
                     std::string mode;
                     client->getDisplayMode(mode, type);
                     printf("%s\n", mode.c_str());
+                } else if (0 == memcmp("ui-rect", optarg, sizeof("ui-rect"))) {
+                    meson::Rect rect;
+                    client->getDisplayRect(rect, type);
+                    printf("%s\n", rect.toString().c_str());
                 } else {
                     NOTIMPLEMENTED;
                 }
@@ -97,6 +101,22 @@ int main(int argc, char* argv[]) {
                             break;
                         }
                         client->setDisplayMode(argv[optind], type);
+                        optind++;
+                    } else if (0 == memcmp("ui-rect", optarg, sizeof("ui-rect"))) {
+                        meson::Rect rect;
+                        if (optind + 4 > argc) {
+                            DEBUG_INFO("miss rect parameter");
+                            break;
+                        }
+                        rect.x = atoi(argv[optind]);
+                        optind++;
+                        rect.y = atoi(argv[optind]);
+                        optind++;
+                        rect.w = atoi(argv[optind]);
+                        optind++;
+                        rect.h = atoi(argv[optind]);
+                        DEBUG_INFO("set ui to (%s)", rect.toString().c_str());
+                        client->setDisplayRect(rect, type);
                         optind++;
                     } else {
                         NOTIMPLEMENTED;

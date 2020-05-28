@@ -268,4 +268,30 @@ LOCAL_PROPRIETARY_MODULE := true
 endif
 include $(BUILD_EXECUTABLE)
 
+
+
+#######################################
+####### exec :test_watcher ####
+#######################################
+include $(CLEAR_VARS)
+
+LOCAL_MODULE:= test_watcher
+
+LOCAL_CFLAGS +=
+
+LOCAL_SRC_FILES := \
+    test/watcher.cpp
+
+LOCAL_C_INCLUDES += \
+  $(LOCAL_PATH)/include
+
+LOCAL_SHARED_LIBRARIES :=  \
+    liblog
+
+LOCAL_MODULE_TAGS := optional
+
+ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 26 && echo OK),OK)
+LOCAL_PROPRIETARY_MODULE := true
+endif
+include $(BUILD_EXECUTABLE)
 include $(call all-makefiles-under,$(LOCAL_PATH))

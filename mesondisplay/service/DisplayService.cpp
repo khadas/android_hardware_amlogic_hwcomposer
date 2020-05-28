@@ -159,6 +159,16 @@ void DisplayServer::message_handle(Json::Value& in, Json::Value& out) {
         if (!in.isMember("p_displayType") || !in.isMember("p_mode"))
             goto OUT;
         adapter->setPrefDisplayMode(in["p_mode"].asString(), (ConnectorType)in["p_displayType"].asUInt());
+    } else if (cmd == "setDisplayViewPort") {
+        if (!in.isMember("p_displayType") || !in.isMember("rect"))
+            goto OUT;
+        adapter->setDisplayRect(in["rect"].asString().c_str(), (ConnectorType)in["p_displayType"].asUInt());
+    } else if (cmd == "getDisplayViewPort") {
+        Rect rect;
+        if (!in.isMember("p_displayType"))
+            goto OUT;
+        adapter->getDisplayRect(rect, (ConnectorType)in["p_displayType"].asUInt());
+        ret["rect"] = rect.toString();
     } else {
         DEBUG_INFO("CMD not implement!");
     }

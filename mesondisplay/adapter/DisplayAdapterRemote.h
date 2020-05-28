@@ -20,12 +20,16 @@ class DisplayAdapterRemote: public DisplayAdapter {
 public:
     AdapterType type() override { return ADAPTER_TYPE_REMOTE; }
     BackendType displayType() override;
-
+    virtual bool isReady() override {
+        return connectServerIfNeed();
+    }
     bool getSupportDisplayModes(vector<DisplayModeInfo>& displayModeList, ConnectorType displayType) override;
     bool getDisplayMode(string& mode, ConnectorType displayType) override;
     bool setDisplayMode(const string& mode, ConnectorType displayType) override;
     bool setPrefDisplayMode(const string& mode, ConnectorType displayType) override;
     bool captureDisplayScreen(const native_handle_t **outBufferHandle) override;
+    bool setDisplayRect(const Rect rect, ConnectorType displayType);
+    bool getDisplayRect(Rect& rect, ConnectorType displayType);
 
     static std::unique_ptr<DisplayAdapter> create();
     DisplayAdapterRemote();

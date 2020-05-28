@@ -32,6 +32,13 @@ typedef struct drm_rect {
     int32_t bottom;
 } drm_rect_t;
 
+typedef struct drm_rect_wh {
+    int32_t x;
+    int32_t y;
+    int32_t w;
+    int32_t h;
+} drm_rect_wh_t;
+
 typedef struct drm_color {
     uint8_t r;
     uint8_t g;
