@@ -256,20 +256,23 @@ void Hwc2Display::onHotplug(bool connected) {
     }
 
     /*call hotplug out of lock, SF may call some hwc function to cause deadlock.*/
-    if (bSendPlugOut) {
+    if (bSendPlugOut)
+        mObserver->onHotplug(false);
+}
+
+/* clear all layers and blank display when extend display plugout,
+    So the resource used by display drvier can be released.
+    Or framebuffer may allocate fail when do plug in/out quickly.
+*/
+void Hwc2Display::cleanupBeforeDestroy() {
+    {/*clear framebuffer reference by gpu composer*/
+        std::lock_guard<std::mutex> lock(mMutex);
         std::shared_ptr<IComposer> clientComposer = mComposers.find(MESON_CLIENT_COMPOSER)->second;
         clientComposer->prepare();
-        if (mLayers.size() >= 1)
-            mLayers.clear();
-
-        uint32_t outNumTypes;
-        uint32_t outNumRequests;
-        int32_t outPresentFence;
-        validateDisplay(&outNumTypes,&outNumRequests);
-        presentDisplay(&outPresentFence);
-
-        mObserver->onHotplug(false);
     }
+
+    /*clear framebuffer reference by driver*/
+    blankDisplay();
 }
 
 void Hwc2Display::onUpdate(bool bHdcp) {
