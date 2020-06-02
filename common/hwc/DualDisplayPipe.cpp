@@ -184,7 +184,7 @@ void DualDisplayPipe::handleEvent(drm_display_event event, int val) {
             for (auto statIt : mPipeStats) {
                 if (statIt.second->modeConnector->getType() == DRM_MODE_CONNECTOR_HDMI) {
                     statIt.second->modeConnector->update();
-                     statIt.second->hwcDisplay->onHotplug(false);
+                    statIt.second->hwcDisplay->onHotplug(false);
                 }
             }
         }

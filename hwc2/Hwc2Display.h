@@ -113,6 +113,7 @@ public:
     virtual void onUpdate(bool bHdcp);
     virtual void onModeChanged(int stage);
     virtual void getDispMode(drm_mode_info_t & dispMode);
+    virtual void cleanupBeforeDestroy();
 
 protected:
     /* For compose. */
