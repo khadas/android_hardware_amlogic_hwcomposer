@@ -275,6 +275,21 @@ void Hwc2Display::onHotplug(bool connected) {
     }
 }
 
+/* clear all layers and blank display when extend display plugout,
+ * So the resource used by display drvier can be released.
+ * Or framebuffer may allocate fail when do plug in/out quickly.
+ */
+void Hwc2Display::cleanupBeforeDestroy() {
+    {/*clear framebuffer reference by gpu composer*/
+        std::lock_guard<std::mutex> lock(mMutex);
+        std::shared_ptr<IComposer> clientComposer = mComposers.find(MESON_CLIENT_COMPOSER)->second;
+        clientComposer->prepare();
+    }
+
+    /*clear framebuffer reference by driver*/
+    blankDisplay();
+}
+
 void Hwc2Display::onUpdate(bool bHdcp) {
     std::lock_guard<std::mutex> lock(mMutex);
     MESON_LOGD("On update: [%s]", bHdcp == true ? "HDCP verify success" : "HDCP verify fail");
