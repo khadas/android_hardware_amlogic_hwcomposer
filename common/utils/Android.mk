@@ -36,10 +36,12 @@ LOCAL_C_INCLUDES := \
     frameworks/native/libs/arect/include \
     hardware/amlogic/gralloc/amlogic \
     vendor/amlogic/frameworks/services/systemcontrol \
+    $(LOCAL_PATH)/include/log \
     $(LOCAL_PATH)/include
 
 LOCAL_EXPORT_C_INCLUDE_DIRS := \
     system/core/include \
+    $(LOCAL_PATH)/include/log \
     $(LOCAL_PATH)/include
 
 LOCAL_MODULE := hwc.utils_static

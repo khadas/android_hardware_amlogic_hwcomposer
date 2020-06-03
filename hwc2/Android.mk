@@ -100,7 +100,7 @@ LOCAL_C_INCLUDES := \
 
 # !!! static lib sequence is serious, donot change it.
 LOCAL_STATIC_LIBRARIES := \
-    libmeson_display_adapter_local \
+    meson_display.adapter_local_static \
     hwc.composer_static \
     hwc.common_static \
     hwc.composition_static \

@@ -16,6 +16,9 @@
 #include "MesonHwc2.h"
 #include "DisplayAdapterLocal.h"
 #include "DisplayService.h"
+#include "systemcontrol.h"
+
+#define HWC_BOOTED_PROP "vendor.sys.hwc.booted"
 
 typedef struct hwc2_impl {
     hwc2_device_t base;
@@ -599,12 +602,14 @@ static int hwc2_device_open(
     hwc->base.getFunction = hwc2_getFunction;
 
     *device = reinterpret_cast<hw_device_t*>(hwc);
+
     static meson::DisplayServer* server;
     std::unique_ptr<meson::DisplayAdapter> adapter =
         meson::DisplayAdapterLocal::create(meson::DisplayAdapter::BackendType::DISPLAY_TYPE_FBDEV);
     server = new meson::DisplayServer(adapter);
     UNUSED(server);
 
+    sc_set_property(HWC_BOOTED_PROP, "true");
     return 0;
 }
 

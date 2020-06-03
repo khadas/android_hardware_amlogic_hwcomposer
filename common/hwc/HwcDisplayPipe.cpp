@@ -78,7 +78,6 @@ int32_t HwcDisplayPipe::init(std::map<uint32_t, std::shared_ptr<HwcDisplay>> & h
             stat->hwcDisplay->blankDisplay();
         }
 
-        sc_set_property(HWC_BOOTED_PROP, "true");
     }
 
     return 0;

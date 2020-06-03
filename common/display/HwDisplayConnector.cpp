@@ -14,6 +14,7 @@
 HwDisplayConnector::HwDisplayConnector(int32_t drvFd, uint32_t id) {
     mDrvFd = drvFd;
     mId = id;
+    mCrtc = nullptr;
 }
 
 HwDisplayConnector::~HwDisplayConnector() {

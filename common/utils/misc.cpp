@@ -84,9 +84,19 @@ int32_t sysfs_get_string_ex(const char* path, char *str, int32_t size,
 
 int32_t sysfs_get_string(const char* path, char *str, int32_t len) {
     char * buf = new char[len];
-    sysfs_get_string_ex(path, (char*)buf, len, false);
+    int32_t ret = sysfs_get_string_ex(path, (char*)buf, len, false);
     strcpy(str, buf);
-    return 0;
+    delete[] buf;
+
+    return ret;
+}
+
+int32_t sysfs_get_string_original(const char *path, char *str, int32_t len) {
+    char * buf = new char[len];
+    int32_t ret = sysfs_get_string_ex(path, (char*)buf, len, true);
+    strcpy(str, buf);
+    delete[] buf;
+    return ret;
 }
 
 int32_t sysfs_set_string(const char *path, const char *val) {

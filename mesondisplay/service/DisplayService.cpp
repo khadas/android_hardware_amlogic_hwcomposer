@@ -8,6 +8,8 @@
  * Meson display server side implement
  */
 
+#define LOG_NDEBUG 1
+
 #include "DisplayService.h"
 #include "MesonLog.h"
 #include "misc.h"
@@ -27,13 +29,13 @@ MesonIpcServer::MesonIpcServer() {
 
 bool MesonIpcServer::check_recursion_record_and_push(const std::string& str) {
     if (recursion_record.size() >= RECURSION_LIMIT) {
-        DEBUG_INFO("Service reach recursion limited(%d), show stack below", RECURSION_LIMIT);
+        MESON_LOGD("Service reach recursion limited(%d), show stack below", RECURSION_LIMIT);
         //show the first str on top
-        DEBUG_INFO("%s", str.c_str());
+        MESON_LOGD("%s", str.c_str());
         while (!recursion_record.empty()) {
             std::string stack;
             recursion_record.top(stack);
-            DEBUG_INFO("%s", stack.c_str());
+            MESON_LOGD("%s", stack.c_str());
             recursion_record.pop();
         }
         return false;
@@ -49,7 +51,7 @@ Return<void> MesonIpcServer::send_msg_wait_reply(const hidl_string& msg_in, send
     Json::FastWriter write;
     hidl_string out_str;
     const std::string tmp = msg_in.c_str();
-    DEBUG_INFO("Server(s):<<:%s:", msg_in.c_str());
+    MESON_LOGV("Server << %s", msg_in.c_str());
 
     if (!check_recursion_record_and_push(tmp)) {
         _hidl_cb("");
@@ -58,12 +60,12 @@ Return<void> MesonIpcServer::send_msg_wait_reply(const hidl_string& msg_in, send
 
     ret = reader.parse(tmp, value);
     if (!ret) {
-        DEBUG_INFO("Server message decode error!");
+        MESON_LOGE("Server message decode error!");
         _hidl_cb("");
     } else {
         message_handle(value, reply);
         out_str = write.write(reply);
-        DEBUG_INFO("Server:>>:%s:", out_str.c_str());
+        MESON_LOGV("Server >> %s", out_str.c_str());
         _hidl_cb(out_str);
     }
     recursion_record.pop();
@@ -75,7 +77,7 @@ Return<void> MesonIpcServer::send_msg(const hidl_string& msg_in) {
     Json::Reader reader;
     Json::Value value, reply;
     const std::string tmp = msg_in.c_str();
-    DEBUG_INFO("Server:<<:%s:", msg_in.c_str());
+    MESON_LOGV("Server:<<:%s:", msg_in.c_str());
 
     if (!check_recursion_record_and_push(tmp)) {
         return Void();
@@ -83,7 +85,7 @@ Return<void> MesonIpcServer::send_msg(const hidl_string& msg_in) {
 
     ret = reader.parse(tmp, value);
     if (!ret) {
-        DEBUG_INFO("Server message decode error!");
+        MESON_LOGE("Server message decode error!");
     } else {
         message_handle(value, reply);
     }
@@ -108,14 +110,14 @@ Return<void> MesonIpcServer::captureDisplayScreen(const int32_t displayId, const
 
 DisplayServer::DisplayServer(std::unique_ptr<DisplayAdapter>& adapter) {
     if (!adapter) {
-        DEBUG_INFO("Server create with null adapter!");
+        MESON_LOGE("Server create with null adapter!");
     }
     this->adapter = std::move(adapter);
 #if 1
     if (registerAsService() != android::OK) {
-        DEBUG_INFO("Server RegisterAsServer failed(%d)!", registerAsService());
+        MESON_LOGE("Server RegisterAsServer failed(%d)!", registerAsService());
     } else {
-        DEBUG_INFO("register success");
+        MESON_LOGD("register success");
     }
 #endif
 }
@@ -124,11 +126,10 @@ void DisplayServer::message_handle(Json::Value& in, Json::Value& out) {
     std::string cmd,tmp1;
     Json::Value ret;
     if (!adapter || !in.isMember("cmd")) {
-        DEBUG_INFO("Server: Display Adapter not ready or cmd formate issue!");
+        MESON_LOGE("Server: Display Adapter not ready or cmd formate issue!");
         return;
     }
     cmd = in["cmd"].asString();
-    DEBUG_INFO("Server Handle[%s]", cmd.c_str());
     if (cmd == "displayType") {
         ret = adapter->displayType();
     } else if (cmd == "getSupportDisplayModes") {
@@ -155,10 +156,6 @@ void DisplayServer::message_handle(Json::Value& in, Json::Value& out) {
         if (!in.isMember("p_displayType") || !in.isMember("p_mode"))
             goto OUT;
         adapter->setDisplayMode(in["p_mode"].asString(), (ConnectorType)in["p_displayType"].asUInt());
-    } else if (cmd == "setPrefDisplayMode") {
-        if (!in.isMember("p_displayType") || !in.isMember("p_mode"))
-            goto OUT;
-        adapter->setPrefDisplayMode(in["p_mode"].asString(), (ConnectorType)in["p_displayType"].asUInt());
     } else if (cmd == "setDisplayViewPort") {
         if (!in.isMember("p_displayType") || !in.isMember("rect"))
             goto OUT;
@@ -169,8 +166,20 @@ void DisplayServer::message_handle(Json::Value& in, Json::Value& out) {
             goto OUT;
         adapter->getDisplayRect(rect, (ConnectorType)in["p_displayType"].asUInt());
         ret["rect"] = rect.toString();
+    } else if (cmd == "setDisplayAttribute") {
+        if (!in.isMember("name") || !in.isMember("value") || !in.isMember("p_displayType"))
+            goto OUT;
+        adapter->setDisplayAttribute(in["name"].asString(), in["value"].asString(),
+                (ConnectorType) in["p_displayType"].asUInt());
+    } else if (cmd == "getDisplayAttribute") {
+        if (!in.isMember("name") || !in.isMember("value") || !in.isMember("p_displayType"))
+            goto OUT;
+        string value;
+        adapter->getDisplayAttribute(in["name"].asString(), value,
+                (ConnectorType) in["p_displayType"].asUInt());
+        ret["value"] = value;
     } else {
-        DEBUG_INFO("CMD not implement!");
+        MESON_LOGE("CMD not implement!");
     }
 OUT:
     out["ret"] = ret;

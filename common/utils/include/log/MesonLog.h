@@ -11,10 +11,13 @@
 #define MESON_LOG_H
 
 #ifndef LOG_TAG
-#define LOG_TAG "MesonDisplay"
+#define LOG_TAG "MesonHwc"
 #endif
 
+#ifndef LOG_NDEBUG
 #define LOG_NDEBUG 0
+#endif
+
 #include <log/log.h>
 #include <stdlib.h>
 

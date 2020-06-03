@@ -49,8 +49,7 @@ void FixedDisplayPipe::handleEvent(drm_display_event event, int val) {
                 MESON_LOGD("handleEvent  DRM_EVENT_HDMITX_HOTPLUG %d VS %d",
                     pipe->cfg.hwcConnectorType, targetConnector);
                 if (pipe->cfg.hwcConnectorType != targetConnector &&
-                        pipe->cfg.hwcConnectorType == DRM_MODE_CONNECTOR_CVBS &&
-                        hasHdmiConnected()) {
+                        pipe->cfg.hwcConnectorType == DRM_MODE_CONNECTOR_CVBS) {
                     #if 0 /*TODO: for fixed pipe, let systemcontrol to set displaymode.*/
                     pipe->hwcCrtc->unbind();
                     pipe->modeCrtc->unbind();

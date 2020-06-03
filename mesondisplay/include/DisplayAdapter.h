@@ -102,12 +102,6 @@ public:
         NOTIMPLEMENTED;
         return false;
     };
-    virtual bool setPrefDisplayMode(const string& mode, ConnectorType displayType) {
-        UNUSED(mode);
-        UNUSED(displayType);
-        NOTIMPLEMENTED;
-        return false;
-    };
 
     virtual bool captureDisplayScreen(const native_handle_t **outBufferHandle) = 0;
 
@@ -124,6 +118,9 @@ public:
         NOTIMPLEMENTED;
         return false;
     };
+
+    virtual bool setDisplayAttribute(const string& name, const string& value, ConnectorType displayType) = 0;
+    virtual bool getDisplayAttribute(const string& name, string& value, ConnectorType displayType) = 0;
 
     virtual ~DisplayAdapter() = default;
     DisplayAdapter() = default;

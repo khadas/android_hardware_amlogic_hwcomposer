@@ -24,4 +24,9 @@ int32_t sc_read_bootenv(const char * key, std::string & val);
 int32_t sc_set_property(const char *prop, const char *val);
 
 bool sc_get_pref_display_mode(std::string & dispmode);
+
+int32_t get_hdmitx_mode_list(std::vector<std::string>& edidlist);
+int32_t get_hdmitx_hdcp_state(bool & val);
+int32_t read_sysfs(const char * path, std::string & val);
+
 #endif/*SYSTEM_CONTROL_H*/

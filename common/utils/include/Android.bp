@@ -1,0 +1,13 @@
+cc_library_headers {
+    name: "hwc.utils_log",
+    defaults: ["hidl_defaults"],
+    vendor_available: true,
+    recovery_available: true,
+
+    shared_libs: [
+        "liblog",
+        "libcutils",
+    ],
+
+    export_include_dirs: ["log"],
+}

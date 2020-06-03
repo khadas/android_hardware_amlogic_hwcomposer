@@ -122,6 +122,14 @@ int32_t HwDisplayCrtc::setMode(drm_mode_info_t & mode) {
     return writeCurDisplayMode(dispmode);
 }
 
+int32_t HwDisplayCrtc::setDisplayAttribute(std::string& dispattr) {
+    return writeCurDisplayAttr(dispattr);
+}
+
+int32_t HwDisplayCrtc::getDisplayAttribute(std::string& dispattr) {
+    return read_sysfs(VIU_DISPLAY_ATTR_SYSFS , dispattr);
+}
+
 int32_t HwDisplayCrtc::getMode(drm_mode_info_t & mode) {
     std::lock_guard<std::mutex> lock(mMutex);
     if (!mConnected || mCurModeInfo.name[0] == 0)
@@ -335,26 +343,17 @@ void HwDisplayCrtc::closeLogoDisplay() {
 int32_t  HwDisplayCrtc::readCurDisplayMode(std::string & dispmode) {
     int32_t ret = 0;
     if (mId == CRTC_VOUT1) {
-        ret = sc_read_sysfs(VIU1_DISPLAY_MODE_SYSFS, dispmode);
+        ret = read_sysfs(VIU1_DISPLAY_MODE_SYSFS, dispmode);
     }  else if (mId == CRTC_VOUT2) {
-        ret = sc_read_sysfs(VIU2_DISPLAY_MODE_SYSFS, dispmode);
+        ret = read_sysfs(VIU2_DISPLAY_MODE_SYSFS, dispmode);
     }
 
     return ret;
 }
 
 int32_t HwDisplayCrtc::writeCurDisplayMode(std::string & dispmode) {
-    int32_t ret = 0;
-    if (mId == CRTC_VOUT1) {
-        if (!strcmp(dispmode.c_str(), DRM_DISPLAY_MODE_NULL))
-            ret = sc_write_sysfs(VIU1_DISPLAY_MODE_SYSFS, dispmode);
-        else
-            ret = sc_set_display_mode(dispmode);
-    } else if (mId == CRTC_VOUT2) {
-        ret = sc_write_sysfs(VIU2_DISPLAY_MODE_SYSFS, dispmode);
-    }
-
-    return ret;
+    const char *path =  (mId == CRTC_VOUT1) ? VIU1_DISPLAY_MODE_SYSFS : VIU2_DISPLAY_MODE_SYSFS;
+    return sysfs_set_string(path, dispmode.c_str());
 }
 
 int32_t HwDisplayCrtc::writeCurDisplayAttr(std::string & dispattr) {

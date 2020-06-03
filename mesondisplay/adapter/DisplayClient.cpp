@@ -7,6 +7,8 @@
  * Description:
  */
 
+#define LOG_NDEBUG 1
+
 #include "DisplayClient.h"
 #include "MesonLog.h"
 
@@ -35,7 +37,7 @@ bool DisplayClient::tryGetService() {
 
     int count = 0;
     while (meson_ipc_client == NULL && count <= MAX_GET_SERVICE_COUNT) {
-        DEBUG_INFO("Try get meson_ipc service(%d)", count);
+        MESON_LOGD("Try get meson_ipc service(%d)", count);
         meson_ipc_client  = IMesonDisplayIPC::tryGetService();
         count++;
     }
@@ -59,7 +61,7 @@ int32_t DisplayClient::send_request_wait_reply(Json::Value& data, Json::Value& o
     bool ret = false;
     const hidl_string str = write.write(data);
     if (is_ready) {
-        DEBUG_INFO("Client SendSync :%s", str.c_str());
+        MESON_LOGV("Client SendSync :%s", str.c_str());
         meson_ipc_client->send_msg_wait_reply(str, [&out, &ret](const hidl_string& in) {
                 Json::Reader reader;
                 const std::string tmp = in.c_str();
@@ -67,7 +69,7 @@ int32_t DisplayClient::send_request_wait_reply(Json::Value& data, Json::Value& o
                 });
     }
     if (ret == false) {
-        DEBUG_INFO("Server reply format error !");
+        MESON_LOGE("Server reply format error !");
     }
     return 0;
 }
@@ -76,7 +78,7 @@ int32_t DisplayClient::send_request(Json::Value& data) {
     Json::FastWriter write;
     const hidl_string str = write.write(data);
     if (is_ready) {
-        DEBUG_INFO("Client Send :%s", str.c_str());
+        MESON_LOGV("Client Send :%s", str.c_str());
         meson_ipc_client->send_msg(str);
     }
     return 0;

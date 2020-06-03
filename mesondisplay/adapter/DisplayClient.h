@@ -27,7 +27,6 @@ namespace meson {
 using namespace std;
 using ::android::sp;
 using ::vendor::amlogic::display::meson_display_ipc::V1_0::IMesonDisplayIPC;
-//using ::android::hardware::graphics::mapper;
 using ::android::hardware::graphics::mapper::V3_0::IMapper;
 
 class DisplayClient {
@@ -43,13 +42,8 @@ public:
 protected:
     std::string name;
     sp<IMesonDisplayIPC> meson_ipc_client;
-    //sp<android::hardware::graphics::mapper::V2_0::IMapper> mMapper;
-//    sp<mapper::V2_0::IMapper> mMapper2;
-//    sp<mapper::V3_0::IMapper> mMapper3;
-//    sp<mapper::V4_0::IMapper> mMapper4;
     sp<IMapper> mMapper;
 
-    //std::unique_ptr<GrallocMapper> mMapper;
     bool is_ready;
 private:
     DISALLOW_COPY_AND_ASSIGN(DisplayClient);

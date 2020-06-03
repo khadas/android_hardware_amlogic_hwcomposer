@@ -10,10 +10,11 @@
 #include "DisplayAdapter.h"
 #include "DisplayClient.h"
 #include "DisplayAdapterRemote.h"
+#include "MesonLog.h"
 
 #define IF_SERVER_NOT_READY_RETURN(ret) \
     if (!connectServerIfNeed()) { \
-        DEBUG_INFO("Can't connect with MesonDisplay server!"); \
+        MESON_LOGD("Can't connect with MesonDisplay server!"); \
         return ret; \
     }
 
@@ -28,12 +29,12 @@ DisplayAdapter::BackendType DisplayAdapterRemote::displayType() {
     cmd["cmd"] = "displayType";
     ipc->send_request_wait_reply(cmd, ret);
     if (ret.isMember("ret")) {
-        DEBUG_INFO("Server reply error!");
+        MESON_LOGE("Server reply error!");
         return (DisplayAdapter::BackendType)ret["ret"].asUInt();
     } else {
         return DisplayAdapter::DISPLAY_TYPE_MAX;
     }
-};
+}
 
 bool DisplayAdapterRemote::getSupportDisplayModes(vector<DisplayModeInfo>& displayModeList, ConnectorType displayType) {
     Json::Value cmd, ret;
@@ -51,7 +52,7 @@ bool DisplayAdapterRemote::getSupportDisplayModes(vector<DisplayModeInfo>& displ
             if (true == Json2DisplayMode(mode_in, mode)) {
                 displayModeList.push_back(mode);
             } else {
-                DEBUG_INFO("Get Wrong DisplayMode info");
+                MESON_LOGE("Get Wrong DisplayMode info");
                 return false;
             }
         }
@@ -59,7 +60,8 @@ bool DisplayAdapterRemote::getSupportDisplayModes(vector<DisplayModeInfo>& displ
     } else {
         return false;
     }
-};
+}
+
 bool DisplayAdapterRemote::getDisplayMode(string& mode, ConnectorType displayType) {
     Json::Value cmd, ret;
     Json::FastWriter write;
@@ -72,7 +74,8 @@ bool DisplayAdapterRemote::getDisplayMode(string& mode, ConnectorType displayTyp
         return true;
     } else
         return false;
-};
+}
+
 bool DisplayAdapterRemote::setDisplayMode(const string& mode, ConnectorType displayType) {
     Json::Value cmd;
     IF_SERVER_NOT_READY_RETURN(false);
@@ -81,16 +84,7 @@ bool DisplayAdapterRemote::setDisplayMode(const string& mode, ConnectorType disp
     cmd["p_displayType"] = displayType;
     ipc->send_request(cmd);
     return true;
-};
-bool DisplayAdapterRemote::setPrefDisplayMode(const string& mode, ConnectorType displayType) {
-    Json::Value cmd;
-    IF_SERVER_NOT_READY_RETURN(false);
-    cmd["cmd"] = "setPrefDisplayMode";
-    cmd["p_mode"] = mode;
-    cmd["p_displayType"] = displayType;
-    ipc->send_request(cmd);
-    return true;
-};
+}
 
 bool DisplayAdapterRemote::captureDisplayScreen(const native_handle_t **outBufferHandle) {
     IF_SERVER_NOT_READY_RETURN(false);
@@ -107,7 +101,6 @@ bool DisplayAdapterRemote::setDisplayRect(const Rect rect, ConnectorType display
     return true;
 }
 
-
 bool DisplayAdapterRemote::getDisplayRect(Rect& rect, ConnectorType displayType) {
     Json::Value cmd, ret;
     IF_SERVER_NOT_READY_RETURN(false);
@@ -123,10 +116,41 @@ bool DisplayAdapterRemote::getDisplayRect(Rect& rect, ConnectorType displayType)
         return false;
 }
 
+bool DisplayAdapterRemote::setDisplayAttribute(
+        const string& name, const string& value,
+        ConnectorType displayType) {
+    Json::Value cmd;
+    IF_SERVER_NOT_READY_RETURN(false);
+    cmd["cmd"] = "setDisplayAttribute";
+    cmd["name"] = name.c_str();
+    cmd["value"] = value.c_str();
+    cmd["p_displayType"] = displayType;
+    ipc->send_request(cmd);
+    return true;
+}
+
+bool DisplayAdapterRemote::getDisplayAttribute(
+        const string& name, string& value,
+        ConnectorType displayType) {
+    Json::Value cmd, ret;
+    //Json::FastWriter write;
+    IF_SERVER_NOT_READY_RETURN(false);
+    cmd["cmd"] = "getDisplayAttribute";
+    cmd["name"] = name.c_str();
+    cmd["p_displayType"] = displayType;
+    ipc->send_request_wait_reply(cmd, ret);
+    if (ret.isMember("ret") && ret["ret"]["value"].isString()) {
+        value = ret["ret"]["value"].asString();
+        return true;
+    } else {
+        return false;
+    }
+}
+
 DisplayAdapterRemote::DisplayAdapterRemote() {
     ipc = DisplayClient::create("DisplayAdapterRemote");
     if (!ipc)
-        DEBUG_INFO("Error when connect with Server");
+        MESON_LOGE("Error when connect with Server");
 }
 
 std::unique_ptr<DisplayAdapter> DisplayAdapterRemote::create() {
@@ -135,10 +159,10 @@ std::unique_ptr<DisplayAdapter> DisplayAdapterRemote::create() {
 
 bool DisplayAdapterRemote::connectServerIfNeed() {
         return ipc->tryGetService();
-};
+}
 
 std::unique_ptr<DisplayAdapter> DisplayAdapterCreateRemote() {
     return DisplayAdapterRemote::create();
-};
+}
 
 } //namespace android

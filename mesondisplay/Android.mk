@@ -14,7 +14,6 @@
 
 LOCAL_PATH:= $(call my-dir)
 
-
 HIDL_DEP_SHARED_LIBRARIES := \
     libhidlbase \
     libhidltransport \
@@ -32,6 +31,8 @@ HIDL_DEP_SHARED_LIBRARIES := \
 include $(CLEAR_VARS)
 LOCAL_MODULE := libmeson_display_service
 
+LOCAL_CFLAGS := -DLOG_TAG=\"MesonDisplayServer\"
+
 LOCAL_SRC_FILES := \
    service/DisplayService.cpp
 
@@ -44,7 +45,7 @@ LOCAL_SHARED_LIBRARIES := \
     $(HIDL_DEP_SHARED_LIBRARIES)
 
 LOCAL_STATIC_LIBRARIES += \
-    libmeson_display_adapter_common \
+    meson_display.adapter_common_static \
     hwc.utils_static \
     libjsoncpp
 
@@ -62,11 +63,10 @@ endif
 include $(BUILD_SHARED_LIBRARY)
 
 ###########################################################
-####### shared :libmeson_display_adapter_common  ##########
+####### static :meson_display.adapter_common_static  ##########
 ###########################################################
 include $(CLEAR_VARS)
-LOCAL_MODULE := libmeson_display_adapter_common
-LOCAL_CFLAGS :=
+LOCAL_MODULE := meson_display.adapter_common_static
 
 LOCAL_SRC_FILES := \
     adapter/DisplayAdapterCommon.cpp
@@ -90,12 +90,12 @@ endif
 include $(BUILD_STATIC_LIBRARY)
 
 ###########################################################
-####### static :libmeson_display_adapter_local ############
+####### static :meson_display.adapter_local_static ############
 ###########################################################
 include $(CLEAR_VARS)
-# need distinct with static lib "libmeson_display_adapter_local" for recovery on Android.bp
-LOCAL_MODULE := libmeson_display_adapter_local
-LOCAL_CFLAGS :=
+# need distinct with static lib "libmeson_display_adapter_local_static" for recovery on Android.bp
+LOCAL_MODULE := meson_display.adapter_local_static
+LOCAL_CFLAGS := -DLOG_TAG=\"MesonDisplayServer\"
 
 LOCAL_SRC_FILES := \
     adapter/DisplayAdapterLocal.cpp
@@ -106,29 +106,24 @@ LOCAL_C_INCLUDES := \
 
 #copy frme hwc. because hwc.display_static depend it.
 LOCAL_HWC_SHARED_LIBS := \
+    $(HIDL_DEP_SHARED_LIBRARIES) \
     libamgralloc_ext \
-    libcutils \
-    liblog \
     libdl \
     libhardware \
-    libutils \
     libsync \
     libion \
     libge2d \
-    libui \
     vendor.amlogic.hardware.systemcontrol@1.0 \
     vendor.amlogic.hardware.systemcontrol@1.1 \
     libbase \
-    libhidlbase \
-    libbinder \
-    libhidltransport
+    libbinder
 
 LOCAL_SHARED_LIBRARIES :=  \
     $(LOCAL_HWC_SHARED_LIBS) \
     liblog
 
 LOCAL_STATIC_LIBRARIES += \
-    libmeson_display_adapter_common \
+    meson_display.adapter_common_static \
     hwc.common_static \
     hwc.composition_static \
     hwc.postprocessor_static \
@@ -156,6 +151,8 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE:= libmeson_display_adapter_remote
 
+LOCAL_CFLAGS := -DLOG_TAG=\"MesonDisplayClient\"
+
 LOCAL_SRC_FILES:= \
     adapter/DisplayAdapterRemote.cpp \
     adapter/DisplayClient.cpp
@@ -174,7 +171,8 @@ LOCAL_SHARED_LIBRARIES := \
     android.hardware.graphics.mapper@4.0
 
 LOCAL_STATIC_LIBRARIES := \
-    libmeson_display_adapter_common \
+    meson_display.adapter_common_static \
+    hwc.utils_static \
     libjsoncpp
 
 LOCAL_EXPORT_SHARED_LIBRARY_HEADERS := \
@@ -232,7 +230,7 @@ LOCAL_SHARED_LIBRARIES := \
     libmeson_display_service
 
 LOCAL_STATIC_LIBRARIES := \
-    libmeson_display_adapter_common \
+    meson_display.adapter_common_static \
     libjsoncpp
 
 LOCAL_MODULE_TAGS := optional

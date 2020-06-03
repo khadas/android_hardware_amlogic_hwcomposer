@@ -195,6 +195,24 @@ bool DisplayAdapterLocal::getDisplayRect(Rect& rect, ConnectorType displayType) 
     return ret;
 }
 
+bool DisplayAdapterLocal::setDisplayAttribute(
+        const string& name, const string& value, ConnectorType displayType) {
+    UNUSED(name);
+    UNUSED(value);
+    UNUSED(displayType);
+    NOTIMPLEMENTED;
+    return false;
+}
+
+bool DisplayAdapterLocal::getDisplayAttribute(
+        const string& name, string& value, ConnectorType displayType) {
+    UNUSED(name);
+    UNUSED(value);
+    UNUSED(displayType);
+    NOTIMPLEMENTED;
+    return false;
+}
+
 std::unique_ptr<DisplayAdapter> DisplayAdapterLocal::create(DisplayAdapter::BackendType type) {
     switch (type) {
         case BackendType::DISPLAY_TYPE_DRM:

@@ -70,7 +70,7 @@ int32_t ConnectorHdmi::update() {
     MESON_LOG_FUN_ENTER();
     mConnected = checkConnectState();
     if (mConnected) {
-        sc_get_hdmitx_hdcp_state(mSecure);
+        get_hdmitx_hdcp_state(mSecure);
     }
 
     MESON_LOGE("ConnectorHdmi::update to %d", mConnected);
@@ -109,7 +109,7 @@ int32_t ConnectorHdmi::loadDisplayModes() {
     mFracRefreshRates.clear();
     mDisplayModes.clear();
 
-    if (sc_get_hdmitx_mode_list(supportDispModes) < 0) {
+    if (get_hdmitx_mode_list(supportDispModes) < 0) {
         MESON_LOGE("SupportDispModeList null!!!");
         return -ENOENT;
     }
@@ -461,7 +461,7 @@ void ConnectorHdmi::parseEDID() {
     std::stringstream ss;
     mIsEDIDValid = false;
 
-    if (0 != sc_read_sysfs(HDMI_TX_RAWEEDID, edid)) {
+    if (0 != read_sysfs(HDMI_TX_RAWEEDID, edid)) {
         MESON_LOGE("Get raw EDIE FAIL.");
         return;
     }

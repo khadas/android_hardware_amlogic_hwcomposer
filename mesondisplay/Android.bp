@@ -18,16 +18,17 @@ cc_library_static {
     recovery_available: true,
 
     cflags: [
-      "-DRECOVERY_MODE",
+        "-DRECOVERY_MODE",
+        "-DLOG_TAG=\"MesonDisplay\"",
     ],
     srcs: [
-      "adapter/DisplayAdapterRecovery.cpp",
-      "adapter/DisplayAdapterCommon.cpp",
+        "adapter/DisplayAdapterRecovery.cpp",
+        "adapter/DisplayAdapterCommon.cpp",
     ],
 
     local_include_dirs: [
-      "include",
-      "adapter",
+        "include",
+        "adapter",
     ],
 
     static_libs: [
@@ -39,9 +40,13 @@ cc_library_static {
         "libcutils",
     ],
 
+    header_libs: [
+        "hwc.utils_log",
+    ],
+
     export_include_dirs: [
-      "include",
-      "adapter",
+        "include",
+        "adapter",
     ],
 }
 
@@ -51,6 +56,7 @@ cc_library_shared {
     cflags: [
         "-Werror",
         "-Wall",
+        "-DLOG_TAG=\"MesonDisplayClient\"",
     ],
 
     srcs: [
@@ -60,8 +66,8 @@ cc_library_shared {
     ],
 
     local_include_dirs: [
-      "include",
-      "adapter",
+        "include",
+        "adapter",
     ],
 
     shared_libs: [
@@ -75,12 +81,16 @@ cc_library_shared {
         "libhidlbase",
     ],
 
+    header_libs: [
+        "hwc.utils_log",
+    ],
+
     static_libs: [
         "libjsoncpp",
     ],
 
     export_include_dirs: [
-      "include",
-      "adapter",
+        "include",
+        "adapter",
     ],
 }
