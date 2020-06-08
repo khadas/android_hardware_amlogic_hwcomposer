@@ -253,11 +253,12 @@ LOCAL_CFLAGS += -DRECOVERY_MODE
 LOCAL_SRC_FILES := \
     test/display_recovery_test.cpp
 
-LOCAL_SHARED_LIBRARIES := \
-    $(HIDL_DEP_SHARED_LIBRARIES)
-
 LOCAL_STATIC_LIBRARIES := \
+    meson_display.adapter_common_static \
     libmeson_display_adapter_local_static
+
+LOCAL_SHARED_LIBRARIES := \
+    libcutils
 
 LOCAL_MODULE_TAGS := optional
 
