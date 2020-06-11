@@ -33,6 +33,11 @@ HWC_SHARED_LIBS := \
     libui \
     libbinder
 
+ifeq ($(HWC_ENABLE_DRM_BACKEND), true)
+HWC_SHARED_LIBS += \
+    libdrm
+endif
+
 # for android p systemcontrol service
 ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 28 && echo OK),OK)
 HWC_SHARED_LIBS +=\

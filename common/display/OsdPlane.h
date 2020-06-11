@@ -10,6 +10,11 @@
  #ifndef OSD_PLANE_H
 #define OSD_PLANE_H
 
+#ifdef HWC_ENABLE_DRM_BACKEND
+#include <xf86drm.h>
+#include <xf86drmMode.h>
+#include <drm/drm_fourcc.h>
+#endif
 #include <HwDisplayPlane.h>
 #include <MesonLog.h>
 #include <misc.h>
@@ -34,11 +39,34 @@ public:
 protected:
     int32_t getProperties();
     void createPatternFb();
-
+#ifdef HWC_ENABLE_DRM_BACKEND
+    uint32_t ConvertHalFormatToDrm(uint32_t hal_format);
+#endif
 private:
     bool mBlank;
     uint32_t mPossibleCrtcs;
     osd_plane_info_t mPlaneInfo;
+#ifdef HWC_ENABLE_DRM_BACKEND
+    /*drm mode resource*/
+    drmModeResPtr mRes_mode;
+    /*drm plane*/
+    drmModePlaneResPtr mRes_plane;
+    drmModePlanePtr mPtr_plane;
+    drmModeObjectPropertiesPtr mProperties_plane;
+    drmModePropertyRes **mProperty_plane;
+    /*drm crtc*/
+    drmModeCrtcPtr mPtr_crtc;
+    drmModeObjectPropertiesPtr mProperties_crtc;
+    drmModePropertyRes **mProperty_crtc;
+    /*drm encoder*/
+    drmModeEncoderPtr mPtr_encoder;
+    /*drm connector*/
+    drmModeConnectorPtr mPtr_connector;
+    drmModeObjectPropertiesPtr mProperties_connector;
+    drmModePropertyRes **mProperty_connector;
+    /*drm framebuffer*/
+    //drmModeFBPtr mPtr_fb;
+#endif
     std::shared_ptr<DrmFramebuffer> mDrmFb;
     std::shared_ptr<DrmFramebuffer> mPatternFb;
 

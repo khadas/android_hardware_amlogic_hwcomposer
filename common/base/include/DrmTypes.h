@@ -77,7 +77,9 @@ typedef enum drm_fb_type {
     DRM_FB_DI_COMPOSE_OUTPUT,
 } drm_fb_type_t;
 
+#ifndef DRM_DISPLAY_MODE_LEN
 #define DRM_DISPLAY_MODE_LEN (64)
+#endif
 
 typedef struct drm_mode_info {
     char name[DRM_DISPLAY_MODE_LEN];

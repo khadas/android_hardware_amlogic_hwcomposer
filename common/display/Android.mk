@@ -29,12 +29,21 @@ else
 endif
 
 LOCAL_SHARED_LIBRARIES := $(HWC_SHARED_LIBS)
+ifeq ($(HWC_ENABLE_DRM_BACKEND), true)
+LOCAL_CFLAGS += -DHWC_ENABLE_DRM_BACKEND
+LOCAL_SRC_FILES := \
+    HwDisplayManagerDrm.cpp \
+    HwDisplayCrtcDrm.cpp \
+    OsdPlaneDrm.cpp
+else
 LOCAL_SRC_FILES := \
     HwDisplayManager.cpp \
     HwDisplayCrtc.cpp \
+    OsdPlane.cpp
+endif
+LOCAL_SRC_FILES += \
     HwDisplayPlane.cpp \
     DummyPlane.cpp \
-    OsdPlane.cpp \
     CursorPlane.cpp \
     LegacyVideoPlane.cpp \
     LegacyExtVideoPlane.cpp \
