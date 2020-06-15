@@ -142,11 +142,11 @@ bool OsdPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
                 case HAL_PIXEL_FORMAT_RGBX_8888:
                     break;
                 default:
-                    MESON_LOGE("afbc: %d, Layer format %d not support.", afbc, format);
+                    //MESON_LOGE("afbc: %d, Layer format %d not support.", afbc, format);
                     return false;
             }
         } else {
-            MESON_LOGI("AFBC buffer && unsupported AFBC plane, turn to GPU composition");
+            //MESON_LOGI("AFBC buffer && unsupported AFBC plane, turn to GPU composition");
             return false;
         }
     }
