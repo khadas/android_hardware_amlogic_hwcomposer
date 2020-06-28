@@ -18,22 +18,24 @@
 ANDROID_SINGLETON_STATIC_INSTANCE(HwDisplayEventListener)
 
 #define HDMITX_HOTPLUG_EVENT \
-    "change@/devices/virtual/amhdmitx/amhdmitx0/hdmi"
+    "change@/devices/virtual/amhdmitx/amhdmitx0"
 #define HDMITX_HDCP_EVENT \
     "change@/devices/virtual/amhdmitx/amhdmitx0/hdcp"
 #define VOUT_MODE_EVENT \
-    "change@/devices/platform/vout/extcon/setmode"
+    "change@/devices/platform/vout"
 #define VOUT2_MODE_EVENT \
-    "change@/devices/platform/vout2/extcon/setmode2"
+    "change@/devices/platform/vout2"
 
 #define UEVENT_MAX_LEN (4096)
 
 #define OLD_EVENT_STATE_ENABLE "SWITCH_STATE=1"
 #define OLD_EVENT_STATE_DISABLE "SWITCH_STATE=0"
-#define NEW_EVENT_STATE_ENABLE "STATE=HDMI=1"
-#define NEW_EVENT_STATE_DISABLE "STATE=HDMI=0"
-#define VOUT_EVENT_MODESWITCH_BEGIN "STATE=ACA=1"
-#define VOUT_EVENT_MODESWITCH_COMPLETE "STATE=ACA=0"
+#define NEW_EVENT_STATE_ENABLE "hdmitx_hpd=1"
+#define NEW_EVENT_STATE_DISABLE "hdmitx_hpd=0"
+#define VOUT_EVENT_MODESWITCH_BEGIN "vout_setmode=1"
+#define VOUT_EVENT_MODESWITCH_COMPLETE "vout_setmode=0"
+#define VOUT2_EVENT_MODESWITCH_BEGIN "vout2_setmode=1"
+#define VOUT2_EVENT_MODESWITCH_COMPLETE "vout2_setmode=0"
 
 typedef struct drm_uevent_info {
     const char * head;
@@ -52,7 +54,7 @@ static drm_uevent_info_t mUeventParser[] = {
     {VOUT_MODE_EVENT, DRM_EVENT_VOUT1_MODE_CHANGED,
         VOUT_EVENT_MODESWITCH_COMPLETE, VOUT_EVENT_MODESWITCH_BEGIN},
     {VOUT2_MODE_EVENT, DRM_EVENT_VOUT2_MODE_CHANGED,
-        VOUT_EVENT_MODESWITCH_COMPLETE, VOUT_EVENT_MODESWITCH_BEGIN}
+        VOUT2_EVENT_MODESWITCH_COMPLETE, VOUT2_EVENT_MODESWITCH_BEGIN}
 };
 #else
 static drm_uevent_info_t mUeventParser[] = {
