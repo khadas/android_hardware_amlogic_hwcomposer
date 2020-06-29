@@ -121,6 +121,7 @@ int32_t Hwc2Display::setDisplayResource(
     }
 
     mConnector->getHdrCapabilities(&mHdrCaps);
+    mConnector->getSupportedContentTypes(mSupportedContentTypes);
 #ifdef HWC_HDR_METADATA_SUPPORT
     mCrtc->getHdrMetadataKeys(mHdrKeys);
 #endif
@@ -273,9 +274,9 @@ void Hwc2Display::onUpdate(bool bHdcp) {
     }
 }
 
-void Hwc2Display::onVsync(int64_t timestamp) {
+void Hwc2Display::onVsync(int64_t timestamp, uint32_t vsyncPeriodNanos) {
     if (mObserver != NULL) {
-        mObserver->onVsync(timestamp);
+        mObserver->onVsync(timestamp, vsyncPeriodNanos);
     } else {
         MESON_LOGE("Hwc2Display (%p) observer is NULL", this);
     }
@@ -291,6 +292,7 @@ void Hwc2Display::onModeChanged(int stage) {
                 /*plug in and set displaymode ok, update inforamtion.*/
                 if (mSignalHpd) {
                     mConnector->getHdrCapabilities(&mHdrCaps);
+                    mConnector->getSupportedContentTypes(mSupportedContentTypes);
 #ifdef HWC_HDR_METADATA_SUPPORT
                     mCrtc->getHdrMetadataKeys(mHdrKeys);
 #endif
@@ -999,15 +1001,113 @@ bool Hwc2Display::isLayerHideForDebug(hwc2_layer_t id) {
 hwc2_error_t Hwc2Display::getDisplayCapabilities(
             uint32_t* outNumCapabilities, uint32_t* outCapabilities) {
     if (outCapabilities == nullptr) {
-        if (mConnector->isConnected() == false)
-            *outNumCapabilities = 1;
-        else
-            *outNumCapabilities = 0;
+        *outNumCapabilities = 1;
     } else {
-        if (mConnector->isConnected() == false && *outNumCapabilities == 1) {
+        if (mConnector->isConnected() == false) {
             outCapabilities[0] = HWC2_DISPLAY_CAPABILITY_INVALID;
+        } else {
+            outCapabilities[0] = HWC2_DISPLAY_CAPABILITY_AUTO_LOW_LATENCY_MODE;
         }
     }
+    return HWC2_ERROR_NONE;
+}
+
+hwc2_error_t Hwc2Display::getDisplayVsyncPeriod(hwc2_vsync_period_t* outVsyncPeriod) {
+    hwc2_config_t config;
+    int32_t configPeriod;
+
+    if (mModeMgr->getActiveConfig(&config) != HWC2_ERROR_NONE) {
+        return HWC2_ERROR_BAD_CONFIG;
+    }
+
+    if (mModeMgr->getDisplayAttribute(config,
+            HWC2_ATTRIBUTE_VSYNC_PERIOD, &configPeriod) != HWC2_ERROR_NONE) {
+        return HWC2_ERROR_BAD_CONFIG;
+    }
+
+    *outVsyncPeriod = configPeriod;
+    return HWC2_ERROR_NONE;
+}
+
+hwc2_error_t Hwc2Display::setActiveConfigWithConstraints(hwc2_config_t config,
+        hwc_vsync_period_change_constraints_t* vsyncPeriodChangeConstraints,
+        hwc_vsync_period_change_timeline_t* outTimeline) {
+    bool validConfig = false;
+    uint32_t arraySize = 0;
+    if (mModeMgr->getDisplayConfigs(&arraySize, nullptr) != HWC2_ERROR_NONE)
+        return HWC2_ERROR_BAD_CONFIG;
+
+    std::vector<hwc2_config_t> outConfigs;
+    outConfigs.resize(arraySize);
+    if (mModeMgr->getDisplayConfigs(&arraySize, outConfigs.data()) != HWC2_ERROR_NONE)
+        return HWC2_ERROR_BAD_CONFIG;
+    for (auto it = outConfigs.begin(); it != outConfigs.end(); ++it) {
+        if (*it == config) {
+            validConfig = true;
+            break;
+        }
+    }
+    /* not valid config */
+    if (!validConfig)
+        return HWC2_ERROR_BAD_CONFIG;
+
+    if (vsyncPeriodChangeConstraints->seamlessRequired)
+        return HWC2_ERROR_SEAMLESS_NOT_POSSIBLE;
+
+    /* todo remove it when support vrr */
+    outTimeline->refreshRequired = false;
+    hwc2_config_t activeConfig;
+    if (mModeMgr->getActiveConfig(&activeConfig) != HWC2_ERROR_NONE)
+        return HWC2_ERROR_BAD_CONFIG;
+    if (activeConfig != config)
+        return (hwc2_error_t)mModeMgr->setActiveConfig(config);
+
+    return HWC2_ERROR_NONE;
+}
+
+hwc2_error_t Hwc2Display::setAutoLowLatencyMode(bool enabled) {
+    if (mConnector->isConnected() == false) {
+        return HWC2_ERROR_UNSUPPORTED;
+    } else {
+        mConnector->setAutoLowLatencyMode(enabled);
+    }
+
+    return HWC2_ERROR_NONE;
+}
+
+hwc2_error_t Hwc2Display::getSupportedContentTypes(uint32_t* outNum, uint32_t* outSupportedContentTypes) {
+    *outNum = mSupportedContentTypes.size();
+    if (outSupportedContentTypes != nullptr) {
+        for (uint32_t i = 0; i < mSupportedContentTypes.size(); i++) {
+            outSupportedContentTypes[i] = mSupportedContentTypes[i];
+        }
+    }
+    return HWC2_ERROR_NONE;
+}
+
+bool Hwc2Display::checkIfContentTypeIsSupported(uint32_t contentType) {
+    // ContentType::NONE (=0) is always supported.
+    if (contentType == 0) {
+        return true;
+    }
+    for (int i = 0; i < mSupportedContentTypes.size(); i++) {
+        if (mSupportedContentTypes[i] == contentType) {
+            return true;
+        }
+    }
+    return false;
+}
+
+hwc2_error_t Hwc2Display::setContentType(uint32_t contentType) {
+    bool supported = checkIfContentTypeIsSupported(contentType);
+
+    if (!supported) {
+        return HWC2_ERROR_UNSUPPORTED;
+    }
+
+    if (mConnector->setContentType(contentType))
+        return HWC2_ERROR_UNSUPPORTED;
+
     return HWC2_ERROR_NONE;
 }
 

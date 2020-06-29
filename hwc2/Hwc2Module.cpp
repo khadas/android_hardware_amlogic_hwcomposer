@@ -380,7 +380,52 @@ int32_t setDisplayBrightness (hwc2_device_t* device,
     return mesonhwc->setDisplayBrightness(display, brightness);
 }
 
+int32_t getDisplayConnectionType(hwc2_device_t* device,
+        hwc2_display_t display,
+        uint32_t* /*hwc2_display_connection_type_t*/ outType) {
+    GET_MESON_HWC();
+    return mesonhwc->getDisplayConnectionType(display, outType);
+}
 
+int32_t getDisplayVsyncPeriod (hwc2_device_t* device,
+        hwc2_display_t display, hwc2_vsync_period_t* outVsyncPeriod) {
+    GET_MESON_HWC();
+    return mesonhwc->getDisplayVsyncPeriod(display, outVsyncPeriod);
+}
+
+int32_t setActiveConfigWithConstraints (
+        hwc2_device_t* device,
+        hwc2_display_t display,
+        hwc2_config_t config,
+        hwc_vsync_period_change_constraints_t* vsyncPeriodChangeConstraints,
+        hwc_vsync_period_change_timeline_t* outTimeline) {
+    GET_MESON_HWC();
+    return mesonhwc->setActiveConfigWithConstraints(display, config,
+            vsyncPeriodChangeConstraints, outTimeline);
+}
+
+int32_t setAutoLowLatencyMode (
+        hwc2_device_t* device, hwc2_display_t display,
+        bool on) {
+    GET_MESON_HWC();
+    return mesonhwc->setAutoLowLatencyMode(display, on);
+}
+
+int32_t getSupportedContentTypes (
+        hwc2_device_t* device,
+        hwc2_display_t display,
+        uint32_t* outNum,
+        uint32_t* /* hwc2_content_type_t */ outSupportedContentTypes) {
+    GET_MESON_HWC();
+    return mesonhwc->getSupportedContentTypes(display, outNum, outSupportedContentTypes);
+}
+
+int32_t setContentType (
+        hwc2_device_t* device, hwc2_display_t display,
+        uint32_t contentType) {
+    GET_MESON_HWC();
+    return mesonhwc->setContentType(display, contentType);
+}
 
 hwc2_function_pointer_t hwc2_getFunction(struct hwc2_device* device __unused,
         int32_t descriptor) {
@@ -489,6 +534,20 @@ hwc2_function_pointer_t hwc2_getFunction(struct hwc2_device* device __unused,
             return reinterpret_cast<hwc2_function_pointer_t>(getDisplayBrightnessSupport);
         case HWC2_FUNCTION_SET_DISPLAY_BRIGHTNESS:
             return reinterpret_cast<hwc2_function_pointer_t>(setDisplayBrightness);
+        /* hwc 2.4 */
+        case HWC2_FUNCTION_GET_DISPLAY_CONNECTION_TYPE:
+            return reinterpret_cast<hwc2_function_pointer_t>(getDisplayConnectionType);
+        case HWC2_FUNCTION_GET_DISPLAY_VSYNC_PERIOD:
+            return reinterpret_cast<hwc2_function_pointer_t>(getDisplayVsyncPeriod);
+        case HWC2_FUNCTION_SET_ACTIVE_CONFIG_WITH_CONSTRAINTS:
+            return reinterpret_cast<hwc2_function_pointer_t>(setActiveConfigWithConstraints);
+        case HWC2_FUNCTION_SET_AUTO_LOW_LATENCY_MODE:
+            return reinterpret_cast<hwc2_function_pointer_t>(setAutoLowLatencyMode);
+        case HWC2_FUNCTION_GET_SUPPORTED_CONTENT_TYPES:
+            return reinterpret_cast<hwc2_function_pointer_t>(getSupportedContentTypes);
+        case HWC2_FUNCTION_SET_CONTENT_TYPE:
+            return reinterpret_cast<hwc2_function_pointer_t>(setContentType);
+
         default:
             MESON_LOGE("Unkown function description (%d)", descriptor);
             break;

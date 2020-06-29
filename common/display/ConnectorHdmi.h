@@ -34,6 +34,8 @@ public:
 
     virtual int32_t setMode(drm_mode_info_t & mode);
     int32_t getIdentificationData(std::vector<uint8_t>& idOut) override;
+    int32_t setAutoLowLatencyMode(bool on) override;
+    int32_t setContentType(uint32_t contentType) override;
 
 protected:
     virtual int32_t addDisplayMode(std::string& mode);
@@ -41,6 +43,7 @@ protected:
     int32_t switchRatePolicy(bool fracRatePolicy);
 
     int32_t loadDisplayModes();
+    int32_t loadSupportedContentTypes();
 
     /*parse hdr info.*/
     int32_t getLineValue(const char *lineStr, const char *magicStr);

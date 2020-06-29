@@ -98,7 +98,7 @@ int32_t sysfs_set_string(const char *path, const char *val) {
         close(fd);
         return 0;
     } else {
-        MESON_LOGE(" open file error: [%s]", path);
+        MESON_LOGE(" open file [%s] error:%s", path, strerror(errno));
         return -1;
     }
 }

@@ -35,6 +35,27 @@ int32_t HwDisplayConnector::getIdentificationData(std::vector<uint8_t>& idOut) {
     return -ENOSYS;
 }
 
+void HwDisplayConnector::getSupportedContentTypes(std::vector<uint32_t>& supportedContentTypesOut) {
+    supportedContentTypesOut = mSupportedContentTypes;
+}
+
+int32_t HwDisplayConnector::setAutoLowLatencyMode(bool on) {
+    if (on) {
+        return -ENOENT;
+    } else {
+        return 0;
+    }
+}
+
+int32_t HwDisplayConnector::setContentType(uint32_t contentType) {
+    switch (contentType) {
+        case CONTENT_TYPE_NONE:
+            return 0;
+        default:
+            return -ENOENT;
+    }
+}
+
 void HwDisplayConnector::loadPhysicalSize() {
     struct vinfo_base_s info;
     if (!mCrtc)

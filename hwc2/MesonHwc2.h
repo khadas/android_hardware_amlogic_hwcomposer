@@ -124,6 +124,15 @@ public:
     int32_t getDisplayBrightnessSupport(hwc2_display_t display, bool* outSupport);
     int32_t setDisplayBrightness(hwc2_display_t display, float brightness);
 
+    int32_t getDisplayConnectionType(hwc2_display_t display, uint32_t* outType);
+    int32_t getDisplayVsyncPeriod(hwc2_display_t display, hwc2_vsync_period_t* outVsyncPeriod);
+    int32_t setActiveConfigWithConstraints(hwc2_display_t display, hwc2_config_t config,
+            hwc_vsync_period_change_constraints_t* vsyncPeriodChangeConstraints,
+            hwc_vsync_period_change_timeline_t* outTimeline);
+    int32_t setAutoLowLatencyMode(hwc2_display_t display, bool on);
+    int32_t getSupportedContentTypes (hwc2_display_t display, uint32_t* outNum, uint32_t* outSupportedContentTypes);
+    int32_t setContentType(hwc2_display_t display, uint32_t contentType);
+
     void dump(uint32_t* outSize, char* outBuffer);
 
 /*amlogic ext display interface*/
@@ -136,7 +145,7 @@ public:
 /*implement*/
 public:
     void refresh(hwc2_display_t  display);
-    void onVsync(hwc2_display_t display, int64_t timestamp);
+    void onVsync(hwc2_display_t display, int64_t timestamp, uint32_t vsyncPeriodNanos);
     void onHotplug(hwc2_display_t display, bool connected);
 
 public:
@@ -165,6 +174,8 @@ protected:
     hwc2_callback_data_t mRefreshData;
     HWC2_PFN_VSYNC mVsyncFn;
     hwc2_callback_data_t mVsyncData;
+    HWC2_PFN_VSYNC_2_4 mVsync24Fn;
+    hwc2_callback_data_t mVsync24Data;
 
     uint32_t mVirtualDisplayIds;
 

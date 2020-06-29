@@ -24,8 +24,19 @@ enum {
     REFRESH_240kHZ = 240
 };
 
+static const std::vector<std::string> CONTENT_TYPES = {
+    "0",
+    "graphics",
+    "photo",
+    "cinema",
+    "game",
+};
+
 #define HDMI_FRAC_RATE_POLICY "/sys/class/amhdmitx/amhdmitx0/frac_rate_policy"
 #define HDMI_TX_HPD_STATE   "/sys/class/amhdmitx/amhdmitx0/hpd_state"
+#define HDMI_TX_ALLM_MODE   "/sys/class/amhdmitx/amhdmitx0/allm_mode"
+#define HDMI_TX_CONTENT_TYPE_CAP  "/sys/class/amhdmitx/amhdmitx0/contenttype_cap"
+#define HDMI_TX_CONTENT_TYPE  "/sys/class/amhdmitx/amhdmitx0/contenttype_mode"
 
 ConnectorHdmi::ConnectorHdmi(int32_t drvFd, uint32_t id)
     :   HwDisplayConnector(drvFd, id) {
@@ -46,6 +57,7 @@ int32_t ConnectorHdmi::loadProperities() {
     if (mConnected) {
         loadPhysicalSize();
         loadDisplayModes();
+        loadSupportedContentTypes();
         parseHdrCapabilities();
         parseEDID();
     }
@@ -228,6 +240,60 @@ void ConnectorHdmi::getHdrCapabilities(drm_hdr_capabilities * caps) {
         *caps = mHdrCapabilities;
     }
 }
+
+int32_t ConnectorHdmi::loadSupportedContentTypes() {
+    mSupportedContentTypes.clear();
+
+    char supportedContentTypes[1024] = {};
+    if (!sysfs_get_string(HDMI_TX_CONTENT_TYPE_CAP, supportedContentTypes, sizeof supportedContentTypes)) {
+        MESON_LOGV("Read display content type SUCCESS.");
+    } else {
+        MESON_LOGE("Read display content type FAIL.");
+        return -EFAULT;
+    }
+
+    // TODO: Remove this line once the content types files appear in the hdmi directory.
+    strcat(supportedContentTypes, "game");
+
+    for (int i = 0; i < CONTENT_TYPES.size(); i++) {
+        if (strstr(supportedContentTypes, CONTENT_TYPES[i].c_str())) {
+            MESON_LOGD("ConnectorHdmi reports support for content type %s", CONTENT_TYPES[i].c_str());
+            mSupportedContentTypes.emplace_back(i);
+        }
+    }
+    return 0;
+}
+
+int32_t ConnectorHdmi::setAutoLowLatencyMode(bool on) {
+    if (on) {
+        if (!sysfs_set_string(HDMI_TX_ALLM_MODE, "1")) {
+            MESON_LOGV("setAutoLowLatencyMode on SUCCESS.");
+        } else {
+            MESON_LOGE("setAutoLowLatencyMode on FAIL.");
+            return -EFAULT;
+        }
+    } else {
+        if (!sysfs_set_string(HDMI_TX_ALLM_MODE, "0")) {
+            MESON_LOGV("setAutoLowLatencyMode off SUCCESS.");
+        } else {
+            MESON_LOGE("setAutoLowLatencyMode off FAIL.");
+            return -EFAULT;
+        }
+    }
+    return 0;
+}
+
+int32_t ConnectorHdmi::setContentType(uint32_t contentType) {
+    if (!sysfs_set_string(HDMI_TX_CONTENT_TYPE, CONTENT_TYPES[contentType].c_str())) {
+        MESON_LOGV("setContentType SUCCESS.");
+    } else {
+        MESON_LOGE("setContentType %s FAIL.", CONTENT_TYPES[contentType].c_str());
+        return -EFAULT;
+    }
+
+    return 0;
+}
+
 
 void ConnectorHdmi::dump(String8 & dumpstr) {
     dumpstr.appendFormat("Connector (HDMI, %d x %d, %s, %s)\n",

@@ -22,6 +22,15 @@
 
 class HwDisplayCrtc;
 
+/* IComposerClient@2.4::ContentType */
+enum {
+    CONTENT_TYPE_NONE = 0,
+    CONTENT_TYPE_GRAPHICS = 1,
+    CONTENT_TYPE_PHOTO = 2,
+    CONTENT_TYPE_CINEMA = 3,
+    CONTENT_TYPE_GAME = 4,
+};
+
 namespace meson {
     class DisplayAdapterLocal;
 };
@@ -46,6 +55,10 @@ public:
 
     virtual void getHdrCapabilities(drm_hdr_capabilities * caps) = 0;
     virtual int32_t getIdentificationData(std::vector<uint8_t>& idOut);
+    virtual void getSupportedContentTypes(std::vector<uint32_t> & supportedContentTypesOut);
+
+    virtual int32_t setAutoLowLatencyMode(bool on);
+    virtual int32_t setContentType(uint32_t contentType);
 
     virtual void dump(String8 & dumpstr) = 0;
 
@@ -65,6 +78,7 @@ protected:
 
     HwDisplayCrtc * mCrtc;
     std::map<uint32_t, drm_mode_info_t> mDisplayModes;
+    std::vector<uint32_t> mSupportedContentTypes;
 };
 
 #endif/*HW_DISPLAY_CONNECTOR_H*/

@@ -29,12 +29,18 @@
 #include "MesonHwc2Defs.h"
 #include "HwcModeMgr.h"
 
+/* IComposerClient@2.4::DisplayConnectionType */
+enum {
+    DISPLAY_TYPE_INTERNAL = 0,
+    DISPLAY_TYPE_EXTERNAL = 1,
+};
+
 class Hwc2DisplayObserver  {
 public:
     Hwc2DisplayObserver(){};
     virtual ~Hwc2DisplayObserver(){};
     virtual void refresh() = 0;
-    virtual void onVsync(int64_t timestamp) = 0;
+    virtual void onVsync(int64_t timestamp, uint32_t vsyncPeriodNanos) = 0;
     virtual void onHotplug(bool connected) = 0;
 };
 
@@ -99,6 +105,14 @@ public:
     virtual hwc2_error_t getDisplayCapabilities(
             uint32_t* outNumCapabilities, uint32_t* outCapabilities);
 
+    virtual hwc2_error_t getDisplayVsyncPeriod(hwc2_vsync_period_t* outVsyncPeriod);
+    virtual hwc2_error_t setActiveConfigWithConstraints(hwc2_config_t config,
+            hwc_vsync_period_change_constraints_t* vsyncPeriodChangeConstraints,
+            hwc_vsync_period_change_timeline_t* outTimeline);
+    virtual hwc2_error_t setAutoLowLatencyMode(bool enabled);
+    virtual hwc2_error_t getSupportedContentTypes(uint32_t* outNum, uint32_t* outSupportedContentTypes);
+    virtual hwc2_error_t setContentType(uint32_t contentType);
+
 /*HwcDisplay interface*/
 public:
     virtual int32_t initialize();
@@ -113,7 +127,7 @@ public:
     virtual int32_t setVsync(std::shared_ptr<HwcVsync> vsync);
     virtual int32_t blankDisplay();
 
-    virtual void onVsync(int64_t timestamp);
+    virtual void onVsync(int64_t timestamp, uint32_t vsyncPeriodNanos);
     virtual void onHotplug(bool connected);
     virtual void onUpdate(bool bHdcp);
     virtual void onModeChanged(int stage);
@@ -140,6 +154,9 @@ protected:
     void initLayerIdGenerator();
     hwc2_layer_t createLayerId();
     void destroyLayerId(hwc2_layer_t id);
+
+    /* For content types.*/
+    bool checkIfContentTypeIsSupported(uint32_t contentType);
 
     /*For debug*/
     void dumpPresentLayers(String8 & dumpstr);
@@ -193,6 +210,7 @@ protected:
 
     std::shared_ptr<HwcPostProcessor> mPostProcessor;
     int32_t mProcessorFlags;
+    std::vector<uint32_t> mSupportedContentTypes;
 
 #ifdef HWC_HDR_METADATA_SUPPORT
     std::vector<drm_hdr_meatadata_t> mHdrKeys;

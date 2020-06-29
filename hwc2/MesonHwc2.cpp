@@ -150,6 +150,10 @@ int32_t MesonHwc2::registerCallback(int32_t descriptor,
             mVsyncFn = reinterpret_cast<HWC2_PFN_VSYNC>(pointer);
             mVsyncData = callbackData;
             break;
+        case HWC2_CALLBACK_VSYNC_2_4:
+            mVsync24Fn = reinterpret_cast<HWC2_PFN_VSYNC_2_4>(pointer);
+            mVsync24Data = callbackData;
+            break;
 
         default:
             MESON_LOGE("register unknown callback (%d)", descriptor);
@@ -589,6 +593,39 @@ int32_t MesonHwc2::setDisplayBrightness(hwc2_display_t display, float brightness
     return HWC2_ERROR_UNSUPPORTED;
 }
 
+int32_t MesonHwc2::getDisplayConnectionType(hwc2_display_t display, uint32_t* outType) {
+    GET_HWC_DISPLAY(display);
+    *outType = (it->first == 0 ? DISPLAY_TYPE_INTERNAL : DISPLAY_TYPE_EXTERNAL);
+    return HWC2_ERROR_NONE;
+}
+
+int32_t MesonHwc2::getDisplayVsyncPeriod(hwc2_display_t display, hwc2_vsync_period_t* outVsyncPeriod) {
+    GET_HWC_DISPLAY(display);
+    return hwcDisplay->getDisplayVsyncPeriod(outVsyncPeriod);
+}
+
+int32_t MesonHwc2::setActiveConfigWithConstraints(hwc2_display_t display, hwc2_config_t config __unused,
+    hwc_vsync_period_change_constraints_t* vsyncPeriodChangeConstraints,
+    hwc_vsync_period_change_timeline_t* outTimeline) {
+    GET_HWC_DISPLAY(display);
+    return hwcDisplay->setActiveConfigWithConstraints(config, vsyncPeriodChangeConstraints, outTimeline);
+}
+
+int32_t MesonHwc2::setAutoLowLatencyMode(hwc2_display_t display, bool on) {
+    GET_HWC_DISPLAY(display);
+    return hwcDisplay->setAutoLowLatencyMode(on);
+}
+
+int32_t MesonHwc2::getSupportedContentTypes (hwc2_display_t display, uint32_t* outNum, uint32_t* outSupportedContentTypes) {
+    GET_HWC_DISPLAY(display);
+    return hwcDisplay->getSupportedContentTypes(outNum, outSupportedContentTypes);
+}
+
+int32_t MesonHwc2::setContentType(hwc2_display_t display, uint32_t contentType) {
+    GET_HWC_DISPLAY(display);
+    return hwcDisplay->setContentType(contentType);
+}
+
 /**********************Amlogic ext display interface*******************/
 int32_t MesonHwc2::setPostProcessor(bool bEnable) {
     mDisplayRequests |= bEnable ? rPostProcessorStart : rPostProcessorStop;
@@ -714,8 +751,8 @@ public:
         mHwc->refresh(mDispId);
     }
 
-    void onVsync(int64_t timestamp) {
-        mHwc->onVsync(mDispId, timestamp);
+    void onVsync(int64_t timestamp, uint32_t vsyncPeriodNanos) {
+        mHwc->onVsync(mDispId, timestamp, vsyncPeriodNanos);
     }
 
     void onHotplug(bool connected) {
@@ -735,6 +772,8 @@ MesonHwc2::MesonHwc2() {
     mRefreshData = NULL;
     mVsyncFn = NULL;
     mVsyncData = NULL;
+    mVsync24Fn = NULL;
+    mVsync24Data = NULL;
     mDisplayRequests = 0;
     initialize();
 }
@@ -752,7 +791,12 @@ void MesonHwc2::refresh(hwc2_display_t  display) {
     MESON_LOGE("No refresh callback registered.");
 }
 
-void MesonHwc2::onVsync(hwc2_display_t display, int64_t timestamp) {
+void MesonHwc2::onVsync(hwc2_display_t display, int64_t timestamp, uint32_t vsyncPeriodNanos) {
+    if (mVsync24Fn) {
+        mVsync24Fn(mVsync24Data, display, timestamp, vsyncPeriodNanos);
+        return;
+    }
+
     if (mVsyncFn) {
         mVsyncFn(mVsyncData, display, timestamp);
         return;

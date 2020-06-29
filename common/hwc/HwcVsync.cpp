@@ -102,17 +102,24 @@ void * HwcVsync::vsyncThread(void * data) {
         } else {
             ret = pThis->waitHwVsync(timestamp);
         }
+
+        nsecs_t period;
+        if (pThis->mPreTimeStamp != 0) {
+            period = timestamp - pThis->mPreTimeStamp;
+        } else {
+            period = pThis->mReqPeriod;
+        }
+        pThis->mPreTimeStamp = timestamp;
+
         if (DebugHelper::getInstance().enableVsyncDetail()) {
-            nsecs_t period = timestamp - pThis->mPreTimeStamp;
-            UNUSED(period);
             if (pThis->mPreTimeStamp != 0)
                 MESON_LOGD("wait for vsync success, peroid: %lld, timestmap (%lld)",
-                    period, timestamp);
-            pThis->mPreTimeStamp = timestamp;
+                        period, timestamp);
         }
 
+
         if (pThis->mEnabled && ret == 0 && pThis->mObserver) {
-            pThis->mObserver->onVsync(timestamp);
+            pThis->mObserver->onVsync(timestamp, period);
         } else {
             if (ret != 0)
                 MESON_LOGE("wait for hw vsync error:%d", ret);

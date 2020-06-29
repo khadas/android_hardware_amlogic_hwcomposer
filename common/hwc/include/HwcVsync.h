@@ -21,7 +21,7 @@
 class HwcVsyncObserver {
 public:
     virtual ~HwcVsyncObserver() {}
-    virtual void onVsync(int64_t timestamp) = 0;
+    virtual void onVsync(int64_t timestamp, uint32_t vsyncPeriodNanos) = 0;
 };
 
 class HwcVsync {
