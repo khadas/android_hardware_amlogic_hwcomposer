@@ -29,6 +29,7 @@ static const struct option long_option[] = {
     {"raw-cmd", required_argument, 0, 'r'},
     {"G", required_argument, 0, 'G'},
     {"S", required_argument, 0, 'S'},
+    {"dump-display-attribute", no_argument, 0, 'd'},
     {0, 0, 0, 0}
 };
 
@@ -38,11 +39,12 @@ static void print_usage(const char* name) {
             "Options:\n"
             "       -l,--list-modes        \tlist connector support modes\n"
             "       -c,--change-mode MODE  \tchange connector current mode, MODE format like:%%dx%%d@%%d width,height,refresh\n"
-            "       -g,--get-connector-property \"PROPERTY\"\tget connector property\n"
-            "       -s,--set-connector-property \"PROPERTY\"=value\tset connector property\n"
+            "       -d,--dump-display-attribute \tdump all display attribute\n"
+            "       -g,--get-display-attribute  \"ATTRI_NAME\"\tget display attribute\n"
+            "       -s,--set-display-attribute  \"ATTRI_NAME\"=value\tset display attribute\n"
             "       -G \"[ui-rect|display-mode]\"\tget [logic ui rect|display mode]\n"
             "       -S \"[ui-rect]\"\tset [logic ui rect]\n"
-            "                               \t eg: \"Content Protection\"=1\n"
+            "                               \t eg: \"Content Protection\" 1\n"
             "       -r,--raw-cmd           \tsend raw cmd\n", name);
 }
 
@@ -53,9 +55,15 @@ int main(int argc, char* argv[]) {
         print_usage(argv[0]);
         return 0;
     }
+#ifndef RECOVERY_MODE
     unique_ptr<DisplayAdapter> client = meson::DisplayAdapterCreateRemote();
-    DisplayAdapter::ConnectorType type = DisplayAdapter::CONN_TYPE_HDMI;
     DEBUG_INFO("Start client");
+#else
+    unique_ptr<DisplayAdapter> client = meson::DisplayAdapterCreateLocal(meson::DisplayAdapter::BackendType::DISPLAY_TYPE_FBDEV);
+    DEBUG_INFO("Start recovery client");
+#endif
+    DisplayAdapter::ConnectorType type = DisplayAdapter::CONN_TYPE_HDMI;
+
 
     int opt;
     while ((opt = getopt_long_only(argc, argv, short_option, long_option, NULL)) != -1) {
@@ -71,10 +79,25 @@ int main(int argc, char* argv[]) {
                 client->setDisplayMode(optarg, type);
                 break;
             case 'g':
-                NOTIMPLEMENTED;
+                {
+                    std::string value;
+                    client->getDisplayAttribute(optarg, value, type);
+                    printf("%s\n", value.c_str());
+                }
                 break;
             case 's':
-                NOTIMPLEMENTED;
+                if (optind + 1 > argc) {
+                    printf("miss parameter\n");
+                    break;
+                }
+                {
+                    client->setDisplayAttribute(optarg, argv[optind], type);
+                    printf("set %s to %s", optarg, argv[optind]);
+                    std::string value;
+                    client->getDisplayAttribute(optarg, value, type);
+                    printf(", current value:%s\n", value.c_str());
+                }
+                optind++;
                 break;
             case 'G':
                 if (optarg == NULL)
@@ -125,6 +148,14 @@ int main(int argc, char* argv[]) {
                 break;
             case 'r':
                 NOTIMPLEMENTED;
+                break;
+            case 'd':
+                {
+                    Json::Value json;
+                    Json::StyledWriter  write;
+                    client->dumpDisplayAttribute(json, type);
+                    printf("Dump display attribute:\n%s", (write.write(json)).c_str());
+                }
                 break;
             default:
                 print_usage(argv[0]);

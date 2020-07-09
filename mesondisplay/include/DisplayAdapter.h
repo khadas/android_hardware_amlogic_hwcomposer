@@ -14,13 +14,24 @@
 #include <cutils/native_handle.h>
 #include "utile.h"
 #include <inttypes.h>
-
-namespace Json {
-    class Value;
-}
+#include <json/json.h>
 
 namespace meson{
 using namespace std;
+#define DISPLAY_DOLBY_VISION_CAP  "Dolby Vision CAP"
+#define DISPLAY_DOLBY_VISION_ENABLE  "Dolby Vision Enable"
+#define DISPLAY_DOLBY_VISION_MODE  "Dolby Vision Mode"
+#define DISPLAY_DOLBY_VISION_STATUS  "Dolby Vision Status"
+#define DISPLAY_DOLBY_VISION_POLICY  "Dolby Vision Policy"
+#define DISPLAY_DOLBY_VISION_LL_POLICY  "Dolby Vision LL Policy"
+#define DISPLAY_DOLBY_VISION_HDR_10_POLICY  "Dolby Vision HDR 10 Policy"
+#define DISPLAY_DOLBY_VISION_GRAPHICS_PRIORITY  "Dolby Vision Graphics Priority"
+#define DISPLAY_HDR_POLICY  "HDR Policy"
+#define DISPLAY_HDR_MODE  "HDR Mode"
+#define DISPLAY_SDR_MODE  "SDR Mode"
+#define DISPLAY_HDR_CAP  "HDR CAP"
+#define DISPLAY_HDMI_COLOR_ATTR  "HDMI Color ATTR"
+#define DISPLAY_HDMI_AVMUTE  "HDMI Avmute"
 
 typedef struct {
     string name;
@@ -121,6 +132,13 @@ public:
 
     virtual bool setDisplayAttribute(const string& name, const string& value, ConnectorType displayType) = 0;
     virtual bool getDisplayAttribute(const string& name, string& value, ConnectorType displayType) = 0;
+
+    virtual bool dumpDisplayAttribute(Json::Value& json, ConnectorType displayType) {
+        UNUSED(json);
+        UNUSED(displayType);
+        NOTIMPLEMENTED;
+        return false;
+    };
 
     virtual ~DisplayAdapter() = default;
     DisplayAdapter() = default;

@@ -12,6 +12,7 @@
 #define DEBUG
 #ifdef DEBUG
 #include <unistd.h>
+#include <stdio.h>
 #include <time.h>
 #define COLOR_F (getpid()%6)+1
 #define COLOR_B 8

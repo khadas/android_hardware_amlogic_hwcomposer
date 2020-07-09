@@ -178,12 +178,16 @@ void DisplayServer::message_handle(Json::Value& in, Json::Value& out) {
         adapter->setDisplayAttribute(in["name"].asString(), in["value"].asString(),
                 (ConnectorType) in["p_displayType"].asUInt());
     } else if (cmd == "getDisplayAttribute") {
-        if (!in.isMember("name") || !in.isMember("value") || !in.isMember("p_displayType"))
+        if (!in.isMember("name") || !in.isMember("p_displayType"))
             goto OUT;
         string value;
         adapter->getDisplayAttribute(in["name"].asString(), value,
                 (ConnectorType) in["p_displayType"].asUInt());
         ret["value"] = value;
+    } else if (cmd == "dumpDisplayAttribute") {
+        if (!in.isMember("p_displayType"))
+            goto OUT;
+        adapter->dumpDisplayAttribute(ret, (ConnectorType)in["p_displayType"].asUInt());
     } else {
         MESON_LOGE("CMD not implement!");
     }

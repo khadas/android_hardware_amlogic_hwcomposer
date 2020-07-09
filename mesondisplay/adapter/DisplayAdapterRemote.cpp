@@ -120,6 +120,8 @@ bool DisplayAdapterRemote::setDisplayAttribute(
         const string& name, const string& value,
         ConnectorType displayType) {
     Json::Value cmd;
+    if (name.empty())
+        return false;
     IF_SERVER_NOT_READY_RETURN(false);
     cmd["cmd"] = "setDisplayAttribute";
     cmd["name"] = name.c_str();
@@ -133,7 +135,8 @@ bool DisplayAdapterRemote::getDisplayAttribute(
         const string& name, string& value,
         ConnectorType displayType) {
     Json::Value cmd, ret;
-    //Json::FastWriter write;
+    if (name.empty())
+        return false;
     IF_SERVER_NOT_READY_RETURN(false);
     cmd["cmd"] = "getDisplayAttribute";
     cmd["name"] = name.c_str();
@@ -151,7 +154,23 @@ DisplayAdapterRemote::DisplayAdapterRemote() {
     ipc = DisplayClient::create("DisplayAdapterRemote");
     if (!ipc)
         MESON_LOGE("Error when connect with Server");
-}
+};
+
+
+bool DisplayAdapterRemote::dumpDisplayAttribute(Json::Value& json, ConnectorType displayType) {
+    Json::Value cmd, ret;
+    IF_SERVER_NOT_READY_RETURN(false);
+    cmd["cmd"] = "dumpDisplayAttribute";
+    cmd["p_displayType"] = displayType;
+    ipc->send_request_wait_reply(cmd, ret);
+    if (ret.isMember("ret")) {
+        Json::StyledWriter  write;
+        DEBUG_INFO("Dump attributes:\n%s", write.write(ret["ret"]).c_str());
+        json = ret["ret"];
+        return true;
+    }
+    return false;
+};
 
 std::unique_ptr<DisplayAdapter> DisplayAdapterRemote::create() {
     return static_cast<std::unique_ptr<DisplayAdapter>>(std::make_unique<DisplayAdapterRemote>());

@@ -71,18 +71,99 @@ graphic_file_wathcer() {
 	done
 }
 
+
+# read only
+#Dolby Vision CAP
+#HDR CAP
+# write only
+#Dolby Vision Mode
+# related with hw
+#Dolby Vision Status
+check_display_attribute() {
+	old_value=""
+	index=0;
+	IFS_BACK=$IFS;
+	attribute_list='
+Dolby Vision Enable
+Dolby Vision Policy
+Dolby Vision LL Policy
+Dolby Vision HDR 10 Policy
+Dolby Vision Graphics Priority
+HDR Policy
+HDR Mode
+SDR Mode
+HDMI Avmute
+HDMI Color ATTR
+'
+	attribute_value_1='
+N
+0
+0
+0
+1
+1
+1
+1
+-1
+444,8bit
+'
+
+	attribute_value_2='
+Y
+1
+1
+1
+0
+0
+0
+0
+0
+422,8bit
+'
+
+	value1=(`echo $attribute_value_1`)
+	value2=(`echo $attribute_value_2`)
+	IFS=$'\n'
+	for attri in $attribute_list;do
+		old_value[$index]=`meson_display_client -g "$attri"`
+		index=$((index+1));
+	done
+	meson_display_client -d;
+	echo "set attribute to value1"
+	index=0;
+	for attri in $attribute_list;do
+		value=${value1[$index]}
+		meson_display_client -s "$attri" "$value" &>/dev/NULL
+		if [[ "$value" != `meson_display_client -g "$attri"` ]];then
+			echo "modify \"$attri\" failed please check, current is '`meson_display_client -g "$attri"`' need '$value'";
+		fi
+		index=$((index+1));
+	done
+	echo "set attribute to value2"
+	index=0;
+	for attri in $attribute_list;do
+		value=${value2[$index]}
+		meson_display_client -s "$attri" "$value" &>/dev/NULL
+		if [[ "$value" != `meson_display_client -g "$attri"` ]];then
+			echo "modify \"$attri\" failed please check, current is '`meson_display_client -g "$attri"`' need '$value'";
+		fi
+		index=$((index+1));
+	done
+}
+
 init() {
 	export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/vendor/lib
     export PATH=$PATH:/data
-    chmod 777 /data/test_* /data/meson_display_client
+    chmod 777 /data/test_* /data/meson_display_client &>/dev/NULL
 }
 
-echo <<EOF
+cat <<EOF
 Usage: \
 # you need copy this script test_watcher and meson_display_client into /data/ first
     1: set display mode
     2: set position
     3: graphic file change watcher
+    4: check display attribute get/set
 EOF
 
 init;
@@ -90,4 +171,5 @@ case $1 in
    1) change_mode;;
    2) change_position;;
    3) graphic_file_wathcer;;
+   4) check_display_attribute;;
 esac

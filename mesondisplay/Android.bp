@@ -44,6 +44,10 @@ cc_library_static {
         "hwc.utils_log",
     ],
 
+    export_static_lib_headers: [
+        "libjsoncpp",
+    ],
+
     export_include_dirs: [
         "include",
         "adapter",
@@ -86,6 +90,10 @@ cc_library_shared {
     ],
 
     static_libs: [
+        "libjsoncpp",
+    ],
+
+    export_static_lib_headers: [
         "libjsoncpp",
     ],
 

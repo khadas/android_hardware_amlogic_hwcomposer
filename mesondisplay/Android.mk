@@ -247,12 +247,12 @@ include $(BUILD_EXECUTABLE)
 #######################################
 include $(CLEAR_VARS)
 
-LOCAL_MODULE:= test_display_recovery
+LOCAL_MODULE:= meson_display_client_recovery
 
 LOCAL_CFLAGS += -DRECOVERY_MODE
 
 LOCAL_SRC_FILES := \
-    test/display_recovery_test.cpp
+    test/display_client.cpp
 
 LOCAL_STATIC_LIBRARIES := \
     meson_display.adapter_common_static \

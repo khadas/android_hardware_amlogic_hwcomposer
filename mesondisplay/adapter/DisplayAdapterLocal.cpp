@@ -16,6 +16,7 @@
 #include "MesonHwc2.h"
 #include "HwcConfig.h"
 #include "MesonLog.h"
+#include <sys/utsname.h>
 
 #define SYSFS_DISPLAY_MODE              "/sys/class/display/mode"
 
@@ -30,8 +31,44 @@
 namespace meson{
 
 using namespace std;
+
 using ConnectorType = DisplayAdapter::ConnectorType;
 using BackendType = DisplayAdapter::BackendType;
+
+
+#define SYS_FS_BUFFER_LEN_MAX 4096
+
+bool update_sys_node(DisplayAttributeInfo& info, const string& in, string& out, UpdateType type) {
+    bool ret = false;
+    char buffer[SYS_FS_BUFFER_LEN_MAX]={0};
+    const char* node = info.sysfs_node;
+    bool is_read_only = info.is_read_only;
+    bool is_write_only = info.is_write_only;
+
+    switch (type) {
+        case UT_SET_VALUE:
+            if (is_read_only)
+                break;
+            info.new_value = in;
+            if (0 == sysfs_set_string(node, in.c_str())) {
+                info.current_value = in;
+                ret = true;
+            }
+            break;
+        case UT_GET_VALUE:
+            if (is_write_only)
+                break;
+            if (0 == sysfs_get_string(node, buffer, SYS_FS_BUFFER_LEN_MAX)) {
+                out = buffer;
+                info.current_value = buffer;
+                ret = true;
+            }
+            break;
+        default:
+            break;
+    }
+    return ret;
+}
 
 void DisplayTypeConv(drm_connector_type_t& type, ConnectorType displayType) {
     switch (displayType) {
@@ -61,6 +98,73 @@ void DisplayModeConv(DisplayModeInfo& mode, drm_mode_info_t& mode_in) {
 
 
 DisplayAdapterLocal::DisplayAdapterLocal() {
+    struct utsname buf;
+    int major = 0;
+    int minor = 0;
+    if (0 == uname(&buf)) {
+        if (sscanf(buf.release, "%d.%d", &major, &minor) != 2) {
+            major = 0;
+        }
+    }
+    if (major == 0) {
+        MESON_LOGV("Can't determine kernel version for access sysfs!");
+    }
+
+#define DA_DEFINE(ID, INIT_VAL, UPDATE_FUN)  \
+    display_attrs[DA_##ID] = { .name = DISPLAY_##ID, .attr_id = DA_##ID, .current_value = INIT_VAL, .new_value = INIT_VAL, .status_flags = 0, .update_fun = UPDATE_FUN, .sysfs_node = NULL, .is_read_only = false, .is_write_only = false }
+
+    DA_DEFINE(DOLBY_VISION_CAP, "0", update_sys_node);
+    DA_DEFINE(DOLBY_VISION_ENABLE, "0", update_sys_node);
+    DA_DEFINE(DOLBY_VISION_MODE, "0", update_sys_node);
+    DA_DEFINE(DOLBY_VISION_STATUS, "0", update_sys_node);
+    DA_DEFINE(DOLBY_VISION_POLICY, "0", update_sys_node);
+    DA_DEFINE(DOLBY_VISION_LL_POLICY, "0", update_sys_node);
+    DA_DEFINE(DOLBY_VISION_HDR_10_POLICY, "0", update_sys_node);
+    DA_DEFINE(DOLBY_VISION_GRAPHICS_PRIORITY, "0", update_sys_node);
+    DA_DEFINE(HDR_CAP, "0", update_sys_node);
+    DA_DEFINE(HDR_POLICY, "0", update_sys_node);
+    DA_DEFINE(HDR_MODE, "0", update_sys_node);
+    DA_DEFINE(SDR_MODE, "0", update_sys_node);
+    DA_DEFINE(HDMI_COLOR_ATTR, "0", update_sys_node);
+    DA_DEFINE(HDMI_AVMUTE, "0", update_sys_node);
+
+#define DA_SET_NODE(ID, NODE) \
+    display_attrs[DA_##ID].sysfs_node = NODE
+    if (major >= 5) {
+        DA_SET_NODE(DOLBY_VISION_ENABLE ,"/sys/module/aml_media/parameters/dolby_vision_enable");
+        DA_SET_NODE(DOLBY_VISION_STATUS ,"/sys/module/aml_media/parameters/dolby_vision_status");
+        DA_SET_NODE(DOLBY_VISION_POLICY ,"/sys/module/aml_media/parameters/dolby_vision_policy");
+        DA_SET_NODE(DOLBY_VISION_LL_POLICY ,"/sys/module/aml_media/parameters/dolby_vision_ll_policy");
+        DA_SET_NODE(DOLBY_VISION_HDR_10_POLICY ,"/sys/module/aml_media/parameters/dolby_vision_hdr10_policy");
+        DA_SET_NODE(DOLBY_VISION_GRAPHICS_PRIORITY ,"/sys/module/aml_media/parameters/dolby_vision_graphics_priority");
+        DA_SET_NODE(HDR_POLICY ,"/sys/module/aml_media/parameters/hdr_policy");
+        DA_SET_NODE(HDR_MODE ,"/sys/module/aml_media/parameters/hdr_mode");
+        DA_SET_NODE(SDR_MODE ,"/sys/module/aml_media/parameters/sdr_mode");
+    } else {
+        DA_SET_NODE(DOLBY_VISION_ENABLE ,"/sys/module/amdolby_vision/parameters/dolby_vision_enable");
+        DA_SET_NODE(DOLBY_VISION_STATUS ,"/sys/module/amdolby_vision/parameters/dolby_vision_status");
+        DA_SET_NODE(DOLBY_VISION_POLICY ,"/sys/module/amdolby_vision/parameters/dolby_vision_policy");
+        DA_SET_NODE(DOLBY_VISION_LL_POLICY ,"/sys/module/amdolby_vision/parameters/dolby_vision_ll_policy");
+        DA_SET_NODE(DOLBY_VISION_HDR_10_POLICY ,"/sys/module/amdolby_vision/parameters/dolby_vision_hdr10_policy");
+        DA_SET_NODE(DOLBY_VISION_GRAPHICS_PRIORITY ,"/sys/module/amdolby_vision/parameters/dolby_vision_graphics_priority");
+        DA_SET_NODE(HDR_POLICY ,"/sys/module/am_vecm/parameters/hdr_policy");
+        DA_SET_NODE(HDR_MODE ,"/sys/module/am_vecm/parameters/hdr_mode");
+        DA_SET_NODE(SDR_MODE ,"/sys/module/am_vecm/parameters/sdr_mode");
+    }
+    DA_SET_NODE(DOLBY_VISION_CAP ,"/sys/class/amhdmitx/amhdmitx0/dv_cap");
+    DA_SET_NODE(DOLBY_VISION_MODE ,"/sys/class/amdolby_vision/dv_mode");
+    DA_SET_NODE(HDR_CAP ,"/sys/class/amhdmitx/amhdmitx0/hdr_cap");
+    DA_SET_NODE(HDMI_COLOR_ATTR ,"/sys/class/amhdmitx/amhdmitx0/attr");
+    DA_SET_NODE(HDMI_AVMUTE ,"/sys/devices/virtual/amhdmitx/amhdmitx0/avmute");
+
+#define DA_SET_READ_ONLY(ID) \
+    display_attrs[DA_##ID].is_read_only = true
+    DA_SET_READ_ONLY(DOLBY_VISION_CAP);
+    DA_SET_READ_ONLY(DOLBY_VISION_STATUS);
+    DA_SET_READ_ONLY(HDR_CAP);
+#define DA_SET_WRITE_ONLY(ID) \
+    display_attrs[DA_##ID].is_write_only= true
+    DA_SET_WRITE_ONLY(DOLBY_VISION_MODE);
 }
 
 DisplayAdapter::BackendType DisplayAdapterLocal::displayType() {
@@ -165,7 +269,7 @@ bool DisplayAdapterLocal::setDisplayRect(const Rect rect, ConnectorType displayT
         crtc->setViewPort(drm_rect);
         ret = true;
     }
-    MESON_LOGV("SetDisplayViewPort %s", ret ? "doen" : "faild");
+    MESON_LOGV("SetDisplayViewPort %s", ret ? "done" : "faild");
     return ret;
 }
 
@@ -190,12 +294,47 @@ bool DisplayAdapterLocal::getDisplayRect(Rect& rect, ConnectorType displayType) 
     return ret;
 }
 
+bool DisplayAdapterLocal::dumpDisplayAttribute(Json::Value& json, ConnectorType displayType) {
+    Json::Value ret;
+    drm_connector_type_t type;
+    DisplayTypeConv(type, displayType);
+    int i = 0;
+    for (i = 0; i < DA_DISPLAY_ATTRIBUTE__COUNT; i++) {
+        std::string value;
+        if (display_attrs[i].update_fun) {
+            display_attrs[i].update_fun(display_attrs[i], "", value, UT_GET_VALUE);
+        }
+        Json::Value item;
+        item["id"] = display_attrs[i].attr_id;
+        item["value"] = display_attrs[i].current_value;
+        //item["status flags"] = display_attrs[i].status_flags;
+        ret[display_attrs[i].name] = item;
+    }
+    json = ret;
+
+    return true;
+};
+
+
+DisplayAttributeInfo* DisplayAdapterLocal::getDisplayAttributeInfo(const string& name, ConnectorType displayType) {
+    UNUSED(displayType);
+    int i = 0;
+    for (i = 0; i < DA_DISPLAY_ATTRIBUTE__COUNT; i++) {
+        if (display_attrs[i].name == name) {
+            return &(display_attrs[i]);
+        }
+    }
+    MESON_LOGV("Access invalid display attribute named \"%s\"", name.c_str());
+    return NULL;
+}
+
 bool DisplayAdapterLocal::setDisplayAttribute(
         const string& name, const string& value,
         ConnectorType displayType) {
     bool ret = false;
     MESON_LOGD("SetDisplay[%s] attr to \"%s\"", name.c_str(), value.c_str());
 
+    /*
     drm_connector_type_t type;
     DisplayTypeConv(type, displayType);
 
@@ -203,27 +342,45 @@ bool DisplayAdapterLocal::setDisplayAttribute(
     if (crtc) {
         string dispattr (value);
         crtc->setDisplayAttribute(dispattr);
+    */
+    drm_connector_type_t type;
+    string out;
+    DisplayTypeConv(type, displayType);
+    DisplayAttributeInfo* info = getDisplayAttributeInfo(name, displayType);
+    if (info && info->update_fun) {
+       ret = info->update_fun(*info, value, out, UT_SET_VALUE);
     }
-
+    if (ret == false) {
+        MESON_LOGV("Set display attribute \"%s\" fail", name.c_str());
+    }
     return ret;
-}
+};
 
 bool DisplayAdapterLocal::getDisplayAttribute(
         const string& name, string& value,
         ConnectorType displayType) {
     bool ret = false;
-
+    string out = "";
     drm_connector_type_t type;
     DisplayTypeConv(type, displayType);
+    /*
     GET_CRTC_BY_CONNECTOR(type);
     if (crtc) {
         crtc->getDisplayAttribute(value);
+    */
+    DisplayAttributeInfo* info = getDisplayAttributeInfo(name, displayType);
+    if (info && info->update_fun) {
+       if (info->update_fun(*info, "", out, UT_GET_VALUE)) {
+           value = out;
+           ret = true;
+       }
     }
-
-    MESON_LOGV("GetDisplay[%s] attr \"%s\"", name.c_str(), value.c_str());
-
+    if (ret == false) {
+        MESON_LOGV("Get display attribute \"%s\" fail", name.c_str());
+    }
+    MESON_LOGD("getDisplayAttribute \"%s\": \"%s\"", name.c_str(), value.c_str());
     return ret;
-}
+};
 
 std::unique_ptr<DisplayAdapter> DisplayAdapterLocal::create(DisplayAdapter::BackendType type) {
     switch (type) {
