@@ -1,0 +1,29 @@
+cc_library_shared {
+    name: "libvideotunnel",
+    vendor_available: true,
+
+    srcs: [
+        "video_tunnel.cpp",
+    ],
+
+    shared_libs: [
+        "liblog",
+        "libutils",
+        "libcutils",
+        "libsync",
+    ],
+
+    local_include_dirs: [
+        "kernel-headers",
+        "include",
+    ],
+    export_include_dirs: [
+        "include",
+    ],
+    cflags: [
+        "-Werror",
+        "-Wall",
+    ],
+}
+
+subdirs = ["tests"]

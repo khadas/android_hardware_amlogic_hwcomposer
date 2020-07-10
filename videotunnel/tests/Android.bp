@@ -1,0 +1,22 @@
+cc_binary {
+    name: "vt_test",
+
+//    cflags: [
+//        "-Wall",
+//        "-Werror",
+//    ],
+
+    srcs: [
+        "vt_test.cpp",
+    ],
+
+    shared_libs: [
+        "liblog",
+        "libcutils",
+        "libutils",
+        "libvideotunnel",
+        "libsync",
+    ],
+
+    clang: true,
+}
