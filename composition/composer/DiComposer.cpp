@@ -90,15 +90,20 @@ int32_t DiComposer::setOutput(
 int32_t DiComposer::start(int composeIdx) {
     MESON_ASSERT(composeIdx < mImplNum, "DiComposer composeidx %d err .", composeIdx);
 
-    std::shared_ptr<ComposerImpl> impl = mComposerImpl[composeIdx];
     int fenceFd = -1;
+    std::shared_ptr<ComposerImpl> impl = mComposerImpl[composeIdx];
 
     MESON_ASSERT(impl->outputFb.get(), "DiComposer (%d) no output set!", composeIdx);
     impl->composeDev->enable(true);
     impl->composeDev->setFrames(impl->inputFbs, fenceFd, impl->outputFb->mZorder);
 
-    /*??? release fence */
+    /*set release fence*/
+    for (auto it = impl->inputFbs.begin(); it != impl->inputFbs.end(); it++) {
+       (*it)->setCurReleaseFence((fenceFd >= 0) ? ::dup(fenceFd) : -1);
+    }
 
+    if (fenceFd >= 0)
+        close(fenceFd);
     return 0;
 }
 

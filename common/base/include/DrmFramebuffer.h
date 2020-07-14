@@ -28,10 +28,11 @@ public:
     int32_t setAcquireFence(int32_t fenceFd);
     std::shared_ptr<DrmFence> getAcquireFence();
 
-    int32_t setReleaseFence(int32_t fenceFd);
+    /*set release fence for last present loop.*/
+    int32_t setPrevReleaseFence(int32_t fenceFd);
+    int32_t setCurReleaseFence(int32_t fenceFd);
     /*dup current release fence.*/
-    int32_t getReleaseFence();
-    int32_t clearReleaseFence();
+    int32_t getPrevReleaseFence();
 
     int32_t lock(void ** addr);
     int32_t unlock();
@@ -63,7 +64,9 @@ public:
     std::map<drm_hdr_meatadata_t, float> mHdrMetaData;
 protected:
     std::shared_ptr<DrmFence> mAcquireFence;
-    std::shared_ptr<DrmFence> mReleaseFence;
+    std::shared_ptr<DrmFence> mPrevReleaseFence;
+    std::shared_ptr<DrmFence> mCurReleaseFence;
+
     void * mMapBase;
 };
 

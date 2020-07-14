@@ -175,9 +175,9 @@ int32_t HwcVideoPlane::setPlane(
 
             /*update last frame release fence*/
             if (DebugHelper::getInstance().discardOutFence()) {
-                fb->setReleaseFence(-1);
+                fb->setPrevReleaseFence(-1);
             } else {
-                fb->setReleaseFence(composefd);
+                fb->setPrevReleaseFence(composefd);
             }
         }
 

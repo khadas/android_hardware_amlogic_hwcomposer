@@ -865,6 +865,11 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
     return HWC2_ERROR_NONE;
 }
 
+/*getRelaseFences is return the fence for previous frame, for DPU based
+compsition, it is reasonable, current frame's present fence is the release
+fence for previous frame.
+But for m2m composer, there is no present fence, only release fence for
+current frame, need do speical process to return it in next present loop.*/
 hwc2_error_t Hwc2Display::getReleaseFences(uint32_t* outNumElements,
     hwc2_layer_t* outLayers, int32_t* outFences) {
     uint32_t num = 0;
@@ -872,20 +877,15 @@ hwc2_error_t Hwc2Display::getReleaseFences(uint32_t* outNumElements,
     if (outLayers && outFences)
         needInfo = true;
 
-    /*
-    * Return release fence for all layers, not only DEVICE composition Layers,
-    * for we donot know if it is DEVICE compositin in last composition.
-    */
     for (auto it = mPresentLayers.begin(); it != mPresentLayers.end(); it++) {
         Hwc2Layer *layer = (Hwc2Layer*)(it->get());
         num++;
         if (needInfo) {
-            int32_t releaseFence = layer->getReleaseFence();
+            int32_t releaseFence = layer->getPrevReleaseFence();
             *outLayers = layer->getUniqueId();
             *outFences = releaseFence;
             outLayers++;
             outFences++;
-            layer->clearReleaseFence();
         }
     }
 

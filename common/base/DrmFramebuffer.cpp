@@ -45,24 +45,26 @@ std::shared_ptr<DrmFence> DrmFramebuffer::getAcquireFence() {
     return mAcquireFence;
 }
 
-int32_t DrmFramebuffer::setReleaseFence(int32_t fenceFd) {
-    mReleaseFence.reset(new DrmFence(fenceFd));
+int32_t DrmFramebuffer::setPrevReleaseFence(int32_t fenceFd) {
+    mPrevReleaseFence.reset(new DrmFence(fenceFd));
     return 0;
 }
 
-int32_t DrmFramebuffer::getReleaseFence() {
-    if (mReleaseFence.get())
-        return mReleaseFence->dup();
+int32_t DrmFramebuffer::setCurReleaseFence(int32_t fenceFd) {
+    mCurReleaseFence.reset(new DrmFence(fenceFd));
+    return 0;
+}
+
+int32_t DrmFramebuffer::getPrevReleaseFence() {
+    if (mPrevReleaseFence.get())
+        return mPrevReleaseFence->dup();
     return -1;
-}
-
-int32_t DrmFramebuffer::clearReleaseFence() {
-    mReleaseFence.reset();
-    return 0;
 }
 
 void DrmFramebuffer::reset() {
     clearBufferInfo();
+    mPrevReleaseFence.reset();
+    mCurReleaseFence.reset();
     mHdrMetaData.clear();
     mBlendMode       = DRM_BLEND_MODE_INVALID;
     mPlaneAlpha      = 1.0;
@@ -70,8 +72,6 @@ void DrmFramebuffer::reset() {
     mZorder          = 0xFFFFFFFF; //set to special value for debug.
     mDataspace       = 0;
     mCompositionType = 0;
-
-    mAcquireFence = mReleaseFence = DrmFence::NO_FENCE;
 
     mDisplayFrame.left   = mSourceCrop.left   = 0;
     mDisplayFrame.top    = mSourceCrop.top    = 0;
@@ -96,8 +96,16 @@ void DrmFramebuffer::clearBufferInfo() {
         mBufferHandle  = NULL;
     }
 
+    /* clearBufferInfo() means buffer changed,
+    * for release fence:
+    * 1. reset PrevRelease which already used in last loop.
+    * 2. CureRelease move to PrevRelase, it can be returned in next loop.
+    */
     mAcquireFence.reset();
-    mAcquireFence  = DrmFence::NO_FENCE;
+    mPrevReleaseFence = mCurReleaseFence;
+    mCurReleaseFence.reset();
+    mAcquireFence = mCurReleaseFence = DrmFence::NO_FENCE;
+
     mFbType        = DRM_FB_RENDER;
     mSecure         = false;
 }

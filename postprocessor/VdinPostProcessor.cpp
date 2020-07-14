@@ -390,11 +390,10 @@ int32_t VdinPostProcessor::process() {
             if (mFbProcessor != NULL) {
                 /*get ouput buf, and wait it ready.*/
                 outfb = mVoutQueue.front();
-                int releaseFence = outfb->getReleaseFence();
+                int releaseFence = outfb->getPrevReleaseFence();
                 if (releaseFence >= 0) {
                     DrmFence fence(releaseFence);
                     fence.wait(3000);
-                    outfb->clearReleaseFence();
                 }
                 mVoutQueue.pop();
                 /*do processor*/

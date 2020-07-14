@@ -274,9 +274,9 @@ int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> fb, uint32_t zorder, 
     * now, cause display retire fence will also use this fd. will be closed
     * on SF side*/
         if (DebugHelper::getInstance().discardOutFence()) {
-            mDrmFb->setReleaseFence(-1);
+            mDrmFb->setPrevReleaseFence(-1);
         } else {
-            mDrmFb->setReleaseFence((mPlaneInfo.out_fen_fd >= 0) ? ::dup(mPlaneInfo.out_fen_fd) : -1);
+            mDrmFb->setPrevReleaseFence((mPlaneInfo.out_fen_fd >= 0) ? ::dup(mPlaneInfo.out_fen_fd) : -1);
         }
     }
 
