@@ -1,1 +1,0 @@
-7e7bd3f6059a5419909d27c29c33c6a51e8362ee475fa884ca383d62d61b1b8a vendor.amlogic.display.meson_display_ipc@1.0::IMesonDisplayIPC
