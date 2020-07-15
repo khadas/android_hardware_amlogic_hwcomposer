@@ -14,43 +14,6 @@
 #include "ICompositionStrategy.h"
 
 
-/*
-------------------------------------------------------------------------------------------------------------
-|  VPU on s905d2 Architecture, 2018                                                                        |
-------------------------------------------------------------------------------------------------------------
-|                                                                                                          |
-|                                                                                            -------       |
-|                                                                                            |     |       |
-|                                                                                            |     |       |
-|  -----------------------------------------------------------VIDEO1------------------------>|     |       |                                                                                     |
-|                                                                                            |     |       |                                                                           |
-|  -----------------------------------------------------------VIDEO1------------------------>|     |       |
-|                                                                                            |     |       |
-|                         -----                                                              |     |       |
-|                         |   |                                                              |     |       |
-|                         |   |         --------                                             |     |       |
-|  ---------din0--------->|---|--din0-->|      |   --------                                  |     |       |
-|                         |   |         |BLEND0|-->|      |   -------   -------------        |BLEND|---->  |
-|                         |   |         |      |   |      |-->| HDR |-->| FreeScale |--OSD-->|     |       |
-|                         |   |         --------   |BLEND2|   -------   -------------        |     |       |
-|                         |   |                    |      |                                  |     |       |
-|           -----------   |   |         --------   |      |                                  |     |       |
-|  --din1-->|FreeScale|-->|OSD|-------->|      |-->|      |                                  |     |       |
-|           -----------   |MUX|         |BLEND1|   --------                                  |     |       |
-|                         |   |-------->|      |                                             |     |       |
-|                         |   |         --------                                             |     |       |
-|                         |   |                                                              |     |       |
-|           -----------   |   |                                                              |     |       |
-|  --din2-->|FreeScale|-->|   |-------------------------- OSD (4k) ------------------------->|     |       |
-|           -----------   |   |                                                              |     |       |
-|                         |   |                                                              |     |       |
-|                         -----                                                              -------       |
-|                                                                                                          |
-------------------------------------------------------------------------------------------------------------
-*/
-
-#define OSD_PLANE_NUM_MAX         3  // Maximum osd planes of support
-
 class MultiplanesWithDiComposition : public ICompositionStrategy {
 public:
     MultiplanesWithDiComposition();
@@ -120,8 +83,6 @@ protected:
     std::vector<std::shared_ptr<HwDisplayPlane>> mOsdPlanes;
 
     std::vector<std::shared_ptr<HwDisplayPlane>> mHwcVideoPlanes;             // Future  VIDEO support : 2 HwcVideoPlane
-    std::shared_ptr<HwDisplayPlane> mLegacyVideoPlane;          // Current VIDEO support : 1 LegacyVideoPlane + 1 LegacyExtVideoPlane
-    std::shared_ptr<HwDisplayPlane> mLegacyExtVideoPlane;
     std::vector<std::shared_ptr<HwDisplayPlane>> mOtherPlanes;
 
     /* Use for composer */
@@ -131,8 +92,6 @@ protected:
     std::vector<std::shared_ptr<DrmFramebuffer>> mDIComposerFbs;
     std::vector<std::shared_ptr<DrmFramebuffer>> mHwcVideoInputFbs[2];
     uint32_t mHwcVideoZorder[2];
-
-
 
     std::list<DisplayPair> mDisplayPairs;
 
