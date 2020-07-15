@@ -24,6 +24,7 @@
 #include "LegacyExtVideoPlane.h"
 #include "HwcVideoPlane.h"
 #include "AmFramebuffer.h"
+#include <VideoComposerDev.h>
 
 ANDROID_SINGLETON_STATIC_INSTANCE(HwDisplayManager)
 
@@ -186,6 +187,8 @@ int32_t HwDisplayManager::loadPlanes() {
         snprintf(path, 64, "/dev/video_composer.%u", idx);
         fd = open(path, O_RDWR, 0);
         if (fd >= 0) {
+            createVideoComposerDev(::dup(fd), idx);
+
             plane_idx = video_idx_max + idx;
             std::shared_ptr<HwcVideoPlane> plane =
                 std::make_shared<HwcVideoPlane>(fd, plane_idx);

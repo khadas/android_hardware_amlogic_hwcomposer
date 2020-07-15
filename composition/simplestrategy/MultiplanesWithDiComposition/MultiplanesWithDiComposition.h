@@ -32,8 +32,10 @@ public:
     //void dump(String8 & dumpstr);
 
 protected:
+    int processVideoFbs();
+    int processGfxFbs();
+
     void init();
-    int handleVideoComposition();
     int applyCompositionFlags();
     int pickoutOsdFbs();
     int countComposerFbs(int &belowClientNum, int &upClientNum, int &insideClientNum);
@@ -48,10 +50,10 @@ protected:
     void handleDispayLayerZorder();
     int handleOsdComposition();
     int handleOsdCompostionWithVideo();
-    void handleDiComposition();
     int32_t compareFbScale(drm_rect_t & aSrc, drm_rect_t & aDst, drm_rect_t & bSrc, drm_rect_t & bDst);
     int handleUVM();
-    int commitHwcVideoPlane(uint32_t idx, uint32_t present_zorder, std::shared_ptr<HwDisplayPlane> plane);
+    int allocateDiOutputFb(
+        std::shared_ptr<DrmFramebuffer> & fb, uint32_t z);
 
 protected:
     struct DisplayPair {
@@ -77,6 +79,7 @@ protected:
     /* Composer */
     std::shared_ptr<IComposer> mDummyComposer;
     std::shared_ptr<IComposer> mClientComposer;
+    std::shared_ptr<IComposer> mDiComposer;
     std::vector<std::shared_ptr<IComposer>> mOtherComposers;
 
     /* Get display planes from DispalyManager */
@@ -91,7 +94,6 @@ protected:
     std::vector<std::shared_ptr<DrmFramebuffer>> mComposerFbs;  // Save Fbs that should be composered
     std::vector<std::shared_ptr<DrmFramebuffer>> mDIComposerFbs;
     std::vector<std::shared_ptr<DrmFramebuffer>> mHwcVideoInputFbs[2];
-    uint32_t mHwcVideoZorder[2];
 
     std::list<DisplayPair> mDisplayPairs;
 
@@ -101,11 +103,6 @@ protected:
     uint32_t mMaxComposerZorder;
     uint32_t mMinVideoZorder;
     uint32_t mMaxVideoZorder;
-
-    /*dicomposer is not used now.*/
-    std::shared_ptr<IComposer> mDiComposer;
-    std::vector<std::shared_ptr<DrmFramebuffer>> mDiInFbs;
-    std::vector<std::shared_ptr<DrmFramebuffer>> mDiOutFbs;
 
     /* Use for UVM */
     int mUVMFd;

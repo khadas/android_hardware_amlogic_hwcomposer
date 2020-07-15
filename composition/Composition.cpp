@@ -11,8 +11,7 @@
 bool isVideoPlaneComposition(int meson_composition_type) {
     if (meson_composition_type == MESON_COMPOSITION_PLANE_AMVIDEO
         || meson_composition_type == MESON_COMPOSITION_PLANE_AMVIDEO_SIDEBAND
-        || meson_composition_type == MESON_COMPOSITION_PLANE_HWCVIDEO
-        || meson_composition_type == MESON_COMPOSITION_PLANE_DI_VIDEO) {
+        || meson_composition_type == MESON_COMPOSITION_PLANE_HWCVIDEO) {
         return true;
     }
 
@@ -53,9 +52,6 @@ const char* compositionTypeToString(
             break;
         case MESON_COMPOSITION_PLANE_AMVIDEO_SIDEBAND:
             compStr = "SIDEBAND";
-            break;
-        case MESON_COMPOSITION_PLANE_DI_VIDEO:
-            compStr = "DIVIDEO";
             break;
         case MESON_COMPOSITION_PLANE_OSD:
             compStr = "OSD";

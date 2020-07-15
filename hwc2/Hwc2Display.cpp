@@ -23,10 +23,7 @@
 #include <CompositionStrategyFactory.h>
 #include <EventThread.h>
 #include <systemcontrol.h>
-
-#include "am_gralloc_ext.h"
-
-#include "CopyProcessor.h"
+#include <am_gralloc_ext.h>
 
 Hwc2Display::Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer) {
     mObserver = observer;
@@ -81,15 +78,9 @@ int32_t Hwc2Display::initialize() {
     mComposers.emplace(MESON_CLIENT_COMPOSER, std::move(composer));
     ComposerFactory::create(MESON_DUMMY_COMPOSER, composer);
     mComposers.emplace(MESON_DUMMY_COMPOSER, std::move(composer));
-#if defined(HWC_ENABLE_GE2D_COMPOSITION)
-    //TODO: havenot finish ge2d composer.
-    ComposerFactory::create(MESON_GE2D_COMPOSER, composer);
-    mComposers.emplace(MESON_GE2D_COMPOSER, std::move(composer));
-#endif
-#if 0 /*not used now, enable later*/
+    /*add yuv/video composer*/
     ComposerFactory::create(MESON_DI_COMPOSER, composer);
     mComposers.emplace(MESON_DI_COMPOSER, std::move(composer));
-#endif
 
     initLayerIdGenerator();
 

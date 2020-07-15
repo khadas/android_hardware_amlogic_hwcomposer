@@ -47,7 +47,8 @@ LOCAL_SRC_FILES := \
     ConnectorPanel.cpp \
     ConnectorDummy.cpp \
     AmVinfo.cpp \
-    Vdin.cpp
+    Vdin.cpp \
+    VideoComposerDev.cpp
 
 LOCAL_C_INCLUDES := \
     system/core/include \

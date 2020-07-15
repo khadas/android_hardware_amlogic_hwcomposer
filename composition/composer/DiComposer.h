@@ -11,6 +11,7 @@
 #define DI_COMPOSER_H
 
 #include <IComposer.h>
+#include <VideoComposerDev.h>
 
 #define DI_COMPOSER_NAME "DiComposer"
 
@@ -24,30 +25,38 @@ public:
 
     bool isFbsSupport(
         std::vector<std::shared_ptr<DrmFramebuffer>> & fbs,
-        std::vector<std::shared_ptr<DrmFramebuffer>> & overlayfbs);
+        std::vector<std::shared_ptr<DrmFramebuffer>> & overlayfbs,
+        int composeIdx = 0);
 
     int32_t prepare();
 
-    int32_t addInput(std::shared_ptr<DrmFramebuffer> & fb, bool bOverlay = false);
-
     int32_t addInputs(
         std::vector<std::shared_ptr<DrmFramebuffer>> & fbs,
-        std::vector<std::shared_ptr<DrmFramebuffer>> & overlayfbs);
+        std::vector<std::shared_ptr<DrmFramebuffer>> & overlayfbs,
+        int composeIdx = 0);
 
     int32_t getOverlyFbs(std::vector<std::shared_ptr<DrmFramebuffer>> & overlays);
 
-    int32_t setOutput(std::shared_ptr<DrmFramebuffer> & fb,
-        hwc_region_t damage);
+    int32_t setOutput(
+        std::shared_ptr<DrmFramebuffer> & fb,
+        hwc_region_t damage,
+        int composeIdx = 0);
 
-    int32_t start();
+    int32_t start(int composeIdx = 0);
 
-    std::shared_ptr<DrmFramebuffer> getOutput();
+    std::shared_ptr<DrmFramebuffer> getOutput(int composeIdx = 0);
 
 protected:
-    std::vector<std::shared_ptr<DrmFramebuffer>> mVideoComposerIn;
-    std::vector<std::shared_ptr<DrmFramebuffer>> mVideoComposerOut;
+    class ComposerImpl{
+        public:
+            std::vector<std::shared_ptr<DrmFramebuffer>> inputFbs;
+            std::vector<std::shared_ptr<DrmFramebuffer>> overlayFbs;
+            std::shared_ptr<DrmFramebuffer> outputFb;
+            std::shared_ptr<VideoComposerDev> composeDev;
+    };
 
-
+    std::vector<std::shared_ptr<ComposerImpl>> mComposerImpl;
+    int mImplNum;
 };
 
 #endif/*DUMMY_COMPOSER_H*/

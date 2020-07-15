@@ -28,7 +28,6 @@ typedef enum {
     MESON_COMPOSITION_PLANE_AMVIDEO_SIDEBAND,
     /*New video plane.*/
     MESON_COMPOSITION_PLANE_HWCVIDEO,
-    MESON_COMPOSITION_PLANE_DI_VIDEO,
 } meson_compositon_t;
 
 bool isVideoPlaneComposition(int meson_composition_type);

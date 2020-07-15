@@ -27,24 +27,26 @@ public:
 
     bool isFbsSupport(
         std::vector<std::shared_ptr<DrmFramebuffer>> & fbs,
-        std::vector<std::shared_ptr<DrmFramebuffer>> & overlayfbs);
+        std::vector<std::shared_ptr<DrmFramebuffer>> & overlayfbs,
+        int composeIdx = 0);
 
     int32_t prepare();
 
-    int32_t addInput(std::shared_ptr<DrmFramebuffer> & fb, bool bOverlay);
-
     int32_t addInputs(
         std::vector<std::shared_ptr<DrmFramebuffer>> & fbs,
-        std::vector<std::shared_ptr<DrmFramebuffer>> & overlayfbs);
+        std::vector<std::shared_ptr<DrmFramebuffer>> & overlayfbs,
+        int composeIdx = 0);
 
     int32_t getOverlyFbs(std::vector<std::shared_ptr<DrmFramebuffer>> & overlays);
 
-    int32_t setOutput(std::shared_ptr<DrmFramebuffer> & fb,
-        hwc_region_t damage);
+    int32_t setOutput(
+        std::shared_ptr<DrmFramebuffer> & fb,
+        hwc_region_t damage,
+        int composeIdx = 0);
 
-    int32_t start();
+    int32_t start(int composeIdx = 0);
 
-    std::shared_ptr<DrmFramebuffer> getOutput();
+    std::shared_ptr<DrmFramebuffer> getOutput(int composeIdx = 0);
 
 protected:
     std::shared_ptr<DrmFramebuffer> mClientTarget;

@@ -66,6 +66,8 @@ typedef enum drm_fb_type {
     DRM_FB_VIDEO_OMX2_V4L2,
     /*real image data, and is contiguous buf*/
     DRM_FB_VIDEO_DMABUF,
+    /*fake buf for di composer output.*/
+    DRM_FB_DI_COMPOSE_OUTPUT,
 } drm_fb_type_t;
 
 #define DRM_DISPLAY_MODE_LEN (64)

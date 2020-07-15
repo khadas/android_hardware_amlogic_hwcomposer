@@ -25,7 +25,6 @@ hwc2_composition_t mesonComp2Hwc2Comp(Hwc2Layer * layer) {
         case MESON_COMPOSITION_DI:
         case MESON_COMPOSITION_PLANE_AMVIDEO:
         case MESON_COMPOSITION_PLANE_HWCVIDEO:
-        case MESON_COMPOSITION_PLANE_DI_VIDEO:
         case MESON_COMPOSITION_PLANE_OSD:
         case MESON_COMPOSITION_GE2D:
         default:
