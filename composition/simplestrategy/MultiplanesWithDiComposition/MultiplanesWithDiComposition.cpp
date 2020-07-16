@@ -177,7 +177,8 @@ int MultiplanesWithDiComposition::processVideoFbs() {
             (*it)->mCompositionType = MESON_COMPOSITION_DUMMY;
             videoFbNum --;
         }
-        MESON_LOGD("get vd1fb from sideband %d", vd1Fb->mFbType);
+        MESON_LOGD("get vd1fb from sideband %d - %d",
+            vd1Fb->mZorder, vd1Fb->mFbType);
     }
 
     if (!vd1Fb) {
@@ -190,13 +191,13 @@ int MultiplanesWithDiComposition::processVideoFbs() {
             buf = (*it)->mBufferHandle;
             if (am_gralloc_get_omx_video_type(buf, &video_type) == 0 &&
                 (video_type & videoTypes2Vd1) != 0) {
-                vd1Fb = fb;
+                vd1Fb = *it;
                 mDIComposerFbs.erase(it);
-                MESON_LOGD("get vd1fb from special video %d", vd1Fb->mFbType);
+                MESON_LOGD("get vd1fb from special video %d-%d",
+                    vd1Fb->mZorder, vd1Fb->mFbType);
                 break;
             }
         }
-
     }
 
     /* find the biggest window and it can't overlap with other window.

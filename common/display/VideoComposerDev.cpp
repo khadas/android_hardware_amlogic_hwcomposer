@@ -84,7 +84,8 @@ int32_t VideoComposerDev::setFrames(
             am_gralloc_get_sideband_type(buf, &sideband_type);
             vFrameInfo->sideband_type = sideband_type;
         } else {
-            MESON_LOGE("unknow fb type %d", fb->mFbType);
+            MESON_LOGE("unknow fb (%d) type %d !!", fb->mZorder, fb->mFbType);
+            break;
         }
 
         vFrameInfo->dst_x = fb->mDisplayFrame.left;
