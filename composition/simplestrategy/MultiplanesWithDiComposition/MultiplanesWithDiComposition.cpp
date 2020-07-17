@@ -119,6 +119,7 @@ int MultiplanesWithDiComposition::allocateDiOutputFb(
 int MultiplanesWithDiComposition::processVideoFbs() {
     std::vector<std::shared_ptr<DrmFramebuffer>> sidebandFbs;
     std::shared_ptr<DrmFramebuffer> fb;
+    std::shared_ptr<DrmFramebuffer> topFb, bottomFb;
 
     uint32_t minVideoZ = -1, maxVideoZ = -1;
     int videoFbNum = 0;
@@ -142,9 +143,11 @@ int MultiplanesWithDiComposition::processVideoFbs() {
                 videoFbNum++;
                 if (minVideoZ == INVALID_ZORDER || fb->mZorder < minVideoZ) {
                     minVideoZ = fb->mZorder;
+                    bottomFb = fb;
                 }
                 if (maxVideoZ == INVALID_ZORDER || fb->mZorder > maxVideoZ) {
                     maxVideoZ = fb->mZorder;
+                    topFb = fb;
                 }
                 break;
             default:
@@ -210,15 +213,12 @@ int MultiplanesWithDiComposition::processVideoFbs() {
     if (!vd1Fb) {
         drm_rect_t dispFrame, dispFrame1;
         bool is_overlap;
-        std::shared_ptr<DrmFramebuffer> fb, fb1, large_fb;
+        std::shared_ptr<DrmFramebuffer> fb, fb1;
         std::vector<std::shared_ptr<DrmFramebuffer>> no_overlap_fbs;
-        int region = 0, max_region = 0;
+
         for (auto it = mDIComposerFbs.begin(); it != mDIComposerFbs.end(); it++) {
             fb = *it;
             is_overlap = false;
-
-            if (!large_fb)
-                large_fb = fb;
 
             /* find one that did not overlap with others */
             dispFrame = fb->mDisplayFrame;
@@ -238,18 +238,24 @@ int MultiplanesWithDiComposition::processVideoFbs() {
 
             if (!is_overlap)
                 no_overlap_fbs.push_back(fb);
-
-            /* find the largest the frame */
-            region = (dispFrame.right - dispFrame.left) * (dispFrame.bottom - dispFrame.top);
-            if ((dispFrame.right - dispFrame.left) * (dispFrame.bottom - dispFrame.top) > max_region) {
-                large_fb = fb;
-                max_region = region;
-            }
         }
-        if (no_overlap_fbs.size() > 0)
+
+        if (no_overlap_fbs.size() > 0) {
             vd1Fb = *(no_overlap_fbs.begin());
-        else if (large_fb)
-            vd1Fb = large_fb;
+        } else {
+            /*all layer have overlap, pick from top/bottom bigger layer. */
+            MESON_ASSERT(topFb != NULL && bottomFb != NULL && topFb != bottomFb,
+                    "top or bottom (%p vs %p) is not valid.", topFb.get(), bottomFb.get());
+            int topregion = 0, bottomregion = 0;
+            topregion = (topFb->mDisplayFrame.right - topFb->mDisplayFrame.left) *
+                (topFb->mDisplayFrame.bottom - topFb->mDisplayFrame.top);
+            bottomregion = (bottomFb->mDisplayFrame.right - bottomFb->mDisplayFrame.left) *
+                (bottomFb->mDisplayFrame.bottom - bottomFb->mDisplayFrame.top);
+            if (topregion > bottomregion)
+                vd1Fb = topFb;
+            else
+                vd1Fb = bottomFb;
+        }
 
         /*remove vd1Fb from list*/
         for (auto it = mDIComposerFbs.begin(); it != mDIComposerFbs.end(); it++) {
@@ -273,10 +279,24 @@ int MultiplanesWithDiComposition::processVideoFbs() {
     /*-----set buffer to displaypair------*/
     bool bVideoCompose = mHwcVideoInputFbs[1].size() > 1 ? true : false;
 
+    bool bFixVideoZ = false;
+    if (mHwcVideoInputFbs[1].size() > 1 &&
+        (mHwcVideoPlanes[1]->getCapabilities() & PLANE_SUPPORT_ALPHA) == 0) {
+        /*for no alpha video layer, force vd1 top, vd2 bottom.*/
+        bFixVideoZ = true;
+    }
+
     if (mHwcVideoInputFbs[1].size() > 0) {
         uint32_t videoZ = -1;
-        if (bVideoCompose) {
+
+        if (bFixVideoZ) {
             videoZ = minVideoZ;
+        } else {
+            fb = *mHwcVideoInputFbs[1].begin();
+            videoZ = fb->mZorder;
+        }
+
+        if (bVideoCompose) {
             for (auto it = mHwcVideoInputFbs[1].begin(); it != mHwcVideoInputFbs[1].end(); it++) {
                 (*it)->mCompositionType = MESON_COMPOSITION_DI;
             }
@@ -290,7 +310,6 @@ int MultiplanesWithDiComposition::processVideoFbs() {
             mDiComposer->setOutput(fb, damage, 1);
         } else {
             fb = *mHwcVideoInputFbs[1].begin();
-            videoZ = fb->mZorder;
             fb->mCompositionType = MESON_COMPOSITION_PLANE_HWCVIDEO;
         }
 
@@ -305,7 +324,7 @@ int MultiplanesWithDiComposition::processVideoFbs() {
         fb = *mHwcVideoInputFbs[0].begin();
         fb->mCompositionType = MESON_COMPOSITION_PLANE_HWCVIDEO;
 
-        if (bVideoCompose) {
+        if (bVideoCompose || bFixVideoZ) {
             videoZ = maxVideoZ;
         } else {
             videoZ = fb->mZorder;

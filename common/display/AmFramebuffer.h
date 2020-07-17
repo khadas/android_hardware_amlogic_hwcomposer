@@ -32,6 +32,12 @@ enum {
     OSD_LAYER_ENABLE  = (1 << 31)
 };
 
+/*video plane caps.*/
+enum {
+    VIDEO_LAYER1_ALPHA =  (1 << 12),
+    VIDEO_LAYER0_ALPHA = (1 << 4),
+};
+
 enum {
     GLES_COMPOSE_MODE = 0,
     DIRECT_COMPOSE_MODE = 1,
@@ -87,6 +93,9 @@ enum {
     _IOW((AMSTREAM_IOC_MAGIC), 0x38, unsigned int)
 #define AMSTREAM_IOC_SET_PIP_ZORDER \
     _IOW((AMSTREAM_IOC_MAGIC), 0x36, unsigned int)
+
+#define AMSTREAM_IOC_QUERY_LAYER \
+    _IOW((AMSTREAM_IOC_MAGIC), 0x39, unsigned int)
 
 /*Legacy fb sysfs*/
 #define SYSFS_DISPLAY_MODE              "/sys/class/display/mode"

@@ -30,6 +30,7 @@ HwcVideoPlane::HwcVideoPlane(int32_t drvFd, uint32_t id)
     snprintf(mName, 64, "HwcVideo-%d", id);
     mDisplayedVideoType = DRM_FB_UNDEFINED;
     memset(mAmVideosPath, 0, sizeof(mAmVideosPath));
+    getProperties();
     mBlank = true;
 }
 
@@ -46,7 +47,7 @@ uint32_t HwcVideoPlane::getPlaneType() {
 
 uint32_t HwcVideoPlane::getCapabilities() {
     /*HWCVideoplane always support zorder.*/
-    return PLANE_SUPPORT_ZORDER;
+    return mCapability;
 }
 
 int32_t HwcVideoPlane::getFixedZorder() {
@@ -64,6 +65,28 @@ bool HwcVideoPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
 
     return false;
 }
+
+int32_t HwcVideoPlane::getProperties() {
+    int capacity = 0;
+    int fd = open("/dev/amvideo",  O_RDWR, 0);
+    if (fd > 0) {
+        if (ioctl(fd, AMSTREAM_IOC_QUERY_LAYER, &capacity) != 0) {
+            MESON_LOGE("osd plane get capibility ioctl (%d) return(%d)", capacity, errno);
+        }
+    }
+
+    if (fd)
+        close(fd);
+
+    mCapability = PLANE_SUPPORT_ZORDER;
+
+    if ((capacity & VIDEO_LAYER0_ALPHA) && (capacity & VIDEO_LAYER1_ALPHA)) {
+        mCapability |= PLANE_SUPPORT_ALPHA;
+    }
+
+    return 0;
+}
+
 
 void HwcVideoPlane::setAmVideoPath(int id) {
     if (id == 0) {

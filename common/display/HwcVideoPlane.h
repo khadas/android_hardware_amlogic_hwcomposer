@@ -34,6 +34,7 @@ public:
 protected:
     int32_t getVideodisableStatus(int & status);
     int32_t setVideodisableStatus(int status);
+    int32_t getProperties();
 
 protected:
     char mName[64];
