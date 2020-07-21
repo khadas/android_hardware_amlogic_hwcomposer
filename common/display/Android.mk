@@ -57,10 +57,12 @@ LOCAL_SRC_FILES += \
     ConnectorDummy.cpp \
     AmVinfo.cpp \
     Vdin.cpp \
-    VideoComposerDev.cpp
+    VideoComposerDev.cpp \
+    VideoTunnelThread.cpp
 
 LOCAL_C_INCLUDES := \
     system/core/include \
+    $(LOCAL_PATH)/../../videotunnel/include \
     $(LOCAL_PATH)/include
 
 LOCAL_STATIC_LIBRARIES := \

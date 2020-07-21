@@ -12,6 +12,7 @@
 #include <VideoComposerDev.h>
 #include <MesonLog.h>
 #include <sys/ioctl.h>
+#include "VideoTunnelThread.h"
 
 static std::map<int, std::shared_ptr<VideoComposerDev>> gComposerDev;
 
@@ -22,6 +23,7 @@ VideoComposerDev::VideoComposerDev(int drvFd) {
 
 VideoComposerDev::~VideoComposerDev() {
     close(mDrvFd);
+    mVideoTunnelThread.reset();
 }
 
 int32_t VideoComposerDev::enable(bool bEnable) {
@@ -34,6 +36,10 @@ int32_t VideoComposerDev::enable(bool bEnable) {
         MESON_LOGE("VideoComposerDev: ioctl error, %s(%d), mDrvFd = %d",
             strerror(errno), errno, mDrvFd);
         return -errno;
+    }
+
+    if (!mEnable && mVideoTunnelThread.get()) {
+         mVideoTunnelThread->stop();
     }
 
     mEnable = bEnable;
@@ -58,7 +64,10 @@ int32_t VideoComposerDev::setFrames(
     releaseFence = -1;
     memset(&mVideoFramesInfo, 0, sizeof(mVideoFramesInfo));
 
-    mVideoFramesInfo.frame_count = composefbs.size();;
+    if (!handleVideoTunnelFb(composefbs, z))
+        return 0;
+
+    mVideoFramesInfo.frame_count = composefbs.size();
     mVideoFramesInfo.layer_index = mDrvFd;
     mVideoFramesInfo.disp_zorder = z;
 
@@ -131,4 +140,24 @@ std::shared_ptr<VideoComposerDev> getVideoComposerDev(int idx) {
     return gComposerDev[idx];
 }
 
+int32_t VideoComposerDev::handleVideoTunnelFb(
+    std::vector<std::shared_ptr<DrmFramebuffer>> & composefbs,
+    uint32_t z) {
+    std::shared_ptr<DrmFramebuffer> fb;
 
+    if (composefbs.size() == 1) {
+        fb = composefbs[0];
+        if (fb->mFbType == DRM_FB_VIDEO_TUNNEL_SIDEBAND ||
+            fb->mFbType == DRM_FB_VIDEO_TUNNEL_SIDEBAND_SECOND) {
+            if (!mVideoTunnelThread.get())
+                mVideoTunnelThread = std::make_shared<VideoTunnelThread>(::dup(mDrvFd), fb->mFbType);
+
+            enable(true);
+            mVideoTunnelThread->setPlane(fb, mDrvFd, z);
+            mVideoTunnelThread->start();
+            return 0;
+        }
+    }
+
+    return 1;
+}

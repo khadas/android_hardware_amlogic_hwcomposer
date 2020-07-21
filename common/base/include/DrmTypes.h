@@ -75,6 +75,9 @@ typedef enum drm_fb_type {
     DRM_FB_VIDEO_DMABUF,
     /*fake buf for di composer output.*/
     DRM_FB_DI_COMPOSE_OUTPUT,
+    /*for videotunnel*/
+    DRM_FB_VIDEO_TUNNEL_SIDEBAND,
+    DRM_FB_VIDEO_TUNNEL_SIDEBAND_SECOND,
 } drm_fb_type_t;
 
 #ifndef DRM_DISPLAY_MODE_LEN

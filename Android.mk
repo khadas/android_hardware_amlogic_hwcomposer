@@ -31,7 +31,8 @@ HWC_SHARED_LIBS := \
     libion \
     libge2d \
     libui \
-    libbinder
+    libbinder \
+    libvideotunnel
 
 ifeq ($(HWC_ENABLE_DRM_BACKEND), true)
 HWC_SHARED_LIBS += \

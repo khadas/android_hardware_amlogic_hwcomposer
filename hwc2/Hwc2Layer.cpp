@@ -153,6 +153,13 @@ hwc2_error_t Hwc2Layer::setSidebandStream(const native_handle_t* stream) {
     am_gralloc_get_sideband_type(stream, &type);
     if (type == AM_TV_SIDEBAND) {
         mFbType = DRM_FB_VIDEO_SIDEBAND_TV;
+    } else if (type == AM_SKB_TUNNEL) {
+        int tunnel_id = 0;
+        am_gralloc_get_sideband_channel(stream, &tunnel_id);
+        if (tunnel_id == AM_VIDEO_EXTERNAL)
+            mFbType = DRM_FB_VIDEO_TUNNEL_SIDEBAND_SECOND;
+        else
+            mFbType = DRM_FB_VIDEO_TUNNEL_SIDEBAND;
     } else {
         int channel = 0;
         am_gralloc_get_sideband_channel(stream, &channel);

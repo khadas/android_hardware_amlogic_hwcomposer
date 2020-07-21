@@ -14,6 +14,7 @@
 #include <stdlib.h>
 #include <DrmFramebuffer.h>
 
+class VideoTunnelThread;
 
 typedef uint32_t u32;
 
@@ -62,9 +63,14 @@ public:
     int32_t setFrames(std::vector<std::shared_ptr<DrmFramebuffer>> & composefbs, int & releaseFence, uint32_t z);
 
 protected:
+    int32_t handleVideoTunnelFb(std::vector<std::shared_ptr<DrmFramebuffer>> & composefbs, uint32_t z);
+
+protected:
     int mDrvFd;
     video_frames_info_t mVideoFramesInfo;
     bool mEnable;
+
+    std::shared_ptr<VideoTunnelThread> mVideoTunnelThread;
 };
 
 int createVideoComposerDev(int fd, int idx);
