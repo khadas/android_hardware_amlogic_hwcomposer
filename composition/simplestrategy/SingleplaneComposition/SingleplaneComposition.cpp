@@ -67,7 +67,8 @@ void SingleplaneComposition::setup(
     std::vector<std::shared_ptr<IComposer>> & composers,
     std::vector<std::shared_ptr<HwDisplayPlane>> & planes,
     std::shared_ptr<HwDisplayCrtc> & crtc,
-    uint32_t reqFlag) {
+    uint32_t reqFlag,
+    float scaleValue __unused) {
     cleanup();
 
     mCompositionFlag = reqFlag;

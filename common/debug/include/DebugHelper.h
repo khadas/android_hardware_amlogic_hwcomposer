@@ -51,6 +51,9 @@ public:
     /*remove debug layer*/
     void removeDebugLayer(int id);
 
+    /* for vpu scale limit */
+    inline float getScaleLimit() {return mScaleLimit;}
+
 protected:
     bool isEnabled();
     void clearOnePassCmd();
@@ -74,6 +77,7 @@ protected:
 
     bool mMonitorDeviceComposition;
     uint32_t mDeviceCompositionThreshold;
+    float mScaleLimit;
 
     std::vector<int> mSaveLayers;
     std::vector<int> mHideLayers;

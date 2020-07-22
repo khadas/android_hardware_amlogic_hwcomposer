@@ -35,7 +35,8 @@ public:
         std::vector<std::shared_ptr<IComposer>> & composers,
         std::vector<std::shared_ptr<HwDisplayPlane>> & planes,
         std::shared_ptr<HwDisplayCrtc> & crtc,
-        uint32_t flags);
+        uint32_t flags,
+        float scaleValue);
 
     int decideComposition();
     int commit();

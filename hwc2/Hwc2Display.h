@@ -220,6 +220,7 @@ protected:
     std::mutex mMutex;
 
     bool mVsyncState;
+    float mScaleValue;
 };
 
 #endif/*HWC2_DISPLAY_H*/

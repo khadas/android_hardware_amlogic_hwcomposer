@@ -62,11 +62,12 @@ public:
         std::vector<std::shared_ptr<IComposer>> & composers,
         std::vector<std::shared_ptr<HwDisplayPlane>> & planes,
         std::shared_ptr<HwDisplayCrtc> & crtc,
-        uint32_t reqFlag) {
+        uint32_t reqFlag, float scaleValue) {
         UNUSED(layers);
         UNUSED(composers);
         UNUSED(planes);
         UNUSED(crtc);
+        UNUSED(scaleValue);
         mCompositionFlag = reqFlag;
     }
 

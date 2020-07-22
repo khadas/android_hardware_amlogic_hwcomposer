@@ -15,6 +15,7 @@
 #include <sys/ioctl.h>
 #include "HwcVideoPlane.h"
 #include "am_gralloc_ext.h"
+#include <DebugHelper.h>
 
 #define OSD_PLANE_NUM_MAX         3  // Maximum osd planes of support
 #define OSD_OUTPUT_ONE_CHANNEL         1
@@ -792,9 +793,12 @@ void MultiplanesWithDiComposition::handleVPUScaleLimit() {
     std::shared_ptr<DrmFramebuffer> fb;
     for (auto fbIt = mFramebuffers.begin(); fbIt != mFramebuffers.end(); ++fbIt) {
         fb = fbIt->second;
-        float expHeight = (fb->mSourceCrop.bottom - fb->mSourceCrop.top) *
-            OSD_SCALER_INPUT_MARGIN / OSD_SCALER_INPUT_FACTOR;
-        float dispHeight = fb->mDisplayFrame.bottom -fb->mDisplayFrame.top;
+        float scaleLimit = DebugHelper::getInstance().getScaleLimit();
+        if (scaleLimit == 0)
+            scaleLimit = OSD_SCALER_INPUT_MARGIN / OSD_SCALER_INPUT_FACTOR;
+
+        float expHeight = (fb->mSourceCrop.bottom - fb->mSourceCrop.top) * scaleLimit;
+        float dispHeight = (fb->mDisplayFrame.bottom -fb->mDisplayFrame.top) * mScaleValue;
 
         /* osdComposed layers */
         if (fb->mZorder < mMinComposerZorder || fb->mZorder > mMaxComposerZorder) {
@@ -817,7 +821,7 @@ void MultiplanesWithDiComposition::handleVPUScaleLimit() {
     }
 
     /* minus one layer for VPU composer */
-    if (limitCount >= 2 || nonAfbcFbsNumb > 2) {
+    if (limitCount >= 1 || nonAfbcFbsNumb > 2) {
         if (upClientNum > 0) {
             auto fbIt = mFramebuffers.upper_bound(mMaxComposerZorder);
             if (fbIt != mFramebuffers.end())
@@ -1080,10 +1084,12 @@ void MultiplanesWithDiComposition::setup(
     std::vector<std::shared_ptr<IComposer>> & composers,
     std::vector<std::shared_ptr<HwDisplayPlane>> & planes,
     std::shared_ptr<HwDisplayCrtc> & crtc,
-    uint32_t reqFlag) {
+    uint32_t reqFlag,
+    float scaleValue) {
     init();
 
     mCompositionFlag = reqFlag;
+    mScaleValue = scaleValue;
 #if OSD_OUTPUT_ONE_CHANNEL
     mHDRMode = true;
 #else

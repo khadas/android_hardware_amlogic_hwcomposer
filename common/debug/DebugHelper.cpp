@@ -35,6 +35,7 @@ ANDROID_SINGLETON_STATIC_INSTANCE(DebugHelper)
 #define COMMAND_HIDE_PATTERN_ON_PLANE "--hide-pattern"
 #define COMMAND_MONITOR_DEVICE_COMPOSITION "--monitor-composition"
 #define COMMAND_DEVICE_COMPOSITION_THRESHOLD "--device-layers-threshold"
+#define COMMAND_SCALE_LIMIT "--scale-limit"
 
 #define MAX_DEBUG_COMMANDS (20)
 
@@ -72,6 +73,7 @@ void DebugHelper::clearPersistCmd() {
     mLogCompositionDetail = false;
     mMonitorDeviceComposition = false;
     mDeviceCompositionThreshold = 4;
+    mScaleLimit = 0;
 
     mDiscardInFence = false;
     mDiscardOutFence = false;
@@ -215,6 +217,13 @@ void DebugHelper::resolveCmd() {
                     i++;
                     CHECK_CMD_INT_PARAMETER();
                     mDeviceCompositionThreshold = atoi(paramArray[i]);
+                    continue;
+                }
+
+                if (strcmp(paramArray[i], COMMAND_SCALE_LIMIT) == 0) {
+                    i++;
+                    CHECK_CMD_INT_PARAMETER();
+                    mScaleLimit = atof(paramArray[i]);
                     continue;
                 }
 
@@ -375,7 +384,8 @@ void DebugHelper::dump(String8 & dumpstr) {
             "\t " COMMAND_SHOW_PATTERN_ON_PLANE "/" COMMAND_HIDE_PATTERN_ON_PLANE " [planeId]: set/unset test pattern on plane id. \n"
             "\t " COMMAND_LOG_FPS " 0|1: start/stop log fps.\n"
             "\t " COMMAND_SAVE_LAYER " [layerId]: save specific layer's raw data by layer id. \n"
-            "\t " COMMAND_MONITOR_DEVICE_COMPOSITION " 0|1: monitor non device composition. \n";
+            "\t " COMMAND_MONITOR_DEVICE_COMPOSITION " 0|1: monitor non device composition. \n"
+            "\t " COMMAND_SCALE_LIMIT " [float]: vpu scale limit factor. \n";
 
         dumpstr.append("\nMesonHwc debug helper:\n");
         dumpstr.append(usage);
@@ -391,6 +401,7 @@ void DebugHelper::dump(String8 & dumpstr) {
         dumpstr.appendFormat(COMMAND_LOG_FPS " (%d)\n", mLogFps);
         dumpstr.appendFormat(COMMAND_MONITOR_DEVICE_COMPOSITION " (%d)\n", mMonitorDeviceComposition);
         dumpstr.appendFormat(COMMAND_DEVICE_COMPOSITION_THRESHOLD " (%d)\n", mDeviceCompositionThreshold);
+        dumpstr.appendFormat(COMMAND_SCALE_LIMIT " (%.2f)\n", mScaleLimit);
 
         dumpstr.append(COMMAND_HIDE_PLANE "/" COMMAND_SHOW_PATTERN_ON_PLANE " (");
 

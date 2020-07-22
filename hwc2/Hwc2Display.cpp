@@ -32,6 +32,7 @@ Hwc2Display::Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer) {
     mSignalHpd = false;
     mValidateDisplay = false;
     mVsyncState = false;
+    mScaleValue = 1;
     memset(&mHdrCaps, 0, sizeof(mHdrCaps));
     memset(mColorMatrix, 0, sizeof(float) * 16);
     memset(&mCalibrateCoordinates, 0, sizeof(int) * 4);
@@ -63,6 +64,9 @@ int32_t Hwc2Display::setModeMgr(std::shared_ptr<HwcModeMgr> & mgr) {
     mModeMgr = mgr;
 
     if (mModeMgr->getDisplayMode(mDisplayMode) == 0) {
+        uint32_t fbW,fbH;
+        HwcConfig::getFramebufferSize(0, fbW, fbH);
+        mScaleValue = (float)fbW/(float)mDisplayMode.pixelW;
         mPowerMode->setConnectorStatus(true);
     }
     MESON_LOG_FUN_LEAVE();
@@ -346,6 +350,10 @@ void Hwc2Display::onModeChanged(int stage) {
                             bSendPlugIn = true;
                         }
                     }
+
+                    uint32_t fbW,fbH;
+                    HwcConfig::getFramebufferSize(0, fbW, fbH);
+                    mScaleValue = (float)fbW/(float)mDisplayMode.pixelW;
                 }
             } else {
                 MESON_LOGE("No display oberserve register to display (%s)", getName());
@@ -729,7 +737,7 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
             adjustDisplayFrame();
         /*setup composition strategy.*/
         mPresentCompositionStg->setup(mPresentLayers,
-            mPresentComposers, mPresentPlanes, mCrtc, compositionFlags);
+            mPresentComposers, mPresentPlanes, mCrtc, compositionFlags, mScaleValue);
         if (mPresentCompositionStg->decideComposition() < 0) {
             return HWC2_ERROR_NO_RESOURCES;
         }
