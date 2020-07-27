@@ -14,6 +14,7 @@
 #include <MesonLog.h>
 
 #include "MesonHwc2.h"
+#include <systemcontrol.h>
 
 typedef struct hwc2_impl {
     hwc2_device_t base;
@@ -482,6 +483,7 @@ static int hwc2_device_open(
     hwc->base.getFunction = hwc2_getFunction;
 
     *device = reinterpret_cast<hw_device_t*>(hwc);
+    sc_set_property(HWC_BOOTED_PROP, "true");
 
     return 0;
 }

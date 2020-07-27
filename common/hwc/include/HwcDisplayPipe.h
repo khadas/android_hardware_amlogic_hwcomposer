@@ -21,6 +21,8 @@
 
 #include <MesonLog.h>
 
+#define HWC_BOOTED_PROP "vendor.sys.hwc.booted"
+
 typedef enum {
     /*primary:
     viu1 + connector from config*/

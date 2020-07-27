@@ -17,8 +17,6 @@
 
 #include <HwDisplayManager.h>
 
-#define HWC_BOOTED_PROP "vendor.sys.hwc.booted"
-
 HwcDisplayPipe::PipeStat::PipeStat(uint32_t id) {
     hwcId = id;
     cfg.hwcCrtcId = cfg.modeCrtcId = 0;
@@ -71,13 +69,11 @@ int32_t HwcDisplayPipe::init(std::map<uint32_t, std::shared_ptr<HwcDisplay>> & h
         /*init display pipe.*/
         updatePipe(stat);
 
-        /* in case of composer servce restart */
+        /* in case of composer service restart */
         if (sys_get_bool_prop(HWC_BOOTED_PROP, false)) {
             MESON_LOGD("composer service has restarted, need blank display");
             stat->hwcDisplay->blankDisplay();
         }
-
-        sc_set_property(HWC_BOOTED_PROP, "true");
     }
 
     return 0;
