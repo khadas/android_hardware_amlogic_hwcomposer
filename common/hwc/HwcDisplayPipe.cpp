@@ -329,6 +329,10 @@ void HwcDisplayPipe::handleEvent(drm_display_event event, int val) {
                             }
                         }
                     }
+                } else {
+                    for (auto statIt : mPipeStats) {
+                        statIt.second->hwcDisplay->onModeChanged(val);
+                    }
                 }
             }
             break;

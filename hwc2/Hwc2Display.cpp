@@ -186,6 +186,11 @@ const char * Hwc2Display::getName() {
 }
 
 const drm_hdr_capabilities_t * Hwc2Display::getHdrCapabilities() {
+    if (mConnector->isConnected() == false) {
+        MESON_LOGD("Requested HDR Capabilities, returning null");
+        return nullptr;
+    }
+
     mConnector->getHdrCapabilities(&mHdrCaps);
     return &mHdrCaps;
 }
@@ -221,9 +226,11 @@ hwc2_error_t Hwc2Display::setVsyncEnable(hwc2_vsync_t enabled) {
             MESON_LOGE("[%s]: set vsync state invalid %d.", __func__, enabled);
             return HWC2_ERROR_BAD_PARAMETER;
     }
+
     if (DebugHelper::getInstance().enableVsyncDetail()) {
         MESON_LOGD("setVsyncEnable: %s", state ? "true" : "false");
     }
+
     mVsyncState = state;
     if (mVsync.get())
         mVsync->setEnabled(mVsyncState);
@@ -253,7 +260,13 @@ void Hwc2Display::onHotplug(bool connected) {
 
     /*call hotplug out of lock, SF may call some hwc function to cause deadlock.*/
     if (bSendPlugOut) {
-        mObserver->onHotplug(false);
+        /* when hdmi plugout, send CONNECT message for "hdmi-only" */
+        if (mConnector && mConnector->getType() == DRM_MODE_CONNECTOR_HDMI) {
+            mModeMgr->update();
+            mObserver->onHotplug(true);
+        } else {
+            mObserver->onHotplug(false);
+        }
     }
 
     /* switch to software vsync when hdmi plug out and no cvbs mode */
@@ -322,6 +335,10 @@ void Hwc2Display::onModeChanged(int stage) {
             } else {
                 MESON_LOGE("No display oberserve register to display (%s)", getName());
             }
+        } else {
+            /* begin change mode, need blank once */
+            mPowerMode->setConnectorStatus(false);
+            return;
         }
     }
     /*call hotplug out of lock, SF may call some hwc function to cause deadlock.*/

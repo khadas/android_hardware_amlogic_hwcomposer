@@ -44,8 +44,6 @@ public:
     void dump(String8 & dumpstr);
 
 protected:
-    int32_t initDefaultDispResources();
-    int32_t updateHwcDispConfigs();
     int32_t updateSfDispConfigs();
     int32_t updateHwcActiveConfig(const char * activeMode);
     int32_t updateSfActiveConfig(uint32_t config, drm_mode_info_t cfg);
@@ -54,7 +52,6 @@ protected:
     const drm_mode_info_t findMatchedMode(
         uint32_t width, uint32_t height, float refreshrate);
 
-
 protected:
     std::shared_ptr<HwDisplayConnector> mConnector;
     std::shared_ptr<HwDisplayCrtc> mCrtc;
@@ -62,14 +59,10 @@ protected:
     uint32_t mFbWidth;
     uint32_t mFbHeight;
 
-    bool mIsInit; // first boot flag
-    bool mExtModeSet; // setActiveConfig() flag
-    bool mDefaultModeSupport;
     bool mCallOnHotPlug;
-    std::string mActiveConfigStr;
-    uint32_t mFakeConfigId;
-    bool useFakeMode;
-    drm_mode_info_t mDefaultMode;
+    drm_mode_info_t mCurMode;
+    drm_mode_info_t mPreviousMode;
+    std::mutex mMutex;
 
     // Used for HWC
     uint32_t mHwcActiveConfigId;
@@ -78,7 +71,6 @@ protected:
     // Passed to SF
     uint32_t mSfActiveConfigId;
     std::map<uint32_t, drm_mode_info_t> mSfActiveModes;
-
 };
 
 #endif/*ACTIVE_MODE_MGR_H*/

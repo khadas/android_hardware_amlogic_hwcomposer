@@ -129,27 +129,9 @@ void * HwcVsync::vsyncThread(void * data) {
 }
 
 int32_t HwcVsync::waitHwVsync(nsecs_t& vsync_timestamp) {
-    static nsecs_t cur_vsync_period = 0;
-    if (cur_vsync_period != mReqPeriod) {
-        mCrtc->waitVBlank(mVsyncTime);
-        cur_vsync_period = mReqPeriod;
-    } else {
-        nsecs_t now = systemTime(CLOCK_MONOTONIC);
-        mVsyncTime = mVsyncTime + cur_vsync_period +
-            (now - mVsyncTime ) /cur_vsync_period * cur_vsync_period;
-
-        struct timespec spec;
-        spec.tv_sec  = mVsyncTime / 1000000000;
-        spec.tv_nsec = mVsyncTime % 1000000000;
-
-        int err;
-        do {
-            err = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &spec, NULL);
-        } while (err<0 && errno == EINTR);
-    }
-
+    int32_t ret = mCrtc->waitVBlank(mVsyncTime);
     vsync_timestamp = mVsyncTime;
-    return 0;
+    return ret;
 }
 
 int32_t HwcVsync::waitSoftwareVsync(nsecs_t& vsync_timestamp) {

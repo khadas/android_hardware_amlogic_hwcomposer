@@ -16,7 +16,17 @@
 #define DEFUALT_DPI (159)
 #define DEFAULT_REFRESH_RATE (60.0f)
 
+static drm_mode_info_t fakeInitialMode = {
+    .name              = "FAKE_INITIAL_MODE",
+    .dpiX              = DEFUALT_DPI,
+    .dpiY              = DEFUALT_DPI,
+    .pixelW            = 1920,
+    .pixelH            = 1080,
+    .refreshRate       = DEFAULT_REFRESH_RATE,
+};
+
 FixedSizeModeMgr::FixedSizeModeMgr() {
+    mPreviousMode = fakeInitialMode;
 }
 
 FixedSizeModeMgr::~FixedSizeModeMgr() {
@@ -50,18 +60,20 @@ int32_t FixedSizeModeMgr::update() {
     if (mConnector->isConnected() && 0 == mCrtc->getMode(realMode)) {
         if (realMode.name[0] != 0) {
             mCurMode.refreshRate = realMode.refreshRate;
-            mCurMode.dpiX = ((float)mCurMode.pixelW / realMode.pixelW) * realMode.dpiX;
-            mCurMode.dpiY = ((float)mCurMode.pixelH / realMode.pixelH) * realMode.dpiY;
+            mCurMode.dpiX = realMode.dpiX;
+            mCurMode.dpiY = realMode.dpiY;
+            mCurMode.pixelW = mFbWidth;
+            mCurMode.pixelH = mFbHeight;
             strncpy(mCurMode.name, realMode.name , DRM_DISPLAY_MODE_LEN);
             MESON_LOGI("ModeMgr update to (%s)", mCurMode.name);
             useFakeMode = false;
+            mPreviousMode = mCurMode;
         }
     }
 
     if (useFakeMode) {
-        mCurMode.refreshRate = DEFAULT_REFRESH_RATE;
-        mCurMode.dpiX = mCurMode.dpiY = DEFUALT_DPI;
-        strncpy(mCurMode.name, "NULL", DRM_DISPLAY_MODE_LEN);
+        mCurMode = mPreviousMode;
+        strncpy(mCurMode.name, "FAKE_PREVIOUS_MODE", DRM_DISPLAY_MODE_LEN);
     }
 
     return 0;
