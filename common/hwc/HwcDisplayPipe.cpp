@@ -17,7 +17,6 @@
 
 #include <HwDisplayManager.h>
 
-#define HWC_BOOTED_PROP "vendor.sys.hwc.booted"
 
 
 
@@ -79,7 +78,6 @@ int32_t HwcDisplayPipe::init(std::map<uint32_t, std::shared_ptr<HwcDisplay>> & h
             stat->hwcDisplay->blankDisplay();
         }
 
-        sc_set_property(HWC_BOOTED_PROP, "true");
 
         const char * nativeui_key = "ubootenv.var.nativeui";
         std::string nativeui_status;
