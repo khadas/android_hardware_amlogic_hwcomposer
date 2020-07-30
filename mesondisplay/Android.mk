@@ -42,6 +42,7 @@ LOCAL_C_INCLUDES := \
 
 LOCAL_SHARED_LIBRARIES := \
     libamgralloc_ext \
+    libbase \
     $(HIDL_DEP_SHARED_LIBRARIES)
 
 LOCAL_STATIC_LIBRARIES += \

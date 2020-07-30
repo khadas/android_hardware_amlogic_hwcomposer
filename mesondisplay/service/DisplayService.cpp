@@ -10,6 +10,8 @@
 
 #define LOG_NDEBUG 1
 
+#include <android-base/file.h>
+
 #include "DisplayService.h"
 #include "MesonLog.h"
 #include "misc.h"
@@ -25,6 +27,10 @@ using ::vendor::amlogic::display::meson_display_ipc::V1_0::Error;
 using ConnectorType = DisplayAdapter::ConnectorType;
 
 MesonIpcServer::MesonIpcServer() {
+}
+
+Return<void> MesonIpcServer::debug(const hidl_handle &handle __unused, const hidl_vec<hidl_string> & __unused) {
+    return Void();
 }
 
 bool MesonIpcServer::check_recursion_record_and_push(const std::string& str) {
@@ -221,5 +227,24 @@ Return<void> DisplayServer::captureDisplayScreen(const int32_t displayId, const 
     }
     return Void();
 }
+
+Return<void> DisplayServer::debug(const hidl_handle &handle, const hidl_vec<hidl_string> &) {
+    if (handle != nullptr && handle->numFds >= 1) {
+        int fd = handle->data[0];
+        std::ostringstream dump_buf;
+
+        dump_buf << "MesonDisplay initialized properly." << std::endl;
+
+        std::string buf = dump_buf.str();
+        if (!android::base::WriteStringToFd(buf, fd)) {
+            MESON_LOGE("Failed to dump state to fd");
+        }
+
+        fsync(fd);
+    }
+
+    return Void();
+}
+
 
 } //namespace android

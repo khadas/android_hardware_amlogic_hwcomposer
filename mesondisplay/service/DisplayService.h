@@ -22,6 +22,8 @@ const int RECURSION_LIMIT  = 10;
 
 namespace meson {
 using ::android::hardware::hidl_string;
+using ::android::hardware::hidl_handle;
+using ::android::hardware::hidl_vec;
 using ::android::hardware::Return;
 using ::vendor::amlogic::display::meson_display_ipc::V1_0::IMesonDisplayIPC;
 using ::android::hardware::hidl_string;
@@ -78,6 +80,9 @@ class MesonIpcServer : public IMesonDisplayIPC{
 public:
     MesonIpcServer();
     virtual ~MesonIpcServer() = default;
+    // Methods from ::android::hidl::base::V1_0::IBase follow.
+    Return<void> debug(const hidl_handle &fd, const hidl_vec<hidl_string> &args) override;
+
     // Methods from ::vendor::amlogic::display::meson_display_ipc::V1_0::IMesonDisplayIPC follow.
     Return<void> send_msg_wait_reply(const hidl_string& msg_in, send_msg_wait_reply_cb _hidl_cb) override;
     Return<void> send_msg(const hidl_string& msg_in) override;
@@ -97,6 +102,7 @@ public:
     void message_handle(Json::Value& in, Json::Value& out) override;
     DisplayServer(std::unique_ptr<DisplayAdapter>& adapter);
     DisplayServer() = default;
+    Return<void> debug(const hidl_handle &fd, const hidl_vec<hidl_string> &args) override;
     Return<void> captureDisplayScreen(const int32_t displayId,
             const int32_t layerId, captureDisplayScreen_cb hidl_cb) override;
 
