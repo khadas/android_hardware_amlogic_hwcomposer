@@ -7,6 +7,8 @@
  * Description:
  */
 
+#define LOG_NDEBUG 1
+
 #include <VideoComposerDev.h>
 #include <MesonLog.h>
 #include <sys/ioctl.h>
@@ -26,7 +28,7 @@ int32_t VideoComposerDev::enable(bool bEnable) {
     if (mEnable == bEnable)
         return 0;
 
-    MESON_LOGD("VideoComposerDev (%d) set (%d).\n", mDrvFd, bEnable);
+    MESON_LOGV("VideoComposerDev (%d) set (%d).\n", mDrvFd, bEnable);
     int val = bEnable ? 1 : 0;
     if (ioctl(mDrvFd, VIDEO_COMPOSER_IOCTL_SET_ENABLE, &val) != 0) {
         MESON_LOGE("VideoComposerDev: ioctl error, %s(%d), mDrvFd = %d",
@@ -60,7 +62,7 @@ int32_t VideoComposerDev::setFrames(
     mVideoFramesInfo.layer_index = mDrvFd;
     mVideoFramesInfo.disp_zorder = z;
 
-    MESON_LOGD("VideoComposerDev(%d) setframes (%d-%d)",
+    MESON_LOGV("VideoComposerDev(%d) setframes (%d-%d)",
             mDrvFd, mVideoFramesInfo.frame_count, mVideoFramesInfo.disp_zorder);
 
     for (int i = 0; i < composefbs.size(); i++) {
@@ -101,7 +103,7 @@ int32_t VideoComposerDev::setFrames(
         vFrameInfo->zorder = fb->mZorder;
         vFrameInfo->transform = fb->mTransform;
 
-        MESON_LOGD("VideoComposerDev(%d) setframe (%d) (%d-%dx%d)",
+        MESON_LOGV("VideoComposerDev(%d) setframe (%d) (%d-%dx%d)",
                 mDrvFd, fb->mZorder, fb->mFbType,
                 vFrameInfo->buffer_w, vFrameInfo->buffer_h);
     }

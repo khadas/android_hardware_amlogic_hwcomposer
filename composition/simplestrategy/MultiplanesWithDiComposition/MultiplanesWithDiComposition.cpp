@@ -7,6 +7,8 @@
 * Description:
 */
 
+#define LOG_NDEBUG 1
+
 #include "MultiplanesWithDiComposition.h"
 #include <DrmTypes.h>
 #include <MesonLog.h>
@@ -177,7 +179,7 @@ int MultiplanesWithDiComposition::processVideoFbs() {
             (*it)->mCompositionType = MESON_COMPOSITION_DUMMY;
             videoFbNum --;
         }
-        MESON_LOGD("get vd1fb from sideband %d - %d",
+        MESON_LOGV("get vd1fb from sideband %d - %d",
             vd1Fb->mZorder, vd1Fb->mFbType);
     }
 
@@ -193,7 +195,7 @@ int MultiplanesWithDiComposition::processVideoFbs() {
                 (video_type & videoTypes2Vd1) != 0) {
                 vd1Fb = *it;
                 mDIComposerFbs.erase(it);
-                MESON_LOGD("get vd1fb from special video %d-%d",
+                MESON_LOGV("get vd1fb from special video %d-%d",
                     vd1Fb->mZorder, vd1Fb->mFbType);
                 break;
             }
@@ -256,7 +258,7 @@ int MultiplanesWithDiComposition::processVideoFbs() {
             }
         }
 
-        MESON_LOGD("get vd1fb from large/nooverlap %d", vd1Fb->mFbType);
+        MESON_LOGV("get vd1fb from large/nooverlap %d", vd1Fb->mFbType);
     }
 
     MESON_ASSERT(vd1Fb != NULL, "vd1 should always have buf.");
@@ -404,7 +406,7 @@ int MultiplanesWithDiComposition::pickoutOsdFbs() {
 
             case MESON_COMPOSITION_PLANE_HWCVIDEO:
             case MESON_COMPOSITION_DI:
-                MESON_LOGE("remove overlay fb (%d)", fb->mZorder);
+                MESON_LOGV("remove overlay fb (%d)", fb->mZorder);
                 mOverlayFbs.push_back(fb);
                 bRemove = true;
                 break;
