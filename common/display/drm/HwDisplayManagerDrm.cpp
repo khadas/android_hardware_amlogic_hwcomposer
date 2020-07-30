@@ -15,13 +15,13 @@
 #include <MesonLog.h>
 #include <HwDisplayManager.h>
 #include <HwDisplayConnector.h>
-#include <HwDisplayCrtc.h>
 #include <systemcontrol.h>
 #include <DrmTypes.h>
 
 #include "HwConnectorFactory.h"
+#include "OsdPlaneDrm.h"
+#include "HwDisplayCrtcDrm.h"
 //#include "DummyPlane.h"
-#include "OsdPlane.h"
 //#include "CursorPlane.h"
 #include "LegacyVideoPlane.h"
 #include "LegacyExtVideoPlane.h"
@@ -140,12 +140,12 @@ int32_t HwDisplayManager::loadPlanes() {
             ptr_plane = drmModeGetPlane(fd, res_plane->planes[i]);
             for (j = 0; j < ptr_plane->count_formats; j ++) {
                 if (ptr_plane->formats[j] == DRM_FORMAT_XRGB8888) {
-                    std::shared_ptr<OsdPlane> plane =
-                        std::make_shared<OsdPlane>(fd, plane_idx);
+                    std::shared_ptr<OsdPlaneDrm> plane =
+                        std::make_shared<OsdPlaneDrm>(fd, plane_idx);
                     mPlanes.emplace(plane_idx, plane);
                     if (mCrtcs.count(CRTC_VOUT1) == 0) {
-                        std::shared_ptr<HwDisplayCrtc> crtc =
-                            std::make_shared<HwDisplayCrtc>(::dup(fd), CRTC_VOUT1);
+                        std::shared_ptr<HwDisplayCrtcDrm> crtc =
+                            std::make_shared<HwDisplayCrtcDrm>(::dup(fd), CRTC_VOUT1);
                         mCrtcs.emplace(CRTC_VOUT1, crtc);
                     }
                     count_osd ++;

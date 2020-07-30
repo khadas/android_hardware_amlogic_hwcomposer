@@ -32,14 +32,14 @@ LOCAL_SHARED_LIBRARIES := $(HWC_SHARED_LIBS)
 ifeq ($(HWC_ENABLE_DRM_BACKEND), true)
 LOCAL_CFLAGS += -DHWC_ENABLE_DRM_BACKEND
 LOCAL_SRC_FILES := \
-    HwDisplayManagerDrm.cpp \
-    HwDisplayCrtcDrm.cpp \
-    OsdPlaneDrm.cpp
+    drm/HwDisplayManagerDrm.cpp \
+    drm/HwDisplayCrtcDrm.cpp \
+    drm/OsdPlaneDrm.cpp
 else
 LOCAL_SRC_FILES := \
-    HwDisplayManager.cpp \
-    HwDisplayCrtc.cpp \
-    OsdPlane.cpp
+    fbdev/HwDisplayManager.cpp \
+    fbdev/HwDisplayCrtcFbdev.cpp \
+    fbdev/OsdPlane.cpp
 endif
 LOCAL_SRC_FILES += \
     HwDisplayPlane.cpp \

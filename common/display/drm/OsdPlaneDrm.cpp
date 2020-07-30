@@ -7,7 +7,7 @@
  * Description:
  */
 
-#include "OsdPlane.h"
+#include "OsdPlaneDrm.h"
 #include <MesonLog.h>
 #include <DebugHelper.h>
 #include <xf86drm.h>
@@ -15,20 +15,20 @@
 
 #define OSD_PATTERN_SIZE (128)
 
-OsdPlane::OsdPlane(int32_t drvFd, uint32_t id)
+OsdPlaneDrm::OsdPlaneDrm(int32_t drvFd, uint32_t id)
     : HwDisplayPlane(drvFd, id),
       mBlank(false),
       mPossibleCrtcs(0),
       mDrmFb(NULL) {
-    snprintf(mName, 64, "OSD-%d", id);
+    snprintf(mName, 64, "drm-osd-%d", id);
     mPlaneInfo.out_fen_fd = -1;
     getProperties();
 }
 
-OsdPlane::~OsdPlane() {
+OsdPlaneDrm::~OsdPlaneDrm() {
 }
 
-int32_t OsdPlane::getProperties() {
+int32_t OsdPlaneDrm::getProperties() {
     int i;
     /*mode resources*/
     mRes_mode = drmModeGetResources(mDrvFd);
@@ -76,11 +76,11 @@ int32_t OsdPlane::getProperties() {
     return 0;
 }
 
-const char * OsdPlane::getName() {
+const char * OsdPlaneDrm::getName() {
     return mName;
 }
 
-uint32_t OsdPlane::getPlaneType() {
+uint32_t OsdPlaneDrm::getPlaneType() {
     if (mDebugIdle) {
         return INVALID_PLANE;
     }
@@ -88,11 +88,11 @@ uint32_t OsdPlane::getPlaneType() {
     return OSD_PLANE;
 }
 
-uint32_t OsdPlane::getCapabilities() {
+uint32_t OsdPlaneDrm::getCapabilities() {
     return mCapability;
 }
 
-int32_t OsdPlane::getFixedZorder() {
+int32_t OsdPlaneDrm::getFixedZorder() {
     if (mCapability & PLANE_SUPPORT_ZORDER) {
         return INVALID_ZORDER;
     }
@@ -100,11 +100,11 @@ int32_t OsdPlane::getFixedZorder() {
     return OSD_PLANE_FIXED_ZORDER;
 }
 
-uint32_t OsdPlane::getPossibleCrtcs() {
+uint32_t OsdPlaneDrm::getPossibleCrtcs() {
     return mPossibleCrtcs;
 }
 
-bool OsdPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
+bool OsdPlaneDrm::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
     if (fb->isRotated())
          return false;
 
@@ -174,7 +174,7 @@ bool OsdPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
     return true;
 }
 
-uint32_t OsdPlane::ConvertHalFormatToDrm(uint32_t hal_format) {
+uint32_t OsdPlaneDrm::ConvertHalFormatToDrm(uint32_t hal_format) {
   switch (hal_format) {
     case HAL_PIXEL_FORMAT_RGB_888:
       return DRM_FORMAT_BGR888;
@@ -194,7 +194,7 @@ uint32_t OsdPlane::ConvertHalFormatToDrm(uint32_t hal_format) {
   }
 }
 
-int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> fb, uint32_t zorder, int blankOp) {
+int32_t OsdPlaneDrm::setPlane(std::shared_ptr<DrmFramebuffer> fb, uint32_t zorder, int blankOp) {
     MESON_ASSERT(mDrvFd >= 0, "osd plane fd is not valiable!");
     MESON_ASSERT(zorder > 0, "osd driver request zorder > 0");// driver request zorder > 0
     drmModeAtomicReqPtr req;
@@ -426,7 +426,7 @@ int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> fb, uint32_t zorder, 
     return 0;
 }
 
-void OsdPlane::createPatternFb() {
+void OsdPlaneDrm::createPatternFb() {
     buffer_handle_t hnd = gralloc_alloc_dma_buf(
         OSD_PATTERN_SIZE, OSD_PATTERN_SIZE,
         HAL_PIXEL_FORMAT_RGBA_8888,
@@ -473,7 +473,7 @@ void OsdPlane::createPatternFb() {
     }
 }
 
-void OsdPlane::dump(String8 & dumpstr) {
+void OsdPlaneDrm::dump(String8 & dumpstr) {
     if (!mBlank) {
         dumpstr.appendFormat("| osd%2d |"
                 " %4d | %4d | %4d %4d %4d %4d | %4d %4d %4d %4d | %2d | %2d | %4d |"

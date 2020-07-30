@@ -22,76 +22,52 @@ class HwDisplayPlane;
 
 class HwDisplayCrtc {
 public:
-    HwDisplayCrtc(int drvFd, int32_t id);
-    ~HwDisplayCrtc();
+    HwDisplayCrtc(int drvFd __unused, int32_t id __unused) { }
+    virtual ~HwDisplayCrtc() {}
 
-    int32_t bind(std::shared_ptr<HwDisplayConnector>  connector,
-                   std::vector<std::shared_ptr<HwDisplayPlane>> planes);
-    int32_t unbind();
+    virtual int32_t bind(std::shared_ptr<HwDisplayConnector>  connector,
+                   std::vector<std::shared_ptr<HwDisplayPlane>> planes) = 0;
+    virtual int32_t unbind() = 0;
 
     /*load the fixed informations: displaymode list, hdr cap, etc...*/
-    int32_t loadProperities();
-    int32_t getHdrMetadataKeys(std::vector<drm_hdr_meatadata_t> & keys);
+    virtual int32_t loadProperities() = 0;
+    virtual int32_t getHdrMetadataKeys(std::vector<drm_hdr_meatadata_t> & keys) = 0;
 
     /*update the dynamic informations, current display mode now.*/
-     int32_t update();
-    int32_t setHdrMetadata(std::map<drm_hdr_meatadata_t, float> & hdrmedata);
+    virtual int32_t update() = 0;
+    virtual int32_t setHdrMetadata(std::map<drm_hdr_meatadata_t, float> & hdrmedata) = 0;
 
     /*get current display mode.*/
-    int32_t getMode(drm_mode_info_t & mode);
+    virtual int32_t getMode(drm_mode_info_t & mode) = 0;
     /*set current display mode.*/
-    int32_t setMode(drm_mode_info_t & mode);
+    virtual int32_t setMode(drm_mode_info_t & mode) = 0;
     /* set current display attribute */
-    int32_t setDisplayAttribute(std::string& dispattr);
-    int32_t getDisplayAttribute(std::string& dispattr);
+    virtual  int32_t setDisplayAttribute(std::string& dispattr) = 0;
+    virtual  int32_t getDisplayAttribute(std::string& dispattr) = 0;
 
-    int32_t waitVBlank(nsecs_t & timestamp);
+    virtual int32_t waitVBlank(nsecs_t & timestamp) = 0;
 
-    int32_t getId();
+    virtual int32_t getId() = 0;
 
     /*Functions for compose & pageflip*/
     /*set the crtc display axis, and source axis,
     * it is used to do scale in vpu.
     */
-    int32_t setDisplayFrame(display_zoom_info_t & info);
+    virtual int32_t setDisplayFrame(display_zoom_info_t & info) = 0;
     /*
     * set if we need compose all ui layers into one display channel.
     * TODO: need pass it in a general way.
     */
-    int32_t setOsdChannels(int32_t channels);
+    virtual int32_t setOsdChannels(int32_t channels) = 0;
 
-    int32_t pageFlip(int32_t & out_fence);
+    virtual int32_t pageFlip(int32_t & out_fence) = 0;
 
-    int32_t readCurDisplayMode(std::string & dispmode);
-    int32_t writeCurDisplayMode(std::string & dispmode);
-    int32_t writeCurDisplayAttr(std::string & dispattr);
-    void setViewPort(const drm_rect_wh_t viewPort);
-    void getViewPort(drm_rect_wh_t & viewPort);
+    virtual int32_t readCurDisplayMode(std::string & dispmode) = 0;
+    virtual int32_t writeCurDisplayMode(std::string & dispmode) = 0;
+    virtual int32_t writeCurDisplayAttr(std::string & dispattr) = 0;
 
-protected:
-    void closeLogoDisplay();
-    bool updateHdrMetadata(std::map<drm_hdr_meatadata_t, float> & hdrmedata);
-
-protected:
-    int32_t mId;
-    int mDrvFd;
-    uint32_t mOsdChannels;
-
-    bool mFirstPresent;
-    bool mConnected;
-
-    drm_mode_info_t mCurModeInfo;
-    display_zoom_info_t mScaleInfo;
-    drm_rect_wh_t mViewPort;
-
-    std::map<uint32_t, drm_mode_info_t> mModes;
-    std::shared_ptr<HwDisplayConnector>  mConnector;
-    std::vector<std::shared_ptr<HwDisplayPlane>> mPlanes;
-
-    void * hdrVideoInfo;
-    bool mBinded;
-
-    std::mutex mMutex;
+    virtual void setViewPort(const drm_rect_wh_t viewPort) = 0;;
+    virtual void getViewPort(drm_rect_wh_t & viewPort) = 0;
 };
 
 #endif/*HW_DISPLAY_CRTC_H*/

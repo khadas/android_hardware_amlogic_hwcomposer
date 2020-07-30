@@ -7,7 +7,6 @@
  * Description:
  */
 #include <HwDisplayManager.h>
-#include <HwDisplayCrtc.h>
 #include <MesonLog.h>
 #include <DebugHelper.h>
 #include <cutils/properties.h>
@@ -18,6 +17,7 @@
 
 #include "AmVinfo.h"
 #include "AmFramebuffer.h"
+#include "HwDisplayCrtcFbdev.h"
 
 static vframe_master_display_colour_s_t nullHdr;
 
@@ -25,7 +25,8 @@ static vframe_master_display_colour_s_t nullHdr;
 #define VIU2_DISPLAY_MODE_SYSFS "/sys/class/display2/mode"
 #define VIU_DISPLAY_ATTR_SYSFS "/sys/class/amhdmitx/amhdmitx0/attr"
 
-HwDisplayCrtc::HwDisplayCrtc(int drvFd, int32_t id) {
+HwDisplayCrtcFbdev::HwDisplayCrtcFbdev(int drvFd, int32_t id)
+    : HwDisplayCrtc(drvFd, id) {
     MESON_ASSERT(id == CRTC_VOUT1 || id == CRTC_VOUT2, "Invalid crtc id %d", id);
 
     mId = id;
@@ -43,11 +44,11 @@ HwDisplayCrtc::HwDisplayCrtc(int drvFd, int32_t id) {
 
 }
 
-HwDisplayCrtc::~HwDisplayCrtc() {
+HwDisplayCrtcFbdev::~HwDisplayCrtcFbdev() {
     free(hdrVideoInfo);
 }
 
-int32_t HwDisplayCrtc::bind(
+int32_t HwDisplayCrtcFbdev::bind(
     std::shared_ptr<HwDisplayConnector>  connector,
     std::vector<std::shared_ptr<HwDisplayPlane>> planes) {
     if (mBinded) {
@@ -65,7 +66,7 @@ int32_t HwDisplayCrtc::bind(
     return 0;
 }
 
-int32_t HwDisplayCrtc::unbind() {
+int32_t HwDisplayCrtcFbdev::unbind() {
     /*TODO: temp disable here.
     * systemcontrol and hwc set display mode
     * at the same time, there is a timing issue now.
@@ -92,7 +93,7 @@ int32_t HwDisplayCrtc::unbind() {
     return 0;
 }
 
-int32_t HwDisplayCrtc::loadProperities() {
+int32_t HwDisplayCrtcFbdev::loadProperities() {
     /*load static information when pipeline present.*/
     {
         std::lock_guard<std::mutex> lock(mMutex);
@@ -111,26 +112,26 @@ int32_t HwDisplayCrtc::loadProperities() {
     return 0;
 }
 
-int32_t HwDisplayCrtc::getId() {
+int32_t HwDisplayCrtcFbdev::getId() {
     return mId;
 }
 
-int32_t HwDisplayCrtc::setMode(drm_mode_info_t & mode) {
+int32_t HwDisplayCrtcFbdev::setMode(drm_mode_info_t & mode) {
     /*DRM_DISPLAY_MODE_NULL is always allowed.*/
     MESON_LOGI("Crtc setMode: %s", mode.name);
     std::string dispmode(mode.name);
     return writeCurDisplayMode(dispmode);
 }
 
-int32_t HwDisplayCrtc::setDisplayAttribute(std::string& dispattr) {
+int32_t HwDisplayCrtcFbdev::setDisplayAttribute(std::string& dispattr) {
     return writeCurDisplayAttr(dispattr);
 }
 
-int32_t HwDisplayCrtc::getDisplayAttribute(std::string& dispattr) {
+int32_t HwDisplayCrtcFbdev::getDisplayAttribute(std::string& dispattr) {
     return read_sysfs(VIU_DISPLAY_ATTR_SYSFS , dispattr);
 }
 
-int32_t HwDisplayCrtc::getMode(drm_mode_info_t & mode) {
+int32_t HwDisplayCrtcFbdev::getMode(drm_mode_info_t & mode) {
     std::lock_guard<std::mutex> lock(mMutex);
     if (!mConnected || mCurModeInfo.name[0] == 0)
         return -EFAULT;
@@ -139,7 +140,7 @@ int32_t HwDisplayCrtc::getMode(drm_mode_info_t & mode) {
     return 0;
 }
 
-int32_t HwDisplayCrtc::waitVBlank(nsecs_t & timestamp) {
+int32_t HwDisplayCrtcFbdev::waitVBlank(nsecs_t & timestamp) {
     int32_t ret = ioctl(mDrvFd, FBIO_WAITFORVSYNC_64, &timestamp);
     if (ret == -1) {
         ret = -errno;
@@ -155,7 +156,7 @@ int32_t HwDisplayCrtc::waitVBlank(nsecs_t & timestamp) {
     }
 }
 
-int32_t HwDisplayCrtc::update() {
+int32_t HwDisplayCrtcFbdev::update() {
     /*update dynamic information which may change.*/
     std::lock_guard<std::mutex> lock(mMutex);
     memset(&mCurModeInfo, 0, sizeof(drm_mode_info_t));
@@ -194,7 +195,7 @@ int32_t HwDisplayCrtc::update() {
     return 0;
 }
 
-int32_t HwDisplayCrtc::setDisplayFrame(display_zoom_info_t & info) {
+int32_t HwDisplayCrtcFbdev::setDisplayFrame(display_zoom_info_t & info) {
     mScaleInfo = info;
     /*not used now, clear to 0.*/
     mScaleInfo.crtc_w = 0;
@@ -202,12 +203,12 @@ int32_t HwDisplayCrtc::setDisplayFrame(display_zoom_info_t & info) {
     return 0;
 }
 
-int32_t HwDisplayCrtc::setOsdChannels(int32_t channels) {
+int32_t HwDisplayCrtcFbdev::setOsdChannels(int32_t channels) {
     mOsdChannels = channels;
     return 0;
 }
 
-int32_t HwDisplayCrtc::pageFlip(int32_t &out_fence) {
+int32_t HwDisplayCrtcFbdev::pageFlip(int32_t &out_fence) {
     if (mFirstPresent) {
         mFirstPresent = false;
         closeLogoDisplay();
@@ -238,7 +239,7 @@ int32_t HwDisplayCrtc::pageFlip(int32_t &out_fence) {
     return 0;
 }
 
-int32_t HwDisplayCrtc::getHdrMetadataKeys(
+int32_t HwDisplayCrtcFbdev::getHdrMetadataKeys(
     std::vector<drm_hdr_meatadata_t> & keys) {
     static drm_hdr_meatadata_t supportedKeys[] = {
         DRM_DISPLAY_RED_PRIMARY_X,
@@ -262,7 +263,7 @@ int32_t HwDisplayCrtc::getHdrMetadataKeys(
     return 0;
 }
 
-int32_t HwDisplayCrtc::setHdrMetadata(
+int32_t HwDisplayCrtcFbdev::setHdrMetadata(
     std::map<drm_hdr_meatadata_t, float> & hdrmedata) {
     if (updateHdrMetadata(hdrmedata) == true)
         return set_hdr_info((vframe_master_display_colour_s_t*)hdrVideoInfo);
@@ -270,7 +271,7 @@ int32_t HwDisplayCrtc::setHdrMetadata(
     return 0;
 }
 
-bool HwDisplayCrtc::updateHdrMetadata(
+bool HwDisplayCrtcFbdev::updateHdrMetadata(
     std::map<drm_hdr_meatadata_t, float> & hdrmedata) {
     vframe_master_display_colour_s_t newHdr;
     memset(&newHdr,0,sizeof(vframe_master_display_colour_s_t));
@@ -335,12 +336,12 @@ bool HwDisplayCrtc::updateHdrMetadata(
     return true;
 }
 
-void HwDisplayCrtc::closeLogoDisplay() {
+void HwDisplayCrtcFbdev::closeLogoDisplay() {
     sysfs_set_string(DISPLAY_LOGO_INDEX, "-1");
     sysfs_set_string(DISPLAY_FB0_FREESCALE_SWTICH, "0x10001");
 }
 
-int32_t  HwDisplayCrtc::readCurDisplayMode(std::string & dispmode) {
+int32_t  HwDisplayCrtcFbdev::readCurDisplayMode(std::string & dispmode) {
     int32_t ret = 0;
     if (mId == CRTC_VOUT1) {
         ret = read_sysfs(VIU1_DISPLAY_MODE_SYSFS, dispmode);
@@ -351,24 +352,24 @@ int32_t  HwDisplayCrtc::readCurDisplayMode(std::string & dispmode) {
     return ret;
 }
 
-int32_t HwDisplayCrtc::writeCurDisplayMode(std::string & dispmode) {
+int32_t HwDisplayCrtcFbdev::writeCurDisplayMode(std::string & dispmode) {
     const char *path =  (mId == CRTC_VOUT1) ? VIU1_DISPLAY_MODE_SYSFS : VIU2_DISPLAY_MODE_SYSFS;
     return sysfs_set_string(path, dispmode.c_str());
 }
 
-int32_t HwDisplayCrtc::writeCurDisplayAttr(std::string & dispattr) {
+int32_t HwDisplayCrtcFbdev::writeCurDisplayAttr(std::string & dispattr) {
     int32_t ret = 0;
     ret = sc_write_sysfs(VIU_DISPLAY_ATTR_SYSFS, dispattr);
 
     return ret;
 }
 
-void HwDisplayCrtc::setViewPort(const drm_rect_wh_t viewPort) {
+void HwDisplayCrtcFbdev::setViewPort(const drm_rect_wh_t viewPort) {
     std::lock_guard<std::mutex> lock(mMutex);
     mViewPort = viewPort;
 }
 
-void HwDisplayCrtc::getViewPort(drm_rect_wh_t & viewPort) {
+void HwDisplayCrtcFbdev::getViewPort(drm_rect_wh_t & viewPort) {
     std::lock_guard<std::mutex> lock(mMutex);
     viewPort = mViewPort;
 }

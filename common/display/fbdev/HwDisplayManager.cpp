@@ -24,6 +24,7 @@
 #include "LegacyExtVideoPlane.h"
 #include "HwcVideoPlane.h"
 #include "AmFramebuffer.h"
+#include "HwDisplayCrtcFbdev.h"
 #include <VideoComposerDev.h>
 
 ANDROID_SINGLETON_STATIC_INSTANCE(HwDisplayManager)
@@ -140,12 +141,12 @@ int32_t HwDisplayManager::loadPlanes() {
                     /*add valid crtc.*/
                     uint32_t crtcs = plane->getPossibleCrtcs();
                     if ((crtcs & CRTC_VOUT1) && mCrtcs.count(CRTC_VOUT1) == 0) {
-                        std::shared_ptr<HwDisplayCrtc> crtc =
-                            std::make_shared<HwDisplayCrtc>(::dup(fd), CRTC_VOUT1);
+                        std::shared_ptr<HwDisplayCrtcFbdev> crtc =
+                            std::make_shared<HwDisplayCrtcFbdev>(::dup(fd), CRTC_VOUT1);
                         mCrtcs.emplace(CRTC_VOUT1, crtc);
                     } else if ((crtcs & CRTC_VOUT2) && mCrtcs.count(CRTC_VOUT2) == 0) {
-                        std::shared_ptr<HwDisplayCrtc> crtc =
-                            std::make_shared<HwDisplayCrtc>(::dup(fd), CRTC_VOUT2);
+                        std::shared_ptr<HwDisplayCrtcFbdev> crtc =
+                            std::make_shared<HwDisplayCrtcFbdev>(::dup(fd), CRTC_VOUT2);
                         mCrtcs.emplace(CRTC_VOUT2, crtc);
                     }
                 }
