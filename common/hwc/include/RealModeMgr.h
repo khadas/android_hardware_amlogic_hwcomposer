@@ -54,6 +54,8 @@ protected:
 
     std::map<uint32_t, drm_mode_info_t> mModes;
     drm_mode_info_t mCurMode;
+    // save the previous active mode
+    drm_mode_info_t mPreviousMode;
     uint32_t mActiveConfigId;
     bool mCallOnHotPlug;
 
