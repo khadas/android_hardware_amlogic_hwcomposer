@@ -29,6 +29,7 @@ public:
 
     virtual int32_t getModes(std::map<uint32_t, drm_mode_info_t> & modes);
     virtual void getHdrCapabilities(drm_hdr_capabilities * caps);
+    virtual std::string getCurrentHdrType();
 
     virtual void dump(String8& dumpstr);
 
@@ -49,6 +50,7 @@ protected:
     int32_t getLineValue(const char *lineStr, const char *magicStr);
     int32_t parseHdrCapabilities();
     virtual void parseEDID();
+    bool loadCurrentHdrType();
 
 private:
     enum {
@@ -67,6 +69,7 @@ private:
     int32_t mFracMode;
     std::vector<float> mFracRefreshRates;
     drm_hdr_capabilities mHdrCapabilities;
+    std::string mCurrentHdrType;
 };
 
 #endif

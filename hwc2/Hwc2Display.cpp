@@ -1243,6 +1243,9 @@ void Hwc2Display::dump(String8 & dumpstr) {
         mCalibrateInfo.crtc_display_w, mCalibrateInfo.crtc_display_h);
 
     /* HDR info */
+    if (mConnector)
+        dumpstr.appendFormat("HDR current type: %s\n",
+                mConnector->getCurrentHdrType().c_str());
     dumpstr.append("HDR Capabilities:\n");
     dumpstr.appendFormat("    DolbyVision1=%d\n",
         mHdrCaps.DolbyVisionSupported ?  1 : 0);

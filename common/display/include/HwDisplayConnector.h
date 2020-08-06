@@ -64,6 +64,7 @@ public:
 
     virtual int32_t setMode(drm_mode_info_t & mode __unused) { return 0;};
     virtual uint32_t getId() { return mId;};
+    virtual std::string getCurrentHdrType() { return "SDR"; };
     friend meson::DisplayAdapterLocal;
 
 protected:

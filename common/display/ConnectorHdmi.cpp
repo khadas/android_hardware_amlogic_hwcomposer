@@ -44,6 +44,7 @@ ConnectorHdmi::ConnectorHdmi(int32_t drvFd, uint32_t id)
     mConnected = false;
     mSecure = false;
     mFracMode = HWC_HDMI_FRAC_MODE;
+    mCurrentHdrType = "sdr";
     snprintf(mName, 64, "HDMI-%d", id);
     MESON_LOGD("Connector hdmi (%s) frac mode (%d) created.", mName, mFracMode);
 }
@@ -54,6 +55,8 @@ ConnectorHdmi::~ConnectorHdmi() {
 int32_t ConnectorHdmi::loadProperities() {
     MESON_LOG_FUN_ENTER();
     update();
+    loadCurrentHdrType();
+
     if (mConnected) {
         loadPhysicalSize();
         loadDisplayModes();
@@ -294,6 +297,9 @@ int32_t ConnectorHdmi::setContentType(uint32_t contentType) {
     return 0;
 }
 
+std::string ConnectorHdmi::getCurrentHdrType() {
+    return mCurrentHdrType;
+}
 
 void ConnectorHdmi::dump(String8 & dumpstr) {
     dumpstr.appendFormat("Connector (HDMI, %d x %d, %s, %s)\n",
@@ -489,3 +495,26 @@ void ConnectorHdmi::parseEDID() {
     return;
 }
 
+/*
+* cat /sys/class/amhdmitx/amhdmitx0/hdmi_hdr_status
+* output is one of the following line
+*
+* SDR
+* DolbyVision-Std
+* DolbyVision-Lowlatency
+* HDR10Plus-VSIF
+* HDR10-GAMMA_ST2084
+* HDR10-others
+* HDR10-GAMMA_HLG
+*/
+bool ConnectorHdmi::loadCurrentHdrType() {
+    const char *HDR_STATUS = "/sys/class/amhdmitx/amhdmitx0/hdmi_hdr_status";
+
+    if (read_sysfs(HDR_STATUS, mCurrentHdrType) != 0) {
+        // default set to sdr
+        mCurrentHdrType = "sdr";
+        return false;
+    }
+
+    return true;
+}
