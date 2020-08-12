@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Amlogic, Inc. All rights reserved.
+ * Copyright (c) 2020 Amlogic, Inc. All rights reserved.
  *
  * This source code is subject to the terms and conditions defined in the
  * file 'LICENSE' which is part of this source code package.
@@ -17,47 +17,29 @@
 #include <HwDisplayPlane.h>
 #include <HwDisplayConnector.h>
 
-class HwDisplayManager
-    :   public android::Singleton<HwDisplayManager> {
+class HwDisplayManager {
 friend class HwDisplayCrtc;
 friend class HwDisplayConnector;
 friend class HwDisplayPlane;
 
 public:
-    HwDisplayManager();
-    ~HwDisplayManager();
-
-    /* get all HwDisplayIds.*/
+    HwDisplayManager() { }
+    virtual ~HwDisplayManager() { }
 
     /* get displayplanes by hw display idx, the planes may change when connector changed.*/
-    int32_t getPlanes(
-        std::vector<std::shared_ptr<HwDisplayPlane>> & planes);
+    virtual int32_t getPlanes(
+        std::vector<std::shared_ptr<HwDisplayPlane>> & planes) = 0;
 
     /* get displayplanes by hw display idx, the planes may change when connector changed.*/
-    int32_t getCrtcs(
-        std::vector<std::shared_ptr<HwDisplayCrtc>> & crtcs);
+    virtual int32_t getCrtcs(
+        std::vector<std::shared_ptr<HwDisplayCrtc>> & crtcs) = 0;
 
-    int32_t getConnector(
+    virtual int32_t getConnector(
         std::shared_ptr<HwDisplayConnector> & connector,
-        drm_connector_type_t type);
-
-/*********************************************
- * drm apis.
- *********************************************/
-protected:
-    int32_t loadDrmResources();
-    int32_t freeDrmResources();
-
-    int32_t loadCrtcs();
-    int32_t loadConnectors();
-    int32_t loadPlanes();
-
-protected:
-    std::map<uint32_t, std::shared_ptr<HwDisplayPlane>> mPlanes;
-    std::map<uint32_t, std::shared_ptr<HwDisplayCrtc>> mCrtcs;
-    std::map<drm_connector_type_t, std::shared_ptr<HwDisplayConnector>> mConnectors;
-
-    std::mutex mMutex;
+        drm_connector_type_t type) = 0;
 };
+
+std::shared_ptr<HwDisplayManager> getHwDisplayManager();
+int32_t destroyHwDisplayManager();
 
 #endif/*HW_DISPLAY_MANAGER_H*/

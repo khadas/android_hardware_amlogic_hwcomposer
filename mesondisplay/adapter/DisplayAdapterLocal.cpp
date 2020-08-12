@@ -7,7 +7,7 @@
  * Description:
  */
 
-#include "HwDisplayManager.h"
+#include <HwDisplayManager.h>
 #include "HwDisplayConnector.h"
 #include "HwDisplayCrtc.h"
 #include "DisplayAdapterLocal.h"
@@ -64,7 +64,7 @@ bool DisplayAdapterLocal::getSupportDisplayModes(vector<DisplayModeInfo>& displa
     std::shared_ptr<HwDisplayConnector> connector;
     map<uint32_t, drm_mode_info_t> modes;
     DisplayTypeConv(type, displayType);
-    HwDisplayManager::getInstance().getConnector(connector, type);
+    getHwDisplayManager()->getConnector(connector, type);
     if (connector) {
         connector->getModes(modes);
         displayModeList.clear();
@@ -82,7 +82,7 @@ bool DisplayAdapterLocal::getDisplayMode(string& mode, ConnectorType displayType
     std::shared_ptr<HwDisplayConnector> connector;
 
     DisplayTypeConv(type, displayType);
-    HwDisplayManager::getInstance().getConnector(connector, type);
+    getHwDisplayManager()->getConnector(connector, type);
     if (connector && connector->mCrtc) {
         connector->mCrtc->readCurDisplayMode(mode);
     }
@@ -101,7 +101,7 @@ bool DisplayAdapterLocal::setDisplayMode(const string& mode, ConnectorType displ
     MESON_LOGD("SetDisplay[%s] Mode to \"%s\"", type == DRM_MODE_CONNECTOR_HDMI ? "HDMI" :
             (type == DRM_MODE_CONNECTOR_PANEL ? "panel":"dummy"), mode.c_str());
 
-    HwDisplayManager::getInstance().getConnector(connector, type);
+    getHwDisplayManager()->getConnector(connector, type);
     if (connector && connector->mCrtc) {
         connector->mCrtc->setMode(mock);
     } else {
@@ -155,7 +155,7 @@ bool DisplayAdapterLocal::setDisplayRect(const Rect rect, ConnectorType displayT
     drm_rect.y = rect.y;
     drm_rect.w = rect.w;
     drm_rect.h = rect.h;
-    HwDisplayManager::getInstance().getConnector(connector, type);
+    getHwDisplayManager()->getConnector(connector, type);
     if (connector && connector->mCrtc) {
         connector->mCrtc->setViewPort(drm_rect);
         ret = true;
@@ -171,7 +171,7 @@ bool DisplayAdapterLocal::getDisplayRect(Rect& rect, ConnectorType displayType) 
     std::shared_ptr<HwDisplayConnector> connector;
     drm_rect_wh_t drm_rect;
 
-    HwDisplayManager::getInstance().getConnector(connector, type);
+    getHwDisplayManager()->getConnector(connector, type);
     if (connector && connector->mCrtc) {
         connector->mCrtc->getViewPort(drm_rect);
         DEBUG_INFO("SetDisplay[%s] view port to \"(%s)\"", type == DRM_MODE_CONNECTOR_HDMI ? "HDMI" :
@@ -197,7 +197,7 @@ bool DisplayAdapterLocal::setDisplayAttribute(
 
     MESON_LOGD("SetDisplay[%s] attr to \"%s\"", name.c_str(), value.c_str());
 
-    HwDisplayManager::getInstance().getConnector(connector, type);
+    getHwDisplayManager()->getConnector(connector, type);
     if (connector && connector->mCrtc) {
         string dispattr (value);
         connector->mCrtc->setDisplayAttribute(dispattr);
@@ -216,7 +216,7 @@ bool DisplayAdapterLocal::getDisplayAttribute(
     DisplayTypeConv(type, displayType);
 
 
-    HwDisplayManager::getInstance().getConnector(connector, type);
+    getHwDisplayManager()->getConnector(connector, type);
     if (connector && connector->mCrtc) {
         connector->mCrtc->getDisplayAttribute(value);
     }

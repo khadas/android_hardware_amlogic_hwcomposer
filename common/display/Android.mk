@@ -37,7 +37,7 @@ LOCAL_SRC_FILES := \
     drm/OsdPlaneDrm.cpp
 else
 LOCAL_SRC_FILES := \
-    fbdev/HwDisplayManager.cpp \
+    fbdev/HwDisplayManagerFbdev.cpp \
     fbdev/HwDisplayCrtcFbdev.cpp \
     fbdev/OsdPlane.cpp
 endif

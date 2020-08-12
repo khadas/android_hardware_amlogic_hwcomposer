@@ -15,6 +15,7 @@
 #include <HwDisplayCrtc.h>
 #include <systemcontrol.h>
 #include <DrmTypes.h>
+#include <VideoComposerDev.h>
 
 #include "HwConnectorFactory.h"
 #include "DummyPlane.h"
@@ -25,19 +26,33 @@
 #include "HwcVideoPlane.h"
 #include "AmFramebuffer.h"
 #include "HwDisplayCrtcFbdev.h"
-#include <VideoComposerDev.h>
+#include "HwDisplayManagerFbdev.h"
 
-ANDROID_SINGLETON_STATIC_INSTANCE(HwDisplayManager)
+static std::shared_ptr<HwDisplayManagerFbdev> gDisplayDevice;
 
-HwDisplayManager::HwDisplayManager() {
+std::shared_ptr<HwDisplayManager> getHwDisplayManager() {
+    if (!gDisplayDevice) {
+        gDisplayDevice = std::make_shared<HwDisplayManagerFbdev>();
+    }
+
+    return gDisplayDevice;
+}
+
+int32_t destroyHwDisplayManager() {
+    gDisplayDevice.reset();
+    return 0;
+}
+
+HwDisplayManagerFbdev::HwDisplayManagerFbdev()
+    : HwDisplayManager() {
     loadDrmResources();
 }
 
-HwDisplayManager::~HwDisplayManager() {
+HwDisplayManagerFbdev::~HwDisplayManagerFbdev() {
     freeDrmResources();
 }
 
-int32_t HwDisplayManager::getPlanes(
+int32_t HwDisplayManagerFbdev::getPlanes(
     std::vector<std::shared_ptr<HwDisplayPlane>> & planes) {
     mMutex.lock();
     for (const auto & plane : mPlanes)
@@ -46,7 +61,7 @@ int32_t HwDisplayManager::getPlanes(
     return 0;
 }
 
-int32_t HwDisplayManager::getCrtcs(
+int32_t HwDisplayManagerFbdev::getCrtcs(
         std::vector<std::shared_ptr<HwDisplayCrtc>> & crtcs) {
     mMutex.lock();
     for (const auto & crtc : mCrtcs)
@@ -55,7 +70,7 @@ int32_t HwDisplayManager::getCrtcs(
     return 0;
 }
 
-int32_t HwDisplayManager::getConnector(
+int32_t HwDisplayManagerFbdev::getConnector(
         std::shared_ptr<HwDisplayConnector> & connector,
         drm_connector_type_t type) {
     mMutex.lock();
@@ -82,7 +97,7 @@ int32_t HwDisplayManager::getConnector(
  *   The following functions need update with drm.                  *
  *   Now is hard code for 1 crtc , 1 connector.                     *
  ********************************************************************/
-int32_t HwDisplayManager::loadDrmResources() {
+int32_t HwDisplayManagerFbdev::loadDrmResources() {
     mMutex.lock();
     /* must call loadPlanes() first, now it is the only
     *valid function.
@@ -95,24 +110,24 @@ int32_t HwDisplayManager::loadDrmResources() {
     return 0;
 }
 
-int32_t HwDisplayManager::freeDrmResources() {
+int32_t HwDisplayManagerFbdev::freeDrmResources() {
     mCrtcs.clear();
     mConnectors.clear();
     mPlanes.clear();
     return 0;
 }
 
-int32_t HwDisplayManager::loadCrtcs() {
+int32_t HwDisplayManagerFbdev::loadCrtcs() {
     MESON_LOGV("Crtc loaded in loadPlanes: %d", mCrtcs.size());
     return 0;
 }
 
-int32_t HwDisplayManager::loadConnectors() {
+int32_t HwDisplayManagerFbdev::loadConnectors() {
     MESON_LOGV("No connector api, set empty, will create when hwc get.");
     return 0;
 }
 
-int32_t HwDisplayManager::loadPlanes() {
+int32_t HwDisplayManagerFbdev::loadPlanes() {
     /* scan /dev/graphics/fbx to get planes */
     int fd = -1;
     char path[64];
@@ -204,4 +219,5 @@ int32_t HwDisplayManager::loadPlanes() {
 
     return 0;
 }
+
 

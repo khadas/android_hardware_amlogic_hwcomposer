@@ -41,8 +41,8 @@ HwcDisplayPipe::PipeStat::~PipeStat() {
 
 HwcDisplayPipe::HwcDisplayPipe() {
     /*load display resources.*/
-    HwDisplayManager::getInstance().getCrtcs(mCrtcs);
-    HwDisplayManager::getInstance().getPlanes(mPlanes);
+    getHwDisplayManager()->getCrtcs(mCrtcs);
+    getHwDisplayManager()->getPlanes(mPlanes);
 }
 
 HwcDisplayPipe::~HwcDisplayPipe() {
@@ -119,7 +119,7 @@ int32_t HwcDisplayPipe::getConnector(
     if (it != mConnectors.end()) {
         connector = it->second;
     } else {
-        HwDisplayManager::getInstance().getConnector(connector, type);
+        getHwDisplayManager()->getConnector(connector, type);
         mConnectors.emplace(type, connector);
         /*TODO: init current status, for we may need it later.*/
         connector->update();
