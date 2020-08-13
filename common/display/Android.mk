@@ -32,9 +32,11 @@ LOCAL_SHARED_LIBRARIES := $(HWC_SHARED_LIBS)
 ifeq ($(HWC_ENABLE_DRM_BACKEND), true)
 LOCAL_CFLAGS += -DHWC_ENABLE_DRM_BACKEND
 LOCAL_SRC_FILES := \
-    drm/HwDisplayManagerDrm.cpp \
-    drm/HwDisplayCrtcDrm.cpp \
-    drm/OsdPlaneDrm.cpp
+    fbdev/AmVinfo.cpp \
+    drm/DrmDevice.cpp \
+    drm/DrmCrtc.cpp \
+    drm/DrmConnector.cpp \
+    drm/DrmPlane.cpp
 else
 LOCAL_SRC_FILES := \
     fbdev/HwDisplayManagerFbdev.cpp \
@@ -65,6 +67,7 @@ LOCAL_C_INCLUDES := \
     system/core/include \
     $(LOCAL_PATH)/../../videotunnel/include \
     $(LOCAL_PATH)/include \
+    $(LOCAL_PATH) \
     external/libdrm/include/drm \
     external/libdrm/include
 
