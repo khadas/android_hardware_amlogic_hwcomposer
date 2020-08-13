@@ -39,7 +39,7 @@ static const std::vector<std::string> CONTENT_TYPES = {
 #define HDMI_TX_CONTENT_TYPE  "/sys/class/amhdmitx/amhdmitx0/contenttype_mode"
 
 ConnectorHdmi::ConnectorHdmi(int32_t drvFd, uint32_t id)
-    :   HwDisplayConnector(drvFd, id) {
+    :   HwDisplayConnectorFbdev(drvFd, id) {
     mIsEDIDValid = false;
     mConnected = false;
     mSecure = false;
@@ -87,7 +87,7 @@ const char * ConnectorHdmi::getName() {
 }
 
 drm_connector_type_t ConnectorHdmi::getType() {
-    return DRM_MODE_CONNECTOR_HDMI;
+    return DRM_MODE_CONNECTOR_HDMIA;
 }
 
 bool ConnectorHdmi::isRemovable() {
@@ -192,7 +192,7 @@ int32_t ConnectorHdmi::addDisplayMode(std::string& mode) {
 }
 
 int32_t ConnectorHdmi::getModes(std::map<uint32_t, drm_mode_info_t> & modes) {
-    return HwDisplayConnector::getModes(modes);
+    return HwDisplayConnectorFbdev::getModes(modes);
 }
 
 int32_t ConnectorHdmi::setMode(drm_mode_info_t & mode) {

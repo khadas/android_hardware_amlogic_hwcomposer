@@ -22,7 +22,7 @@ class HwDisplayPlane;
 
 class HwDisplayCrtc {
 public:
-    HwDisplayCrtc(int drvFd __unused, int32_t id __unused) { }
+    HwDisplayCrtc() { }
     virtual ~HwDisplayCrtc() {}
 
     virtual int32_t bind(std::shared_ptr<HwDisplayConnector>  connector,
@@ -63,7 +63,6 @@ public:
     virtual int32_t pageFlip(int32_t & out_fence) = 0;
 
     virtual int32_t readCurDisplayMode(std::string & dispmode) = 0;
-    virtual int32_t writeCurDisplayMode(std::string & dispmode) = 0;
     virtual int32_t writeCurDisplayAttr(std::string & dispattr) = 0;
 
     virtual void setViewPort(const drm_rect_wh_t viewPort) = 0;;

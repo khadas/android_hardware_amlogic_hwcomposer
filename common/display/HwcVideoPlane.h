@@ -11,8 +11,8 @@
 #define HWC_VIDEO_PLANE_H
 
 #include <sys/types.h>
-#include <HwDisplayPlane.h>
 #include <VideoComposerDev.h>
+#include <HwDisplayPlane.h>
 
 class HwcVideoPlane : public HwDisplayPlane {
 public:
@@ -29,6 +29,9 @@ public:
     void setAmVideoPath(int32_t id);
     int32_t setPlane(std::shared_ptr<DrmFramebuffer> fb, uint32_t zorder, int blankOp);
 
+    void setDebugFlag(int dbgFlag);
+    uint32_t getPlaneId();
+
     void dump(String8 & dumpstr);
 
 protected:
@@ -37,6 +40,10 @@ protected:
     int32_t getProperties();
 
 protected:
+    int32_t mDrvFd;
+    uint32_t mId;
+    int32_t mCapability;
+
     char mName[64];
     char mAmVideosPath[64];
     std::shared_ptr<VideoComposerDev> mVideoComposer;

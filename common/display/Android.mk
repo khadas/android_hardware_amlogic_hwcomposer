@@ -39,23 +39,24 @@ else
 LOCAL_SRC_FILES := \
     fbdev/HwDisplayManagerFbdev.cpp \
     fbdev/HwDisplayCrtcFbdev.cpp \
-    fbdev/OsdPlane.cpp
+    fbdev/OsdPlane.cpp \
+    fbdev/HwDisplayConnectorFbdev.cpp \
+    fbdev/ConnectorHdmi.cpp \
+    fbdev/ConnectorCvbs.cpp \
+    fbdev/ConnectorPanel.cpp \
+    fbdev/HwConnectorFactory.cpp \
+    fbdev/AmVinfo.cpp \
+    fbdev/HwDisplayPlaneFbdev.cpp \
+    fbdev/LegacyVideoPlane.cpp \
+    fbdev/LegacyExtVideoPlane.cpp \
+    fbdev/DummyPlane.cpp \
+    fbdev/CursorPlane.cpp \
+    fbdev/ConnectorDummy.cpp
 endif
+
 LOCAL_SRC_FILES += \
-    HwDisplayPlane.cpp \
-    DummyPlane.cpp \
-    CursorPlane.cpp \
-    LegacyVideoPlane.cpp \
-    LegacyExtVideoPlane.cpp \
     HwcVideoPlane.cpp \
-    HwConnectorFactory.cpp \
-    HwDisplayConnector.cpp \
     HwDisplayEventListener.cpp \
-    ConnectorHdmi.cpp \
-    ConnectorCvbs.cpp \
-    ConnectorPanel.cpp \
-    ConnectorDummy.cpp \
-    AmVinfo.cpp \
     Vdin.cpp \
     VideoComposerDev.cpp \
     VideoTunnelThread.cpp
@@ -63,7 +64,9 @@ LOCAL_SRC_FILES += \
 LOCAL_C_INCLUDES := \
     system/core/include \
     $(LOCAL_PATH)/../../videotunnel/include \
-    $(LOCAL_PATH)/include
+    $(LOCAL_PATH)/include \
+    external/libdrm/include/drm \
+    external/libdrm/include
 
 LOCAL_STATIC_LIBRARIES := \
     hwc.utils_static \
@@ -72,7 +75,8 @@ LOCAL_STATIC_LIBRARIES := \
     libomxutil
 
 LOCAL_EXPORT_C_INCLUDE_DIRS := \
-    $(LOCAL_PATH)/include
+    $(LOCAL_PATH)/include \
+    external/libdrm/include/drm
 
 LOCAL_MODULE := hwc.display_static
 

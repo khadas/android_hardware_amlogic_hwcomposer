@@ -8,20 +8,21 @@
  */
 #include <unistd.h>
 
-#include <HwDisplayPlane.h>
+#include "HwDisplayPlaneFbdev.h"
 
-HwDisplayPlane::HwDisplayPlane(int32_t drvFd, uint32_t id) {
+HwDisplayPlaneFbdev::HwDisplayPlaneFbdev(int32_t drvFd, uint32_t id)
+    : HwDisplayPlane() {
     mDrvFd = drvFd;
     mId = id;
     mDebugIdle = false;
     mDebugPattern = false;
 }
 
-HwDisplayPlane::~HwDisplayPlane() {
+HwDisplayPlaneFbdev::~HwDisplayPlaneFbdev() {
     close(mDrvFd);
 }
 
-void HwDisplayPlane::setDebugFlag(int dbgFlag) {
+void HwDisplayPlaneFbdev::setDebugFlag(int dbgFlag) {
     if (dbgFlag & PLANE_DBG_IDLE)
         mDebugIdle = true;
     else

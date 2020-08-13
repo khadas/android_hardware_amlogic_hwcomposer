@@ -10,7 +10,7 @@
 #include "DummyPlane.h"
 
 DummyPlane::DummyPlane(int32_t drvFd, uint32_t id)
-    : HwDisplayPlane(drvFd, id) {
+    : HwDisplayPlaneFbdev(drvFd, id) {
 }
 
 uint32_t DummyPlane::getPlaneType() {

@@ -9,9 +9,9 @@
 
 #ifndef CONNECTOR_CVBS_H
 #define CONNECTOR_CVBS_H
-#include <HwDisplayConnector.h>
+#include "HwDisplayConnectorFbdev.h"
 
-class ConnectorCvbs : public HwDisplayConnector {
+class ConnectorCvbs : public HwDisplayConnectorFbdev {
 public:
     ConnectorCvbs(int32_t drvFd, uint32_t id);
     virtual ~ConnectorCvbs();

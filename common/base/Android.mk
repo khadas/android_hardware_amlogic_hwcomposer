@@ -33,14 +33,16 @@ LOCAL_C_INCLUDES := \
     hardware/amlogic/gralloc/amlogic \
     hardware/libhardware/include \
     system/core/libsync/include \
-    $(LOCAL_PATH)/include
+    $(LOCAL_PATH)/include \
+    external/libdrm/include/drm
 
 LOCAL_STATIC_LIBRARIES := \
     hwc.utils_static
 
 LOCAL_EXPORT_C_INCLUDE_DIRS := \
     hardware/amlogic/gralloc/amlogic \
-    $(LOCAL_PATH)/include
+    $(LOCAL_PATH)/include \
+    external/libdrm/include/drm
 
 LOCAL_MODULE := hwc.base_static
 

@@ -18,7 +18,7 @@
 #define DV_SUPPORT_INFO_LEN_MAX (40)
 
 ConnectorPanel::ConnectorPanel(int32_t drvFd, uint32_t id)
-    :   HwDisplayConnector(drvFd, id) {
+    :   HwDisplayConnectorFbdev(drvFd, id) {
     parseLcdInfo();
     if (mTabletMode) {
         snprintf(mName, 64, "Tablet-%d", id);
@@ -46,7 +46,7 @@ const char * ConnectorPanel::getName() {
 }
 
 drm_connector_type_t ConnectorPanel::getType() {
-    return DRM_MODE_CONNECTOR_PANEL;
+    return DRM_MODE_CONNECTOR_LVDS;
 }
 
 bool ConnectorPanel::isRemovable() {

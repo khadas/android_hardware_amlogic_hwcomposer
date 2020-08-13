@@ -265,7 +265,7 @@ void Hwc2Display::onHotplug(bool connected) {
     /*call hotplug out of lock, SF may call some hwc function to cause deadlock.*/
     if (bSendPlugOut) {
         /* when hdmi plugout, send CONNECT message for "hdmi-only" */
-        if (mConnector && mConnector->getType() == DRM_MODE_CONNECTOR_HDMI) {
+        if (mConnector && mConnector->getType() == DRM_MODE_CONNECTOR_HDMIA) {
             mModeMgr->update();
             mObserver->onHotplug(true);
         } else {
@@ -274,7 +274,7 @@ void Hwc2Display::onHotplug(bool connected) {
     }
 
     /* switch to software vsync when hdmi plug out and no cvbs mode */
-    if (mConnector && mConnector->getType() == DRM_MODE_CONNECTOR_HDMI) {
+    if (mConnector && mConnector->getType() == DRM_MODE_CONNECTOR_HDMIA) {
         mVsync->setSoftwareMode();
     }
 }

@@ -15,12 +15,12 @@
 #include <xf86drmMode.h>
 #include <drm/drm_fourcc.h>
 #endif
-#include <HwDisplayPlane.h>
 #include <MesonLog.h>
 #include <misc.h>
 #include "AmFramebuffer.h"
+#include "HwDisplayPlaneFbdev.h"
 
-class OsdPlane : public HwDisplayPlane {
+class OsdPlane : public HwDisplayPlaneFbdev {
 public:
     OsdPlane(int32_t drvFd, uint32_t id);
     ~OsdPlane();

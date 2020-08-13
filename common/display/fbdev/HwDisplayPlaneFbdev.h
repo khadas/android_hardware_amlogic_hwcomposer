@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Amlogic, Inc. All rights reserved.
+ * Copyright (c) 2017 Amlogic, Inc. All rights reserved.
  *
  * This source code is subject to the terms and conditions defined in the
  * file 'LICENSE' which is part of this source code package.
@@ -7,17 +7,18 @@
  * Description:
  */
 
- #ifndef HW_DISPLAY_PLANE_H
-#define HW_DISPLAY_PLANE_H
+ #ifndef HW_DISPLAY_PLANE_FBDEV_H
+#define HW_DISPLAY_PLANE_FBDEV_H
 
 #include <stdlib.h>
 #include <DrmFramebuffer.h>
 #include <HwDisplayCrtc.h>
+#include <HwDisplayPlane.h>
 
-class HwDisplayPlane {
+class HwDisplayPlaneFbdev : public HwDisplayPlane {
 public:
-    HwDisplayPlane() { }
-    virtual ~HwDisplayPlane() { }
+    HwDisplayPlaneFbdev(int32_t drvFd, uint32_t id);
+    virtual ~HwDisplayPlaneFbdev();
 
     virtual const char * getName() = 0;
     virtual uint32_t getPlaneType() = 0;
@@ -37,12 +38,19 @@ public:
         PLANE_DBG_IDLE = 1 << 0,
         PLANE_DBG_PATTERN = 1 << 1,
     };
-    virtual void setDebugFlag(int dbgFlag) = 0;
+    virtual void setDebugFlag(int dbgFlag);
 
     virtual void dump(String8 & dumpstr) = 0;
 
-    virtual uint32_t getPlaneId() = 0;
+    int32_t getDrvFd() {return mDrvFd;}
+    uint32_t getPlaneId() {return mId;}
+
+protected:
+    int32_t mDrvFd;
+    uint32_t mId;
+    int32_t mCapability;
+    bool mDebugIdle;
+    bool mDebugPattern;
 };
 
  #endif/*HW_DISPLAY_PLANE_FBDEV_H*/
-

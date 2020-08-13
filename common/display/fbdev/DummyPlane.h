@@ -9,10 +9,10 @@
 
 #ifndef DUMMY_PLANE_H
 #define DUMMY_PLANE_H
-#include <HwDisplayPlane.h>
 
+#include "HwDisplayPlaneFbdev.h"
 
-class DummyPlane : public HwDisplayPlane {
+class DummyPlane : public HwDisplayPlaneFbdev {
 public:
     DummyPlane(int32_t drvFd, uint32_t id);
 

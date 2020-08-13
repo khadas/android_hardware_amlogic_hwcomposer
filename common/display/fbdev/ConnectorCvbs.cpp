@@ -8,10 +8,10 @@
  */
 
 #include <MesonLog.h>
-#include <ConnectorCvbs.h>
+#include "ConnectorCvbs.h"
 
 ConnectorCvbs::ConnectorCvbs(int32_t drvFd, uint32_t id)
-    :   HwDisplayConnector(drvFd, id) {
+    :   HwDisplayConnectorFbdev(drvFd, id) {
     snprintf(mName, 64, "CVBS-%d", id);
 }
 
@@ -44,7 +44,7 @@ const char * ConnectorCvbs::getName() {
 }
 
 drm_connector_type_t ConnectorCvbs::getType() {
-    return DRM_MODE_CONNECTOR_CVBS;
+    return DRM_MODE_CONNECTOR_TV;
 }
 
 bool ConnectorCvbs::isRemovable() {

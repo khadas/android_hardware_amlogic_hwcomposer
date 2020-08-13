@@ -56,11 +56,11 @@ int32_t LoopbackDisplayPipe::init(
 int32_t LoopbackDisplayPipe::getPipeCfg(uint32_t hwcid, PipeCfg & cfg) {
     MESON_ASSERT(hwcid == 0, "Only one display for this policy.");
     drm_connector_type_t  connector = getConnetorCfg(hwcid);
-    MESON_ASSERT(connector == DRM_MODE_CONNECTOR_PANEL, "unsupported connector config");
+    MESON_ASSERT(connector == DRM_MODE_CONNECTOR_LVDS, "unsupported connector config");
 
     if (mPostProcessor) {
         cfg.hwcCrtcId = CRTC_VOUT1;
-        cfg.hwcConnectorType = DRM_MODE_CONNECTOR_DUMMY;
+        cfg.hwcConnectorType = DRM_MODE_CONNECTOR_VIRTUAL;
         cfg.modeCrtcId = CRTC_VOUT2;
         cfg.modeConnectorType = connector;
         cfg.hwcPostprocessorType = VDIN_POST_PROCESSOR;

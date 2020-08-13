@@ -23,7 +23,7 @@
 HwcDisplayPipe::PipeStat::PipeStat(uint32_t id) {
     hwcId = id;
     cfg.hwcCrtcId = cfg.modeCrtcId = 0;
-    cfg.hwcConnectorType = cfg.modeConnectorType = DRM_MODE_CONNECTOR_INVALID;
+    cfg.hwcConnectorType = cfg.modeConnectorType = DRM_MODE_CONNECTOR_Unknown;
     cfg.hwcPostprocessorType = INVALID_POST_PROCESSOR;
 }
 
@@ -137,25 +137,25 @@ int32_t HwcDisplayPipe::getPostProcessor(
 }
 
 drm_connector_type_t HwcDisplayPipe::getConnetorCfg(uint32_t hwcid) {
-    drm_connector_type_t  connector = DRM_MODE_CONNECTOR_INVALID;
+    drm_connector_type_t  connector = DRM_MODE_CONNECTOR_Unknown;
     switch (HwcConfig::getConnectorType(hwcid)) {
         case HWC_PANEL_ONLY:
-            connector = DRM_MODE_CONNECTOR_PANEL;
+            connector = DRM_MODE_CONNECTOR_LVDS;
             break;
         case HWC_HDMI_ONLY:
-            connector = DRM_MODE_CONNECTOR_HDMI;
+            connector = DRM_MODE_CONNECTOR_HDMIA;
             break;
         case HWC_CVBS_ONLY:
-            connector = DRM_MODE_CONNECTOR_CVBS;
+            connector = DRM_MODE_CONNECTOR_TV;
             break;
         case HWC_HDMI_CVBS:
             {
                 std::shared_ptr<HwDisplayConnector> hwConnector;
-                getConnector(DRM_MODE_CONNECTOR_HDMI, hwConnector);
+                getConnector(DRM_MODE_CONNECTOR_HDMIA, hwConnector);
                 if (hwConnector->isConnected()) {
-                    connector = DRM_MODE_CONNECTOR_HDMI;
+                    connector = DRM_MODE_CONNECTOR_HDMIA;
                 } else {
-                    connector = DRM_MODE_CONNECTOR_CVBS;
+                    connector = DRM_MODE_CONNECTOR_TV;
                 }
             }
             break;
@@ -268,7 +268,7 @@ void HwcDisplayPipe::handleEvent(drm_display_event event, int val) {
             {
                 MESON_LOGD("Hdcp handle value %d.", val);
                 for (auto statIt : mPipeStats) {
-                    if (statIt.second->modeConnector->getType() == DRM_MODE_CONNECTOR_HDMI) {
+                    if (statIt.second->modeConnector->getType() == DRM_MODE_CONNECTOR_HDMIA) {
                         statIt.second->modeCrtc->update();
                         statIt.second->hwcDisplay->onUpdate((val == 0) ? false : true);
                     }
@@ -280,10 +280,10 @@ void HwcDisplayPipe::handleEvent(drm_display_event event, int val) {
                 MESON_LOGD("Hotplug handle value %d.",val);
                 bool connected = (val == 0) ? false : true;
                 for (auto statIt : mPipeStats) {
-                    if (statIt.second->modeConnector->getType() == DRM_MODE_CONNECTOR_HDMI) {
+                    if (statIt.second->modeConnector->getType() == DRM_MODE_CONNECTOR_HDMIA) {
                         statIt.second->modeConnector->update();
                         statIt.second->hwcDisplay->onHotplug(connected);
-                    } else if (statIt.second->modeConnector->getType() == DRM_MODE_CONNECTOR_CVBS) {
+                    } else if (statIt.second->modeConnector->getType() == DRM_MODE_CONNECTOR_TV) {
                         /*
                          * Now Hdmi is plugIn. Switch from cvbs to hdmi.
                          * onHotplug DISCONNECT for CVBS in onHotplug(true) of Hwc2Display.
@@ -345,7 +345,7 @@ void HwcDisplayPipe::handleEvent(drm_display_event event, int val) {
 
 int32_t HwcDisplayPipe::initDisplayMode(std::shared_ptr<PipeStat> & stat) {
     switch (stat->cfg.modeConnectorType) {
-        case DRM_MODE_CONNECTOR_CVBS:
+        case DRM_MODE_CONNECTOR_TV:
             {
                 #if 0
                 const char * cvbs_config_key = "ubootenv.var.cvbsmode";
@@ -358,12 +358,12 @@ int32_t HwcDisplayPipe::initDisplayMode(std::shared_ptr<PipeStat> & stat) {
                 #endif
             }
             break;
-        case DRM_MODE_CONNECTOR_HDMI:
+        case DRM_MODE_CONNECTOR_HDMIA:
             {
                 /*TODO:*/
             }
             break;
-        case DRM_MODE_CONNECTOR_PANEL:
+        case DRM_MODE_CONNECTOR_LVDS:
             {
                 /*TODO*/
             }

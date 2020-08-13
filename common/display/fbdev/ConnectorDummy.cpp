@@ -10,7 +10,7 @@
 #include "ConnectorDummy.h"
 
 ConnectorDummy::ConnectorDummy(int32_t drvFd, uint32_t id)
-    : HwDisplayConnector(drvFd, id) {
+    : HwDisplayConnectorFbdev(drvFd, id) {
 }
 
 ConnectorDummy::~ConnectorDummy() {
@@ -45,7 +45,7 @@ const char * ConnectorDummy::getName() {
 }
 
 drm_connector_type_t ConnectorDummy::getType() {
-    return DRM_MODE_CONNECTOR_DUMMY;
+    return DRM_MODE_CONNECTOR_VIRTUAL;
 }
 
 bool ConnectorDummy::isRemovable() {

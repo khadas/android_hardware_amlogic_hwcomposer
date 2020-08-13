@@ -7,15 +7,15 @@
  * Description:
  */
 
- #ifndef LEGACY_VIDEO_PLANE_H
-#define LEGACY_VIDEO_PLANE_H
+ #ifndef LEGACY_EXT_VIDEO_PLANE_H
+#define LEGACY_EXT_VIDEO_PLANE_H
 
-#include <HwDisplayPlane.h>
+#include "HwDisplayPlaneFbdev.h"
 
-class LegacyVideoPlane : public HwDisplayPlane {
+class LegacyExtVideoPlane : public HwDisplayPlaneFbdev {
 public:
-    LegacyVideoPlane(int32_t drvFd, uint32_t id);
-    ~LegacyVideoPlane();
+    LegacyExtVideoPlane(int32_t drvFd, uint32_t id);
+    ~LegacyExtVideoPlane();
 
     const char * getName();
     uint32_t getPlaneType();
@@ -47,8 +47,7 @@ protected:
 
     int32_t mBackupTransform;
     drm_rect_t mBackupDisplayFrame;
-    std::shared_ptr<DrmFramebuffer> mLegacyVideoFb;
-    drm_fb_type_t mVideoType;
+    std::shared_ptr<DrmFramebuffer> mLegacyExtVideoFb;
 };
 
- #endif/*LEGACY_VIDEO_PLANE_H*/
+ #endif/*LEGACY_EXT_VIDEO_PLANE_H*/

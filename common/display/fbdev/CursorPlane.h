@@ -10,11 +10,12 @@
 #ifndef CURSOR_PLANE_H
 #define CURSOR_PLANE_H
 
-#include <HwDisplayPlane.h>
 #include <MesonLog.h>
 #include "AmFramebuffer.h"
+#include "HwDisplayPlaneFbdev.h"
 
-class CursorPlane : public HwDisplayPlane {
+
+class CursorPlane : public HwDisplayPlaneFbdev {
 public:
     CursorPlane(int32_t drvFd, uint32_t id);
     ~CursorPlane();

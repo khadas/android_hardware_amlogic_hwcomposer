@@ -9,9 +9,9 @@
 
 #ifndef CONNECTOR_HDMI_H
 #define CONNECTOR_HDMI_H
-#include <HwDisplayConnector.h>
+#include "HwDisplayConnectorFbdev.h"
 
-class ConnectorHdmi : public HwDisplayConnector {
+class ConnectorHdmi : public HwDisplayConnectorFbdev {
 friend class HwDisplayCrtc;
 public:
     ConnectorHdmi(int32_t drvFd, uint32_t id);

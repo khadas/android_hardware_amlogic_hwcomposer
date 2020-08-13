@@ -14,7 +14,7 @@
 #define OSD_PATTERN_SIZE (128)
 
 OsdPlane::OsdPlane(int32_t drvFd, uint32_t id)
-    : HwDisplayPlane(drvFd, id),
+    : HwDisplayPlaneFbdev(drvFd, id),
       mBlank(false),
       mPossibleCrtcs(0),
       mDrmFb(NULL) {

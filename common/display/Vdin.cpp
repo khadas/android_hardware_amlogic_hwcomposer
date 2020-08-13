@@ -19,8 +19,9 @@
 #include <Vdin.h>
 #include <MesonLog.h>
 #include <HwDisplayCrtc.h>
-#include "AmVinfo.h"
 #include <utils/Trace.h>
+#include "fbdev/AmVinfo.h"
+
 
 ANDROID_SINGLETON_STATIC_INSTANCE(Vdin)
 

@@ -19,6 +19,14 @@
 
 #define SYSFS_DISPLAY_MODE              "/sys/class/display/mode"
 
+#define GET_CRTC_BY_CONNECTOR(type) \
+        std::shared_ptr<HwDisplayConnector> connector; \
+        HwDisplayCrtc * crtc = NULL; \
+        getHwDisplayManager()->getConnector(connector, type); \
+        if (connector) { \
+            crtc = connector->getCrtc(); \
+        } \
+
 namespace meson{
 
 using namespace std;
@@ -28,16 +36,16 @@ using BackendType = DisplayAdapter::BackendType;
 void DisplayTypeConv(drm_connector_type_t& type, ConnectorType displayType) {
     switch (displayType) {
         case DisplayAdapter::CONN_TYPE_HDMI:
-            type = DRM_MODE_CONNECTOR_HDMI;
+            type = DRM_MODE_CONNECTOR_HDMIA;
             break;
         case DisplayAdapter::CONN_TYPE_PANEL:
-            type = DRM_MODE_CONNECTOR_PANEL;
+            type = DRM_MODE_CONNECTOR_LVDS;
             break;
         case DisplayAdapter::CONN_TYPE_DUMMY:
-            type = DRM_MODE_CONNECTOR_DUMMY;
+            type = DRM_MODE_CONNECTOR_VIRTUAL;
             break;
         case DisplayAdapter::CONN_TYPE_CVBS:
-            type = DRM_MODE_CONNECTOR_CVBS;
+            type = DRM_MODE_CONNECTOR_TV;
             break;
     }
 }
@@ -79,12 +87,10 @@ bool DisplayAdapterLocal::getSupportDisplayModes(vector<DisplayModeInfo>& displa
 
 bool DisplayAdapterLocal::getDisplayMode(string& mode, ConnectorType displayType) {
     drm_connector_type_t type;
-    std::shared_ptr<HwDisplayConnector> connector;
-
     DisplayTypeConv(type, displayType);
-    getHwDisplayManager()->getConnector(connector, type);
-    if (connector && connector->mCrtc) {
-        connector->mCrtc->readCurDisplayMode(mode);
+    GET_CRTC_BY_CONNECTOR(type);
+    if (crtc) {
+        crtc->readCurDisplayMode(mode);
     }
 
     MESON_LOGV("GetDisplayMode:%s", mode.c_str());
@@ -93,17 +99,16 @@ bool DisplayAdapterLocal::getDisplayMode(string& mode, ConnectorType displayType
 
 bool DisplayAdapterLocal::setDisplayMode(const string& mode, ConnectorType displayType) {
     drm_connector_type_t type;
-    std::shared_ptr<HwDisplayConnector> connector;
     drm_mode_info_t mock;
     strncpy(mock.name, mode.c_str(), DRM_DISPLAY_MODE_LEN);
     DisplayTypeConv(type, displayType);
 
-    MESON_LOGD("SetDisplay[%s] Mode to \"%s\"", type == DRM_MODE_CONNECTOR_HDMI ? "HDMI" :
-            (type == DRM_MODE_CONNECTOR_PANEL ? "panel":"dummy"), mode.c_str());
+    MESON_LOGD("SetDisplay[%s] Mode to \"%s\"", type == DRM_MODE_CONNECTOR_HDMIA ? "HDMI" :
+            (type == DRM_MODE_CONNECTOR_LVDS ? "panel":"dummy"), mode.c_str());
 
-    getHwDisplayManager()->getConnector(connector, type);
-    if (connector && connector->mCrtc) {
-        connector->mCrtc->setMode(mock);
+    GET_CRTC_BY_CONNECTOR(type);
+    if (crtc) {
+        crtc->setMode(mock);
     } else {
         sysfs_set_string(SYSFS_DISPLAY_MODE, mode.c_str());
         MESON_LOGE("SetDisplayMode %s , no crtc", mode.c_str());
@@ -145,19 +150,19 @@ bool DisplayAdapterLocal::setDisplayRect(const Rect rect, ConnectorType displayT
     bool ret = false;
     drm_connector_type_t type;
     DisplayTypeConv(type, displayType);
-    std::shared_ptr<HwDisplayConnector> connector;
     drm_rect_wh_t drm_rect;
 
-    MESON_LOGV("SetDisplay[%s] DisplayRect to \"(%s)\"", type == DRM_MODE_CONNECTOR_HDMI ? "HDMI" :
-            (type == DRM_MODE_CONNECTOR_PANEL ? "panel" : "cvbs"), rect.toString().c_str());
+    MESON_LOGV("SetDisplay[%s] DisplayRect to \"(%s)\"", type == DRM_MODE_CONNECTOR_HDMIA ? "HDMI" :
+            (type == DRM_MODE_CONNECTOR_LVDS ? "panel" : "cvbs"), rect.toString().c_str());
 
     drm_rect.x = rect.x;
     drm_rect.y = rect.y;
     drm_rect.w = rect.w;
     drm_rect.h = rect.h;
-    getHwDisplayManager()->getConnector(connector, type);
-    if (connector && connector->mCrtc) {
-        connector->mCrtc->setViewPort(drm_rect);
+
+    GET_CRTC_BY_CONNECTOR(type);
+    if (crtc) {
+        crtc->setViewPort(drm_rect);
         ret = true;
     }
     MESON_LOGV("SetDisplayViewPort %s", ret ? "doen" : "faild");
@@ -168,14 +173,13 @@ bool DisplayAdapterLocal::getDisplayRect(Rect& rect, ConnectorType displayType) 
     bool ret = false;
     drm_connector_type_t type;
     DisplayTypeConv(type, displayType);
-    std::shared_ptr<HwDisplayConnector> connector;
     drm_rect_wh_t drm_rect;
 
-    getHwDisplayManager()->getConnector(connector, type);
-    if (connector && connector->mCrtc) {
-        connector->mCrtc->getViewPort(drm_rect);
-        DEBUG_INFO("SetDisplay[%s] view port to \"(%s)\"", type == DRM_MODE_CONNECTOR_HDMI ? "HDMI" :
-                type == DRM_MODE_CONNECTOR_PANEL ? "panel" : "cvbs", rect.toString().c_str());
+    GET_CRTC_BY_CONNECTOR(type);
+    if (crtc) {
+        crtc->getViewPort(drm_rect);
+        DEBUG_INFO("SetDisplay[%s] view port to \"(%s)\"", type == DRM_MODE_CONNECTOR_HDMIA ? "HDMI" :
+                type == DRM_MODE_CONNECTOR_LVDS ? "panel" : "cvbs", rect.toString().c_str());
         rect.x = drm_rect.x;
         rect.y = drm_rect.y;
         rect.h = drm_rect.h;
@@ -190,17 +194,15 @@ bool DisplayAdapterLocal::setDisplayAttribute(
         const string& name, const string& value,
         ConnectorType displayType) {
     bool ret = false;
-
-    drm_connector_type_t type;
-    std::shared_ptr<HwDisplayConnector> connector;
-    DisplayTypeConv(type, displayType);
-
     MESON_LOGD("SetDisplay[%s] attr to \"%s\"", name.c_str(), value.c_str());
 
-    getHwDisplayManager()->getConnector(connector, type);
-    if (connector && connector->mCrtc) {
+    drm_connector_type_t type;
+    DisplayTypeConv(type, displayType);
+
+    GET_CRTC_BY_CONNECTOR(type);
+    if (crtc) {
         string dispattr (value);
-        connector->mCrtc->setDisplayAttribute(dispattr);
+        crtc->setDisplayAttribute(dispattr);
     }
 
     return ret;
@@ -212,13 +214,10 @@ bool DisplayAdapterLocal::getDisplayAttribute(
     bool ret = false;
 
     drm_connector_type_t type;
-    std::shared_ptr<HwDisplayConnector> connector;
     DisplayTypeConv(type, displayType);
-
-
-    getHwDisplayManager()->getConnector(connector, type);
-    if (connector && connector->mCrtc) {
-        connector->mCrtc->getDisplayAttribute(value);
+    GET_CRTC_BY_CONNECTOR(type);
+    if (crtc) {
+        crtc->getDisplayAttribute(value);
     }
 
     MESON_LOGV("GetDisplay[%s] attr \"%s\"", name.c_str(), value.c_str());

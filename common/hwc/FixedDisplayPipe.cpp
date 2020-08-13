@@ -32,7 +32,7 @@ void FixedDisplayPipe::handleEvent(drm_display_event event, int val) {
         std::lock_guard<std::mutex> lock(mMutex);
         bool connected = (val == 0) ? false : true;
         std::shared_ptr<PipeStat> pipe;
-        drm_connector_type_t targetConnector = DRM_MODE_CONNECTOR_INVALID;
+        drm_connector_type_t targetConnector = DRM_MODE_CONNECTOR_Unknown;
         for (auto statIt : mPipeStats) {
             hwc_connector_t connectorType = HwcConfig::getConnectorType((int)statIt.first);
             pipe = statIt.second;
@@ -44,12 +44,12 @@ void FixedDisplayPipe::handleEvent(drm_display_event event, int val) {
 
             if (connectorType == HWC_HDMI_CVBS) {
                 targetConnector = connected ?
-                    DRM_MODE_CONNECTOR_HDMI : DRM_MODE_CONNECTOR_CVBS;
+                    DRM_MODE_CONNECTOR_HDMIA : DRM_MODE_CONNECTOR_TV;
 
                 MESON_LOGD("handleEvent  DRM_EVENT_HDMITX_HOTPLUG %d VS %d",
                     pipe->cfg.hwcConnectorType, targetConnector);
                 if (pipe->cfg.hwcConnectorType != targetConnector &&
-                        pipe->cfg.hwcConnectorType == DRM_MODE_CONNECTOR_CVBS) {
+                        pipe->cfg.hwcConnectorType == DRM_MODE_CONNECTOR_TV) {
                     #if 0 /*TODO: for fixed pipe, let systemcontrol to set displaymode.*/
                     pipe->hwcCrtc->unbind();
                     pipe->modeCrtc->unbind();
@@ -90,14 +90,14 @@ int32_t FixedDisplayPipe::getPipeCfg(uint32_t hwcid, PipeCfg & cfg) {
 
 drm_connector_type_t FixedDisplayPipe::getConnetorCfg(uint32_t hwcid) {
     drm_connector_type_t  connector = HwcDisplayPipe::getConnetorCfg(hwcid);
-    if (connector == DRM_MODE_CONNECTOR_INVALID ||
-            connector == DRM_MODE_CONNECTOR_CVBS) {
+    if (connector == DRM_MODE_CONNECTOR_Unknown ||
+            connector == DRM_MODE_CONNECTOR_TV) {
         std::shared_ptr<HwDisplayConnector> hwConnector;
-        getConnector(DRM_MODE_CONNECTOR_HDMI, hwConnector);
+        getConnector(DRM_MODE_CONNECTOR_HDMIA, hwConnector);
         if (hwConnector->isConnected() || hasHdmiConnected()) {
-            connector = DRM_MODE_CONNECTOR_HDMI;
+            connector = DRM_MODE_CONNECTOR_HDMIA;
         } else {
-            connector = DRM_MODE_CONNECTOR_CVBS;
+            connector = DRM_MODE_CONNECTOR_TV;
         }
     }
 

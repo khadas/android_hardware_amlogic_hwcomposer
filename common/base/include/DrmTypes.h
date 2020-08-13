@@ -13,6 +13,7 @@
 #include <stdint.h>
 #include <sys/cdefs.h>
 #include <system/graphics-base.h>
+#include <drm_mode.h>
 
 /* blend mode for compoistion or display.
  * The define is same as hwc2_blend_mode.
@@ -80,10 +81,6 @@ typedef enum drm_fb_type {
     DRM_FB_VIDEO_TUNNEL_SIDEBAND_SECOND,
 } drm_fb_type_t;
 
-#ifndef DRM_DISPLAY_MODE_LEN
-#define DRM_DISPLAY_MODE_LEN (64)
-#endif
-
 typedef struct drm_mode_info {
     char name[DRM_DISPLAY_MODE_LEN];
     uint32_t dpiX, dpiY;
@@ -127,13 +124,7 @@ typedef enum {
     DRM_EVENT_ALL = 0xFF
 } drm_display_event;
 
-typedef enum {
-    DRM_MODE_CONNECTOR_HDMI = 0,
-    DRM_MODE_CONNECTOR_CVBS,
-    DRM_MODE_CONNECTOR_PANEL,
-    DRM_MODE_CONNECTOR_DUMMY,
-    DRM_MODE_CONNECTOR_INVALID = 0xFF,
-} drm_connector_type_t;
+typedef uint32_t drm_connector_type_t;
 
 typedef struct drm_hdr_capabilities {
     bool DolbyVisionSupported;

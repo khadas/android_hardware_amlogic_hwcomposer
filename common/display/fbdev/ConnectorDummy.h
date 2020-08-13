@@ -8,9 +8,9 @@
  */
 #ifndef CONNECTOR_DUMMY_H
 #define CONNECTOR_DUMMY_H
-#include <HwDisplayConnector.h>
+#include "HwDisplayConnectorFbdev.h"
 
-class ConnectorDummy :public HwDisplayConnector {
+class ConnectorDummy :public HwDisplayConnectorFbdev {
 public:
     ConnectorDummy(int32_t drvFd, uint32_t id);
     ~ConnectorDummy();

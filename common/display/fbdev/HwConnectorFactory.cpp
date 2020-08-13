@@ -19,16 +19,16 @@ std::shared_ptr<HwDisplayConnector> HwConnectorFactory::create(
     uint32_t connectorId) {
     std::shared_ptr<HwDisplayConnector> connector = NULL;
     switch (connectorType) {
-        case DRM_MODE_CONNECTOR_HDMI:
+        case DRM_MODE_CONNECTOR_HDMIA:
             connector =  std::make_shared<ConnectorHdmi>(connectorDrv, connectorId);
             break;
-        case DRM_MODE_CONNECTOR_PANEL:
+        case DRM_MODE_CONNECTOR_LVDS:
             connector =  std::make_shared<ConnectorPanel>(connectorDrv, connectorId);
             break;
-        case DRM_MODE_CONNECTOR_DUMMY:
+        case DRM_MODE_CONNECTOR_VIRTUAL:
             connector =  std::make_shared<ConnectorDummy>(connectorDrv, connectorId);
             break;
-        case DRM_MODE_CONNECTOR_CVBS:
+        case DRM_MODE_CONNECTOR_TV:
             connector =  std::make_shared<ConnectorCvbs>(connectorDrv, connectorId);
             break;
         default:

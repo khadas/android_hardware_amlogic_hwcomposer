@@ -6,41 +6,46 @@
  * Description:
  */
 
-#include <HwDisplayConnector.h>
 #include <HwDisplayCrtc.h>
 #include <MesonLog.h>
 #include "AmVinfo.h"
+#include "HwDisplayConnectorFbdev.h"
 
-HwDisplayConnector::HwDisplayConnector(int32_t drvFd, uint32_t id) {
+HwDisplayConnectorFbdev::HwDisplayConnectorFbdev(int32_t drvFd, uint32_t id)
+    : HwDisplayConnector() {
     mDrvFd = drvFd;
     mId = id;
     mCrtc = nullptr;
 }
 
-HwDisplayConnector::~HwDisplayConnector() {
+HwDisplayConnectorFbdev::~HwDisplayConnectorFbdev() {
 }
 
-int32_t HwDisplayConnector::setCrtc(HwDisplayCrtc * crtc) {
+int32_t HwDisplayConnectorFbdev::setCrtc(HwDisplayCrtc * crtc) {
     mCrtc = crtc;
     return 0;
 }
 
-int32_t HwDisplayConnector::getModes(
+HwDisplayCrtc * HwDisplayConnectorFbdev::getCrtc() {
+    return mCrtc;
+}
+
+int32_t HwDisplayConnectorFbdev::getModes(
     std::map<uint32_t, drm_mode_info_t> & modes) {
     modes = mDisplayModes;
     return 0;
 }
 
-int32_t HwDisplayConnector::getIdentificationData(std::vector<uint8_t>& idOut) {
+int32_t HwDisplayConnectorFbdev::getIdentificationData(std::vector<uint8_t>& idOut) {
     (void) idOut;
     return -ENOSYS;
 }
 
-void HwDisplayConnector::getSupportedContentTypes(std::vector<uint32_t>& supportedContentTypesOut) {
+void HwDisplayConnectorFbdev::getSupportedContentTypes(std::vector<uint32_t>& supportedContentTypesOut) {
     supportedContentTypesOut = mSupportedContentTypes;
 }
 
-int32_t HwDisplayConnector::setAutoLowLatencyMode(bool on) {
+int32_t HwDisplayConnectorFbdev::setAutoLowLatencyMode(bool on) {
     if (on) {
         return -ENOENT;
     } else {
@@ -48,7 +53,7 @@ int32_t HwDisplayConnector::setAutoLowLatencyMode(bool on) {
     }
 }
 
-int32_t HwDisplayConnector::setContentType(uint32_t contentType) {
+int32_t HwDisplayConnectorFbdev::setContentType(uint32_t contentType) {
     switch (contentType) {
         case CONTENT_TYPE_NONE:
             return 0;
@@ -57,7 +62,7 @@ int32_t HwDisplayConnector::setContentType(uint32_t contentType) {
     }
 }
 
-void HwDisplayConnector::loadPhysicalSize() {
+void HwDisplayConnectorFbdev::loadPhysicalSize() {
     struct vinfo_base_s info;
     if (!mCrtc)
         MESON_LOGE("loadPhysicalSize with non crtc, use CRTC 1.");
@@ -73,7 +78,7 @@ void HwDisplayConnector::loadPhysicalSize() {
     MESON_LOGI("readDisplayPhySize physical size (%d x %d)", mPhyWidth, mPhyHeight);
 }
 
-int32_t HwDisplayConnector::addDisplayMode(std::string& mode) {
+int32_t HwDisplayConnectorFbdev::addDisplayMode(std::string& mode) {
     vmode_e vmode = vmode_name_to_mode(mode.c_str());
     struct vinfo_s info;
     const struct vinfo_s* vinfo = NULL;

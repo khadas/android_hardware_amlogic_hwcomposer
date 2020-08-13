@@ -15,7 +15,7 @@
 #define CUSOR_BPP (4)
 
 CursorPlane::CursorPlane(int32_t drvFd, uint32_t id)
-    : HwDisplayPlane(drvFd, id),
+    : HwDisplayPlaneFbdev(drvFd, id),
       mLastTransform(0),
       mBlank(true),
       mDrmFb(NULL) {

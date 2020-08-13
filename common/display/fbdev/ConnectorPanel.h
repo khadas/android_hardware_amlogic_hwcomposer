@@ -9,9 +9,9 @@
 
 #ifndef _CONNECTORPANEL_H
 #define _CONNECTORPANEL_H
-#include <HwDisplayConnector.h>
+#include "HwDisplayConnectorFbdev.h"
 
-class ConnectorPanel :public HwDisplayConnector {
+class ConnectorPanel :public HwDisplayConnectorFbdev {
 public:
     ConnectorPanel(int32_t drvFd, uint32_t id);
     virtual ~ConnectorPanel();

@@ -6,13 +6,12 @@
  *
  * Description:
  */
-
-#include <MesonLog.h>
-#include "HwcVideoPlane.h"
-#include "AmFramebuffer.h"
 #include <DebugHelper.h>
-#include <OmxUtil.h>
+#include <MesonLog.h>
 #include <misc.h>
+
+#include "fbdev/AmFramebuffer.h"
+#include "HwcVideoPlane.h"
 
 
 inline bool isSidebandVideo(drm_fb_type_t fbtype) {
@@ -26,7 +25,10 @@ inline bool isSidebandVideo(drm_fb_type_t fbtype) {
 }
 
 HwcVideoPlane::HwcVideoPlane(int32_t drvFd, uint32_t id)
-    : HwDisplayPlane(drvFd, id) {
+    : HwDisplayPlane() {
+    mDrvFd = drvFd;
+    mId = id;
+
     snprintf(mName, 64, "HwcVideo-%d", id);
     mDisplayedVideoType = DRM_FB_UNDEFINED;
     memset(mAmVideosPath, 0, sizeof(mAmVideosPath));
@@ -214,6 +216,14 @@ int32_t HwcVideoPlane::setPlane(
 
     mBlank = bBlank;
     return 0;
+}
+
+void HwcVideoPlane::setDebugFlag(int dbgFlag __unused) {
+    return ;
+}
+
+uint32_t HwcVideoPlane::getPlaneId() {
+    return mId;
 }
 
 void HwcVideoPlane::dump(String8 & dumpstr) {

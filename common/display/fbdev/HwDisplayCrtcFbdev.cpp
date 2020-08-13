@@ -26,7 +26,7 @@ static vframe_master_display_colour_s_t nullHdr;
 #define VIU_DISPLAY_ATTR_SYSFS "/sys/class/amhdmitx/amhdmitx0/attr"
 
 HwDisplayCrtcFbdev::HwDisplayCrtcFbdev(int drvFd, int32_t id)
-    : HwDisplayCrtc(drvFd, id) {
+    : HwDisplayCrtc() {
     MESON_ASSERT(id == CRTC_VOUT1 || id == CRTC_VOUT2, "Invalid crtc id %d", id);
 
     mId = id;
