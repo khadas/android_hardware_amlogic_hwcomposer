@@ -12,6 +12,7 @@
 
 #include "fbdev/AmFramebuffer.h"
 #include "HwcVideoPlane.h"
+#include <fcntl.h>
 
 
 inline bool isSidebandVideo(drm_fb_type_t fbtype) {

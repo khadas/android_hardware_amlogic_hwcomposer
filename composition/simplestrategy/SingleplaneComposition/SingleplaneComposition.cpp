@@ -11,6 +11,7 @@
 #include <DrmTypes.h>
 #include <MesonLog.h>
 #include "HwcVideoPlane.h"
+#include <fcntl.h>
 #include <sys/ioctl.h>
 
 

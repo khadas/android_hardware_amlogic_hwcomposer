@@ -12,6 +12,7 @@
 #include "MultiplanesWithDiComposition.h"
 #include <DrmTypes.h>
 #include <MesonLog.h>
+#include <fcntl.h>
 #include <sys/ioctl.h>
 #include "HwcVideoPlane.h"
 #include "am_gralloc_ext.h"

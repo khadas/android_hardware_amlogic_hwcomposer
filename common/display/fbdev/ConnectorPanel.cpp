@@ -12,6 +12,7 @@
 #include <MesonLog.h>
 #include "AmFramebuffer.h"
 #include "AmVinfo.h"
+#include <fcntl.h>
 #include <string>
 #include <systemcontrol.h>
 
