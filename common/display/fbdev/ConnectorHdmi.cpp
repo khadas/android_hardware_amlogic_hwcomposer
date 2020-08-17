@@ -255,9 +255,6 @@ int32_t ConnectorHdmi::loadSupportedContentTypes() {
         return -EFAULT;
     }
 
-    // TODO: Remove this line once the content types files appear in the hdmi directory.
-    strcat(supportedContentTypes, "game");
-
     for (int i = 0; i < CONTENT_TYPES.size(); i++) {
         if (strstr(supportedContentTypes, CONTENT_TYPES[i].c_str())) {
             MESON_LOGD("ConnectorHdmi reports support for content type %s", CONTENT_TYPES[i].c_str());
