@@ -20,3 +20,7 @@ cc_binary {
 
     clang: true,
 }
+
+subdirs = [
+    "unittests",
+]

@@ -76,7 +76,7 @@ static int meson_vt_control(int fd, int tunnel_id, enum vt_role_e role, enum vt_
     struct vt_ctrl_data data = {
         .tunnel_id = tunnel_id,
         .role = role,
-        .cmd = cmd,
+        .ctrl_cmd = cmd,
     };
 
     return meson_vt_ioctl(fd, VT_IOC_CTRL, &data);
@@ -302,6 +302,64 @@ int meson_vt_release_buffer(int fd, int tunnel_id, int buffer_fd, int fence_fd) 
     /* fence fd has transfered to prodouce, now close it */
     if (fence_fd > 0)
         close(fence_fd);
+
+    return ret;
+}
+
+/*
+ * Send video cmd to server (hwc) and may wait for reply on some GET_STATUS cmd
+ *
+ * @param fd            [in] Videotunnel device fd
+ * @param cmd           [in] video cmd to send to hwc
+ * @param cmd_data      [in/out] cmd_data
+ *
+ * Return of 0 means the operation completed as normal.
+ * -EINVAL - invalid param
+ * -EAGAIN - no reply from server (a timeout 4ms may be happened)
+ */
+int meson_vt_send_cmd(int fd, int tunnel_id, enum vt_cmd cmd, int cmd_data) {
+    enum vt_video_cmd_e vcmd = (cmd == VT_CMD_SET_VIDEO_STATUS ?
+            VT_VIDEO_SET_STATUS : VT_VIDEO_GET_STATUS);
+
+    struct vt_ctrl_data data = {
+        .tunnel_id = tunnel_id,
+        .ctrl_cmd = VT_CTRL_SEND_CMD,
+        .video_cmd = vcmd,
+        .video_cmd_data = cmd_data,
+    };
+
+    return meson_vt_ioctl(fd, VT_IOC_CTRL, &data);
+}
+
+/*
+ * get video cmd from client
+ *
+ * @param fd            [in] Videotunnel device fd
+ * @param cmd           [in] video cmd to send to hwc
+ * @param cmd_data      [out] cmd_data
+ * @param client_id     [out] client pid who send the cmd
+ *
+ * Return of 0 means the operation completed as normal.
+ * -EAGAIN - no cmd from client (a timeout 4ms may be happened)
+ */
+int meson_vt_recv_cmd(int fd, int tunnel_id, enum vt_cmd *cmd, int *cmd_data, int *client_id) {
+    int ret;
+
+    struct vt_ctrl_data data = {
+        .tunnel_id = tunnel_id,
+        .ctrl_cmd = VT_CTRL_RECV_CMD,
+    };
+
+    ret = meson_vt_ioctl(fd, VT_IOC_CTRL, &data);
+
+    if (ret < 0)
+        return ret;
+
+    *cmd = (data.video_cmd == VT_VIDEO_SET_STATUS ?
+            VT_CMD_SET_VIDEO_STATUS : VT_CMD_GET_VIDEO_STATUS);
+
+    *cmd_data = data.video_cmd_data;
+    *client_id = data.client_id;
 
     return ret;
 }

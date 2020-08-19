@@ -14,43 +14,31 @@
 extern "C" {
 #endif
 
-/* open /dev/videotunnel device and return the opened fd */
+enum vt_cmd {
+    VT_CMD_SET_VIDEO_STATUS,
+    VT_CMD_GET_VIDEO_STATUS,
+};
+
 int meson_vt_open();
-
-/* close the videotunnel device */
 int meson_vt_close(int fd);
-
-/* Allocate an unique videotunnel id. */
 int meson_vt_alloc_id(int fd, int *tunnel_id);
-
-/* Free the videotunnel id previous allocated by meson_vt_alloc_id */
 int meson_vt_free_id(int fd, int tunnel_id);
-
-/* Connect a consumer or a producer to the sepecific videotunnel. */
 int meson_vt_connect(int fd, int tunnel_id, int role);
-
-/* Disconnect a consumer or a producer from the sepecific videotunnel. */
 int meson_vt_disconnect(int fd, int tunnel_id, int role);
 
 /* for producer */
-/*
- * QueueBuffer indicates the producer has finished filling in the contents
- * of the buffer and transfer ownership of the buffer to consumer.
- */
 int meson_vt_queue_buffer(int fd, int tunnel_id, int buffer_fd, int fence_fd);
-
-/*
- * DequeueBuffer requests a buffer from videotunnel to use.
- * Ownership of the buffer is transfered to the producer.
- */
 int meson_vt_dequeue_buffer(int fd, int tunnel_id, int *buffer_fd, int *fence_fd);
 
 /* for consumer */
-/* Acquire buffer attemps to acquire ownership of the next pending buffer in the videotunnel. */
 int meson_vt_acquire_buffer(int fd, int tunnel_id, int *buffer_fd, int *fence_fd);
-
-/*Release buffer releases a buffer from the cosumer back to the videotunnel. */
 int meson_vt_release_buffer(int fd, int tunnel_id, int buffer_fd, int fence_fd);
+
+/* for video cmd */
+int meson_vt_send_cmd(int fd, int tunnel_id, enum vt_cmd cmd, int cmd_data);
+int meson_vt_recv_cmd(int fd, int tunnel_id, enum vt_cmd *cmd, int *cmd_data, int *client_id);
+
+//int meson_vt_reply_cmd(int fd, enum vt_cmd cmd, int cmd_data, int client_id);
 
 #ifdef __cplusplus
 }

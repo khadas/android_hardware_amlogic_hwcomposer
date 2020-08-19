@@ -1,0 +1,21 @@
+cc_test {
+    name: "videotunneltest",
+    srcs: [
+        "VideoTunnelTest.cpp",
+        "VTBufferItem.cpp",
+        "VideoTunnelConsumer.cpp",
+        "VideoTunnelProducer.cpp",
+    ],
+
+    shared_libs: [
+        "liblog",
+        "libcutils",
+        "libutils",
+        "libvideotunnel",
+    ],
+
+    static_libs: [
+        "libgmock",
+        "libgtest",
+    ],
+}
