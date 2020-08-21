@@ -61,25 +61,6 @@ const char * drmFbTypeToString(drm_fb_type_t fbtype) {
     return typeStr;
 }
 
-const char * drmPlaneTypeToString(drm_plane_type_t planetype) {
-    switch (planetype) {
-        case INVALID_PLANE:
-            return "NULL";
-        case OSD_PLANE:
-            return "OSD";
-        case CURSOR_PLANE:
-            return "CURSOR";
-        case LEGACY_VIDEO_PLANE:
-            return "AmVideo";
-        case LEGACY_EXT_VIDEO_PLANE:
-            return "AmExtVideo";
-        case HWC_VIDEO_PLANE:
-            return "HwcVideo";
-        default:
-            return "UNKNOWN";
-    }
-}
-
 const char * drmPlaneBlankToString(drm_plane_blank_t blankType) {
     const char * typeStr;
     switch (blankType) {

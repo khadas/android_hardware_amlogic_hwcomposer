@@ -25,29 +25,28 @@ public:
     HwDisplayCrtc() { }
     virtual ~HwDisplayCrtc() {}
 
+    virtual int32_t getId() = 0;
+
     virtual int32_t bind(std::shared_ptr<HwDisplayConnector>  connector,
                    std::vector<std::shared_ptr<HwDisplayPlane>> planes) = 0;
     virtual int32_t unbind() = 0;
 
-    /*load the fixed informations: displaymode list, hdr cap, etc...*/
-    virtual int32_t loadProperities() = 0;
-    virtual int32_t getHdrMetadataKeys(std::vector<drm_hdr_meatadata_t> & keys) = 0;
-
-    /*update the dynamic informations, current display mode now.*/
+    /*update informations, current display mode now.*/
     virtual int32_t update() = 0;
+
+    /*for hdr metadata.*/
+    virtual int32_t getHdrMetadataKeys(std::vector<drm_hdr_meatadata_t> & keys) = 0;
     virtual int32_t setHdrMetadata(std::map<drm_hdr_meatadata_t, float> & hdrmedata) = 0;
 
-    /*get current display mode.*/
+    /*get/set current display mode.*/
     virtual int32_t getMode(drm_mode_info_t & mode) = 0;
-    /*set current display mode.*/
     virtual int32_t setMode(drm_mode_info_t & mode) = 0;
+
     /* set current display attribute */
     virtual  int32_t setDisplayAttribute(std::string& dispattr) = 0;
     virtual  int32_t getDisplayAttribute(std::string& dispattr) = 0;
 
     virtual int32_t waitVBlank(nsecs_t & timestamp) = 0;
-
-    virtual int32_t getId() = 0;
 
     /*Functions for compose & pageflip*/
     /*set the crtc display axis, and source axis,

@@ -32,11 +32,6 @@ drm_connector_type_t DrmConnector::getType() {
     return 0;
 }
 
-int32_t DrmConnector::loadProperities() {
-    MESON_LOG_EMPTY_FUN();
-    return 0;
-}
-
 int32_t DrmConnector::update() {
     MESON_LOG_EMPTY_FUN();
     return 0;

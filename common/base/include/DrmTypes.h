@@ -87,6 +87,7 @@ typedef struct drm_mode_info {
     uint32_t pixelW, pixelH;
     float refreshRate;
 } drm_mode_info_t;
+
 #define DRM_DISPLAY_MODE_NULL ("null")
 
 typedef enum {
@@ -187,7 +188,6 @@ typedef struct display_zoom_info {
 /*the invalid zorder value defination.*/
 #define INVALID_ZORDER 0xFFFFFFFF
 
-const char * drmPlaneTypeToString(drm_plane_type_t planetype);
 const char * drmFbTypeToString(drm_fb_type_t fbtype);
 const char * drmPlaneBlankToString(drm_plane_blank_t planetype);
 

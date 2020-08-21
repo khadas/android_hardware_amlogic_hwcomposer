@@ -27,8 +27,7 @@ public:
                    std::vector<std::shared_ptr<HwDisplayPlane>> planes);
     int32_t unbind();
 
-    /*load the fixed informations: displaymode list, hdr cap, etc...*/
-    int32_t loadProperities();
+    /*load informations: displaymode list, hdr cap, etc...*/
     int32_t getHdrMetadataKeys(std::vector<drm_hdr_meatadata_t> & keys);
 
     /*update the dynamic informations, current display mode now.*/

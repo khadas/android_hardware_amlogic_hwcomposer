@@ -88,25 +88,6 @@ int32_t HwDisplayCrtcDrm::unbind() {
     return 0;
 }
 
-int32_t HwDisplayCrtcDrm::loadProperities() {
-    /*load static information when pipeline present.*/
-    {
-        std::lock_guard<std::mutex> lock(mMutex);
-        MESON_ASSERT(mConnector, "Crtc need setuped before load Properities.");
-        mConnector->loadProperities();
-        mModes.clear();
-        mConnected = mConnector->isConnected();
-        if (mConnected) {
-            mConnector->getModes(mModes);
-            /*TODO: add display mode filter here
-            * to remove unsupported displaymode.
-            */
-        }
-    }
-
-    return 0;
-}
-
 int32_t HwDisplayCrtcDrm::getId() {
     return mId;
 }
@@ -146,6 +127,21 @@ int32_t HwDisplayCrtcDrm::waitVBlank(nsecs_t & timestamp __unused) {
 }
 
 int32_t HwDisplayCrtcDrm::update() {
+    /*load static information when pipeline present.*/
+    {
+        std::lock_guard<std::mutex> lock(mMutex);
+        MESON_ASSERT(mConnector, "Crtc need setuped before load Properities.");
+        mConnector->loadProperities();
+        mModes.clear();
+        mConnected = mConnector->isConnected();
+        if (mConnected) {
+            mConnector->getModes(mModes);
+            /*TODO: add display mode filter here
+            * to remove unsupported displaymode.
+            */
+        }
+    }
+
     /*update dynamic information which may change.*/
     std::lock_guard<std::mutex> lock(mMutex);
     memset(&mCurModeInfo, 0, sizeof(drm_mode_info_t));

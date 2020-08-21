@@ -52,27 +52,15 @@ ConnectorHdmi::ConnectorHdmi(int32_t drvFd, uint32_t id)
 ConnectorHdmi::~ConnectorHdmi() {
 }
 
-int32_t ConnectorHdmi::loadProperities() {
+int32_t ConnectorHdmi::update() {
     MESON_LOG_FUN_ENTER();
-    update();
-    loadCurrentHdrType();
-
+    mConnected = checkConnectState();
     if (mConnected) {
         loadPhysicalSize();
         loadDisplayModes();
         loadSupportedContentTypes();
         parseHdrCapabilities();
         parseEDID();
-    }
-
-    MESON_LOG_FUN_LEAVE();
-    return 0;
-}
-
-int32_t ConnectorHdmi::update() {
-    MESON_LOG_FUN_ENTER();
-    mConnected = checkConnectState();
-    if (mConnected) {
         get_hdmitx_hdcp_state(mSecure);
     }
 
@@ -295,6 +283,7 @@ int32_t ConnectorHdmi::setContentType(uint32_t contentType) {
 }
 
 std::string ConnectorHdmi::getCurrentHdrType() {
+    loadCurrentHdrType();
     return mCurrentHdrType;
 }
 

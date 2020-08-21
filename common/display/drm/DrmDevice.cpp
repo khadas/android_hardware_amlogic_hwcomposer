@@ -7,13 +7,12 @@
  * Description:
  */
 #include <drm.h>
-#include <xf86drm.h>
-#include <xf86drmMode.h>
 
 #include <MesonLog.h>
 #include <HwcVideoPlane.h>
 
 #include "DrmDevice.h"
+#include "DrmCrtc.h"
 
 #define MESON_DRM_DRIVER_NAME "meson"
 
@@ -92,9 +91,8 @@ int32_t DrmDevice::loadDrmResources() {
     for (int i = 0; i < drmRes->count_crtcs; i++) {
         drmModeCrtcPtr metadata = drmModeGetCrtc(
             mDrmFd, drmRes->crtcs[i]);
-
-
-
+        std::shared_ptr<HwDisplayCrtc> crtc = std::make_shared<DrmCrtc>(metadata);
+        mCrtcs.push_back(std::move(crtc));
         drmModeFreeCrtc(metadata);
     }
     /*Connectors*/

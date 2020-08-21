@@ -16,7 +16,6 @@ public:
     ConnectorPanel(int32_t drvFd, uint32_t id);
     virtual ~ConnectorPanel();
 
-    virtual int32_t loadProperities();
     virtual int32_t update();
 
     virtual const char * getName();

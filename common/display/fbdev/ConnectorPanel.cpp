@@ -31,14 +31,10 @@ ConnectorPanel::ConnectorPanel(int32_t drvFd, uint32_t id)
 ConnectorPanel::~ConnectorPanel() {
 }
 
-int32_t ConnectorPanel::loadProperities() {
+int32_t ConnectorPanel::update() {
     loadPhysicalSize();
     loadDisplayModes();
     parseHdrCapabilities();
-    return 0;
-}
-
-int32_t ConnectorPanel::update() {
     return 0;
 }
 

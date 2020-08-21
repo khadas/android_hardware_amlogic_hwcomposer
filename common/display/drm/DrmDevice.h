@@ -11,8 +11,11 @@
 #define DRM_DEVICE_H
 
 #include <time.h>
+#include <xf86drm.h>
+#include <xf86drmMode.h>
 
 #include <BasicTypes.h>
+#include <DrmTypes.h>
 #include <HwDisplayManager.h>
 
 class DrmDevice : public HwDisplayManager {

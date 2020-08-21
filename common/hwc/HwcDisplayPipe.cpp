@@ -216,16 +216,16 @@ int32_t HwcDisplayPipe::updatePipe(std::shared_ptr<PipeStat> & stat) {
         MESON_LOGD("HwcDisplayPipe::updatePipe %d changed", stat->hwcId);
         stat->hwcCrtc->unbind();
         stat->hwcCrtc->bind(stat->hwcConnector, stat->hwcPlanes);
-        stat->hwcCrtc->loadProperities();
         stat->hwcCrtc->update();
+        stat->hwcConnector->update();
 
         if (cfg.modeCrtcId != cfg.hwcCrtcId) {
             std::vector<std::shared_ptr<HwDisplayPlane>> planes;
             getPlanes (cfg.modeCrtcId,  planes);
             stat->modeCrtc->unbind();
             stat->modeCrtc->bind(stat->modeConnector, planes);
-            stat->modeCrtc->loadProperities();
             stat->modeCrtc->update();
+            stat->modeConnector->update();
         }
 
         stat->modeMgr->setDisplayResources(stat->modeCrtc, stat->modeConnector);
@@ -309,7 +309,6 @@ void HwcDisplayPipe::handleEvent(drm_display_event event, int val) {
                         crtcid = CRTC_VOUT2;
                     for (auto statIt : mPipeStats) {
                         if (statIt.second->modeCrtc->getId() == crtcid) {
-                            statIt.second->modeCrtc->loadProperities();
                             statIt.second->modeCrtc->update();
                             statIt.second->modeMgr->update();
                             statIt.second->hwcDisplay->onModeChanged(val);

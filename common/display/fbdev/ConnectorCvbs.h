@@ -16,7 +16,6 @@ public:
     ConnectorCvbs(int32_t drvFd, uint32_t id);
     virtual ~ConnectorCvbs();
 
-    virtual int32_t loadProperities();
     virtual int32_t update();
 
     virtual const char * getName();

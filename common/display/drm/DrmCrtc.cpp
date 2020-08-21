@@ -11,37 +11,48 @@
 
  #include "DrmCrtc.h"
 
-DrmCrtc::DrmCrtc()
-: HwDisplayCrtc() {
+DrmCrtc::DrmCrtc(drmModeCrtcPtr p)
+    : HwDisplayCrtc() {
+    mId = p->crtc_id;
+    if (p->mode_valid) {
+        mMode = p->mode;
+    } else {
+        memset(&mMode, 0, sizeof(drmModeModeInfo));
+    }
 
+    mConnector.reset();
 }
 
 DrmCrtc::~DrmCrtc() {
+    mConnector.reset();
 
+}
+
+int32_t DrmCrtc::getId() {
+    return mId;
 }
 
 int32_t DrmCrtc::bind(
     std::shared_ptr<HwDisplayConnector>  connector,
     std::vector<std::shared_ptr<HwDisplayPlane>> planes) {
-    UNUSED(connector);
+    mConnector = connector;
     UNUSED(planes);
     MESON_LOG_EMPTY_FUN();
     return 0;
 }
 
 int32_t DrmCrtc::unbind() {
-    return 0;
-}
-
-int32_t DrmCrtc::loadProperities() {
+    mConnector.reset();
+    MESON_LOG_EMPTY_FUN();
     return 0;
 }
 
 int32_t DrmCrtc::update() {
-    return 0;
-}
+    std::lock_guard<std::mutex> lock(mMutex);
+    MESON_ASSERT(mConnector, "Crtc need setuped before load Properities.");
 
-int32_t DrmCrtc::getId() {
+
+    MESON_LOGE("DrmCrtc::update nothing to do.");
     return 0;
 }
 

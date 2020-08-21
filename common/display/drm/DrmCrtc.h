@@ -10,43 +10,42 @@
 #define DRM_CRTC_H
 
 #include <stdlib.h>
+#include <xf86drm.h>
+#include <xf86drmMode.h>
+
 #include <DrmTypes.h>
 #include <BasicTypes.h>
 #include <HwDisplayCrtc.h>
 #include <HwDisplayConnector.h>
 #include <HwDisplayPlane.h>
 
-
-#include "DrmPlane.h"
-#include "DrmConnector.h"
-
 class DrmCrtc : public HwDisplayCrtc {
 public:
-    DrmCrtc();
+    DrmCrtc(drmModeCrtcPtr p);
     ~DrmCrtc();
+
+    int32_t getId();
 
     int32_t bind(std::shared_ptr<HwDisplayConnector>  connector,
                    std::vector<std::shared_ptr<HwDisplayPlane>> planes);
     int32_t unbind();
 
-    int32_t loadProperities();
     int32_t update();
 
-    int32_t getId();
     int32_t getMode(drm_mode_info_t & mode);
     int32_t setMode(drm_mode_info_t & mode);
 
     int32_t waitVBlank(nsecs_t & timestamp);
     int32_t pageFlip(int32_t & out_fence);
 
-    void setViewPort(const drm_rect_wh_t viewPort);
-    void getViewPort(drm_rect_wh_t & viewPort);
 
     /*TODO:should refact*/
     int32_t readCurDisplayMode(std::string & dispmode __unused) { MESON_LOG_EMPTY_FUN(); return 0; }
     int32_t setDisplayAttribute(std::string& dispattr __unused) { MESON_LOG_EMPTY_FUN(); return 0; }
     int32_t getDisplayAttribute(std::string& dispattr __unused) { MESON_LOG_EMPTY_FUN(); return 0; }
     int32_t writeCurDisplayAttr(std::string & dispattr __unused) { MESON_LOG_EMPTY_FUN(); return 0; }
+    void setViewPort(const drm_rect_wh_t viewPort);
+    void getViewPort(drm_rect_wh_t & viewPort);
 
     /*unused function only for FBDEV*/
     int32_t setDisplayFrame(display_zoom_info_t & info __unused) { return 0; }
@@ -55,8 +54,10 @@ public:
     int32_t setHdrMetadata(std::map<drm_hdr_meatadata_t, float> & hdrmedata __unused) { return 0; }
 
 protected:
+    uint32_t mId;
+    drmModeModeInfo mMode;
 
-
+    std::shared_ptr<HwDisplayConnector>  mConnector;
 
 protected:
     std::mutex mMutex;

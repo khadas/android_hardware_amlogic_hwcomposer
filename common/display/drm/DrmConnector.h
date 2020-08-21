@@ -30,9 +30,6 @@ public:
     const char * getName();
     drm_connector_type_t getType();
 
-
-
-    int32_t loadProperities();
     int32_t update();
 
     int32_t getModes(std::map<uint32_t, drm_mode_info_t> & modes);

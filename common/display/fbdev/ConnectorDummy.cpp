@@ -16,10 +16,6 @@ ConnectorDummy::ConnectorDummy(int32_t drvFd, uint32_t id)
 ConnectorDummy::~ConnectorDummy() {
 }
 
-int32_t ConnectorDummy::loadProperities() {
-    return 0;
-}
-
 int32_t ConnectorDummy::update() {
     return 0;
 }

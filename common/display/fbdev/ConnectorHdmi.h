@@ -18,7 +18,6 @@ public:
     virtual ~ConnectorHdmi();
 
 public:
-    virtual int32_t loadProperities();
     virtual int32_t update();
 
     virtual const char * getName();

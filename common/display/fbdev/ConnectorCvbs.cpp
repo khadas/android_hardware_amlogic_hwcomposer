@@ -18,7 +18,7 @@ ConnectorCvbs::ConnectorCvbs(int32_t drvFd, uint32_t id)
 ConnectorCvbs::~ConnectorCvbs() {
 }
 
-int32_t ConnectorCvbs::loadProperities() {
+int32_t ConnectorCvbs::update() {
     loadPhysicalSize();
     mDisplayModes.clear();
 
@@ -32,10 +32,6 @@ int32_t ConnectorCvbs::loadProperities() {
     addDisplayMode(pal_m);
     addDisplayMode(pal_n);
     addDisplayMode(ntsc_m);
-    return 0;
-}
-
-int32_t ConnectorCvbs::update() {
     return 0;
 }
 

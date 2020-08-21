@@ -15,7 +15,6 @@ public:
     ConnectorDummy(int32_t drvFd, uint32_t id);
     ~ConnectorDummy();
 
-    int32_t loadProperities();
     int32_t update();
 
     int32_t getModes(std::map<uint32_t, drm_mode_info_t> & modes);
