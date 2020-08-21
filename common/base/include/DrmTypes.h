@@ -13,7 +13,7 @@
 #include <stdint.h>
 #include <sys/cdefs.h>
 #include <system/graphics-base.h>
-#include <drm_mode.h>
+#include <drm/drm_mode.h>
 
 /* blend mode for compoistion or display.
  * The define is same as hwc2_blend_mode.

@@ -53,6 +53,13 @@ LOCAL_STATIC_LIBRARIES := \
 LOCAL_EXPORT_C_INCLUDE_DIRS := \
     $(LOCAL_PATH)/include
 
+# for the header file include problem
+LOCAL_SHARED_LIBRARIES := \
+    libui \
+    libcutils \
+    libutils \
+    liblog
+
 LOCAL_MODULE := hwc.composition_static
 
 include $(BUILD_STATIC_LIBRARY)

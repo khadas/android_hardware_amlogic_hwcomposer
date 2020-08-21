@@ -88,7 +88,7 @@ LOCAL_WHOLE_STATIC_LIBRARIES := \
 ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 28 && echo OK),OK)
 LOCAL_PROPRIETARY_MODULE := true
 endif
-include $(BUILD_STATIC_LIBRARY)
+#include $(BUILD_STATIC_LIBRARY)
 
 ###########################################################
 ####### static :meson_display.adapter_local_static ############
@@ -143,7 +143,7 @@ LOCAL_EXPORT_C_INCLUDE_DIRS := $(LOCAL_C_INCLUDES)
 ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 28 && echo OK),OK)
 LOCAL_PROPRIETARY_MODULE := true
 endif
-include $(BUILD_STATIC_LIBRARY)
+#include $(BUILD_STATIC_LIBRARY)
 
 ####################################################
 ####### shared :libmeson_display_adapter_remote ####
@@ -188,7 +188,7 @@ ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 26 && echo OK),OK)
 LOCAL_PROPRIETARY_MODULE := true
 endif
 
-include $(BUILD_SHARED_LIBRARY)
+#include $(BUILD_SHARED_LIBRARY)
 
 #######################################
 ####### exec :meson_display_client ####
