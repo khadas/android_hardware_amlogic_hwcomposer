@@ -7,39 +7,63 @@
  */
 
 #include <MesonLog.h>
-
 #include "DrmConnector.h"
 
-DrmConnector::DrmConnector()
-    : HwDisplayConnector() {
+DrmConnector::DrmConnector(drmModeConnectorPtr p)
+    : HwDisplayConnector(),
+    mId(p->connector_id),
+    mType(p->connector_type),
+    mState(p->connection),
+    mPhyWidth(p->mmWidth),
+    mPhyHeight(p->mmHeight) {
+
+    loadDisplayModes(p);
 }
 
 DrmConnector::~DrmConnector() {
+
 }
 
 uint32_t DrmConnector::getId() {
-    MESON_LOG_EMPTY_FUN();
-    return 0;
+    return mId;
 }
 
 const char * DrmConnector::getName() {
-    MESON_LOG_EMPTY_FUN();
-    return NULL;
+    const char * name;
+    switch(mType) {
+        case DRM_MODE_CONNECTOR_HDMIA:
+            name = "HDMI";
+            break;
+        case DRM_MODE_CONNECTOR_TV:
+            name = "CVBS";
+            break;
+        case DRM_MODE_CONNECTOR_LVDS:
+            name = "PANEL";
+            break;
+        default:
+            name = "UNKNOWN";
+            break;
+    };
+
+    return name;
 }
 
 drm_connector_type_t DrmConnector::getType() {
-    MESON_LOG_EMPTY_FUN();
-    return 0;
+    return mType;
 }
 
 int32_t DrmConnector::update() {
-    MESON_LOG_EMPTY_FUN();
+    if (mState == DRM_MODE_CONNECTED) {
+        /*load modes*/
+
+    }
+
     return 0;
 }
 
-int32_t DrmConnector::getModes(std::map<uint32_t, drm_mode_info_t> & modes) {
-    UNUSED(modes);
-    MESON_LOG_EMPTY_FUN();
+int32_t DrmConnector::getModes(
+    std::map<uint32_t, drm_mode_info_t> & modes) {
+    modes = mModes;
     return 0;
 }
 
@@ -49,7 +73,11 @@ bool DrmConnector::isSecure() {
 }
 
 bool DrmConnector::isConnected() {
-    MESON_LOG_EMPTY_FUN();
+    if (mState == DRM_MODE_UNKNOWNCONNECTION)
+        MESON_LOGE("Unkonw connection state (%s)", getName());
+
+    if (mState == DRM_MODE_CONNECTED)
+        return true;
     return false;
 }
 
@@ -85,6 +113,27 @@ int32_t DrmConnector::setAutoLowLatencyMode(bool on) {
     MESON_LOG_EMPTY_FUN();
     return 0;
 }
+
+int32_t DrmConnector::loadDisplayModes(drmModeConnectorPtr p) {
+    drmModeModeInfoPtr drmModes = p->modes;
+    drm_mode_info_t modeInfo;
+    for (int i = 0;i < p->count_modes; i ++) {
+        strncpy(modeInfo.name, drmModes[i].name, DRM_DISPLAY_MODE_LEN);
+        modeInfo.pixelW = drmModes[i].hdisplay;
+        modeInfo.pixelH = drmModes[i].vdisplay;
+        modeInfo.dpiX = (modeInfo.pixelW  * 25.4f) / mPhyWidth;
+        modeInfo.dpiY = (modeInfo.pixelH   * 25.4f) / mPhyHeight;
+        modeInfo.refreshRate = drmModes[i].vrefresh;
+        mModes.emplace(mModes.size(), modeInfo);
+
+        MESON_LOGI("add display mode (%s, %dx%d, %f)",
+            modeInfo.name, modeInfo.pixelW, modeInfo.pixelH, modeInfo.refreshRate);
+    }
+
+    MESON_LOGI("loadDisplayModes (%d) end", mModes.size());
+    return 0;
+}
+
 
 void DrmConnector::dump(String8 & dumpstr) {
     UNUSED(dumpstr);

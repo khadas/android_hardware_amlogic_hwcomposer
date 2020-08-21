@@ -13,6 +13,7 @@
 
 #include "DrmDevice.h"
 #include "DrmCrtc.h"
+#include "DrmConnector.h"
 
 #define MESON_DRM_DRIVER_NAME "meson"
 
@@ -99,8 +100,9 @@ int32_t DrmDevice::loadDrmResources() {
     for (int i = 0; i < drmRes->count_connectors; i ++) {
         drmModeConnectorPtr metadata = drmModeGetConnector(
             mDrmFd,drmRes->connectors[i]);
-
-
+        std::shared_ptr<HwDisplayConnector> connector =
+            std::make_shared<DrmConnector>(metadata);
+        mConnectors.emplace(connector->getType(), std::move(connector));
         drmModeFreeConnector(metadata);
     }
     drmModeFreeResources(drmRes);
@@ -110,8 +112,7 @@ int32_t DrmDevice::loadDrmResources() {
     for (int i = 0; i < planeRes->count_planes; i ++) {
         drmModePlanePtr metadata = drmModeGetPlane(
             mDrmFd, planeRes->planes[i]);
-
-
+          //TODO:
         drmModeFreePlane(metadata);
     }
     drmModeFreePlaneResources(planeRes);
