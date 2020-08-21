@@ -13,18 +13,12 @@
 // limitations under the License.
 
 cc_library_static {
-    name: "hwc.utils_static",
+    name: "hwc.debug_static",
     defaults: ["hwcomposer_cc_defaults"],
     vendor: true,
 
-    srcs: [
-        "BitsMap.cpp",
-        "misc.cpp",
-        "systemcontrol.cpp",
-    ],
+    srcs: ["DebugHelper.cpp"],
+    static_libs: ["hwc.utils_static"],
 
-    export_include_dirs: [
-        "include/log",
-        "include",
-    ],
+    export_include_dirs: ["include"],
 }

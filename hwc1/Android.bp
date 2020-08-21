@@ -12,19 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// ANDROIDMK TRANSLATION ERROR: unsupported conditional
+// ifeq ($(USE_HWC1), true)
+
 cc_library_static {
-    name: "hwc.utils_static",
-    defaults: ["hwcomposer_cc_defaults"],
+    // ANDROIDMK TRANSLATION ERROR: unsupported line
+    // $(error "have not implement hwc 1.0.")
+    name: "hwc.api_static",
     vendor: true,
-
-    srcs: [
-        "BitsMap.cpp",
-        "misc.cpp",
-        "systemcontrol.cpp",
-    ],
-
-    export_include_dirs: [
-        "include/log",
-        "include",
-    ],
 }
+

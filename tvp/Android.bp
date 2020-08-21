@@ -13,18 +13,15 @@
 // limitations under the License.
 
 cc_library_static {
-    name: "hwc.utils_static",
-    defaults: ["hwcomposer_cc_defaults"],
+    name: "omxutil.static",
     vendor: true,
 
-    srcs: [
-        "BitsMap.cpp",
-        "misc.cpp",
-        "systemcontrol.cpp",
+    srcs: ["OmxUtil.cpp"],
+
+    shared_libs: [
+        "libcutils",
+        "liblog",
     ],
 
-    export_include_dirs: [
-        "include/log",
-        "include",
-    ],
+    export_include_dirs: ["."],
 }

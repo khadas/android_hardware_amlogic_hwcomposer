@@ -13,18 +13,26 @@
 // limitations under the License.
 
 cc_library_static {
-    name: "hwc.utils_static",
+    name: "hwc.postprocessor_static",
     defaults: ["hwcomposer_cc_defaults"],
     vendor: true,
 
     srcs: [
-        "BitsMap.cpp",
-        "misc.cpp",
-        "systemcontrol.cpp",
+        "VdinPostProcessor.cpp",
+        "fbprocessor/FbProcessor.cpp",
+        "fbprocessor/DummyProcessor.cpp",
+        "fbprocessor/CopyProcessor.cpp",
+    ],
+
+    static_libs: [
+        "hwc.utils_static",
+        "hwc.base_static",
+        "hwc.display_static",
     ],
 
     export_include_dirs: [
-        "include/log",
         "include",
+        "fbprocessor",
     ],
+
 }

@@ -12,14 +12,73 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-cc_library_static {
-    name: "libomxutils_static@2",
-    srcs: [
-        "tvp/OmxUtil.cpp"
+soong_config_module_type {
+    name: "meson_hwc_cc_defaults",
+    module_type: "cc_defaults",
+    config_namespace: "meson_hwc",
+
+    bool_variables: [
+        "hwc_release",
+        "enable_keystone_correction",
     ],
-    include_dirs: [
-        "system/core/libcutils/include",
-        "system/core/liblog/include",
-        "frameworks/av/media/libstagefright/foundation/include",
+
+    properties: [
+        "cflags",
+        "srcs",
+        "shared_libs",
+    ],
+}
+
+soong_config_bool_variable {
+    name: "hwc_release",
+}
+
+soong_config_bool_variable {
+    name: "enable_keystone_correction",
+}
+
+meson_hwc_cc_defaults {
+    name: "hwcomposer_cc_defaults",
+    vendor: true,
+
+    soong_config_variables: {
+        hwc_release: {
+            cflags: ["-DHWC_RELEASE=1"],
+        },
+
+        enable_keystone_correction: {
+            cflags: [
+                "-DHWC_ENABLE_KEYSTONE_CORRECTION",
+            ],
+
+            shared_libs: [
+                "libkeystonecorrection",
+            ],
+        },
+    },
+
+    product_variables: {
+        platform_sdk_version: {
+            cflags: ["-DPLATFORM_SDK_VERSION=%d"],
+        },
+    },
+
+    shared_libs: [
+        "libdrm",
+        "libui",
+        "libbase",
+        "libdl",
+        "liblog",
+        "libutils",
+        "libcutils",
+        "libsync",
+        "libion",
+        "libhardware",
+        "libhidlbase",
+        "libge2d",
+        "libvideotunnel",
+        "libamgralloc_ext",
+        "vendor.amlogic.hardware.systemcontrol@1.0",
+        "vendor.amlogic.hardware.systemcontrol@1.1",
     ],
 }

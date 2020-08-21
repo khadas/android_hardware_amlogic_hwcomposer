@@ -12,19 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-cc_library_static {
-    name: "hwc.utils_static",
-    defaults: ["hwcomposer_cc_defaults"],
-    vendor: true,
-
-    srcs: [
-        "BitsMap.cpp",
-        "misc.cpp",
-        "systemcontrol.cpp",
+cc_binary {
+    name: "vdin1test",
+    proprietary: true,
+    shared_libs: [
+        "liblog",
+        "libcutils",
+        "libion",
     ],
 
-    export_include_dirs: [
-        "include/log",
-        "include",
-    ],
+    include_dirs: ["system/memory/libion"],
+
+    srcs: ["display_vdin1.cpp"],
+
 }

@@ -27,7 +27,7 @@ cc_library_shared {
         "libhidlbase",
         "liblog",
         "libutils",
-        "libamgralloc_ext_vendor@2",
+        "libamgralloc_ext",
     ],
     export_shared_lib_headers: [
         "android.hardware.graphics.composer@2.1",
@@ -38,7 +38,7 @@ cc_library_shared {
         "libhidlbase",
         "liblog",
         "libutils",
-        "libamgralloc_ext_vendor@2",
+        "libamgralloc_ext",
     ],
     header_libs: [
         "android.hardware.graphics.composer@2.1-command-buffer",

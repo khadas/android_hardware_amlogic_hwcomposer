@@ -1,27 +1,84 @@
+cc_defaults {
+    name: "meson_display_test_defaults",
+
+    shared_libs: [
+        "libbase",
+        "liblog",
+        "libui",
+        "libcutils",
+        "libutils",
+        "libmeson_display_adapter_remote",
+        "android.hardware.graphics.mapper@2.0",
+        "android.hardware.graphics.mapper@3.0",
+        "android.hardware.graphics.mapper@4.0",
+    ],
+
+    static_libs: [
+        "libjsoncpp",
+    ],
+
+}
+
 cc_binary {
     name: "meson_display_screencap",
-
-//    cflags: [
-//        "-Wall",
-//        "-Werror",
-//    ],
+    defaults: ["meson_display_test_defaults"],
 
     srcs: [
         "display_screencap.cpp",
     ],
 
     shared_libs: [
-        "liblog",
-        "libui",
-        "libcutils",
         "libgui",
         "libhwui",
         "libamgralloc_ext@2",
-        "libmeson_display_adapter_remote@1",
-        "android.hardware.graphics.mapper@2.0",
-        "android.hardware.graphics.mapper@3.0",
-        "android.hardware.graphics.mapper@4.0",
     ],
 
     clang: true,
+}
+
+cc_binary {
+    name: "meson_display_client",
+    defaults: ["meson_display_test_defaults"],
+    vendor: true,
+
+    srcs: ["display_client.cpp"],
+
+}
+
+cc_binary {
+    name: "test_ipc",
+    defaults: ["meson_display_test_defaults"],
+    vendor: true,
+
+    srcs: ["ipc_test.cpp"],
+
+    shared_libs: [
+        "libmeson_display_service",
+        "vendor.amlogic.display.meson_display_ipc@1.0",
+        "libhidlbase",
+        "libbinder",
+    ],
+
+}
+
+cc_binary {
+    name: "meson_display_client_recovery",
+    defaults: ["meson_display_test_defaults"],
+    vendor: true,
+    enabled: false,
+    cflags: ["-DRECOVERY_MODE"],
+
+    srcs: ["display_client.cpp"],
+
+    static_libs: [
+        "libmeson_display_adapter_local_static",
+    ],
+}
+
+cc_binary {
+    name: "test_watcher",
+    defaults: ["meson_display_test_defaults"],
+    vendor: true,
+
+    srcs: ["watcher.cpp"],
 }

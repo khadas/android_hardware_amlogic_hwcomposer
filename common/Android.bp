@@ -1,0 +1,7 @@
+subdirs = [
+    "base",
+    "debug",
+    "display",
+    "hwc",
+    "utils",
+]

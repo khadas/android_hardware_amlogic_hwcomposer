@@ -188,10 +188,10 @@ bool HwcConfig::defaultHdrCapEnabled() {
 }
 
 bool HwcConfig::forceClientEnabled() {
-#ifdef HWC_FORCE_CLIENT_COMPOSITION
-    return true;
-#else
+#ifdef HWC_DISABLE_FORCE_CLIENT_COMPOSITION
     return false;
+#else
+    return true;
 #endif
 }
 

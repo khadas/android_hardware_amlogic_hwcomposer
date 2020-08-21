@@ -1,0 +1,83 @@
+// Copyright (C) 2008 The Android Open Source Project
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+soong_config_module_type {
+    name: "meson_hwc_composition_cc_defaults",
+    module_type: "cc_defaults",
+    config_namespace: "meson_hwc",
+    bool_variables: [
+        "enable_ge2d_composition",
+    ],
+    properties: [
+        "cflags",
+        "srcs",
+        "shared_libs",
+    ],
+}
+
+soong_config_bool_variable {
+    name: "enable_ge2d_composition",
+}
+
+meson_hwc_composition_cc_defaults {
+    name: "hwcomposer_composition_cc_defaults",
+    defaults: ["hwcomposer_cc_defaults"],
+
+    soong_config_variables: {
+        enable_ge2d_composition: {
+            srcs: [
+                "composer/GE2DComposer.cpp",
+            ],
+            shared_libs: [
+                // TODO: add libge2d, when it change to bp.
+                "libge2d",
+            ],
+        },
+    },
+}
+
+cc_library_static {
+    name: "hwc.composition_static",
+    defaults: ["hwcomposer_composition_cc_defaults"],
+    vendor: true,
+
+    srcs: [
+        "Composition.cpp",
+        "CompositionStrategyFactory.cpp",
+        "composer/ComposerFactory.cpp",
+        "composer/ClientComposer.cpp",
+        "composer/DummyComposer.cpp",
+        "composer/DiComposer.cpp",
+        "simplestrategy/SingleplaneComposition/SingleplaneComposition.cpp",
+        "simplestrategy/MultiplanesComposition/MultiplanesComposition.cpp",
+        "simplestrategy/MultiplanesWithDiComposition/MultiplanesWithDiComposition.cpp",
+    ],
+
+    static_libs: [
+        "hwc.utils_static",
+        "hwc.base_static",
+        "hwc.debug_static",
+        "hwc.display_static",
+    ],
+
+    export_include_dirs: ["include"],
+
+    // for the header file include problem
+    shared_libs: [
+        "libui",
+        "libcutils",
+        "libutils",
+        "liblog",
+    ],
+}

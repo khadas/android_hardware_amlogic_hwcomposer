@@ -43,6 +43,6 @@ cc_binary {
         "liblog",
         "libsync",
         "libutils",
-        "libamgralloc_ext_vendor@2",
+        "libamgralloc_ext",
     ],
 }

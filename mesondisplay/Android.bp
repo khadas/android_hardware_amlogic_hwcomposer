@@ -13,6 +13,7 @@
 // limitations under the License.
 
 cc_library_static {
+    // This is for recovery mode static lib
     name: "libmeson_display_adapter_local_static",
     vendor_available: true,
     recovery_available: true,
@@ -54,8 +55,67 @@ cc_library_static {
     ],
 }
 
+cc_library_static {
+    name: "meson_display.adapter_local_static",
+    vendor: true,
+
+    cflags: [
+        "-Werror",
+        "-Wall",
+        "-DLOG_TAG=\"MesonDisplayServer\"",
+    ],
+
+    srcs: [
+        "adapter/DisplayAdapterLocal.cpp",
+        "adapter/DisplayAdapterCommon.cpp",
+    ],
+
+    export_include_dirs: [
+        "include",
+        "adapter",
+    ],
+
+    shared_libs: [
+        "android.hardware.graphics.mapper@2.0",
+        "android.hardware.graphics.mapper@3.0",
+        "android.hardware.graphics.mapper@4.0",
+        "vendor.amlogic.display.meson_display_ipc@1.0",
+        "libamgralloc_ext",
+        "libhidlbase",
+        "liblog",
+        "libhardware",
+        "libcutils",
+        "libutils",
+        "libdrm",
+    ],
+
+    header_libs: [
+        "hwc.utils_log",
+    ],
+
+    static_libs: [
+        "hwc.common_static",
+        "hwc.composition_static",
+        "hwc.postprocessor_static",
+        "hwc.display_static",
+        "hwc.utils_static",
+        "hwc.base_static",
+        "hwc.debug_static",
+        "hwc.composer_static",
+        "omxutil.static",
+        "libjsoncpp",
+    ],
+
+    export_static_lib_headers: [
+        "libjsoncpp",
+    ],
+
+}
+
 cc_library_shared {
-    name: "libmeson_display_adapter_remote@1",
+    // This is for meson display client
+    name: "libmeson_display_adapter_remote",
+    vendor_available: true,
 
     cflags: [
         "-Werror",
@@ -80,10 +140,10 @@ cc_library_shared {
         "android.hardware.graphics.mapper@4.0",
         "vendor.amlogic.display.meson_display_ipc@1.0",
         "liblog",
+        "libhardware",
         "libcutils",
         "libutils",
         "libhidlbase",
-        "libdrm",
     ],
 
     header_libs: [
@@ -97,135 +157,40 @@ cc_library_shared {
     export_static_lib_headers: [
         "libjsoncpp",
     ],
-
 }
 
-
-//##########################################################
-//###### static :meson_display.adapter_common_static  ##########
-//##########################################################
-cc_library_static {
-    name: "meson_display.adapter_common_static",
-
-    srcs: ["adapter/DisplayAdapterCommon.cpp"],
-
-    export_include_dirs: [
-        "adapter",
-        "include",
-    ],
-
-    whole_static_libs: ["libjsoncpp"],
-
-    static_libs: [
-        "hwc.utils_static",
-    ],
-
-    header_libs: ["libcutils_headers"],
-    shared_libs: [
-        "android.hardware.graphics.mapper@2.0",
-        "android.hardware.graphics.mapper@3.0",
-        "android.hardware.graphics.mapper@4.0",
-        "vendor.amlogic.display.meson_display_ipc@1.0",
-        "liblog",
-        "libcutils",
-        "libutils",
-        "libhidlbase",
-        "libc",
-    ],
-
-    proprietary: true,
-
-}
-
-//##########################################################
-//###### static :meson_display.adapter_local_static ############
-//##########################################################
-cc_library_static {
-    // need distinct with static lib "libmeson_display_adapter_local_static" for recovery on Android.bp
-    name: "meson_display.adapter_local_static",
-    cflags: ["-DLOG_TAG=\"MesonDisplayServer\""],
-
-    srcs: ["adapter/DisplayAdapterLocal.cpp"],
-
-    export_include_dirs: [
-        "include",
-        "adapter",
-    ],
-
-     // TODO: if other modules all change to .bp, bellow MUST removed
-     //       OR, add a default header lib for each module
-     include_dirs: [
-         "hardware/amlogic/gralloc/amlogic",
-         "hardware/amlogic/hwcomposer/hwc2",
-         "hardware/amlogic/hwcomposer/common/hwc/include",
-         "hardware/amlogic/hwcomposer/common/display/include",
-         "hardware/amlogic/hwcomposer/common/utils/include",
-         "hardware/amlogic/hwcomposer/common/base/include",
-         "hardware/amlogic/hwcomposer/postprocessor/include",
-         "hardware/amlogic/hwcomposer/mesondisplay/include",
-         "hardware/amlogic/hwcomposer/composition/include",
-         "hardware/amlogic/hwcomposer/videotunnel/include",
-         "external/libdrm",
-         "external/libdrm/include/drm"
-     ],
-
-    // for resolve include directoies.
-    // maybe better to use head_libs
-    shared_libs: [
-        "android.hardware.graphics.mapper@2.0",
-        "android.hardware.graphics.mapper@3.0",
-        "android.hardware.graphics.mapper@4.0",
-        "vendor.amlogic.display.meson_display_ipc@1.0",
-        "liblog",
-        "libjsoncpp",
-        "libhardware",
-        "libcutils",
-        "libutils",
-        "libhidlbase",
-    ],
-
-    static_libs: [
-        "hwc.utils_static",
-    ],
-    proprietary: true,
-}
-
-//###################################################
-//###### shared :libmeson_display_adapter_remote ####
-//###################################################
 cc_library_shared {
+    // This is for meson display server
+    name: "libmeson_display_service",
+    vendor: true,
 
-    name: "libmeson_display_adapter_remote",
-
-    cflags: ["-DLOG_TAG=\"MesonDisplayClient\""],
+    cflags: [
+        "-DLOG_TAG=\"MesonDisplayServer\""
+    ],
 
     srcs: [
-        "adapter/DisplayAdapterRemote.cpp",
-        "adapter/DisplayClient.cpp",
+        "service/DisplayService.cpp",
+        "adapter/DisplayAdapterCommon.cpp",
+    ],
+
+    shared_libs: [
+        "libamgralloc_ext",
+        "vendor.amlogic.display.meson_display_ipc@1.0",
+        "libhidlbase",
+        "libui",
+        "liblog",
+        "libcutils",
+        "libutils",
+        "libbase",
+    ],
+
+    static_libs: [
+        "hwc.utils_static",
+        "libjsoncpp",
     ],
 
     export_include_dirs: [
         "include",
-        "adapter",
+        "service",
     ],
-
-    static_libs: [
-        "meson_display.adapter_common_static",
-        "hwc.utils_static",
-        "libjsoncpp",
-    ],
-    shared_libs: [
-        "android.hardware.graphics.mapper@2.0",
-        "android.hardware.graphics.mapper@3.0",
-        "android.hardware.graphics.mapper@4.0",
-        "vendor.amlogic.display.meson_display_ipc@1.0",
-        "liblog",
-        "libcutils",
-        "libutils",
-        "libhidlbase",
-    ],
-
-
-    proprietary: true,
-
 }
