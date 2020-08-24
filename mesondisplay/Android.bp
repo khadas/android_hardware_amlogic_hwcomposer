@@ -83,6 +83,7 @@ cc_library_shared {
         "libcutils",
         "libutils",
         "libhidlbase",
+        "libdrm",
     ],
 
     header_libs: [
@@ -164,6 +165,8 @@ cc_library_static {
          "hardware/amlogic/hwcomposer/mesondisplay/include",
          "hardware/amlogic/hwcomposer/composition/include",
          "hardware/amlogic/hwcomposer/videotunnel/include",
+         "external/libdrm",
+         "external/libdrm/include/drm"
      ],
 
     // for resolve include directoies.

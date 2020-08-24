@@ -10,8 +10,6 @@
 #define DRM_CRTC_H
 
 #include <stdlib.h>
-#include <xf86drm.h>
-#include <xf86drmMode.h>
 
 #include <DrmTypes.h>
 #include <BasicTypes.h>

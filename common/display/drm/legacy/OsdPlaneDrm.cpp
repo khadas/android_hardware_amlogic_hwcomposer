@@ -80,7 +80,7 @@ const char * OsdPlaneDrm::getName() {
     return mName;
 }
 
-uint32_t OsdPlaneDrm::getPlaneType() {
+uint32_t OsdPlaneDrm::getType() {
     if (mDebugIdle) {
         return INVALID_PLANE;
     }

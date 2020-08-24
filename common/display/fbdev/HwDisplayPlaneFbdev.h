@@ -21,7 +21,7 @@ public:
     virtual ~HwDisplayPlaneFbdev();
 
     virtual const char * getName() = 0;
-    virtual uint32_t getPlaneType() = 0;
+    virtual uint32_t getType() = 0;
     virtual uint32_t getCapabilities() = 0;
 
     /*Plane with fixed zorder will return a zorder >=0, or will return < 0.*/
@@ -43,7 +43,7 @@ public:
     virtual void dump(String8 & dumpstr) = 0;
 
     int32_t getDrvFd() {return mDrvFd;}
-    uint32_t getPlaneId() {return mId;}
+    uint32_t getId() {return mId;}
 
 protected:
     int32_t mDrvFd;

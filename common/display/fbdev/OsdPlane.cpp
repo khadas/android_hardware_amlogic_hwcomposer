@@ -66,7 +66,7 @@ const char * OsdPlane::getName() {
     return mName;
 }
 
-uint32_t OsdPlane::getPlaneType() {
+uint32_t OsdPlane::getType() {
     if (mDebugIdle) {
         return INVALID_PLANE;
     }

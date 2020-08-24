@@ -13,7 +13,7 @@ DummyPlane::DummyPlane(int32_t drvFd, uint32_t id)
     : HwDisplayPlaneFbdev(drvFd, id) {
 }
 
-uint32_t DummyPlane::getPlaneType() {
+uint32_t DummyPlane::getType() {
     return OSD_PLANE;
 }
 
@@ -29,5 +29,5 @@ uint32_t DummyPlane::getCapabilities() {
 
 void DummyPlane::dump(String8 & dumpstr) {
     dumpstr.appendFormat(" DummyPlane type (%d) \n",
-        getPlaneType());
+        getType());
 };

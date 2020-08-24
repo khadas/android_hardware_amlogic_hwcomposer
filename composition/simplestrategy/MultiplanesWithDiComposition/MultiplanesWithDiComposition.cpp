@@ -949,7 +949,7 @@ void MultiplanesWithDiComposition::handleDispayLayerZorder() {
     for (auto it = mDisplayPairs.begin(); it != mDisplayPairs.end(); ++it) {
         std::shared_ptr<DrmFramebuffer> fb = it->fb;
         std::shared_ptr<HwDisplayPlane> plane = it->plane;
-        if (OSD_PLANE == plane->getPlaneType()) {
+        if (OSD_PLANE == plane->getType()) {
             if (maxOsdZorder == INVALID_ZORDER) {
                 maxOsdZorder = it->presentZorder;
             } else {
@@ -963,7 +963,7 @@ void MultiplanesWithDiComposition::handleDispayLayerZorder() {
     for (auto it = mDisplayPairs.begin(); it != mDisplayPairs.end(); ++it) {
         std::shared_ptr<DrmFramebuffer> fb = it->fb;
         std::shared_ptr<HwDisplayPlane> plane = it->plane;
-        if (HWC_VIDEO_PLANE == plane->getPlaneType()) {
+        if (HWC_VIDEO_PLANE == plane->getType()) {
             if (fb->mZorder > maxOsdZorder && topVideoNum != 1) {
                 it->presentZorder = it->presentZorder + TOP_VIDEO_FB_BEGIN_ZORDER; // top video zorder: 129 - 192
                 topVideoNum++;
@@ -1169,7 +1169,7 @@ void MultiplanesWithDiComposition::setup(
     auto planeIt = planes.begin();
     for (; planeIt != planes.end(); ++planeIt) {
         std::shared_ptr<HwDisplayPlane> plane = *planeIt;
-        switch (plane->getPlaneType()) {
+        switch (plane->getType()) {
             case OSD_PLANE:
                 mOsdPlanes.push_back(plane);
                 MESON_ASSERT(mOsdPlanes.size() <= OSD_PLANE_NUM_MAX,

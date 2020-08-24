@@ -41,7 +41,7 @@ LegacyVideoPlane::~LegacyVideoPlane() {
 
 }
 
-uint32_t LegacyVideoPlane::getPlaneType() {
+uint32_t LegacyVideoPlane::getType() {
     return LEGACY_VIDEO_PLANE;
 }
 

@@ -18,7 +18,7 @@ public:
     ~LegacyVideoPlane();
 
     const char * getName();
-    uint32_t getPlaneType();
+    uint32_t getType();
     uint32_t getCapabilities();
     int32_t getFixedZorder();
     uint32_t getPossibleCrtcs();

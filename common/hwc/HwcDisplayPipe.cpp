@@ -102,7 +102,7 @@ int32_t HwcDisplayPipe::getPlanes(
     for (auto planeIt = mPlanes.begin(); planeIt != mPlanes.end(); ++ planeIt) {
         std::shared_ptr<HwDisplayPlane> plane = *planeIt;
         if (plane->getPossibleCrtcs() & crtcid) {
-            if ((plane->getPlaneType() == CURSOR_PLANE) &&
+            if ((plane->getType() == CURSOR_PLANE) &&
                 HwcConfig::cursorPlaneDisabled()) {
                 continue;
             }

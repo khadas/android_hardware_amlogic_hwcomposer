@@ -111,7 +111,7 @@ void SingleplaneComposition::setup(
     auto planeIt = planes.begin();
     for (; planeIt != planes.end(); ++planeIt) {
         std::shared_ptr<HwDisplayPlane> plane = *planeIt;
-        switch (plane->getPlaneType()) {
+        switch (plane->getType()) {
             case CURSOR_PLANE:
                 mCursorPlane = plane;
                 break;
@@ -195,7 +195,7 @@ int SingleplaneComposition::processFbsOfExplicitComposition() {
 
     static struct planeComp {
         drm_fb_type_t srcFb;
-        drm_plane_type_t destPlane;
+        meson_plane_type_t destPlane;
         meson_compositon_t destComp;
     } planeCompPairs [] = {
         {DRM_FB_VIDEO_OVERLAY, LEGACY_VIDEO_PLANE,
@@ -444,7 +444,7 @@ int SingleplaneComposition::commit() {
             dumpFbAndPlane(fb, plane, z, blankFlag);
         }
 
-        if (plane->getPlaneType() == OSD_PLANE) {
+        if (plane->getType() == OSD_PLANE) {
             osdDisplayFrame.framebuffer_w = fb->mSourceCrop.right - fb->mSourceCrop.left;
             osdDisplayFrame.framebuffer_h = fb->mSourceCrop.bottom - fb->mSourceCrop.top;
             osdDisplayFrame.crtc_display_x = 0;

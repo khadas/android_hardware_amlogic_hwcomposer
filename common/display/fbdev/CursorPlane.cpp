@@ -40,7 +40,7 @@ const char * CursorPlane::getName() {
     return mName;
 }
 
-uint32_t CursorPlane::getPlaneType() {
+uint32_t CursorPlane::getType() {
     return CURSOR_PLANE;
 }
 

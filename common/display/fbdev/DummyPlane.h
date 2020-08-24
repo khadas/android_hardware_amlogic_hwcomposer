@@ -16,7 +16,7 @@ class DummyPlane : public HwDisplayPlaneFbdev {
 public:
     DummyPlane(int32_t drvFd, uint32_t id);
 
-    uint32_t getPlaneType();
+    uint32_t getType();
     uint32_t getCapabilities();
 
     int32_t setPlane(std::shared_ptr<DrmFramebuffer> fb, uint32_t zorder, int blankOp);

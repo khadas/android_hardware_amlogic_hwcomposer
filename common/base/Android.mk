@@ -34,7 +34,8 @@ LOCAL_C_INCLUDES := \
     hardware/libhardware/include \
     system/core/libsync/include \
     $(LOCAL_PATH)/include \
-    external/libdrm/include/drm
+    external/libdrm/include/drm \
+    external/libdrm
 
 LOCAL_STATIC_LIBRARIES := \
     hwc.utils_static

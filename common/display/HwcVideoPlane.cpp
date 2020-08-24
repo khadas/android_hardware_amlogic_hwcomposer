@@ -44,7 +44,7 @@ const char * HwcVideoPlane::getName() {
     return mName;
 }
 
-uint32_t HwcVideoPlane::getPlaneType() {
+uint32_t HwcVideoPlane::getType() {
     return HWC_VIDEO_PLANE;
 }
 
@@ -223,7 +223,7 @@ void HwcVideoPlane::setDebugFlag(int dbgFlag __unused) {
     return ;
 }
 
-uint32_t HwcVideoPlane::getPlaneId() {
+uint32_t HwcVideoPlane::getId() {
     return mId;
 }
 

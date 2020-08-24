@@ -108,7 +108,7 @@ int32_t Hwc2Display::setDisplayResource(
     uint32_t strategyFlags = 0;
     int osdPlanes = 0;
     for (auto it = mPlanes.begin(); it != mPlanes.end(); ++ it) {
-        if ((*it)->getPlaneType() == OSD_PLANE) {
+        if ((*it)->getType() == OSD_PLANE) {
             osdPlanes ++;
             if (osdPlanes > 1) {
                 strategyFlags |= MULTI_PLANES_WITH_DI;
@@ -547,7 +547,7 @@ hwc2_error_t Hwc2Display::collectPlanesForPresent() {
         for (auto  it = mPresentPlanes.begin(); it != mPresentPlanes.end(); it++) {
             std::shared_ptr<HwDisplayPlane> plane = *it;
 
-            auto dbgIt = planeFlags.find(plane->getPlaneId());
+            auto dbgIt = planeFlags.find(plane->getId());
             if (dbgIt != planeFlags.end()) {
                 plane->setDebugFlag(dbgIt->second);
             } else {

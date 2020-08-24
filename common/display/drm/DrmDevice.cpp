@@ -14,6 +14,7 @@
 #include "DrmDevice.h"
 #include "DrmCrtc.h"
 #include "DrmConnector.h"
+#include "DrmPlane.h"
 
 #define MESON_DRM_DRIVER_NAME "meson"
 
@@ -112,7 +113,8 @@ int32_t DrmDevice::loadDrmResources() {
     for (int i = 0; i < planeRes->count_planes; i ++) {
         drmModePlanePtr metadata = drmModeGetPlane(
             mDrmFd, planeRes->planes[i]);
-          //TODO:
+        std::shared_ptr<HwDisplayPlane> plane = std::make_shared<DrmPlane>(metadata);
+        mPlanes.push_back(std::move(plane));
         drmModeFreePlane(metadata);
     }
     drmModeFreePlaneResources(planeRes);

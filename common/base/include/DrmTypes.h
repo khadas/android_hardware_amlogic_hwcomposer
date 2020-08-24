@@ -14,6 +14,8 @@
 #include <sys/cdefs.h>
 #include <system/graphics-base.h>
 #include <drm/drm_mode.h>
+#include <xf86drm.h>
+#include <xf86drmMode.h>
 
 /* blend mode for compoistion or display.
  * The define is same as hwc2_blend_mode.
@@ -91,13 +93,17 @@ typedef struct drm_mode_info {
 #define DRM_DISPLAY_MODE_NULL ("null")
 
 typedef enum {
-    INVALID_PLANE = 0,
-    OSD_PLANE,
-    CURSOR_PLANE,
-    LEGACY_VIDEO_PLANE,
-    LEGACY_EXT_VIDEO_PLANE,
-    HWC_VIDEO_PLANE,
-} drm_plane_type_t;
+    CURSOR_PLANE = DRM_PLANE_TYPE_CURSOR,
+    OSD_PLANE = DRM_PLANE_TYPE_OVERLAY,
+    OSD_PLANE_PRIMARY = DRM_PLANE_TYPE_PRIMARY,
+
+    /*VIDEO OVERLAY PLANE TYPES.*/
+    LEGACY_VIDEO_PLANE = (1 << 9) | DRM_PLANE_TYPE_OVERLAY,
+    LEGACY_EXT_VIDEO_PLANE =  (1 << 10) | DRM_PLANE_TYPE_OVERLAY,
+    HWC_VIDEO_PLANE  =  (1 << 11) | DRM_PLANE_TYPE_OVERLAY,
+
+    INVALID_PLANE = 0xffffffff,
+} meson_plane_type_t;
 
 typedef enum {
     PLANE_SHOW_LOGO = (1 << 0),

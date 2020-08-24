@@ -42,7 +42,9 @@ endif
 LOCAL_C_INCLUDES := \
     hardware/libhardware/include \
     $(LOCAL_PATH)/../common/display/ \
-    $(LOCAL_PATH)/include
+    $(LOCAL_PATH)/include \
+    external/libdrm \
+    external/libdrm/include
 
 LOCAL_STATIC_LIBRARIES := \
     hwc.utils_static \

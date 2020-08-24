@@ -50,7 +50,7 @@ int32_t VdinPostProcessor::setVout(
     mPlanes = planes;
     auto it = mPlanes.begin();
     for (; it != mPlanes.end(); it ++) {
-        if ((*it)->getPlaneType() == OSD_PLANE) {
+        if ((*it)->getType() == OSD_PLANE) {
             mDisplayPlane = *it;
             mPlanes.erase(it);
             break;

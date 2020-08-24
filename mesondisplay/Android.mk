@@ -103,7 +103,9 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES := \
     $(LOCAL_PATH)/include \
-    $(LOCAL_PATH)/adapter
+    $(LOCAL_PATH)/adapter \
+    external/libdrm \
+    external/libdrm/include
 
 #copy frme hwc. because hwc.display_static depend it.
 LOCAL_HWC_SHARED_LIBS := \

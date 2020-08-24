@@ -20,7 +20,7 @@ public:
     ~HwcVideoPlane();
 
     const char * getName();
-    uint32_t getPlaneType();
+    uint32_t getType();
     uint32_t getCapabilities();
     int32_t getFixedZorder();
     uint32_t getPossibleCrtcs();
@@ -30,7 +30,7 @@ public:
     int32_t setPlane(std::shared_ptr<DrmFramebuffer> fb, uint32_t zorder, int blankOp);
 
     void setDebugFlag(int dbgFlag);
-    uint32_t getPlaneId();
+    uint32_t getId();
 
     void dump(String8 & dumpstr);
 
