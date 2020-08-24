@@ -201,6 +201,7 @@ int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> fb, uint32_t zorder, 
         mPlaneInfo.dst_w         = disFrame.right   - disFrame.left;
         mPlaneInfo.dst_h         = disFrame.bottom  - disFrame.top;
         mPlaneInfo.blend_mode    = fb->mBlendMode;
+        mPlaneInfo.secure_enable = am_gralloc_is_secure_buffer(buf) ?  1 : 0;
         mPlaneInfo.op           |= OSD_BLANK_OP_BIT;
 
         if (fb->mBufferHandle != NULL) {

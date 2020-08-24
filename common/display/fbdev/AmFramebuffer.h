@@ -143,7 +143,7 @@ typedef struct osd_plane_info_t {
     unsigned int    dim_color;
     int             fb_width;
     int             fb_height;
-    int             reserve;
+    int             secure_enable;
 } osd_plane_info_t;
 
 typedef struct cursor_plane_info_t {
