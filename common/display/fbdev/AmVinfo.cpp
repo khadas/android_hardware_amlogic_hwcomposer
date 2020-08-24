@@ -55,14 +55,18 @@ struct vmode_match_s {
 
 static struct vmode_match_s vmode_match_table[] = {
 	{"480i60hz",      VMODE_480I},
+	{"480I60hz",      VMODE_480I4X3},
 	{"480irpt",       VMODE_480I_RPT},
 	{"480cvbs",       VMODE_480CVBS},
 	{"480p60hz",      VMODE_480P},
+	{"480P60hz",      VMODE_480P4X3},
 	{"480prtp",       VMODE_480P_RPT},
 	{"576i50hz",      VMODE_576I},
+	{"576I50hz",      VMODE_576I4X3},
 	{"576irpt",       VMODE_576I_RPT},
 	{"576cvbs",       VMODE_576CVBS},
 	{"576p50hz",      VMODE_576P},
+	{"576P50hz",      VMODE_576P4X3},
 	{"576prpt",       VMODE_576P_RPT},
 	{"720p60hz",      VMODE_720P},
 	{"720p50hz",      VMODE_720P_50HZ},
@@ -164,6 +168,19 @@ static const struct vinfo_s tv_info[] = {
 		.video_clk         = 27000000,
 		.viu_color_fmt     = TVIN_YUV444,
 	},
+	{ /* VMODE_480I 4x3 */
+		.name			   = "480I60hz",
+		.mode			   = VMODE_480I4X3,
+		.width			   = 720,
+		.height 		   = 480,
+		.field_height	   = 240,
+		.aspect_ratio_num  = 4,
+		.aspect_ratio_den  = 3,
+		.sync_duration_num = 60,
+		.sync_duration_den = 1,
+		.video_clk		   = 27000000,
+		.viu_color_fmt	   = TVIN_YUV444,
+	},
 	{ /* VMODE_480I_RPT */
 		.name              = "480i_rpt",
 		.mode              = VMODE_480I_RPT,
@@ -203,6 +220,19 @@ static const struct vinfo_s tv_info[] = {
 		.video_clk         = 27000000,
 		.viu_color_fmt     = TVIN_YUV444,
 	},
+	{ /* VMODE_480P 4x3 */
+		.name              = "480P60hz",
+		.mode              = VMODE_480P4X3,
+		.width             = 720,
+		.height            = 480,
+		.field_height      = 480,
+		.aspect_ratio_num  = 4,
+		.aspect_ratio_den  = 3,
+		.sync_duration_num = 60,
+		.sync_duration_den = 1,
+		.video_clk         = 27000000,
+		.viu_color_fmt     = TVIN_YUV444,
+	},
 	{ /* VMODE_480P_RPT */
 		.name              = "480p_rpt",
 		.mode              = VMODE_480P_RPT,
@@ -219,6 +249,19 @@ static const struct vinfo_s tv_info[] = {
 	{ /* VMODE_576I */
 		.name              = "576i50hz",
 		.mode              = VMODE_576I,
+		.width             = 720,
+		.height            = 576,
+		.field_height      = 288,
+		.aspect_ratio_num  = 4,
+		.aspect_ratio_den  = 3,
+		.sync_duration_num = 50,
+		.sync_duration_den = 1,
+		.video_clk         = 27000000,
+		.viu_color_fmt     = TVIN_YUV444,
+	},
+	{ /* VMODE_576I 4x3*/
+		.name              = "576I50hz",
+		.mode              = VMODE_576I4X3,
 		.width             = 720,
 		.height            = 576,
 		.field_height      = 288,
@@ -258,6 +301,19 @@ static const struct vinfo_s tv_info[] = {
 	{ /* VMODE_576P */
 		.name              = "576p50hz",
 		.mode              = VMODE_576P,
+		.width             = 720,
+		.height            = 576,
+		.field_height      = 576,
+		.aspect_ratio_num  = 4,
+		.aspect_ratio_den  = 3,
+		.sync_duration_num = 50,
+		.sync_duration_den = 1,
+		.video_clk         = 27000000,
+		.viu_color_fmt     = TVIN_YUV444,
+	},
+	{ /* VMODE_576P 4x3 */
+		.name              = "576P50hz",
+		.mode              = VMODE_576P4X3,
 		.width             = 720,
 		.height            = 576,
 		.field_height      = 576,
@@ -988,12 +1044,16 @@ int want_hdmi_mode(enum vmode_e mode)
 {
 	int ret = 0;
 	if ((mode == VMODE_480I)
+	    || (mode == VMODE_480I4X3)
 	    || (mode == VMODE_480I_RPT)
 	    || (mode == VMODE_480P)
+	    || (mode == VMODE_480P4X3)
 	    || (mode == VMODE_480P_RPT)
 	    || (mode == VMODE_576I)
+	    || (mode == VMODE_576I4X3)
 	    || (mode == VMODE_576I_RPT)
 	    || (mode == VMODE_576P)
+	    || (mode == VMODE_576P4X3)
 	    || (mode == VMODE_576P_RPT)
 	    || (mode == VMODE_720P)
 	    || (mode == VMODE_720P_50HZ)
