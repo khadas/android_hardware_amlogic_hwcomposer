@@ -44,6 +44,7 @@ protected:
     int32_t loadDisplayModes();
     int32_t loadSupportedContentTypes();
 
+    void getDvSupportStatus();
     /*parse hdr info.*/
     virtual void parseEDID();
 

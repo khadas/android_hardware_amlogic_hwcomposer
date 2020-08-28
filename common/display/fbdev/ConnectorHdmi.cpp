@@ -22,6 +22,7 @@ bool loadHdmiCurrentHdrType(std::string & hdrType);
 int32_t setHdmiALLM(bool on);
 int32_t loadHdmiSupportedContentTypes(std::vector<uint32_t> & supportedContentTypes);
 int32_t setHdmiContentType(uint32_t contentType);
+bool dvSupportStatus;
 
 /*HDMI related define*/
 static const std::vector<std::string> CONTENT_TYPES = {
@@ -238,6 +239,11 @@ int32_t ConnectorHdmi::switchRatePolicy(bool fracRatePolicy) {
     return 0;
 }
 
+void ConnectorHdmi::getDvSupportStatus() {
+    //this is return platform device support dv or not.
+    dvSupportStatus = isDvSupport();
+}
+
 void ConnectorHdmi::getHdrCapabilities(drm_hdr_capabilities * caps) {
     if (caps) {
         *caps = mHdrCapabilities;
@@ -359,56 +365,54 @@ int32_t parseHdmiHdrCapabilities(drm_hdr_capabilities & hdrCaps) {
     memset(&hdrCaps, 0, sizeof(drm_hdr_capabilities));
     if ((fd = open(DV_PATH, O_RDONLY)) < 0) {
         MESON_LOGE("open %s fail.", DV_PATH);
-        goto exit;
+        hdrCaps.DolbyVisionSupported = false;
+    } else {
+        if ((len = read(fd, buf, 1024)) < 0) {
+            MESON_LOGE("read error: %s, %s\n", DV_PATH, strerror(errno));
+            hdrCaps.DolbyVisionSupported = false;
+        } else {
+            bool devSupportDv = dvSupportStatus;
+            if (((NULL != strstr(pos, "2160p30hz")) || (NULL != strstr(pos, "2160p60hz"))) && devSupportDv)
+                hdrCaps.DolbyVisionSupported = true;
+        }
+        close(fd);
     }
-
-    len = read(fd, buf, 1024);
-    if (len < 0) {
-        MESON_LOGE("read error: %s, %s\n", DV_PATH, strerror(errno));
-        goto exit;
-    }
-    close(fd);
-
-    if ((NULL != strstr(pos, "2160p30hz")) || (NULL != strstr(pos, "2160p60hz")))
-        hdrCaps.DolbyVisionSupported= true;
     // dobly version parse end
 
     memset(buf, 0, 1024);
     if ((fd = open(HDR_PATH, O_RDONLY)) < 0) {
         MESON_LOGE("open %s fail.", HDR_PATH);
-        goto exit;
-    }
+    } else {
+        if ((len = read(fd, buf, 1024))< 0) {
+            MESON_LOGE("read error: %s, %s\n", HDR_PATH, strerror(errno));
+        } else {
+            if (pos != NULL) pos = strstr(pos, "HDR10Plus Supported: ");
+            if ((NULL != pos) && ('1' == *(pos + strlen("HDR10Plus Supported: ")))) {
+                hdrCaps.HDR10PlusSupported = true;
+            }
 
-    len = read(fd, buf, 1024);
-    if (len < 0) {
-        MESON_LOGE("read error: %s, %s\n", HDR_PATH, strerror(errno));
-        goto exit;
-    }
+            if (pos != NULL) pos = strstr(pos, "SMPTE ST 2084: ");
+            if ((NULL != pos) && ('1' == *(pos + strlen("SMPTE ST 2084: ")))) {
+                hdrCaps.HDR10Supported = true;
 
-    if (pos != NULL) pos = strstr(pos, "HDR10Plus Supported: ");
-    if ((NULL != pos) && ('1' == *(pos + strlen("HDR10Plus Supported: ")))) {
-        hdrCaps.HDR10PlusSupported = true;
-    }
+                hdrCaps.maxLuminance = getLineValue(pos, "Max: ");
+                hdrCaps.avgLuminance = getLineValue(pos, "Avg: ");
+                hdrCaps.minLuminance = getLineValue(pos, "Min: ");
+            }
 
-    if (pos != NULL) pos = strstr(pos, "SMPTE ST 2084: ");
-    if ((NULL != pos) && ('1' == *(pos + strlen("SMPTE ST 2084: ")))) {
-        hdrCaps.HDR10Supported = true;
+            if (pos != NULL) pos = strstr(buf, "Hybrif Log-Gamma: ");
+            if ((NULL != pos) && ('1' == *(pos + strlen("Hybrif Log-Gamma: ")))) {
+                hdrCaps.HLGSupported = true;
+            }
 
-        hdrCaps.maxLuminance = getLineValue(pos, "Max: ");
-        hdrCaps.avgLuminance = getLineValue(pos, "Avg: ");
-        hdrCaps.minLuminance = getLineValue(pos, "Min: ");
-    }
-
-    if (pos != NULL) pos = strstr(buf, "Hybrif Log-Gamma: ");
-    if ((NULL != pos) && ('1' == *(pos + strlen("Hybrif Log-Gamma: ")))) {
-        hdrCaps.HLGSupported = true;
-    }
-
-    /* kernel 5.4, content change to: Hybrid Log-Gamma */
-    if (pos != NULL)
-        pos = strstr(buf, "Hybrid Log-Gamma: ");
-    if ((NULL != pos) && ('1' == *(pos + strlen("Hybrid Log-Gamma: ")))) {
-        hdrCaps.HLGSupported = true;
+            /* kernel 5.4, content change to: Hybrid Log-Gamma */
+            if (pos != NULL)
+                pos = strstr(buf, "Hybrid Log-Gamma: ");
+            if ((NULL != pos) && ('1' == *(pos + strlen("Hybrid Log-Gamma: ")))) {
+                hdrCaps.HLGSupported = true;
+            }
+        }
+        close(fd);
     }
 
     MESON_LOGD("dolby version:%d, hlg:%d, hdr10:%d, hdr10+:%d max:%d, avg:%d, min:%d\n",
@@ -420,8 +424,6 @@ int32_t parseHdmiHdrCapabilities(drm_hdr_capabilities & hdrCaps) {
         hdrCaps.avgLuminance,
         hdrCaps.minLuminance);
 
-exit:
-    close(fd);
     return NO_ERROR;
 }
 

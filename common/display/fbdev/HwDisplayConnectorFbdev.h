@@ -49,6 +49,7 @@ public:
     virtual uint32_t getId() { return mId;};
 
 protected:
+    virtual bool isDvSupport();
     virtual void loadPhysicalSize();
     virtual int32_t addDisplayMode(std::string& mode);
 
