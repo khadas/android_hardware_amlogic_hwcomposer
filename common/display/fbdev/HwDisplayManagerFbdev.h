@@ -27,8 +27,6 @@ public:
     HwDisplayManagerFbdev();
     ~HwDisplayManagerFbdev();
 
-    /* get all HwDisplayIds.*/
-
     /* get displayplanes by hw display idx, the planes may change when connector changed.*/
     int32_t getPlanes(
         std::vector<std::shared_ptr<HwDisplayPlane>> & planes);
@@ -40,6 +38,15 @@ public:
     int32_t getConnector(
         std::shared_ptr<HwDisplayConnector> & connector,
         drm_connector_type_t type);
+
+    std::shared_ptr<HwDisplayCrtc> getCrtcById(uint32_t crtcid);
+    std::shared_ptr<HwDisplayCrtc> getCrtcByPipe(uint32_t pipeIdx);
+
+    int32_t bind(
+        std::shared_ptr<HwDisplayCrtc> & crtc,
+        std::shared_ptr<HwDisplayConnector>  & connector,
+        std::vector<std::shared_ptr<HwDisplayPlane>> & planes);
+    int32_t unbind(std::shared_ptr<HwDisplayCrtc> & crtc);
 
 /*********************************************
  * drm apis.

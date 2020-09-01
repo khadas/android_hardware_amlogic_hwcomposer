@@ -19,14 +19,11 @@
 
 class DrmCrtc : public HwDisplayCrtc {
 public:
-    DrmCrtc(drmModeCrtcPtr p);
+    DrmCrtc(drmModeCrtcPtr p, uint32_t pipe);
     ~DrmCrtc();
 
     int32_t getId();
-
-    int32_t bind(std::shared_ptr<HwDisplayConnector>  connector,
-                   std::vector<std::shared_ptr<HwDisplayPlane>> planes);
-    int32_t unbind();
+    uint32_t getPipe();
 
     int32_t update();
 
@@ -51,8 +48,18 @@ public:
     int32_t getHdrMetadataKeys(std::vector<drm_hdr_meatadata_t> & keys __unused) { return 0; }
     int32_t setHdrMetadata(std::map<drm_hdr_meatadata_t, float> & hdrmedata __unused) { return 0; }
 
+    /*for internal drm package use*/
+public:
+
+
+
 protected:
     uint32_t mId;
+    /*Pipe is the crtc index in kernel.
+   *connector report possible crtc with shifted mask.
+  */
+    uint32_t mPipe;
+    bool mModeValid;
     drmModeModeInfo mMode;
 
     std::shared_ptr<HwDisplayConnector>  mConnector;

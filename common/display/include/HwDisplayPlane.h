@@ -19,14 +19,17 @@ public:
     HwDisplayPlane() { }
     virtual ~HwDisplayPlane() { }
 
+    virtual uint32_t getId() = 0;
     virtual const char * getName() = 0;
     virtual uint32_t getType() = 0;
     virtual uint32_t getCapabilities() = 0;
 
+    /*return the crtc masks.*/
+    virtual uint32_t getPossibleCrtcs() = 0;
+
     /*Plane with fixed zorder will return a zorder >=0, or will return < 0.*/
     virtual int32_t getFixedZorder() = 0;
 
-    virtual uint32_t getPossibleCrtcs() = 0;
     virtual bool isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) = 0;
 
     virtual int32_t setPlane(std::shared_ptr<DrmFramebuffer> fb,
@@ -40,9 +43,7 @@ public:
     virtual void setDebugFlag(int dbgFlag) = 0;
 
     virtual void dump(String8 & dumpstr) = 0;
-
-    virtual uint32_t getId() = 0;
 };
 
- #endif/*HW_DISPLAY_PLANE_FBDEV_H*/
+ #endif/*HW_DISPLAY_PLANE_H*/
 

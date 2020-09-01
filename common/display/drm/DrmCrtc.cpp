@@ -11,10 +11,12 @@
 
  #include "DrmCrtc.h"
 
-DrmCrtc::DrmCrtc(drmModeCrtcPtr p)
+DrmCrtc::DrmCrtc(drmModeCrtcPtr p, uint32_t pipe)
     : HwDisplayCrtc() {
     mId = p->crtc_id;
-    if (p->mode_valid) {
+    mPipe = pipe;
+    mModeValid = p->mode_valid;
+    if (mModeValid) {
         mMode = p->mode;
     } else {
         memset(&mMode, 0, sizeof(drmModeModeInfo));
@@ -32,19 +34,8 @@ int32_t DrmCrtc::getId() {
     return mId;
 }
 
-int32_t DrmCrtc::bind(
-    std::shared_ptr<HwDisplayConnector>  connector,
-    std::vector<std::shared_ptr<HwDisplayPlane>> planes) {
-    mConnector = connector;
-    UNUSED(planes);
-    MESON_LOG_EMPTY_FUN();
-    return 0;
-}
-
-int32_t DrmCrtc::unbind() {
-    mConnector.reset();
-    MESON_LOG_EMPTY_FUN();
-    return 0;
+uint32_t DrmCrtc::getPipe() {
+    return mPipe;
 }
 
 int32_t DrmCrtc::update() {
@@ -57,7 +48,16 @@ int32_t DrmCrtc::update() {
 }
 
 int32_t DrmCrtc::getMode(drm_mode_info_t & mode) {
-    UNUSED(mode);
+    if (!mModeValid) {
+        return -EFAULT;
+    }
+
+    strncpy(mode.name, mMode.name, DRM_DISPLAY_MODE_LEN);
+    mode.refreshRate = mMode.vrefresh;
+    mode.pixelW = mMode.vdisplay;
+    mode.pixelH = mMode.hdisplay;
+
+    mode.dpiX = mode.dpiY = 160;
     MESON_LOG_EMPTY_FUN();
     return 0;
 }

@@ -23,8 +23,7 @@ public:
     HwDisplayCrtcFbdev(int drvFd, int32_t id);
     ~HwDisplayCrtcFbdev();
 
-    int32_t bind(std::shared_ptr<HwDisplayConnector>  connector,
-                   std::vector<std::shared_ptr<HwDisplayPlane>> planes);
+    int32_t bind(std::shared_ptr<HwDisplayConnector>  connector);
     int32_t unbind();
 
     /*load informations: displaymode list, hdr cap, etc...*/
@@ -45,6 +44,7 @@ public:
     int32_t waitVBlank(nsecs_t & timestamp);
 
     int32_t getId();
+    uint32_t getPipe();
 
     /*Functions for compose & pageflip*/
     /*set the crtc display axis, and source axis,
@@ -71,6 +71,7 @@ protected:
 
 protected:
     int32_t mId;
+    uint32_t mPipe;
     int mDrvFd;
     uint32_t mOsdChannels;
 
@@ -83,7 +84,6 @@ protected:
 
     std::map<uint32_t, drm_mode_info_t> mModes;
     std::shared_ptr<HwDisplayConnector>  mConnector;
-    std::vector<std::shared_ptr<HwDisplayPlane>> mPlanes;
 
     void * hdrVideoInfo;
     bool mBinded;

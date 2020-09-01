@@ -17,19 +17,14 @@
 
 class HwDisplayPlane;
 
-#define CRTC_VOUT1 (1 << 0)
-#define CRTC_VOUT2 (1 << 1)
-
 class HwDisplayCrtc {
 public:
     HwDisplayCrtc() { }
     virtual ~HwDisplayCrtc() {}
 
     virtual int32_t getId() = 0;
-
-    virtual int32_t bind(std::shared_ptr<HwDisplayConnector>  connector,
-                   std::vector<std::shared_ptr<HwDisplayPlane>> planes) = 0;
-    virtual int32_t unbind() = 0;
+    /*pipe is index of crtc*/
+    virtual uint32_t getPipe() = 0;
 
     /*update informations, current display mode now.*/
     virtual int32_t update() = 0;
@@ -64,7 +59,7 @@ public:
     virtual int32_t readCurDisplayMode(std::string & dispmode) = 0;
     virtual int32_t writeCurDisplayAttr(std::string & dispattr) = 0;
 
-    virtual void setViewPort(const drm_rect_wh_t viewPort) = 0;;
+    virtual void setViewPort(const drm_rect_wh_t viewPort) = 0;
     virtual void getViewPort(drm_rect_wh_t & viewPort) = 0;
 };
 

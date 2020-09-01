@@ -114,24 +114,25 @@ int32_t DualDisplayPipe::getPipeCfg(uint32_t hwcid, PipeCfg & cfg) {
     if (hwcid == 0) {
         if (HwcConfig::dynamicSwitchViuEnabled() == true &&
             mHdmi_connected == true &&
-            connector == DRM_MODE_CONNECTOR_LVDS)
-            cfg.hwcCrtcId = CRTC_VOUT2;
-        else
-            cfg.hwcCrtcId = CRTC_VOUT1;
+            connector == DRM_MODE_CONNECTOR_LVDS) {
+            cfg.hwcPipeIdx = DRM_PIPE_VOUT2;
+        } else {
+            cfg.hwcPipeIdx = DRM_PIPE_VOUT1;
+        }
         mPrimaryConnectorType = connector;
     } else if (hwcid == 1) {
         if (HwcConfig::dynamicSwitchViuEnabled() == true &&
             mHdmi_connected == true &&
             connector == DRM_MODE_CONNECTOR_HDMIA)
-            cfg.hwcCrtcId = CRTC_VOUT1;
+            cfg.hwcPipeIdx = DRM_PIPE_VOUT1;
         else
-            cfg.hwcCrtcId = CRTC_VOUT2;
+            cfg.hwcPipeIdx = DRM_PIPE_VOUT2;
         mExtendConnectorType = connector;
     }
-    MESON_LOGD("dual pipe line getpipecfg hwcid=%d,connector=%d,crtcid=%d.",
-        hwcid, connector, cfg.hwcCrtcId);
+    MESON_LOGD("dual pipe line getpipecfg hwcid=%d, pipeidx = %d, connector=%d.",
+        hwcid, cfg.hwcPipeIdx, connector);
     cfg.hwcPostprocessorType = INVALID_POST_PROCESSOR;
-    cfg.modeCrtcId = cfg.hwcCrtcId;
+    cfg.modePipeIdx = cfg.hwcPipeIdx;
     if (HwcConfig::dynamicSwitchConnectorEnabled() == true &&
         mPrimaryConnectorType == DRM_MODE_CONNECTOR_HDMIA &&
         mExtendConnectorType != DRM_MODE_CONNECTOR_Unknown) {

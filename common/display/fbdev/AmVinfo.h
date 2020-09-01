@@ -244,6 +244,7 @@ struct vinfo_s {
 
 
 enum vmode_e vmode_name_to_mode(const char *str);
+const char *vmode_mode_to_name(enum vmode_e vmode);
 const struct vinfo_s *get_tv_info(enum vmode_e mode);
 int want_hdmi_mode(enum vmode_e mode);
 const struct vinfo_s * findMatchedMode(u32 width, u32 height, u32 refreshrate);

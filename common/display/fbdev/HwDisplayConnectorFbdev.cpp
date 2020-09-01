@@ -10,24 +10,28 @@
 #include <MesonLog.h>
 #include "AmVinfo.h"
 #include "HwDisplayConnectorFbdev.h"
+#include "AmFramebuffer.h"
 
 HwDisplayConnectorFbdev::HwDisplayConnectorFbdev(int32_t drvFd, uint32_t id)
     : HwDisplayConnector() {
     mDrvFd = drvFd;
     mId = id;
-    mCrtc = nullptr;
+    mCrtcId = 0;
 }
 
 HwDisplayConnectorFbdev::~HwDisplayConnectorFbdev() {
 }
 
-int32_t HwDisplayConnectorFbdev::setCrtc(HwDisplayCrtc * crtc) {
-    mCrtc = crtc;
+
+int32_t HwDisplayConnectorFbdev::setCrtcId(uint32_t crtcid) {
+    if (crtcid == 0)
+        MESON_LOGE("Set to NO crtc.");
+    mCrtcId = crtcid;
     return 0;
 }
 
-HwDisplayCrtc * HwDisplayConnectorFbdev::getCrtc() {
-    return mCrtc;
+uint32_t HwDisplayConnectorFbdev::getCrtcId() {
+    return mCrtcId;
 }
 
 int32_t HwDisplayConnectorFbdev::getModes(
@@ -64,10 +68,11 @@ int32_t HwDisplayConnectorFbdev::setContentType(uint32_t contentType) {
 
 void HwDisplayConnectorFbdev::loadPhysicalSize() {
     struct vinfo_base_s info;
-    if (!mCrtc)
+    if (mCrtcId == 0)
         MESON_LOGE("loadPhysicalSize with non crtc, use CRTC 1.");
-    int idx = mCrtc ? mCrtc->getId() : CRTC_VOUT1;
-    int ret = read_vout_info(idx, &info);
+
+    int pipeidx = GET_PIPE_IDX_BY_ID(mCrtcId);
+    int ret = read_vout_info(pipeidx, &info);
     if (ret == 0) {
         mPhyWidth  = info.screen_real_width;
         mPhyHeight = info.screen_real_height;
@@ -86,10 +91,10 @@ int32_t HwDisplayConnectorFbdev::addDisplayMode(std::string& mode) {
     if (VMODE_LCD == vmode) {
         /*panel display info is not fixed, need read from vout*/
         struct vinfo_base_s baseinfo;
-        if (!mCrtc)
+        if (mCrtcId == 0)
             MESON_LOGE("addDisplayMode(%s) with non crtc, use CRTC 1.", mode.c_str());
-        int idx = mCrtc ? mCrtc->getId() : CRTC_VOUT1;
-        int ret = read_vout_info(idx, &baseinfo);
+        int pipeidx = GET_PIPE_IDX_BY_ID(mCrtcId);
+        int ret = read_vout_info(pipeidx, &baseinfo);
         if (ret == 0) {
             vinfo = &info;
 

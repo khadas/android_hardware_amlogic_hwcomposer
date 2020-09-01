@@ -44,8 +44,8 @@ public:
     virtual bool isSecure() = 0;
     virtual bool isConnected() = 0;
 
-    virtual int32_t setCrtc(HwDisplayCrtc * crtc) = 0;
-    virtual HwDisplayCrtc * getCrtc() = 0;
+    virtual int32_t setCrtcId(uint32_t crtcid) = 0;
+    virtual uint32_t getCrtcId() = 0;
 
     virtual int32_t update() = 0;
 

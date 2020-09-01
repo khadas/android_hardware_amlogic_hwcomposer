@@ -50,6 +50,7 @@ meson_hwc_display_cc_defaults {
                     "fbdev/AmVinfo.cpp",
                     "drm/DrmDevice.cpp",
                     "drm/DrmCrtc.cpp",
+                    "drm/DrmEncoder.cpp",
                     "drm/DrmConnector.cpp",
                     "drm/DrmPlane.cpp",
                 ],

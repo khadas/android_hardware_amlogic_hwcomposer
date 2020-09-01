@@ -22,10 +22,15 @@
 
 #define GET_CRTC_BY_CONNECTOR(type) \
         std::shared_ptr<HwDisplayConnector> connector; \
-        HwDisplayCrtc * crtc = NULL; \
+        std::shared_ptr<HwDisplayCrtc> crtc; \
         getHwDisplayManager()->getConnector(connector, type); \
         if (connector) { \
-            crtc = connector->getCrtc(); \
+            int crtcid = connector->getCrtcId(); \
+            if (crtcid == 0) { \
+                crtc = getHwDisplayManager()->getCrtcByPipe(DRM_PIPE_VOUT1); \
+            } else { \
+                crtc = getHwDisplayManager()->getCrtcById(crtcid); \
+            } \
         } \
 
 namespace meson{
@@ -337,15 +342,6 @@ bool DisplayAdapterLocal::setDisplayAttribute(
     bool ret = false;
     MESON_LOGD("SetDisplay[%s] attr to \"%s\"", name.c_str(), value.c_str());
 
-    /*
-    drm_connector_type_t type;
-    DisplayTypeConv(type, displayType);
-
-    GET_CRTC_BY_CONNECTOR(type);
-    if (crtc) {
-        string dispattr (value);
-        crtc->setDisplayAttribute(dispattr);
-    */
     drm_connector_type_t type;
     string out;
     DisplayTypeConv(type, displayType);
@@ -366,11 +362,6 @@ bool DisplayAdapterLocal::getDisplayAttribute(
     string out = "";
     drm_connector_type_t type;
     DisplayTypeConv(type, displayType);
-    /*
-    GET_CRTC_BY_CONNECTOR(type);
-    if (crtc) {
-        crtc->getDisplayAttribute(value);
-    */
     DisplayAttributeInfo* info = getDisplayAttributeInfo(name, displayType);
     if (info && info->update_fun) {
        if (info->update_fun(*info, "", out, UT_GET_VALUE)) {

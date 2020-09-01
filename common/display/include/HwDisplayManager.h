@@ -17,6 +17,11 @@
 #include <HwDisplayPlane.h>
 #include <HwDisplayConnector.h>
 
+struct HwDisplayPipe {
+    uint32_t crtc_id;
+    uint32_t connector_id;
+};
+
 class HwDisplayManager {
 friend class HwDisplayCrtc;
 friend class HwDisplayConnector;
@@ -37,6 +42,15 @@ public:
     virtual int32_t getConnector(
         std::shared_ptr<HwDisplayConnector> & connector,
         drm_connector_type_t type) = 0;
+
+    virtual std::shared_ptr<HwDisplayCrtc> getCrtcById(uint32_t crtcid) = 0;
+    virtual std::shared_ptr<HwDisplayCrtc> getCrtcByPipe(uint32_t pipeIdx) = 0;
+
+    virtual int32_t bind(
+        std::shared_ptr<HwDisplayCrtc> & crtc,
+        std::shared_ptr<HwDisplayConnector>  & connector,
+        std::vector<std::shared_ptr<HwDisplayPlane>> & planes) = 0;
+    virtual int32_t unbind(std::shared_ptr<HwDisplayCrtc> & crtc) = 0;
 };
 
 std::shared_ptr<HwDisplayManager> getHwDisplayManager();

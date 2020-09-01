@@ -24,8 +24,8 @@ public:
     HwDisplayConnectorFbdev(int32_t drvFd, uint32_t id);
     virtual ~HwDisplayConnectorFbdev();
 
-    virtual int32_t setCrtc(HwDisplayCrtc * crtc);
-    virtual HwDisplayCrtc * getCrtc();
+    virtual int32_t setCrtcId(uint32_t crtcid);
+    virtual uint32_t getCrtcId();
 
     virtual int32_t update() = 0;
 
@@ -55,11 +55,11 @@ protected:
 
     int32_t mDrvFd;
     uint32_t mId;
+    uint32_t mCrtcId;
 
     uint32_t mPhyWidth;
     uint32_t mPhyHeight;
 
-    HwDisplayCrtc * mCrtc;
     std::map<uint32_t, drm_mode_info_t> mDisplayModes;
     std::vector<uint32_t> mSupportedContentTypes;
 };

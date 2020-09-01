@@ -22,7 +22,7 @@
 
 HwcDisplayPipe::PipeStat::PipeStat(uint32_t id) {
     hwcId = id;
-    cfg.hwcCrtcId = cfg.modeCrtcId = 0;
+    cfg.hwcPipeIdx = cfg.modePipeIdx = 0;
     cfg.hwcConnectorType = cfg.modeConnectorType = DRM_MODE_CONNECTOR_Unknown;
     cfg.hwcPostprocessorType = INVALID_POST_PROCESSOR;
 }
@@ -41,7 +41,6 @@ HwcDisplayPipe::PipeStat::~PipeStat() {
 
 HwcDisplayPipe::HwcDisplayPipe() {
     /*load display resources.*/
-    getHwDisplayManager()->getCrtcs(mCrtcs);
     getHwDisplayManager()->getPlanes(mPlanes);
 }
 
@@ -83,25 +82,12 @@ int32_t HwcDisplayPipe::init(std::map<uint32_t, std::shared_ptr<HwcDisplay>> & h
     return 0;
 }
 
-int32_t HwcDisplayPipe::getCrtc(
-    int32_t crtcid, std::shared_ptr<HwDisplayCrtc> & crtc) {
-    for (auto crtcIt = mCrtcs.begin(); crtcIt != mCrtcs.end(); ++ crtcIt) {
-        if ((*crtcIt)->getId() == crtcid) {
-            crtc = *crtcIt;
-            break;
-        }
-    }
-    MESON_ASSERT(crtc != NULL, "get crtc %d failed.", crtcid);
-
-    return 0;
-}
-
 int32_t HwcDisplayPipe::getPlanes(
-    int32_t crtcid, std::vector<std::shared_ptr<HwDisplayPlane>> & planes) {
+    uint32_t pipeidx, std::vector<std::shared_ptr<HwDisplayPlane>> & planes) {
     planes.clear();
     for (auto planeIt = mPlanes.begin(); planeIt != mPlanes.end(); ++ planeIt) {
         std::shared_ptr<HwDisplayPlane> plane = *planeIt;
-        if (plane->getPossibleCrtcs() & crtcid) {
+        if (plane->getPossibleCrtcs() & pipeidx) {
             if ((plane->getType() == CURSOR_PLANE) &&
                 HwcConfig::cursorPlaneDisabled()) {
                 continue;
@@ -109,7 +95,7 @@ int32_t HwcDisplayPipe::getPlanes(
             planes.push_back(plane);
         }
     }
-    MESON_ASSERT(planes.size() > 0, "get planes for crtc %d failed.", crtcid);
+    MESON_ASSERT(planes.size() > 0, "get planes for crtc %d failed.", pipeidx);
     return 0;
 }
 
@@ -180,10 +166,10 @@ int32_t HwcDisplayPipe::updatePipe(std::shared_ptr<PipeStat> & stat) {
 
     /*update pipestats*/
     bool resChanged = false;
-    if (cfg.hwcCrtcId != stat->cfg.hwcCrtcId) {
-        getCrtc(cfg.hwcCrtcId, stat->hwcCrtc);
-        getPlanes(cfg.hwcCrtcId, stat->hwcPlanes);
-        stat->cfg.hwcCrtcId = cfg.hwcCrtcId;
+    if (cfg.hwcPipeIdx != stat->cfg.hwcPipeIdx) {
+        stat->cfg.hwcPipeIdx = cfg.hwcPipeIdx;
+        stat->hwcCrtc = getHwDisplayManager()->getCrtcByPipe(cfg.hwcPipeIdx);
+        getPlanes(stat->hwcCrtc->getPipe(), stat->hwcPlanes);
         resChanged = true;
     }
     if (cfg.hwcConnectorType != stat->cfg.hwcConnectorType) {
@@ -196,9 +182,9 @@ int32_t HwcDisplayPipe::updatePipe(std::shared_ptr<PipeStat> & stat) {
         stat->cfg.hwcPostprocessorType = cfg.hwcPostprocessorType;
         resChanged = true;
     }
-    if (cfg.modeCrtcId != stat->cfg.modeCrtcId) {
-        getCrtc(cfg.modeCrtcId, stat->modeCrtc);
-        stat->cfg.modeCrtcId = cfg.modeCrtcId;
+    if (cfg.modePipeIdx != stat->cfg.modePipeIdx) {
+        stat->cfg.modePipeIdx = cfg.modePipeIdx;
+        stat->modeCrtc = getHwDisplayManager()->getCrtcByPipe(cfg.modePipeIdx);
         resChanged = true;
     }
     if (cfg.modeConnectorType != stat->cfg.modeConnectorType) {
@@ -209,21 +195,20 @@ int32_t HwcDisplayPipe::updatePipe(std::shared_ptr<PipeStat> & stat) {
 
     MESON_LOGD("HwcDisplayPipe::updatePipe (%d) [%s], crtc (%d) connector (%d)",
         stat->hwcId, resChanged ? "CHANGED" : "NOT-CHANGED",
-        cfg.hwcCrtcId, cfg.hwcConnectorType);
+        cfg.hwcPipeIdx, cfg.hwcConnectorType);
 
     if (resChanged) {
         /*reset vout displaymode, it will be null.*/
         MESON_LOGD("HwcDisplayPipe::updatePipe %d changed", stat->hwcId);
-        stat->hwcCrtc->unbind();
-        stat->hwcCrtc->bind(stat->hwcConnector, stat->hwcPlanes);
+        getHwDisplayManager()->unbind(stat->hwcCrtc);
+        getHwDisplayManager()->bind(stat->hwcCrtc ,stat->hwcConnector ,stat->hwcPlanes);
         stat->hwcCrtc->update();
         stat->hwcConnector->update();
 
-        if (cfg.modeCrtcId != cfg.hwcCrtcId) {
+        if (cfg.modePipeIdx != cfg.hwcPipeIdx) {
             std::vector<std::shared_ptr<HwDisplayPlane>> planes;
-            getPlanes (cfg.modeCrtcId,  planes);
-            stat->modeCrtc->unbind();
-            stat->modeCrtc->bind(stat->modeConnector, planes);
+            getPlanes (cfg.modePipeIdx,  planes);
+            getHwDisplayManager()->bind(stat->modeCrtc, stat->modeConnector, planes);
             stat->modeCrtc->update();
             stat->modeConnector->update();
         }
@@ -304,11 +289,11 @@ void HwcDisplayPipe::handleEvent(drm_display_event event, int val) {
             {
                 MESON_LOGD("ModeChange state: [%s]", val == 1 ? "Complete" : "Begin to change");
                 if (val == 1) {
-                    int crtcid = CRTC_VOUT1;
+                    int pipeIdx = DRM_PIPE_VOUT1;
                     if (event == DRM_EVENT_VOUT2_MODE_CHANGED)
-                        crtcid = CRTC_VOUT2;
+                        pipeIdx = DRM_PIPE_VOUT2;
                     for (auto statIt : mPipeStats) {
-                        if (statIt.second->modeCrtc->getId() == crtcid) {
+                        if (statIt.second->modeCrtc->getPipe() == pipeIdx) {
                             statIt.second->modeCrtc->update();
                             statIt.second->modeMgr->update();
                             statIt.second->hwcDisplay->onModeChanged(val);

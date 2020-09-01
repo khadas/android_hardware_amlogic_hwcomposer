@@ -93,6 +93,43 @@ int32_t HwDisplayManagerFbdev::getConnector(
     return 0;
 }
 
+std::shared_ptr<HwDisplayCrtc> HwDisplayManagerFbdev::getCrtcById(
+    uint32_t crtcid) {
+    std::lock_guard<std::mutex> lock(mMutex);
+    for (const auto & c : mCrtcs) {
+        if (c.second->getId() == crtcid) {
+            return c.second;
+        }
+    }
+
+    return NULL;;
+}
+
+std::shared_ptr<HwDisplayCrtc> HwDisplayManagerFbdev::getCrtcByPipe(
+    uint32_t pipeIdx) {
+    for (const auto & c : mCrtcs) {
+        if (c.second->getPipe() == pipeIdx) {
+            return c.second;
+        }
+    }
+
+    return NULL;
+}
+
+int32_t HwDisplayManagerFbdev::bind(
+    std::shared_ptr<HwDisplayCrtc> & crtc,
+    std::shared_ptr<HwDisplayConnector>  & connector,
+    std::vector<std::shared_ptr<HwDisplayPlane>> & planes __unused) {
+    HwDisplayCrtcFbdev * fbcrtc = (HwDisplayCrtcFbdev *)crtc.get();
+    return fbcrtc->bind(connector);
+}
+
+int32_t HwDisplayManagerFbdev::unbind(std::shared_ptr<HwDisplayCrtc> & crtc) {
+    HwDisplayCrtcFbdev * fbcrtc = (HwDisplayCrtcFbdev *)crtc.get();
+    return fbcrtc->unbind();
+}
+
+
 /********************************************************************
  *   The following functions need update with drm.                  *
  *   Now is hard code for 1 crtc , 1 connector.                     *
@@ -153,16 +190,16 @@ int32_t HwDisplayManagerFbdev::loadPlanes() {
                     std::shared_ptr<OsdPlane> plane = std::make_shared<OsdPlane>(fd, plane_idx);
                     mPlanes.emplace(plane_idx, plane);
 
-                    /*add valid crtc.*/
+                    /*add valid crtc, for fbdev, crtc id = crtc index.*/
                     uint32_t crtcs = plane->getPossibleCrtcs();
-                    if ((crtcs & CRTC_VOUT1) && mCrtcs.count(CRTC_VOUT1) == 0) {
+                    if ((crtcs & DRM_PIPE_VOUT1) && mCrtcs.count(CRTC_VOUT1_ID) == 0) {
                         std::shared_ptr<HwDisplayCrtcFbdev> crtc =
-                            std::make_shared<HwDisplayCrtcFbdev>(::dup(fd), CRTC_VOUT1);
-                        mCrtcs.emplace(CRTC_VOUT1, crtc);
-                    } else if ((crtcs & CRTC_VOUT2) && mCrtcs.count(CRTC_VOUT2) == 0) {
+                            std::make_shared<HwDisplayCrtcFbdev>(::dup(fd), CRTC_VOUT1_ID);
+                        mCrtcs.emplace(CRTC_VOUT1_ID, crtc);
+                    } else if ((crtcs & DRM_PIPE_VOUT2) && mCrtcs.count(CRTC_VOUT2_ID) == 0) {
                         std::shared_ptr<HwDisplayCrtcFbdev> crtc =
-                            std::make_shared<HwDisplayCrtcFbdev>(::dup(fd), CRTC_VOUT2);
-                        mCrtcs.emplace(CRTC_VOUT2, crtc);
+                            std::make_shared<HwDisplayCrtcFbdev>(::dup(fd), CRTC_VOUT2_ID);
+                        mCrtcs.emplace(CRTC_VOUT2_ID, crtc);
                     }
                 }
                 count_osd ++;

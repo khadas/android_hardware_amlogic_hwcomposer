@@ -33,6 +33,10 @@ public:
 
     int32_t update();
 
+    /*set & get currentn crtc id*/
+    int32_t setCrtcId(uint32_t crtcid);
+    uint32_t getCrtcId();
+
     /*no drm stard props*/
     int32_t getIdentificationData(std::vector<uint8_t>& idOut);
     void getHdrCapabilities(drm_hdr_capabilities * caps);
@@ -47,9 +51,10 @@ public:
     bool isRemovable() { MESON_LOG_EMPTY_FUN(); return false; }
     int32_t setMode(drm_mode_info_t & mode __unused) { MESON_LOG_EMPTY_FUN(); return false; }
 
-    /*can use pipe id instead.*/
-    int32_t setCrtc(HwDisplayCrtc * crtc __unused) { MESON_LOG_EMPTY_FUN(); return 0; }
-    HwDisplayCrtc * getCrtc()  { MESON_LOG_EMPTY_FUN(); return NULL; }
+    /*drm package internal use.*/
+public:
+    int32_t setEncoderId(uint32_t encoderid);
+    uint32_t getEncoderId();
 
 protected:
     int32_t loadDisplayModes(drmModeConnectorPtr p);
@@ -57,6 +62,8 @@ protected:
 protected:
     uint32_t mId;
     uint32_t mType;
+    uint32_t mCrtcId;
+    uint32_t mEncoderId;
     drmModeConnection mState;
 
     /*mode_id, modeinfo. mode_id is created by userspace, not from kernel.*/

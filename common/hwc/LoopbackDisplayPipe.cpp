@@ -59,13 +59,13 @@ int32_t LoopbackDisplayPipe::getPipeCfg(uint32_t hwcid, PipeCfg & cfg) {
     MESON_ASSERT(connector == DRM_MODE_CONNECTOR_LVDS, "unsupported connector config");
 
     if (mPostProcessor) {
-        cfg.hwcCrtcId = CRTC_VOUT1;
+        cfg.hwcPipeIdx = DRM_PIPE_VOUT1;
         cfg.hwcConnectorType = DRM_MODE_CONNECTOR_VIRTUAL;
-        cfg.modeCrtcId = CRTC_VOUT2;
+        cfg.modePipeIdx = DRM_PIPE_VOUT2;
         cfg.modeConnectorType = connector;
         cfg.hwcPostprocessorType = VDIN_POST_PROCESSOR;
     } else {
-        cfg.modeCrtcId = cfg.hwcCrtcId = CRTC_VOUT1;
+        cfg.modePipeIdx = cfg.hwcPipeIdx = DRM_PIPE_VOUT1;
         cfg.modeConnectorType = cfg.hwcConnectorType = connector;
         cfg.hwcPostprocessorType = INVALID_POST_PROCESSOR;
     }
@@ -85,10 +85,10 @@ int32_t LoopbackDisplayPipe::getPostProcessor(
         uint32_t w, h;
         HwcConfig::getFramebufferSize(0, w, h);
 
-        std::shared_ptr<HwDisplayCrtc> crtc;
+        std::shared_ptr<HwDisplayCrtc> crtc =
+            getHwDisplayManager()->getCrtcByPipe(DRM_PIPE_VOUT2);
         std::vector<std::shared_ptr<HwDisplayPlane>> planes;
-        getCrtc(CRTC_VOUT2, crtc);
-        getPlanes(CRTC_VOUT2, planes);
+        getPlanes(DRM_PIPE_VOUT2, planes);
         mVdinPostProcessor->setVout(crtc, planes, w, h);
     }
 
@@ -112,8 +112,8 @@ int32_t LoopbackDisplayPipe::handleRequest(uint32_t flags) {
             }
 
             /*reset vout displaymode, for we need do pipeline switch*/
-            stat->hwcCrtc->unbind();
-            stat->modeCrtc->unbind();
+            getHwDisplayManager()->unbind(stat->hwcCrtc);
+            getHwDisplayManager()->unbind(stat->modeCrtc);
             /*update display pipe.*/
             updatePipe(stat);
 

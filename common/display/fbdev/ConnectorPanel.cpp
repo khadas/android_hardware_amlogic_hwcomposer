@@ -153,13 +153,22 @@ int32_t ConnectorPanel::loadDisplayModes() {
     } else {
         std::string dispmode;
         vmode_e vmode = VMODE_MAX;
-        if (NULL != mCrtc) {
-            mCrtc->readCurDisplayMode(dispmode);
-            vmode = vmode_name_to_mode(dispmode.c_str());
+
+        struct vinfo_base_s baseinfo;
+        int pipeidx = GET_PIPE_IDX_BY_ID(mCrtcId);
+        if (0 == read_vout_info(pipeidx, &baseinfo) ) {
+            vmode = baseinfo.mode;
+            const char * mode =  vmode_mode_to_name(vmode);
+            char modestr[DRM_DISPLAY_MODE_LEN];
+            strncpy(modestr, mode, DRM_DISPLAY_MODE_LEN);
+            dispmode = modestr;
+        }
+
+        if (vmode == VMODE_MAX) {
+            MESON_LOGE("ConnectorPanel current mode  (%d) invalid. ", vmode);
         }
 
         addDisplayMode(dispmode);
-
         //for tv display mode.
         const unsigned int pos = dispmode.find("60hz", 0);
         if (pos != std::string::npos) {

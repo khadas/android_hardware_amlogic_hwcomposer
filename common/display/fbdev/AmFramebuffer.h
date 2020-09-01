@@ -177,6 +177,11 @@ typedef struct osd_page_flip_info_t {
 } osd_page_flip_info_t;
 
 /*fake index for display components.*/
+#define CRTC_VOUT1_ID (DRM_PIPE_VOUT1 + 10)
+#define CRTC_VOUT2_ID (DRM_PIPE_VOUT2 + 10)
+
+#define GET_PIPE_IDX_BY_ID(crtcid)  ( crtcid == CRTC_VOUT2_ID ? DRM_PIPE_VOUT2 : DRM_PIPE_VOUT1)
+
 #define CONNECTOR_IDX_MIN (20)
 #define OSD_PLANE_IDX_MIN (30)
 #define VIDEO_PLANE_IDX_MIN (40)

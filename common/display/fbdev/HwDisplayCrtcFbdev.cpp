@@ -27,9 +27,9 @@ static vframe_master_display_colour_s_t nullHdr;
 
 HwDisplayCrtcFbdev::HwDisplayCrtcFbdev(int drvFd, int32_t id)
     : HwDisplayCrtc() {
-    MESON_ASSERT(id == CRTC_VOUT1 || id == CRTC_VOUT2, "Invalid crtc id %d", id);
-
+    MESON_ASSERT(id == CRTC_VOUT1_ID || id == CRTC_VOUT2_ID, "Invalid crtc id %d", id);
     mId = id;
+    mPipe = GET_PIPE_IDX_BY_ID(id);
     mDrvFd = drvFd;
     mFirstPresent = true;
     mBinded = false;
@@ -49,19 +49,16 @@ HwDisplayCrtcFbdev::~HwDisplayCrtcFbdev() {
 }
 
 int32_t HwDisplayCrtcFbdev::bind(
-    std::shared_ptr<HwDisplayConnector>  connector,
-    std::vector<std::shared_ptr<HwDisplayPlane>> planes) {
+    std::shared_ptr<HwDisplayConnector>  connector) {
     if (mBinded) {
         if (mConnector.get())
-            mConnector->setCrtc(NULL);
+            mConnector->setCrtcId(0);
         mConnector.reset();
-        mPlanes.clear();
         mBinded =  false;
     }
 
     mConnector = connector;
-    mConnector->setCrtc(this);
-    mPlanes = planes;
+    mConnector->setCrtcId(mPipe);
     mBinded = true;
     return 0;
 }
@@ -85,9 +82,8 @@ int32_t HwDisplayCrtcFbdev::unbind() {
         writeCurDisplayMode(dispmode);
         #endif
         if (mConnector.get())
-            mConnector->setCrtc(NULL);
+            mConnector->setCrtcId(0);
         mConnector.reset();
-        mPlanes.clear();
         mBinded = false;
     }
     return 0;
@@ -95,6 +91,10 @@ int32_t HwDisplayCrtcFbdev::unbind() {
 
 int32_t HwDisplayCrtcFbdev::getId() {
     return mId;
+}
+
+uint32_t HwDisplayCrtcFbdev::getPipe() {
+    return mPipe;
 }
 
 int32_t HwDisplayCrtcFbdev::setMode(drm_mode_info_t & mode) {
@@ -327,25 +327,19 @@ void HwDisplayCrtcFbdev::closeLogoDisplay() {
 }
 
 int32_t  HwDisplayCrtcFbdev::readCurDisplayMode(std::string & dispmode) {
-    int32_t ret = 0;
-    if (mId == CRTC_VOUT1) {
-        ret = read_sysfs(VIU1_DISPLAY_MODE_SYSFS, dispmode);
-    }  else if (mId == CRTC_VOUT2) {
-        ret = read_sysfs(VIU2_DISPLAY_MODE_SYSFS, dispmode);
-    }
-
+    const char *path =  (mPipe == DRM_PIPE_VOUT1) ? VIU1_DISPLAY_MODE_SYSFS : VIU2_DISPLAY_MODE_SYSFS;
+     int32_t ret = read_sysfs(path, dispmode);
     return ret;
 }
 
 int32_t HwDisplayCrtcFbdev::writeCurDisplayMode(std::string & dispmode) {
-    const char *path =  (mId == CRTC_VOUT1) ? VIU1_DISPLAY_MODE_SYSFS : VIU2_DISPLAY_MODE_SYSFS;
+    const char *path =  (mPipe == DRM_PIPE_VOUT1) ? VIU1_DISPLAY_MODE_SYSFS : VIU2_DISPLAY_MODE_SYSFS;
     return sysfs_set_string(path, dispmode.c_str());
 }
 
 int32_t HwDisplayCrtcFbdev::writeCurDisplayAttr(std::string & dispattr) {
     int32_t ret = 0;
     ret = sc_write_sysfs(VIU_DISPLAY_ATTR_SYSFS, dispattr);
-
     return ret;
 }
 

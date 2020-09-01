@@ -79,12 +79,12 @@ public:
 protected:
     class PipeCfg {
     public:
-        int32_t hwcCrtcId;
+    /*use pipe id, for crtc id may change.*/
+        uint32_t hwcPipeIdx;
+        uint32_t modePipeIdx;
         drm_connector_type_t hwcConnectorType;
-        hwc_post_processor_t hwcPostprocessorType;
-
-        int32_t modeCrtcId;
         drm_connector_type_t modeConnectorType;
+        hwc_post_processor_t hwcPostprocessorType;
     };
 
     class PipeStat {
@@ -116,10 +116,8 @@ protected:
     virtual int32_t initDisplayMode(std::shared_ptr<PipeStat> & stat);
 
     /*load display resource*/
-    int32_t getCrtc(
-        int32_t crtcid, std::shared_ptr<HwDisplayCrtc> & crtc);
     int32_t getPlanes(
-        int32_t crtcid, std::vector<std::shared_ptr<HwDisplayPlane>> & planes);
+        uint32_t pipeidx, std::vector<std::shared_ptr<HwDisplayPlane>> & planes);
     int32_t getConnector(
         drm_connector_type_t type, std::shared_ptr<HwDisplayConnector> & connector);
     virtual int32_t getPostProcessor(
@@ -127,7 +125,6 @@ protected:
 
 protected:
     std::vector<std::shared_ptr<HwDisplayPlane>> mPlanes;
-    std::vector<std::shared_ptr<HwDisplayCrtc>> mCrtcs;
     std::map<drm_connector_type_t, std::shared_ptr<HwDisplayConnector>> mConnectors;
     std::map<uint32_t, std::shared_ptr<PipeStat>> mPipeStats;
     std::mutex mMutex;

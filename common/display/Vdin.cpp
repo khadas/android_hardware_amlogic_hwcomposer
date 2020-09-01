@@ -16,11 +16,11 @@
 #include <poll.h>
 #include <stdlib.h>
 #include <string.h>
-#include <Vdin.h>
-#include <MesonLog.h>
-#include <HwDisplayCrtc.h>
 #include <utils/Trace.h>
-#include "fbdev/AmVinfo.h"
+#include <HwDisplayManager.h>
+#include <HwDisplayCrtc.h>
+#include <MesonLog.h>
+#include <Vdin.h>
 
 
 ANDROID_SINGLETON_STATIC_INSTANCE(Vdin)
@@ -50,31 +50,20 @@ Vdin::~Vdin() {
 
 int32_t Vdin::getStreamInfo(int & width, int & height, int & format) {
     /*read current */
-    struct vinfo_base_s info;
-    if (read_vout_info(CRTC_VOUT1, &info) != 0) {
+    drm_mode_info_t modeInfo;
+    auto crtc = getHwDisplayManager()->getCrtcByPipe(DRM_PIPE_VOUT1);
+    if (crtc->getMode(modeInfo) != 0) {
         MESON_LOGE("getStreamInfo faild.");
         mCapParams.width = 1920;
         mCapParams.height = 1080;
         mCapParams.fps = 60;
         mDefFormat = HAL_PIXEL_FORMAT_RGB_888;
     } else {
-        mCapParams.width = info.width;
-        mCapParams.height = info.height;
-        mCapParams.fps = (int)info.sync_duration_num/info.sync_duration_den;
-
-        switch (info.viu_color_fmt) {
-            case TVIN_RGB444:
-                mDefFormat = HAL_PIXEL_FORMAT_RGB_888;
-                break;
-            case TVIN_NV21:
-                mDefFormat = HAL_PIXEL_FORMAT_YCRCB_420_SP;
-                break;
-            case TVIN_YUV422:
-                mDefFormat = HAL_PIXEL_FORMAT_YCBCR_422_SP;
-                break;
-            default:
-                MESON_ASSERT(0,"Not supported format.");
-        };
+        mCapParams.width = modeInfo.pixelW;
+        mCapParams.height = modeInfo.pixelH;
+        mCapParams.fps = (int)modeInfo.refreshRate;
+        /*force use RGB888*/
+        mDefFormat = HAL_PIXEL_FORMAT_RGB_888;
     }
 
     width = mCapParams.width;

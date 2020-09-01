@@ -105,6 +105,11 @@ typedef enum {
     INVALID_PLANE = 0xffffffff,
 } meson_plane_type_t;
 
+enum {
+    DRM_PIPE_VOUT1 = 1 << 0,
+    DRM_PIPE_VOUT2 = 1 << 1,
+};
+
 typedef enum {
     PLANE_SHOW_LOGO = (1 << 0),
     PLANE_SUPPORT_ZORDER = (1 << 1),

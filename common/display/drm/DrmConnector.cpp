@@ -17,6 +17,9 @@ DrmConnector::DrmConnector(drmModeConnectorPtr p)
     mPhyWidth(p->mmWidth),
     mPhyHeight(p->mmHeight) {
 
+    mEncoderId = p->encoder_id;
+
+    mCrtcId = 0;
     loadDisplayModes(p);
 }
 
@@ -59,6 +62,24 @@ int32_t DrmConnector::update() {
     }
 
     return 0;
+}
+
+int32_t DrmConnector::setCrtcId(uint32_t crtcid) {
+    mCrtcId = crtcid;
+    return 0;
+}
+
+uint32_t DrmConnector::getCrtcId() {
+    return mCrtcId;
+}
+
+int32_t DrmConnector::setEncoderId(uint32_t encoderid) {
+    mEncoderId = encoderid;
+    return 0;
+}
+
+uint32_t DrmConnector::getEncoderId() {
+    return mEncoderId;
 }
 
 int32_t DrmConnector::getModes(

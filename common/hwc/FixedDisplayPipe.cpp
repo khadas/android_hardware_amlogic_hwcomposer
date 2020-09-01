@@ -51,8 +51,8 @@ void FixedDisplayPipe::handleEvent(drm_display_event event, int val) {
                 if (pipe->cfg.hwcConnectorType != targetConnector &&
                         pipe->cfg.hwcConnectorType == DRM_MODE_CONNECTOR_TV) {
                     #if 0 /*TODO: for fixed pipe, let systemcontrol to set displaymode.*/
-                    pipe->hwcCrtc->unbind();
-                    pipe->modeCrtc->unbind();
+                    getHwDisplayManager()->unbind(pipe->hwcCrtc);
+                    getHwDisplayManager()->unbind(pipe->modeCrtc);
                     #endif
 
                     /* we need latest connector status, and no one will update
@@ -81,9 +81,8 @@ void FixedDisplayPipe::handleEvent(drm_display_event event, int val) {
 
 int32_t FixedDisplayPipe::getPipeCfg(uint32_t hwcid, PipeCfg & cfg) {
     drm_connector_type_t  connector = getConnetorCfg(hwcid);
-    cfg.hwcCrtcId = CRTC_VOUT1;
+    cfg.modePipeIdx = cfg.hwcPipeIdx = DRM_PIPE_VOUT1;
     cfg.hwcPostprocessorType = INVALID_POST_PROCESSOR;
-    cfg.modeCrtcId = cfg.hwcCrtcId;
     cfg.modeConnectorType = cfg.hwcConnectorType = connector;
     return 0;
 }
