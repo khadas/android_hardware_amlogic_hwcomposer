@@ -114,16 +114,10 @@ enum vmode_e vmode_name_to_mode(const char *str)
 	enum vmode_e vmode = VMODE_MAX;
 
 	for (i = 0; i < ARRAY_SIZE(vmode_match_table); i++) {
-		if (strstr(str, vmode_match_table[i].name)) {
+		if (strncmp(str, vmode_match_table[i].name, strlen(vmode_match_table[i].name)) == 0) {
 			vmode = vmode_match_table[i].mode;
 			break;
 		}
-#if 0
-		if (strcmp(vmode_match_table[i].name, str) == 0) {
-			vmode = vmode_match_table[i].mode;
-			break;
-		}
-#endif
 	}
 
 	return vmode;
