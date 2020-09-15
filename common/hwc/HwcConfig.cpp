@@ -42,30 +42,36 @@ int32_t HwcConfig::getFramebufferSize(int disp, uint32_t & width, uint32_t & hei
     if (disp == 0) {
         /*primary display*/
         if (sys_get_string_prop("persist.sys.builtin.ui_mode", uiMode) > 0) {
-            if (!strncmp(uiMode, "720", 3)) {
+            if (!strncmp(uiMode, "1280x720", 8)) {
                 width  = 1280;
                 height = 720;
-            } else if (!strncmp(uiMode, "1080", 4)) {
+            } else if (!strncmp(uiMode, "1920x1080", 9)) {
                 width  = 1920;
                 height = 1080;
-            }else if (!strncmp(uiMode, "1080port", 8)) {
+            }else if (!strncmp(uiMode, "1080x1920", 9)) {
                 width  = 1080;
                 height = 1920;
-            }else if (!strncmp(uiMode, "720port", 7)) {
+            }else if (!strncmp(uiMode, "720x1280", 8)) {
                 width  = 720;
                 height = 1280;
-            }else if (!strncmp(uiMode, "768", 3)) {
+            }else if (!strncmp(uiMode, "1024x768", 8)) {
                 width  = 1024;
                 height = 768;
-            }else if (!strncmp(uiMode, "768port", 7)) {
+            }else if (!strncmp(uiMode, "768x1024", 8)) {
                 width  = 768;
                 height = 1024;
-            }else if (!strncmp(uiMode, "600", 3)) {
+            }else if (!strncmp(uiMode, "1024x600", 8)) {
                 width  = 1024;
                 height = 600;
-            }else if (!strncmp(uiMode, "600port", 7)) {
+            }else if (!strncmp(uiMode, "600x1024", 8)) {
                 width  = 600;
                 height = 1024;
+            }else if (!strncmp(uiMode, "1280x800", 8)) {
+                width  = 1280;
+                height = 800;
+            }else if (!strncmp(uiMode, "800x1280", 8)) {
+                width  = 800;
+                height = 1280;
             }
 			else {
                 MESON_ASSERT(0, "%s: get not support mode [%s] from vendor.ui_mode",
