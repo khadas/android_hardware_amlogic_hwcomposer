@@ -118,8 +118,8 @@ int32_t DrmConnector::loadDisplayModes(drmModeConnectorPtr p) {
         strncpy(modeInfo.name, mesonVinfo->name, DRM_DISPLAY_MODE_LEN);
         modeInfo.pixelW = drmModes[i].hdisplay;
         modeInfo.pixelH = drmModes[i].vdisplay;
-        modeInfo.dpiX = (modeInfo.pixelW * 25.4f) / mPhyWidth;
-        modeInfo.dpiY = (modeInfo.pixelH * 25.4f) / mPhyHeight;
+        modeInfo.dpiX = (modeInfo.pixelW * 25.4f) / mPhyWidth * 1000;
+        modeInfo.dpiY = (modeInfo.pixelH * 25.4f) / mPhyHeight * 1000;
         modeInfo.refreshRate = drmModes[i].vrefresh;
 
         if (drmModeCreatePropertyBlob(mDrmFd, &drmModes[i], sizeof(drmModes[i]), &blobid) != 0) {

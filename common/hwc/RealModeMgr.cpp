@@ -156,10 +156,10 @@ int32_t  RealModeMgr::getDisplayAttribute(
                 }
                 break;
             case HWC2_ATTRIBUTE_DPI_X:
-                *outValue = curMode.dpiX * 1000.0f;
+                *outValue = curMode.dpiX;
                 break;
             case HWC2_ATTRIBUTE_DPI_Y:
-                *outValue = curMode.dpiY * 1000.0f;
+                *outValue = curMode.dpiY;
                 break;
             case HWC2_ATTRIBUTE_CONFIG_GROUP:
                 *outValue = curMode.groupId;

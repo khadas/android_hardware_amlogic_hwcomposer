@@ -112,10 +112,10 @@ int32_t  FixedSizeModeMgr::getDisplayAttribute(
             }
             break;
         case HWC2_ATTRIBUTE_DPI_X:
-            *outValue = mCurMode.dpiX * 1000.0f;
+            *outValue = mCurMode.dpiX;
             break;
         case HWC2_ATTRIBUTE_DPI_Y:
-            *outValue = mCurMode.dpiY * 1000.0f;
+            *outValue = mCurMode.dpiY;
             break;
         case HWC2_ATTRIBUTE_CONFIG_GROUP:
             *outValue = mCurMode.groupId;
