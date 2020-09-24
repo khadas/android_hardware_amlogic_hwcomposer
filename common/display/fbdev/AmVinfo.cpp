@@ -55,18 +55,18 @@ struct vmode_match_s {
 
 static struct vmode_match_s vmode_match_table[] = {
 	{"480i60hz",      VMODE_480I},
-	{"480I60hz",      VMODE_480I4X3},
+	{"480i60hz_4x3",  VMODE_480I4X3},
 	{"480irpt",       VMODE_480I_RPT},
 	{"480cvbs",       VMODE_480CVBS},
 	{"480p60hz",      VMODE_480P},
-	{"480P60hz",      VMODE_480P4X3},
+	{"480p60hz_4x3",  VMODE_480P4X3},
 	{"480prtp",       VMODE_480P_RPT},
 	{"576i50hz",      VMODE_576I},
-	{"576I50hz",      VMODE_576I4X3},
+	{"576i50hz_4x3",  VMODE_576I4X3},
 	{"576irpt",       VMODE_576I_RPT},
 	{"576cvbs",       VMODE_576CVBS},
 	{"576p50hz",      VMODE_576P},
-	{"576P50hz",      VMODE_576P4X3},
+	{"576p50hz_4x3",      VMODE_576P4X3},
 	{"576prpt",       VMODE_576P_RPT},
 	{"720p60hz",      VMODE_720P},
 	{"720p50hz",      VMODE_720P_50HZ},
@@ -169,7 +169,7 @@ static const struct vinfo_s tv_info[] = {
 		.viu_color_fmt     = TVIN_YUV444,
 	},
 	{ /* VMODE_480I 4x3 */
-		.name			   = "480I60hz",
+		.name			   = "480i60hz_4x3",
 		.mode			   = VMODE_480I4X3,
 		.width			   = 720,
 		.height 		   = 480,
@@ -221,7 +221,7 @@ static const struct vinfo_s tv_info[] = {
 		.viu_color_fmt     = TVIN_YUV444,
 	},
 	{ /* VMODE_480P 4x3 */
-		.name              = "480P60hz",
+		.name              = "480p60hz_4x3",
 		.mode              = VMODE_480P4X3,
 		.width             = 720,
 		.height            = 480,
@@ -260,7 +260,7 @@ static const struct vinfo_s tv_info[] = {
 		.viu_color_fmt     = TVIN_YUV444,
 	},
 	{ /* VMODE_576I 4x3*/
-		.name              = "576I50hz",
+		.name              = "576i50hz_4x3",
 		.mode              = VMODE_576I4X3,
 		.width             = 720,
 		.height            = 576,
@@ -312,7 +312,7 @@ static const struct vinfo_s tv_info[] = {
 		.viu_color_fmt     = TVIN_YUV444,
 	},
 	{ /* VMODE_576P 4x3 */
-		.name              = "576P50hz",
+		.name              = "576p50hz_4x3",
 		.mode              = VMODE_576P4X3,
 		.width             = 720,
 		.height            = 576,
