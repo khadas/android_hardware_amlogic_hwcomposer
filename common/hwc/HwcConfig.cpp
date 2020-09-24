@@ -17,14 +17,33 @@ int32_t HwcConfig::getFramebufferSize(int disp, uint32_t & width, uint32_t & hei
     char uiMode[PROPERTY_VALUE_MAX] = {0};
     if (disp == 0) {
         /*primary display*/
-        if (sys_get_string_prop("vendor.ui_mode", uiMode) > 0) {
+        if (sys_get_string_prop("persist.sys.builtin.ui_mode", uiMode) > 0) {
             if (!strncmp(uiMode, "720", 3)) {
                 width  = 1280;
                 height = 720;
             } else if (!strncmp(uiMode, "1080", 4)) {
                 width  = 1920;
                 height = 1080;
-            } else {
+            }else if (!strncmp(uiMode, "1080port", 8)) {
+                width  = 1080;
+                height = 1920;
+            }else if (!strncmp(uiMode, "720port", 7)) {
+                width  = 720;
+                height = 1280;
+            }else if (!strncmp(uiMode, "768", 3)) {
+                width  = 1024;
+                height = 768;
+            }else if (!strncmp(uiMode, "768port", 7)) {
+                width  = 768;
+                height = 1024;
+            }else if (!strncmp(uiMode, "600", 3)) {
+                width  = 1024;
+                height = 600;
+            }else if (!strncmp(uiMode, "600port", 7)) {
+                width  = 600;
+                height = 1024;
+            }
+			else {
                 MESON_ASSERT(0, "%s: get not support mode [%s] from vendor.ui_mode",
                     __func__, uiMode);
             }
