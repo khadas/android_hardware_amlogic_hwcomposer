@@ -9,6 +9,7 @@
 
 #include <MesonLog.h>
 
+#include "DrmDevice.h"
 #include "DrmPlane.h"
 
 DrmPlane::DrmPlane(drmModePlanePtr p)
@@ -19,9 +20,55 @@ DrmPlane::DrmPlane(drmModePlanePtr p)
     MESON_ASSERT(mFormatCnt, "format should > 0");
     mFormats = new uint32_t[mFormatCnt];
     memcpy(mFormats, p->formats, sizeof(uint32_t) * p->count_formats);
+
+    loadProperties();
 }
 
 DrmPlane::~DrmPlane() {
+}
+
+int32_t DrmPlane::loadProperties() {
+    struct {
+        const char * propname;
+        std::shared_ptr<DrmProperty> * drmprop;
+    } planeProps[] = {
+        {DRM_PLANE_PROP_FBID, &mFbId},
+        {DRM_PLANE_PROP_INFENCE, &mInFence},
+        {DRM_PLANE_PROP_SRCX, &mSrcX},
+        {DRM_PLANE_PROP_SRCY, &mSrcY},
+        {DRM_PLANE_PROP_SRCX, &mSrcW},
+        {DRM_PLANE_PROP_SRCY, &mSrcH},
+        {DRM_PLANE_PROP_CRTCID, &mCrtcId},
+        {DRM_PLANE_PROP_CRTCX, &mCrtcX},
+        {DRM_PLANE_PROP_CRTCY, &mCrtcY},
+        {DRM_PLANE_PROP_CRTCW, &mCrtcW},
+        {DRM_PLANE_PROP_CRTCH, &mCrtcH},
+        {DRM_PLANE_PROP_Z, &mZpos},
+        {DRM_PLANE_PROP_BLENDMODE, &mBlendMode},
+        {DRM_PLANE_PROP_ALPHA, &mAlpha},
+    };
+    const int planePropsNum = sizeof(planeProps)/sizeof(planeProps[0]);
+    int initedProps = 0;
+
+    drmModeObjectPropertiesPtr props =
+        drmModeObjectGetProperties(getDrmDevice()->getDeviceFd(), mId, DRM_MODE_OBJECT_PLANE);
+    MESON_ASSERT(props != NULL, "DrmPlane::loadProperties failed.");
+
+    for (int i = 0; i < props->count_props; i++) {
+        drmModePropertyPtr prop = drmModeGetProperty(getDrmDevice()->getDeviceFd(), props->props[i]);
+        for (int j = 0; j < planePropsNum; j++) {
+            if (strcmp(prop->name, planeProps[j].propname) == 0) {
+                *(planeProps[j].drmprop) =
+                    std::make_shared<DrmProperty>(prop, props->prop_values[i]);
+                initedProps ++;
+                break;
+            }
+        }
+       drmModeFreeProperty(prop);
+    }
+    drmModeFreeObjectProperties(props);
+
+    return 0;
 }
 
 const char * DrmPlane::getName() {
@@ -67,7 +114,10 @@ uint32_t DrmPlane::getCapabilities() {
 }
 
 int32_t DrmPlane::getFixedZorder() {
-    MESON_LOG_EMPTY_FUN();
+    if (mZpos->isImmutable()) {
+        MESON_LOG_EMPTY_FUN();
+    }
+
     return 0;
 }
 

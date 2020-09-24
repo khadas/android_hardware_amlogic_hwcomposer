@@ -43,10 +43,6 @@ drm_connector_type_t ConnectorCvbs::getType() {
     return DRM_MODE_CONNECTOR_TV;
 }
 
-bool ConnectorCvbs::isRemovable() {
-    return true;
-}
-
 bool ConnectorCvbs::isSecure() {
     return false;
 }

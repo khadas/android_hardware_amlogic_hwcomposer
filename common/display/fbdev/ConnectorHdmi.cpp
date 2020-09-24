@@ -78,10 +78,6 @@ drm_connector_type_t ConnectorHdmi::getType() {
     return DRM_MODE_CONNECTOR_HDMIA;
 }
 
-bool ConnectorHdmi::isRemovable() {
-    return true;
-}
-
 bool ConnectorHdmi::isConnected() {
     return mConnected;
 }

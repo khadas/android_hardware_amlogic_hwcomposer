@@ -40,7 +40,6 @@ public:
     virtual const char * getName() = 0;
     virtual drm_connector_type_t getType() = 0;
 
-    virtual bool isRemovable() = 0;
     virtual bool isSecure() = 0;
     virtual bool isConnected() = 0;
 

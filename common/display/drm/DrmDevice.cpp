@@ -34,6 +34,10 @@ int32_t destroyHwDisplayManager() {
     return 0;
 }
 
+std::shared_ptr<DrmDevice> getDrmDevice() {
+    return gDrmInstance;
+}
+
 DrmDevice::DrmDevice()
     : HwDisplayManager() {
     loadResources();
@@ -131,7 +135,7 @@ int32_t DrmDevice::bind(
             MESON_LOGD("Request same pipe as current, nothing to do.");
             return 0;
         } else {
-            
+
         }
     }
 

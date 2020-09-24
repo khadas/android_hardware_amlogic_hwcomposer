@@ -44,10 +44,6 @@ drm_connector_type_t ConnectorDummy::getType() {
     return DRM_MODE_CONNECTOR_VIRTUAL;
 }
 
-bool ConnectorDummy::isRemovable() {
-    return false;
-}
-
 bool ConnectorDummy::isConnected() {
     return true;
 }

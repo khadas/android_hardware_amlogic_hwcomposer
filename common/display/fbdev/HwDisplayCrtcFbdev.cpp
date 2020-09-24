@@ -102,14 +102,6 @@ int32_t HwDisplayCrtcFbdev::setMode(drm_mode_info_t & mode) {
     return writeCurDisplayMode(dispmode);
 }
 
-int32_t HwDisplayCrtcFbdev::setDisplayAttribute(std::string& dispattr) {
-    return writeCurDisplayAttr(dispattr);
-}
-
-int32_t HwDisplayCrtcFbdev::getDisplayAttribute(std::string& dispattr) {
-    return read_sysfs(VIU_DISPLAY_ATTR_SYSFS , dispattr);
-}
-
 int32_t HwDisplayCrtcFbdev::getMode(drm_mode_info_t & mode) {
     std::lock_guard<std::mutex> lock(mMutex);
     if (!mConnected || mCurModeInfo.name[0] == 0)

@@ -13,6 +13,7 @@
 #include <stdlib.h>
 #include <DrmFramebuffer.h>
 #include <HwDisplayPlane.h>
+#include "DrmProperty.h"
 
 class DrmPlane : public HwDisplayPlane {
 public:
@@ -38,6 +39,7 @@ public:
 
 protected:
     bool validateFormat(uint32_t format);
+    int32_t loadProperties();
 
 protected:
     uint32_t mId;
@@ -45,6 +47,26 @@ protected:
     uint32_t mCrtcMask;
     uint32_t * mFormats;
     uint32_t mFormatCnt;
+
+    /*plane propertys*/
+    std::shared_ptr<DrmProperty> mFbId;
+    std::shared_ptr<DrmProperty> mInFence;
+    std::shared_ptr<DrmProperty> mSrcX;
+    std::shared_ptr<DrmProperty> mSrcY;
+    std::shared_ptr<DrmProperty> mSrcW;
+    std::shared_ptr<DrmProperty> mSrcH;
+
+    std::shared_ptr<DrmProperty> mCrtcId;
+    std::shared_ptr<DrmProperty> mCrtcX;
+    std::shared_ptr<DrmProperty> mCrtcY;
+    std::shared_ptr<DrmProperty> mCrtcW;
+    std::shared_ptr<DrmProperty> mCrtcH;
+
+    std::shared_ptr<DrmProperty> mZpos;
+    std::shared_ptr<DrmProperty> mBlendMode;
+    std::shared_ptr<DrmProperty> mAlpha;
+
+
 
 };
 

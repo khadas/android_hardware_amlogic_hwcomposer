@@ -16,6 +16,7 @@
 #include <BasicTypes.h>
 #include <HwDisplayConnector.h>
 #include <HwDisplayCrtc.h>
+#include "DrmProperty.h"
 
 
 class DrmConnector : public HwDisplayConnector {
@@ -37,8 +38,10 @@ public:
     int32_t setCrtcId(uint32_t crtcid);
     uint32_t getCrtcId();
 
-    /*no drm stard props*/
+    /*edid blob*/
     int32_t getIdentificationData(std::vector<uint8_t>& idOut);
+
+    /*no drm stard props*/
     void getHdrCapabilities(drm_hdr_capabilities * caps);
     std::string getCurrentHdrType();
     int32_t setContentType(uint32_t contentType);
@@ -48,7 +51,6 @@ public:
     void dump(String8 & dumpstr);
 
     /*TODO: unused function, need remove.*/
-    bool isRemovable() { MESON_LOG_EMPTY_FUN(); return false; }
     int32_t setMode(drm_mode_info_t & mode __unused) { MESON_LOG_EMPTY_FUN(); return false; }
 
     /*drm package internal use.*/
@@ -58,11 +60,12 @@ public:
 
 protected:
     int32_t loadDisplayModes(drmModeConnectorPtr p);
+    int32_t loadProperties(drmModeConnectorPtr p);
+
 
 protected:
     uint32_t mId;
     uint32_t mType;
-    uint32_t mCrtcId;
     uint32_t mEncoderId;
     drmModeConnection mState;
 
@@ -72,6 +75,13 @@ protected:
     /*HxW in millimeters*/
     uint32_t mPhyWidth;
     uint32_t mPhyHeight;
+
+    /*Connector props*/
+    std::shared_ptr<DrmProperty> mCrtcId;
+    std::shared_ptr<DrmProperty> mEdid;
+    std::shared_ptr<DrmProperty> mColorSpace;
+    std::shared_ptr<DrmProperty> mColorDepth;
+    std::shared_ptr<DrmProperty> mHdrCaps;
 };
 
 #endif/*DRM_CONNECTOR_H*/

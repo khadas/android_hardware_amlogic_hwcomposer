@@ -53,6 +53,7 @@ meson_hwc_display_cc_defaults {
                     "drm/DrmEncoder.cpp",
                     "drm/DrmConnector.cpp",
                     "drm/DrmPlane.cpp",
+                    "drm/DrmProperty.cpp",
                 ],
             },
 

@@ -8,26 +8,65 @@
  */
 
 #include <MesonLog.h>
+#include <string.h>
 
- #include "DrmCrtc.h"
+#include "DrmDevice.h"
+#include "DrmCrtc.h"
 
 DrmCrtc::DrmCrtc(drmModeCrtcPtr p, uint32_t pipe)
-    : HwDisplayCrtc() {
-    mId = p->crtc_id;
-    mPipe = pipe;
-    mModeValid = p->mode_valid;
+    : HwDisplayCrtc(),
+    mId(p->crtc_id),
+    mPipe(pipe),
+    mModeValid(p->mode_valid) {
+
     if (mModeValid) {
         mMode = p->mode;
     } else {
         memset(&mMode, 0, sizeof(drmModeModeInfo));
     }
 
-    mConnector.reset();
+    loadProperties();
+
+    MESON_LOGD("DrmCrtc init pipe(%d)-id(%d), mode (%s),active(%lld)",
+        mPipe, mId, mMode.name, mActive->getValue());
 }
 
 DrmCrtc::~DrmCrtc() {
     mConnector.reset();
+}
 
+int32_t DrmCrtc::loadProperties() {
+    struct {
+        const char * propname;
+        std::shared_ptr<DrmProperty> * drmprop;
+    } crtcProps[] = {
+        {DRM_CRTC_PROP_ACTIVE, &mActive},
+        {DRM_CRTC_PROP_MODEID, &mModeBlobId},
+        {DRM_CRTC_PROP_OUTFENCE, &mOutFence},
+    };
+    const int crtcPropsNum = sizeof(crtcProps)/sizeof(crtcProps[0]);
+    int initedProps = 0;
+
+    drmModeObjectPropertiesPtr props =
+        drmModeObjectGetProperties(getDrmDevice()->getDeviceFd(), mId, DRM_MODE_OBJECT_CRTC);
+    MESON_ASSERT(props != NULL, "DrmCrtc::loadProperties failed.");
+
+    for (int i = 0; i < props->count_props; i++) {
+        drmModePropertyPtr prop = drmModeGetProperty(getDrmDevice()->getDeviceFd(), props->props[i]);
+        for (int j = 0; j < crtcPropsNum; j++) {
+            if (strcmp(prop->name, crtcProps[j].propname) == 0) {
+                *(crtcProps[j].drmprop) =
+                    std::make_shared<DrmProperty>(prop, props->prop_values[i]);
+                initedProps ++;
+                break;
+            }
+        }
+       drmModeFreeProperty(prop);
+    }
+    drmModeFreeObjectProperties(props);
+
+    MESON_ASSERT(crtcPropsNum == initedProps, "NOT ALL CRTC PROPS INITED.");
+    return 0;
 }
 
 int32_t DrmCrtc::getId() {

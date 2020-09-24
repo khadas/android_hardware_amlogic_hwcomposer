@@ -37,10 +37,6 @@ public:
     virtual int32_t getMode(drm_mode_info_t & mode) = 0;
     virtual int32_t setMode(drm_mode_info_t & mode) = 0;
 
-    /* set current display attribute */
-    virtual  int32_t setDisplayAttribute(std::string& dispattr) = 0;
-    virtual  int32_t getDisplayAttribute(std::string& dispattr) = 0;
-
     virtual int32_t waitVBlank(nsecs_t & timestamp) = 0;
 
     /*Functions for compose & pageflip*/

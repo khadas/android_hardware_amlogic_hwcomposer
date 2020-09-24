@@ -10,12 +10,12 @@
 #define DRM_CRTC_H
 
 #include <stdlib.h>
-
 #include <DrmTypes.h>
 #include <BasicTypes.h>
 #include <HwDisplayCrtc.h>
 #include <HwDisplayConnector.h>
 #include <HwDisplayPlane.h>
+#include "DrmProperty.h"
 
 class DrmCrtc : public HwDisplayCrtc {
 public:
@@ -33,11 +33,8 @@ public:
     int32_t waitVBlank(nsecs_t & timestamp);
     int32_t pageFlip(int32_t & out_fence);
 
-
     /*TODO:should refact*/
     int32_t readCurDisplayMode(std::string & dispmode __unused) { MESON_LOG_EMPTY_FUN(); return 0; }
-    int32_t setDisplayAttribute(std::string& dispattr __unused) { MESON_LOG_EMPTY_FUN(); return 0; }
-    int32_t getDisplayAttribute(std::string& dispattr __unused) { MESON_LOG_EMPTY_FUN(); return 0; }
     int32_t writeCurDisplayAttr(std::string & dispattr __unused) { MESON_LOG_EMPTY_FUN(); return 0; }
 
     /*unused function only for FBDEV*/
@@ -47,8 +44,8 @@ public:
     int32_t setHdrMetadata(std::map<drm_hdr_meatadata_t, float> & hdrmedata __unused) { return 0; }
 
     /*for internal drm package use*/
-public:
-
+protected:
+    int32_t loadProperties();
 
 
 protected:
@@ -62,10 +59,14 @@ protected:
 
     std::shared_ptr<HwDisplayConnector>  mConnector;
 
+    /*crtc propertys*/
+    std::shared_ptr<DrmProperty> mActive;
+    std::shared_ptr<DrmProperty> mModeBlobId;
+    std::shared_ptr<DrmProperty> mOutFence;
+
 protected:
     std::mutex mMutex;
     drm_rect_wh_t mViewPort;
-
 };
 
 #endif/*DRM_CRTC_H*/

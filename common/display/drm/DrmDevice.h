@@ -48,12 +48,15 @@ public:
         std::vector<std::shared_ptr<HwDisplayPlane>> & planes);
     int32_t unbind(std::shared_ptr<HwDisplayCrtc> & crtc);
 
+/*api in display module*/
+public:
+    int getDeviceFd() {return mDrmFd;}
+
 protected:
     void loadResources();
     int32_t loadDrmResources();
     int32_t loadNonDrmResources();
     int32_t freeResources();
-
     void initPipe();
 
 
@@ -68,6 +71,9 @@ protected:
 
     std::map<uint32_t, HwDisplayPipe> mPipes;
 };
+
+std::shared_ptr<DrmDevice> getDrmDevice();
+
 
 #endif/*DRM_DEVICE_H*/
 

@@ -46,10 +46,6 @@ drm_connector_type_t ConnectorPanel::getType() {
     return DRM_MODE_CONNECTOR_LVDS;
 }
 
-bool ConnectorPanel::isRemovable() {
-    return false;
-}
-
 bool ConnectorPanel::isConnected(){
     return true;
 }

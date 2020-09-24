@@ -22,7 +22,6 @@ public:
 
     virtual const char * getName();
     virtual drm_connector_type_t getType();
-    virtual bool isRemovable();
     virtual bool isConnected();
     virtual bool isSecure() ;
 

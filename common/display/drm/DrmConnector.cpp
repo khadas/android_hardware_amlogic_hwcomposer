@@ -8,6 +8,7 @@
 
 #include <MesonLog.h>
 #include "DrmConnector.h"
+#include "DrmDevice.h"
 
 DrmConnector::DrmConnector(drmModeConnectorPtr p)
     : HwDisplayConnector(),
@@ -18,13 +19,63 @@ DrmConnector::DrmConnector(drmModeConnectorPtr p)
     mPhyHeight(p->mmHeight) {
 
     mEncoderId = p->encoder_id;
-
-    mCrtcId = 0;
     loadDisplayModes(p);
+    loadProperties(p);
 }
 
 DrmConnector::~DrmConnector() {
 
+}
+
+int32_t DrmConnector::loadProperties(drmModeConnectorPtr p) {
+    struct {
+        const char * propname;
+        std::shared_ptr<DrmProperty> * drmprop;
+    } connectorProps[] = {
+        {DRM_CONNECTOR_PROP_CRTCID, &mCrtcId},
+        {DRM_CONNECTOR_PROP_EDID, &mEdid},
+        {DRM_HDMI_PROP_COLORSPACE, &mColorSpace},
+        {DRM_HDMI_PROP_COLORDEPTH, &mColorDepth},
+        {DRM_HDMI_PROP_HDRCAP, &mHdrCaps},
+    };
+    const int connectorPropsNum = sizeof(connectorProps)/sizeof(connectorProps[0]);
+    int initedProps = 0;
+
+    for (int i = 0; i < p->count_props; i++) {
+        drmModePropertyPtr prop =
+            drmModeGetProperty(getDrmDevice()->getDeviceFd(), p->props[i]);
+        for (int j = 0; j < connectorPropsNum; j++) {
+            if (strcmp(prop->name, connectorProps[j].propname) == 0) {
+                *(connectorProps[j].drmprop) =
+                    std::make_shared<DrmProperty>(prop, p->prop_values[i]);
+                initedProps ++;
+                break;
+            }
+        }
+       drmModeFreeProperty(prop);
+    }
+
+    return 0;
+}
+
+int32_t DrmConnector::loadDisplayModes(drmModeConnectorPtr p) {
+    drmModeModeInfoPtr drmModes = p->modes;
+    drm_mode_info_t modeInfo;
+    for (int i = 0;i < p->count_modes; i ++) {
+        strncpy(modeInfo.name, drmModes[i].name, DRM_DISPLAY_MODE_LEN);
+        modeInfo.pixelW = drmModes[i].hdisplay;
+        modeInfo.pixelH = drmModes[i].vdisplay;
+        modeInfo.dpiX = (modeInfo.pixelW  * 25.4f) / mPhyWidth;
+        modeInfo.dpiY = (modeInfo.pixelH   * 25.4f) / mPhyHeight;
+        modeInfo.refreshRate = drmModes[i].vrefresh;
+        mModes.emplace(mModes.size(), modeInfo);
+
+        MESON_LOGI("add display mode (%s, %dx%d, %f)",
+            modeInfo.name, modeInfo.pixelW, modeInfo.pixelH, modeInfo.refreshRate);
+    }
+
+    MESON_LOGI("loadDisplayModes (%d) end", mModes.size());
+    return 0;
 }
 
 uint32_t DrmConnector::getId() {
@@ -56,21 +107,20 @@ drm_connector_type_t DrmConnector::getType() {
 }
 
 int32_t DrmConnector::update() {
+    MESON_LOG_EMPTY_FUN();
     if (mState == DRM_MODE_CONNECTED) {
-        /*load modes*/
-
     }
 
     return 0;
 }
 
 int32_t DrmConnector::setCrtcId(uint32_t crtcid) {
-    mCrtcId = crtcid;
+    mCrtcId->setValue(crtcid);
     return 0;
 }
 
 uint32_t DrmConnector::getCrtcId() {
-    return mCrtcId;
+    return (uint32_t)mCrtcId->getValue();
 }
 
 int32_t DrmConnector::setEncoderId(uint32_t encoderid) {
@@ -103,14 +153,19 @@ bool DrmConnector::isConnected() {
 }
 
 void DrmConnector::getHdrCapabilities(drm_hdr_capabilities * caps) {
-    UNUSED(caps);
-    MESON_LOG_EMPTY_FUN();
+    if (mHdrCaps) {
+        MESON_LOG_EMPTY_FUN();
+    } else {
+        memset(caps, 0, sizeof(drm_hdr_capabilities));
+    }
 }
 
 int32_t DrmConnector::getIdentificationData(std::vector<uint8_t>& idOut) {
-    UNUSED(idOut);
-    MESON_LOG_EMPTY_FUN();
-    return 0;
+    if (mEdid) {
+        return mEdid->getBlobData(idOut);
+    }
+
+    return -ENOENT;
 }
 
 std::string DrmConnector::getCurrentHdrType() {
@@ -134,27 +189,6 @@ int32_t DrmConnector::setAutoLowLatencyMode(bool on) {
     MESON_LOG_EMPTY_FUN();
     return 0;
 }
-
-int32_t DrmConnector::loadDisplayModes(drmModeConnectorPtr p) {
-    drmModeModeInfoPtr drmModes = p->modes;
-    drm_mode_info_t modeInfo;
-    for (int i = 0;i < p->count_modes; i ++) {
-        strncpy(modeInfo.name, drmModes[i].name, DRM_DISPLAY_MODE_LEN);
-        modeInfo.pixelW = drmModes[i].hdisplay;
-        modeInfo.pixelH = drmModes[i].vdisplay;
-        modeInfo.dpiX = (modeInfo.pixelW  * 25.4f) / mPhyWidth;
-        modeInfo.dpiY = (modeInfo.pixelH   * 25.4f) / mPhyHeight;
-        modeInfo.refreshRate = drmModes[i].vrefresh;
-        mModes.emplace(mModes.size(), modeInfo);
-
-        MESON_LOGI("add display mode (%s, %dx%d, %f)",
-            modeInfo.name, modeInfo.pixelW, modeInfo.pixelH, modeInfo.refreshRate);
-    }
-
-    MESON_LOGI("loadDisplayModes (%d) end", mModes.size());
-    return 0;
-}
-
 
 void DrmConnector::dump(String8 & dumpstr) {
     UNUSED(dumpstr);
