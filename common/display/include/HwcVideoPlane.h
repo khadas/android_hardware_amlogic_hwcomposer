@@ -24,6 +24,9 @@ public:
     uint32_t getCapabilities();
     int32_t getFixedZorder();
     uint32_t getPossibleCrtcs();
+    int32_t setCrtcId(uint32_t crtcid __unused) { return 0; }
+
+
     bool isFbSupport(std::shared_ptr<DrmFramebuffer> & fb);
 
     void setAmVideoPath(int32_t id);

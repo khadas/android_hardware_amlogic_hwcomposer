@@ -23,6 +23,7 @@ public:
 
     bool isValid() const { return mFenceFd != -1; }
 
+    int32_t getFd() {return mFenceFd;};
     int32_t dup() const;
     static std::shared_ptr<DrmFence> merge(const char * name,
         const std::shared_ptr<DrmFence> &f1,

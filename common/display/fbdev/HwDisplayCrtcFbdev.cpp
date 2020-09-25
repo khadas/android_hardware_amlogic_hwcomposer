@@ -177,8 +177,8 @@ int32_t HwDisplayCrtcFbdev::setDisplayFrame(display_zoom_info_t & info) {
     return 0;
 }
 
-int32_t HwDisplayCrtcFbdev::setOsdChannels(int32_t channels) {
-    mOsdChannels = channels;
+int32_t HwDisplayCrtcFbdev::prePageFlip() {
+    /*nothing to do*/
     return 0;
 }
 
@@ -197,7 +197,7 @@ int32_t HwDisplayCrtcFbdev::pageFlip(int32_t &out_fence) {
     flipInfo.curPosition_y = mScaleInfo.crtc_display_y;
     flipInfo.curPosition_w = mScaleInfo.crtc_display_w;
     flipInfo.curPosition_h = mScaleInfo.crtc_display_h;
-    flipInfo.hdr_mode = (mOsdChannels == 1) ? 1 : 0;
+    flipInfo.hdr_mode = 1;/*force to 1, for video is not synced with osd.*/
 
     ioctl(mDrvFd, FBIOPUT_OSD_DO_HWC, &flipInfo);
 

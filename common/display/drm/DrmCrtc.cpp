@@ -17,8 +17,8 @@ DrmCrtc::DrmCrtc(drmModeCrtcPtr p, uint32_t pipe)
     : HwDisplayCrtc(),
     mId(p->crtc_id),
     mPipe(pipe),
-    mModeValid(p->mode_valid) {
-
+    mModeValid(p->mode_valid),
+    mReq(NULL) {
     if (mModeValid) {
         mMode = p->mode;
     } else {
@@ -42,7 +42,7 @@ int32_t DrmCrtc::loadProperties() {
     } crtcProps[] = {
         {DRM_CRTC_PROP_ACTIVE, &mActive},
         {DRM_CRTC_PROP_MODEID, &mModeBlobId},
-        {DRM_CRTC_PROP_OUTFENCE, &mOutFence},
+        {DRM_CRTC_PROP_OUTFENCEPTR, &mOutFencePtr},
     };
     const int crtcPropsNum = sizeof(crtcProps)/sizeof(crtcProps[0]);
     int initedProps = 0;
@@ -56,7 +56,7 @@ int32_t DrmCrtc::loadProperties() {
         for (int j = 0; j < crtcPropsNum; j++) {
             if (strcmp(prop->name, crtcProps[j].propname) == 0) {
                 *(crtcProps[j].drmprop) =
-                    std::make_shared<DrmProperty>(prop, props->prop_values[i]);
+                    std::make_shared<DrmProperty>(prop, mId, props->prop_values[i]);
                 initedProps ++;
                 break;
             }
@@ -113,8 +113,34 @@ int32_t DrmCrtc::waitVBlank(nsecs_t & timestamp) {
     return 0;
 }
 
-int32_t DrmCrtc::pageFlip(int32_t & out_fence) {
-    UNUSED(out_fence);
-    MESON_LOG_EMPTY_FUN();
+int32_t DrmCrtc::prePageFlip() {
+    if (mReq) {
+        MESON_LOGE("still have a req? previous display didnot finish?");
+        drmModeAtomicFree(mReq);
+    }
+
+    mReq = drmModeAtomicAlloc();
+
     return 0;
+}
+
+int32_t DrmCrtc::pageFlip(int32_t & out_fence) {
+    MESON_ASSERT(mReq!= NULL, "pageFlip  with NULL request.");
+    out_fence = -1;
+    drmModeAtomicAddProperty(mReq, mId, mOutFencePtr->getId(), (uint64_t)&out_fence);
+
+    int32_t ret = drmModeAtomicCommit(
+        getDrmDevice()->getDeviceFd(),
+        mReq,
+        DRM_MODE_ATOMIC_ALLOW_MODESET,
+        NULL);
+    if (ret) {
+        MESON_LOGE("atomic commit ret (%d)", ret);
+    }
+
+    drmModeAtomicFree(mReq);
+    mReq = NULL;
+
+    MESON_LOGD("pageFlip fence (%d)", out_fence);
+    return ret;
 }

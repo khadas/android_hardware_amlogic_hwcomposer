@@ -26,6 +26,7 @@ public:
 
     /*return the crtc masks.*/
     virtual uint32_t getPossibleCrtcs() = 0;
+    virtual int32_t setCrtcId(uint32_t crtcid) = 0;
 
     /*Plane with fixed zorder will return a zorder >=0, or will return < 0.*/
     virtual int32_t getFixedZorder() = 0;

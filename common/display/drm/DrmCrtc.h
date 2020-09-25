@@ -22,6 +22,7 @@ public:
     DrmCrtc(drmModeCrtcPtr p, uint32_t pipe);
     ~DrmCrtc();
 
+    /*public apis*/
     int32_t getId();
     uint32_t getPipe();
 
@@ -31,6 +32,8 @@ public:
     int32_t setMode(drm_mode_info_t & mode);
 
     int32_t waitVBlank(nsecs_t & timestamp);
+
+    int32_t prePageFlip();
     int32_t pageFlip(int32_t & out_fence);
 
     /*TODO:should refact*/
@@ -39,14 +42,15 @@ public:
 
     /*unused function only for FBDEV*/
     int32_t setDisplayFrame(display_zoom_info_t & info __unused) { return 0; }
-    int32_t setOsdChannels(int32_t channels __unused) { return 0; }
     int32_t getHdrMetadataKeys(std::vector<drm_hdr_meatadata_t> & keys __unused) { return 0; }
     int32_t setHdrMetadata(std::map<drm_hdr_meatadata_t, float> & hdrmedata __unused) { return 0; }
 
-    /*for internal drm package use*/
+    /*internal drm package api*/
+public:
+    drmModeAtomicReqPtr getAtomicReq() {return mReq;}
+
 protected:
     int32_t loadProperties();
-
 
 protected:
     uint32_t mId;
@@ -62,7 +66,10 @@ protected:
     /*crtc propertys*/
     std::shared_ptr<DrmProperty> mActive;
     std::shared_ptr<DrmProperty> mModeBlobId;
-    std::shared_ptr<DrmProperty> mOutFence;
+    std::shared_ptr<DrmProperty> mOutFencePtr;
+
+
+    drmModeAtomicReqPtr mReq;
 
 protected:
     std::mutex mMutex;

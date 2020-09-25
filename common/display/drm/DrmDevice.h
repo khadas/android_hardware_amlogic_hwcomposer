@@ -33,9 +33,6 @@ public:
     int32_t getConnector(
         std::shared_ptr<HwDisplayConnector> & connector,
         drm_connector_type_t type);
-    int32_t getCrtc(
-        std::shared_ptr<HwDisplayCrtc> & crtc,
-        uint32_t crtcid);
 
     std::shared_ptr<HwDisplayCrtc> getCrtcById(uint32_t crtcid);
     std::shared_ptr<HwDisplayCrtc> getCrtcByPipe(uint32_t pipeIdx);

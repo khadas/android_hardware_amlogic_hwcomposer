@@ -54,6 +54,7 @@ meson_hwc_display_cc_defaults {
                     "drm/DrmConnector.cpp",
                     "drm/DrmPlane.cpp",
                     "drm/DrmProperty.cpp",
+                    "drm/DrmBo.cpp"
                 ],
             },
 

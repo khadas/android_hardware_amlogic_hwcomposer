@@ -119,7 +119,7 @@ int32_t DrmDevice::getPipeCfg(uint32_t pipeIdx, HwDisplayPipe & pipecfg) {
 int32_t DrmDevice::bind(
     std::shared_ptr<HwDisplayCrtc> & crtc,
     std::shared_ptr<HwDisplayConnector>  & connector,
-    std::vector<std::shared_ptr<HwDisplayPlane>> & planes __unused) {
+    std::vector<std::shared_ptr<HwDisplayPlane>> & planes) {
     std::lock_guard<std::mutex> lock(mMutex);
     uint32_t pipeidx = crtc->getPipe();
 
@@ -143,10 +143,16 @@ int32_t DrmDevice::bind(
     pipecfg.crtc_id = crtc->getId();
     pipecfg.connector_id = connector->getId();
 
+    /*bind connector. skip encoder which only used when bootup.*/
     connector->setCrtcId(pipecfg.crtc_id);
-    /*encoder only used when bootup.*/
+    /*bind plane*/
+    for (auto & plane : planes) {
+        plane->setCrtcId(pipecfg.crtc_id);
+    }
 
-    /*TODO: apply bind.*/
+    /*TODO: apply bind??.*/
+
+    MESON_LOG_EMPTY_FUN();
 
 
     mPipes.emplace(pipeidx, pipecfg);

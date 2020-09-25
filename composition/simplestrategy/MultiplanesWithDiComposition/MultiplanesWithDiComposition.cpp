@@ -1278,10 +1278,6 @@ int MultiplanesWithDiComposition::commit() {
         dumpUnusedPlane(*planeIt, BLANK_FOR_NO_CONTENT);
     }
 
-    /*set crtc info.*/
-    if (mHDRMode)
-        mCrtc->setOsdChannels(1);
-
     if (mDisplayRefFb.get()) {
         if (IS_FB_COMPOSED(mDisplayRefFb)) {
             if (composerOutput.get()) {

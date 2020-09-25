@@ -204,6 +204,7 @@ protected:
     bool mSkipComposition;
     bool mSignalHpd;
     bool mValidateDisplay;
+    int32_t mPresentFence;
 
     drm_mode_info_t mDisplayMode;
     display_zoom_info_t mCalibrateInfo;

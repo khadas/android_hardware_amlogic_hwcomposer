@@ -44,12 +44,8 @@ public:
     * it is used to do scale in vpu.
     */
     virtual int32_t setDisplayFrame(display_zoom_info_t & info) = 0;
-    /*
-    * set if we need compose all ui layers into one display channel.
-    * TODO: need pass it in a general way.
-    */
-    virtual int32_t setOsdChannels(int32_t channels) = 0;
 
+    virtual int32_t prePageFlip();
     virtual int32_t pageFlip(int32_t & out_fence) = 0;
 
     virtual int32_t readCurDisplayMode(std::string & dispmode) = 0;

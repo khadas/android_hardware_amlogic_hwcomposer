@@ -15,7 +15,7 @@
 /*CRTC PROPS*/
 #define DRM_CRTC_PROP_ACTIVE  "ACTIVE"
 #define DRM_CRTC_PROP_MODEID "MODE_ID"
-#define DRM_CRTC_PROP_OUTFENCE  "OUT_FENCE_PTR"
+#define DRM_CRTC_PROP_OUTFENCEPTR  "OUT_FENCE_PTR"
 
 /*CTM*/
 #define DRM_CRTC_PROP_DEGAMMA  "DEGAMMA_LUT"
@@ -35,8 +35,14 @@
 #define DRM_PLANE_PROP_CRTCW  "CRTC_W"
 #define DRM_PLANE_PROP_CRTCH  "CRTC_H"
 #define DRM_PLANE_PROP_Z "zpos"
-#define DRM_PLANE_PROP_BLENDMODE "pixel blend mode"
 #define DRM_PLANE_PROP_ALPHA "alpha"
+#define DRM_PLANE_PROR_IN_FORMATS "IN_FORMATS"
+
+#define DRM_PLANE_PROP_BLENDMODE "pixel blend mode"
+#define DRM_PLANE_PROP_BLENDMODE_NONE "None"
+#define DRM_PLANE_PROP_BLENDMODE_PREMULTI "Pre-multiplied"
+#define DRM_PLANE_PROP_BLENDMODE_COVERAGE "Coverage"
+
 
 /*not used*/
 #define DRM_PLANE_PROP_ROTATION "rotation"
@@ -49,10 +55,6 @@
 #define DRM_HDMI_PROP_COLORSPACE    "Color Space"
 #define DRM_HDMI_PROP_COLORDEPTH    "Color Depth"
 #define DRM_HDMI_PROP_HDRCAP              "HDR DV Cap"
-
-
-
-
 
 
 #endif

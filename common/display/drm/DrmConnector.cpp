@@ -47,7 +47,7 @@ int32_t DrmConnector::loadProperties(drmModeConnectorPtr p) {
         for (int j = 0; j < connectorPropsNum; j++) {
             if (strcmp(prop->name, connectorProps[j].propname) == 0) {
                 *(connectorProps[j].drmprop) =
-                    std::make_shared<DrmProperty>(prop, p->prop_values[i]);
+                    std::make_shared<DrmProperty>(prop, mId, p->prop_values[i]);
                 initedProps ++;
                 break;
             }

@@ -476,7 +476,6 @@ int SingleplaneComposition::commit() {
     }
 
     /*set crtc info.*/
-    mCrtc->setOsdChannels(1);
     mCrtc->setDisplayFrame(osdDisplayFrame);
     return 0;
 }

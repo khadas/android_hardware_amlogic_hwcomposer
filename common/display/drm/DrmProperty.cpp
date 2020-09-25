@@ -14,8 +14,10 @@
 #include "DrmDevice.h"
 #include "DrmProperty.h"
 
-DrmProperty::DrmProperty(drmModePropertyPtr p, uint64_t value)
-    : mValue(value) {
+DrmProperty::DrmProperty(drmModePropertyPtr p, uint32_t objectId, uint64_t value)
+    : mValue(value),
+    mComponetId(objectId),
+    mUpdated(false) {
     memcpy(&mPropRes, p, sizeof(mPropRes));
     if (p->count_values > 0) {
         size_t contentLen = p->count_values * sizeof(uint64_t);
@@ -67,7 +69,7 @@ DrmProperty::~DrmProperty() {
         free(mPropRes.blob_ids);
 }
 
-int32_t DrmProperty::setValue(uint64_t val) {
+int DrmProperty::setValue(uint64_t val) {
     if (isImmutable())
         return -EIO;
 
@@ -85,7 +87,11 @@ int32_t DrmProperty::setValue(uint64_t val) {
         }
     }
 
-    mValue = val;
+    if (mValue != val) {
+        mValue = val;
+    } else {
+        MESON_LOGD("Prop %s set same value [%lld] as current.", mPropRes.name, mValue);
+    }
     return 0;
 }
 
@@ -94,25 +100,25 @@ uint64_t DrmProperty::getValue() {
         case DRM_MODE_PROP_OBJECT:
         case DRM_MODE_PROP_RANGE:
         case DRM_MODE_PROP_BLOB:
+        case DRM_MODE_PROP_ENUM:
             return mValue;
 
-        case DRM_MODE_PROP_ENUM:
-            return mPropRes.enums[mValue].value;
-
         default:
-            MESON_LOGE("unknown type");
+            MESON_LOGE("unknown property type");
             return 0;
     }
 }
 
-int32_t DrmProperty::getBlobData(std::vector<uint8_t> & blob) {
+int DrmProperty::getBlobData(std::vector<uint8_t> & blob) {
     if (mType != DRM_MODE_PROP_BLOB)
         return -EINVAL;
 
     return getBlobData(blob, mValue);
 }
 
-int32_t DrmProperty::getBlobData(std::vector<uint8_t> & blob, uint32_t blobId) {
+int DrmProperty::getBlobData(std::vector<uint8_t> & blob, uint32_t blobId) {
+    MESON_ASSERT(mType == DRM_MODE_PROP_BLOB, "Only For RANG BLOB.");
+
     drmModePropertyBlobPtr blobProp =
         drmModeGetPropertyBlob(getDrmDevice()->getDeviceFd(), blobId);
     if (!blobProp) {
@@ -128,8 +134,31 @@ int32_t DrmProperty::getBlobData(std::vector<uint8_t> & blob, uint32_t blobId) {
     }
 
     drmModeFreePropertyBlob(blobProp);
-
     return 0;
+}
+
+int DrmProperty::getEnumValueWithName(const char *name, uint64_t & val)  {
+    MESON_ASSERT(mType == DRM_MODE_PROP_ENUM, "Only For RANG ENUM.");
+    for (int i = 0; i < mPropRes.count_enums; i++) {
+        if (strcmp(mPropRes.enums[i].name, name) == 0) {
+            val = mPropRes.enums[i].value;
+            return 0;
+        }
+    }
+
+    MESON_LOGE("GetEnum value failed with %s", name);
+    return -EINVAL;
+}
+
+int DrmProperty::getRangeValue(uint64_t &min, uint64_t &max) {
+    MESON_ASSERT(mType == DRM_MODE_PROP_RANGE, "Only For RANG PROP.");
+    min = mPropRes.values[0];
+    max = mPropRes.values[1];
+    return 0;
+}
+
+int DrmProperty::apply(drmModeAtomicReqPtr req) {
+    return drmModeAtomicAddProperty(req, mComponetId, mPropRes.prop_id, getValue());
 }
 
 void DrmProperty::dump(String8 &dumpstr) {

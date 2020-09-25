@@ -96,7 +96,6 @@ int32_t VdinPostProcessor::postVout(std::shared_ptr<DrmFramebuffer> fb) {
     static nsecs_t post_start;
 
     fencefd = -1;
-    mVout->setOsdChannels(1);
     post_start = systemTime(CLOCK_MONOTONIC);
     if (mVout->pageFlip(fencefd) < 0) {
         MESON_LOGE("VdinPostProcessor, page flip failed.");

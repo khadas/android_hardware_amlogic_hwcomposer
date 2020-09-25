@@ -8,6 +8,7 @@
  */
 
 #include <MesonLog.h>
+#include <DebugHelper.h>
 
 #include "DrmDevice.h"
 #include "DrmPlane.h"
@@ -15,19 +16,33 @@
 DrmPlane::DrmPlane(drmModePlanePtr p)
     : HwDisplayPlane(),
     mId(p->plane_id),
-    mCrtcMask(p->possible_crtcs),
-    mFormatCnt(p->count_formats) {
+    mCrtcMask(p->possible_crtcs) {
+
+    mFormatCnt = p->count_formats;
     MESON_ASSERT(mFormatCnt, "format should > 0");
     mFormats = new uint32_t[mFormatCnt];
     memcpy(mFormats, p->formats, sizeof(uint32_t) * p->count_formats);
+    mModifierCnt = 0;
+    mModifiers = NULL;
 
     loadProperties();
+    resloveInFormats();
+
+    mBlank = p->fb_id > 0 ? false : true;
+    mDrmBo = std::make_shared<DrmBo>();
 }
 
 DrmPlane::~DrmPlane() {
+    if (mFormats)
+        delete mFormats;
+    mFormats = NULL;
+
+    if (mModifiers)
+        delete mModifiers;
+    mModifiers = NULL;
 }
 
-int32_t DrmPlane::loadProperties() {
+void DrmPlane::loadProperties() {
     struct {
         const char * propname;
         std::shared_ptr<DrmProperty> * drmprop;
@@ -36,14 +51,15 @@ int32_t DrmPlane::loadProperties() {
         {DRM_PLANE_PROP_INFENCE, &mInFence},
         {DRM_PLANE_PROP_SRCX, &mSrcX},
         {DRM_PLANE_PROP_SRCY, &mSrcY},
-        {DRM_PLANE_PROP_SRCX, &mSrcW},
-        {DRM_PLANE_PROP_SRCY, &mSrcH},
+        {DRM_PLANE_PROP_SRCW, &mSrcW},
+        {DRM_PLANE_PROP_SRCH, &mSrcH},
         {DRM_PLANE_PROP_CRTCID, &mCrtcId},
         {DRM_PLANE_PROP_CRTCX, &mCrtcX},
         {DRM_PLANE_PROP_CRTCY, &mCrtcY},
         {DRM_PLANE_PROP_CRTCW, &mCrtcW},
         {DRM_PLANE_PROP_CRTCH, &mCrtcH},
         {DRM_PLANE_PROP_Z, &mZpos},
+        {DRM_PLANE_PROR_IN_FORMATS, &mInFormats},
         {DRM_PLANE_PROP_BLENDMODE, &mBlendMode},
         {DRM_PLANE_PROP_ALPHA, &mAlpha},
     };
@@ -54,12 +70,13 @@ int32_t DrmPlane::loadProperties() {
         drmModeObjectGetProperties(getDrmDevice()->getDeviceFd(), mId, DRM_MODE_OBJECT_PLANE);
     MESON_ASSERT(props != NULL, "DrmPlane::loadProperties failed.");
 
+    int drmFd = getDrmDevice()->getDeviceFd();
     for (int i = 0; i < props->count_props; i++) {
-        drmModePropertyPtr prop = drmModeGetProperty(getDrmDevice()->getDeviceFd(), props->props[i]);
+        drmModePropertyPtr prop = drmModeGetProperty(drmFd, props->props[i]);
         for (int j = 0; j < planePropsNum; j++) {
             if (strcmp(prop->name, planeProps[j].propname) == 0) {
                 *(planeProps[j].drmprop) =
-                    std::make_shared<DrmProperty>(prop, props->prop_values[i]);
+                    std::make_shared<DrmProperty>(prop, mId, props->prop_values[i]);
                 initedProps ++;
                 break;
             }
@@ -68,7 +85,7 @@ int32_t DrmPlane::loadProperties() {
     }
     drmModeFreeObjectProperties(props);
 
-    return 0;
+    MESON_ASSERT(initedProps  != planePropsNum, "NOT ALL PROPS LOADED.");
 }
 
 const char * DrmPlane::getName() {
@@ -110,12 +127,23 @@ uint32_t DrmPlane::getType() {
 
 uint32_t DrmPlane::getCapabilities() {
     MESON_LOG_EMPTY_FUN();
-    return 0;
+    uint32_t caps = 0;
+    if (mType == DRM_PLANE_TYPE_PRIMARY) {
+        caps |= PLANE_SHOW_LOGO;
+        caps |= PLANE_PRIMARY;
+    }
+
+    if (!mZpos->isImmutable()) {
+        caps |= PLANE_SUPPORT_ZORDER;
+    }
+
+    return caps;
 }
 
 int32_t DrmPlane::getFixedZorder() {
+    MESON_LOG_EMPTY_FUN();
     if (mZpos->isImmutable()) {
-        MESON_LOG_EMPTY_FUN();
+        return (int32_t)mZpos->getValue();
     }
 
     return 0;
@@ -125,7 +153,19 @@ uint32_t DrmPlane::getPossibleCrtcs() {
     return mCrtcMask;
 }
 
+int32_t DrmPlane::setCrtcId(uint32_t crtcid) {
+    mCrtc = getDrmDevice()->getCrtcById(crtcid);
+    return 0;
+}
+
+#define OSD_INPUT_MAX_WIDTH (1920)
+#define OSD_INPUT_MAX_HEIGHT (1080)
+#define OSD_INPUT_MIN_WIDTH (128)
+#define OSD_INPUT_MIN_HEIGHT (128)
 bool DrmPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
+    if (fb->isRotated())
+         return false;
+
     /*check scanout buffer*/
     switch (fb->mFbType) {
         case DRM_FB_CURSOR:
@@ -138,26 +178,155 @@ bool DrmPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
             return false;
     }
 
-    /*check format*/
-    int format = am_gralloc_get_format(fb->mBufferHandle);
-    if (!validateFormat(format))
+    unsigned int blendMode = fb->mBlendMode;
+    if (blendMode != DRM_BLEND_MODE_NONE
+        && blendMode != DRM_BLEND_MODE_PREMULTIPLIED
+        && blendMode != DRM_BLEND_MODE_COVERAGE) {
+        MESON_LOGE("Blend mode is invalid!");
         return false;
+    }
+
+    /*check format*/
+    int halFormat = am_gralloc_get_format(fb->mBufferHandle);
+    int afbc = am_gralloc_get_vpu_afbc_mask(fb->mBufferHandle);
+    int drmFormat = covertToDrmFormat(halFormat);
+    uint64_t modifier = convertToDrmModifier(afbc);
 
     /*check vpu limit: blend mode*/
+    if (blendMode == DRM_BLEND_MODE_NONE &&
+        halFormat == HAL_PIXEL_FORMAT_BGRA_8888) {
+        MESON_LOGE("blend mode: %u, Layer format %d not support.", blendMode, halFormat);
+        return false;
+    }
 
+    if (!validateFormat(drmFormat, modifier))
+        return false;
 
     /*check vpu limit: buffer size*/
+    uint32_t sourceWidth = fb->mSourceCrop.bottom - fb->mSourceCrop.top;
+    uint32_t sourceHeight = fb->mSourceCrop.right - fb->mSourceCrop.left;
+    if (sourceWidth > OSD_INPUT_MAX_HEIGHT ||sourceHeight > OSD_INPUT_MAX_WIDTH)
+        return false;
+    if (sourceWidth < OSD_INPUT_MIN_HEIGHT ||sourceHeight < OSD_INPUT_MIN_WIDTH)
+        return false;
+    return true;
 
-
+    MESON_LOG_EMPTY_FUN();
     return true;
 }
 
-int32_t DrmPlane::setPlane(std::shared_ptr<DrmFramebuffer> fb,
-    uint32_t zorder, int blankOp) {
-    UNUSED(fb);
-    UNUSED(zorder);
-    UNUSED(blankOp);
+int32_t DrmPlane::setPlane(
+    std::shared_ptr<DrmFramebuffer> fb,
+    uint32_t zorder,
+    int blankOp) {
+    bool bBlank = blankOp == UNBLANK ? false : true;
+    DrmCrtc * crtc = (DrmCrtc *)mCrtc.get();
+    drmModeAtomicReqPtr req = crtc->getAtomicReq();
+    MESON_ASSERT(req != NULL, " plane get empty req.");
+
     MESON_LOG_EMPTY_FUN();
+
+    if (bBlank) {
+        if (!mBlank) {
+            /*set fbid  = 0*/
+            mFbId->setValue(0);
+            mFbId->apply(req);
+            mDrmBo->release();
+        }
+    } else {
+        bool bUpdate = false;
+
+        mDrmBo->import(fb);
+        if (mDrmBo->fbId != mFbId->getValue()) {
+            mFbId->setValue(mDrmBo->fbId);
+            bUpdate = true;
+        }
+        if (mCrtcId->getValue() != mCrtc->getId()) {
+            mCrtcId->setValue(mCrtc->getId());
+            bUpdate = true;
+        }
+        if (mSrcX->getValue() !=  mDrmBo->srcRect.left ||
+            mSrcY->getValue() !=  mDrmBo->srcRect.top ||
+            mSrcW->getValue() !=  (mDrmBo->srcRect.right - mDrmBo->srcRect.left)  ||
+            mSrcH->getValue() !=  (mDrmBo->srcRect.bottom - mDrmBo->srcRect.top)) {
+            mSrcX->setValue(mDrmBo->srcRect.left);
+            mSrcY->setValue(mDrmBo->srcRect.top);
+            mSrcW->setValue(mDrmBo->srcRect.right - mDrmBo->srcRect.left);
+            mSrcH->setValue(mDrmBo->srcRect.bottom - mDrmBo->srcRect.top);
+            bUpdate = true;
+        }
+        if (mCrtcX->getValue() !=  mDrmBo->crtcRect.left ||
+            mCrtcY->getValue() !=  mDrmBo->crtcRect.top ||
+            mCrtcW->getValue() !=  (mDrmBo->crtcRect.right - mDrmBo->crtcRect.left)  ||
+            mCrtcH->getValue() !=  (mDrmBo->crtcRect.bottom - mDrmBo->crtcRect.top)) {
+            mCrtcX->setValue(mDrmBo->crtcRect.left);
+            mCrtcY->setValue(mDrmBo->crtcRect.top);
+            mCrtcW->setValue(mDrmBo->crtcRect.right - mDrmBo->crtcRect.left);
+            mCrtcH->setValue(mDrmBo->crtcRect.bottom - mDrmBo->crtcRect.top);
+            bUpdate = true;
+        }
+        if (mZpos->getValue() != zorder) {
+            mZpos->setValue(zorder);
+            bUpdate = true;
+        }
+        if (mBlendMode.get()) {
+            uint64_t blendMode = 0;
+            const char * blendModeStr = NULL;
+            switch (mDrmBo->blend) {
+                case DRM_BLEND_MODE_NONE:
+                        blendModeStr = DRM_PLANE_PROP_BLENDMODE_NONE;
+                        break;
+                case DRM_BLEND_MODE_PREMULTIPLIED:
+                        blendModeStr = DRM_PLANE_PROP_BLENDMODE_PREMULTI;
+                        break;
+                case DRM_BLEND_MODE_COVERAGE:
+                        blendModeStr = DRM_PLANE_PROP_BLENDMODE_COVERAGE;
+                        break;
+                default:
+                    MESON_LOGE("Unknown blend mode.");
+                    break;
+            };
+
+            mBlendMode->getEnumValueWithName(blendModeStr, blendMode);
+            mBlendMode->setValue(blendMode);
+        } else {
+            MESON_LOGE("No pixel mode supported in driver.");
+        }
+        if (mAlpha.get()) {
+            uint64_t minVal, maxVal;
+            mAlpha->getRangeValue(minVal, maxVal);
+            mAlpha->setValue(mDrmBo->alpha * (maxVal - minVal) + minVal);
+        } else {
+            MESON_LOGE("No alpha supported in driver.");
+        }
+
+        if (bUpdate) {
+            mFbId->apply(req);
+            mCrtcId->apply(req);
+            mSrcX->apply(req);
+            mSrcY->apply(req);
+            mSrcW->apply(req);
+            mSrcH->apply(req);
+            mCrtcX->apply(req);
+            mCrtcY->apply(req);
+            mCrtcW->apply(req);
+            mCrtcH->apply(req);
+            mZpos->apply(req);
+            mInFence->setValue(mDrmBo->inFence);
+            if (mBlendMode.get())
+                mBlendMode->apply(req);
+            if (mAlpha.get())
+                mAlpha->apply(req);
+        }
+    }
+
+    /*for drmplane it use the fence when atomic,
+    *set it to -1, hwc will set it after atomic.
+    */
+    if (mFb)
+        mFb->setPrevReleaseFence(-1);
+    mFb = fb;
+    mBlank = bBlank;
     return 0;
 }
 
@@ -166,19 +335,67 @@ void DrmPlane::setDebugFlag(int dbgFlag) {
     MESON_LOG_EMPTY_FUN();
 }
 
-bool DrmPlane::validateFormat(uint32_t format) {
+void DrmPlane::resloveInFormats() {
+    if (!mInFormats) {
+        MESON_LOGI("No inFormats prop, use ");
+        return;
+    }
+
+    std::vector<uint8_t> blob;
+    mInFormats->getBlobData(blob);
+
+    struct drm_format_modifier_blob *header =
+        (struct drm_format_modifier_blob *)blob.data();
+    uint32_t *formats = (uint32_t *) ((char *) header + header->formats_offset);
+    struct drm_format_modifier *modifiers =
+        (struct drm_format_modifier *) ((char *) header + header->modifiers_offset);
+
+    if (mFormats) {
+        delete mFormats;
+        mFormats = NULL;
+    }
+    mFormatCnt = header->count_formats;
+    mFormats = new uint32_t[mFormatCnt];
+    memcpy(mFormats, formats, sizeof(uint32_t) * mFormatCnt);
+
+    mModifierCnt = header->count_modifiers;
+    mModifiers = new struct drm_format_modifier[mModifierCnt];
+    memcpy(mModifiers, modifiers, sizeof(struct drm_format_modifier) * mModifierCnt);
+}
+
+bool DrmPlane::validateFormat(uint32_t format, uint64_t modifier) {
+    int formatIdx = -1;
     for (int i = 0; i < mFormatCnt; i ++) {
-        if (format == mFormats[i])
-            return true;
+        if (format == mFormats[i]) {
+            formatIdx = i;
+            break;
+        }
+    }
+
+    if (formatIdx == -1) {
+        MESON_LOGE("Not Supported Format %d", format);
+        return false;
+    }
+
+    if (modifier == 0)
+        return true;
+
+    uint64_t formatMask = 1ULL << formatIdx;
+    for (int i = 0; i < mModifierCnt; i++) {
+        if (mModifiers[i].modifier == modifier) {
+            if (mModifiers[i].formats & formatMask) {
+                return true;
+            } else {
+                MESON_LOGE("Not supported modifier-format (%lld-%d)", modifier, format);
+                return false;
+            }
+        }
     }
 
     return false;
 }
 
-
 void DrmPlane::dump(String8 & dumpstr) {
     UNUSED(dumpstr);
     MESON_LOG_EMPTY_FUN();
 }
-
-

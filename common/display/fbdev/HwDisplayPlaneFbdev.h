@@ -28,6 +28,8 @@ public:
     virtual int32_t getFixedZorder() = 0;
 
     virtual uint32_t getPossibleCrtcs() = 0;
+    virtual int32_t setCrtcId(uint32_t crtcid __unused) { return 0;}
+
     virtual bool isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) = 0;
 
     virtual int32_t setPlane(std::shared_ptr<DrmFramebuffer> fb,

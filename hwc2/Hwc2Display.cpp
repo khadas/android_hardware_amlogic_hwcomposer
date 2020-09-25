@@ -33,6 +33,7 @@ Hwc2Display::Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer) {
     mValidateDisplay = false;
     mVsyncState = false;
     mScaleValue = 1;
+    mPresentFence = -1;
     memset(&mHdrCaps, 0, sizeof(mHdrCaps));
     memset(mColorMatrix, 0, sizeof(float) * 16);
     memset(&mCalibrateCoordinates, 0, sizeof(int) * 4);
@@ -860,12 +861,18 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
             return HWC2_ERROR_NONE;
         }
         mValidateDisplay = false;
-        int32_t outFence = -1;
+        if (mPresentFence >= 0)
+            close(mPresentFence);
+        mPresentFence = -1;
+
+        /*start new pageflip, and preapre.*/
+        if (mCrtc->prePageFlip() !=0 ) {
+            return HWC2_ERROR_NO_RESOURCES;
+        }
         /*Start to compose, set up plane info.*/
         if (mPresentCompositionStg->commit() != 0) {
             return HWC2_ERROR_NOT_VALIDATED;
         }
-
         #ifdef HWC_HDR_METADATA_SUPPORT
         /*set hdr metadata info.*/
         for (auto it = mPresentLayers.begin() ; it != mPresentLayers.end(); it++) {
@@ -877,16 +884,17 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
         #endif
 
         /* Page flip */
-        if (mCrtc->pageFlip(outFence) < 0) {
+        if (mCrtc->pageFlip(mPresentFence) < 0) {
             return HWC2_ERROR_UNSUPPORTED;
         }
         if (mPostProcessor != NULL) {
-            int32_t displayFence = ::dup(outFence);
+            int32_t displayFence = ::dup(mPresentFence);
             mPostProcessor->present(mProcessorFlags, displayFence);
             mProcessorFlags = 0;
         }
 
-        *outPresentFence = outFence;
+        /*need use in getReleaseFence() later, dup to return to sf.*/
+        *outPresentFence = ::dup(mPresentFence);
     }
 
     /*dump debug informations.*/
@@ -923,13 +931,18 @@ hwc2_error_t Hwc2Display::getReleaseFences(uint32_t* outNumElements,
         num++;
         if (needInfo) {
             int32_t releaseFence = layer->getPrevReleaseFence();
+            if (releaseFence == -1)
+                *outFences = ::dup(mPresentFence);
+            else
+                *outFences = releaseFence;
             *outLayers = layer->getUniqueId();
-            *outFences = releaseFence;
             outLayers++;
             outFences++;
         }
     }
 
+    close(mPresentFence);
+    mPresentFence = -1;
     *outNumElements = num;
     return HWC2_ERROR_NONE;
 }

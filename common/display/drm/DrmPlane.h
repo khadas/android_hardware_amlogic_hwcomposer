@@ -13,6 +13,8 @@
 #include <stdlib.h>
 #include <DrmFramebuffer.h>
 #include <HwDisplayPlane.h>
+#include <DrmBo.h>
+#include "DrmCrtc.h"
 #include "DrmProperty.h"
 
 class DrmPlane : public HwDisplayPlane {
@@ -28,6 +30,8 @@ public:
     int32_t getFixedZorder();
 
     uint32_t getPossibleCrtcs();
+    int32_t setCrtcId(uint32_t crtcid);
+
     bool isFbSupport(std::shared_ptr<DrmFramebuffer> & fb);
 
     int32_t setPlane(std::shared_ptr<DrmFramebuffer> fb,
@@ -38,19 +42,23 @@ public:
     void dump(String8 & dumpstr);
 
 protected:
-    bool validateFormat(uint32_t format);
-    int32_t loadProperties();
+    void resloveInFormats();
+    bool validateFormat(uint32_t format, uint64_t modifier);
+    void loadProperties();
 
 protected:
     uint32_t mId;
     uint32_t mType;
     uint32_t mCrtcMask;
+
     uint32_t * mFormats;
     uint32_t mFormatCnt;
+    struct drm_format_modifier * mModifiers;
+    uint32_t mModifierCnt;
+
 
     /*plane propertys*/
     std::shared_ptr<DrmProperty> mFbId;
-    std::shared_ptr<DrmProperty> mInFence;
     std::shared_ptr<DrmProperty> mSrcX;
     std::shared_ptr<DrmProperty> mSrcY;
     std::shared_ptr<DrmProperty> mSrcW;
@@ -63,11 +71,16 @@ protected:
     std::shared_ptr<DrmProperty> mCrtcH;
 
     std::shared_ptr<DrmProperty> mZpos;
+    std::shared_ptr<DrmProperty> mInFence;
     std::shared_ptr<DrmProperty> mBlendMode;
     std::shared_ptr<DrmProperty> mAlpha;
 
+    std::shared_ptr<DrmProperty> mInFormats;
 
-
+    bool mBlank;
+    std::shared_ptr<DrmBo> mDrmBo;
+    std::shared_ptr<DrmFramebuffer> mFb;
+    std::shared_ptr<HwDisplayCrtc> mCrtc;
 };
 
  #endif/*DRM_PLANE_H*/

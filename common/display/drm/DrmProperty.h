@@ -18,16 +18,22 @@
 
 class DrmProperty {
 public:
-    DrmProperty(drmModePropertyPtr p, uint64_t value);
+    DrmProperty(drmModePropertyPtr p, uint32_t objectId, uint64_t value);
     ~DrmProperty();
 
-    int32_t setValue(uint64_t val);
+    uint32_t getId() { return mPropRes.prop_id; }
+
+    int setValue(uint64_t val);
     uint64_t getValue();
 
     /*get prop data*/
-    int32_t getBlobData(std::vector<uint8_t> & blob);
+    int getBlobData(std::vector<uint8_t> & blob);
+    int getEnumValueWithName(const char *name, uint64_t & val);
+    int getRangeValue(uint64_t & min, uint64_t & max);
 
     bool isImmutable() {return mPropRes.flags & DRM_MODE_PROP_IMMUTABLE;}
+
+    int apply(drmModeAtomicReqPtr req);
 
     void dump(String8 &dumpstr);
 
@@ -38,6 +44,8 @@ protected:
 protected:
     uint64_t mValue;
     uint32_t mType;
+    uint32_t mComponetId;
+    bool mUpdated;
 
     drmModePropertyRes mPropRes;
 };
