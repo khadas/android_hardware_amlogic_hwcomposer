@@ -71,6 +71,9 @@ protected:
     // Passed to SF
     uint32_t mSfActiveConfigId;
     std::map<uint32_t, drm_mode_info_t> mSfActiveModes;
+
+    // Dolby Vision enanbled or not
+    bool mDvEnabled;
 };
 
 #endif/*ACTIVE_MODE_MGR_H*/

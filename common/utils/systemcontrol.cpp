@@ -24,6 +24,8 @@
 #define DISPLAY_EDID_STATUS             "/sys/class/amhdmitx/amhdmitx0/edid_parsing"
 //HDCP Authentication
 #define DISPLAY_HDMI_HDCP_AUTH          "/sys/module/aml_media/parameters/hdmi_authenticated"
+#define PROP_DOLBY_VISION_ENABLE "persist.vendor.sys.dolbyvision.enable"
+#define PROP_DOLBY_VISION_TV_ENABLE "persist.vendor.sys.tv.dolbyvision.enable"
 
 #if PLATFORM_SDK_VERSION >=  26
 #include <vendor/amlogic/hardware/systemcontrol/1.0/ISystemControl.h>
@@ -218,6 +220,30 @@ int32_t sc_read_bootenv(const char * key, std::string & val) {
     return 0;
 }
 
+bool sc_set_bootenv(const char *key, const std::string &val) {
+    CHK_SC_PROXY();
+
+    gSC->setBootEnv(key, val);
+    return true;
+}
+
+bool sc_get_property_boolean(const char * prop, bool val) {
+    CHK_SC_PROXY();
+
+    if (!prop) {
+        return -EINVAL;
+    }
+
+    bool result = val;
+    gSC->getPropertyBoolean(prop, val, [&result](const Result &ret, const bool& retval) {
+            if (Result::OK == ret) {
+                result = retval;
+            }
+    });
+
+    return result;
+}
+
 int32_t sc_set_property(const char * prop, const char *val ) {
     CHK_SC_PROXY();
 
@@ -233,6 +259,53 @@ int32_t sc_set_property(const char * prop, const char *val ) {
         return -EFAULT;
     }
 }
+
+int32_t sc_sink_support_dv(std::string &mode, bool &val) {
+    CHK_SC_PROXY();
+
+    gSC->sinkSupportDolbyVision([&mode, &val](
+        const Result &ret, const hidl_string &sinkMode, const bool &support) {
+            if (ret == Result::OK) {
+                val = support;
+                mode = sinkMode.c_str();
+            } else {
+                val = false;
+                mode.clear();
+            }
+    });
+
+    if (val == false)
+        MESON_LOGD("[%s] sink not support DV", __func__);
+
+    return 0;
+}
+
+int32_t sc_get_dolby_version_type() {
+    CHK_SC_PROXY();
+
+    int32_t result = 0;
+
+    gSC->getDolbyVisionType([&result](const Result &ret, const int32_t& value) {
+        if (ret == Result::OK) {
+            result = value;
+        }
+    });
+
+    return result;
+ }
+
+bool sc_is_dolby_version_enable() {
+    std::string mode;
+    bool val;
+
+    sc_sink_support_dv(mode, val);
+    if (mode.empty()) {
+        return sc_get_property_boolean(PROP_DOLBY_VISION_ENABLE, false);
+    }
+
+    return sc_get_property_boolean(PROP_DOLBY_VISION_TV_ENABLE, false);
+}
+
 
 bool  sc_get_pref_display_mode(std::string & dispmode) {
     CHK_SC_PROXY();

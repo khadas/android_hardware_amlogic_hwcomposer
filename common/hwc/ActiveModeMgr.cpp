@@ -19,6 +19,8 @@
 #define DEFUALT_DPI (160)
 #define DEFAULT_REFRESH_RATE (60.0f)
 
+#define UBOOTENV_BESTDOLBYVISION "ubootenv.var.bestdolbyvision"
+
 static const drm_mode_info_t fakeInitialMode = {
     .name              = "FAKE_INITIAL_MODE",
     .dpiX              = DEFUALT_DPI,
@@ -31,7 +33,8 @@ static const drm_mode_info_t fakeInitialMode = {
 
 ActiveModeMgr::ActiveModeMgr()
     : mCallOnHotPlug(true),
-      mPreviousMode(fakeInitialMode) {
+      mPreviousMode(fakeInitialMode),
+      mDvEnabled(false) {
 }
 
 ActiveModeMgr::~ActiveModeMgr() {
@@ -57,6 +60,19 @@ void ActiveModeMgr::setDisplayResources(
     mCrtc = crtc;
 }
 
+/*
+ * when connected to a 4K TV
+ * 1. No DV support or DV supported for all 2160P modes or supoort DV is disabled
+ *    then reports to framework only 1080Ps which are mapped to 2160P modes
+ * 2. DV support in 2160P <= 2160P30hz
+ *    then reports to framework only 1080Ps which are mapped to 1080P modes
+ *
+ * when connected to a 1080P TV, then reports only 1080Ps which are mapped to 1080P modes
+ *
+ * when conneted to a TV < 1080P TVs, then reports only 1080Ps which maps to the modes
+ * having the highest native resolution; for example 720Ps.
+ */
+
 int32_t ActiveModeMgr::update() {
     std::lock_guard<std::mutex> lock(mMutex);
     bool useFakeMode = true;
@@ -71,9 +87,31 @@ int32_t ActiveModeMgr::update() {
             mCurMode = activeMode;
             mPreviousMode = activeMode;
             useFakeMode = false;
+        } else {
+            strncpy(mCurMode.name, "invalid", DRM_DISPLAY_MODE_LEN);
         }
 
+        // detect the Dobly vision support status
+        bool unused = false;
+        std::string highestModeForDv;
+        sc_sink_support_dv(highestModeForDv, unused);
+        mDvEnabled = sc_is_dolby_version_enable();
+        MESON_LOGD("ActiveModeMgr::update mDvEnabled(%d), highestModeForDv:%s",
+                mDvEnabled, highestModeForDv.c_str());
+
         for (auto it = supportedModes.begin(); it != supportedModes.end(); it++) {
+            // support dolby version
+            if (mDvEnabled) {
+                // filter 4K modes if DV support not all the 2160P modes
+                if (strstr(mCurMode.name, it->second.name) == NULL &&
+                        strstr(highestModeForDv.c_str(), "2160p60hz") == NULL) {
+                    if ((strstr(it->second.name, "2160p") != NULL)
+                            || (strstr(it->second.name, "smpte") != NULL)) {
+                        continue;
+                    }
+                }
+            }
+
             mHwcActiveModes.emplace(mHwcActiveModes.size(), it->second);
         }
     }
@@ -115,19 +153,23 @@ bool ActiveModeMgr::isFracRate(float refreshRate) {
 }
 
 int32_t ActiveModeMgr::updateSfDispConfigs() {
-    std::map<uint32_t, drm_mode_info_t> mTmpModes;
-    mTmpModes = mHwcActiveModes;
-
+    // key is the fps, value is display mode
     std::map<float, drm_mode_info_t> tmpList;
     std::map<float, drm_mode_info_t>::iterator tmpIt;
 
-    for (auto it = mTmpModes.begin(); it != mTmpModes.end(); ++it) {
+    for (auto it = mHwcActiveModes.begin(); it != mHwcActiveModes.end(); ++it) {
         //first check the fps, if there is not the same fps, add it to sf list
         //then check the width, add the biggest width one.
         drm_mode_info_t cfg = it->second;
         std::string cMode = cfg.name;
         float cFps = cfg.refreshRate;
         uint32_t cWidth = cfg.pixelW;
+
+        // if current mode < 1080P, filter the mode that bigger than current mode
+        if (mCurMode.pixelW < 1920) {
+            if (cWidth > mCurMode.pixelW)
+                continue;
+        }
 
         tmpIt = tmpList.find(cFps);
         if (tmpIt != tmpList.end()) {
@@ -142,21 +184,22 @@ int32_t ActiveModeMgr::updateSfDispConfigs() {
         }
     }
 
-    auto it = mHwcActiveModes.find(mHwcActiveConfigId);
+    // mSFActiveModes and mSFActiveConfigId are reseted in update()
+    auto activeIt = mHwcActiveModes.find(mHwcActiveConfigId);
     for (tmpIt = tmpList.begin(); tmpIt != tmpList.end(); ++tmpIt) {
         mSfActiveModes.emplace(mSfActiveModes.size(), tmpIt->second);
 
-        if (it != mHwcActiveModes.end()) {
-            if (!strncmp(it->second.name, tmpIt->second.name, DRM_DISPLAY_MODE_LEN)
-                && it->second.refreshRate == tmpIt->second.refreshRate) {
+        if (activeIt != mHwcActiveModes.end()) {
+            if (!strncmp(activeIt->second.name, tmpIt->second.name, DRM_DISPLAY_MODE_LEN)
+                && activeIt->second.refreshRate == tmpIt->second.refreshRate) {
                 mSfActiveConfigId = mSfActiveModes.size() - 1;
             }
         }
     }
 
     if (mSfActiveConfigId == -1) {
-        if (it != mHwcActiveModes.end())
-            mSfActiveModes.emplace(mSfActiveModes.size(), it->second);
+        if (activeIt != mHwcActiveModes.end())
+            mSfActiveModes.emplace(mSfActiveModes.size(), activeIt->second);
         mSfActiveConfigId = mSfActiveModes.size() - 1;
     }
 
@@ -256,8 +299,29 @@ int32_t ActiveModeMgr::setActiveConfig(uint32_t configId) {
         MESON_LOGD("ActiveModeMgr::setActiveConfig %d, name:%s", configId, cfg.name);
 
         mCallOnHotPlug = false;
+
+        // Disable auto best DolbyVision mode selection policy
+        // So that when we update the display mode,
+        // SystemContrl doesn't change to some other mode.
+        std::string bestDolbyVision;
+        bool needRecoveryBestDV = false;
+        if (mDvEnabled) {
+            if (!sc_read_bootenv(UBOOTENV_BESTDOLBYVISION, bestDolbyVision)) {
+                if (bestDolbyVision.empty()|| bestDolbyVision == "true") {
+                    sc_set_bootenv(UBOOTENV_BESTDOLBYVISION, "false");
+                    needRecoveryBestDV = true;
+                }
+            }
+        }
+
         mConnector->setMode(cfg);
         mCrtc->setMode(cfg);
+
+        // If we need recovery best dobly vision policy, then recovery it.
+        if (mDvEnabled && needRecoveryBestDV) {
+            sc_set_bootenv(UBOOTENV_BESTDOLBYVISION, "true");
+        }
+
         return HWC2_ERROR_NONE;
     } else {
         MESON_LOGE("set invalild active config (%d)", configId);
