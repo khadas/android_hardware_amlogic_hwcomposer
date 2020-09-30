@@ -252,20 +252,36 @@ bool ComposerHandleCache::isChangedFromeVideoToUi(const native_handle_t* handle)
     if (am_gralloc_is_omx_v4l_buffer(handle) ||  am_gralloc_is_omx_metadata_buffer(handle)) {
         mFbType = DrmFbType::DRM_FB_VIDEO;
     } else if (am_gralloc_is_overlay_buffer(handle)) {
-        mFbType = DrmFbType::DRM_FB_VIDEO_OVERLAY;
-    } else if (am_gralloc_is_coherent_buffer(handle)) {
-        if (mFbType == DrmFbType::DRM_FB_VIDEO ||
-                mFbType == DrmFbType::DRM_FB_VIDEO_OVERLAY) {
-            changed = true;
-        }
-        mFbType = DrmFbType::DRM_FB_SCANOUT;
+        mFbType = DrmFbType::DRM_FB_VIDEO;
     } else {
-        if (mFbType == DrmFbType::DRM_FB_VIDEO ||
-                mFbType == DrmFbType::DRM_FB_VIDEO_OVERLAY) {
+        if (mFbType == DrmFbType::DRM_FB_VIDEO) {
             changed = true;
         }
-        mFbType = DrmFbType::DRM_FB_RENDER;
+        mFbType = DrmFbType::DRM_FB_UI;
     }
+
+    return changed;
+}
+
+bool ComposerHandleCache::isVideoBufferSequenceChanged(const native_handle_t* handle) {
+    bool changed = false;
+    int value = -1;
+    static int previousSequence = -1;
+
+    // video buffer
+    if (mFbType == DrmFbType::DRM_FB_VIDEO) {
+        if (am_gralloc_get_omx_buffer_sequence(handle, &value)) {
+            if (previousSequence == -1)
+                previousSequence = value;
+
+            if (previousSequence != value) {
+                ALOGD("Video buffer sequence changed");
+                changed = true;
+            }
+            previousSequence = value;
+        }
+     }
+
     return changed;
 }
 
@@ -279,8 +295,9 @@ Error ComposerHandleCache::getHandle(uint32_t slot, bool fromCache, const native
         *outReplacedHandle = nullptr;
         error = lookupCache(slot, outHandle);
     } else {
-        if (mHandleType == HandleType::BUFFER && isChangedFromeVideoToUi(inHandle)) {
-            ALOGD("FB type changed from video to UI, fromcache(%d):slot(%d)", fromCache, slot);
+        if (mHandleType == HandleType::BUFFER
+                && (isChangedFromeVideoToUi(inHandle) || isVideoBufferSequenceChanged(inHandle))) {
+            ALOGD("[%s] release cache", __func__);
             releaseCache(0);
         }
 

@@ -77,13 +77,10 @@ class ComposerHandleCache {
 
     enum class DrmFbType {
         DRM_FB_UNDEFINED = 0,
-        // scattered buffer, can be used for rendering.
-        DRM_FB_RENDER = 1,
-        // contiguous buffer, can be used for scanout.
-        DRM_FB_SCANOUT,
+        // UI type, graphic layer
+        DRM_FB_UI,
         // video type, used for video.
         DRM_FB_VIDEO,
-        DRM_FB_VIDEO_OVERLAY,
     };
 
     ComposerHandleCache(ComposerHandleImporter& importer, HandleType type, uint32_t cacheSize);
@@ -103,6 +100,7 @@ class ComposerHandleCache {
 
     Error releaseCache(uint32_t slot);
     bool isChangedFromeVideoToUi(const native_handle_t* handle);
+    bool isVideoBufferSequenceChanged(const native_handle_t* handle);
 
     // when fromCache is true, look up in the cache; otherwise, update the cache
     Error getHandle(uint32_t slot, bool fromCache, const native_handle_t* inHandle,
