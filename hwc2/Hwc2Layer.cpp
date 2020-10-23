@@ -24,6 +24,7 @@ Hwc2Layer::Hwc2Layer() : DrmFramebuffer(){
     mVtBufferFd    = -1;
     mPreVtBufferFd = -1;
     mVtUpdate      =  false;
+    mUpdated       = false;
 }
 
 Hwc2Layer::~Hwc2Layer() {
@@ -200,6 +201,8 @@ hwc2_error_t Hwc2Layer::setColor(hwc_color_t color) {
     mColor.a = color.a;
 
     mFbType = DRM_FB_COLOR;
+
+    mUpdated = true;
     return HWC2_ERROR_NONE;
 }
 
@@ -208,6 +211,7 @@ hwc2_error_t Hwc2Layer::setSourceCrop(hwc_frect_t crop) {
     mSourceCrop.top = (int) ceilf(crop.top);
     mSourceCrop.right = (int) floorf(crop.right);
     mSourceCrop.bottom = (int) floorf(crop.bottom);
+    mUpdated = true;
     return HWC2_ERROR_NONE;
 }
 
@@ -222,16 +226,20 @@ hwc2_error_t Hwc2Layer::setDisplayFrame(hwc_rect_t frame) {
     mBackupDisplayFrame.top = frame.top;
     mBackupDisplayFrame.right = frame.right;
     mBackupDisplayFrame.bottom = frame.bottom;
+
+    mUpdated = true;
     return HWC2_ERROR_NONE;
 }
 
 hwc2_error_t Hwc2Layer::setBlendMode(hwc2_blend_mode_t mode) {
     mBlendMode = (drm_blend_mode_t)mode;
+    mUpdated = true;
     return HWC2_ERROR_NONE;
 }
 
 hwc2_error_t Hwc2Layer::setPlaneAlpha(float alpha) {
     mPlaneAlpha = alpha;
+    mUpdated = true;
     return HWC2_ERROR_NONE;
 }
 
@@ -257,12 +265,13 @@ hwc2_error_t Hwc2Layer::setCompositionType(hwc2_composition_t type){
 
 hwc2_error_t Hwc2Layer::setDataspace(android_dataspace_t dataspace) {
     mDataSpace = dataspace;
+    mUpdated = true;
     return HWC2_ERROR_NONE;
 }
 
 hwc2_error_t Hwc2Layer::setZorder(uint32_t z) {
     mZorder = z;
-    updateZorder(true);
+    mUpdateZorder = mUpdated = true;
     return HWC2_ERROR_NONE;
 }
 
@@ -295,8 +304,8 @@ hwc2_layer_t Hwc2Layer::getUniqueId() {
     return mId;
 }
 
-void Hwc2Layer::updateZorder(bool update) {
-    mUpdateZorder = update;
+void Hwc2Layer::clearUpdateFlag() {
+    mUpdateZorder = mUpdated = false;
 }
 
 bool Hwc2Layer::isVtLayer() {

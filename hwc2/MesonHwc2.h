@@ -184,6 +184,7 @@ protected:
     uint32_t mDisplayRequests;
     /* meson display */
     drm_rect_wh_t mViewPort;
+    bool mChangedViewPort;
 };
 
 #endif/*MESON_HWC2_H*/

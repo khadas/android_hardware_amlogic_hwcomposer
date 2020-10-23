@@ -137,6 +137,9 @@ void SingleplaneComposition::setup(
     }
 }
 
+void SingleplaneComposition::updateComposition() {
+
+}
 /*--------------------- Decide composition ---------------------*/
 int SingleplaneComposition::decideComposition() {
     if (mFramebuffers.empty()) {

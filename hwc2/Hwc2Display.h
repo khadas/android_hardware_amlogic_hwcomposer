@@ -157,6 +157,7 @@ protected:
     hwc2_error_t collectCompositionStgForPresent();
     hwc2_error_t collectCompositionRequest(
             uint32_t* outNumTypes, uint32_t* outNumRequests);
+    hwc2_error_t presentSkipValidateCheck();
 
     /*for calibrate display frame.*/
     int32_t loadCalibrateInfo();
@@ -237,6 +238,8 @@ protected:
     std::shared_ptr<VideoTunnelThread> mVideoTunnelThread;
     nsecs_t mDisplayTimestamp;
     bool mDisplayConnection;
+
+    bool mChangedCali;
 };
 
 #endif/*HWC2_DISPLAY_H*/

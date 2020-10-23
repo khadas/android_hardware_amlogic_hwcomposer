@@ -920,6 +920,10 @@ void MultiplanesComposition::setup(
     }
 }
 
+void MultiplanesComposition::updateComposition() {
+
+}
+
 /* Decide to choose whcih Fbs and how to build OsdFbs2Plane pairs. */
 int MultiplanesComposition::decideComposition() {
     int ret = 0;

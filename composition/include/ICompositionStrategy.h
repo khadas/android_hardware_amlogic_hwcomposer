@@ -71,6 +71,8 @@ public:
         mCompositionFlag = reqFlag;
     }
 
+    virtual void updateComposition() {};
+
     /*if have no valid combs, result will < 0.*/
     virtual int decideComposition() = 0;
 

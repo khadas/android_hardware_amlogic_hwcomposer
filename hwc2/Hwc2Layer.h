@@ -53,7 +53,8 @@ public:
     int32_t commitCompType(hwc2_composition_t hwcComp);
 
     bool isUpdateZorder() { return mUpdateZorder;}
-    void updateZorder(bool update);
+    bool isUpdated() {return mUpdated;}
+    void clearUpdateFlag();
 
     bool isVtLayer() override;
     int32_t getVtBuffer() override;
@@ -83,6 +84,8 @@ protected:
     int64_t mTimeStamp;
     bool mVtUpdate;
     bool mVtDeviceConnection;
+
+    bool mUpdated;
 };
 
 

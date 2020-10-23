@@ -1183,6 +1183,13 @@ void MultiplanesWithDiComposition::setup(
     }
 }
 
+//for present skip validate need update composition
+void MultiplanesWithDiComposition::updateComposition() {
+    mOtherPlanes.clear();
+    mDumpStr.clear();
+    mSkipValidate = true;
+}
+
 /* Decide to choose whcih Fbs and how to build OsdFbs2Plane pairs. */
 int MultiplanesWithDiComposition::decideComposition() {
     int ret = 0;
@@ -1216,8 +1223,10 @@ int MultiplanesWithDiComposition::commit() {
         composerOutput = mComposer->getOutput();
     }
 
-    handleOverlayVideoZorder();
-    handleDispayLayerZorder();
+    if (!mSkipValidate) {
+        handleOverlayVideoZorder();
+        handleDispayLayerZorder();
+    }
 
     for (auto displayIt = mDisplayPairs.begin(); displayIt != mDisplayPairs.end(); ++displayIt) {
         uint32_t presentZorder = displayIt->presentZorder;
@@ -1305,6 +1314,7 @@ int MultiplanesWithDiComposition::commit() {
     }
 
     mCrtc->setDisplayFrame(mOsdDisplayFrame);
+    mSkipValidate = false;
     return 0;
 }
 

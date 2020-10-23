@@ -37,6 +37,7 @@ public:
         std::shared_ptr<HwDisplayCrtc> & crtc,
         uint32_t flags,
         float scaleValue);
+    void updateComposition();
 
     int decideComposition();
     int commit();

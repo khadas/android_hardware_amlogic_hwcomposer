@@ -98,10 +98,11 @@ void MesonHwc2::dump(uint32_t* outSize, char* outBuffer) {
 
 void MesonHwc2::getCapabilities(uint32_t* outCount,
     int32_t* outCapabilities) {
-    *outCount = 1;
+    *outCount = 2;
     if (outCapabilities) {
-        *outCount = 1;
+        *outCount = 2;
         outCapabilities[0] = HWC2_CAPABILITY_SIDEBAND_STREAM;
+        outCapabilities[1] = HWC2_CAPABILITY_SKIP_VALIDATE;
     }
 }
 
@@ -383,7 +384,6 @@ int32_t MesonHwc2::validateDisplay(hwc2_display_t display,
     GET_HWC_DISPLAY(display);
     /*handle display request*/
     uint32_t request = getDisplayRequest();
-    setCalibrateInfo(display);
     if (request != 0) {
         handleDisplayRequest(request);
     }
@@ -395,6 +395,10 @@ int32_t MesonHwc2::validateDisplay(hwc2_display_t display,
 int32_t MesonHwc2::presentDisplay(hwc2_display_t display,
     int32_t* outPresentFence) {
     GET_HWC_DISPLAY(display);
+    if (mChangedViewPort) {
+        setCalibrateInfo(display);
+        mChangedViewPort = false;
+    }
     return hwcDisplay->presentDisplay(outPresentFence);
 }
 
@@ -836,6 +840,7 @@ int32_t MesonHwc2::captureDisplayScreen(buffer_handle_t hnd) {
 
 bool MesonHwc2::setViewPort(const drm_rect_wh_t viewPort) {
     mViewPort = viewPort;
+    mChangedViewPort = true;
     return true;
 }
 

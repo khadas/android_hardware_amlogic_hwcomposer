@@ -618,6 +618,7 @@ hwc2_error_t Hwc2Display::setCalibrateInfo(int32_t caliX,int32_t caliY,int32_t c
     mCalibrateCoordinates[2] = caliW;
     mCalibrateCoordinates[3] = caliH;
 
+    mChangedCali = true;
     return HWC2_ERROR_NONE;
 }
 
@@ -662,6 +663,7 @@ int32_t Hwc2Display::loadCalibrateInfo() {
     mCalibrateInfo.crtc_display_w = mCalibrateCoordinates[2];
     mCalibrateInfo.crtc_display_h = mCalibrateCoordinates[3];
 
+    mChangedCali = false;
     return 0;
 }
 
@@ -891,12 +893,43 @@ hwc2_error_t Hwc2Display::acceptDisplayChanges() {
         layer->commitCompType(mesonComp2Hwc2Comp(layer));
     }
 
-    /* set updateZorder flag to false */
+    return HWC2_ERROR_NONE;
+}
+
+hwc2_error_t Hwc2Display::presentSkipValidateCheck() {
+
     for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
         std::shared_ptr<Hwc2Layer> layer = it->second;
-        layer->updateZorder(false);
+        if (layer->mCompositionType == MESON_COMPOSITION_CLIENT) {
+            MESON_LOGE("only non client composition type support skip validate");
+            return HWC2_ERROR_NOT_VALIDATED;
+        }
     }
 
+    if (mChangedCali) {
+        MESON_LOGE("calibrate info changed, need validate first");
+        return HWC2_ERROR_NOT_VALIDATED;
+    }
+
+    if (mPresentLayers.size() == mLayers.size()) {
+        bool changed = false;
+        for (auto at = mLayers.begin(); at != mLayers.end(); at++) {
+            std::shared_ptr<Hwc2Layer> curLayer = at->second;
+            if (curLayer->isUpdated()) {
+                MESON_LOGE("layer (%llu) info changed",curLayer->getUniqueId());
+                changed = true;
+                break;
+            }
+        }
+
+        if (changed == true) {
+            MESON_LOGE("layer info changed");
+            return HWC2_ERROR_NOT_VALIDATED;
+        }
+    } else {
+        MESON_LOGE("layer size changed, need validate first");
+        return HWC2_ERROR_NOT_VALIDATED;
+    }
     return HWC2_ERROR_NONE;
 }
 
@@ -911,10 +944,38 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
         *outPresentFence = -1;
     } else {
         if (mValidateDisplay == false) {
-            MESON_LOGD("presentDisplay without validateDisplay");
-            return HWC2_ERROR_NONE;
+            hwc2_error_t err = presentSkipValidateCheck();
+            if (err != HWC2_ERROR_NONE) {
+                MESON_LOGI("presentDisplay without validateDisplay err(%d)",err);
+                return err;
+            }
+
+            MESON_LOGI("present skip validate");
+            mCompositionStrategy->updateComposition();
+
+            /*dump at skip validate display, for we need check by some composition info.*/
+            bool dumpLayers = false;
+            if (DebugHelper::getInstance().logCompositionDetail()) {
+                MESON_LOGE("***CompositionFlow (%s):\n", __func__);
+                dumpLayers = true;
+            } else if (mFailedDeviceComp) {
+                MESON_LOGE("***MonitorFailedDeviceComposition: \n");
+                dumpLayers = true;
+            }
+            if (dumpLayers) {
+                String8 layersDump;
+                dumpPresentLayers(layersDump);
+                MESON_LOGE("%s", layersDump.string());
+            }
         }
+
         mValidateDisplay = false;
+        /* reset layer flag to false */
+        for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
+            std::shared_ptr<Hwc2Layer> layer = it->second;
+            layer->clearUpdateFlag();
+        }
+
         if (mPresentFence >= 0)
             close(mPresentFence);
         mPresentFence = -1;
