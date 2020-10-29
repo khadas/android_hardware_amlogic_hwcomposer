@@ -14,7 +14,6 @@
 #include <HwcConfig.h>
 #include <systemcontrol.h>
 #include <misc.h>
-
 #include <HwDisplayManager.h>
 
 #define HWC_BOOTED_PROP "vendor.sys.hwc.booted"

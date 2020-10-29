@@ -22,7 +22,7 @@
 
 #define GET_CRTC_BY_CONNECTOR(type) \
         std::shared_ptr<HwDisplayConnector> connector; \
-        std::shared_ptr<HwDisplayCrtc> crtc; \
+        std::shared_ptr<HwDisplayCrtc> crtc = NULL; \
         getHwDisplayManager()->getConnector(connector, type); \
         if (connector) { \
             int crtcid = connector->getCrtcId(); \
@@ -181,10 +181,9 @@ DisplayAdapter::BackendType DisplayAdapterLocal::displayType() {
 
 bool DisplayAdapterLocal::getSupportDisplayModes(vector<DisplayModeInfo>& displayModeList, ConnectorType displayType) {
     drm_connector_type_t type;
-    std::shared_ptr<HwDisplayConnector> connector;
     map<uint32_t, drm_mode_info_t> modes;
     DisplayTypeConv(type, displayType);
-    getHwDisplayManager()->getConnector(connector, type);
+    GET_CRTC_BY_CONNECTOR(type);
     if (connector) {
         connector->getModes(modes);
         displayModeList.clear();

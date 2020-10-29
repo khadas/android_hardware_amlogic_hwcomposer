@@ -28,21 +28,6 @@
 #include "HwDisplayCrtcFbdev.h"
 #include "HwDisplayManagerFbdev.h"
 
-static std::shared_ptr<HwDisplayManagerFbdev> gDisplayDevice;
-
-std::shared_ptr<HwDisplayManager> getHwDisplayManager() {
-    if (!gDisplayDevice) {
-        gDisplayDevice = std::make_shared<HwDisplayManagerFbdev>();
-    }
-
-    return gDisplayDevice;
-}
-
-int32_t destroyHwDisplayManager() {
-    gDisplayDevice.reset();
-    return 0;
-}
-
 HwDisplayManagerFbdev::HwDisplayManagerFbdev()
     : HwDisplayManager() {
     loadDrmResources();

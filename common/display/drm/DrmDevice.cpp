@@ -25,18 +25,10 @@ std::shared_ptr<DrmDevice> & getDrmDevice() {
     return DrmDevice::getInstance();
 }
 
-std::shared_ptr<HwDisplayManager> getHwDisplayManager() {
-    return DrmDevice::getInstance();
-}
-
-int32_t destroyHwDisplayManager() {
-    DrmDevice::destroyInstance();
-    return 0;
-}
-
 std::shared_ptr<DrmDevice> & DrmDevice::getInstance() {
     if (!mInstance) {
         mInstance = std::make_shared<DrmDevice>();
+        /*MUST do after construct.*/
         mInstance->loadResources();
         mInstance->loadPipe();
     }

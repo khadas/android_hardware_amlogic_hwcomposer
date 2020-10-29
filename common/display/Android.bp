@@ -43,56 +43,44 @@ meson_hwc_display_cc_defaults {
                 "-DHWC_HDMI_FRAC_MODE=%s",
             ],
         },
-
-        hwc_backend: {
-            drm: {
-                srcs: [
-                    "fbdev/AmVinfo.cpp",
-                    "drm/DrmDevice.cpp",
-                    "drm/DrmCrtc.cpp",
-                    "drm/DrmEncoder.cpp",
-                    "drm/DrmConnector.cpp",
-                    "drm/DrmPlane.cpp",
-                    "drm/DrmProperty.cpp",
-                    "drm/DrmBo.cpp"
-                ],
-            },
-
-            fbdev: {
-                srcs: [
-                    "fbdev/HwDisplayManagerFbdev.cpp",
-                    "fbdev/HwDisplayCrtcFbdev.cpp",
-                    "fbdev/OsdPlane.cpp",
-                    "fbdev/HwDisplayConnectorFbdev.cpp",
-                    "fbdev/ConnectorHdmi.cpp",
-                    "fbdev/ConnectorCvbs.cpp",
-                    "fbdev/ConnectorPanel.cpp",
-                    "fbdev/HwConnectorFactory.cpp",
-                    "fbdev/AmVinfo.cpp",
-                    "fbdev/HwDisplayPlaneFbdev.cpp",
-                    "fbdev/LegacyVideoPlane.cpp",
-                    "fbdev/LegacyExtVideoPlane.cpp",
-                    "fbdev/DummyPlane.cpp",
-                    "fbdev/CursorPlane.cpp",
-                    "fbdev/ConnectorDummy.cpp",
-                ],
-            },
-        },
     },
-}
-
-cc_library_static {
-    name: "hwc.display_static",
-    defaults: ["hwcomposer_display_cc_defaults"],
-    vendor: true,
 
     srcs: [
+        "drm/DrmDevice.cpp",
+        "drm/DrmCrtc.cpp",
+        "drm/DrmConnector.cpp",
+        "drm/DrmPlane.cpp",
+        "drm/DrmEncoder.cpp",
+        "drm/DrmProperty.cpp",
+        "drm/DrmBo.cpp",
+        "fbdev/HwDisplayManagerFbdev.cpp",
+        "fbdev/HwDisplayCrtcFbdev.cpp",
+        "fbdev/OsdPlane.cpp",
+        "fbdev/HwDisplayConnectorFbdev.cpp",
+        "fbdev/ConnectorHdmi.cpp",
+        "fbdev/ConnectorCvbs.cpp",
+        "fbdev/ConnectorPanel.cpp",
+        "fbdev/HwConnectorFactory.cpp",
+        "fbdev/AmVinfo.cpp",
+        "fbdev/HwDisplayPlaneFbdev.cpp",
+        "fbdev/LegacyVideoPlane.cpp",
+        "fbdev/LegacyExtVideoPlane.cpp",
+        "fbdev/DummyPlane.cpp",
+        "fbdev/CursorPlane.cpp",
+        "fbdev/ConnectorDummy.cpp",
+        "HwDisplayManager.cpp",
         "HwcVideoPlane.cpp",
         "HwDisplayEventListener.cpp",
         "Vdin.cpp",
         "VideoComposerDev.cpp",
         "VideoTunnelThread.cpp",
     ],
+}
+
+cc_library_static {
+    name: "hwc.display_static",
+    defaults: ["hwcomposer_display_cc_defaults"],
+    vendor: true,
 
     static_libs: [
         "hwc.utils_static",
