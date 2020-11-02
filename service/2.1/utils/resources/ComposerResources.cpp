@@ -266,19 +266,19 @@ bool ComposerHandleCache::isChangedFromeVideoToUi(const native_handle_t* handle)
 bool ComposerHandleCache::isVideoBufferSequenceChanged(const native_handle_t* handle) {
     bool changed = false;
     int value = -1;
-    static int previousSequence = -1;
 
     // video buffer
     if (mFbType == DrmFbType::DRM_FB_VIDEO) {
         if (am_gralloc_get_omx_buffer_sequence(handle, &value)) {
-            if (previousSequence == -1)
-                previousSequence = value;
+            if (mPreviousSequence == -1)
+                mPreviousSequence = value;
 
-            if (previousSequence != value) {
-                ALOGD("Video buffer sequence changed");
+            if (mPreviousSequence != value) {
+                ALOGD("Video buffer sequence changed, previous %d current %d",
+                        mPreviousSequence, value);
                 changed = true;
             }
-            previousSequence = value;
+            mPreviousSequence = value;
         }
      }
 

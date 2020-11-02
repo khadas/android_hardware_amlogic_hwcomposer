@@ -111,6 +111,7 @@ class ComposerHandleCache {
     HandleType mHandleType = HandleType::INVALID;
     DrmFbType mFbType = DrmFbType::DRM_FB_UNDEFINED;
     std::vector<const native_handle_t*> mHandles;
+    int mPreviousSequence = -1;
 };
 
 // layer resource
