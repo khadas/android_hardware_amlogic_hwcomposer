@@ -38,10 +38,8 @@ HwDisplayCrtcFbdev::HwDisplayCrtcFbdev(int drvFd, int32_t id)
     */
     mOsdChannels = 1;
     memset(&nullHdr, 0, sizeof(nullHdr));
-    mViewPort.x = mViewPort.y = mViewPort.w = mViewPort.h = 0;
 
     hdrVideoInfo = malloc(sizeof(vframe_master_display_colour_s_t));
-
 }
 
 HwDisplayCrtcFbdev::~HwDisplayCrtcFbdev() {
@@ -341,14 +339,4 @@ int32_t HwDisplayCrtcFbdev::writeCurDisplayAttr(std::string & dispattr) {
     int32_t ret = 0;
     ret = sc_write_sysfs(VIU_DISPLAY_ATTR_SYSFS, dispattr);
     return ret;
-}
-
-void HwDisplayCrtcFbdev::setViewPort(const drm_rect_wh_t viewPort) {
-    std::lock_guard<std::mutex> lock(mMutex);
-    mViewPort = viewPort;
-}
-
-void HwDisplayCrtcFbdev::getViewPort(drm_rect_wh_t & viewPort) {
-    std::lock_guard<std::mutex> lock(mMutex);
-    viewPort = mViewPort;
 }

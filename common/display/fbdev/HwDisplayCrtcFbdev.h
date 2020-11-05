@@ -61,8 +61,6 @@ public:
 
     int32_t readCurDisplayMode(std::string & dispmode);
     int32_t writeCurDisplayAttr(std::string & dispattr);
-    void setViewPort(const drm_rect_wh_t viewPort);
-    void getViewPort(drm_rect_wh_t & viewPort);
 
 protected:
     int32_t writeCurDisplayMode(std::string & dispmode);
@@ -80,7 +78,6 @@ protected:
 
     drm_mode_info_t mCurModeInfo;
     display_zoom_info_t mScaleInfo;
-    drm_rect_wh_t mViewPort;
 
     std::map<uint32_t, drm_mode_info_t> mModes;
     std::shared_ptr<HwDisplayConnector>  mConnector;

@@ -39,8 +39,6 @@ public:
     int32_t setDisplayAttribute(std::string& dispattr __unused) { MESON_LOG_EMPTY_FUN(); return 0; }
     int32_t getDisplayAttribute(std::string& dispattr __unused) { MESON_LOG_EMPTY_FUN(); return 0; }
     int32_t writeCurDisplayAttr(std::string & dispattr __unused) { MESON_LOG_EMPTY_FUN(); return 0; }
-    void setViewPort(const drm_rect_wh_t viewPort);
-    void getViewPort(drm_rect_wh_t & viewPort);
 
     /*unused function only for FBDEV*/
     int32_t setDisplayFrame(display_zoom_info_t & info __unused) { return 0; }

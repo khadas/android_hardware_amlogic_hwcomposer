@@ -58,9 +58,6 @@ public:
 
     virtual int32_t readCurDisplayMode(std::string & dispmode) = 0;
     virtual int32_t writeCurDisplayAttr(std::string & dispattr) = 0;
-
-    virtual void setViewPort(const drm_rect_wh_t viewPort) = 0;
-    virtual void getViewPort(drm_rect_wh_t & viewPort) = 0;
 };
 
 #endif/*HW_DISPLAY_CRTC_H*/

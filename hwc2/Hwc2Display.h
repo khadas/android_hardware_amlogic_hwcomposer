@@ -208,7 +208,6 @@ protected:
     drm_mode_info_t mDisplayMode;
     display_zoom_info_t mCalibrateInfo;
     int mCalibrateCoordinates[4];
-    bool mUseCalibrateCoordinatesNextFrame;
 
     std::shared_ptr<HwcPostProcessor> mPostProcessor;
     int32_t mProcessorFlags;

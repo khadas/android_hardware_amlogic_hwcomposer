@@ -633,16 +633,17 @@ int32_t MesonHwc2::setPostProcessor(bool bEnable) {
 }
 
 int32_t MesonHwc2::setCalibrateInfo(hwc2_display_t display){
-    int32_t ret = HWC2_ERROR_NONE;
     GET_HWC_DISPLAY(display);
     int32_t caliX,caliY,caliW,caliH;
     drm_mode_info_t mDispMode;
     hwcDisplay->getDispMode(mDispMode);
 
+    /*default info*/
+    caliX = caliY = 0;
+    caliW = mDispMode.pixelW;
+    caliH = mDispMode.pixelH;
+
     if (HwcConfig::getPipeline() == HWC_PIPE_LOOPBACK) {
-        caliX = caliY = 0;
-        caliW = mDispMode.pixelW;
-        caliH = mDispMode.pixelH;
 #ifdef GET_REQUEST_FROM_PROP
         if (mKeyStoneMode) {
             caliX = 1;
@@ -651,15 +652,16 @@ int32_t MesonHwc2::setCalibrateInfo(hwc2_display_t display){
             caliH = mDispMode.pixelH - 2;
         }
 #endif
-        ret = hwcDisplay->setCalibrateInfo(caliX,caliY,caliW,caliH);
-    } else if (HwcConfig::preDisplayCalibrateEnabled()) {
-        caliX = 0;
-        caliY = 0;
-        caliW = mDispMode.pixelW;
-        caliH = mDispMode.pixelH;
-        ret = hwcDisplay->setCalibrateInfo(caliX,caliY,caliW,caliH);
+    } else {
+        if (!HwcConfig::preDisplayCalibrateEnabled()) {
+            caliX = mViewPort.x;
+            caliY = mViewPort.y;
+            caliW = mViewPort.w;
+            caliH = mViewPort.h;
+        }
     }
-    return ret;
+
+    return hwcDisplay->setCalibrateInfo(caliX,caliY,caliW,caliH);
 }
 
 uint32_t MesonHwc2::getDisplayRequest() {
@@ -761,6 +763,7 @@ MesonHwc2::MesonHwc2() {
     mVsync24Fn = NULL;
     mVsync24Data = NULL;
     mDisplayRequests = 0;
+    memset(&mViewPort, 0, sizeof(mViewPort));
     initialize();
 }
 
@@ -829,6 +832,15 @@ void MesonHwc2::onHotplug(hwc2_display_t display, bool connected) {
 int32_t MesonHwc2::captureDisplayScreen(buffer_handle_t hnd) {
     GET_HWC_DISPLAY(0);
     return hwcDisplay->captureDisplayScreen(hnd);
+}
+
+bool MesonHwc2::setViewPort(const drm_rect_wh_t viewPort) {
+    mViewPort = viewPort;
+    return true;
+}
+
+void MesonHwc2::getViewPort(drm_rect_wh_t & viewPort) {
+    viewPort = mViewPort;
 }
 
 int32_t MesonHwc2::initialize() {

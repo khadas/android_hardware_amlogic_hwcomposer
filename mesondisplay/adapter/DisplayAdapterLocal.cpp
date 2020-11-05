@@ -272,11 +272,7 @@ bool DisplayAdapterLocal::setDisplayRect(const Rect rect, ConnectorType displayT
     drm_rect.w = rect.w;
     drm_rect.h = rect.h;
 
-    GET_CRTC_BY_CONNECTOR(type);
-    if (crtc) {
-        crtc->setViewPort(drm_rect);
-        ret = true;
-    }
+    ret = MesonHwc2::getInstance().setViewPort(drm_rect);
     MESON_LOGV("SetDisplayViewPort %s", ret ? "done" : "faild");
     return ret;
 }
@@ -289,7 +285,7 @@ bool DisplayAdapterLocal::getDisplayRect(Rect& rect, ConnectorType displayType) 
 
     GET_CRTC_BY_CONNECTOR(type);
     if (crtc) {
-        crtc->getViewPort(drm_rect);
+        MesonHwc2::getInstance().getViewPort(drm_rect);
         DEBUG_INFO("SetDisplay[%s] view port to \"(%s)\"", type == DRM_MODE_CONNECTOR_HDMIA ? "HDMI" :
                 type == DRM_MODE_CONNECTOR_LVDS ? "panel" : "cvbs", rect.toString().c_str());
         rect.x = drm_rect.x;

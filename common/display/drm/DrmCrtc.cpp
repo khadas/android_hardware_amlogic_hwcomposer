@@ -79,16 +79,3 @@ int32_t DrmCrtc::pageFlip(int32_t & out_fence) {
     MESON_LOG_EMPTY_FUN();
     return 0;
 }
-
-void DrmCrtc::setViewPort(const drm_rect_wh_t viewPort) {
-    MESON_LOGE("setViewPort should move out.");
-    std::lock_guard<std::mutex> lock(mMutex);
-    mViewPort = viewPort;
-}
-
-void DrmCrtc::getViewPort(drm_rect_wh_t & viewPort) {
-    MESON_LOGE("getViewPort should move out.");
-    std::lock_guard<std::mutex> lock(mMutex);
-    viewPort = mViewPort;
-}
-

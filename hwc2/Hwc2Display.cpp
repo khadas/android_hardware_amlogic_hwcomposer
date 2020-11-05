@@ -36,7 +36,6 @@ Hwc2Display::Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer) {
     memset(&mHdrCaps, 0, sizeof(mHdrCaps));
     memset(mColorMatrix, 0, sizeof(float) * 16);
     memset(&mCalibrateCoordinates, 0, sizeof(int) * 4);
-    mUseCalibrateCoordinatesNextFrame = false;
 }
 
 Hwc2Display::~Hwc2Display() {
@@ -578,7 +577,6 @@ hwc2_error_t Hwc2Display::setCalibrateInfo(int32_t caliX,int32_t caliY,int32_t c
     mCalibrateCoordinates[1] = caliY;
     mCalibrateCoordinates[2] = caliW;
     mCalibrateCoordinates[3] = caliH;
-    mUseCalibrateCoordinatesNextFrame = true;
 
     return HWC2_ERROR_NONE;
 }
@@ -617,26 +615,14 @@ int32_t Hwc2Display::loadCalibrateInfo() {
                 __func__, mDisplayMode.name, mDisplayMode.pixelW, mDisplayMode.pixelH);
         return -ENOENT;
     }
-/*    MESON_LOGD("(%s): loadCalibrateInfo:(%s) pixelW (%d) pixelH (%d) ", __func__,
-        mDisplayMode.name , mDisplayMode.pixelW, mDisplayMode.pixelH);*/
+
     /*default info*/
     mCalibrateInfo.framebuffer_w = configWidth;
     mCalibrateInfo.framebuffer_h = configHeight;
-    if (mUseCalibrateCoordinatesNextFrame) {
-        mCalibrateInfo.crtc_display_x = mCalibrateCoordinates[0];
-        mCalibrateInfo.crtc_display_y = mCalibrateCoordinates[1];
-        mCalibrateInfo.crtc_display_w = mCalibrateCoordinates[2];
-        mCalibrateInfo.crtc_display_h = mCalibrateCoordinates[3];
-        mUseCalibrateCoordinatesNextFrame = false;
-    } else {
-        drm_rect_wh_t rect;
-        mCrtc->getViewPort(rect);
-        mCalibrateInfo.crtc_display_x = rect.x;
-        mCalibrateInfo.crtc_display_y = rect.y;
-        mCalibrateInfo.crtc_display_w = rect.w;
-        mCalibrateInfo.crtc_display_h = rect.h;
-
-    }
+    mCalibrateInfo.crtc_display_x = mCalibrateCoordinates[0];
+    mCalibrateInfo.crtc_display_y = mCalibrateCoordinates[1];
+    mCalibrateInfo.crtc_display_w = mCalibrateCoordinates[2];
+    mCalibrateInfo.crtc_display_h = mCalibrateCoordinates[3];
 
     return 0;
 }
