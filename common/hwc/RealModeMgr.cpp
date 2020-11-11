@@ -7,6 +7,8 @@
  * Description:
  */
 
+#define LOG_NDEBUG 1
+
 #include <MesonLog.h>
 #include <HwcConfig.h>
 #include <hardware/hwcomposer2.h>
