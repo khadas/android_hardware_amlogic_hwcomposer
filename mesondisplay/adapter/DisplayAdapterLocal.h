@@ -15,6 +15,7 @@ namespace meson{
 
 enum DisplayAttribute {
     DA_DOLBY_VISION_CAP,
+    DA_DOLBY_VISION_CAP2,
     DA_DOLBY_VISION_ENABLE,
     DA_DOLBY_VISION_MODE,
     DA_DOLBY_VISION_STATUS,

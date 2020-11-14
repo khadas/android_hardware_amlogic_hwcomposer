@@ -114,6 +114,7 @@ DisplayAdapterLocal::DisplayAdapterLocal() {
     display_attrs[DA_##ID] = { .name = DISPLAY_##ID, .attr_id = DA_##ID, .current_value = INIT_VAL, .new_value = INIT_VAL, .status_flags = 0, .update_fun = UPDATE_FUN, .sysfs_node = NULL, .is_read_only = false, .is_write_only = false }
 
     DA_DEFINE(DOLBY_VISION_CAP, "0", update_sys_node);
+    DA_DEFINE(DOLBY_VISION_CAP2, "0", update_sys_node);
     DA_DEFINE(DOLBY_VISION_ENABLE, "0", update_sys_node);
     DA_DEFINE(DOLBY_VISION_MODE, "0", update_sys_node);
     DA_DEFINE(DOLBY_VISION_STATUS, "0", update_sys_node);
@@ -152,6 +153,7 @@ DisplayAdapterLocal::DisplayAdapterLocal() {
         DA_SET_NODE(SDR_MODE ,"/sys/module/am_vecm/parameters/sdr_mode");
     }
     DA_SET_NODE(DOLBY_VISION_CAP ,"/sys/class/amhdmitx/amhdmitx0/dv_cap");
+    DA_SET_NODE(DOLBY_VISION_CAP2 ,"/sys/class/amhdmitx/amhdmitx0/dv_cap2");
     DA_SET_NODE(DOLBY_VISION_MODE ,"/sys/class/amdolby_vision/dv_mode");
     DA_SET_NODE(HDR_CAP ,"/sys/class/amhdmitx/amhdmitx0/hdr_cap");
     DA_SET_NODE(HDMI_COLOR_ATTR ,"/sys/class/amhdmitx/amhdmitx0/attr");
@@ -160,6 +162,7 @@ DisplayAdapterLocal::DisplayAdapterLocal() {
 #define DA_SET_READ_ONLY(ID) \
     display_attrs[DA_##ID].is_read_only = true
     DA_SET_READ_ONLY(DOLBY_VISION_CAP);
+    DA_SET_READ_ONLY(DOLBY_VISION_CAP2);
     DA_SET_READ_ONLY(DOLBY_VISION_STATUS);
     DA_SET_READ_ONLY(HDR_CAP);
 #define DA_SET_WRITE_ONLY(ID) \
