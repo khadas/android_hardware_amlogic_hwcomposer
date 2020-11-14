@@ -19,38 +19,49 @@
 
 #define MESON_DRM_DRIVER_NAME "meson"
 
-static std::shared_ptr<DrmDevice> gDrmInstance;
+std::shared_ptr<DrmDevice> DrmDevice::mInstance = NULL;
+
+std::shared_ptr<DrmDevice> & getDrmDevice() {
+    return DrmDevice::getInstance();
+}
 
 std::shared_ptr<HwDisplayManager> getHwDisplayManager() {
-    if (!gDrmInstance) {
-        gDrmInstance = std::make_shared<DrmDevice>();
-    }
-
-    return gDrmInstance;
+    return DrmDevice::getInstance();
 }
 
 int32_t destroyHwDisplayManager() {
-    gDrmInstance.reset();
+    DrmDevice::destroyInstance();
     return 0;
 }
 
-std::shared_ptr<DrmDevice> getDrmDevice() {
-    return gDrmInstance;
+std::shared_ptr<DrmDevice> & DrmDevice::getInstance() {
+    if (!mInstance) {
+        mInstance = std::make_shared<DrmDevice>();
+        mInstance->loadResources();
+        mInstance->loadPipe();
+    }
+    return mInstance;
+}
+
+void DrmDevice::destroyInstance() {
+    mInstance.reset();
 }
 
 DrmDevice::DrmDevice()
     : HwDisplayManager() {
-    loadResources();
-    initPipe();
+    mDrmFd = drmOpen(MESON_DRM_DRIVER_NAME, NULL);
+    MESON_ASSERT(mDrmFd >= 0, "Open drm device %s failed.", MESON_DRM_DRIVER_NAME);
 }
 
 DrmDevice::~DrmDevice() {
     freeResources();
+    if (mDrmFd >= 0)
+        close(mDrmFd);
+    mDrmFd = -1;
 }
 
 int32_t DrmDevice::getPlanes(
     std::vector<std::shared_ptr<HwDisplayPlane>> & planes) {
-    std::lock_guard<std::mutex> lock(mMutex);
     for (const auto & it : mPlanes) {
         planes.push_back(it.second);
     }
@@ -59,7 +70,6 @@ int32_t DrmDevice::getPlanes(
 
 int32_t DrmDevice::getCrtcs(
         std::vector<std::shared_ptr<HwDisplayCrtc>> & crtcs) {
-    std::lock_guard<std::mutex> lock(mMutex);
     for (const auto & it : mCrtcs) {
         crtcs.push_back(it.second);
     }
@@ -69,7 +79,6 @@ int32_t DrmDevice::getCrtcs(
 int32_t DrmDevice::getConnector(
         std::shared_ptr<HwDisplayConnector> & connector,
         drm_connector_type_t type) {
-    std::lock_guard<std::mutex> lock(mMutex);
     auto it = mConnectors.find(type);
     if (it != mConnectors.end()) {
         connector = it->second;
@@ -82,8 +91,6 @@ int32_t DrmDevice::getConnector(
 }
 
 std::shared_ptr<HwDisplayCrtc> DrmDevice::getCrtcById(uint32_t crtcid) {
-    std::lock_guard<std::mutex> lock(mMutex);
-
     auto it = mCrtcs.find(crtcid);
     if (it != mCrtcs.end()) {
         return it->second;
@@ -94,7 +101,6 @@ std::shared_ptr<HwDisplayCrtc> DrmDevice::getCrtcById(uint32_t crtcid) {
 }
 
 std::shared_ptr<HwDisplayCrtc> DrmDevice::getCrtcByPipe(uint32_t pipeIdx) {
-    std::lock_guard<std::mutex> lock(mMutex);
     for (const auto & it : mCrtcs) {
         if (it.second->getPipe() == pipeIdx)
             return it.second;
@@ -151,9 +157,10 @@ int32_t DrmDevice::bind(
     }
 
     /*TODO: apply bind??.*/
-
     MESON_LOG_EMPTY_FUN();
 
+    MESON_LOGD("bind pipe (%d),crtc(%d)connector(%d)",
+        pipeidx, pipecfg.crtc_id, pipecfg.connector_id);
 
     mPipes.emplace(pipeidx, pipecfg);
     return 0;
@@ -161,7 +168,7 @@ int32_t DrmDevice::bind(
 
 int32_t DrmDevice::unbind(std::shared_ptr<HwDisplayCrtc> & crtc) {
     uint32_t pipeidx = crtc->getPipe();
-    MESON_LOGD("unlock pipe (%d)", pipeidx);
+    MESON_LOGD("unbind pipe (%d)", pipeidx);
 
     auto it = mPipes.find(pipeidx);
     if (it != mPipes.end()) {
@@ -171,9 +178,8 @@ int32_t DrmDevice::unbind(std::shared_ptr<HwDisplayCrtc> & crtc) {
     return 0;
 }
 
-void DrmDevice::initPipe() {
+void DrmDevice::loadPipe() {
     std::lock_guard<std::mutex> lock(mMutex);
-
     for (auto & et : mEncoders) {
         int crtcid = et.second->getCrtcId();
         if (crtcid == 0) /*not bind*/
@@ -207,19 +213,16 @@ void DrmDevice::initPipe() {
 void DrmDevice::loadResources() {
     std::lock_guard<std::mutex> lock(mMutex);
     int ret = loadDrmResources();
-    MESON_ASSERT(ret != 0, "loadDrmResources failed (%d)", ret);
+    MESON_ASSERT(ret == 0, "loadDrmResources failed (%d)", ret);
     ret = loadNonDrmResources();
-    MESON_ASSERT(ret != 0, "loadNonDrmPlanes  failed (%d)", ret);
+    MESON_ASSERT(ret == 0, "loadNonDrmPlanes  failed (%d)", ret);
 }
 
 int32_t DrmDevice::loadDrmResources() {
-    mDrmFd = drmOpen(MESON_DRM_DRIVER_NAME, NULL);
-    MESON_ASSERT(mDrmFd >= 0, "Open drm device %s failed.", MESON_DRM_DRIVER_NAME);
-
     int ret = drmSetClientCap(mDrmFd, DRM_CLIENT_CAP_UNIVERSAL_PLANES, 1);
-    MESON_ASSERT(ret != 0, "DRM_CLIENT_CAP_UNIVERSAL_PLANES failed(%d).", ret);
+    MESON_ASSERT(ret == 0, "DRM_CLIENT_CAP_UNIVERSAL_PLANES failed(%d).", ret);
     ret = drmSetClientCap(mDrmFd, DRM_CLIENT_CAP_ATOMIC, 1);
-    MESON_ASSERT(ret != 0, "DRM_CLIENT_CAP_ATOMIC failed (%d).", ret);
+    MESON_ASSERT(ret == 0, "DRM_CLIENT_CAP_ATOMIC failed (%d).", ret);
 
     /*load crtc & connector & encoder.*/
     drmModeResPtr drmRes = drmModeGetResources(mDrmFd);
@@ -228,7 +231,8 @@ int32_t DrmDevice::loadDrmResources() {
     for (int i = 0; i < drmRes->count_crtcs; i++) {
         drmModeCrtcPtr metadata = drmModeGetCrtc(
             mDrmFd, drmRes->crtcs[i]);
-        std::shared_ptr<HwDisplayCrtc> crtc = std::make_shared<DrmCrtc>(metadata, i);
+        std::shared_ptr<HwDisplayCrtc> crtc =
+            std::make_shared<DrmCrtc>(mDrmFd, metadata, i);
         mCrtcs.emplace(crtc->getId(), std::move(crtc));
         drmModeFreeCrtc(metadata);
     }
@@ -236,7 +240,8 @@ int32_t DrmDevice::loadDrmResources() {
     for (int i = 0; i < drmRes->count_encoders; i++) {
         drmModeEncoderPtr metadata = drmModeGetEncoder(
             mDrmFd, drmRes->encoders[i]);
-        std::shared_ptr<DrmEncoder> encoder = std::make_shared<DrmEncoder>(metadata);
+        std::shared_ptr<DrmEncoder> encoder =
+            std::make_shared<DrmEncoder>(mDrmFd, metadata);
         mEncoders.emplace(encoder->getId(), std::move(encoder));
         drmModeFreeEncoder(metadata);
     }
@@ -245,7 +250,7 @@ int32_t DrmDevice::loadDrmResources() {
         drmModeConnectorPtr metadata = drmModeGetConnector(
             mDrmFd,drmRes->connectors[i]);
         std::shared_ptr<HwDisplayConnector> connector =
-            std::make_shared<DrmConnector>(metadata);
+            std::make_shared<DrmConnector>(mDrmFd, metadata);
         mConnectors.emplace(connector->getType(), std::move(connector));
         drmModeFreeConnector(metadata);
     }
@@ -255,7 +260,8 @@ int32_t DrmDevice::loadDrmResources() {
     for (int i = 0; i < planeRes->count_planes; i ++) {
         drmModePlanePtr metadata = drmModeGetPlane(
             mDrmFd, planeRes->planes[i]);
-        std::shared_ptr<HwDisplayPlane> plane = std::make_shared<DrmPlane>(metadata);
+        std::shared_ptr<HwDisplayPlane> plane =
+            std::make_shared<DrmPlane>(mDrmFd, metadata);
         mPlanes.emplace(plane->getId(), std::move(plane));
         drmModeFreePlane(metadata);
     }
@@ -298,10 +304,6 @@ int32_t DrmDevice::freeResources() {
     mEncoders.clear();
     mConnectors.clear();
     mPlanes.clear();
-
-    if (mDrmFd >= 0)
-        close(mDrmFd);
     return 0;
 }
-
 

@@ -53,10 +53,10 @@ int32_t OsdPlane::getProperties() {
 
     /*set possible crtc*/
     if (capacity & OSD_VIU1) {
-        mPossibleCrtcs |= DRM_PIPE_VOUT1;
+        mPossibleCrtcs |= 1 << DRM_PIPE_VOUT1;
     }
     if (capacity & OSD_VIU2) {
-        mPossibleCrtcs |= DRM_PIPE_VOUT2;
+        mPossibleCrtcs |= 1<< DRM_PIPE_VOUT2;
     }
 
     return 0;

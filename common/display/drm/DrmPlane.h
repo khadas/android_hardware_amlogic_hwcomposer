@@ -19,7 +19,7 @@
 
 class DrmPlane : public HwDisplayPlane {
 public:
-    DrmPlane(drmModePlanePtr p);
+    DrmPlane(int drmFd, drmModePlanePtr p);
     ~DrmPlane();
 
     uint32_t getId();
@@ -47,8 +47,8 @@ protected:
     void loadProperties();
 
 protected:
+    int mDrmFd;
     uint32_t mId;
-    uint32_t mType;
     uint32_t mCrtcMask;
 
     uint32_t * mFormats;
@@ -56,8 +56,9 @@ protected:
     struct drm_format_modifier * mModifiers;
     uint32_t mModifierCnt;
 
-
     /*plane propertys*/
+    std::shared_ptr<DrmProperty> mType;
+
     std::shared_ptr<DrmProperty> mFbId;
     std::shared_ptr<DrmProperty> mSrcX;
     std::shared_ptr<DrmProperty> mSrcY;
@@ -78,6 +79,8 @@ protected:
     std::shared_ptr<DrmProperty> mInFormats;
 
     bool mBlank;
+
+    std::shared_ptr<DrmBo> mLastDrmBo;
     std::shared_ptr<DrmBo> mDrmBo;
     std::shared_ptr<DrmFramebuffer> mFb;
     std::shared_ptr<HwDisplayCrtc> mCrtc;

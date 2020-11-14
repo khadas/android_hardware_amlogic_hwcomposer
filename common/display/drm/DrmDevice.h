@@ -19,7 +19,6 @@
 #include <HwDisplayManager.h>
 #include "DrmEncoder.h"
 
-
 class DrmDevice : public HwDisplayManager {
 public:
     DrmDevice();
@@ -29,7 +28,6 @@ public:
         std::vector<std::shared_ptr<HwDisplayPlane>> & planes);
     int32_t getCrtcs(
         std::vector<std::shared_ptr<HwDisplayCrtc>> & crtcs);
-
     int32_t getConnector(
         std::shared_ptr<HwDisplayConnector> & connector,
         drm_connector_type_t type);
@@ -48,14 +46,17 @@ public:
 /*api in display module*/
 public:
     int getDeviceFd() {return mDrmFd;}
+    static std::shared_ptr<DrmDevice> & getInstance();
+    static void destroyInstance();
 
 protected:
     void loadResources();
+    void loadPipe();
+    int32_t freeResources();
+
+private:
     int32_t loadDrmResources();
     int32_t loadNonDrmResources();
-    int32_t freeResources();
-    void initPipe();
-
 
 protected:
     std::mutex mMutex;
@@ -67,10 +68,10 @@ protected:
     std::map<drm_connector_type_t, std::shared_ptr<HwDisplayConnector>> mConnectors;
 
     std::map<uint32_t, HwDisplayPipe> mPipes;
+
+    static std::shared_ptr<DrmDevice> mInstance;
 };
 
-std::shared_ptr<DrmDevice> getDrmDevice();
-
-
+std::shared_ptr<DrmDevice> & getDrmDevice();
 #endif/*DRM_DEVICE_H*/
 

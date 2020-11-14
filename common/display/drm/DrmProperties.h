@@ -43,10 +43,10 @@
 #define DRM_PLANE_PROP_BLENDMODE_PREMULTI "Pre-multiplied"
 #define DRM_PLANE_PROP_BLENDMODE_COVERAGE "Coverage"
 
+#define DRM_PLANE_PROP_TYPE  "type"
 
 /*not used*/
 #define DRM_PLANE_PROP_ROTATION "rotation"
-#define DRM_PLANE_PROP_TYPE  "type"
 
 /*HDMI PROPRS*/
 #define DRM_CONNECTOR_PROP_CRTCID  DRM_MODE_PROP_CRTCID

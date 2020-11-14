@@ -7,7 +7,8 @@
  */
 #include "DrmEncoder.h"
 
-DrmEncoder::DrmEncoder(drmModeEncoderPtr p) {
+DrmEncoder::DrmEncoder(int drmFd, drmModeEncoderPtr p) {
+    mDrmFd = drmFd;
     mId = p->encoder_id;
     mCrtcId = p->crtc_id;
     mCrtcMask = p->possible_crtcs;

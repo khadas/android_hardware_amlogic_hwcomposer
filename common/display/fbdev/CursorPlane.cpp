@@ -53,7 +53,7 @@ int32_t CursorPlane::getFixedZorder() {
 }
 
 uint32_t CursorPlane::getPossibleCrtcs() {
-    return DRM_PIPE_VOUT1;
+    return 1 << DRM_PIPE_VOUT1;
 }
 
 bool CursorPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {

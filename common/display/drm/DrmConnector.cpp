@@ -10,8 +10,9 @@
 #include "DrmConnector.h"
 #include "DrmDevice.h"
 
-DrmConnector::DrmConnector(drmModeConnectorPtr p)
+DrmConnector::DrmConnector(int drmFd, drmModeConnectorPtr p)
     : HwDisplayConnector(),
+    mDrmFd(drmFd),
     mId(p->connector_id),
     mType(p->connector_type),
     mState(p->connection),
@@ -43,7 +44,7 @@ int32_t DrmConnector::loadProperties(drmModeConnectorPtr p) {
 
     for (int i = 0; i < p->count_props; i++) {
         drmModePropertyPtr prop =
-            drmModeGetProperty(getDrmDevice()->getDeviceFd(), p->props[i]);
+            drmModeGetProperty(mDrmFd, p->props[i]);
         for (int j = 0; j < connectorPropsNum; j++) {
             if (strcmp(prop->name, connectorProps[j].propname) == 0) {
                 *(connectorProps[j].drmprop) =
@@ -165,7 +166,8 @@ int32_t DrmConnector::getIdentificationData(std::vector<uint8_t>& idOut) {
         return mEdid->getBlobData(idOut);
     }
 
-    return -ENOENT;
+    MESON_LOGE("No edid for connector (%s)", getName());
+    return -EINVAL;
 }
 
 std::string DrmConnector::getCurrentHdrType() {

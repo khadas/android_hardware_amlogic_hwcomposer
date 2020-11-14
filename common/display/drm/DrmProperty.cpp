@@ -16,27 +16,26 @@
 
 DrmProperty::DrmProperty(drmModePropertyPtr p, uint32_t objectId, uint64_t value)
     : mValue(value),
-    mComponetId(objectId),
-    mUpdated(false) {
+    mComponetId(objectId) {
     memcpy(&mPropRes, p, sizeof(mPropRes));
     if (p->count_values > 0) {
         size_t contentLen = p->count_values * sizeof(uint64_t);
         mPropRes.values = (uint64_t*)malloc(contentLen);
-        memcpy(&mPropRes.values, p->values, contentLen);
+        memcpy(mPropRes.values, p->values, contentLen);
     } else {
         mPropRes.values = NULL;
     }
     if (p->count_enums > 0) {
         size_t contentLen = p->count_enums * sizeof(struct drm_mode_property_enum);
         mPropRes.enums = (struct drm_mode_property_enum *)malloc(contentLen);
-        memcpy(&mPropRes.enums, p->enums, contentLen);
+        memcpy(mPropRes.enums, p->enums, contentLen);
     } else {
         mPropRes.enums = NULL;
     }
     if (p->count_blobs > 0) {
         size_t contentLen = p->count_blobs * sizeof(uint32_t);
         mPropRes.blob_ids = (uint32_t*)malloc(contentLen);
-        memcpy(&mPropRes.blob_ids, p->blob_ids, contentLen);
+        memcpy(mPropRes.blob_ids, p->blob_ids, contentLen);
     } else {
         mPropRes.blob_ids = NULL;
     }
@@ -44,19 +43,21 @@ DrmProperty::DrmProperty(drmModePropertyPtr p, uint32_t objectId, uint64_t value
     mType = 0;
     if (drm_property_type_is(p, DRM_MODE_PROP_RANGE)) {
         mType = DRM_MODE_PROP_RANGE;
-        MESON_ASSERT(p->count_values > 0, " NO RANGE SPECIFIED");
+        MESON_ASSERT(p->count_values > 0, " NO RANGE SPECIFIED (%s)", mPropRes.name);
+    } else if (drm_property_type_is(p, DRM_MODE_PROP_SIGNED_RANGE)) {
+            mType = DRM_MODE_PROP_SIGNED_RANGE;
+            MESON_ASSERT(p->count_values > 0, " NO RANGE SPECIFIED (%s)", mPropRes.name);
     } else if (drm_property_type_is(p, DRM_MODE_PROP_ENUM)) {
         mType = DRM_MODE_PROP_ENUM;
-        MESON_ASSERT(p->count_enums > 0, " NO ENUM SPECIFIED");
+        MESON_ASSERT(p->count_enums > 0, " NO ENUM SPECIFIED (%s)", mPropRes.name);
     } else if (drm_property_type_is(p, DRM_MODE_PROP_OBJECT)) {
         mType = DRM_MODE_PROP_OBJECT;
     } else if (drm_property_type_is(p, DRM_MODE_PROP_BLOB)) {
         mType = DRM_MODE_PROP_BLOB;
-        MESON_ASSERT(p->count_blobs > 0, " NO BLOB SPECIFIED");
     }
-    MESON_ASSERT(mType !=0, "UNKNOWN type for prop (%s)", mPropRes.name);
 
-    MESON_LOGD("DrmProperty: %s (%d), value %lld",
+    MESON_ASSERT(mType !=0, "UNKNOWN type for prop (%s)", mPropRes.name);
+    MESON_LOGD("DrmProperty: %s (%d), value [%lld]",
         mPropRes.name, mPropRes.prop_id, mValue);
 }
 
@@ -79,6 +80,13 @@ int DrmProperty::setValue(uint64_t val) {
                 mPropRes.name, val, mPropRes.values[0], mPropRes.values[1]);
             return -EINVAL;
         }
+    } else if (mType == DRM_MODE_PROP_SIGNED_RANGE) {
+        int64_t signedVal = (int64_t)val;
+        int64_t minVal = (int64_t) mPropRes.values[0];
+        int64_t maxVal = (int64_t) mPropRes.values[1];
+        if (signedVal < minVal || signedVal > maxVal) {
+            return -EINVAL;
+        }
     } else if (mType == DRM_MODE_PROP_ENUM) {
         if (val >= mPropRes.count_enums) {
             MESON_LOGE("[%s] ENUM IDX ERROR (%lld) -> (%d)",
@@ -89,8 +97,6 @@ int DrmProperty::setValue(uint64_t val) {
 
     if (mValue != val) {
         mValue = val;
-    } else {
-        MESON_LOGD("Prop %s set same value [%lld] as current.", mPropRes.name, mValue);
     }
     return 0;
 }
@@ -99,6 +105,7 @@ uint64_t DrmProperty::getValue() {
     switch (mType) {
         case DRM_MODE_PROP_OBJECT:
         case DRM_MODE_PROP_RANGE:
+        case DRM_MODE_PROP_SIGNED_RANGE:
         case DRM_MODE_PROP_BLOB:
         case DRM_MODE_PROP_ENUM:
             return mValue;
@@ -117,7 +124,7 @@ int DrmProperty::getBlobData(std::vector<uint8_t> & blob) {
 }
 
 int DrmProperty::getBlobData(std::vector<uint8_t> & blob, uint32_t blobId) {
-    MESON_ASSERT(mType == DRM_MODE_PROP_BLOB, "Only For RANG BLOB.");
+    MESON_ASSERT(mType == DRM_MODE_PROP_BLOB, "Only For blob.");
 
     drmModePropertyBlobPtr blobProp =
         drmModeGetPropertyBlob(getDrmDevice()->getDeviceFd(), blobId);
@@ -125,10 +132,7 @@ int DrmProperty::getBlobData(std::vector<uint8_t> & blob, uint32_t blobId) {
     	return -EIO;
     }
 
-    uint8_t * blobData = (uint8_t *)blobProp->data;
-
-    blob.clear();
-    blob.resize(blobProp->length);
+    uint8_t * blobData = (uint8_t * )blobProp->data;
     for (int i = 0; i < blobProp->length; i++) {
         blob.push_back(blobData[i]);
     }
@@ -151,7 +155,7 @@ int DrmProperty::getEnumValueWithName(const char *name, uint64_t & val)  {
 }
 
 int DrmProperty::getRangeValue(uint64_t &min, uint64_t &max) {
-    MESON_ASSERT(mType == DRM_MODE_PROP_RANGE, "Only For RANG PROP.");
+    MESON_ASSERT(mType == DRM_MODE_PROP_RANGE || mType == DRM_MODE_PROP_SIGNED_RANGE, "Only For RANG PROP.");
     min = mPropRes.values[0];
     max = mPropRes.values[1];
     return 0;
@@ -166,29 +170,32 @@ void DrmProperty::dump(String8 &dumpstr) {
         mPropRes.name, mPropRes.prop_id, mValue, isImmutable());
 
     if (mType == DRM_MODE_PROP_RANGE) {
-    	dumpstr.append("\t\tvalues:");
-    	for (int i = 0; i < mPropRes.count_values; i++)
-    		dumpstr.appendFormat(" %llu ", mPropRes.values[i]);
-    	dumpstr.append("\n");
+        dumpstr.append("values:");
+        for (int i = 0; i < mPropRes.count_values; i++)
+            dumpstr.appendFormat(" %llu ", mPropRes.values[i]);
+        dumpstr.append("\n");
     } else if (mType == DRM_MODE_PROP_ENUM) {
-    	dumpstr.append("\t\tenums:");
-    	for (int i = 0; i < mPropRes.count_enums; i++)
-    		dumpstr.appendFormat(" %s=%llu",mPropRes.enums[i].name,
-    		       mPropRes.enums[i].value);
-    	dumpstr.append("\n");
+        dumpstr.append("enums:");
+        for (int i = 0; i < mPropRes.count_enums; i++)
+            dumpstr.appendFormat(" %s=%llu",mPropRes.enums[i].name,
+                mPropRes.enums[i].value);
+        dumpstr.append("\n");
     } else if (mType == DRM_MODE_PROP_BLOB) {
-    	dumpstr.append("\t\tblobs:");
-    	for (int i = 0; i < mPropRes.count_blobs; i++) {
-            std::vector<uint8_t> blob;
+        dumpstr.append("blobs:");
+        std::vector<unsigned char> blob;
+        for (int i = 0; i < mPropRes.count_blobs; i++) {
             if (0 == getBlobData(blob, mPropRes.blob_ids[i])) {
-                for ( uint8_t val : blob) {
-                        dumpstr.appendFormat("%.2hhx", val);
-                }
+                dumpstr.appendFormat("-id[%d-%d]:", mPropRes.blob_ids[i], blob.size());
+                for ( uint8_t val : blob)
+                    dumpstr.appendFormat("%.2hhx", val);
                 dumpstr.append("\n");
             }
         }
-	dumpstr.append("\n");
+        if (0 == getBlobData(blob)) {
+            dumpstr.appendFormat("-val[%llu-%d]:", mValue, blob.size());
+            for ( uint8_t val : blob)
+                dumpstr.appendFormat("%.2hhx", val);
+            dumpstr.append("\n");
+        }
     }
 }
-
-

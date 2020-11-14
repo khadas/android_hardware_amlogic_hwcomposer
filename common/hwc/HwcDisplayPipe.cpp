@@ -22,7 +22,7 @@
 
 HwcDisplayPipe::PipeStat::PipeStat(uint32_t id) {
     hwcId = id;
-    cfg.hwcPipeIdx = cfg.modePipeIdx = 0;
+    cfg.hwcPipeIdx = cfg.modePipeIdx = DRM_PIPE_INVALID;
     cfg.hwcConnectorType = cfg.modeConnectorType = DRM_MODE_CONNECTOR_Unknown;
     cfg.hwcPostprocessorType = INVALID_POST_PROCESSOR;
 }
@@ -87,7 +87,7 @@ int32_t HwcDisplayPipe::getPlanes(
     planes.clear();
     for (auto planeIt = mPlanes.begin(); planeIt != mPlanes.end(); ++ planeIt) {
         std::shared_ptr<HwDisplayPlane> plane = *planeIt;
-        if (plane->getPossibleCrtcs() & pipeidx) {
+        if (plane->getPossibleCrtcs() & (1 << pipeidx)) {
             if ((plane->getType() == CURSOR_PLANE) &&
                 HwcConfig::cursorPlaneDisabled()) {
                 continue;
@@ -207,7 +207,7 @@ int32_t HwcDisplayPipe::updatePipe(std::shared_ptr<PipeStat> & stat) {
 
         if (cfg.modePipeIdx != cfg.hwcPipeIdx) {
             std::vector<std::shared_ptr<HwDisplayPlane>> planes;
-            getPlanes (cfg.modePipeIdx,  planes);
+            getPlanes (cfg.modePipeIdx, planes);
             getHwDisplayManager()->bind(stat->modeCrtc, stat->modeConnector, planes);
             stat->modeCrtc->update();
             stat->modeConnector->update();

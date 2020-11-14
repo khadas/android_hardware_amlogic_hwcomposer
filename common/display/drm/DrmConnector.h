@@ -21,7 +21,7 @@
 
 class DrmConnector : public HwDisplayConnector {
 public:
-    DrmConnector(drmModeConnectorPtr p);
+    DrmConnector(int drmFd, drmModeConnectorPtr p);
     ~DrmConnector();
 
     uint32_t getId();
@@ -64,6 +64,7 @@ protected:
 
 
 protected:
+    int mDrmFd;
     uint32_t mId;
     uint32_t mType;
     uint32_t mEncoderId;

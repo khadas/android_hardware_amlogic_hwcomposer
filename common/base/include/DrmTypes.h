@@ -105,9 +105,12 @@ typedef enum {
     INVALID_PLANE = 0xffffffff,
 } meson_plane_type_t;
 
+/*the index of crtc*/
 enum {
-    DRM_PIPE_VOUT1 = 1 << 0,
-    DRM_PIPE_VOUT2 = 1 << 1,
+    DRM_PIPE_VOUT1 = 0,
+    DRM_PIPE_VOUT2 = 1,
+
+    DRM_PIPE_INVALID = 31,
 };
 
 typedef enum {

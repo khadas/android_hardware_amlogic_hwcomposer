@@ -40,12 +40,10 @@ public:
 protected:
     int32_t getBlobData(std::vector<uint8_t> & blob, uint32_t blobId);
 
-
 protected:
     uint64_t mValue;
     uint32_t mType;
     uint32_t mComponetId;
-    bool mUpdated;
 
     drmModePropertyRes mPropRes;
 };

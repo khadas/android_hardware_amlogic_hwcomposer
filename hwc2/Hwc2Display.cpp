@@ -171,12 +171,17 @@ int32_t Hwc2Display::blankDisplay() {
     MESON_LOGD("blank all display planes");
     std::lock_guard<std::mutex> lock(mMutex);
 
+    if (!mCrtc)
+            return 0;
+
+    mCrtc->prePageFlip();
+
     for (auto it = mPlanes.begin(); it != mPlanes.end(); ++ it) {
         (*it)->setPlane(NULL, HWC_PLANE_FAKE_ZORDER, BLANK_FOR_NO_CONTENT);
     }
 
     int32_t fence = -1;
-    if (mCrtc && mCrtc->pageFlip(fence) == 0) {
+    if (mCrtc->pageFlip(fence) == 0) {
         std::shared_ptr<DrmFence> outfence =
             std::make_shared<DrmFence>(fence);
         outfence->wait(3000);
@@ -582,13 +587,11 @@ hwc2_error_t Hwc2Display::setCalibrateInfo(int32_t caliX,int32_t caliY,int32_t c
     return HWC2_ERROR_NONE;
 }
 
-
 int32_t Hwc2Display::getDisplayIdentificationData(uint32_t &outPort,
         std::vector<uint8_t> &outData) {
     int32_t ret = mConnector->getIdentificationData(outData);
-    if (0 == ret) {
+    if (ret == 0)
         outPort = mConnector->getId();
-    }
     return ret;
 }
 

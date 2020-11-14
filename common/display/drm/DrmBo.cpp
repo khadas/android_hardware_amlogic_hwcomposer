@@ -28,14 +28,14 @@ uint32_t covertToDrmFormat(uint32_t format) {
         case HAL_PIXEL_FORMAT_RGB_565:
             return DRM_FORMAT_BGR565;
         default:
-            MESON_LOGE("covert format  %u failed.", format);
+            //MESON_LOGE("covert format  %u failed.", format);
             return DRM_FORMAT_INVALID;
     }
 }
 
 uint64_t convertToDrmModifier(int afbcMask) {
     UNUSED(afbcMask);
-    MESON_LOG_EMPTY_FUN ();
+ //   MESON_LOG_EMPTY_FUN ();
     return 0;
 
 #if 0
@@ -95,6 +95,10 @@ int32_t DrmBo::import(
     width = am_gralloc_get_width(buf);
     height = am_gralloc_get_height(buf);
     format = covertToDrmFormat(am_gralloc_get_format(buf));
+    if (format == DRM_FORMAT_INVALID) {
+        return -EINVAL;
+    }
+
 
     ret = drmModeAddFB2WithModifiers(drmFd, width, height,
                     format, handles, pitches,
@@ -119,8 +123,16 @@ int32_t DrmBo::release() {
     int ret = 0;
     struct drm_gem_close closeArg;
     int drmFd = getDrmDevice()->getDeviceFd();
+
+    if (inFence >=0)
+        close(inFence);
+    inFence = -1;
+
     ret = drmModeRmFB(drmFd, fbId);
-    MESON_ASSERT(!ret, "drmModeRmFB failed(%d)", ret);
+    if (ret !=0) {
+        MESON_LOGE("drmModeRmFB failed fb[%d]ret[%d]", fbId, ret);
+        return ret;
+    }
 
     for (int i = 0; i < BUF_PLANE_NUM; i++) {
         if (!handles[i])
@@ -129,13 +141,12 @@ int32_t DrmBo::release() {
         memset(&closeArg, 0, sizeof(drm_gem_close));
         closeArg.handle = handles[i];
         int ret = drmIoctl(drmFd, DRM_IOCTL_GEM_CLOSE, &closeArg);
-        MESON_ASSERT(!ret, "DRM_IOCTL_GEM_CLOSE failed(%d)", ret);
+        if (ret !=0) {
+             MESON_LOGE("DRM_IOCTL_GEM_CLOSE failed fb[%d]ret[%d]", fbId, ret);
+             break;
+         }
         handles[i] = 0;
     }
-
-    if (inFence >=0)
-        close(inFence);
-    inFence = -1;
 
     return ret;
 }

@@ -47,7 +47,6 @@ public:
 
     /*special buffer: No support now*/
     uint32_t color;
-
 };
 
 uint32_t covertToDrmFormat(uint32_t format);

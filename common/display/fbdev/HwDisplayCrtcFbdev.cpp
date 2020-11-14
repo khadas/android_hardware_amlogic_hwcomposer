@@ -316,14 +316,14 @@ void HwDisplayCrtcFbdev::closeLogoDisplay() {
     sysfs_set_string(DISPLAY_FB0_FREE_FB_MEM, "1");
 }
 
-int32_t  HwDisplayCrtcFbdev::readCurDisplayMode(std::string & dispmode) {
-    const char *path =  (mPipe == DRM_PIPE_VOUT1) ? VIU1_DISPLAY_MODE_SYSFS : VIU2_DISPLAY_MODE_SYSFS;
+int32_t HwDisplayCrtcFbdev::readCurDisplayMode(std::string & dispmode) {
+    const char *path = (mPipe == DRM_PIPE_VOUT1) ? VIU1_DISPLAY_MODE_SYSFS : VIU2_DISPLAY_MODE_SYSFS;
      int32_t ret = read_sysfs(path, dispmode);
     return ret;
 }
 
 int32_t HwDisplayCrtcFbdev::writeCurDisplayMode(std::string & dispmode) {
-    const char *path =  (mPipe == DRM_PIPE_VOUT1) ? VIU1_DISPLAY_MODE_SYSFS : VIU2_DISPLAY_MODE_SYSFS;
+    const char *path = (mPipe == DRM_PIPE_VOUT1) ? VIU1_DISPLAY_MODE_SYSFS : VIU2_DISPLAY_MODE_SYSFS;
     return sysfs_set_string(path, dispmode.c_str());
 }
 

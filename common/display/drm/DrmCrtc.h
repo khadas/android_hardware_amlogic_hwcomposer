@@ -19,7 +19,7 @@
 
 class DrmCrtc : public HwDisplayCrtc {
 public:
-    DrmCrtc(drmModeCrtcPtr p, uint32_t pipe);
+    DrmCrtc(int drmFd, drmModeCrtcPtr p, uint32_t pipe);
     ~DrmCrtc();
 
     /*public apis*/
@@ -53,27 +53,23 @@ protected:
     int32_t loadProperties();
 
 protected:
+	int mDrmFd;
     uint32_t mId;
     /*Pipe is the crtc index in kernel.
    *connector report possible crtc with shifted mask.
   */
     uint32_t mPipe;
-    bool mModeValid;
     drmModeModeInfo mMode;
-
-    std::shared_ptr<HwDisplayConnector>  mConnector;
 
     /*crtc propertys*/
     std::shared_ptr<DrmProperty> mActive;
     std::shared_ptr<DrmProperty> mModeBlobId;
     std::shared_ptr<DrmProperty> mOutFencePtr;
 
-
     drmModeAtomicReqPtr mReq;
 
 protected:
     std::mutex mMutex;
-    drm_rect_wh_t mViewPort;
 };
 
 #endif/*DRM_CRTC_H*/

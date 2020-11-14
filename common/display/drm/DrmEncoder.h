@@ -17,17 +17,17 @@
 
 class DrmEncoder {
 public:
-    DrmEncoder(drmModeEncoderPtr p);
+    DrmEncoder(int drmFd, drmModeEncoderPtr p);
     ~DrmEncoder();
 
     uint32_t getId();
 
     uint32_t getCrtcId();
     int32_t setCrtcId(uint32_t crtc);
-
     uint32_t getPossibleCrtcs();
 
 protected:
+    int mDrmFd;
     uint32_t mId;
     uint32_t mCrtcId;
     uint32_t mCrtcMask;

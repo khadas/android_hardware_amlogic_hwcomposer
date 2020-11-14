@@ -192,11 +192,11 @@ int32_t HwDisplayManagerFbdev::loadPlanes() {
 
                     /*add valid crtc, for fbdev, crtc id = crtc index.*/
                     uint32_t crtcs = plane->getPossibleCrtcs();
-                    if ((crtcs & DRM_PIPE_VOUT1) && mCrtcs.count(CRTC_VOUT1_ID) == 0) {
+                    if ((crtcs & (1 << DRM_PIPE_VOUT1)) && mCrtcs.count(CRTC_VOUT1_ID) == 0) {
                         std::shared_ptr<HwDisplayCrtcFbdev> crtc =
                             std::make_shared<HwDisplayCrtcFbdev>(::dup(fd), CRTC_VOUT1_ID);
                         mCrtcs.emplace(CRTC_VOUT1_ID, crtc);
-                    } else if ((crtcs & DRM_PIPE_VOUT2) && mCrtcs.count(CRTC_VOUT2_ID) == 0) {
+                    } else if ((crtcs & (1 << DRM_PIPE_VOUT2)) && mCrtcs.count(CRTC_VOUT2_ID) == 0) {
                         std::shared_ptr<HwDisplayCrtcFbdev> crtc =
                             std::make_shared<HwDisplayCrtcFbdev>(::dup(fd), CRTC_VOUT2_ID);
                         mCrtcs.emplace(CRTC_VOUT2_ID, crtc);

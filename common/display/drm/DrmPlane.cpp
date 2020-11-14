@@ -12,16 +12,24 @@
 
 #include "DrmDevice.h"
 #include "DrmPlane.h"
+#include <drm_fourcc.h>
 
-DrmPlane::DrmPlane(drmModePlanePtr p)
+DrmPlane::DrmPlane(int drmFd, drmModePlanePtr p)
     : HwDisplayPlane(),
+    mDrmFd(drmFd),
     mId(p->plane_id),
     mCrtcMask(p->possible_crtcs) {
-
     mFormatCnt = p->count_formats;
-    MESON_ASSERT(mFormatCnt, "format should > 0");
-    mFormats = new uint32_t[mFormatCnt];
-    memcpy(mFormats, p->formats, sizeof(uint32_t) * p->count_formats);
+
+    if (mFormatCnt > 0) {
+        mFormats = new uint32_t[mFormatCnt];
+        memcpy(mFormats, p->formats, sizeof(uint32_t) * p->count_formats);
+    } else {
+        mFormats = NULL;
+        mFormatCnt = 0;
+        MESON_LOGE("No formats passed for plane [%d].\n", mId);
+    }
+
     mModifierCnt = 0;
     mModifiers = NULL;
 
@@ -30,6 +38,7 @@ DrmPlane::DrmPlane(drmModePlanePtr p)
 
     mBlank = p->fb_id > 0 ? false : true;
     mDrmBo = std::make_shared<DrmBo>();
+    mLastDrmBo = NULL;
 }
 
 DrmPlane::~DrmPlane() {
@@ -47,6 +56,7 @@ void DrmPlane::loadProperties() {
         const char * propname;
         std::shared_ptr<DrmProperty> * drmprop;
     } planeProps[] = {
+        {DRM_PLANE_PROP_TYPE, &mType},
         {DRM_PLANE_PROP_FBID, &mFbId},
         {DRM_PLANE_PROP_INFENCE, &mInFence},
         {DRM_PLANE_PROP_SRCX, &mSrcX},
@@ -67,12 +77,11 @@ void DrmPlane::loadProperties() {
     int initedProps = 0;
 
     drmModeObjectPropertiesPtr props =
-        drmModeObjectGetProperties(getDrmDevice()->getDeviceFd(), mId, DRM_MODE_OBJECT_PLANE);
+        drmModeObjectGetProperties(mDrmFd, mId, DRM_MODE_OBJECT_PLANE);
     MESON_ASSERT(props != NULL, "DrmPlane::loadProperties failed.");
 
-    int drmFd = getDrmDevice()->getDeviceFd();
     for (int i = 0; i < props->count_props; i++) {
-        drmModePropertyPtr prop = drmModeGetProperty(drmFd, props->props[i]);
+        drmModePropertyPtr prop = drmModeGetProperty(mDrmFd, props->props[i]);
         for (int j = 0; j < planePropsNum; j++) {
             if (strcmp(prop->name, planeProps[j].propname) == 0) {
                 *(planeProps[j].drmprop) =
@@ -85,17 +94,18 @@ void DrmPlane::loadProperties() {
     }
     drmModeFreeObjectProperties(props);
 
-    MESON_ASSERT(initedProps  != planePropsNum, "NOT ALL PROPS LOADED.");
+    if (initedProps != planePropsNum)
+        MESON_LOGE("NOT ALL PROPS LOADED, %d-%d.",   initedProps, planePropsNum);
 }
 
 const char * DrmPlane::getName() {
     const char * name;
-    switch (mType) {
+    switch (mType->getValue()) {
         case DRM_PLANE_TYPE_PRIMARY:
-            name = "osd-primary";
+            name = "OSD-primary";
             break;
         case DRM_PLANE_TYPE_OVERLAY:
-            name = "osd-overlay";
+            name = "OSD-overlay";
             break;
         case DRM_PLANE_TYPE_CURSOR:
             name = "cursor";
@@ -103,9 +113,8 @@ const char * DrmPlane::getName() {
         default:
             name = "unknown-drm-plane";
             break;
-
     };
-    return NULL;
+    return name;
 }
 
 uint32_t DrmPlane::getId() {
@@ -113,11 +122,10 @@ uint32_t DrmPlane::getId() {
 }
 
 uint32_t DrmPlane::getType() {
-    switch (mType) {
+    switch (mType->getValue()) {
         case DRM_PLANE_TYPE_PRIMARY:
         case DRM_PLANE_TYPE_OVERLAY:
             return OSD_PLANE;
-            break;
         case DRM_PLANE_TYPE_CURSOR:
             return CURSOR_PLANE;
         default:
@@ -126,9 +134,8 @@ uint32_t DrmPlane::getType() {
 }
 
 uint32_t DrmPlane::getCapabilities() {
-    MESON_LOG_EMPTY_FUN();
     uint32_t caps = 0;
-    if (mType == DRM_PLANE_TYPE_PRIMARY) {
+    if (mType->getValue() == DRM_PLANE_TYPE_PRIMARY) {
         caps |= PLANE_SHOW_LOGO;
         caps |= PLANE_PRIMARY;
     }
@@ -192,6 +199,11 @@ bool DrmPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
     int drmFormat = covertToDrmFormat(halFormat);
     uint64_t modifier = convertToDrmModifier(afbc);
 
+    if (drmFormat == DRM_FORMAT_INVALID) {
+        MESON_LOGE("Unknown drm format.\n");
+        return false;
+    }
+
     /*check vpu limit: blend mode*/
     if (blendMode == DRM_BLEND_MODE_NONE &&
         halFormat == HAL_PIXEL_FORMAT_BGRA_8888) {
@@ -210,9 +222,6 @@ bool DrmPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
     if (sourceWidth < OSD_INPUT_MIN_HEIGHT ||sourceHeight < OSD_INPUT_MIN_WIDTH)
         return false;
     return true;
-
-    MESON_LOG_EMPTY_FUN();
-    return true;
 }
 
 int32_t DrmPlane::setPlane(
@@ -224,19 +233,26 @@ int32_t DrmPlane::setPlane(
     drmModeAtomicReqPtr req = crtc->getAtomicReq();
     MESON_ASSERT(req != NULL, " plane get empty req.");
 
-    MESON_LOG_EMPTY_FUN();
-
     if (bBlank) {
         if (!mBlank) {
-            /*set fbid  = 0*/
+            /*set fbid  =0&&crtc=0, driver will check it.*/
             mFbId->setValue(0);
             mFbId->apply(req);
-            mDrmBo->release();
+            mCrtcId->setValue(0);
+            mCrtcId->apply(req);
+            mLastDrmBo = mDrmBo;
+            mDrmBo.reset();
         }
     } else {
         bool bUpdate = false;
 
-        mDrmBo->import(fb);
+        mLastDrmBo = mDrmBo;
+        mDrmBo = std::make_shared<DrmBo>();
+        if (mDrmBo->import(fb) != 0) {
+            MESON_LOGE("DrmBo import failed, return.");
+            return 0;
+        }
+
         if (mDrmBo->fbId != mFbId->getValue()) {
             mFbId->setValue(mDrmBo->fbId);
             bUpdate = true;
@@ -251,8 +267,8 @@ int32_t DrmPlane::setPlane(
             mSrcH->getValue() !=  (mDrmBo->srcRect.bottom - mDrmBo->srcRect.top)) {
             mSrcX->setValue(mDrmBo->srcRect.left);
             mSrcY->setValue(mDrmBo->srcRect.top);
-            mSrcW->setValue(mDrmBo->srcRect.right - mDrmBo->srcRect.left);
-            mSrcH->setValue(mDrmBo->srcRect.bottom - mDrmBo->srcRect.top);
+            mSrcW->setValue((mDrmBo->srcRect.right - mDrmBo->srcRect.left) <<16 );
+            mSrcH->setValue((mDrmBo->srcRect.bottom - mDrmBo->srcRect.top) << 16);
             bUpdate = true;
         }
         if (mCrtcX->getValue() !=  mDrmBo->crtcRect.left ||
@@ -290,14 +306,14 @@ int32_t DrmPlane::setPlane(
             mBlendMode->getEnumValueWithName(blendModeStr, blendMode);
             mBlendMode->setValue(blendMode);
         } else {
-            MESON_LOGE("No pixel mode supported in driver.");
+           // MESON_LOGE("No pixel mode supported in driver.");
         }
         if (mAlpha.get()) {
             uint64_t minVal, maxVal;
             mAlpha->getRangeValue(minVal, maxVal);
             mAlpha->setValue(mDrmBo->alpha * (maxVal - minVal) + minVal);
         } else {
-            MESON_LOGE("No alpha supported in driver.");
+           // MESON_LOGE("No alpha supported in driver.");
         }
 
         if (bUpdate) {
@@ -337,12 +353,15 @@ void DrmPlane::setDebugFlag(int dbgFlag) {
 
 void DrmPlane::resloveInFormats() {
     if (!mInFormats) {
-        MESON_LOGI("No inFormats prop, use ");
+        MESON_LOGI("No inFormats prop. ");
         return;
     }
 
     std::vector<uint8_t> blob;
-    mInFormats->getBlobData(blob);
+    if (mInFormats->getBlobData(blob) != 0) {
+        MESON_LOGE("Informats blob NULL.");
+        return ;
+    }
 
     struct drm_format_modifier_blob *header =
         (struct drm_format_modifier_blob *)blob.data();
@@ -373,7 +392,7 @@ bool DrmPlane::validateFormat(uint32_t format, uint64_t modifier) {
     }
 
     if (formatIdx == -1) {
-        MESON_LOGE("Not Supported Format %d", format);
+     //   MESON_LOGD("Not Supported Format %x", format);
         return false;
     }
 
@@ -386,7 +405,7 @@ bool DrmPlane::validateFormat(uint32_t format, uint64_t modifier) {
             if (mModifiers[i].formats & formatMask) {
                 return true;
             } else {
-                MESON_LOGE("Not supported modifier-format (%lld-%d)", modifier, format);
+             //   MESON_LOGD("Not supported modifier-format (%lld-%d)", modifier, format);
                 return false;
             }
         }
@@ -396,6 +415,16 @@ bool DrmPlane::validateFormat(uint32_t format, uint64_t modifier) {
 }
 
 void DrmPlane::dump(String8 & dumpstr) {
-    UNUSED(dumpstr);
-    MESON_LOG_EMPTY_FUN();
+    dumpstr.appendFormat("Plane[%s-%d]\n", getName(), mId);
+    dumpstr.appendFormat("\t Formats [%d]:", mFormatCnt);
+    for (int i = 0;i < mFormatCnt; i++) {
+        dumpstr.appendFormat("(%x),", mFormats[i]);
+    }
+    dumpstr.append("\n");
+
+    dumpstr.appendFormat("\t Modifer [%d]:", mModifierCnt);
+    for (int i = 0;i < mModifierCnt; i++) {
+        dumpstr.appendFormat("(%llx-%llx),", mModifiers[i].formats, mModifiers[i].modifier);
+    }
+    dumpstr.append("\n");
 }
