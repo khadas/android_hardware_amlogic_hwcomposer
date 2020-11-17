@@ -112,6 +112,9 @@ enum {
 #define DISPLAY_LOGO_INDEX              "/sys/module/fb/parameters/osd_logo_index"
 #define DISPLAY_FB0_FREESCALE_SWTICH    "/sys/class/graphics/fb0/free_scale_switch"
 
+/* legacy fb0 free fb memory */
+#define DISPLAY_FB0_FREE_FB_MEM    "/sys/class/graphics/fb0/free_fb_mem"
+
 /*plane struct*/
 typedef struct osd_plane_info_t {
     int             magic;

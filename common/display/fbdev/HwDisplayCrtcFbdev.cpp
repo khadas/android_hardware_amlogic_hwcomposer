@@ -323,6 +323,7 @@ bool HwDisplayCrtcFbdev::updateHdrMetadata(
 void HwDisplayCrtcFbdev::closeLogoDisplay() {
     sysfs_set_string(DISPLAY_LOGO_INDEX, "-1");
     sysfs_set_string(DISPLAY_FB0_FREESCALE_SWTICH, "0x10001");
+    sysfs_set_string(DISPLAY_FB0_FREE_FB_MEM, "1");
 }
 
 int32_t  HwDisplayCrtcFbdev::readCurDisplayMode(std::string & dispmode) {
