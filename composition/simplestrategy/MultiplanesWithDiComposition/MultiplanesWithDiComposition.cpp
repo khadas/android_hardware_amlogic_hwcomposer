@@ -696,8 +696,10 @@ int MultiplanesWithDiComposition::setOsdFbs2PlanePairs() {
 
 /* Select composer */
 int MultiplanesWithDiComposition::selectComposer() {
-    if (mComposerFbs.size() == 0)
+    if (mComposerFbs.size() == 0) {
+        mClientComposer->prepare();
         return 0;
+    }
 
     if (!mHaveClient) {
         auto composerIt = mOtherComposers.begin();
