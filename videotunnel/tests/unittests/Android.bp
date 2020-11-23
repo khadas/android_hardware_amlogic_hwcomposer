@@ -3,6 +3,7 @@ cc_test {
     srcs: [
         "VideoTunnelTest.cpp",
         "VTBufferItem.cpp",
+        "SyncFence.cpp",
         "VideoTunnelConsumer.cpp",
         "VideoTunnelProducer.cpp",
     ],
@@ -11,6 +12,7 @@ cc_test {
         "liblog",
         "libcutils",
         "libutils",
+        "libsync",
         "libvideotunnel",
     ],
 

@@ -10,6 +10,8 @@
 #ifndef _MESON_VIDEO_TUNNEL_H
 #define _MESON_VIDEO_TUNNEL_H
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -27,11 +29,13 @@ int meson_vt_connect(int fd, int tunnel_id, int role);
 int meson_vt_disconnect(int fd, int tunnel_id, int role);
 
 /* for producer */
-int meson_vt_queue_buffer(int fd, int tunnel_id, int buffer_fd, int fence_fd);
+int meson_vt_queue_buffer(int fd, int tunnel_id, int buffer_fd,
+        int fence_fd, int64_t expected_present_time);
 int meson_vt_dequeue_buffer(int fd, int tunnel_id, int *buffer_fd, int *fence_fd);
 
 /* for consumer */
-int meson_vt_acquire_buffer(int fd, int tunnel_id, int *buffer_fd, int *fence_fd);
+int meson_vt_acquire_buffer(int fd, int tunnel_id, int *buffer_fd,
+        int *fence_fd, int64_t *expected_present_time);
 int meson_vt_release_buffer(int fd, int tunnel_id, int buffer_fd, int fence_fd);
 
 /* for video cmd */

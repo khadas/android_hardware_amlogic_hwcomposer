@@ -14,11 +14,17 @@
 
 #include <VTBufferItem.h>
 
-VTBufferItem::VTBufferItem() : mFd(-1) {
-
+VTBufferItem::VTBufferItem() :
+    mFd(-1),
+    mReleaseFenceFd(-1),
+    mTimeStamp(0) {
 }
 
-VTBufferItem::VTBufferItem(std::string path) : mFd(-1), mFilePath(path) {
+VTBufferItem::VTBufferItem(std::string path) :
+    mFd(-1),
+    mReleaseFenceFd(-1),
+    mTimeStamp(0),
+    mFilePath(path) {
 }
 
 int VTBufferItem::allocateBuffer() {
@@ -53,4 +59,17 @@ int VTBufferItem::setBufferFd(int fd) {
 
 VTBufferItem::~VTBufferItem() {
     releaseBuffer(true);
+
+    if (mReleaseFenceFd > 0)
+        close(mReleaseFenceFd);
+}
+
+int VTBufferItem::setTimeStamp(int64_t time) {
+    mTimeStamp  = time;
+    return 0;
+}
+
+int VTBufferItem::setReleaseFenceFd(int fd) {
+    mReleaseFenceFd = fd;
+    return 0;
 }

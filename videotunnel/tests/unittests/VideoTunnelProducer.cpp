@@ -33,12 +33,13 @@ int VideoTunnelProducer::producerDisconnect() {
 }
 
 int VideoTunnelProducer::queueBuffer(VTBufferItem &item) {
-	return meson_vt_queue_buffer(mDevFd, mTunnelId, item.getBufferFd(), -1);
+	return meson_vt_queue_buffer(mDevFd, mTunnelId,
+            item.getBufferFd(), -1, item.getTimeStamp());
 }
 
 int VideoTunnelProducer::dequeueBuffer(VTBufferItem &item, bool block) {
-    int bufferFd;
-    int fenceFd;
+    int bufferFd = -1;
+    int fenceFd = -1;
     int ret;
 
     if (block) {
@@ -50,6 +51,7 @@ int VideoTunnelProducer::dequeueBuffer(VTBufferItem &item, bool block) {
     }
 
     item.setBufferFd(bufferFd);
+    item.setReleaseFenceFd(fenceFd);
 
     return ret;
 }

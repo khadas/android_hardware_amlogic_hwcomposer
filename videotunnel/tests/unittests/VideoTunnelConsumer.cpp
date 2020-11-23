@@ -14,10 +14,17 @@
 
 VideoTunnelConsumer::VideoTunnelConsumer() {
     mDevFd = meson_vt_open();
+    mTimes = 0;
+    mReleaseFence = -1;
+    mTimeLine = std::make_shared<SyncTimeline>();
 }
 
 VideoTunnelConsumer::VideoTunnelConsumer(int tunnelId) : mTunnelId(tunnelId) {
+    //VideoTunnelConsumer();
     mDevFd = meson_vt_open();
+    mTimes = 0;
+    mReleaseFence = -1;
+    mTimeLine = std::make_shared<SyncTimeline>();
 }
 
 VideoTunnelConsumer::~VideoTunnelConsumer() {
@@ -36,23 +43,29 @@ int VideoTunnelConsumer::consumerDisconnect() {
 int VideoTunnelConsumer::acquireBuffer(VTBufferItem &item, bool block) {
     int bufferFd;
     int fenceFd;
+    int64_t timeStamp = 0;
     int ret;
 
     if (block) {
         do {
-            ret = meson_vt_acquire_buffer(mDevFd, mTunnelId, &bufferFd, &fenceFd);
+            ret = meson_vt_acquire_buffer(mDevFd, mTunnelId, &bufferFd, &fenceFd, &timeStamp);
         } while (ret == -EAGAIN);
     } else {
-        ret = meson_vt_acquire_buffer(mDevFd, mTunnelId, &bufferFd, &fenceFd);
+        ret = meson_vt_acquire_buffer(mDevFd, mTunnelId, &bufferFd, &fenceFd, &timeStamp);
     }
 
     item.setBufferFd(bufferFd);
+    item.setTimeStamp(timeStamp);
 
     return ret;
 }
 
 int VideoTunnelConsumer::releaseBuffer(VTBufferItem &item) {
-    return meson_vt_release_buffer(mDevFd, mTunnelId, item.getBufferFd(), -1);
+    SyncFence fence(mTimeLine.get(), mTimes);
+    mTimes++;
+    mReleaseFence = fence.getFd();
+
+    return meson_vt_release_buffer(mDevFd, mTunnelId, item.getBufferFd(), mReleaseFence);
 }
 
 int VideoTunnelConsumer::recvCmd(enum vt_cmd &cmd, int &data, int &client, bool block) {

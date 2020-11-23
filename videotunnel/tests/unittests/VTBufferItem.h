@@ -10,7 +10,10 @@
 #ifndef _MESON_VIDEO_TUNNEL_BUFFERITEM_H
 #define _MESON_VIDEO_TUNNEL_BUFFERITEM_H
 
+#include <stdint.h>
 #include <string>
+
+#define VT_TIME_STAMP_TEST  310785169
 
 class VTBufferItem {
 public:
@@ -24,10 +27,18 @@ public:
     int getBufferFd() { return mFd; }
     int setBufferFd(int fd);
 
+    int64_t getTimeStamp() { return mTimeStamp; }
+    int setTimeStamp(int64_t time);
+
     std::string getBufferPath() { return mFilePath; }
+
+    int getReleaseFenceFd() { return mReleaseFenceFd; }
+    int setReleaseFenceFd(int fd);
 
 private:
     int mFd;
+    int mReleaseFenceFd;
+    int64_t mTimeStamp;
     std::string mFilePath;
 };
 

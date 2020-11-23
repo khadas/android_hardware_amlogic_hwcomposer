@@ -12,6 +12,7 @@
 
 #include <utils/Errors.h>
 #include <cutils/properties.h>
+#include <utils/Timers.h>
 
 #include <gtest/gtest.h>
 
@@ -215,3 +216,54 @@ TEST_F(VideoTunnelTest, set_vt_mode)
     EXPECT_EQ(OK, mConsumer->setBlockMode(true));
     EXPECT_EQ(OK, mConsumer->setBlockMode(false));
 }
+
+TEST_F(VideoTunnelTest, timeStamp)
+{
+    nsecs_t now = systemTime(SYSTEM_TIME_MONOTONIC);
+    VTBufferItem queueItem;
+    queueItem.allocateBuffer();
+    queueItem.setTimeStamp(now);
+
+    EXPECT_EQ(OK, mProducer->producerConnect());
+    EXPECT_EQ(OK, mProducer->queueBuffer(queueItem));
+
+    VTBufferItem acquireItem;
+    EXPECT_EQ(OK, mConsumer->consumerConnect());
+    EXPECT_EQ(OK, mConsumer->acquireBuffer(acquireItem));
+
+    EXPECT_GT(acquireItem.getBufferFd(), 0);
+    EXPECT_EQ(acquireItem.getTimeStamp(), now);
+    //EXPECT_EQ(acquireItem.getTimeStamp(), 5185103);
+
+    EXPECT_EQ(OK, mConsumer->consumerDisconnect());
+    EXPECT_EQ(OK, mProducer->producerDisconnect());
+
+    queueItem.releaseBuffer(true);
+}
+
+TEST_F(VideoTunnelTest, dequeueBuffer_releaseBuffer_releaseFence)
+{
+    VTBufferItem queueItem;
+    queueItem.allocateBuffer();
+
+    EXPECT_EQ(OK, mProducer->producerConnect());
+    EXPECT_EQ(OK, mProducer->queueBuffer(queueItem));
+
+    VTBufferItem acquireItem;
+    EXPECT_EQ(OK, mConsumer->consumerConnect());
+    EXPECT_EQ(OK, mConsumer->acquireBuffer(acquireItem));
+    EXPECT_GT(acquireItem.getBufferFd(), 0);
+    EXPECT_EQ(OK, mConsumer->releaseBuffer(acquireItem));
+
+    VTBufferItem dequeueItem;
+    EXPECT_EQ(OK, mProducer->dequeueBuffer(dequeueItem));
+    EXPECT_EQ(queueItem.getBufferFd(), dequeueItem.getBufferFd());
+
+    EXPECT_GT(dequeueItem.getReleaseFenceFd(), 0);
+
+    EXPECT_EQ(OK, mConsumer->consumerDisconnect());
+    EXPECT_EQ(OK, mProducer->producerDisconnect());
+
+    queueItem.releaseBuffer(true);
+}
+

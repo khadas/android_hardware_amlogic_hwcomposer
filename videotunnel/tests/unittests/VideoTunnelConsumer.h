@@ -15,6 +15,7 @@
 
 #include <video_tunnel.h>
 #include <VTBufferItem.h>
+#include <SyncFence.h>
 
 class VideoTunnelConsumer {
 public:
@@ -30,10 +31,14 @@ public:
     int setBlockMode(bool block);
 
     int handleCmd();
+    int getReleaseFence() { return mReleaseFence; }
 
 protected:
     int mDevFd;
     int mTunnelId;
+    int mTimes;
+    int mReleaseFence;
+    std::shared_ptr<SyncTimeline> mTimeLine;
 };
 
 #endif /* _MESON_VIDEO_TUNNEL_CONSUMER_H */

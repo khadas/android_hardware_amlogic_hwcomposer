@@ -17,10 +17,13 @@
 #include <vector>
 #include <string>
 #include <android/sync.h>
-#include <sw_sync.h>
 #include <fcntl.h>
 
 #include <video_tunnel.h>
+
+#include "unittests/sw_sync.h"
+
+#define VT_TIME_STAMP 37510560
 
 // C++ wrapper class for sync timeline.
 class SyncTimeline {
@@ -251,7 +254,7 @@ static void *vt_producer_thread(void *arg) {
     while (!ctx->is_exit) {
         char buffer[1024] = "producer";
 
-        meson_vt_queue_buffer(ctx->dev_fd, ctx->tunnel_id, ctx->trans_fd, -1);
+        meson_vt_queue_buffer(ctx->dev_fd, ctx->tunnel_id, ctx->trans_fd, -1, VT_TIME_STAMP);
         fprintf(stderr, "queuebuffer fd:%d to tunnel:%d\n", ctx->trans_fd, ctx->tunnel_id);
         sleep(1);
         do {
@@ -270,6 +273,7 @@ static void *vt_consumer_thread(void *arg) {
     struct vt_ctx *ctx = (struct vt_ctx *) arg;
     int ret, times = 0;
     int acquire_fd, fence_fd;
+    int64_t time_stamp;
 
     meson_vt_connect(ctx->dev_fd, ctx->tunnel_id, 1);
 
@@ -279,7 +283,7 @@ static void *vt_consumer_thread(void *arg) {
         times++;
 
         do {
-            ret = meson_vt_acquire_buffer(ctx->dev_fd, ctx->tunnel_id, &acquire_fd, &fence_fd);
+            ret = meson_vt_acquire_buffer(ctx->dev_fd, ctx->tunnel_id, &acquire_fd, &fence_fd, &time_stamp);
         } while (ret == -EAGAIN);
 
         fprintf(stderr, "acqurie buffer fd:%d from tunnel:%d, ret:%d\n", acquire_fd, ctx->tunnel_id, ret);

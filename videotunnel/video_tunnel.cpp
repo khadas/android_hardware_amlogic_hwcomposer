@@ -169,6 +169,7 @@ int meson_vt_disconnect(int fd, int tunnel_id, int role) {
  * @param tunnel_id     [in] tunnel id to connect
  * @param buffer_fd     [in] buffer fd to transfer
  * @param fence_fd      [in] fence fd (acquire fence) currently not used
+ * @param expected_present_time     [in] monotonic time timestamp
  *
  * Return of a value other than 0 means an error has occurred:
  * -EINVAL - invalid parameter, one of the bellow conditions occurred:
@@ -176,11 +177,13 @@ int meson_vt_disconnect(int fd, int tunnel_id, int role) {
  *         * the wrong videotunnel
  * -EBADF - transfer buffer fd is invalid
  */
-int meson_vt_queue_buffer(int fd, int tunnel_id, int buffer_fd, int fence_fd) {
+int meson_vt_queue_buffer(int fd, int tunnel_id, int buffer_fd,
+        int fence_fd, int64_t expected_present_time) {
     struct vt_buffer_item item = {
         .tunnel_id = tunnel_id,
         .buffer_fd = buffer_fd,
         .fence_fd = fence_fd,
+        .time_stamp = expected_present_time,
     };
 
     struct vt_buffer_data data = {
@@ -241,13 +244,15 @@ int meson_vt_dequeue_buffer(int fd, int tunnel_id, int *buffer_fd, int *fence_fd
  * @param tunnel_id     [in] tunnel id to connect
  * @param buffer_fd     [out] buffer fd acquired form videotunnel
  * @param fence_fd      [out] acquire fence, not used now
+ * @param expected_present_time [out] monotonic time timestamp
  *
  * Return of 0 means the operation completed as normal.
  * Return of a negative value means an error has occurred:
  * -EAGAIN - no buffer is pending (a timeout 4ms may be happened)
  * -EINVAL - invalid param, no videotunnel or has not connect
  */
-int meson_vt_acquire_buffer(int fd, int tunnel_id, int *buffer_fd, int *fence_fd) {
+int meson_vt_acquire_buffer(int fd, int tunnel_id, int *buffer_fd,
+        int *fence_fd, int64_t *expected_present_time) {
     int ret;
 
     struct vt_buffer_data data = {
@@ -267,6 +272,7 @@ int meson_vt_acquire_buffer(int fd, int tunnel_id, int *buffer_fd, int *fence_fd
 
     *buffer_fd = data.buffers[0].buffer_fd;
     *fence_fd = data.buffers[0].fence_fd;
+    *expected_present_time = data.buffers[0].time_stamp;
 
     return ret;
 }

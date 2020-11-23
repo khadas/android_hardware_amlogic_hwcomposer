@@ -127,13 +127,14 @@ int VideoTunnelThread::setPlane (
 int VideoTunnelThread::handleVideoTunnelBuffers() {
     int ret;
     int buffer_fd, fence_fd;
+    int64_t time_stamp;
     video_frame_info_t *vFrameInfo;
 
     if (mVTFd < 0)
         return -1;
 
     ret = meson_vt_acquire_buffer(mVTFd, mVideoTunnelId,
-                                  &buffer_fd, &fence_fd);
+                                  &buffer_fd, &fence_fd, &time_stamp);
     if (ret < 0)
         return ret;
 
