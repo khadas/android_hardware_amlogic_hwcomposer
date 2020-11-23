@@ -35,6 +35,7 @@ int meson_vt_acquire_buffer(int fd, int tunnel_id, int *buffer_fd, int *fence_fd
 int meson_vt_release_buffer(int fd, int tunnel_id, int buffer_fd, int fence_fd);
 
 /* for video cmd */
+int meson_vt_set_mode(int fd, int block_mode);
 int meson_vt_send_cmd(int fd, int tunnel_id, enum vt_cmd cmd, int cmd_data);
 int meson_vt_recv_cmd(int fd, int tunnel_id, enum vt_cmd *cmd, int *cmd_data, int *client_id);
 

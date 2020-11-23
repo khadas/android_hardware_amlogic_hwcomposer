@@ -307,6 +307,26 @@ int meson_vt_release_buffer(int fd, int tunnel_id, int buffer_fd, int fence_fd) 
 }
 
 /*
+ * Set the videotunnel driver to block mode or not
+ *
+ * @param fd            [in] Videotunnel device fd
+ * @param block_mode    [in] block mode or no
+ *
+ * Return of 0 means the operation completed as normal.
+ * -EINVAL - invalid param, has no connected
+ */
+int meson_vt_set_mode(int fd, int block_mode) {
+    enum vt_ctrl_cmd_e vcmd = (block_mode == 0 ?
+            VT_CTRL_SET_NONBLOCK_MODE : VT_CTRL_SET_BLOCK_MODE);
+
+    struct vt_ctrl_data data = {
+        .ctrl_cmd = vcmd,
+    };
+
+    return meson_vt_ioctl(fd, VT_IOC_CTRL, &data);
+}
+
+/*
  * Send video cmd to server (hwc) and may wait for reply on some GET_STATUS cmd
  *
  * @param fd            [in] Videotunnel device fd

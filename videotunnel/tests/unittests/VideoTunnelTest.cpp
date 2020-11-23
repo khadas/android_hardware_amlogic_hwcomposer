@@ -209,3 +209,9 @@ TEST_F(VideoTunnelTest, send_recv_VideoCmd)
     EXPECT_EQ(OK, mProducer->producerDisconnect());
     EXPECT_EQ(OK, mConsumer->consumerDisconnect());
 }
+
+TEST_F(VideoTunnelTest, set_vt_mode)
+{
+    EXPECT_EQ(OK, mConsumer->setBlockMode(true));
+    EXPECT_EQ(OK, mConsumer->setBlockMode(false));
+}

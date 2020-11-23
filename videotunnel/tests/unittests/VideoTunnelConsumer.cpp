@@ -67,3 +67,8 @@ int VideoTunnelConsumer::recvCmd(enum vt_cmd &cmd, int &data, int &client, bool 
 
     return ret;
 }
+
+int VideoTunnelConsumer::setBlockMode(bool block) {
+    return meson_vt_set_mode(mDevFd, (block ? 1 : 0));
+}
+
