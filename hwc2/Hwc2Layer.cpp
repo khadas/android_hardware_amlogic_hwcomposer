@@ -14,14 +14,24 @@
 
 #include "Hwc2Layer.h"
 #include "Hwc2Base.h"
-
+#include "VideoTunnelDev.h"
 
 Hwc2Layer::Hwc2Layer() : DrmFramebuffer(){
-    mDataSpace    = HAL_DATASPACE_UNKNOWN;
-    mUpdateZorder = false;
+    mDataSpace     = HAL_DATASPACE_UNKNOWN;
+    mUpdateZorder  = false;
+    mVtBufferFd    = -1;
+    mPreVtBufferFd = -1;
+    mVtUpdate      = -1;
 }
 
 Hwc2Layer::~Hwc2Layer() {
+    // release last video tunnel buffer
+    if (mFbType == DRM_FB_VIDEO_TUNNEL_SIDEBAND) {
+        if (mVtUpdate && mVtBufferFd > 0)
+            releaseVtBuffer(-1);
+        if (mPreVtBufferFd > 0)
+            close(mPreVtBufferFd);
+    }
 }
 
 hwc2_error_t Hwc2Layer::handleDimLayer(buffer_handle_t buffer) {
@@ -157,11 +167,9 @@ hwc2_error_t Hwc2Layer::setSidebandStream(const native_handle_t* stream) {
         mFbType = DRM_FB_VIDEO_SIDEBAND_TV;
     } else if (type == AM_FIXED_TUNNEL) {
         int tunnel_id = 0;
+        mFbType = DRM_FB_VIDEO_TUNNEL_SIDEBAND;
         am_gralloc_get_sideband_channel(stream, &tunnel_id);
-        if (tunnel_id == AM_VIDEO_EXTERNAL)
-            mFbType = DRM_FB_VIDEO_TUNNEL_SIDEBAND_SECOND;
-        else
-            mFbType = DRM_FB_VIDEO_TUNNEL_SIDEBAND;
+        mTunnelId = tunnel_id;
     } else {
         int channel = 0;
         am_gralloc_get_sideband_channel(stream, &channel);
@@ -287,3 +295,58 @@ void Hwc2Layer::updateZorder(bool update) {
     mUpdateZorder = update;
 }
 
+int32_t Hwc2Layer::getVtBuffer() {
+    std::lock_guard<std::mutex> lock(mMutex);
+    if (mFbType != DRM_FB_VIDEO_TUNNEL_SIDEBAND)
+        return -EINVAL;
+
+    return mVtUpdate ? mVtBufferFd : mPreVtBufferFd;
+}
+
+int32_t Hwc2Layer::acquireVtBuffer() {
+    std::lock_guard<std::mutex> lock(mMutex);
+    if (mFbType != DRM_FB_VIDEO_TUNNEL_SIDEBAND) {
+        MESON_LOGE("[%s] not videotunnel type", __func__);
+        return -EINVAL;
+    }
+
+    if (mTunnelId < 0) {
+        MESON_LOGE("[%s] mTunelId  %d error", __func__, mTunnelId);
+        return -EINVAL;
+    }
+
+    if (mVtUpdate) {
+        MESON_LOGE("[%s] already acquried", __func__);
+        return -EAGAIN;
+    }
+
+    int ret = VideoTunnelDev::getInstance().acquireBuffer(mTunnelId,
+            mVtBufferFd, mTimeStamp);
+    if (ret < 0)
+        return ret;
+
+    // acquire video tunnel buffer sucess
+    mVtUpdate = true;
+    if (mPreVtBufferFd > 0)
+        close(mPreVtBufferFd);
+
+    mPreVtBufferFd = dup(mVtBufferFd);
+
+    return 0;
+}
+
+int32_t Hwc2Layer::releaseVtBuffer(int releaseFence) {
+    std::lock_guard<std::mutex> lock(mMutex);
+    if (!mVtUpdate) {
+        if (releaseFence > 0)
+            close(releaseFence);
+        return -EAGAIN;
+    }
+
+    int ret = VideoTunnelDev::getInstance().releaseBuffer(mTunnelId,
+            mVtBufferFd, releaseFence);
+
+    mVtBufferFd = -1;
+    mVtUpdate = false;
+    return ret;
+}

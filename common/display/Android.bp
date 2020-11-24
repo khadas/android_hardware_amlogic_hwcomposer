@@ -73,6 +73,7 @@ meson_hwc_display_cc_defaults {
         "HwDisplayEventListener.cpp",
         "Vdin.cpp",
         "VideoComposerDev.cpp",
+        "VideoTunnelDev.cpp",
         "VideoTunnelThread.cpp",
     ],
 }

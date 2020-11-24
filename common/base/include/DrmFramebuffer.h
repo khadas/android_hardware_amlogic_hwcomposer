@@ -39,6 +39,11 @@ public:
 
     bool isRotated();
 
+    // Virtuals for video tunnel
+    virtual int32_t getVtBuffer() { return -EINVAL; }
+    virtual int32_t acquireVtBuffer() { return 0; }
+    virtual int32_t releaseVtBuffer(int releaseFence __unused) { return 0; }
+
 protected:
     void setBufferInfo(const native_handle_t * bufferhnd, int32_t acquireFence);
     void clearBufferInfo();

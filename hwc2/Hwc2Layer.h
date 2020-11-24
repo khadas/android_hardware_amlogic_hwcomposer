@@ -55,6 +55,10 @@ public:
     bool isUpdateZorder() { return mUpdateZorder;}
     void updateZorder(bool update);
 
+    int32_t getVtBuffer() override;
+    int32_t acquireVtBuffer() override;
+    int32_t releaseVtBuffer(int releaseFence) override;
+
 public:
     android_dataspace_t mDataSpace;
     hwc2_composition_t mHwcCompositionType;
@@ -69,6 +73,13 @@ protected:
 protected:
     bool mUpdateZorder;
 
+    /* for videotunnel type layer */
+    int mTunnelId;
+    std::mutex mMutex;
+    int mVtBufferFd;
+    int mPreVtBufferFd;
+    int64_t mTimeStamp;
+    bool mVtUpdate;
 };
 
 
