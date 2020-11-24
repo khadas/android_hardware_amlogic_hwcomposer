@@ -30,7 +30,8 @@ int32_t ConnectorDummy::getModes(
         160,
         1920,
         1080,
-        60.0};
+        60.0,
+        0};
 
     modes.emplace(0, modeInfo);
     return 0;

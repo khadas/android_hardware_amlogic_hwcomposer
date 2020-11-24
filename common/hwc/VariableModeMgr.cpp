@@ -32,6 +32,7 @@ static const drm_mode_info_t mode_info[] = {
         .pixelW            = 1280,
         .pixelH            = 720,
         .refreshRate       = DEFAULT_REFRESH_RATE_60,
+        .groupId           = 0,
     },
     { /* VMODE_1080P */
         .name              = "1080p60hz",
@@ -40,6 +41,7 @@ static const drm_mode_info_t mode_info[] = {
         .pixelW            = 1920,
         .pixelH            = 1080,
         .refreshRate       = DEFAULT_REFRESH_RATE_60,
+        .groupId           = 1,
     },
     { /* VMODE_720P_50hz */
         .name              = "720p50hz",
@@ -48,6 +50,7 @@ static const drm_mode_info_t mode_info[] = {
         .pixelW            = 1280,
         .pixelH            = 720,
         .refreshRate       = DEFAULT_REFRESH_RATE_50,
+        .groupId           = 2,
     },
     { /* VMODE_1080P_50HZ */
         .name              = "1080p50hz",
@@ -56,6 +59,7 @@ static const drm_mode_info_t mode_info[] = {
         .pixelW            = 1920,
         .pixelH            = 1080,
         .refreshRate       = DEFAULT_REFRESH_RATE_50,
+        .groupId           = 3,
     },
     { /* DefaultMode */
         .name              = "DefaultMode",
@@ -64,6 +68,7 @@ static const drm_mode_info_t mode_info[] = {
         .pixelW            = 1920,
         .pixelH            = 1080,
         .refreshRate       = DEFAULT_REFRESH_RATE_60,
+        .groupId           = 4,
     },
 };
 
@@ -234,6 +239,9 @@ int32_t  VariableModeMgr::getDisplayAttribute(
             case HWC2_ATTRIBUTE_DPI_Y:
                 *outValue = curMode.dpiY * 1000.0f;
                 break;
+            case HWC2_ATTRIBUTE_CONFIG_GROUP:
+                *outValue = curMode.groupId;
+                break;
             default:
                 MESON_LOGE("Unkown display attribute(%d)", attribute);
                 break;
@@ -352,23 +360,24 @@ void VariableModeMgr::dump(String8 & dumpstr) {
     dumpstr.append("---------------------------------------------------------"
         "-------------------------\n");
     dumpstr.append("|   CONFIG   |   VSYNC_PERIOD   |   WIDTH   |   HEIGHT   |"
-        "   DPI_X   |   DPI_Y   |\n");
+        "   DPI_X   |   DPI_Y   |   GROUP_ID   |\n");
     dumpstr.append("+------------+------------------+-----------+------------+"
-        "-----------+-----------+\n");
+        "-----------+-----------+-----------+\n");
     std::map<uint32_t, drm_mode_info_t>::iterator it =
         mHwcActiveModes.begin();
     for (; it != mHwcActiveModes.end(); ++it) {
         int mode = it->first;
         drm_mode_info_t config = it->second;
         dumpstr.appendFormat("%s %2d     |      %.3f      |   %5d   |   %5d    |"
-            "    %3d    |    %3d    \n",
+            "    %3d    |    %3d    |    %3d    |\n",
             (mode == (int)mHwcActiveConfigId) ? "*   " : "    ",
             mode,
             config.refreshRate,
             config.pixelW,
             config.pixelH,
             config.dpiX,
-            config.dpiY);
+            config.dpiY,
+            config.groupId);
     }
     dumpstr.append("---------------------------------------------------------"
         "-------------------------\n");

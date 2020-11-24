@@ -58,7 +58,8 @@ int32_t DualDisplayPipe::init(
         DRM_DISPLAY_MODE_NULL,
         0, 0,
         0, 0,
-        60.0
+        60.0,
+        0
     };
     /*reset dual pipeline displaymode to NULL*/
     for (auto stat : mPipeStats) {
@@ -166,7 +167,8 @@ void DualDisplayPipe::handleEvent(drm_display_event event, int val) {
             DRM_DISPLAY_MODE_NULL,
             0, 0,
             0, 0,
-            60.0
+            60.0,
+            0
         };
 
         MESON_LOGD("SET display mode null.");

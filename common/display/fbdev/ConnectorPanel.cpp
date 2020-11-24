@@ -143,7 +143,8 @@ int32_t ConnectorPanel::loadDisplayModes() {
             DEFAULT_DISPLAY_DPI,
             mLcdValues[LCD_WIDTH],
             mLcdValues[LCD_HEIGHT],
-            (float)mLcdValues[LCD_SYNC_DURATION_NUM]/mLcdValues[LCD_SYNC_DURATION_DEN]};
+            (float)mLcdValues[LCD_SYNC_DURATION_NUM]/mLcdValues[LCD_SYNC_DURATION_DEN],
+            0};
         mDisplayModes.emplace(mDisplayModes.size(), modeInfo);
         MESON_LOGE("use default value,get display mode: %s", modeInfo.name);
     } else {

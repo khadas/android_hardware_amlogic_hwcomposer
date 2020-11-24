@@ -26,6 +26,7 @@ static const drm_mode_info_t fakeInitialMode = {
     .pixelW            = 1920,
     .pixelH            = 1080,
     .refreshRate       = DEFAULT_REFRESH_RATE,
+    .groupId           = 0,
 };
 
 ActiveModeMgr::ActiveModeMgr()
@@ -192,6 +193,9 @@ int32_t  ActiveModeMgr::getDisplayAttribute(
             case HWC2_ATTRIBUTE_DPI_Y:
                 *outValue = curMode.dpiY * 1000.0f;
                 break;
+            case HWC2_ATTRIBUTE_CONFIG_GROUP:
+                *outValue = curMode.groupId;
+                break;
             default:
                 MESON_LOGE("Unkown display attribute(%d)", attribute);
                 break;
@@ -277,16 +281,16 @@ void ActiveModeMgr::dump(String8 & dumpstr) {
     dumpstr.append("---------------------------------------------------------"
         "-------------------------------------------------\n");
     dumpstr.append("|   CONFIG   |   VSYNC_PERIOD   |   WIDTH   |   HEIGHT   |"
-        "   DPI_X   |   DPI_Y   |   FRAC    |     mode   \n");
+        "   DPI_X   |   DPI_Y   |   FRAC    |     mode   |   GROUP_ID   |\n");
     dumpstr.append("+------------+------------------+-----------+------------+"
-        "-----------+-----------+-----------+-----------+\n");
+        "-----------+-----------+-----------+-----------+--------------+\n");
     std::map<uint32_t, drm_mode_info_t>::iterator it =
         mHwcActiveModes.begin();
     for (; it != mHwcActiveModes.end(); ++it) {
         int mode = it->first;
         drm_mode_info_t config = it->second;
         dumpstr.appendFormat("%s %2d     |      %.3f      |   %5d   |   %5d    |"
-            "    %3d    |    %3d    |   %d    |    %s   \n",
+            "    %3d    |    %3d    |   %d    |    %s   |    %3d    |\n",
             (mode == (int)mHwcActiveConfigId) ? "*   " : "    ",
             mode,
             config.refreshRate,
@@ -295,7 +299,8 @@ void ActiveModeMgr::dump(String8 & dumpstr) {
             config.dpiX,
             config.dpiY,
             isFracRate(config.refreshRate),
-            config.name);
+            config.name,
+            config.groupId);
     }
     dumpstr.append("---------------------------------------------------------"
         "-------------------------------------------------\n");
@@ -304,16 +309,16 @@ void ActiveModeMgr::dump(String8 & dumpstr) {
     dumpstr.append("---------------------------------------------------------"
         "-------------------------------------------------\n");
     dumpstr.append("|   CONFIG   |   VSYNC_PERIOD   |   WIDTH   |   HEIGHT   |"
-        "   DPI_X   |   DPI_Y   |   FRAC    |     mode   \n");
+        "   DPI_X   |   DPI_Y   |   FRAC    |     mode   |   GROUP_ID   |\n");
     dumpstr.append("+------------+------------------+-----------+------------+"
-        "-----------+-----------+-----------+-----------+\n");
+        "-----------+-----------+-----------+-----------+--------------+\n");
     std::map<uint32_t, drm_mode_info_t>::iterator it1 =
         mSfActiveModes.begin();
     for (; it1 != mSfActiveModes.end(); ++it1) {
         int mode1 = it1->first;
         drm_mode_info_t config = it1->second;
         dumpstr.appendFormat("%s %2d     |      %.3f      |   %5d   |   %5d    |"
-            "    %3d    |    %3d    |   %d    |    %s   \n",
+            "    %3d    |    %3d    |   %d    |    %s   |    %3d    |\n",
             (mode1 == (int)mSfActiveConfigId) ? "*   " : "    ",
             mode1,
             config.refreshRate,
@@ -322,7 +327,8 @@ void ActiveModeMgr::dump(String8 & dumpstr) {
             config.dpiX,
             config.dpiY,
             isFracRate(config.refreshRate),
-            config.name);
+            config.name,
+            config.groupId);
     }
     dumpstr.append("---------------------------------------------------------"
         "-------------------------------------------------\n");

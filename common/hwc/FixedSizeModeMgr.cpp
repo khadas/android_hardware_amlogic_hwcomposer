@@ -23,6 +23,7 @@ static drm_mode_info_t fakeInitialMode = {
     .pixelW            = 1920,
     .pixelH            = 1080,
     .refreshRate       = DEFAULT_REFRESH_RATE,
+    .groupId           = 0,
 };
 
 FixedSizeModeMgr::FixedSizeModeMgr() {
@@ -64,8 +65,9 @@ int32_t FixedSizeModeMgr::update() {
             mCurMode.dpiY = realMode.dpiY;
             mCurMode.pixelW = mFbWidth;
             mCurMode.pixelH = mFbHeight;
+            mCurMode.groupId = realMode.groupId;
             strncpy(mCurMode.name, realMode.name , DRM_DISPLAY_MODE_LEN);
-            MESON_LOGI("ModeMgr update to (%s)", mCurMode.name);
+            MESON_LOGE("ModeMgr update to (%s)", mCurMode.name);
             useFakeMode = false;
             mPreviousMode = mCurMode;
         }
@@ -115,6 +117,9 @@ int32_t  FixedSizeModeMgr::getDisplayAttribute(
         case HWC2_ATTRIBUTE_DPI_Y:
             *outValue = mCurMode.dpiY * 1000.0f;
             break;
+        case HWC2_ATTRIBUTE_CONFIG_GROUP:
+            *outValue = mCurMode.groupId;
+            break;
         default:
             MESON_LOGE("Unkown display attribute(%d)", attribute);
             break;
@@ -140,20 +145,21 @@ int32_t FixedSizeModeMgr::setActiveConfig(
 void FixedSizeModeMgr::dump(String8 & dumpstr) {
     dumpstr.appendFormat("FixedSizeModeMgr:(%s)\n", mCurMode.name);
     dumpstr.append("---------------------------------------------------------"
-        "-------------------------\n");
+        "----------------------------------------\n");
     dumpstr.append("|   CONFIG   |   VSYNC_PERIOD   |   WIDTH   |   HEIGHT   |"
-        "   DPI_X   |   DPI_Y   |\n");
+        "   DPI_X   |   DPI_Y   |   GROUP_ID   |\n");
     dumpstr.append("+------------+------------------+-----------+------------+"
-        "-----------+-----------+\n");
+        "-----------+-----------+--------------+\n");
     dumpstr.appendFormat("|     %2d     |      %.3f      |   %5d   |   %5d    |"
-        "    %3d    |    %3d    |\n",
+        "    %3d    |    %3d    |    %3d    |\n",
          0,
          mCurMode.refreshRate,
          mCurMode.pixelW,
          mCurMode.pixelH,
          mCurMode.dpiX,
-         mCurMode.dpiY);
+         mCurMode.dpiY,
+         mCurMode.groupId);
     dumpstr.append("---------------------------------------------------------"
-        "-------------------------\n");
+        "----------------------------------------\n");
 }
 

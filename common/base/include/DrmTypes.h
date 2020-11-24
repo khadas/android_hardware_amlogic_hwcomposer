@@ -88,6 +88,7 @@ typedef struct drm_mode_info {
     uint32_t dpiX, dpiY;
     uint32_t pixelW, pixelH;
     float refreshRate;
+    int32_t groupId;
 } drm_mode_info_t;
 
 #define DRM_DISPLAY_MODE_NULL ("null")

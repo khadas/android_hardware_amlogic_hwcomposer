@@ -137,7 +137,8 @@ int32_t ConnectorHdmi::addDisplayMode(std::string& mode) {
         dpiY,
         vinfo->width,
         vinfo->height,
-        (float)vinfo->sync_duration_num/vinfo->sync_duration_den};
+        (float)vinfo->sync_duration_num/vinfo->sync_duration_den,
+        0};
     strcpy(modeInfo.name, mode.c_str());
 
     bool bFractionMode = false, bNonFractionMode = false;
@@ -154,6 +155,9 @@ int32_t ConnectorHdmi::addDisplayMode(std::string& mode) {
         if (bFractionMode) {
             drm_mode_info_t fracMode = modeInfo;
             fracMode.refreshRate = (modeInfo.refreshRate * 1000) / (float)1001;
+            //currently kernel cannot support do seamlessly in some conditions, thus every mode is a group
+            //will be modified once kernel support
+            fracMode.groupId = mDisplayModes.size();
             mDisplayModes.emplace(mDisplayModes.size(), fracMode);
             MESON_LOGI("add fraction display mode (%s)", fracMode.name);
             mFracRefreshRates.push_back(fracMode.refreshRate);
@@ -169,6 +173,9 @@ int32_t ConnectorHdmi::addDisplayMode(std::string& mode) {
 
     if (bNonFractionMode) {
         // add normal refresh rate config, like 24hz, 30hz...
+        //currently kernel cannot support do seamlessly in some conditions, thus every mode is a group
+        //will be modified once kernel support
+        modeInfo.groupId = mDisplayModes.size();
         mDisplayModes.emplace(mDisplayModes.size(), modeInfo);
         MESON_LOGI("add non fraction display mode (%s)", mode.c_str());
     }

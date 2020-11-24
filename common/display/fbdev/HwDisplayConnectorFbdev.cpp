@@ -132,7 +132,8 @@ int32_t HwDisplayConnectorFbdev::addDisplayMode(std::string& mode) {
         dpiY,
         vinfo->width,
         vinfo->height,
-        (float)vinfo->sync_duration_num/vinfo->sync_duration_den};
+        (float)vinfo->sync_duration_num/vinfo->sync_duration_den,
+        0};
     strcpy(modeInfo.name, mode.c_str());
 
     mDisplayModes.emplace(mDisplayModes.size(), modeInfo);

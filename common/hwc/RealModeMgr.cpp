@@ -25,6 +25,7 @@ static const drm_mode_info_t fakeInitialMode = {
     .pixelW            = 1920,
     .pixelH            = 1080,
     .refreshRate       = DEFAULT_REFRESH_RATE,
+    .groupId           = 0,
 };
 
 RealModeMgr::RealModeMgr() {
@@ -160,6 +161,9 @@ int32_t  RealModeMgr::getDisplayAttribute(
             case HWC2_ATTRIBUTE_DPI_Y:
                 *outValue = curMode.dpiY * 1000.0f;
                 break;
+            case HWC2_ATTRIBUTE_CONFIG_GROUP:
+                *outValue = mCurMode.groupId;
+                break;
             default:
                 MESON_LOGE("Unknown display attribute(%d)", attribute);
                 break;
@@ -216,9 +220,9 @@ void RealModeMgr::dump(String8 & dumpstr) {
     dumpstr.append("---------------------------------------------------------"
         "-------------------------------------\n");
     dumpstr.append("|  CONFIG   |   VSYNC_PERIOD   |   WIDTH   |   HEIGHT   |"
-        "   DPI_X   |   DPI_Y   |    NAME    |\n");
+        "   DPI_X   |   DPI_Y   |    NAME    |   GROUP_ID   |\n");
     dumpstr.append("+------------+------------------+-----------+------------+"
-        "-----------+-----------+-----------+\n");
+        "-----------+-----------+-----------+-----------+\n");
 
     std::map<uint32_t, drm_mode_info_t>::iterator it =
         mModes.begin();
@@ -227,7 +231,7 @@ void RealModeMgr::dump(String8 & dumpstr) {
         int mode = it->first;
         drm_mode_info_t config = it->second;
         dumpstr.appendFormat("%s %2d     |      %.3f      |   %5d   |   %5d    |"
-            "    %3d    |    %3d    | %10s |\n",
+            "    %3d    |    %3d    | %10s |    %3d    |\n",
             (mode == (int)mActiveConfigId) ? "*   " : "    ",
             mode,
             config.refreshRate,
@@ -235,7 +239,8 @@ void RealModeMgr::dump(String8 & dumpstr) {
             config.pixelH,
             config.dpiX,
             config.dpiY,
-            config.name);
+            config.name,
+            config.groupId);
     }
     dumpstr.append("---------------------------------------------------------"
         "-------------------------------------\n");
