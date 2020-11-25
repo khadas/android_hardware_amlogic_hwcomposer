@@ -47,6 +47,12 @@ public:
 
     /*special buffer: No support now*/
     uint32_t color;
+
+protected:
+    void refHandle(uint32_t hnd);
+    void unrefHandle(uint32_t hnd);
+
+    static std::map<uint32_t, int> mHndRefs;
 };
 
 uint32_t covertToDrmFormat(uint32_t format);
