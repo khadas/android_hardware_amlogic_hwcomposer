@@ -63,7 +63,7 @@ uint32_t HwcVideoPlane::getPossibleCrtcs() {
 
 bool HwcVideoPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
     if (fb->mFbType == DRM_FB_VIDEO_OMX_V4L ||
-        fb->mFbType == DRM_FB_VIDEO_OMX2_V4L2)
+        fb->mFbType == DRM_FB_VIDEO_UVM_DMA)
         return true;
 
     return false;
@@ -177,7 +177,7 @@ int32_t HwcVideoPlane::setPlane(
         /* update video plane disable status */
         /* the value of blankOp is UNBLANK */
         if (fb->mFbType == DRM_FB_VIDEO_OMX_V4L ||
-            fb->mFbType == DRM_FB_VIDEO_OMX2_V4L2 ||
+            fb->mFbType == DRM_FB_VIDEO_UVM_DMA ||
             fb->mFbType == DRM_FB_VIDEO_DMABUF) {
             int blankStatus = 0;
             getVideodisableStatus(blankStatus);

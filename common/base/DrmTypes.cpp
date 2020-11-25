@@ -42,9 +42,6 @@ const char * drmFbTypeToString(drm_fb_type_t fbtype) {
         case DRM_FB_VIDEO_OMX_V4L:
             typeStr = "omx-v4l";
             break;
-        case DRM_FB_VIDEO_OMX2_V4L2:
-            typeStr = "omx2-v4l2";
-            break;
         case DRM_FB_VIDEO_DMABUF:
             typeStr = "video-dma";
             break;
@@ -53,6 +50,9 @@ const char * drmFbTypeToString(drm_fb_type_t fbtype) {
             break;
         case DRM_FB_VIDEO_TUNNEL_SIDEBAND_SECOND:
             typeStr = "video-tunnel-sideband-2";
+            break;
+        case DRM_FB_VIDEO_UVM_DMA:
+            typeStr = "uvm-dma";
             break;
         default:
             typeStr = "unknown";

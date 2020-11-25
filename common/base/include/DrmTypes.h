@@ -72,8 +72,6 @@ typedef enum drm_fb_type {
     DRM_FB_VIDEO_OMX_PTS_SECOND,
     /*no image data, but with pts.*/
     DRM_FB_VIDEO_OMX_V4L,
-    /*no image data, but with vf.*/
-    DRM_FB_VIDEO_OMX2_V4L2,
     /*real image data, and is contiguous buf*/
     DRM_FB_VIDEO_DMABUF,
     /*fake buf for di composer output.*/
@@ -81,6 +79,8 @@ typedef enum drm_fb_type {
     /*for videotunnel*/
     DRM_FB_VIDEO_TUNNEL_SIDEBAND,
     DRM_FB_VIDEO_TUNNEL_SIDEBAND_SECOND,
+    /*uvm dma buffer*/
+    DRM_FB_VIDEO_UVM_DMA,
 } drm_fb_type_t;
 
 typedef struct drm_mode_info {

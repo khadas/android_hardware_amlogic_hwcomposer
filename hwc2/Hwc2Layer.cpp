@@ -129,6 +129,8 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
             mFbType = DRM_FB_VIDEO_OMX_PTS_SECOND;
     } else if (am_gralloc_is_overlay_buffer(buffer)) {
         mFbType = DRM_FB_VIDEO_OVERLAY;
+    } else if (am_gralloc_is_uvm_dma_buffer(buffer)) {
+        mFbType = DRM_FB_VIDEO_UVM_DMA;
     } else if (am_gralloc_get_width(buffer) <= 1 && am_gralloc_get_height(buffer) <= 1) {
         //For the buffer which size is 1x1, we treat it as a dim layer.
         handleDimLayer(buffer);

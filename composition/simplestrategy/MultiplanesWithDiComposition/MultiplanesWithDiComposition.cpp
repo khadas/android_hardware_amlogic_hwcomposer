@@ -135,8 +135,8 @@ int MultiplanesWithDiComposition::processVideoFbs() {
                 bSideband = true;
                 [[clang::fallthrough]];
             case DRM_FB_VIDEO_OMX_V4L:
-            case DRM_FB_VIDEO_OMX2_V4L2:
             case DRM_FB_VIDEO_DMABUF:
+            case DRM_FB_VIDEO_UVM_DMA:
             case DRM_FB_VIDEO_TUNNEL_SIDEBAND_SECOND:
                 if (bSideband) {
                     sidebandFbs.push_back(fb);
@@ -378,7 +378,7 @@ int MultiplanesWithDiComposition::handleUVM() {
         for (; fbIt != mFramebuffers.end(); ++fbIt) {
             fb = fbIt->second;
 
-            if (am_gralloc_is_uvm_dma_buffer(fb->mBufferHandle)) {
+            if (fb->mFbType == DRM_FB_VIDEO_UVM_DMA) {
                 fd_data.fd = am_gralloc_get_buffer_fd(fb->mBufferHandle);
                 fd_data.commit_display = 1;
 

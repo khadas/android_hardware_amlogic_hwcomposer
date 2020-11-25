@@ -173,7 +173,7 @@ int SingleplaneComposition::handleUVM() {
         for (; fbIt != mFramebuffers.end(); ++fbIt) {
             fb = *fbIt;
 
-            if (am_gralloc_is_uvm_dma_buffer(fb->mBufferHandle)) {
+            if (fb->mFbType == DRM_FB_VIDEO_UVM_DMA) {
                 fd_data.fd = am_gralloc_get_buffer_fd(fb->mBufferHandle);
                 fd_data.commit_display =
                     (fb->mCompositionType == MESON_COMPOSITION_DUMMY) ? 0 : 1;
@@ -212,9 +212,9 @@ int SingleplaneComposition::processFbsOfExplicitComposition() {
             MESON_COMPOSITION_PLANE_CURSOR},
         {DRM_FB_VIDEO_OMX_V4L, HWC_VIDEO_PLANE,
             MESON_COMPOSITION_PLANE_HWCVIDEO},
-        {DRM_FB_VIDEO_OMX2_V4L2, HWC_VIDEO_PLANE,
-            MESON_COMPOSITION_PLANE_HWCVIDEO},
         {DRM_FB_VIDEO_DMABUF, HWC_VIDEO_PLANE,
+            MESON_COMPOSITION_PLANE_HWCVIDEO},
+        {DRM_FB_VIDEO_UVM_DMA, HWC_VIDEO_PLANE,
             MESON_COMPOSITION_PLANE_HWCVIDEO},
     };
     static int pairSize = sizeof(planeCompPairs) / sizeof(struct planeComp);

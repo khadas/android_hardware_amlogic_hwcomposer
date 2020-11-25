@@ -249,9 +249,12 @@ Error ComposerHandleCache::releaseCache(uint32_t slot) {
 
 bool ComposerHandleCache::isChangedFromeVideoToUi(const native_handle_t* handle) {
     bool changed = false;
-    if (am_gralloc_is_omx_v4l_buffer(handle) ||  am_gralloc_is_omx_metadata_buffer(handle)) {
+
+    if (am_gralloc_is_omx_v4l_buffer(handle)) {
         mFbType = DrmFbType::DRM_FB_VIDEO;
     } else if (am_gralloc_is_overlay_buffer(handle)) {
+        mFbType = DrmFbType::DRM_FB_VIDEO;
+    } else if (am_gralloc_is_uvm_dma_buffer(handle)) {
         mFbType = DrmFbType::DRM_FB_VIDEO;
     } else {
         if (mFbType == DrmFbType::DRM_FB_VIDEO) {
