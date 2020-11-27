@@ -18,6 +18,7 @@
 #ifndef AM_VINFO_H_
 #define AM_VINFO_H_
 #include <sys/types.h>
+#include <xf86drmMode.h>
 
 typedef uint32_t u32;
 typedef unsigned char	   u8;
@@ -40,6 +41,7 @@ enum vmode_e {
 	VMODE_576I,
 	VMODE_576I_RPT,
 	VMODE_576CVBS,
+	VMODE_576CVBS_60HZ,
 	VMODE_576P,
 	VMODE_576P_RPT,
 	VMODE_720P,
@@ -94,6 +96,7 @@ enum vmode_e {
 	VMODE_PAL_M,
 	VMODE_PAL_N,
 	VMODE_NTSC_M,
+	VMODE_DUMMY_ENCL,
 	VMODE_NULL, /* null mode is used as temporary witch mode state */
 	VMODE_MAX,
 	VMODE_INIT_NULL,
@@ -248,6 +251,8 @@ const char *vmode_mode_to_name(enum vmode_e vmode);
 const struct vinfo_s *get_tv_info(enum vmode_e mode);
 int want_hdmi_mode(enum vmode_e mode);
 const struct vinfo_s * findMatchedMode(u32 width, u32 height, u32 refreshrate);
+const struct vinfo_s * findMatchedVoutMode(drmModeModeInfo& drm_mode);
+
 int read_vout_info(int idx, struct vinfo_base_s * info);
 
 

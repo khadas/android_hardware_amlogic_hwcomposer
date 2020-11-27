@@ -45,10 +45,7 @@ protected:
     int32_t loadSupportedContentTypes();
 
     /*parse hdr info.*/
-    int32_t getLineValue(const char *lineStr, const char *magicStr);
-    int32_t parseHdrCapabilities();
     virtual void parseEDID();
-    bool loadCurrentHdrType();
 
 private:
     enum {

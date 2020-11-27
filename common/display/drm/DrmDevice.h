@@ -34,6 +34,7 @@ public:
 
     std::shared_ptr<HwDisplayCrtc> getCrtcById(uint32_t crtcid);
     std::shared_ptr<HwDisplayCrtc> getCrtcByPipe(uint32_t pipeIdx);
+    std::shared_ptr<HwDisplayConnector> getConnectorById(uint32_t connectorid);
 
     int32_t getPipeCfg(uint32_t pipeIdx, HwDisplayPipe & pipecfg);
 
@@ -65,7 +66,7 @@ protected:
     std::map<uint32_t, std::shared_ptr<HwDisplayCrtc>> mCrtcs;
     std::map<uint32_t, std::shared_ptr<DrmEncoder>> mEncoders;
     std::map<uint32_t, std::shared_ptr<HwDisplayPlane>> mPlanes;
-    std::map<drm_connector_type_t, std::shared_ptr<HwDisplayConnector>> mConnectors;
+    std::map<uint32_t, std::shared_ptr<HwDisplayConnector>> mConnectors;
 
     std::map<uint32_t, HwDisplayPipe> mPipes;
 

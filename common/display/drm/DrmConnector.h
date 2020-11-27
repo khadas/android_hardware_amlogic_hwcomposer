@@ -51,17 +51,24 @@ public:
     void dump(String8 & dumpstr);
 
     /*TODO: unused function, need remove.*/
-    int32_t setMode(drm_mode_info_t & mode __unused) { MESON_LOG_EMPTY_FUN(); return false; }
+    int32_t setMode(drm_mode_info_t & mode __unused) { return 0; }
 
     /*drm package internal use.*/
 public:
-    int32_t setEncoderId(uint32_t encoderid);
-    uint32_t getEncoderId();
+    uint32_t getEncoderId() {return mEncoderId;}
+    uint32_t getModeBlobId(drm_mode_info_t & mode);
+    int getModeByBlobId(drm_mode_info_t & mode, uint32_t blobid);
+    int getDrmModeByBlobId(drmModeModeInfo & drmmode, uint32_t blobid);
+    int getCrtcProp(std::shared_ptr<DrmProperty> & prop);
+    int getUpdateProp(std::shared_ptr<DrmProperty> & prop);
+
+    int DrmMode2Mode(drmModeModeInfo & drmmode, drm_mode_info_t & mode);
 
 protected:
     int32_t loadDisplayModes(drmModeConnectorPtr p);
     int32_t loadProperties(drmModeConnectorPtr p);
 
+    int32_t parseHdrCapabilities();
 
 protected:
     int mDrmFd;
@@ -70,8 +77,10 @@ protected:
     uint32_t mEncoderId;
     drmModeConnection mState;
 
+    std::mutex mMutex;
     /*mode_id, modeinfo. mode_id is created by userspace, not from kernel.*/
-    std::map<uint32_t, drm_mode_info_t> mModes;
+    std::map<uint32_t, drmModeModeInfo> mDrmModes;
+    std::map<uint32_t, drm_mode_info_t> mMesonModes;
 
     /*HxW in millimeters*/
     uint32_t mPhyWidth;
@@ -83,6 +92,10 @@ protected:
     std::shared_ptr<DrmProperty> mColorSpace;
     std::shared_ptr<DrmProperty> mColorDepth;
     std::shared_ptr<DrmProperty> mHdrCaps;
+    std::shared_ptr<DrmProperty> mUpdate;
+
+    /*TODO:shuld convert to prop.*/
+    drm_hdr_capabilities mHdrCapabilities;
 };
 
 #endif/*DRM_CONNECTOR_H*/

@@ -96,11 +96,12 @@ int32_t DrmBo::import(
     if (fbId > 0)
         release();
 
-    format = covertToDrmFormat(am_gralloc_get_format(buf));
+    int halFormat = am_gralloc_get_format(buf);
+    format = covertToDrmFormat(halFormat);
     if (format == DRM_FORMAT_INVALID) {
+        MESON_LOGE("import meet unknown format[%x] ", halFormat);
         return -EINVAL;
     }
-
 
     ret = drmPrimeFDToHandle(drmFd, am_gralloc_get_buffer_fd(buf), &handles[0]);
     MESON_ASSERT(!ret, "FdToHandle failed(%d)\n", ret);
@@ -110,6 +111,7 @@ int32_t DrmBo::import(
     pitches[0] = am_gralloc_get_stride_in_byte(buf);
     offsets[0] = 0;
     modifiers[0] = convertToDrmModifier(am_gralloc_get_vpu_afbc_mask(buf));
+
     /*set other elemnts to invalid.*/
     for (int i = 1; i < BUF_PLANE_NUM; i++) {
         handles[i] = 0;

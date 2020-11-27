@@ -199,17 +199,29 @@ int32_t HwcDisplayPipe::updatePipe(std::shared_ptr<PipeStat> & stat) {
     if (resChanged) {
         /*reset vout displaymode, it will be null.*/
         MESON_LOGD("HwcDisplayPipe::updatePipe %d changed", stat->hwcId);
-        getHwDisplayManager()->unbind(stat->hwcCrtc);
-        getHwDisplayManager()->bind(stat->hwcCrtc ,stat->hwcConnector ,stat->hwcPlanes);
+        // for fbdev backend need unbind/bind first then update
+        if (access("/dev/dri/card0", R_OK | W_OK) != 0) {
+            getHwDisplayManager()->unbind(stat->hwcCrtc);
+            getHwDisplayManager()->bind(stat->hwcCrtc ,stat->hwcConnector ,stat->hwcPlanes);
+        }
         stat->hwcCrtc->update();
         stat->hwcConnector->update();
+
+        // for drm backend crct and connector need update first, then unbind/bind
+        if (access("/dev/dri/card0", R_OK | W_OK) == 0) {
+            getHwDisplayManager()->unbind(stat->hwcCrtc);
+            getHwDisplayManager()->bind(stat->hwcCrtc ,stat->hwcConnector ,stat->hwcPlanes);
+        }
 
         if (cfg.modePipeIdx != cfg.hwcPipeIdx) {
             std::vector<std::shared_ptr<HwDisplayPlane>> planes;
             getPlanes (cfg.modePipeIdx, planes);
-            getHwDisplayManager()->bind(stat->modeCrtc, stat->modeConnector, planes);
+            if (access("/dev/dri/card0", R_OK | W_OK) != 0)
+                getHwDisplayManager()->bind(stat->modeCrtc, stat->modeConnector, planes);
             stat->modeCrtc->update();
             stat->modeConnector->update();
+            if (access("/dev/dri/card0", R_OK | W_OK) == 0)
+                getHwDisplayManager()->bind(stat->modeCrtc, stat->modeConnector, planes);
         }
 
         stat->modeMgr->setDisplayResources(stat->modeCrtc, stat->modeConnector);
@@ -356,6 +368,7 @@ int32_t HwcDisplayPipe::initDisplayMode(std::shared_ptr<PipeStat> & stat) {
             break;
     };
 
+    stat->modeCrtc->setPendingMode();
     return 0;
 }
 

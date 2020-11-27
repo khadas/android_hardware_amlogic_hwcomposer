@@ -11,6 +11,7 @@
 #include <HwcConfig.h>
 #include <MesonLog.h>
 #include <misc.h>
+#include <HwDisplayCrtc.h>
 
 #define HDMI_HAS_USED_STATE "/sys/class/amhdmitx/amhdmitx0/hdmi_used"
 
@@ -37,10 +38,13 @@ void FixedDisplayPipe::handleEvent(drm_display_event event, int val) {
             hwc_connector_t connectorType = HwcConfig::getConnectorType((int)statIt.first);
             pipe = statIt.second;
 
+            /* let crct known we are in hotplug event process */
+            pipe->modeCrtc->setHotplugStatus(HwDisplayCrtc::HotplugStatus::InHotplugProcess);
+
             /*update current connector status, now getpipecfg() need
             * read connector status to decide connector.
             */
-            statIt.second->modeConnector->update();
+            pipe->modeConnector->update();
 
             if (connectorType == HWC_HDMI_CVBS) {
                 targetConnector = connected ?
@@ -50,31 +54,22 @@ void FixedDisplayPipe::handleEvent(drm_display_event event, int val) {
                     pipe->cfg.hwcConnectorType, targetConnector);
                 if (pipe->cfg.hwcConnectorType != targetConnector &&
                         pipe->cfg.hwcConnectorType == DRM_MODE_CONNECTOR_TV) {
-                    #if 0 /*TODO: for fixed pipe, let systemcontrol to set displaymode.*/
-                    getHwDisplayManager()->unbind(pipe->hwcCrtc);
-                    getHwDisplayManager()->unbind(pipe->modeCrtc);
-                    #endif
-
-                    /* we need latest connector status, and no one will update
-                    *connector not bind to crtc, we update here.
-                    */
-                    std::shared_ptr<HwDisplayConnector> hwConnector;
-                    getConnector(targetConnector, hwConnector);
-                    hwConnector->update();
                     /*update display pipe.*/
                     updatePipe(pipe);
-                    /*update display mode, workaround now.*/
-                    initDisplayMode(pipe);
                 }
+                pipe->modeCrtc->setHotplugStatus(HwDisplayCrtc::HotplugStatus::Default);
+                /*update display mode, workaround now.*/
+                initDisplayMode(pipe);
                 statIt.second->hwcDisplay->onHotplug(connected);
             } else if (connectorType == HWC_HDMI_ONLY) {
-                if (connected) {
-                    initDisplayMode(pipe);
-                }
+                pipe->modeCrtc->setHotplugStatus(HwDisplayCrtc::HotplugStatus::Default);
+                initDisplayMode(pipe);
                 statIt.second->hwcDisplay->onHotplug(connected);
+            } else {
+                pipe->modeCrtc->setHotplugStatus(HwDisplayCrtc::HotplugStatus::Default);
             }
         }
-    }else {
+    } else {
         HwcDisplayPipe::handleEvent(event, val);
     }
 }

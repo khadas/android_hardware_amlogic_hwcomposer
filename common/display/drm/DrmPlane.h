@@ -16,6 +16,7 @@
 #include <DrmBo.h>
 #include "DrmCrtc.h"
 #include "DrmProperty.h"
+#include <queue>
 
 class DrmPlane : public HwDisplayPlane {
 public:
@@ -84,6 +85,9 @@ protected:
     std::shared_ptr<DrmBo> mDrmBo;
     std::shared_ptr<DrmFramebuffer> mFb;
     std::shared_ptr<HwDisplayCrtc> mCrtc;
+
+    std::queue<std::shared_ptr<DrmBo>> mBoCache;
+
 };
 
  #endif/*DRM_PLANE_H*/

@@ -14,6 +14,7 @@
 #include <xf86drm.h>
 #include "DrmDevice.h"
 #include "DrmCrtc.h"
+#include "DrmConnector.h"
 
 DrmCrtc::DrmCrtc(int drmFd, drmModeCrtcPtr p, uint32_t pipe)
     : HwDisplayCrtc(),
@@ -25,13 +26,16 @@ DrmCrtc::DrmCrtc(int drmFd, drmModeCrtcPtr p, uint32_t pipe)
     MESON_ASSERT(p->mode_valid == mActive->getValue(), "valid mode info mismatch.");
 
     if (p->mode_valid) {
-        mMode = p->mode;
+        memcpy(&mDrmMode, &p->mode, sizeof(drmModeModeInfo));
     } else {
-        memset(&mMode, 0, sizeof(drmModeModeInfo));
+        memset(&mDrmMode, 0, sizeof(drmModeModeInfo));
     }
 
+    mConnectorId = 0;
+    memset(&mMesonMode, 0, sizeof(mMesonMode));
+
     MESON_LOGD("DrmCrtc init pipe(%d)-id(%d), mode (%s),active(%" PRId64 ")",
-        mPipe, mId, mMode.name, mActive->getValue());
+        mPipe, mId, mDrmMode.name, mActive->getValue());
 }
 
 DrmCrtc::~DrmCrtc() {
@@ -80,31 +84,121 @@ uint32_t DrmCrtc::getPipe() {
 }
 
 int32_t DrmCrtc::update() {
-    std::lock_guard<std::mutex> lock(mMutex);
-
-    MESON_LOGE("DrmCrtc::update nothing to do.");
+    /*mode set from drmcrtc, we dont need update state.*/
+    MESON_LOG_EMPTY_FUN ();
     return 0;
 }
 
+int32_t DrmCrtc::readCurDisplayMode(std::string & dispmode) {
+    drm_mode_info_t curmode;
+    int32_t ret = getMode(curmode);
+    if (ret == 0)
+        dispmode = curmode.name;
+    else
+        dispmode = "INVALID";
+
+    return ret;
+}
+
 int32_t DrmCrtc::getMode(drm_mode_info_t & mode) {
-    if (mActive->getValue() == 0) {
-        MESON_LOGE("Crtc [%d] getmode for inactive.", mId);
+    std::lock_guard<std::mutex> lock(mMutex);
+
+    if (mActive->getValue() == 0 || mConnectorId == 0) {
+        MESON_LOGE("Crtc [%d] getmode for inactive or not bind. connectorId %d",
+                mId, mConnectorId);
         return -EFAULT;
     }
 
-    strncpy(mode.name, mMode.name, DRM_DISPLAY_MODE_LEN);
-    mode.refreshRate = mMode.vrefresh;
-    mode.pixelW = mMode.vdisplay;
-    mode.pixelH = mMode.hdisplay;
-    mode.dpiX = mode.dpiY = 160;
-    MESON_LOG_EMPTY_FUN();
+    if (mDrmMode.name[0] == 0) {
+        MESON_LOGE("Invalid drmmode , return .");
+        return -EINVAL;
+    }
+
+    if (mMesonMode.name[0] == 0) {
+        auto connectorIt = getDrmDevice()->getConnectorById(mConnectorId);
+        DrmConnector * connector = (DrmConnector *)connectorIt.get();
+        connector->DrmMode2Mode(mDrmMode, mMesonMode);
+    }
+
+    mode = mMesonMode;
+
+    /*
+     * If we are in hotplug process, let systemcontrol think the display mode
+     * is that it just seted. PendingModes will be set when hotplug process finished
+     */
+    if (getHotplugStatus() ==  HotplugStatus::InHotplugProcess) {
+        if (!mPendingModes.empty())
+            mode = mPendingModes.back();
+    }
+
+    MESON_LOGD("Crtc [%d] getmode %llu:[%dx%d-%f].",
+        mId, mModeBlobId->getValue(), mode.pixelW, mode.pixelH, mode.refreshRate);
     return 0;
 }
 
 int32_t DrmCrtc::setMode(drm_mode_info_t & mode) {
-    UNUSED(mode);
-    MESON_LOG_EMPTY_FUN();
-    return 0;
+    std::lock_guard<std::mutex> lock(mMutex);
+    int ret;
+    std::shared_ptr<DrmProperty> crtcid;
+    std::shared_ptr<DrmProperty> modeid;
+    std::shared_ptr<DrmProperty> updateprop;
+    uint32_t modeBlob;
+
+    auto connectorIt = getDrmDevice()->getConnectorById(mConnectorId);
+    DrmConnector * connector = (DrmConnector *)connectorIt.get();
+    connector->getCrtcProp(crtcid);
+
+    modeBlob = connector->getModeBlobId(mode);
+    connector->getUpdateProp (updateprop);
+
+    if (modeBlob == 0) {
+        if (connector->isConnected() == false ||
+                getHotplugStatus() == HotplugStatus::InHotplugProcess) {
+            MESON_LOGD("connector (%s) setMode to pendingMode", connector->getName());
+            mPendingModes.push_back(mode);
+            return -EBUSY;
+        }
+
+        MESON_LOGE("Mode invalid for current pipe [%s]", mode.name);
+        return -EINVAL;
+    }
+
+    /*set prop value*/
+    MESON_ASSERT(crtcid->getValue() == mId, "crtc/connector NOT bind?!");
+    mActive->setValue(1);
+    mModeBlobId->setValue(modeBlob);
+    /*already update when apply*/
+    drmModeAtomicReqPtr req = drmModeAtomicAlloc();
+    crtcid->apply(req);
+    mActive->apply(req);
+    mModeBlobId->apply(req);
+
+    if (modeBlob == mModeBlobId->getValue()) {
+        if (updateprop) {
+            MESON_LOGE("Set update flag");
+            updateprop->setValue(1);
+            updateprop->apply(req);
+        } else {
+            MESON_LOGE("NO UPDATE PROP.");
+        }
+    }
+
+    ret = drmModeAtomicCommit(
+        mDrmFd,
+        req,
+        DRM_MODE_ATOMIC_ALLOW_MODESET,
+        NULL);
+    if (ret) {
+        MESON_LOGE("set Mode failed  ret (%d)", ret);
+    }
+
+    drmModeAtomicFree(req);
+
+    connector->getDrmModeByBlobId(mDrmMode, modeBlob);
+    connector->getModeByBlobId(mMesonMode, modeBlob);
+    MESON_LOGD("setmode:crtc[%d], name [%s] -modeblob[%d]",
+        mId, mode.name, modeBlob);
+    return ret;
 }
 
 int32_t DrmCrtc::waitVBlank(nsecs_t & timestamp) {
@@ -122,6 +216,15 @@ int32_t DrmCrtc::waitVBlank(nsecs_t & timestamp) {
     return ret;
 }
 
+drmModeAtomicReqPtr DrmCrtc::getAtomicReq() {
+    if (mReq == NULL) {
+        MESON_LOGD("No req, create a new one");
+        mReq = drmModeAtomicAlloc();
+    }
+
+    return mReq;
+}
+
 int32_t DrmCrtc::prePageFlip() {
     if (mReq) {
         MESON_LOGE("still have a req? previous display didnot finish?");
@@ -133,6 +236,11 @@ int32_t DrmCrtc::prePageFlip() {
 }
 
 int32_t DrmCrtc::pageFlip(int32_t & out_fence) {
+    if (mActive->getValue() == 0) {
+        out_fence = -1;
+        return 0;
+    }
+
     MESON_ASSERT(mReq!= NULL, "pageFlip  with NULL request.");
     out_fence = -1;
     drmModeAtomicAddProperty(mReq, mId, mOutFencePtr->getId(), (uint64_t)&out_fence);
@@ -140,13 +248,48 @@ int32_t DrmCrtc::pageFlip(int32_t & out_fence) {
     int32_t ret = drmModeAtomicCommit(
         mDrmFd,
         mReq,
-        DRM_MODE_ATOMIC_ALLOW_MODESET,
+        DRM_MODE_ATOMIC_NONBLOCK,
         NULL);
     if (ret) {
-        MESON_LOGE("atomic commit ret (%d)", ret);
+      //  MESON_LOGE("pageFlip:atomic commit ret (%d)", ret);
     }
 
     drmModeAtomicFree(mReq);
     mReq = NULL;
     return ret;
 }
+
+int DrmCrtc::setConnectorId(uint32_t connectorId) {
+    std::lock_guard<std::mutex> lock(mMutex);
+    mConnectorId = connectorId;
+    return 0;
+}
+
+int32_t DrmCrtc::setPendingMode() {
+    if (mPendingModes.empty()) {
+        MESON_LOGD("[%s] pending modes vector empty", __func__);
+        return 0;
+    }
+
+    drm_mode_info_t mode = mPendingModes.back();
+    MESON_LOGD("[%s] mode %s", __func__, mode.name);
+    setMode(mode);
+
+    mPendingModes.clear();
+    return 0;
+}
+
+
+void DrmCrtc::dump(String8 & dumpstr) {
+    dumpstr.appendFormat("Crtc mPipeId(%d) - mId(%d):\n", mPipe, mId);
+    dumpstr.appendFormat("\t Active (%llu), ModeId (%llu) mMode (%s)\n",
+                        mActive->getValue(), mModeBlobId->getValue(),
+                        mDrmMode.name);
+
+    auto connector = getDrmDevice()->getConnectorById(mConnectorId);
+    const char *name = connector ? connector->getName() : "invalid";
+    dumpstr.appendFormat("\t mConnectorId (%d)-(%s) \n",
+                        mConnectorId,
+                        mConnectorId == 0 ? "noConnector" : name);
+}
+

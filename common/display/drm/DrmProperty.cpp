@@ -130,7 +130,7 @@ int DrmProperty::getBlobData(std::vector<uint8_t> & blob, uint32_t blobId) {
     drmModePropertyBlobPtr blobProp =
         drmModeGetPropertyBlob(getDrmDevice()->getDeviceFd(), blobId);
     if (!blobProp) {
-    	return -EIO;
+        return -EIO;
     }
 
     uint8_t * blobData = (uint8_t * )blobProp->data;

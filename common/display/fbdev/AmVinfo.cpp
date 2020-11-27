@@ -103,6 +103,7 @@ static struct vmode_match_s vmode_match_table[] = {
 	{"pal_n",         VMODE_PAL_N},
 	{"ntsc_m",        VMODE_NTSC_M},
 	{"invalid",       VMODE_INIT_NULL},
+	{"dummy_l",       VMODE_DUMMY_ENCL,},
 };
 
 /*
@@ -526,6 +527,7 @@ static const struct vinfo_s tv_info[] = {
 		.video_clk         = 297000000,
 		.viu_color_fmt     = TVIN_YUV444,
 	},
+#if 0
 	{ /* VMODE_4K2K_FAKE_5G */
 		.name              = "4k2k5g",
 		.mode              = VMODE_4K2K_FAKE_5G,
@@ -552,10 +554,11 @@ static const struct vinfo_s tv_info[] = {
 		.video_clk         = 594000000,
 		.viu_color_fmt     = TVIN_YUV444,
 	},
-	{ /* VMODE_4K2K_SMPTE_60HZ_Y420 */
-		.name              = "smpte60hz420",
-		.mode              = VMODE_4K2K_SMPTE_60HZ_Y420,
-		.width             = 4096,
+#endif
+	{ /* VMODE_4K2K_60HZ */
+		.name              = "2160p60hz",
+		.mode              = VMODE_4K2K_60HZ,
+		.width             = 3840,
 		.height            = 2160,
 		.field_height      = 2160,
 		.aspect_ratio_num  = 16,
@@ -565,10 +568,11 @@ static const struct vinfo_s tv_info[] = {
 		.video_clk         = 594000000,
 		.viu_color_fmt     = TVIN_YUV444,
 	},
-	{ /* VMODE_4K2K_60HZ */
-		.name              = "2160p60hz",
-		.mode              = VMODE_4K2K_60HZ,
-		.width             = 3840,
+#if 0
+	{ /* VMODE_4K2K_SMPTE_60HZ_Y420 */
+		.name              = "smpte60hz420",
+		.mode              = VMODE_4K2K_SMPTE_60HZ_Y420,
+		.width             = 4096,
 		.height            = 2160,
 		.field_height      = 2160,
 		.aspect_ratio_num  = 16,
@@ -591,6 +595,7 @@ static const struct vinfo_s tv_info[] = {
 		.video_clk         = 594000000,
 		.viu_color_fmt     = TVIN_YUV444,
 	},
+#endif
 	{ /* VMODE_4K1K_100HZ */
 		.name              = "4k1k100hz",
 		.mode              = VMODE_4K1K_100HZ,
@@ -604,6 +609,7 @@ static const struct vinfo_s tv_info[] = {
 		.video_clk         = 594000000,
 		.viu_color_fmt     = TVIN_YUV444,
 	},
+#if 0
 	{ /* VMODE_4K1K_120HZ_Y420 */
 		.name              = "4k1k120hz420",
 		.mode              = VMODE_4K1K_120HZ_Y420,
@@ -617,6 +623,7 @@ static const struct vinfo_s tv_info[] = {
 		.video_clk         = 594000000,
 		.viu_color_fmt     = TVIN_YUV444,
 	},
+#endif
 	{ /* VMODE_4K1K_120HZ */
 		.name              = "4k1k120hz",
 		.mode              = VMODE_4K1K_120HZ,
@@ -630,6 +637,7 @@ static const struct vinfo_s tv_info[] = {
 		.video_clk         = 594000000,
 		.viu_color_fmt     = TVIN_YUV444,
 	},
+#if 0
 	{ /* VMODE_4K05K_200HZ_Y420 */
 		.name              = "4k05k200hz420",
 		.mode              = VMODE_4K05K_200HZ_Y420,
@@ -643,6 +651,7 @@ static const struct vinfo_s tv_info[] = {
 		.video_clk         = 594000000,
 		.viu_color_fmt     = TVIN_YUV444,
 	},
+#endif
 	{ /* VMODE_4K05K_200HZ */
 		.name              = "4k05k200hz",
 		.mode              = VMODE_4K05K_200HZ,
@@ -656,6 +665,7 @@ static const struct vinfo_s tv_info[] = {
 		.video_clk         = 594000000,
 		.viu_color_fmt     = TVIN_YUV444,
 	},
+#if 0
 	{ /* VMODE_4K05K_240HZ_Y420 */
 		.name              = "4k05k240hz420",
 		.mode              = VMODE_4K05K_240HZ_Y420,
@@ -669,6 +679,7 @@ static const struct vinfo_s tv_info[] = {
 		.video_clk         = 594000000,
 		.viu_color_fmt     = TVIN_YUV444,
 	},
+#endif
 	{ /* VMODE_4K05K_240HZ */
 		.name              = "4k05k240hz",
 		.mode              = VMODE_4K05K_240HZ,
@@ -682,6 +693,7 @@ static const struct vinfo_s tv_info[] = {
 		.video_clk         = 594000000,
 		.viu_color_fmt     = TVIN_YUV444,
 	},
+#if 0
 	{ /* VMODE_4K2K_50HZ_Y420 */
 		.name              = "2160p50hz420",
 		.mode              = VMODE_4K2K_50HZ_Y420,
@@ -708,6 +720,7 @@ static const struct vinfo_s tv_info[] = {
 		.video_clk         = 594000000,
 		.viu_color_fmt     = TVIN_YUV444,
 	},
+#endif
 	{ /* VMODE_4K2K_50HZ */
 		.name              = "2160p50hz",
 		.mode              = VMODE_4K2K_50HZ,
@@ -944,6 +957,19 @@ static const struct vinfo_s tv_info[] = {
 		.video_clk         = 1485000000,
 		.viu_color_fmt     = TVIN_YUV444,
 	},
+	{ /* dummy_l mode, used as temporary witch mode state */
+		.name              = "dummy_l",
+		.mode              = VMODE_DUMMY_ENCL,
+		.width             = 720,
+		.height            = 480,
+		.field_height      = 480,
+		.aspect_ratio_num  = 4,
+		.aspect_ratio_den  = 3,
+		.sync_duration_num = 50,
+		.sync_duration_den = 1,
+		.video_clk         = 25000000,
+		.viu_color_fmt     = TVIN_BGGR,
+	},
 };
 
 const struct vinfo_s *get_tv_info(enum vmode_e mode)
@@ -1006,13 +1032,31 @@ int want_hdmi_mode(enum vmode_e mode)
 const struct vinfo_s * findMatchedMode(u32 width, u32 height, u32 refreshrate) {
 	uint32_t i = 0;
 	for (i = 0; i < ARRAY_SIZE(tv_info); i++) {
-		if (tv_info[i].width == width && tv_info[i].height == height &&
-			tv_info[i].field_height == height && tv_info[i].sync_duration_num == refreshrate) {
-		return &(tv_info[i]);
+		if (tv_info[i].width == width &&
+			tv_info[i].height == height &&
+			tv_info[i].sync_duration_num == refreshrate) {
+			return &(tv_info[i]);
 		}
 	}
 	return NULL;
 }
+
+const struct vinfo_s * findMatchedVoutMode(drmModeModeInfo& drm_mode) {
+	uint32_t i = 0;
+	for (i = 0; i < ARRAY_SIZE(tv_info); i++) {
+		if (tv_info[i].width == drm_mode.hdisplay &&
+			tv_info[i].height == drm_mode.vdisplay &&
+			tv_info[i].sync_duration_num == drm_mode.vrefresh) {
+			bool binterlace = (tv_info[i].field_height != tv_info[i].height);
+			if (binterlace != ((bool)(drm_mode.flags & DRM_MODE_FLAG_INTERLACE)))
+				continue;
+
+			return &(tv_info[i]);
+		}
+	}
+	return NULL;
+}
+
 
 int read_vout_info(int idx, struct vinfo_base_s * info) {
 	if (!info)

@@ -38,7 +38,6 @@ DrmPlane::DrmPlane(int drmFd, drmModePlanePtr p)
 
     mBlank = p->fb_id > 0 ? false : true;
     mDrmBo = std::make_shared<DrmBo>();
-    mLastDrmBo = NULL;
 }
 
 DrmPlane::~DrmPlane() {
@@ -186,10 +185,9 @@ bool DrmPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
     }
 
     unsigned int blendMode = fb->mBlendMode;
-    if (blendMode != DRM_BLEND_MODE_NONE
-        && blendMode != DRM_BLEND_MODE_PREMULTIPLIED
+    if (blendMode != DRM_BLEND_MODE_PREMULTIPLIED
         && blendMode != DRM_BLEND_MODE_COVERAGE) {
-        MESON_LOGE("Blend mode is invalid!");
+       // MESON_LOGE("Blend mode is invalid!");
         return false;
     }
 
@@ -200,15 +198,26 @@ bool DrmPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
     uint64_t modifier = convertToDrmModifier(afbc);
 
     if (drmFormat == DRM_FORMAT_INVALID) {
-        MESON_LOGE("Unknown drm format.\n");
+      //  MESON_LOGE("Unknown drm format.\n");
         return false;
     }
 
     /*check vpu limit: blend mode*/
     if (blendMode == DRM_BLEND_MODE_NONE &&
         halFormat == HAL_PIXEL_FORMAT_BGRA_8888) {
-        MESON_LOGE("blend mode: %u, Layer format %d not support.", blendMode, halFormat);
+      //  MESON_LOGE("blend mode: %u, Layer format %d not support.", blendMode, halFormat);
         return false;
+    }
+
+    if (modifier != 0) {
+        switch (halFormat) {
+            case HAL_PIXEL_FORMAT_RGBA_8888:
+            case HAL_PIXEL_FORMAT_RGBX_8888:
+                break;
+            default:
+                //MESON_LOGE("afbc: %d, Layer format %d not support.", afbc, format);
+                return false;
+        }
     }
 
     if (!validateFormat(drmFormat, modifier))
@@ -240,13 +249,11 @@ int32_t DrmPlane::setPlane(
             mFbId->apply(req);
             mCrtcId->setValue(0);
             mCrtcId->apply(req);
-            mLastDrmBo = mDrmBo;
             mDrmBo.reset();
         }
     } else {
         bool bUpdate = false;
 
-        mLastDrmBo = mDrmBo;
         mDrmBo = std::make_shared<DrmBo>();
         if (mDrmBo->import(fb) != 0) {
             MESON_LOGE("DrmBo import failed, return.");
@@ -265,9 +272,9 @@ int32_t DrmPlane::setPlane(
             mSrcY->getValue() !=  mDrmBo->srcRect.top ||
             mSrcW->getValue() !=  (mDrmBo->srcRect.right - mDrmBo->srcRect.left)  ||
             mSrcH->getValue() !=  (mDrmBo->srcRect.bottom - mDrmBo->srcRect.top)) {
-            mSrcX->setValue(mDrmBo->srcRect.left);
-            mSrcY->setValue(mDrmBo->srcRect.top);
-            mSrcW->setValue((mDrmBo->srcRect.right - mDrmBo->srcRect.left) <<16 );
+            mSrcX->setValue(mDrmBo->srcRect.left << 16);
+            mSrcY->setValue(mDrmBo->srcRect.top << 16);
+            mSrcW->setValue((mDrmBo->srcRect.right - mDrmBo->srcRect.left) << 16 );
             mSrcH->setValue((mDrmBo->srcRect.bottom - mDrmBo->srcRect.top) << 16);
             bUpdate = true;
         }
@@ -302,7 +309,6 @@ int32_t DrmPlane::setPlane(
                     MESON_LOGE("Unknown blend mode.");
                     break;
             };
-
             mBlendMode->getEnumValueWithName(blendModeStr, blendMode);
             mBlendMode->setValue(blendMode);
         } else {
@@ -343,6 +349,14 @@ int32_t DrmPlane::setPlane(
         mFb->setPrevReleaseFence(-1);
     mFb = fb;
     mBlank = bBlank;
+
+    if (mDrmBo.get()) {
+        mBoCache.push(mDrmBo);
+    }
+    if (mBoCache.size() > 3) {
+        mBoCache.pop();
+    }
+
     return 0;
 }
 
@@ -415,6 +429,23 @@ bool DrmPlane::validateFormat(uint32_t format, uint64_t modifier) {
 }
 
 void DrmPlane::dump(String8 & dumpstr) {
+    if (!mBlank) {
+        dumpstr.appendFormat("| osd%2d |"
+               " %4lld | %4d | %4d %4d %4d %4d | %4d %4d %4d %4d | %2d | %2d | %4d |"
+               " %4d | %5lld | %5lld | %4x |%8llx  |\n",
+                mId,
+                mZpos->getValue(), 0,
+                mDrmBo->srcRect.left,mDrmBo->srcRect.top,mDrmBo->srcRect.right,mDrmBo->srcRect.bottom,
+                mDrmBo->crtcRect.left,mDrmBo->crtcRect.top,mDrmBo->crtcRect.right,mDrmBo->crtcRect.bottom,
+                mDrmBo->fbId,
+                mDrmBo->format,
+                0, 0,
+                mBlendMode.get() ? mBlendMode->getValue() : 0,
+                mAlpha.get() ? mAlpha->getValue() : 1,
+                0,
+                mDrmBo->modifiers[0]);
+    }
+
     dumpstr.appendFormat("Plane[%s-%d]\n", getName(), mId);
     dumpstr.appendFormat("\t Formats [%d]:", mFormatCnt);
     for (int i = 0;i < mFormatCnt; i++) {

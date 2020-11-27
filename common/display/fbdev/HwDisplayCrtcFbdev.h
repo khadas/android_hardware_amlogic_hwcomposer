@@ -55,6 +55,7 @@ public:
     int32_t readCurDisplayMode(std::string & dispmode);
     int32_t writeCurDisplayAttr(std::string & dispattr);
 
+    int32_t setPendingMode() { return 0; };
 protected:
     int32_t writeCurDisplayMode(std::string & dispmode);
     void closeLogoDisplay();

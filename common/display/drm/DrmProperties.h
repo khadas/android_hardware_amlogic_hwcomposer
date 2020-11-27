@@ -57,4 +57,7 @@
 #define DRM_HDMI_PROP_HDRCAP              "HDR DV Cap"
 
 
+/*meson prop*/
+#define DRM_CONNECTOR_PROP_UPDATE "UPDATE"
+
 #endif

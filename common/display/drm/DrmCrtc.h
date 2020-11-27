@@ -37,7 +37,7 @@ public:
     int32_t pageFlip(int32_t & out_fence);
 
     /*TODO:should refact*/
-    int32_t readCurDisplayMode(std::string & dispmode __unused) { MESON_LOG_EMPTY_FUN(); return 0; }
+    int32_t readCurDisplayMode(std::string & dispmode);
     int32_t writeCurDisplayAttr(std::string & dispattr __unused) { MESON_LOG_EMPTY_FUN(); return 0; }
 
     /*unused function only for FBDEV*/
@@ -45,9 +45,15 @@ public:
     int32_t getHdrMetadataKeys(std::vector<drm_hdr_meatadata_t> & keys __unused) { return 0; }
     int32_t setHdrMetadata(std::map<drm_hdr_meatadata_t, float> & hdrmedata __unused) { return 0; }
 
+    int32_t setPendingMode();
+
+    void dump(String8 & dumpstr);
+
     /*internal drm package api*/
 public:
-    drmModeAtomicReqPtr getAtomicReq() {return mReq;}
+    drmModeAtomicReqPtr getAtomicReq();
+
+    int setConnectorId(uint32_t connectorId);
 
 protected:
     int32_t loadProperties();
@@ -59,7 +65,8 @@ protected:
    *connector report possible crtc with shifted mask.
   */
     uint32_t mPipe;
-    drmModeModeInfo mMode;
+    drmModeModeInfo mDrmMode;
+    drm_mode_info mMesonMode;
 
     /*crtc propertys*/
     std::shared_ptr<DrmProperty> mActive;
@@ -68,8 +75,9 @@ protected:
 
     drmModeAtomicReqPtr mReq;
 
-protected:
     std::mutex mMutex;
+    uint32_t mConnectorId;
+    std::vector<drm_mode_info> mPendingModes;
 };
 
 #endif/*DRM_CRTC_H*/

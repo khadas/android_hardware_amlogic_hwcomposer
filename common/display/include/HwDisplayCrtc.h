@@ -50,6 +50,20 @@ public:
 
     virtual int32_t readCurDisplayMode(std::string & dispmode) = 0;
     virtual int32_t writeCurDisplayAttr(std::string & dispattr) = 0;
+    virtual int32_t setPendingMode() = 0;
+    virtual void dump(String8 & dumpstr __unused) {}
+
+    /* for hotplut */
+    enum class HotplugStatus {
+        Default,
+        InHotplugProcess,
+    };
+
+    HotplugStatus getHotplugStatus() {return mHotplugStatus; };
+    void setHotplugStatus(HotplugStatus status) { mHotplugStatus = status; };
+
+protected:
+    HotplugStatus mHotplugStatus = HotplugStatus::Default;
 };
 
 #endif/*HW_DISPLAY_CRTC_H*/

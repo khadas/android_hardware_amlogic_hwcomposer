@@ -24,6 +24,7 @@
 #include <EventThread.h>
 #include <systemcontrol.h>
 #include <am_gralloc_ext.h>
+#include <HwDisplayManager.h>
 
 Hwc2Display::Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer) {
     mObserver = observer;
@@ -611,22 +612,22 @@ int32_t Hwc2Display::loadCalibrateInfo() {
     int32_t configWidth;
     int32_t configHeight;
     if (mModeMgr->getActiveConfig(&config) != HWC2_ERROR_NONE) {
-        MESON_ASSERT(0, "[%s]: getHwcDisplayHeight failed!", __func__);
+        ALOGE("[%s]: getHwcDisplayHeight failed!", __func__);
         return -ENOENT;
     }
     if (mModeMgr->getDisplayAttribute(config,
             HWC2_ATTRIBUTE_WIDTH, &configWidth) != HWC2_ERROR_NONE) {
-        MESON_ASSERT(0, "[%s]: getHwcDisplayHeight failed!", __func__);
+        ALOGE("[%s]: getHwcDisplayHeight failed!", __func__);
         return -ENOENT;
     }
     if (mModeMgr->getDisplayAttribute(config,
             HWC2_ATTRIBUTE_HEIGHT, &configHeight) != HWC2_ERROR_NONE) {
-        MESON_ASSERT(0, "[%s]: getHwcDisplayHeight failed!", __func__);
+        ALOGE("[%s]: getHwcDisplayHeight failed!", __func__);
         return -ENOENT;
     }
 
     if (mDisplayMode.pixelW == 0 || mDisplayMode.pixelH == 0) {
-        MESON_ASSERT(0, "[%s]: Displaymode is invalid(%s, %dx%d)!",
+        ALOGE("[%s]: Displaymode is invalid(%s, %dx%d)!",
                 __func__, mDisplayMode.name, mDisplayMode.pixelW, mDisplayMode.pixelH);
         return -ENOENT;
     }
@@ -955,8 +956,6 @@ hwc2_error_t Hwc2Display::getReleaseFences(uint32_t* outNumElements,
         }
     }
 
-    close(mPresentFence);
-    mPresentFence = -1;
     *outNumElements = num;
     return HWC2_ERROR_NONE;
 }
@@ -1275,7 +1274,7 @@ void Hwc2Display::dump(String8 & dumpstr) {
     dumpstr.append("\n");
 
     /* dump display configs*/
-     mModeMgr->dump(dumpstr);
+    mModeMgr->dump(dumpstr);
     dumpstr.append("\n");
     mVsync->dump(dumpstr);
     dumpstr.append("\n");
@@ -1299,10 +1298,17 @@ void Hwc2Display::dump(String8 & dumpstr) {
             mPresentCompositionStg->dump(dumpstr);
             dumpstr.append("\n");
         }
+
+        if (mConnector)
+            mConnector->dump(dumpstr);
+
+        if (mCrtc)
+            mCrtc->dump(dumpstr);
     }
 
     dumpstr.append("\n");
     dumpHwDisplayPlane(dumpstr);
+
 }
 
 int32_t Hwc2Display::captureDisplayScreen(buffer_handle_t hnd) {

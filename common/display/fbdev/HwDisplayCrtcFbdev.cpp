@@ -319,7 +319,7 @@ void HwDisplayCrtcFbdev::closeLogoDisplay() {
 
 int32_t HwDisplayCrtcFbdev::readCurDisplayMode(std::string & dispmode) {
     const char *path = (mPipe == DRM_PIPE_VOUT1) ? VIU1_DISPLAY_MODE_SYSFS : VIU2_DISPLAY_MODE_SYSFS;
-     int32_t ret = read_sysfs(path, dispmode);
+    int32_t ret = read_sysfs(path, dispmode);
     return ret;
 }
 

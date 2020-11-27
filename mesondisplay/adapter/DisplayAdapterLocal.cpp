@@ -193,7 +193,7 @@ bool DisplayAdapterLocal::getSupportDisplayModes(vector<DisplayModeInfo>& displa
             displayModeList.push_back(mode);
         }
     }
-    return true;;
+    return true;
 }
 
 bool DisplayAdapterLocal::getDisplayMode(string& mode, ConnectorType displayType) {

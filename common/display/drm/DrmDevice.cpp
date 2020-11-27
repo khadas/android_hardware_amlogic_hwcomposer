@@ -7,6 +7,7 @@
  * Description:
  */
 #include <drm.h>
+#include <string.h>
 
 #include <MesonLog.h>
 #include <HwcVideoPlane.h>
@@ -54,9 +55,22 @@ DrmDevice::~DrmDevice() {
 
 int32_t DrmDevice::getPlanes(
     std::vector<std::shared_ptr<HwDisplayPlane>> & planes) {
+    std::shared_ptr<HwDisplayPlane> osdPlane = nullptr;
     for (const auto & it : mPlanes) {
         planes.push_back(it.second);
+        if (it.second->getType() == DRM_PLANE_TYPE_OVERLAY)
+            osdPlane = it.second;
     }
+
+    // TODO: remove it, when no mosaic with three osdplanes
+    // temp workaround, only use two osdPlanes
+    for (auto it = planes.begin(); it != planes.end(); it++) {
+        if (osdPlane == *it) {
+            planes.erase(it);
+            break;
+        }
+    }
+
     return 0;
 }
 
@@ -71,13 +85,14 @@ int32_t DrmDevice::getCrtcs(
 int32_t DrmDevice::getConnector(
         std::shared_ptr<HwDisplayConnector> & connector,
         drm_connector_type_t type) {
-    auto it = mConnectors.find(type);
-    if (it != mConnectors.end()) {
-        connector = it->second;
-        MESON_LOGD("get existing connector %d-%p", type, connector.get());
-    } else {
-        MESON_ASSERT(0, "unsupported connector type %d", type);
+    for (const auto & it : mConnectors) {
+        if (it.second->getType() == type) {
+            connector = it.second;
+            return 0;
+        }
     }
+
+    MESON_ASSERT(0, "unsupported connector type %d", type);
 
     return 0;
 }
@@ -102,6 +117,11 @@ std::shared_ptr<HwDisplayCrtc> DrmDevice::getCrtcByPipe(uint32_t pipeIdx) {
     return NULL;
 }
 
+std::shared_ptr<HwDisplayConnector> DrmDevice::getConnectorById(uint32_t connectorid) {
+    auto connectorIt = mConnectors.find(connectorid);
+    return connectorIt->second;
+}
+
 int32_t DrmDevice::getPipeCfg(uint32_t pipeIdx, HwDisplayPipe & pipecfg) {
     std::lock_guard<std::mutex> lock(mMutex);
     auto it = mPipes.find(pipeIdx);
@@ -116,7 +136,7 @@ int32_t DrmDevice::getPipeCfg(uint32_t pipeIdx, HwDisplayPipe & pipecfg) {
 
 int32_t DrmDevice::bind(
     std::shared_ptr<HwDisplayCrtc> & crtc,
-    std::shared_ptr<HwDisplayConnector>  & connector,
+    std::shared_ptr<HwDisplayConnector> & connector,
     std::vector<std::shared_ptr<HwDisplayPlane>> & planes) {
     std::lock_guard<std::mutex> lock(mMutex);
     uint32_t pipeidx = crtc->getPipe();
@@ -148,8 +168,8 @@ int32_t DrmDevice::bind(
         plane->setCrtcId(pipecfg.crtc_id);
     }
 
-    /*TODO: apply bind??.*/
-    MESON_LOG_EMPTY_FUN();
+    DrmCrtc * drmcrtc = (DrmCrtc *)crtc.get();
+    drmcrtc->setConnectorId(pipecfg.connector_id);
 
     MESON_LOGD("bind pipe (%d),crtc(%d)connector(%d)",
         pipeidx, pipecfg.crtc_id, pipecfg.connector_id);
@@ -189,9 +209,11 @@ void DrmDevice::loadPipe() {
         /*get connector on this encoder*/
         for (auto & ct : mConnectors) {
             DrmConnector * connector = (DrmConnector *)(ct.second.get());
+            DrmCrtc * crtc = (DrmCrtc *)crtcit->second.get();
             if (connector->getEncoderId() == encoder_id) {
                 pipeCfg.connector_id = connector->getId();
                 connector->setCrtcId(pipeCfg.crtc_id);
+                crtc->setConnectorId(pipeCfg.connector_id);
                 break;
             }
         }
@@ -243,7 +265,7 @@ int32_t DrmDevice::loadDrmResources() {
             mDrmFd,drmRes->connectors[i]);
         std::shared_ptr<HwDisplayConnector> connector =
             std::make_shared<DrmConnector>(mDrmFd, metadata);
-        mConnectors.emplace(connector->getType(), std::move(connector));
+        mConnectors.emplace(connector->getId(), std::move(connector));
         drmModeFreeConnector(metadata);
     }
     drmModeFreeResources(drmRes);

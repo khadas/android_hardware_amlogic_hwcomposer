@@ -17,14 +17,13 @@
 #include "ConnectorHdmi.h"
 #include <sstream>
 
-enum {
-    REFRESH_24kHZ = 24,
-    REFRESH_30kHZ = 30,
-    REFRESH_60kHZ = 60,
-    REFRESH_120kHZ = 120,
-    REFRESH_240kHZ = 240
-};
+int32_t parseHdmiHdrCapabilities(drm_hdr_capabilities & hdrCaps);
+bool loadHdmiCurrentHdrType(std::string & hdrType);
+int32_t setHdmiALLM(bool on);
+int32_t loadHdmiSupportedContentTypes(std::vector<uint32_t> & supportedContentTypes);
+int32_t setHdmiContentType(uint32_t contentType);
 
+/*HDMI related define*/
 static const std::vector<std::string> CONTENT_TYPES = {
     "0",
     "graphics",
@@ -38,6 +37,15 @@ static const std::vector<std::string> CONTENT_TYPES = {
 #define HDMI_TX_ALLM_MODE   "/sys/class/amhdmitx/amhdmitx0/allm_mode"
 #define HDMI_TX_CONTENT_TYPE_CAP  "/sys/class/amhdmitx/amhdmitx0/contenttype_cap"
 #define HDMI_TX_CONTENT_TYPE  "/sys/class/amhdmitx/amhdmitx0/contenttype_mode"
+
+
+enum {
+    REFRESH_24kHZ = 24,
+    REFRESH_30kHZ = 30,
+    REFRESH_60kHZ = 60,
+    REFRESH_120kHZ = 120,
+    REFRESH_240kHZ = 240
+};
 
 ConnectorHdmi::ConnectorHdmi(int32_t drvFd, uint32_t id)
     :   HwDisplayConnectorFbdev(drvFd, id) {
@@ -60,7 +68,7 @@ int32_t ConnectorHdmi::update() {
         loadPhysicalSize();
         loadDisplayModes();
         loadSupportedContentTypes();
-        parseHdrCapabilities();
+        parseHdmiHdrCapabilities(mHdrCapabilities);
         parseEDID();
         get_hdmitx_hdcp_state(mSecure);
     }
@@ -237,57 +245,19 @@ void ConnectorHdmi::getHdrCapabilities(drm_hdr_capabilities * caps) {
 }
 
 int32_t ConnectorHdmi::loadSupportedContentTypes() {
-    mSupportedContentTypes.clear();
-
-    char supportedContentTypes[1024] = {};
-    if (!sysfs_get_string(HDMI_TX_CONTENT_TYPE_CAP, supportedContentTypes, sizeof supportedContentTypes)) {
-        MESON_LOGV("Read display content type SUCCESS.");
-    } else {
-        MESON_LOGE("Read display content type FAIL.");
-        return -EFAULT;
-    }
-
-    for (int i = 0; i < CONTENT_TYPES.size(); i++) {
-        if (strstr(supportedContentTypes, CONTENT_TYPES[i].c_str())) {
-            MESON_LOGD("ConnectorHdmi reports support for content type %s", CONTENT_TYPES[i].c_str());
-            mSupportedContentTypes.emplace_back(i);
-        }
-    }
-    return 0;
-}
-
-int32_t ConnectorHdmi::setAutoLowLatencyMode(bool on) {
-    if (on) {
-        if (!sysfs_set_string(HDMI_TX_ALLM_MODE, "1")) {
-            MESON_LOGV("setAutoLowLatencyMode on SUCCESS.");
-        } else {
-            MESON_LOGE("setAutoLowLatencyMode on FAIL.");
-            return -EFAULT;
-        }
-    } else {
-        if (!sysfs_set_string(HDMI_TX_ALLM_MODE, "0")) {
-            MESON_LOGV("setAutoLowLatencyMode off SUCCESS.");
-        } else {
-            MESON_LOGE("setAutoLowLatencyMode off FAIL.");
-            return -EFAULT;
-        }
-    }
-    return 0;
+    return loadHdmiSupportedContentTypes(mSupportedContentTypes);
 }
 
 int32_t ConnectorHdmi::setContentType(uint32_t contentType) {
-    if (!sysfs_set_string(HDMI_TX_CONTENT_TYPE, CONTENT_TYPES[contentType].c_str())) {
-        MESON_LOGV("setContentType SUCCESS.");
-    } else {
-        MESON_LOGE("setContentType %s FAIL.", CONTENT_TYPES[contentType].c_str());
-        return -EFAULT;
-    }
+    return setHdmiContentType(contentType);
+}
 
-    return 0;
+int32_t ConnectorHdmi::setAutoLowLatencyMode(bool on) {
+    return setHdmiALLM(on);
 }
 
 std::string ConnectorHdmi::getCurrentHdrType() {
-    loadCurrentHdrType();
+    loadHdmiCurrentHdrType(mCurrentHdrType);
     return mCurrentHdrType;
 }
 
@@ -329,7 +299,7 @@ void ConnectorHdmi::dump(String8 & dumpstr) {
         mHdrCapabilities.minLuminance);
 }
 
-int32_t ConnectorHdmi::getLineValue(const char *lineStr, const char *magicStr) {
+int32_t getLineValue(const char *lineStr, const char *magicStr) {
     int len = 0;
     char value[100] = {0};
     const char *pos = NULL;
@@ -376,7 +346,7 @@ int32_t ConnectorHdmi::getLineValue(const char *lineStr, const char *magicStr) {
 *     IEEEOUI: 0x00d046
 *     DM Ver: 1
 *******************************************/
-int32_t ConnectorHdmi::parseHdrCapabilities() {
+int32_t parseHdmiHdrCapabilities(drm_hdr_capabilities & hdrCaps) {
     // DolbyVision1
     const char *DV_PATH = "/sys/class/amhdmitx/amhdmitx0/dv_cap";
     // HDR
@@ -386,7 +356,7 @@ int32_t ConnectorHdmi::parseHdrCapabilities() {
     char* pos = buf;
     int fd, len;
 
-    memset(&mHdrCapabilities, 0, sizeof(drm_hdr_capabilities));
+    memset(&hdrCaps, 0, sizeof(drm_hdr_capabilities));
     if ((fd = open(DV_PATH, O_RDONLY)) < 0) {
         MESON_LOGE("open %s fail.", DV_PATH);
         goto exit;
@@ -400,7 +370,7 @@ int32_t ConnectorHdmi::parseHdrCapabilities() {
     close(fd);
 
     if ((NULL != strstr(pos, "2160p30hz")) || (NULL != strstr(pos, "2160p60hz")))
-        mHdrCapabilities.DolbyVisionSupported= true;
+        hdrCaps.DolbyVisionSupported= true;
     // dobly version parse end
 
     memset(buf, 0, 1024);
@@ -417,31 +387,38 @@ int32_t ConnectorHdmi::parseHdrCapabilities() {
 
     if (pos != NULL) pos = strstr(pos, "HDR10Plus Supported: ");
     if ((NULL != pos) && ('1' == *(pos + strlen("HDR10Plus Supported: ")))) {
-        mHdrCapabilities.HDR10PlusSupported = true;
+        hdrCaps.HDR10PlusSupported = true;
     }
 
     if (pos != NULL) pos = strstr(pos, "SMPTE ST 2084: ");
     if ((NULL != pos) && ('1' == *(pos + strlen("SMPTE ST 2084: ")))) {
-        mHdrCapabilities.HDR10Supported = true;
+        hdrCaps.HDR10Supported = true;
 
-        mHdrCapabilities.maxLuminance = getLineValue(pos, "Max: ");
-        mHdrCapabilities.avgLuminance = getLineValue(pos, "Avg: ");
-        mHdrCapabilities.minLuminance = getLineValue(pos, "Min: ");
+        hdrCaps.maxLuminance = getLineValue(pos, "Max: ");
+        hdrCaps.avgLuminance = getLineValue(pos, "Avg: ");
+        hdrCaps.minLuminance = getLineValue(pos, "Min: ");
     }
 
     if (pos != NULL) pos = strstr(buf, "Hybrif Log-Gamma: ");
     if ((NULL != pos) && ('1' == *(pos + strlen("Hybrif Log-Gamma: ")))) {
-        mHdrCapabilities.HLGSupported = true;
+        hdrCaps.HLGSupported = true;
+    }
+
+    /* kernel 5.4, content change to: Hybrid Log-Gamma */
+    if (pos != NULL)
+        pos = strstr(buf, "Hybrid Log-Gamma: ");
+    if ((NULL != pos) && ('1' == *(pos + strlen("Hybrid Log-Gamma: ")))) {
+        hdrCaps.HLGSupported = true;
     }
 
     MESON_LOGD("dolby version:%d, hlg:%d, hdr10:%d, hdr10+:%d max:%d, avg:%d, min:%d\n",
-        mHdrCapabilities.DolbyVisionSupported ? 1:0,
-        mHdrCapabilities.HLGSupported ? 1:0,
-        mHdrCapabilities.HDR10Supported ? 1:0,
-        mHdrCapabilities.HDR10PlusSupported ? 1:0,
-        mHdrCapabilities.maxLuminance,
-        mHdrCapabilities.avgLuminance,
-        mHdrCapabilities.minLuminance);
+        hdrCaps.DolbyVisionSupported ? 1:0,
+        hdrCaps.HLGSupported ? 1:0,
+        hdrCaps.HDR10Supported ? 1:0,
+        hdrCaps.HDR10PlusSupported ? 1:0,
+        hdrCaps.maxLuminance,
+        hdrCaps.avgLuminance,
+        hdrCaps.minLuminance);
 
 exit:
     close(fd);
@@ -497,14 +474,67 @@ void ConnectorHdmi::parseEDID() {
 * HDR10-others
 * HDR10-GAMMA_HLG
 */
-bool ConnectorHdmi::loadCurrentHdrType() {
+bool loadHdmiCurrentHdrType(std::string & hdrType) {
     const char *HDR_STATUS = "/sys/class/amhdmitx/amhdmitx0/hdmi_hdr_status";
 
-    if (read_sysfs(HDR_STATUS, mCurrentHdrType) != 0) {
+    if (read_sysfs(HDR_STATUS, hdrType) != 0) {
         // default set to sdr
-        mCurrentHdrType = "sdr";
+        hdrType = "sdr";
         return false;
     }
 
     return true;
 }
+
+int32_t setHdmiALLM(bool on) {
+    if (on) {
+        if (!sysfs_set_string(HDMI_TX_ALLM_MODE, "1")) {
+            MESON_LOGV("setAutoLowLatencyMode on SUCCESS.");
+        } else {
+            MESON_LOGE("setAutoLowLatencyMode on FAIL.");
+            return -EFAULT;
+        }
+    } else {
+        if (!sysfs_set_string(HDMI_TX_ALLM_MODE, "0")) {
+            MESON_LOGV("setAutoLowLatencyMode off SUCCESS.");
+        } else {
+            MESON_LOGE("setAutoLowLatencyMode off FAIL.");
+            return -EFAULT;
+        }
+    }
+    return 0;
+}
+
+
+int32_t loadHdmiSupportedContentTypes(std::vector<uint32_t> & supportedContentTypes) {
+    supportedContentTypes.clear();
+
+    char supportedContentTypeStr[1024] = {};
+    if (!sysfs_get_string(HDMI_TX_CONTENT_TYPE_CAP, supportedContentTypeStr, sizeof supportedContentTypeStr)) {
+        MESON_LOGV("Read display content type SUCCESS.");
+    } else {
+        MESON_LOGE("Read display content type FAIL.");
+        return -EFAULT;
+    }
+
+    for (int i = 0; i < CONTENT_TYPES.size(); i++) {
+        if (strstr(supportedContentTypeStr, CONTENT_TYPES[i].c_str())) {
+            MESON_LOGD("ConnectorHdmi reports support for content type %s", CONTENT_TYPES[i].c_str());
+            supportedContentTypes.emplace_back(i);
+        }
+    }
+    return 0;
+}
+
+int32_t setHdmiContentType(uint32_t contentType) {
+    if (!sysfs_set_string(HDMI_TX_CONTENT_TYPE, CONTENT_TYPES[contentType].c_str())) {
+        MESON_LOGV("setContentType SUCCESS.");
+    } else {
+        MESON_LOGE("setContentType %s FAIL.", CONTENT_TYPES[contentType].c_str());
+        return -EFAULT;
+    }
+
+    return 0;
+}
+
+
