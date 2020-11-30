@@ -22,6 +22,7 @@ class HwcVsyncObserver {
 public:
     virtual ~HwcVsyncObserver() {}
     virtual void onVsync(int64_t timestamp, uint32_t vsyncPeriodNanos) = 0;
+    virtual void onVTVsync(int64_t timestamp, uint32_t vsyncPeriodNanos) = 0;
 };
 
 class HwcVsync {
@@ -34,6 +35,7 @@ public:
     int32_t setHwMode(std::shared_ptr<HwDisplayCrtc> & crtc);
     int32_t setPeriod(nsecs_t period);
     int32_t setEnabled(bool enabled);
+    int32_t setVideoTunnelEnabled(bool enabled);
 
     void dump(String8 & dumpstr);
 
@@ -45,6 +47,7 @@ protected:
 protected:
     bool mSoftVsync;
     bool mEnabled;
+    bool mVTEnabled;
     bool mExit;
     nsecs_t mVsyncTime;
     nsecs_t mReqPeriod;

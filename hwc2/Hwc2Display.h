@@ -128,6 +128,7 @@ public:
     virtual int32_t blankDisplay();
 
     virtual void onVsync(int64_t timestamp, uint32_t vsyncPeriodNanos);
+    virtual void onVTVsync(int64_t timestamp, uint32_t vsyncPeriodNanos);
     virtual void onHotplug(bool connected);
     virtual void onUpdate(bool bHdcp);
     virtual void onModeChanged(int stage);

@@ -18,6 +18,7 @@
 HwcVsync::HwcVsync() {
     mSoftVsync = true;
     mEnabled = false;
+    mVTEnabled = false;
     mPreTimeStamp = 0;
     mReqPeriod = 0;
     mVsyncTime = 0;
@@ -79,6 +80,14 @@ int32_t HwcVsync::setEnabled(bool enabled) {
     return 0;
 }
 
+int32_t HwcVsync::setVideoTunnelEnabled(bool enabled) {
+    std::unique_lock<std::mutex> stateLock(mStatLock);
+    mVTEnabled = enabled;
+    stateLock.unlock();
+    mStateCondition.notify_all();
+    return 0;
+}
+
 void * HwcVsync::vsyncThread(void * data) {
     HwcVsync* pThis = (HwcVsync*)data;
     MESON_LOGV("HwDisplayVsync: vsyncThread start - (%p).", pThis);
@@ -86,7 +95,7 @@ void * HwcVsync::vsyncThread(void * data) {
     while (true) {
         {
             std::unique_lock<std::mutex> stateLock(pThis->mStatLock);
-            while (!pThis->mEnabled) {
+            while (!pThis->mEnabled && !pThis->mVTEnabled) {
                 pThis->mStateCondition.wait(stateLock);
                 if (pThis->mExit) {
                     MESON_LOGD("exit vsync loop");
@@ -118,9 +127,13 @@ void * HwcVsync::vsyncThread(void * data) {
                         period, timestamp);
         }
 
-
-        if (pThis->mEnabled && ret == 0 && pThis->mObserver) {
-            pThis->mObserver->onVsync(timestamp, period);
+        if (ret == 0 && pThis->mObserver) {
+            if (pThis->mEnabled) {
+                pThis->mObserver->onVsync(timestamp, period);
+            }
+            if (pThis->mVTEnabled) {
+                pThis->mObserver->onVTVsync(timestamp, period);
+            }
         } else {
             if (ret != 0)
                 MESON_LOGE("wait for hw vsync error:%d", ret);

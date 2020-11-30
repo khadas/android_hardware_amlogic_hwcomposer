@@ -332,6 +332,12 @@ void Hwc2Display::onVsync(int64_t timestamp, uint32_t vsyncPeriodNanos) {
     }
 }
 
+void Hwc2Display::onVTVsync(int64_t timestamp, uint32_t vsyncPeriodNanos) {
+    // TODO:
+     MESON_LOGD("sth-debug: video tunnel vsync: timestamp=%lld, vsyncPeriodNanos=%u",
+             timestamp, vsyncPeriodNanos);
+}
+
 void Hwc2Display::onModeChanged(int stage) {
     bool bSendPlugIn = false;
     {

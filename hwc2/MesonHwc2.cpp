@@ -724,7 +724,7 @@ int32_t MesonHwc2::handleDisplayRequest(uint32_t request) {
 /**********************Internal Implement********************/
 
 class MesonHwc2Observer
-    : public Hwc2DisplayObserver, public HwcVsyncObserver{
+    : public Hwc2DisplayObserver {
 public:
     MesonHwc2Observer(hwc2_display_t display, MesonHwc2 * hwc) {
         mDispId = display;
