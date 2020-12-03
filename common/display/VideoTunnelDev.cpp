@@ -12,6 +12,7 @@
 
 #include <MesonLog.h>
 #include "VideoTunnelDev.h"
+#include <poll.h>
 
 #define VT_ROLE_CONSUMER  1
 
@@ -47,4 +48,18 @@ int32_t VideoTunnelDev::releaseBuffer(int tunnelId, int bufferFd, int fenceFd) {
 int32_t VideoTunnelDev::recieveCmd(int tunnelId, enum vt_cmd& cmd, int& cmdData) {
     int clientId;
     return meson_vt_recv_cmd(mDrvFd, tunnelId, &cmd, &cmdData, &clientId);
+}
+
+int32_t VideoTunnelDev::pollBuffer() {
+    struct pollfd fds[1];
+    fds[0].fd = mDrvFd;
+    fds[0].events = POLLIN;
+    fds[0].revents = 0;
+
+    int pollrtn = poll(fds, 1, -1);
+    if (pollrtn > 0 && fds[0].revents == POLLIN) {
+        return 0;
+    }
+
+    return 1;
 }

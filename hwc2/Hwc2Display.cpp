@@ -8,10 +8,12 @@
  */
 #include <hardware/hwcomposer2.h>
 #include <inttypes.h>
+#include <time.h>
 
 #include "Hwc2Display.h"
 #include "Hwc2Layer.h"
 #include "Hwc2Base.h"
+#include "VideoTunnelThread.h"
 
 #include <DrmTypes.h>
 #include <HwcConfig.h>
@@ -31,10 +33,12 @@ Hwc2Display::Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer) {
     mForceClientComposer = false;
     mPowerMode  = std::make_shared<HwcPowerMode>();
     mSignalHpd = false;
+    mDisplayConnection = true;
     mValidateDisplay = false;
     mVsyncState = false;
     mScaleValue = 1;
     mPresentFence = -1;
+    mVideoTunnelThread = NULL;
     memset(&mHdrCaps, 0, sizeof(mHdrCaps));
     memset(mColorMatrix, 0, sizeof(float) * 16);
     memset(&mCalibrateCoordinates, 0, sizeof(int) * 4);
@@ -285,8 +289,10 @@ void Hwc2Display::onHotplug(bool connected) {
         if (mConnector && mConnector->getType() == DRM_MODE_CONNECTOR_HDMIA) {
             mModeMgr->update();
             mObserver->onHotplug(true);
+            mDisplayConnection = true;
         } else {
             mObserver->onHotplug(false);
+            mDisplayConnection = false;
         }
     }
 
@@ -333,9 +339,8 @@ void Hwc2Display::onVsync(int64_t timestamp, uint32_t vsyncPeriodNanos) {
 }
 
 void Hwc2Display::onVTVsync(int64_t timestamp, uint32_t vsyncPeriodNanos) {
-    // TODO:
-     MESON_LOGD("sth-debug: video tunnel vsync: timestamp=%lld, vsyncPeriodNanos=%u",
-             timestamp, vsyncPeriodNanos);
+    if (mVideoTunnelThread != NULL)
+        mVideoTunnelThread->onVtVsync(timestamp, vsyncPeriodNanos);
 }
 
 void Hwc2Display::onModeChanged(int stage) {
@@ -391,6 +396,7 @@ void Hwc2Display::onModeChanged(int stage) {
     if (bSendPlugIn && mModeMgr->needCallHotPlug()) {
         MESON_LOGD("onModeChanged mObserver->onHotplug(true)");
         mObserver->onHotplug(true);
+        mDisplayConnection = true;
     } else {
         MESON_LOGD("mModeMgr->resetTags");
         mModeMgr->resetTags();
@@ -447,6 +453,8 @@ hwc2_error_t Hwc2Display::destroyLayer(hwc2_layer_t  inLayer) {
     auto layerit = mLayers.find(inLayer);
     if (layerit == mLayers.end())
         return HWC2_ERROR_BAD_LAYER;
+
+    handleVtThread();
 
     DebugHelper::getInstance().removeDebugLayer((int)inLayer);
     mLayers.erase(inLayer);
@@ -518,6 +526,12 @@ hwc2_error_t Hwc2Display::collectLayersForPresent() {
         std::shared_ptr<Hwc2Layer> layer = it->second;
         std::shared_ptr<DrmFramebuffer> buffer = layer;
         if (bUpdateLayerList == true && layer->isUpdateZorder() == false) {
+            continue;
+        }
+        if (layer->isVtLayer() && layer->getVtBuffer() == -1) {
+            /* Check if layer buffer id is set or not
+             * when layer is videotunnel type
+             * */
             continue;
         }
         mPresentLayers.push_back(buffer);
@@ -694,6 +708,10 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
     mOverlayLayers.clear();
     mFailedDeviceComp = false;
     mSkipComposition = false;
+
+    handleVtThread();
+    if (mVideoTunnelThread)
+        acquireVtLayers();
 
     hwc2_error_t ret = collectLayersForPresent();
     if (ret != HWC2_ERROR_NONE) {
@@ -873,6 +891,7 @@ hwc2_error_t Hwc2Display::acceptDisplayChanges() {
 
 hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
     std::lock_guard<std::mutex> lock(mMutex);
+    mDisplayTimestamp = systemTime(CLOCK_MONOTONIC);
 
     if (mSkipComposition) {
         *outPresentFence = -1;
@@ -918,6 +937,13 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
         *outPresentFence = ::dup(mPresentFence);
     }
 
+    if (mVideoTunnelThread) {
+        if (*outPresentFence == -1)
+            releaseVtLayers(-1);
+        else
+            releaseVtLayers(::dup(*outPresentFence));
+    }
+
     /*dump debug informations.*/
     bool dumpComposition = false;
     if (DebugHelper::getInstance().logCompositionDetail()) {
@@ -947,18 +973,21 @@ hwc2_error_t Hwc2Display::getReleaseFences(uint32_t* outNumElements,
     if (outLayers && outFences)
         needInfo = true;
 
-    for (auto it = mPresentLayers.begin(); it != mPresentLayers.end(); it++) {
-        Hwc2Layer *layer = (Hwc2Layer*)(it->get());
-        num++;
-        if (needInfo) {
-            int32_t releaseFence = layer->getPrevReleaseFence();
-            if (releaseFence == -1)
-                *outFences = ::dup(mPresentFence);
-            else
-                *outFences = releaseFence;
-            *outLayers = layer->getUniqueId();
-            outLayers++;
-            outFences++;
+    {
+        std::lock_guard<std::mutex> lock(mMutex);
+        for (auto it = mPresentLayers.begin(); it != mPresentLayers.end(); it++) {
+            Hwc2Layer *layer = (Hwc2Layer*)(it->get());
+            num++;
+            if (needInfo) {
+                int32_t releaseFence = layer->getPrevReleaseFence();
+                if (releaseFence == -1)
+                    *outFences = ::dup(mPresentFence);
+                else
+                    *outFences = releaseFence;
+                *outLayers = layer->getUniqueId();
+                outLayers++;
+                outFences++;
+            }
         }
     }
 
@@ -1329,4 +1358,74 @@ int32_t Hwc2Display::captureDisplayScreen(buffer_handle_t hnd) {
     }
 
     return ret;
+}
+
+
+/*******************Video Tunnel API below*******************/
+void Hwc2Display::handleVtThread() {
+    bool haveVtLayer = false;
+    for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
+        std::shared_ptr<Hwc2Layer> layer = it->second;
+        if (layer->isVtLayer()) {
+            haveVtLayer = true;
+            break;
+        }
+    }
+
+    if (haveVtLayer && mVideoTunnelThread == NULL) {
+        mVideoTunnelThread = std::make_shared<VideoTunnelThread>(this);
+        mVsync->setVideoTunnelEnabled(true);
+        mVideoTunnelThread->start();
+    } else if (!haveVtLayer && mVideoTunnelThread != NULL) {
+        mVsync->setVideoTunnelEnabled(false);
+        mVideoTunnelThread->stop();
+        mVideoTunnelThread.reset();
+        mVideoTunnelThread = NULL;
+    }
+}
+
+void Hwc2Display::acquireVtLayers() {
+    int ret;
+    std::shared_ptr<Hwc2Layer> layer;
+
+    for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
+        layer = it->second;
+        if (layer->isVtLayer()) {
+            ret = layer->acquireVtBuffer();
+            if (ret != 0 && ret != -EAGAIN) {
+                MESON_LOGE("%s, acquire layer id=%llu failed, ret=%s",
+                        __func__, layer->getUniqueId(), strerror(ret));
+            }
+        }
+    }
+}
+
+void Hwc2Display::releaseVtLayers(int releaseFence) {
+    int ret;
+    std::shared_ptr<Hwc2Layer> layer;
+
+    for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
+        layer = it->second;
+        if (layer->isVtLayer()) {
+            ret = layer->releaseVtBuffer(releaseFence);
+            if (ret != 0 && ret != -EAGAIN) {
+                MESON_LOGE("%s, release layer id=%llu failed, ret=%s",
+                        __func__, layer->getUniqueId(), strerror(ret));
+            }
+        }
+    }
+}
+
+nsecs_t Hwc2Display::getPreDisplayTime() {
+    return mDisplayTimestamp;
+}
+
+bool Hwc2Display::handleVtDisplayConnection() {
+    std::lock_guard<std::mutex> lock(mMutex);
+    if (!mDisplayConnection) {
+        acquireVtLayers();
+        releaseVtLayers(-1);
+    }
+
+    return mDisplayConnection;
 }

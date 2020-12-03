@@ -78,7 +78,6 @@ typedef enum drm_fb_type {
     DRM_FB_DI_COMPOSE_OUTPUT,
     /*for videotunnel*/
     DRM_FB_VIDEO_TUNNEL_SIDEBAND,
-    DRM_FB_VIDEO_TUNNEL_SIDEBAND_SECOND,
     /*uvm dma buffer*/
     DRM_FB_VIDEO_UVM_DMA,
 } drm_fb_type_t;

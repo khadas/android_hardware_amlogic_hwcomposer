@@ -46,10 +46,7 @@ const char * drmFbTypeToString(drm_fb_type_t fbtype) {
             typeStr = "video-dma";
             break;
         case DRM_FB_VIDEO_TUNNEL_SIDEBAND:
-            typeStr = "video-tunnel-sideband";
-            break;
-        case DRM_FB_VIDEO_TUNNEL_SIDEBAND_SECOND:
-            typeStr = "video-tunnel-sideband-2";
+            typeStr = "vt-sideband";
             break;
         case DRM_FB_VIDEO_UVM_DMA:
             typeStr = "uvm-dma";

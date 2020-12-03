@@ -10,42 +10,42 @@
 #ifndef VIDEO_TUNNEL_THREAD_H
 #define VIDEO_TUNNEL_THREAD_H
 
+#include "Hwc2Display.h"
+#include "Hwc2Layer.h"
+
 #include <vector>
 #include <mutex>
-
-#include <DrmFramebuffer.h>
-#include "VideoComposerDev.h"
-
 #include <pthread.h>
 #include <utils/threads.h>
-#include "video_tunnel.h"
+#include <condition_variable>
 
 class VideoTunnelThread {
-    public:
-        VideoTunnelThread(int32_t composerFd, drm_fb_type_t type);
+public:
+        VideoTunnelThread(Hwc2Display * display);
         ~VideoTunnelThread();
 
         int start();
         void stop();
-        int setPlane(std::shared_ptr<DrmFramebuffer> fb,uint32_t id, uint32_t zorder);
+        void onVtVsync(int64_t timestamp, uint32_t vsyncPeriodNanos);
 
-    protected:
+protected:
+        void handleVideoTunnelLayers();
         static void *threadMain(void * data);
-        int handleVideoTunnelBuffers();
 
-    protected:
+protected:
         enum {
             PROCESSOR_START = 0,
             PROCESSOR_STOP,
         };
 
-        bool mThreadExit;
-        int mVTFd;
-        int mVideoTunnelId;
+        bool mExit;
+        bool mVsyncComing;
         int mStat;
-        int mDrvFd;
-        video_frames_info_t mVideoFramesInfo;
-        pthread_t mVideoTunnelThread;
+        pthread_t mVtThread;
+        nsecs_t mVsyncTimestamp;
+        std::mutex mVtLock;
+        std::condition_variable mVtCondition;
+        Hwc2Display * mDisplay;
 };
 
 #endif

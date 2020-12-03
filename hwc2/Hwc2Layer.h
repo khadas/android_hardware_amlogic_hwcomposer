@@ -55,6 +55,7 @@ public:
     bool isUpdateZorder() { return mUpdateZorder;}
     void updateZorder(bool update);
 
+    bool isVtLayer() override;
     int32_t getVtBuffer() override;
     int32_t acquireVtBuffer() override;
     int32_t releaseVtBuffer(int releaseFence) override;
@@ -80,6 +81,7 @@ protected:
     int mPreVtBufferFd;
     int64_t mTimeStamp;
     bool mVtUpdate;
+    bool mVtDeviceConnection;
 };
 
 

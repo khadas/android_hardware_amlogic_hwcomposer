@@ -29,6 +29,8 @@
 #include "MesonHwc2Defs.h"
 #include "HwcModeMgr.h"
 
+class VideoTunnelThread;
+
 /* IComposerClient@2.4::DisplayConnectionType */
 enum {
     DISPLAY_TYPE_INTERNAL = 0,
@@ -128,12 +130,20 @@ public:
     virtual int32_t blankDisplay();
 
     virtual void onVsync(int64_t timestamp, uint32_t vsyncPeriodNanos);
-    virtual void onVTVsync(int64_t timestamp, uint32_t vsyncPeriodNanos);
     virtual void onHotplug(bool connected);
     virtual void onUpdate(bool bHdcp);
     virtual void onModeChanged(int stage);
     virtual void getDispMode(drm_mode_info_t & dispMode);
     virtual void cleanupBeforeDestroy();
+
+/* video tunnel api*/
+public:
+    virtual void onVTVsync(int64_t timestamp, uint32_t vsyncPeriodNanos);
+    virtual void handleVtThread();
+    virtual void acquireVtLayers();
+    virtual void releaseVtLayers(int releaseFence);
+    virtual nsecs_t getPreDisplayTime();
+    virtual bool handleVtDisplayConnection();
 
 /* meson display ddk */
 public:
@@ -222,6 +232,11 @@ protected:
 
     bool mVsyncState;
     float mScaleValue;
+
+    /* for video tunnel mode video*/
+    std::shared_ptr<VideoTunnelThread> mVideoTunnelThread;
+    nsecs_t mDisplayTimestamp;
+    bool mDisplayConnection;
 };
 
 #endif/*HWC2_DISPLAY_H*/

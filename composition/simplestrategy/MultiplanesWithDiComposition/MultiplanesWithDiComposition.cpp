@@ -131,13 +131,12 @@ int MultiplanesWithDiComposition::processVideoFbs() {
             case DRM_FB_VIDEO_OVERLAY:
             case DRM_FB_VIDEO_SIDEBAND:
             case DRM_FB_VIDEO_SIDEBAND_TV:
-            case DRM_FB_VIDEO_TUNNEL_SIDEBAND:
                 bSideband = true;
                 [[clang::fallthrough]];
             case DRM_FB_VIDEO_OMX_V4L:
             case DRM_FB_VIDEO_DMABUF:
             case DRM_FB_VIDEO_UVM_DMA:
-            case DRM_FB_VIDEO_TUNNEL_SIDEBAND_SECOND:
+            case DRM_FB_VIDEO_TUNNEL_SIDEBAND:
                 if (bSideband) {
                     sidebandFbs.push_back(fb);
                 } else {
@@ -222,10 +221,6 @@ int MultiplanesWithDiComposition::processVideoFbs() {
         for (auto it = mDIComposerFbs.begin(); it != mDIComposerFbs.end(); it++) {
             fb = *it;
             is_overlap = false;
-
-            /* post DRM_FB_VIDEO_TUNNEL_SIDEBAND_SECOND type buf to video_composer.1 */
-            if (fb->mFbType == DRM_FB_VIDEO_TUNNEL_SIDEBAND_SECOND)
-                continue;
 
             /* find one that did not overlap with others */
             dispFrame = fb->mDisplayFrame;

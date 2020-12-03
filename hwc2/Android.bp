@@ -22,6 +22,7 @@ cc_library_static {
         "Hwc2Display.cpp",
         "Hwc2Layer.cpp",
         "MesonHwc2.cpp",
+        "VideoTunnelThread.cpp",
     ],
 
     // !!! static lib sequence is serious, donot change it.

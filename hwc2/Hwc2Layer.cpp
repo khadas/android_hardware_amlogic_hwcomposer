@@ -19,6 +19,7 @@
 Hwc2Layer::Hwc2Layer() : DrmFramebuffer(){
     mDataSpace     = HAL_DATASPACE_UNKNOWN;
     mUpdateZorder  = false;
+    mVtDeviceConnection = false;
     mVtBufferFd    = -1;
     mPreVtBufferFd = -1;
     mVtUpdate      = -1;
@@ -31,6 +32,9 @@ Hwc2Layer::~Hwc2Layer() {
             releaseVtBuffer(-1);
         if (mPreVtBufferFd > 0)
             close(mPreVtBufferFd);
+
+        if (mVtDeviceConnection)
+            VideoTunnelDev::getInstance().disconnect(mTunnelId);
     }
 }
 
@@ -162,25 +166,25 @@ hwc2_error_t Hwc2Layer::setSidebandStream(const native_handle_t* stream) {
     setBufferInfo(stream, -1);
 
     int type = AM_INVALID_SIDEBAND;
+    int channel_id = 0;
     am_gralloc_get_sideband_type(stream, &type);
+    am_gralloc_get_sideband_channel(stream, &channel_id);
     if (type == AM_TV_SIDEBAND) {
         mFbType = DRM_FB_VIDEO_SIDEBAND_TV;
     } else if (type == AM_FIXED_TUNNEL) {
-        int tunnel_id = 0;
         mFbType = DRM_FB_VIDEO_TUNNEL_SIDEBAND;
-        am_gralloc_get_sideband_channel(stream, &tunnel_id);
-        mTunnelId = tunnel_id;
+        mTunnelId = channel_id;
+        if (!mVtDeviceConnection) {
+            VideoTunnelDev::getInstance().connect(mTunnelId);
+            mVtDeviceConnection = true;
+        }
     } else {
-        int channel = 0;
-        am_gralloc_get_sideband_channel(stream, &channel);
-        if (channel == AM_VIDEO_EXTERNAL) {
+        if (channel_id == AM_VIDEO_EXTERNAL) {
             mFbType = DRM_FB_VIDEO_SIDEBAND_SECOND;
         } else {
             mFbType = DRM_FB_VIDEO_SIDEBAND;
         }
     }
-
-    MESON_LOGD("setsidebandstream %p get type = %d, mfbtype=%d", stream, type, mFbType);
 
     mSecure = false;
     return HWC2_ERROR_NONE;
@@ -295,6 +299,10 @@ void Hwc2Layer::updateZorder(bool update) {
     mUpdateZorder = update;
 }
 
+bool Hwc2Layer::isVtLayer() {
+    return (mFbType == DRM_FB_VIDEO_TUNNEL_SIDEBAND) ? true : false;
+}
+
 int32_t Hwc2Layer::getVtBuffer() {
     std::lock_guard<std::mutex> lock(mMutex);
     if (mFbType != DRM_FB_VIDEO_TUNNEL_SIDEBAND)
@@ -325,7 +333,7 @@ int32_t Hwc2Layer::acquireVtBuffer() {
     if (ret < 0)
         return ret;
 
-    // acquire video tunnel buffer sucess
+    // acquire video tunnel buffer success
     mVtUpdate = true;
     if (mPreVtBufferFd > 0)
         close(mPreVtBufferFd);
