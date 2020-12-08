@@ -235,6 +235,8 @@ const drm_hdr_capabilities_t * Hwc2Display::getHdrCapabilities() {
         return nullptr;
     }
 
+    mConnector->getHdrCapabilities(&mHdrCaps);
+
     if (HwcConfig::defaultHdrCapEnabled()) {
         constexpr int sDefaultMinLumiance = 0;
         constexpr int sDefaultMaxLumiance = 500;
