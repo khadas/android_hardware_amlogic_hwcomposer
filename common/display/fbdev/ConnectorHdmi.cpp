@@ -19,6 +19,8 @@
 
 #include "Dv.h"
 
+#define DV_ENABLE_STATUS "persist.vendor.sys.tv.dolbyvision.enable"
+
 int32_t parseHdmiHdrCapabilities(drm_hdr_capabilities & hdrCaps);
 bool loadHdmiCurrentHdrType(std::string & hdrType);
 int32_t setHdmiALLM(bool on);
@@ -341,7 +343,10 @@ int32_t parseHdmiHdrCapabilities(drm_hdr_capabilities & hdrCaps) {
     char* pos = buf;
     int fd, len;
 
+    bool dv_enable = sc_get_property_boolean(DV_ENABLE_STATUS, false);
+    MESON_LOGI("dv_enable status (%d)",dv_enable);
     memset(&hdrCaps, 0, sizeof(drm_hdr_capabilities));
+
     if ((fd = open(DV_PATH, O_RDONLY)) < 0) {
         MESON_LOGE("open %s fail.", DV_PATH);
         hdrCaps.DolbyVisionSupported = false;
@@ -349,9 +354,19 @@ int32_t parseHdmiHdrCapabilities(drm_hdr_capabilities & hdrCaps) {
         if ((len = read(fd, buf, 1024)) < 0) {
             MESON_LOGE("read error: %s, %s\n", DV_PATH, strerror(errno));
             hdrCaps.DolbyVisionSupported = false;
+        } else if (!dv_enable) {
+            MESON_LOGI("dv disabled");
+            hdrCaps.DolbyVisionSupported = false;
         } else {
             bool devSupportDv = getDvSupportStatus();
             if (((NULL != strstr(pos, "2160p30hz")) || (NULL != strstr(pos, "2160p60hz"))) && devSupportDv)
+                /* This information is coming / prasing from the VSVDB in Rx EDID.
+                 * And there is a bit field that indicates the dv max resolution capbility with 4k.
+                 * If supports_2160p60hz is true, then this Rx can support the DV with 2160p60hz,
+                 * otherwise it only supports to 2160p30hz.
+                 * Acutally, DV can also work under the 1080p60...
+                 * That is to say, not every DV TV can supports up to 2160p60hz udner DV, maybe 2160p30hz.
+                 */
                 hdrCaps.DolbyVisionSupported = true;
         }
         close(fd);
