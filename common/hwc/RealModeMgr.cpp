@@ -29,7 +29,6 @@ static const drm_mode_info_t fakeInitialMode = {
 };
 
 RealModeMgr::RealModeMgr() {
-    mCallOnHotPlug = true;
     mPreviousMode = fakeInitialMode;
 }
 
@@ -200,7 +199,6 @@ int32_t RealModeMgr::setActiveConfig(uint32_t config) {
         }
 
         mPreviousMode = cfg;
-        mCallOnHotPlug = false;
         mConnector->setMode(cfg);
         mCrtc->setMode(cfg);
     } else {
@@ -210,10 +208,6 @@ int32_t RealModeMgr::setActiveConfig(uint32_t config) {
 
     return HWC2_ERROR_NONE;
 }
-
-void RealModeMgr::resetTags() {
-    mCallOnHotPlug = true;
-};
 
 void RealModeMgr::dump(String8 & dumpstr) {
     dumpstr.appendFormat("RealModeMgr:(%s)\n", mCurMode.name);

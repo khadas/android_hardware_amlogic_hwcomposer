@@ -38,7 +38,7 @@ void* monitor_routine(void* file) {
         return NULL;
     }
     int watchfd = -1;
-    DEBUG_INFO("Watching the %s\n", file);
+    DEBUG_INFO("Watching the %p\n", file);
     while (true) {
         if (watchfd == -1) {
             watchfd = inotify_add_watch(inotfd, (char*)file, IN_CLOSE_WRITE);
@@ -55,7 +55,7 @@ void* monitor_routine(void* file) {
                 event = (const struct inotify_event*) ptr;
                 DEBUG_INFO("Get event info!");
                 if (event->mask & IN_CLOSE_WRITE) {
-                    DEBUG_INFO("file %s changed!", file);
+                    DEBUG_INFO("file %p changed!", file);
                 }
             }
         }
