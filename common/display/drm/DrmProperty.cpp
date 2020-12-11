@@ -13,6 +13,7 @@
 #include <MesonLog.h>
 #include "DrmDevice.h"
 #include "DrmProperty.h"
+#include <inttypes.h>
 
 DrmProperty::DrmProperty(drmModePropertyPtr p, uint32_t objectId, uint64_t value)
     : mValue(value),
@@ -57,7 +58,7 @@ DrmProperty::DrmProperty(drmModePropertyPtr p, uint32_t objectId, uint64_t value
     }
 
     MESON_ASSERT(mType !=0, "UNKNOWN type for prop (%s)", mPropRes.name);
-    MESON_LOGD("DrmProperty: %s (%d), value [%lld]",
+    MESON_LOGD("DrmProperty: %s (%d), value [%" PRId64 "]",
         mPropRes.name, mPropRes.prop_id, mValue);
 }
 
@@ -76,7 +77,7 @@ int DrmProperty::setValue(uint64_t val) {
 
     if (mType == DRM_MODE_PROP_RANGE) {
         if (val < mPropRes.values[0] || val > mPropRes.values[1]) {
-            MESON_LOGE("[%s] RAGNE ERROR (%lld) -> (%lld,%lld)",
+            MESON_LOGE("[%s] RAGNE ERROR (%" PRId64 ") -> (%" PRId64 ",%" PRId64 ")",
                 mPropRes.name, val, mPropRes.values[0], mPropRes.values[1]);
             return -EINVAL;
         }
@@ -89,7 +90,7 @@ int DrmProperty::setValue(uint64_t val) {
         }
     } else if (mType == DRM_MODE_PROP_ENUM) {
         if (val >= mPropRes.count_enums) {
-            MESON_LOGE("[%s] ENUM IDX ERROR (%lld) -> (%d)",
+            MESON_LOGE("[%s] ENUM IDX ERROR (%" PRId64 ") -> (%d)",
                 mPropRes.name, val, mPropRes.count_enums);
             return -EINVAL;
         }
@@ -166,13 +167,13 @@ int DrmProperty::apply(drmModeAtomicReqPtr req) {
 }
 
 void DrmProperty::dump(String8 &dumpstr) {
-    dumpstr.appendFormat("DrmProperty: [%s]-[%d], value [%llu], immutable[%d]:",
+    dumpstr.appendFormat("DrmProperty: [%s]-[%d], value [%" PRIu64 "], immutable[%d]:",
         mPropRes.name, mPropRes.prop_id, mValue, isImmutable());
 
     if (mType == DRM_MODE_PROP_RANGE) {
         dumpstr.append("values:");
         for (int i = 0; i < mPropRes.count_values; i++)
-            dumpstr.appendFormat(" %llu ", mPropRes.values[i]);
+            dumpstr.appendFormat(" %" PRIu64 " ", mPropRes.values[i]);
         dumpstr.append("\n");
     } else if (mType == DRM_MODE_PROP_ENUM) {
         dumpstr.append("enums:");
@@ -185,14 +186,14 @@ void DrmProperty::dump(String8 &dumpstr) {
         std::vector<unsigned char> blob;
         for (int i = 0; i < mPropRes.count_blobs; i++) {
             if (0 == getBlobData(blob, mPropRes.blob_ids[i])) {
-                dumpstr.appendFormat("-id[%d-%d]:", mPropRes.blob_ids[i], blob.size());
+                dumpstr.appendFormat("-id[%d-%" PRIuFAST16 "]:", mPropRes.blob_ids[i], blob.size());
                 for ( uint8_t val : blob)
                     dumpstr.appendFormat("%.2hhx", val);
                 dumpstr.append("\n");
             }
         }
         if (0 == getBlobData(blob)) {
-            dumpstr.appendFormat("-val[%llu-%d]:", mValue, blob.size());
+            dumpstr.appendFormat("-val[%" PRIu64 "-%" PRIuFAST16 "]:", mValue, blob.size());
             for ( uint8_t val : blob)
                 dumpstr.appendFormat("%.2hhx", val);
             dumpstr.append("\n");

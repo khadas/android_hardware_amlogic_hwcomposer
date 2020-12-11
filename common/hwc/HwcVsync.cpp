@@ -11,6 +11,7 @@
 #include <HwcVsync.h>
 #include <HwDisplayCrtc.h>
 #include <DebugHelper.h>
+#include <inttypes.h>
 
 #define SF_VSYNC_DFT_PERIOD 60
 
@@ -64,7 +65,7 @@ int32_t HwcVsync::setHwMode(std::shared_ptr<HwDisplayCrtc> & crtc) {
 
 int32_t HwcVsync::setPeriod(nsecs_t period) {
     if (mReqPeriod != period) {
-        MESON_LOGD("Update period %llx->%llx", period, mReqPeriod);
+        MESON_LOGD("Update period %" PRIx64 "->%" PRIx64 "", period, mReqPeriod);
         mReqPeriod = period;
     }
     return 0;
@@ -113,7 +114,7 @@ void * HwcVsync::vsyncThread(void * data) {
 
         if (DebugHelper::getInstance().enableVsyncDetail()) {
             if (pThis->mPreTimeStamp != 0)
-                MESON_LOGD("wait for vsync success, peroid: %lld, timestmap (%lld)",
+                MESON_LOGD("wait for vsync success, peroid: %" PRId64 ", timestmap (%" PRId64 ")",
                         period, timestamp);
         }
 
@@ -172,7 +173,7 @@ int32_t HwcVsync::waitSoftwareVsync(nsecs_t& vsync_timestamp) {
 }
 
 void HwcVsync::dump(String8 &dumpstr) {
-    dumpstr.appendFormat("HwcVsync mode(%s) period(%lld) \n",
+    dumpstr.appendFormat("HwcVsync mode(%s) period(%" PRId64 ") \n",
         mSoftVsync ? "soft":"hw", mReqPeriod);
     dumpstr.appendFormat("    mEnabled:%d, mExit:%d\n", mEnabled, mExit);
 

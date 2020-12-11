@@ -1175,7 +1175,7 @@ void Hwc2Display::dumpPresentLayers(String8 & dumpstr) {
         Hwc2Layer *layer = (Hwc2Layer*)(it->get());
         dumpstr.append("+------+-----+------------+-----+--------+-+--------+"
             "-------------------+-------------------+\n");
-        dumpstr.appendFormat("|%6llu|%5d|%12s|%5d|%8f|%1d|%8x|%4d %4d %4d %4d"
+        dumpstr.appendFormat("|%6" PRIu64 "|%5d|%12s|%5d|%8f|%1d|%8x|%4d %4d %4d %4d"
             "|%4d %4d %4d %4d|\n",
             layer->getUniqueId(),
             layer->mZorder,

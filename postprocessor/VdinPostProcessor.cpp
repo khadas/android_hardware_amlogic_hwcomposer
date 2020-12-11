@@ -193,7 +193,7 @@ bool VdinPostProcessor::getScreencapFb(
     while ( mSCapProcessor != NULL ) {
         duration = systemTime(CLOCK_MONOTONIC)- start_time;
         usleep(5*1000);
-        MESON_LOGE("wait to get screencapfb time %lld",duration);
+        MESON_LOGE("wait to get screencapfb time %" PRId64 "",duration);
     }
 
     scapfb.reset();

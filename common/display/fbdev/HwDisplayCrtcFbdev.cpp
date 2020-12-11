@@ -14,6 +14,7 @@
 #include <misc.h>
 #include <math.h>
 #include <OmxUtil.h>
+#include <inttypes.h>
 
 #include "AmVinfo.h"
 #include "AmFramebuffer.h"
@@ -151,7 +152,7 @@ int32_t HwDisplayCrtcFbdev::update() {
                     break;
                 }
             }
-            MESON_LOGD("crtc(%d) update (%s) (%d) -> (%s).",
+            MESON_LOGD("crtc(%d) update (%s) (%" PRIuFAST16 ") -> (%s).",
                 mId, displayMode.c_str(), mModes.size(), mCurModeInfo.name);
         }
     } else {

@@ -9,6 +9,7 @@
 
 #include <MesonLog.h>
 #include <string.h>
+#include <inttypes.h>
 
 #include <xf86drm.h>
 #include "DrmDevice.h"
@@ -29,7 +30,7 @@ DrmCrtc::DrmCrtc(int drmFd, drmModeCrtcPtr p, uint32_t pipe)
         memset(&mMode, 0, sizeof(drmModeModeInfo));
     }
 
-    MESON_LOGD("DrmCrtc init pipe(%d)-id(%d), mode (%s),active(%lld)",
+    MESON_LOGD("DrmCrtc init pipe(%d)-id(%d), mode (%s),active(%" PRId64 ")",
         mPipe, mId, mMode.name, mActive->getValue());
 }
 

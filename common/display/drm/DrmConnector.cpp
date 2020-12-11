@@ -9,6 +9,7 @@
 #include <MesonLog.h>
 #include "DrmConnector.h"
 #include "DrmDevice.h"
+#include <inttypes.h>
 
 DrmConnector::DrmConnector(int drmFd, drmModeConnectorPtr p)
     : HwDisplayConnector(),
@@ -75,7 +76,7 @@ int32_t DrmConnector::loadDisplayModes(drmModeConnectorPtr p) {
             modeInfo.name, modeInfo.pixelW, modeInfo.pixelH, modeInfo.refreshRate);
     }
 
-    MESON_LOGI("loadDisplayModes (%d) end", mModes.size());
+    MESON_LOGI("loadDisplayModes (%" PRIuFAST16 ") end", mModes.size());
     return 0;
 }
 

@@ -16,6 +16,7 @@
 #include <systemcontrol.h>
 #include <DrmTypes.h>
 #include <VideoComposerDev.h>
+#include <inttypes.h>
 
 #include "HwConnectorFactory.h"
 #include "DummyPlane.h"
@@ -140,7 +141,7 @@ int32_t HwDisplayManagerFbdev::freeDrmResources() {
 }
 
 int32_t HwDisplayManagerFbdev::loadCrtcs() {
-    MESON_LOGV("Crtc loaded in loadPlanes: %d", mCrtcs.size());
+    MESON_LOGV("Crtc loaded in loadPlanes: %" PRIuFAST16 "", mCrtcs.size());
     return 0;
 }
 

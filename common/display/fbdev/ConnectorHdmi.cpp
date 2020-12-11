@@ -11,6 +11,7 @@
 #include <MesonLog.h>
 #include <misc.h>
 #include <systemcontrol.h>
+#include <inttypes.h>
 
 #include "AmVinfo.h"
 #include "ConnectorHdmi.h"
@@ -454,7 +455,7 @@ void ConnectorHdmi::parseEDID() {
         return;
     }
     if (edid.length() % 2 != 0) {
-        MESON_LOGE("Can't to parse the EDIE:(len=%d)%s", edid.length(), edid.c_str());
+        MESON_LOGE("Can't to parse the EDIE:(len=%" PRIuFAST16 ")%s", edid.length(), edid.c_str());
         return;
     }
     len = edid.length() / 2;
@@ -463,7 +464,7 @@ void ConnectorHdmi::parseEDID() {
     for (i = 0; i < len; i++) {
         ret = sscanf(edid.c_str() + pos, "%2x", &xData);
         if (ret != 1) {
-            MESON_LOGE("Fail to parse EDIE:(len=%d)%s", edid.length(), edid.c_str());
+            MESON_LOGE("Fail to parse EDIE:(len=%" PRIuFAST16 ")%s", edid.length(), edid.c_str());
             return;
         }
         pos = pos + 2;
