@@ -537,7 +537,7 @@ int32_t MesonHwc2::setCalibrateInfo(hwc2_display_t display){
         caliY = 0;
         caliW = mDispMode.pixelW;
         caliH = mDispMode.pixelH;
-        if (!HwcConfig::preDisplayCalibrateEnabled()) {
+        if (!HwcConfig::preDisplayCalibrateEnabled() && strcmp(mDispMode.name, "panel") != 0) {
             /*get post calibrate info.*/
             /*for interlaced, we do thing, osd driver will take care of it.*/
             int calibrateCoordinates[4];
