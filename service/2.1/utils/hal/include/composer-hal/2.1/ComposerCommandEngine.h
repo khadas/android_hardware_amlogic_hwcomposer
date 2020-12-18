@@ -14,6 +14,10 @@
  * limitations under the License.
  */
 
+#define ATRACE_TAG ATRACE_TAG_GRAPHICS
+
+#include <utils/Trace.h>
+
 #pragma once
 
 #ifndef LOG_TAG
@@ -52,6 +56,7 @@ class ComposerCommandEngine : protected CommandReaderBase {
 
     Error execute(uint32_t inLength, const hidl_vec<hidl_handle>& inHandles, bool* outQueueChanged,
                   uint32_t* outCommandLength, hidl_vec<hidl_handle>* outCommandHandles) {
+        ATRACE_CALL();
         if (!readQueue(inLength, inHandles)) {
             return Error::BAD_PARAMETER;
         }
@@ -90,6 +95,7 @@ class ComposerCommandEngine : protected CommandReaderBase {
 
    protected:
     virtual bool executeCommand(IComposerClient::Command command, uint16_t length) {
+        ATRACE_CALL();
         switch (command) {
             case IComposerClient::Command::SELECT_DISPLAY:
                 return executeSelectDisplay(length);

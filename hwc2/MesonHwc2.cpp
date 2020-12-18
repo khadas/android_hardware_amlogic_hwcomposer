@@ -7,10 +7,14 @@
  * Description:
  */
 
+#define ATRACE_TAG ATRACE_TAG_GRAPHICS
+
 #include <unistd.h>
 #include <thread>
 #include <mutex>
 #include <condition_variable>
+
+#include <utils/Trace.h>
 
 #include <BasicTypes.h>
 #include <MesonLog.h>

@@ -5,7 +5,9 @@
  *
  * Description:
  */
+#define ATRACE_TAG ATRACE_TAG_GRAPHICS
 
+#include <utils/Trace.h>
 #include <MesonLog.h>
 #include "DrmConnector.h"
 #include "DrmDevice.h"
@@ -50,6 +52,7 @@ DrmConnector::~DrmConnector() {
 }
 
 int32_t DrmConnector::loadProperties(drmModeConnectorPtr p) {
+    ATRACE_CALL();
     struct {
         const char * propname;
         std::shared_ptr<DrmProperty> * drmprop;
@@ -87,6 +90,7 @@ int32_t DrmConnector::loadProperties(drmModeConnectorPtr p) {
 }
 
 int32_t DrmConnector::loadDisplayModes(drmModeConnectorPtr p) {
+    ATRACE_CALL();
     /*clear old mode list.*/
     std::lock_guard<std::mutex> lock(mMutex);
     for (auto & it : mDrmModes)
@@ -167,6 +171,7 @@ drm_connector_type_t DrmConnector::getType() {
 }
 
 int32_t DrmConnector::update() {
+    ATRACE_CALL();
     drmModeConnectorPtr metadata = drmModeGetConnector(mDrmFd, mId);
     /*update state*/
     mState = metadata->connection;

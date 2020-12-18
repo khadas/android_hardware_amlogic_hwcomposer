@@ -22,6 +22,7 @@ cc_library_headers {
         "android.hardware.graphics.composer@2.1-resources-vendor",
         "libhardware", // TODO remove hwcomposer2.h dependency
         "libamgralloc_ext",
+        "libutils",
     ],
     export_shared_lib_headers: [
         "android.hardware.graphics.composer@2.1",

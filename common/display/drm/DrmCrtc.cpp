@@ -6,7 +6,9 @@
  *
  * Description:
  */
+#define ATRACE_TAG ATRACE_TAG_GRAPHICS
 
+#include <utils/Trace.h>
 #include <MesonLog.h>
 #include <string.h>
 #include <inttypes.h>
@@ -44,6 +46,7 @@ DrmCrtc::~DrmCrtc() {
 }
 
 int32_t DrmCrtc::loadProperties() {
+    ATRACE_CALL();
     struct {
         const char * propname;
         std::shared_ptr<DrmProperty> * drmprop;
@@ -139,6 +142,7 @@ int32_t DrmCrtc::getMode(drm_mode_info_t & mode) {
 }
 
 int32_t DrmCrtc::setMode(drm_mode_info_t & mode) {
+    ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
     int ret;
     std::shared_ptr<DrmProperty> crtcid;
@@ -228,6 +232,7 @@ drmModeAtomicReqPtr DrmCrtc::getAtomicReq() {
 }
 
 int32_t DrmCrtc::prePageFlip() {
+    ATRACE_CALL();
     if (mReq) {
         MESON_LOGE("still have a req? previous display didnot finish?");
         drmModeAtomicFree(mReq);
@@ -238,6 +243,7 @@ int32_t DrmCrtc::prePageFlip() {
 }
 
 int32_t DrmCrtc::pageFlip(int32_t & out_fence) {
+    ATRACE_CALL();
     if (mActive->getValue() == 0) {
         out_fence = -1;
         return 0;

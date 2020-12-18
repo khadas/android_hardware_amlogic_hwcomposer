@@ -8,8 +8,10 @@
 */
 
 #define LOG_NDEBUG 1
+#define ATRACE_TAG ATRACE_TAG_GRAPHICS
 
 #include <hardware/hwcomposer2.h>
+#include <utils/Trace.h>
 #include "MultiplanesWithDiComposition.h"
 #include <DrmTypes.h>
 #include <MesonLog.h>
@@ -1108,6 +1110,7 @@ void MultiplanesWithDiComposition::setup(
     std::shared_ptr<HwDisplayCrtc> & crtc,
     uint32_t reqFlag,
     float scaleValue) {
+    ATRACE_CALL();
     init();
 
     mCompositionFlag = reqFlag;
@@ -1214,6 +1217,7 @@ int MultiplanesWithDiComposition::decideComposition() {
 
 /* Commit DisplayPair to display. */
 int MultiplanesWithDiComposition::commit() {
+    ATRACE_CALL();
     /* replace composer output with din0 Pair. */
     std::shared_ptr<DrmFramebuffer> composerOutput;
     bool setPlaneSuccess = true;

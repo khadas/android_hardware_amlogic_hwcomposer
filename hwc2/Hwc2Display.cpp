@@ -8,7 +8,9 @@
  */
 
 #define LOG_NDEBUG 1
+#define ATRACE_TAG ATRACE_TAG_GRAPHICS
 
+#include <utils/Trace.h>
 #include <hardware/hwcomposer2.h>
 #include <inttypes.h>
 #include <time.h>
@@ -714,6 +716,7 @@ int32_t Hwc2Display::adjustDisplayFrame() {
 
 hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
     uint32_t* outNumRequests) {
+    ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
     /*clear data used in composition.*/
     mPresentLayers.clear();
@@ -939,6 +942,7 @@ hwc2_error_t Hwc2Display::presentSkipValidateCheck() {
 }
 
 hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
+    ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
     mDisplayTimestamp = systemTime(CLOCK_MONOTONIC);
 
