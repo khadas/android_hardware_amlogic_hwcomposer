@@ -162,7 +162,7 @@ int32_t  RealModeMgr::getDisplayAttribute(
                 *outValue = curMode.dpiY * 1000.0f;
                 break;
             case HWC2_ATTRIBUTE_CONFIG_GROUP:
-                *outValue = mCurMode.groupId;
+                *outValue = curMode.groupId;
                 break;
             default:
                 MESON_LOGE("Unknown display attribute(%d)", attribute);
