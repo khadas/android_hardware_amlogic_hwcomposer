@@ -77,7 +77,11 @@ void VideoTunnelThread::handleVideoTunnelLayers() {
     spec.tv_sec = 0;
     spec.tv_nsec = 5000000;
 
-    VideoTunnelDev::getInstance().pollBuffer();
+    int ret = VideoTunnelDev::getInstance().pollBuffer();
+    // poll timeout
+    if (ret == 0)
+        return;
+
     std::unique_lock<std::mutex> stateLock(mVtLock);
     while (!mVsyncComing) {
         mVtCondition.wait(stateLock);
@@ -86,6 +90,10 @@ void VideoTunnelThread::handleVideoTunnelLayers() {
     stateLock.unlock();
 
     nanosleep(&spec, NULL); /* sleep 5ms */
+    // need exit?
+    if (mExit)
+        return;
+
     if (mDisplay->getPreDisplayTime() < mVsyncTimestamp) {
         if (mDisplay->handleVtDisplayConnection()) {
             mDisplay->validateDisplay(&outNumTypes, &outNumRequests);
@@ -101,6 +109,7 @@ void* VideoTunnelThread::threadMain(void *data) {
         if (pThis->mExit) {
             MESON_LOGD("VideoTunnelThread exit video tunnel loop");
             pthread_exit(0);
+            return NULL;
         }
 
         pThis->handleVideoTunnelLayers();

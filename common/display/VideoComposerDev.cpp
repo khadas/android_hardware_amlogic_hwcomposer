@@ -97,10 +97,10 @@ int32_t VideoComposerDev::setFrames(
         vFrameInfo->dst_y = fb->mDisplayFrame.top;
         vFrameInfo->dst_w = fb->mDisplayFrame.right - fb->mDisplayFrame.left;
         vFrameInfo->dst_h = fb->mDisplayFrame.bottom - fb->mDisplayFrame.top;
-        vFrameInfo->crop_x = fb->mSourceCrop.left;
-        vFrameInfo->crop_y = fb->mSourceCrop.top;
-        vFrameInfo->crop_w = fb->mSourceCrop.right - fb->mSourceCrop.left;
-        vFrameInfo->crop_h = fb->mSourceCrop.bottom - fb->mSourceCrop.top;
+        vFrameInfo->crop_x = fb->isVtLayer() ?  0 : fb->mSourceCrop.left;
+        vFrameInfo->crop_y = fb->isVtLayer() ? 0 : fb->mSourceCrop.top;
+        vFrameInfo->crop_w = fb->isVtLayer() ? -1 : fb->mSourceCrop.right - fb->mSourceCrop.left;
+        vFrameInfo->crop_h = fb->isVtLayer() ? -1 : fb->mSourceCrop.bottom - fb->mSourceCrop.top;
         vFrameInfo->buffer_w = am_gralloc_get_width(buf);
         vFrameInfo->buffer_h = am_gralloc_get_height(buf);
         vFrameInfo->zorder = fb->mZorder;

@@ -1377,9 +1377,9 @@ void Hwc2Display::handleVtThread() {
         mVsync->setVideoTunnelEnabled(true);
         mVideoTunnelThread->start();
     } else if (!haveVtLayer && mVideoTunnelThread != NULL) {
-        mVsync->setVideoTunnelEnabled(false);
         mVideoTunnelThread->stop();
         mVideoTunnelThread.reset();
+        mVsync->setVideoTunnelEnabled(false);
         mVideoTunnelThread = NULL;
     }
 }

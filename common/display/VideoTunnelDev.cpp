@@ -15,6 +15,7 @@
 #include <poll.h>
 
 #define VT_ROLE_CONSUMER  1
+#define VT_POOL_TIMEOUT 32  //ms
 
 ANDROID_SINGLETON_STATIC_INSTANCE(VideoTunnelDev)
 
@@ -50,16 +51,20 @@ int32_t VideoTunnelDev::recieveCmd(int tunnelId, enum vt_cmd& cmd, int& cmdData)
     return meson_vt_recv_cmd(mDrvFd, tunnelId, &cmd, &cmdData, &clientId);
 }
 
+/*
+ * Return of 0 means the operation timeout or error.
+ * On success, return of 1 means videotunnel can acquire buffer
+ */
 int32_t VideoTunnelDev::pollBuffer() {
     struct pollfd fds[1];
     fds[0].fd = mDrvFd;
     fds[0].events = POLLIN;
     fds[0].revents = 0;
 
-    int pollrtn = poll(fds, 1, -1);
+    int pollrtn = poll(fds, 1, VT_POOL_TIMEOUT);
     if (pollrtn > 0 && fds[0].revents == POLLIN) {
-        return 0;
+        return 1;
     }
 
-    return 1;
+    return 0;
 }
