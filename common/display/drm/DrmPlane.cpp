@@ -38,6 +38,7 @@ DrmPlane::DrmPlane(int drmFd, drmModePlanePtr p)
 
     mBlank = p->fb_id > 0 ? false : true;
     mDrmBo = std::make_shared<DrmBo>();
+    mDbgFlag = 0;
 }
 
 DrmPlane::~DrmPlane() {
@@ -121,6 +122,10 @@ uint32_t DrmPlane::getId() {
 }
 
 uint32_t DrmPlane::getType() {
+    if (mDbgFlag & 1) {
+        return INVALID_PLANE;
+    }
+
     switch (mType->getValue()) {
         case DRM_PLANE_TYPE_PRIMARY:
         case DRM_PLANE_TYPE_OVERLAY:
@@ -184,13 +189,6 @@ bool DrmPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
             return false;
     }
 
-    unsigned int blendMode = fb->mBlendMode;
-    if (blendMode != DRM_BLEND_MODE_PREMULTIPLIED
-        && blendMode != DRM_BLEND_MODE_COVERAGE) {
-       // MESON_LOGE("Blend mode is invalid!");
-        return false;
-    }
-
     /*check format*/
     int halFormat = am_gralloc_get_format(fb->mBufferHandle);
     int afbc = am_gralloc_get_vpu_afbc_mask(fb->mBufferHandle);
@@ -199,13 +197,6 @@ bool DrmPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
 
     if (drmFormat == DRM_FORMAT_INVALID) {
       //  MESON_LOGE("Unknown drm format.\n");
-        return false;
-    }
-
-    /*check vpu limit: blend mode*/
-    if (blendMode == DRM_BLEND_MODE_NONE &&
-        halFormat == HAL_PIXEL_FORMAT_BGRA_8888) {
-      //  MESON_LOGE("blend mode: %u, Layer format %d not support.", blendMode, halFormat);
         return false;
     }
 
@@ -367,8 +358,7 @@ int32_t DrmPlane::setPlane(
 }
 
 void DrmPlane::setDebugFlag(int dbgFlag) {
-    UNUSED(dbgFlag);
-    MESON_LOG_EMPTY_FUN();
+    mDbgFlag = dbgFlag;
 }
 
 void DrmPlane::resloveInFormats() {

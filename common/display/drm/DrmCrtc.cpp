@@ -251,7 +251,7 @@ int32_t DrmCrtc::pageFlip(int32_t & out_fence) {
         DRM_MODE_ATOMIC_NONBLOCK,
         NULL);
     if (ret) {
-      //  MESON_LOGE("pageFlip:atomic commit ret (%d)", ret);
+        MESON_LOGE("pageFlip:atomic commit ret (%d)", ret);
     }
 
     drmModeAtomicFree(mReq);

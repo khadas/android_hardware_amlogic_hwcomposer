@@ -738,6 +738,16 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
         compositionFlags |= COMPOSE_FORCE_CLIENT;
     }
 
+/*debug: for blend mode test, switch between device&client
+ * to check if there is display flicker.
+ */
+#if 0
+    static int count = 0;
+    count ++;
+    if (count % 3 == 1)
+        compositionFlags |= COMPOSE_FORCE_CLIENT;
+#endif
+
     if (HwcConfig::secureLayerProcessEnabled()) {
         if (!mConnector->isSecure()) {
             compositionFlags |= COMPOSE_HIDE_SECURE_FB;
