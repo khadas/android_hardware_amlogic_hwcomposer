@@ -1,5 +1,6 @@
 cc_test {
     name: "videotunneltest",
+    vendor: true,
     srcs: [
         "VideoTunnelTest.cpp",
         "VTBufferItem.cpp",

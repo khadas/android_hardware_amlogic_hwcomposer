@@ -115,7 +115,7 @@ cc_library_static {
 cc_library_shared {
     // This is for meson display client
     name: "libmeson_display_adapter_remote",
-    vendor_available: true,
+    vendor: true,
 
     cflags: [
         "-Werror",

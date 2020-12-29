@@ -1,6 +1,6 @@
 cc_binary {
     name: "vt_test",
-
+    vendor: true,
 //    cflags: [
 //        "-Wall",
 //        "-Werror",

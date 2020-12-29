@@ -22,14 +22,14 @@ cc_defaults {
 cc_binary {
     name: "meson_display_screencap",
     defaults: ["meson_display_test_defaults"],
+    vendor: true,
 
     srcs: [
         "display_screencap.cpp",
     ],
 
     shared_libs: [
-        "libgui",
-        "libhwui",
+        "libui",
         "libamgralloc_ext@2",
     ],
 
