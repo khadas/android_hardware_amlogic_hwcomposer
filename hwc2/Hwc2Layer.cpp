@@ -6,6 +6,7 @@
  *
  * Description:
  */
+#define VT_DEBUG 1
 
 #include <MesonLog.h>
 #include <math.h>
@@ -22,20 +23,12 @@ Hwc2Layer::Hwc2Layer() : DrmFramebuffer(){
     mVtDeviceConnection = false;
     mVtBufferFd    = -1;
     mPreVtBufferFd = -1;
-    mVtUpdate      = -1;
+    mVtUpdate      =  false;
 }
 
 Hwc2Layer::~Hwc2Layer() {
     // release last video tunnel buffer
-    if (mFbType == DRM_FB_VIDEO_TUNNEL_SIDEBAND) {
-        if (mVtUpdate && mVtBufferFd > 0)
-            releaseVtBuffer(-1);
-        if (mPreVtBufferFd > 0)
-            close(mPreVtBufferFd);
-
-        if (mVtDeviceConnection)
-            VideoTunnelDev::getInstance().disconnect(mTunnelId);
-    }
+    releaseVtResource();
 }
 
 hwc2_error_t Hwc2Layer::handleDimLayer(buffer_handle_t buffer) {
@@ -175,6 +168,7 @@ hwc2_error_t Hwc2Layer::setSidebandStream(const native_handle_t* stream) {
         mFbType = DRM_FB_VIDEO_TUNNEL_SIDEBAND;
         mTunnelId = channel_id;
         if (!mVtDeviceConnection) {
+            MESON_LOGD("%s connect to videotunnel %d", __func__, mTunnelId);
             VideoTunnelDev::getInstance().connect(mTunnelId);
             mVtDeviceConnection = true;
         }
@@ -323,10 +317,8 @@ int32_t Hwc2Layer::acquireVtBuffer() {
         return -EINVAL;
     }
 
-    if (mVtUpdate) {
-        MESON_LOGE("[%s] already acquried", __func__);
+    if (mVtUpdate)
         return -EAGAIN;
-    }
 
     int ret = VideoTunnelDev::getInstance().acquireBuffer(mTunnelId,
             mVtBufferFd, mTimeStamp);
@@ -335,7 +327,7 @@ int32_t Hwc2Layer::acquireVtBuffer() {
 
     // acquire video tunnel buffer success
     mVtUpdate = true;
-    if (mPreVtBufferFd > 0)
+    if (mPreVtBufferFd >= 0)
         close(mPreVtBufferFd);
 
     mPreVtBufferFd = dup(mVtBufferFd);
@@ -346,8 +338,9 @@ int32_t Hwc2Layer::acquireVtBuffer() {
 int32_t Hwc2Layer::releaseVtBuffer(int releaseFence) {
     std::lock_guard<std::mutex> lock(mMutex);
     if (!mVtUpdate) {
-        if (releaseFence > 0)
+        if (releaseFence >= 0)
             close(releaseFence);
+
         return -EAGAIN;
     }
 
@@ -357,4 +350,22 @@ int32_t Hwc2Layer::releaseVtBuffer(int releaseFence) {
     mVtBufferFd = -1;
     mVtUpdate = false;
     return ret;
+}
+
+int32_t Hwc2Layer::releaseVtResource() {
+    if (mFbType == DRM_FB_VIDEO_TUNNEL_SIDEBAND) {
+        if (mVtUpdate && mVtBufferFd >= 0)
+            releaseVtBuffer(-1);
+        if (mPreVtBufferFd >= 0)
+            close(mPreVtBufferFd);
+        mPreVtBufferFd = -1;
+
+        if (mVtDeviceConnection) {
+            MESON_LOGD("Hwc2Layer release disconnect %d", mTunnelId);
+            VideoTunnelDev::getInstance().disconnect(mTunnelId);
+        }
+
+        mVtDeviceConnection = false;
+    }
+    return 0;
 }

@@ -40,6 +40,7 @@ protected:
 
         bool mExit;
         bool mVsyncComing;
+        bool mSkipValidate;
         int mStat;
         pthread_t mVtThread;
         nsecs_t mVsyncTimestamp;

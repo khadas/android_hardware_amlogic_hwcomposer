@@ -253,11 +253,12 @@ int32_t DrmPlane::setPlane(
         }
     } else {
         bool bUpdate = false;
+        int32_t ret = 0;
 
         mDrmBo = std::make_shared<DrmBo>();
-        if (mDrmBo->import(fb) != 0) {
+        if ((ret = mDrmBo->import(fb)) != 0) {
             MESON_LOGE("DrmBo import failed, return.");
-            return 0;
+            return ret;
         }
 
         if (mDrmBo->fbId != mFbId->getValue()) {

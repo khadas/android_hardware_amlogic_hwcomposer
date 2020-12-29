@@ -104,7 +104,10 @@ int32_t DrmBo::import(
     }
 
     ret = drmPrimeFDToHandle(drmFd, am_gralloc_get_buffer_fd(buf), &handles[0]);
-    MESON_ASSERT(!ret, "FdToHandle failed(%d)\n", ret);
+    if (ret != 0) {
+        MESON_LOGE("FdToHandle failed fd(%d) ret(%d)\n", am_gralloc_get_buffer_fd(buf), ret);
+        return ret;
+    }
 
     width = am_gralloc_get_width(buf);
     height = am_gralloc_get_height(buf);

@@ -7,20 +7,34 @@
  * Description:
  */
 
+#define VT_DEBUG 1
+
 #include "VideoTunnelThread.h"
 #include "VideoTunnelDev.h"
+#include "MesonHwc2.h"
 #include <MesonLog.h>
 
 #include <time.h>
 #include <condition_variable>
-
-#define VT_DEBUG 0
 
 VideoTunnelThread::VideoTunnelThread(Hwc2Display * display) {
     mExit = false;
     mVsyncComing = false;
     mStat = PROCESSOR_STOP;
     mDisplay = display;
+
+    /* get capabilities */
+    uint32_t capCount = 0;
+    MesonHwc2::getInstance().getCapabilities(&capCount, nullptr);
+
+    std::vector<int32_t> caps(capCount);
+    MesonHwc2::getInstance().getCapabilities(&capCount, caps.data());
+    caps.resize(capCount);
+    /* check whether have skip validate capability */
+    if (std::find(caps.begin(), caps.end(), HWC2_CAPABILITY_SKIP_VALIDATE) != caps.end())
+        mSkipValidate = true;
+    else
+        mSkipValidate = false;
 }
 
 VideoTunnelThread::~VideoTunnelThread() {
@@ -96,8 +110,20 @@ void VideoTunnelThread::handleVideoTunnelLayers() {
 
     if (mDisplay->getPreDisplayTime() < mVsyncTimestamp) {
         if (mDisplay->handleVtDisplayConnection()) {
-            mDisplay->validateDisplay(&outNumTypes, &outNumRequests);
-            mDisplay->presentDisplay(&outPresentFence);
+            if (mSkipValidate) {
+                hwc2_error_t ret = mDisplay->presentDisplay(&outPresentFence);
+                if (ret == HWC2_ERROR_NOT_VALIDATED) {
+                    mDisplay->validateDisplay(&outNumTypes, &outNumRequests);
+                    mDisplay->presentDisplay(&outPresentFence);
+                }
+            } else {
+                mDisplay->validateDisplay(&outNumTypes, &outNumRequests);
+                mDisplay->presentDisplay(&outPresentFence);
+            }
+
+            /* need close the present fence */
+            if (outPresentFence >= 0)
+                close(outPresentFence);
         }
     }
 }

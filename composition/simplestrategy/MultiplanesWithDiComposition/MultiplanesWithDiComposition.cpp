@@ -9,6 +9,7 @@
 
 #define LOG_NDEBUG 1
 
+#include <hardware/hwcomposer2.h>
 #include "MultiplanesWithDiComposition.h"
 #include <DrmTypes.h>
 #include <MesonLog.h>
@@ -1208,6 +1209,8 @@ int MultiplanesWithDiComposition::decideComposition() {
 int MultiplanesWithDiComposition::commit() {
     /* replace composer output with din0 Pair. */
     std::shared_ptr<DrmFramebuffer> composerOutput;
+    bool setPlaneSuccess = true;
+
     if (mComposer.get()) {
         mComposer->start();
         composerOutput = mComposer->getOutput();
@@ -1254,7 +1257,11 @@ int MultiplanesWithDiComposition::commit() {
         }
 
         /* Set display info. */
-        plane->setPlane(fb, presentZorder, blankFlag);
+        int ret = plane->setPlane(fb, presentZorder, blankFlag);
+        if (ret != 0) {
+            MESON_LOGE("%s setPlane failed", plane->getName());
+            setPlaneSuccess = false;
+        }
     }
 
     /* Blank un-used plane. */
@@ -1272,6 +1279,9 @@ int MultiplanesWithDiComposition::commit() {
         (*planeIt)->setPlane(NULL, HWC_PLANE_FAKE_ZORDER, BLANK_FOR_NO_CONTENT);
         dumpUnusedPlane(*planeIt, BLANK_FOR_NO_CONTENT);
     }
+
+    if (!setPlaneSuccess)
+        return HWC2_ERROR_NO_RESOURCES;
 
     if (mDisplayRefFb.get()) {
         if (IS_FB_COMPOSED(mDisplayRefFb)) {

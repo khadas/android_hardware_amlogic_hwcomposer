@@ -88,6 +88,8 @@ int32_t VideoComposerDev::setFrames(
         } else if (fb->mFbType == DRM_FB_VIDEO_TUNNEL_SIDEBAND) {
             vFrameInfo->type = 0;
             vFrameInfo->fd = fb->getVtBuffer();
+            if (vFrameInfo->fd < 0)
+                return -EINVAL;
         } else {
             MESON_LOGE("unknow fb (%d) type %d !!", fb->mZorder, fb->mFbType);
             break;

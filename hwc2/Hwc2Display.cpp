@@ -455,8 +455,10 @@ hwc2_error_t Hwc2Display::destroyLayer(hwc2_layer_t  inLayer) {
         return HWC2_ERROR_BAD_LAYER;
 
     handleVtThread();
-
     DebugHelper::getInstance().removeDebugLayer((int)inLayer);
+    if (layerit->second && layerit->second->isVtLayer())
+        layerit->second->releaseVtResource();
+
     mLayers.erase(inLayer);
     destroyLayerId(inLayer);
     return HWC2_ERROR_NONE;
@@ -710,8 +712,6 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
     mSkipComposition = false;
 
     handleVtThread();
-    if (mVideoTunnelThread)
-        acquireVtLayers();
 
     hwc2_error_t ret = collectLayersForPresent();
     if (ret != HWC2_ERROR_NONE) {
@@ -893,6 +893,9 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
     std::lock_guard<std::mutex> lock(mMutex);
     mDisplayTimestamp = systemTime(CLOCK_MONOTONIC);
 
+    if (mVideoTunnelThread)
+        acquireVtLayers();
+
     if (mSkipComposition) {
         *outPresentFence = -1;
     } else {
@@ -937,12 +940,8 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
         *outPresentFence = ::dup(mPresentFence);
     }
 
-    if (mVideoTunnelThread) {
-        if (*outPresentFence == -1)
-            releaseVtLayers(-1);
-        else
-            releaseVtLayers(::dup(*outPresentFence));
-    }
+    if (mVideoTunnelThread)
+        releaseVtLayers();
 
     /*dump debug informations.*/
     bool dumpComposition = false;
@@ -1400,14 +1399,14 @@ void Hwc2Display::acquireVtLayers() {
     }
 }
 
-void Hwc2Display::releaseVtLayers(int releaseFence) {
+void Hwc2Display::releaseVtLayers() {
     int ret;
     std::shared_ptr<Hwc2Layer> layer;
 
     for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
         layer = it->second;
         if (layer->isVtLayer()) {
-            ret = layer->releaseVtBuffer(releaseFence);
+            ret = layer->releaseVtBuffer(layer->getPrevReleaseFence());
             if (ret != 0 && ret != -EAGAIN) {
                 MESON_LOGE("%s, release layer id=%llu failed, ret=%s",
                         __func__, layer->getUniqueId(), strerror(ret));
@@ -1424,7 +1423,7 @@ bool Hwc2Display::handleVtDisplayConnection() {
     std::lock_guard<std::mutex> lock(mMutex);
     if (!mDisplayConnection) {
         acquireVtLayers();
-        releaseVtLayers(-1);
+        releaseVtLayers();
     }
 
     return mDisplayConnection;

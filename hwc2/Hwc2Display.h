@@ -141,7 +141,7 @@ public:
     virtual void onVTVsync(int64_t timestamp, uint32_t vsyncPeriodNanos);
     virtual void handleVtThread();
     virtual void acquireVtLayers();
-    virtual void releaseVtLayers(int releaseFence);
+    virtual void releaseVtLayers();
     virtual nsecs_t getPreDisplayTime();
     virtual bool handleVtDisplayConnection();
 

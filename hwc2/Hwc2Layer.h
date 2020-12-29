@@ -59,6 +59,7 @@ public:
     int32_t getVtBuffer() override;
     int32_t acquireVtBuffer() override;
     int32_t releaseVtBuffer(int releaseFence) override;
+    int32_t releaseVtResource();
 
 public:
     android_dataspace_t mDataSpace;
