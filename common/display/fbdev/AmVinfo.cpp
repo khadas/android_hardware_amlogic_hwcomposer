@@ -27,7 +27,8 @@
 #include <sys/ioctl.h>
 #include <errno.h>
 #include <unistd.h>
-
+#include <DrmTypes.h>
+#include <systemcontrol.h>
 
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 #define VOUT_DEV "/dev/display"
@@ -1057,15 +1058,14 @@ const struct vinfo_s * findMatchedVoutMode(drmModeModeInfo& drm_mode) {
 	return NULL;
 }
 
-
 int read_vout_info(int idx, struct vinfo_base_s * info) {
 	if (!info)
 		return -ENOBUFS;
 
-        const char * devpath = VOUT_DEV;
-        if (idx == 2) {
-            devpath = VOUT2_DEV;
-        }
+	const char * devpath = VOUT_DEV;
+	if (idx == DRM_PIPE_VOUT2) {
+		devpath = VOUT2_DEV;
+	}
 
 	int voutdev = open(devpath, O_RDONLY);
 	if (voutdev < 0) {
@@ -1079,5 +1079,18 @@ int read_vout_info(int idx, struct vinfo_base_s * info) {
 
 	close(voutdev);
 	return 0;
+}
+
+#define VIU1_DISPLAY_MODE_SYSFS "/sys/class/display/mode"
+#define VIU2_DISPLAY_MODE_SYSFS "/sys/class/display2/mode"
+int read_vout_mode(int idx, std::string & dispmode) {
+	int ret = 0;
+	if (idx == DRM_PIPE_VOUT1) {
+		ret = sc_read_sysfs(VIU1_DISPLAY_MODE_SYSFS, dispmode);
+	} else if (idx == DRM_PIPE_VOUT2) {
+		ret = sc_read_sysfs(VIU2_DISPLAY_MODE_SYSFS, dispmode);
+	}
+
+	return ret;
 }
 

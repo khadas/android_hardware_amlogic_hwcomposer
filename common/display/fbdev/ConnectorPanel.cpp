@@ -149,20 +149,11 @@ int32_t ConnectorPanel::loadDisplayModes() {
         MESON_LOGE("use default value,get display mode: %s", modeInfo.name);
     } else {
         std::string dispmode;
-        vmode_e vmode = VMODE_MAX;
-
-        struct vinfo_base_s baseinfo;
         int pipeidx = GET_PIPE_IDX_BY_ID(mCrtcId);
-        if (0 == read_vout_info(pipeidx, &baseinfo) ) {
-            vmode = baseinfo.mode;
-            const char * mode =  vmode_mode_to_name(vmode);
-            char modestr[DRM_DISPLAY_MODE_LEN];
-            strncpy(modestr, mode, DRM_DISPLAY_MODE_LEN);
-            dispmode = modestr;
-        }
-
-        if (vmode == VMODE_MAX) {
-            MESON_LOGE("ConnectorPanel current mode  (%d) invalid. ", vmode);
+        if (0 == read_vout_mode(pipeidx, dispmode) ) {
+            MESON_LOGE("ConnectorPanel current mode  (%s) . ", dispmode.c_str());
+        } else {
+            MESON_LOGE("ConnectorPanel current mod invalid. ");
         }
 
         addDisplayMode(dispmode);

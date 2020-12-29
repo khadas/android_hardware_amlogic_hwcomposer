@@ -19,6 +19,7 @@
 #define AM_VINFO_H_
 #include <sys/types.h>
 #include <xf86drmMode.h>
+#include <string>
 
 typedef uint32_t u32;
 typedef unsigned char	   u8;
@@ -254,6 +255,7 @@ const struct vinfo_s * findMatchedMode(u32 width, u32 height, u32 refreshrate);
 const struct vinfo_s * findMatchedVoutMode(drmModeModeInfo& drm_mode);
 
 int read_vout_info(int idx, struct vinfo_base_s * info);
+int read_vout_mode(int idx, std::string & dispmode);
 
 
 #endif //AML_VOUT_H_
