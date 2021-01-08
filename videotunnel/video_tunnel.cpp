@@ -179,19 +179,13 @@ int meson_vt_disconnect(int fd, int tunnel_id, int role) {
  */
 int meson_vt_queue_buffer(int fd, int tunnel_id, int buffer_fd,
         int fence_fd, int64_t expected_present_time) {
-    struct vt_buffer_item item = {
+    struct vt_buffer_data data = {
         .tunnel_id = tunnel_id,
         .buffer_fd = buffer_fd,
         .fence_fd = fence_fd,
         .time_stamp = expected_present_time,
     };
 
-    struct vt_buffer_data data = {
-        .buffer_size = 1,
-        .tunnel_id = tunnel_id,
-    };
-
-    data.buffers[0] = item;
     return meson_vt_ioctl(fd, VT_IOC_QUEUE_BUFFER, &data);
 }
 
@@ -215,7 +209,6 @@ int meson_vt_dequeue_buffer(int fd, int tunnel_id, int *buffer_fd, int *fence_fd
     int ret = -1;
 
     struct vt_buffer_data data = {
-        .buffer_size = -1,
         .tunnel_id = tunnel_id,
     };
 
@@ -223,14 +216,8 @@ int meson_vt_dequeue_buffer(int fd, int tunnel_id, int *buffer_fd, int *fence_fd
     if (ret < 0)
         return ret;
 
-    /* should not happened now */
-    if (data.buffer_size != 1) {
-        ALOGE("videotunnel dequeue returned more than 1 buffer item");
-        return -1;
-    }
-
-    *buffer_fd = data.buffers[0].buffer_fd;
-    *fence_fd = data.buffers[0].fence_fd;
+    *buffer_fd = data.buffer_fd;
+    *fence_fd = data.fence_fd;
 
     return ret;
 }
@@ -256,7 +243,6 @@ int meson_vt_acquire_buffer(int fd, int tunnel_id, int *buffer_fd,
     int ret;
 
     struct vt_buffer_data data = {
-        .buffer_size = -1,
         .tunnel_id = tunnel_id,
     };
 
@@ -264,15 +250,9 @@ int meson_vt_acquire_buffer(int fd, int tunnel_id, int *buffer_fd,
     if (ret < 0)
         return ret;
 
-    /* should not happened now */
-    if (data.buffer_size != 1) {
-        ALOGE("videotunnel dequeue returned more than 1 buffer item");
-        return -1;
-    }
-
-    *buffer_fd = data.buffers[0].buffer_fd;
-    *fence_fd = data.buffers[0].fence_fd;
-    *expected_present_time = data.buffers[0].time_stamp;
+    *buffer_fd = data.buffer_fd;
+    *fence_fd = data.fence_fd;
+    *expected_present_time = data.time_stamp;
 
     return ret;
 }
@@ -291,18 +271,12 @@ int meson_vt_acquire_buffer(int fd, int tunnel_id, int *buffer_fd,
  */
 int meson_vt_release_buffer(int fd, int tunnel_id, int buffer_fd, int fence_fd) {
     int ret = -1;
-    struct vt_buffer_item item = {
+    struct vt_buffer_data data = {
         .tunnel_id = tunnel_id,
         .buffer_fd = buffer_fd,
         .fence_fd = fence_fd,
     };
 
-    struct vt_buffer_data data = {
-        .buffer_size = 1,
-        .tunnel_id = tunnel_id,
-    };
-
-    data.buffers[0] = item;
     ret = meson_vt_ioctl(fd, VT_IOC_RELEASE_BUFFER, &data);
 
     /* fence fd has transfered to prodouce, now close it */
