@@ -163,25 +163,24 @@ int32_t DrmCrtc::setMode(drm_mode_info_t & mode) {
         return -EINVAL;
     }
 
+    drmModeAtomicReqPtr req = drmModeAtomicAlloc();
+
+    if (modeBlob == mModeBlobId->getValue()) {
+        if (updateprop) {
+            MESON_LOGD("Set update flag");
+            updateprop->setValue(1);
+            updateprop->apply(req);
+        }
+    }
+
     /*set prop value*/
     MESON_ASSERT(crtcid->getValue() == mId, "crtc/connector NOT bind?!");
     mActive->setValue(1);
     mModeBlobId->setValue(modeBlob);
     /*already update when apply*/
-    drmModeAtomicReqPtr req = drmModeAtomicAlloc();
     crtcid->apply(req);
     mActive->apply(req);
     mModeBlobId->apply(req);
-
-    if (modeBlob == mModeBlobId->getValue()) {
-        if (updateprop) {
-            MESON_LOGE("Set update flag");
-            updateprop->setValue(1);
-            updateprop->apply(req);
-        } else {
-            MESON_LOGE("NO UPDATE PROP.");
-        }
-    }
 
     ret = drmModeAtomicCommit(
         mDrmFd,
