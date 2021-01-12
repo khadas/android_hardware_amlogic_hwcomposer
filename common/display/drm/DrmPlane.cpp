@@ -335,13 +335,18 @@ int32_t DrmPlane::setPlane(
             mCrtcW->apply(req);
             mCrtcH->apply(req);
             mZpos->apply(req);
+            if (DebugHelper::getInstance().discardInFence()) {
+                fb->getAcquireFence()->waitForever("osd-input");
+            }
             mInFence->setValue(mDrmBo->inFence);
+            mInFence->apply(req);
             if (mBlendMode.get())
                 mBlendMode->apply(req);
             if (mAlpha.get())
                 mAlpha->apply(req);
         }
     }
+
 
     /*for drmplane it use the fence when atomic,
     *set it to -1, hwc will set it after atomic.
