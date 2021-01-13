@@ -134,7 +134,7 @@ int32_t DrmBo::import(
     alpha = fb->mPlaneAlpha;
     blend = fb->mBlendMode;
     z = fb->mZorder;
-    inFence = fb->getAcquireFence()->dup();
+    inFence = fb->getAcquireFence() ? fb->getAcquireFence()->dup() : -1;
 
     refHandle(handles[0]);
     return ret;

@@ -874,6 +874,7 @@ hwc2_error_t Hwc2Display::getChangedCompositionTypes(
 }
 
 hwc2_error_t Hwc2Display::acceptDisplayChanges() {
+    std::lock_guard<std::mutex> lock(mMutex);
    /* commit composition type */
     for (auto it = mPresentLayers.begin(); it != mPresentLayers.end(); it++) {
         Hwc2Layer * layer = (Hwc2Layer*)(it->get());
