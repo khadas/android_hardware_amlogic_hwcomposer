@@ -15,6 +15,7 @@
 #include <fcntl.h>
 #include <string>
 #include <systemcontrol.h>
+#include "Dv.h"
 
 #define DV_SUPPORT_INFO_LEN_MAX (40)
 
@@ -174,7 +175,7 @@ int32_t ConnectorPanel::parseHdrCapabilities() {
     constexpr int sDefaultMinLumiance = 0;
     constexpr int sDefaultMaxLumiance = 500;
 
-    mHdrCapabilities.DolbyVisionSupported = isDvSupport();
+    mHdrCapabilities.DolbyVisionSupported = getDvSupportStatus();
     mHdrCapabilities.HLGSupported = true;
     mHdrCapabilities.HDR10Supported = true;
     mHdrCapabilities.maxLuminance = sDefaultMaxLumiance;

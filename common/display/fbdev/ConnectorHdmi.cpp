@@ -17,12 +17,13 @@
 #include "ConnectorHdmi.h"
 #include <sstream>
 
+#include "Dv.h"
+
 int32_t parseHdmiHdrCapabilities(drm_hdr_capabilities & hdrCaps);
 bool loadHdmiCurrentHdrType(std::string & hdrType);
 int32_t setHdmiALLM(bool on);
 int32_t loadHdmiSupportedContentTypes(std::vector<uint32_t> & supportedContentTypes);
 int32_t setHdmiContentType(uint32_t contentType);
-bool dvSupportStatus;
 
 /*HDMI related define*/
 static const std::vector<std::string> CONTENT_TYPES = {
@@ -239,11 +240,6 @@ int32_t ConnectorHdmi::switchRatePolicy(bool fracRatePolicy) {
     return 0;
 }
 
-void ConnectorHdmi::getDvSupportStatus() {
-    //this is return platform device support dv or not.
-    dvSupportStatus = isDvSupport();
-}
-
 void ConnectorHdmi::getHdrCapabilities(drm_hdr_capabilities * caps) {
     if (caps) {
         *caps = mHdrCapabilities;
@@ -371,7 +367,7 @@ int32_t parseHdmiHdrCapabilities(drm_hdr_capabilities & hdrCaps) {
             MESON_LOGE("read error: %s, %s\n", DV_PATH, strerror(errno));
             hdrCaps.DolbyVisionSupported = false;
         } else {
-            bool devSupportDv = dvSupportStatus;
+            bool devSupportDv = getDvSupportStatus();
             if (((NULL != strstr(pos, "2160p30hz")) || (NULL != strstr(pos, "2160p60hz"))) && devSupportDv)
                 hdrCaps.DolbyVisionSupported = true;
         }
