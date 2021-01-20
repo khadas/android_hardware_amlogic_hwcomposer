@@ -58,7 +58,7 @@ public:
     bool isVtLayer() override;
     int32_t getVtBuffer() override;
     int32_t acquireVtBuffer() override;
-    int32_t releaseVtBuffer(int releaseFence) override;
+    int32_t releaseVtBuffer() override;
     int32_t releaseVtResource();
 
 public:

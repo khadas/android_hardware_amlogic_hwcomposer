@@ -1407,7 +1407,7 @@ void Hwc2Display::releaseVtLayers() {
     for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
         layer = it->second;
         if (layer->isVtLayer()) {
-            ret = layer->releaseVtBuffer(layer->getPrevReleaseFence());
+            ret = layer->releaseVtBuffer();
             if (ret != 0 && ret != -EAGAIN) {
                 MESON_LOGE("%s, release layer id=%llu failed, ret=%s",
                         __func__, layer->getUniqueId(), strerror(ret));

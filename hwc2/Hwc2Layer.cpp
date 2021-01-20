@@ -108,6 +108,12 @@ hwc2_error_t Hwc2Layer::handleDimLayer(buffer_handle_t buffer) {
 
 hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) {
     /*
+     * If video tunnel sideband recieve blank frame,
+     * need release video tunnel resouce
+     */
+    releaseVtResource();
+
+    /*
     * SurfaceFlinger will call setCompostionType() first,then setBuffer().
     * So it is safe to calc drm_fb_type_t mFbType here.
     */
@@ -294,7 +300,7 @@ void Hwc2Layer::updateZorder(bool update) {
 }
 
 bool Hwc2Layer::isVtLayer() {
-    return (mFbType == DRM_FB_VIDEO_TUNNEL_SIDEBAND) ? true : false;
+    return mFbType == DRM_FB_VIDEO_TUNNEL_SIDEBAND;
 }
 
 int32_t Hwc2Layer::getVtBuffer() {
@@ -335,15 +341,12 @@ int32_t Hwc2Layer::acquireVtBuffer() {
     return 0;
 }
 
-int32_t Hwc2Layer::releaseVtBuffer(int releaseFence) {
+int32_t Hwc2Layer::releaseVtBuffer() {
     std::lock_guard<std::mutex> lock(mMutex);
-    if (!mVtUpdate) {
-        if (releaseFence >= 0)
-            close(releaseFence);
-
+    if (!mVtUpdate)
         return -EAGAIN;
-    }
 
+    int releaseFence = getPrevReleaseFence();
     int ret = VideoTunnelDev::getInstance().releaseBuffer(mTunnelId,
             mVtBufferFd, releaseFence);
 
@@ -355,7 +358,7 @@ int32_t Hwc2Layer::releaseVtBuffer(int releaseFence) {
 int32_t Hwc2Layer::releaseVtResource() {
     if (mFbType == DRM_FB_VIDEO_TUNNEL_SIDEBAND) {
         if (mVtUpdate && mVtBufferFd >= 0)
-            releaseVtBuffer(-1);
+            releaseVtBuffer();
         if (mPreVtBufferFd >= 0)
             close(mPreVtBufferFd);
         mPreVtBufferFd = -1;
