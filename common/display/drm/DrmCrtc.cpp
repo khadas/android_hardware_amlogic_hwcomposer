@@ -126,7 +126,7 @@ int32_t DrmCrtc::getMode(drm_mode_info_t & mode) {
      * If we are in hotplug process, let systemcontrol think the display mode
      * is that it just seted. PendingModes will be set when hotplug process finished
      */
-    if (getHotplugStatus() ==  HotplugStatus::InHotplugProcess) {
+    if (getHotplugStatus() == HotplugStatus::InHotplugProcess) {
         if (!mPendingModes.empty())
             mode = mPendingModes.back();
     }
@@ -149,7 +149,7 @@ int32_t DrmCrtc::setMode(drm_mode_info_t & mode) {
     connector->getCrtcProp(crtcid);
 
     modeBlob = connector->getModeBlobId(mode);
-    connector->getUpdateProp (updateprop);
+    connector->getUpdateProp(updateprop);
 
     if (modeBlob == 0) {
         if (connector->isConnected() == false ||
@@ -165,7 +165,8 @@ int32_t DrmCrtc::setMode(drm_mode_info_t & mode) {
 
     drmModeAtomicReqPtr req = drmModeAtomicAlloc();
 
-    if (modeBlob == mModeBlobId->getValue()) {
+    /*TODO: update mModeBlobId        and compare id.*/
+    if (strncmp(mDrmMode.name, mode.name, DRM_DISPLAY_MODE_LEN) == 0) {
         if (updateprop) {
             MESON_LOGD("Set update flag");
             updateprop->setValue(1);
