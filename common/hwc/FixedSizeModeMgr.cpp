@@ -61,10 +61,8 @@ int32_t FixedSizeModeMgr::update() {
     if (mConnector->isConnected() && 0 == mCrtc->getMode(realMode)) {
         if (realMode.name[0] != 0) {
             mCurMode.refreshRate = realMode.refreshRate;
-            mCurMode.dpiX = realMode.dpiX;
-            mCurMode.dpiY = realMode.dpiY;
-            mCurMode.pixelW = mFbWidth;
-            mCurMode.pixelH = mFbHeight;
+            mCurMode.dpiX = ((float)mCurMode.pixelW/ realMode.pixelW) * realMode.dpiX;
+            mCurMode.dpiY = ((float)mCurMode.pixelH/ realMode.pixelH) * realMode.dpiY;
             mCurMode.groupId = realMode.groupId;
             strncpy(mCurMode.name, realMode.name , DRM_DISPLAY_MODE_LEN);
             MESON_LOGE("ModeMgr update to (%s)", mCurMode.name);
