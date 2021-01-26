@@ -6,12 +6,14 @@
  *
  * Description:
  */
-#define VT_DEBUG 1
+
+#define LOG_NDEBUG 1
 
 #include <MesonLog.h>
 #include <math.h>
 #include <sys/mman.h>
 #include <cutils/properties.h>
+#include <utils/Timers.h>
 
 #include "Hwc2Layer.h"
 #include "Hwc2Base.h"
@@ -24,6 +26,7 @@ Hwc2Layer::Hwc2Layer() : DrmFramebuffer(){
     mVtBufferFd    = -1;
     mPreVtBufferFd = -1;
     mVtUpdate      =  false;
+    mTimeStamp     = -1;
 }
 
 Hwc2Layer::~Hwc2Layer() {
@@ -314,7 +317,15 @@ int32_t Hwc2Layer::getVtBuffer() {
     if (mFbType != DRM_FB_VIDEO_TUNNEL_SIDEBAND)
         return -EINVAL;
 
-    return mVtUpdate ? mVtBufferFd : mPreVtBufferFd;
+    int ret = -1;
+    /* should present the current buffer now? */
+    if (shouldPresentNow()) {
+        ret = mVtUpdate ? mVtBufferFd : mPreVtBufferFd;
+    } else {
+        ret = mPreVtBufferFd;
+    }
+
+    return ret;
 }
 
 int32_t Hwc2Layer::acquireVtBuffer() {
@@ -340,10 +351,18 @@ int32_t Hwc2Layer::acquireVtBuffer() {
     // acquire video tunnel buffer success
     mVtUpdate = true;
     mFbHandleUpdated = true;
-    if (mPreVtBufferFd >= 0)
-        close(mPreVtBufferFd);
 
-    mPreVtBufferFd = dup(mVtBufferFd);
+    static nsecs_t previousTimeStamp = 0;
+    if (previousTimeStamp == 0)
+        previousTimeStamp = mTimeStamp;
+
+    nsecs_t diffExpected = mTimeStamp - previousTimeStamp;
+    previousTimeStamp = mTimeStamp;
+
+    MESON_LOGV("[%s] mVtBufferFd(%d) timestamp (%lld) timeDiff(%lld)",
+            __func__, mVtBufferFd, mTimeStamp, diffExpected);
+
+    diffExpected = 0;
 
     return 0;
 }
@@ -353,13 +372,28 @@ int32_t Hwc2Layer::releaseVtBuffer() {
     if (!mVtUpdate)
         return -EAGAIN;
 
+    if (shouldPresentNow() == false) {
+        MESON_LOGV("[%s] current vt buffer not present", __func__);
+        return -EAGAIN;
+    }
+
+    if (mPreVtBufferFd >= 0)
+        close(mPreVtBufferFd);
+
+    mPreVtBufferFd = mVtBufferFd >= 0 ? dup(mVtBufferFd) : -1;
+
     int releaseFence = getPrevReleaseFence();
     int ret = VideoTunnelDev::getInstance().releaseBuffer(mTunnelId,
             mVtBufferFd, releaseFence);
 
+    MESON_LOGV("[%s] releaseFence:%d, bufferfd:%d, mPreVtBufferFd(%d)",
+            __func__, releaseFence, mVtBufferFd, mPreVtBufferFd);
+
     mVtBufferFd = -1;
     mFbHandleUpdated = false;
     mVtUpdate = false;
+    mTimeStamp = -1;
+
     return ret;
 }
 
@@ -379,4 +413,21 @@ int32_t Hwc2Layer::releaseVtResource() {
         mVtDeviceConnection = false;
     }
     return 0;
+}
+
+void Hwc2Layer::setPresentTime(nsecs_t expectedPresentTime) {
+    mExpectedPresentTime = ns2us(expectedPresentTime);
+    MESON_LOGV("[%s] vsyncTimeStamp:%lld", __func__, mExpectedPresentTime);
+}
+
+bool Hwc2Layer::shouldPresentNow() {
+    if (mTimeStamp == -1)
+        return true;
+
+    const bool isDue =  mTimeStamp < mExpectedPresentTime;
+
+    // Ignore timestamps more than a second in the future
+    const bool isPlausible = mTimeStamp < (mExpectedPresentTime + s2ns(1));
+
+    return  isDue ||  !isPlausible;
 }

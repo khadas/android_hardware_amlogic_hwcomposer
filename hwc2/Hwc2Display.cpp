@@ -348,6 +348,11 @@ void Hwc2Display::onVsync(int64_t timestamp, uint32_t vsyncPeriodNanos) {
 void Hwc2Display::onVTVsync(int64_t timestamp, uint32_t vsyncPeriodNanos) {
     if (mVideoTunnelThread != NULL)
         mVideoTunnelThread->onVtVsync(timestamp, vsyncPeriodNanos);
+
+    // expectPresent time is current vsync timestamp + 1 vsyncPeriod
+    hwc2_vsync_period_t period = 0;
+    getDisplayVsyncPeriod(&period);
+    mVsyncTime = timestamp + period;
 }
 
 void Hwc2Display::onModeChanged(int stage) {
@@ -1466,6 +1471,7 @@ void Hwc2Display::acquireVtLayers() {
     for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
         layer = it->second;
         if (layer->isVtBuffer()) {
+            layer->setPresentTime(mVsyncTime);
             ret = layer->acquireVtBuffer();
             if (ret != 0 && ret != -EAGAIN) {
                 MESON_LOGE("%s, acquire layer id=%llu failed, ret=%s",

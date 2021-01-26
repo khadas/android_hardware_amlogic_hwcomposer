@@ -55,11 +55,14 @@ public:
     bool isUpdateZorder() { return mUpdateZorder;}
     void clearUpdateFlag();
 
+    /* video tunnel api */
     bool isVtBuffer() override;
     int32_t getVtBuffer() override;
     int32_t acquireVtBuffer() override;
     int32_t releaseVtBuffer() override;
     int32_t releaseVtResource();
+    void setPresentTime(nsecs_t expectedPresentTime);
+    bool shouldPresentNow();
 
 public:
     android_dataspace_t mDataSpace;
@@ -81,6 +84,7 @@ protected:
     int mVtBufferFd;
     int mPreVtBufferFd;
     int64_t mTimeStamp;
+    nsecs_t mExpectedPresentTime;
     bool mVtUpdate;
     bool mVtDeviceConnection;
 };

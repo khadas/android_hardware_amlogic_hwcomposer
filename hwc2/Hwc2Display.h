@@ -240,6 +240,7 @@ protected:
     bool mDisplayConnection;
 
     bool mChangedCali;
+    nsecs_t mVsyncTime;
 };
 
 #endif/*HWC2_DISPLAY_H*/
