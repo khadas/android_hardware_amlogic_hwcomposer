@@ -24,7 +24,6 @@ Hwc2Layer::Hwc2Layer() : DrmFramebuffer(){
     mVtBufferFd    = -1;
     mPreVtBufferFd = -1;
     mVtUpdate      =  false;
-    mUpdated       = false;
 }
 
 Hwc2Layer::~Hwc2Layer() {
@@ -113,6 +112,8 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
      * need release video tunnel resouce
      */
     releaseVtResource();
+    if (isVtBuffer())
+        mUpdated = true;
 
     /*
     * SurfaceFlinger will call setCompostionType() first,then setBuffer().
@@ -188,6 +189,7 @@ hwc2_error_t Hwc2Layer::setSidebandStream(const native_handle_t* stream) {
     }
 
     mSecure = false;
+    mUpdated = true;
     return HWC2_ERROR_NONE;
 
 }
@@ -216,11 +218,6 @@ hwc2_error_t Hwc2Layer::setSourceCrop(hwc_frect_t crop) {
 }
 
 hwc2_error_t Hwc2Layer::setDisplayFrame(hwc_rect_t frame) {
-    mDisplayFrame.left = frame.left;
-    mDisplayFrame.top = frame.top;
-    mDisplayFrame.right = frame.right;
-    mDisplayFrame.bottom = frame.bottom;
-
     /*Used for display frame scale*/
     mBackupDisplayFrame.left = frame.left;
     mBackupDisplayFrame.top = frame.top;
@@ -308,7 +305,7 @@ void Hwc2Layer::clearUpdateFlag() {
     mUpdateZorder = mUpdated = false;
 }
 
-bool Hwc2Layer::isVtLayer() {
+bool Hwc2Layer::isVtBuffer() {
     return mFbType == DRM_FB_VIDEO_TUNNEL_SIDEBAND;
 }
 
@@ -342,6 +339,7 @@ int32_t Hwc2Layer::acquireVtBuffer() {
 
     // acquire video tunnel buffer success
     mVtUpdate = true;
+    mFbHandleUpdated = true;
     if (mPreVtBufferFd >= 0)
         close(mPreVtBufferFd);
 
@@ -360,6 +358,7 @@ int32_t Hwc2Layer::releaseVtBuffer() {
             mVtBufferFd, releaseFence);
 
     mVtBufferFd = -1;
+    mFbHandleUpdated = false;
     mVtUpdate = false;
     return ret;
 }

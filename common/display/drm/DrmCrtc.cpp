@@ -34,6 +34,8 @@ DrmCrtc::DrmCrtc(int drmFd, drmModeCrtcPtr p, uint32_t pipe)
     mConnectorId = 0;
     memset(&mMesonMode, 0, sizeof(mMesonMode));
 
+    mNeedPageFlip = false;
+
     MESON_LOGD("DrmCrtc init pipe(%d)-id(%d), mode (%s),active(%" PRId64 ")",
         mPipe, mId, mDrmMode.name, mActive->getValue());
 }
@@ -241,6 +243,13 @@ int32_t DrmCrtc::pageFlip(int32_t & out_fence) {
         return 0;
     }
 
+    if (!mNeedPageFlip) {
+        drmModeAtomicFree(mReq);
+        mReq = NULL;
+        out_fence = -1;
+        return 0;
+    }
+
     MESON_ASSERT(mReq!= NULL, "pageFlip  with NULL request.");
     out_fence = -1;
     drmModeAtomicAddProperty(mReq, mId, mOutFencePtr->getId(), (uint64_t)&out_fence);
@@ -256,6 +265,7 @@ int32_t DrmCrtc::pageFlip(int32_t & out_fence) {
 
     drmModeAtomicFree(mReq);
     mReq = NULL;
+    mNeedPageFlip = false;
     return ret;
 }
 
@@ -279,6 +289,9 @@ int32_t DrmCrtc::setPendingMode() {
     return 0;
 }
 
+void DrmCrtc::setCrtcPageUpdateStatus(bool status) {
+    mNeedPageFlip = status;
+}
 
 void DrmCrtc::dump(String8 & dumpstr) {
     dumpstr.appendFormat("Crtc mPipeId(%d) - mId(%d):\n", mPipe, mId);

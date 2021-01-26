@@ -88,8 +88,10 @@ int32_t VideoComposerDev::setFrames(
         } else if (fb->mFbType == DRM_FB_VIDEO_TUNNEL_SIDEBAND) {
             vFrameInfo->type = 0;
             vFrameInfo->fd = fb->getVtBuffer();
-            if (vFrameInfo->fd < 0)
+            if (vFrameInfo->fd < 0) {
+                MESON_LOGE("vframe get invalid buffer fd");
                 return -EINVAL;
+            }
         } else {
             MESON_LOGE("unknow fb (%d) type %d !!", fb->mZorder, fb->mFbType);
             break;
@@ -99,10 +101,10 @@ int32_t VideoComposerDev::setFrames(
         vFrameInfo->dst_y = fb->mDisplayFrame.top;
         vFrameInfo->dst_w = fb->mDisplayFrame.right - fb->mDisplayFrame.left;
         vFrameInfo->dst_h = fb->mDisplayFrame.bottom - fb->mDisplayFrame.top;
-        vFrameInfo->crop_x = fb->isVtLayer() ?  0 : fb->mSourceCrop.left;
-        vFrameInfo->crop_y = fb->isVtLayer() ? 0 : fb->mSourceCrop.top;
-        vFrameInfo->crop_w = fb->isVtLayer() ? -1 : fb->mSourceCrop.right - fb->mSourceCrop.left;
-        vFrameInfo->crop_h = fb->isVtLayer() ? -1 : fb->mSourceCrop.bottom - fb->mSourceCrop.top;
+        vFrameInfo->crop_x = fb->isVtBuffer() ?  0 : fb->mSourceCrop.left;
+        vFrameInfo->crop_y = fb->isVtBuffer() ? 0 : fb->mSourceCrop.top;
+        vFrameInfo->crop_w = fb->isVtBuffer() ? -1 : fb->mSourceCrop.right - fb->mSourceCrop.left;
+        vFrameInfo->crop_h = fb->isVtBuffer() ? -1 : fb->mSourceCrop.bottom - fb->mSourceCrop.top;
         vFrameInfo->buffer_w = am_gralloc_get_width(buf);
         vFrameInfo->buffer_h = am_gralloc_get_height(buf);
         vFrameInfo->zorder = fb->mZorder;

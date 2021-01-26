@@ -39,11 +39,15 @@ public:
 
     bool isRotated();
 
+    bool isFbUpdated() {return (mUpdated || mFbHandleUpdated);}
+    bool isUpdated() {return mUpdated;}
+    void clearFbHandleFlag();
+
     // Virtuals for video tunnel
     virtual int32_t getVtBuffer() { return -EINVAL; }
     virtual int32_t acquireVtBuffer() { return 0; }
     virtual int32_t releaseVtBuffer() { return 0; }
-    virtual bool isVtLayer() { return false;}
+    virtual bool isVtBuffer() { return false;}
 
 protected:
     void setBufferInfo(const native_handle_t * bufferhnd, int32_t acquireFence);
@@ -64,6 +68,8 @@ public:
     uint32_t mZorder;
     int32_t mDataspace;
     bool mSecure;
+    bool mUpdated;
+    bool mFbHandleUpdated;
 
     int32_t mCompositionType;
 

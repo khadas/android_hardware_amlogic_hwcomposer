@@ -314,6 +314,10 @@ void Hwc2Display::cleanupBeforeDestroy() {
         std::lock_guard<std::mutex> lock(mMutex);
         std::shared_ptr<IComposer> clientComposer = mComposers.find(MESON_CLIENT_COMPOSER)->second;
         clientComposer->prepare();
+        // TODO: workaround to clear CLIENT_COMPOSER's clientTarget
+        hwc_region_t damage;
+        std::shared_ptr<DrmFramebuffer> fb = nullptr;
+        clientComposer->setOutput(fb, damage);
     }
 
     /*clear framebuffer reference by driver*/
@@ -459,7 +463,7 @@ hwc2_error_t Hwc2Display::destroyLayer(hwc2_layer_t  inLayer) {
 
     handleVtThread();
     DebugHelper::getInstance().removeDebugLayer((int)inLayer);
-    if (layerit->second && layerit->second->isVtLayer())
+    if (layerit->second && layerit->second->isVtBuffer())
         layerit->second->releaseVtResource();
 
     mLayers.erase(inLayer);
@@ -530,12 +534,14 @@ hwc2_error_t Hwc2Display::collectLayersForPresent() {
     for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
         std::shared_ptr<Hwc2Layer> layer = it->second;
         std::shared_ptr<DrmFramebuffer> buffer = layer;
-        if (bUpdateLayerList == true && layer->isUpdateZorder() == false) {
+        if ((bUpdateLayerList == true && layer->isUpdateZorder() == false) &&
+            !layer->isVtBuffer()) {
             continue;
         }
-        if (layer->isVtLayer() && layer->getVtBuffer() == -1) {
+
+        if (layer->isVtBuffer() && layer->getVtBuffer() == -1) {
             /* Check if layer buffer id is set or not
-             * when layer is videotunnel type
+             * when layer type is vt-sideband
              * */
             continue;
         }
@@ -915,19 +921,12 @@ hwc2_error_t Hwc2Display::presentSkipValidateCheck() {
     }
 
     if (mPresentLayers.size() == mLayers.size()) {
-        bool changed = false;
         for (auto at = mLayers.begin(); at != mLayers.end(); at++) {
             std::shared_ptr<Hwc2Layer> curLayer = at->second;
             if (curLayer->isUpdated()) {
                 MESON_LOGV("layer (%llu) info changed",curLayer->getUniqueId());
-                changed = true;
-                break;
+                return HWC2_ERROR_NOT_VALIDATED;
             }
-        }
-
-        if (changed == true) {
-            MESON_LOGV("layer info changed");
-            return HWC2_ERROR_NOT_VALIDATED;
         }
     } else {
         MESON_LOGV("layer size changed, need validate first");
@@ -973,18 +972,13 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
         }
 
         mValidateDisplay = false;
-        /* reset layer flag to false */
-        for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
-            std::shared_ptr<Hwc2Layer> layer = it->second;
-            layer->clearUpdateFlag();
-        }
 
         if (mPresentFence >= 0)
             close(mPresentFence);
         mPresentFence = -1;
 
-        /*start new pageflip, and preapre.*/
-        if (mCrtc->prePageFlip() !=0 ) {
+        /*start new pageflip, and prepare.*/
+        if (mCrtc->prePageFlip() != 0 ) {
             return HWC2_ERROR_NO_RESOURCES;
         }
         /*Start to compose, set up plane info.*/
@@ -1000,6 +994,12 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
             }
         }
         #endif
+
+        /* reset layer flag to false */
+        for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
+            std::shared_ptr<Hwc2Layer> layer = it->second;
+            layer->clearUpdateFlag();
+        }
 
         /* Page flip */
         if (mCrtc->pageFlip(mPresentFence) < 0) {
@@ -1032,6 +1032,7 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
         mPresentCompositionStg->dump(compDump);
         MESON_LOGE("%s", compDump.string());
     }
+
     return HWC2_ERROR_NONE;
 }
 
@@ -1440,7 +1441,7 @@ void Hwc2Display::handleVtThread() {
     bool haveVtLayer = false;
     for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
         std::shared_ptr<Hwc2Layer> layer = it->second;
-        if (layer->isVtLayer()) {
+        if (layer->isVtBuffer()) {
             haveVtLayer = true;
             break;
         }
@@ -1464,7 +1465,7 @@ void Hwc2Display::acquireVtLayers() {
 
     for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
         layer = it->second;
-        if (layer->isVtLayer()) {
+        if (layer->isVtBuffer()) {
             ret = layer->acquireVtBuffer();
             if (ret != 0 && ret != -EAGAIN) {
                 MESON_LOGE("%s, acquire layer id=%llu failed, ret=%s",
@@ -1480,7 +1481,7 @@ void Hwc2Display::releaseVtLayers() {
 
     for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
         layer = it->second;
-        if (layer->isVtLayer()) {
+        if (layer->isVtBuffer()) {
             ret = layer->releaseVtBuffer();
             if (ret != 0 && ret != -EAGAIN) {
                 MESON_LOGE("%s, release layer id=%llu failed, ret=%s",

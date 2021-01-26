@@ -151,7 +151,7 @@ int DrmProperty::getEnumValueWithName(const char *name, uint64_t & val)  {
         }
     }
 
-    MESON_LOGE("GetEnum value failed with %s", name);
+    //MESON_LOGE("GetEnum value failed with %s", name);
     return -EINVAL;
 }
 

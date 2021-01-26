@@ -47,6 +47,8 @@ public:
 
     int32_t setPendingMode();
 
+    void setCrtcPageUpdateStatus(bool status);
+
     void dump(String8 & dumpstr);
 
     /*internal drm package api*/
@@ -78,6 +80,11 @@ protected:
     std::mutex mMutex;
     uint32_t mConnectorId;
     std::vector<drm_mode_info> mPendingModes;
+
+    /* if all osd layer is not update, set mNeedPageFlip to false
+     * and skip call pageFlip
+     */
+    bool mNeedPageFlip;
 };
 
 #endif/*DRM_CRTC_H*/

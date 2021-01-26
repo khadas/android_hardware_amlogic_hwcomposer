@@ -1267,6 +1267,7 @@ int MultiplanesWithDiComposition::commit() {
 
         /* Set display info. */
         int ret = plane->setPlane(fb, presentZorder, blankFlag);
+        fb->clearFbHandleFlag();
         if (ret != 0) {
             MESON_LOGE("%s setPlane failed", plane->getName());
             setPlaneSuccess = false;

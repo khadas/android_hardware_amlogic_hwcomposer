@@ -14,6 +14,7 @@
 DrmFramebuffer::DrmFramebuffer()
       : mBufferHandle(NULL),
         mMapBase(NULL) {
+    mUpdated = false;
     reset();
 }
 
@@ -21,6 +22,7 @@ DrmFramebuffer::DrmFramebuffer(
     const native_handle_t * bufferhnd, int32_t acquireFence)
       : mBufferHandle(NULL),
         mMapBase(NULL) {
+    mUpdated = false;
     reset();
     setBufferInfo(bufferhnd, acquireFence);
 
@@ -79,10 +81,15 @@ void DrmFramebuffer::reset() {
     mDisplayFrame.bottom = mSourceCrop.bottom = 0;
 }
 
+void DrmFramebuffer::clearFbHandleFlag() {
+    mFbHandleUpdated = false;
+}
+
 void DrmFramebuffer::setBufferInfo(
     const native_handle_t * bufferhnd,
     int32_t acquireFence) {
     if (bufferhnd) {
+        mFbHandleUpdated = true;
         mBufferHandle = gralloc_ref_dma_buf(bufferhnd);
         if (acquireFence >= 0)
             mAcquireFence = std::make_shared<DrmFence>(acquireFence);
@@ -94,6 +101,7 @@ void DrmFramebuffer::clearBufferInfo() {
         unlock();
         gralloc_unref_dma_buf(mBufferHandle);
         mBufferHandle  = NULL;
+        mFbHandleUpdated = false;
     }
 
     /* clearBufferInfo() means buffer changed,

@@ -243,6 +243,12 @@ int32_t DrmPlane::setPlane(
             mDrmBo.reset();
         }
     } else {
+        if (!fb->isFbUpdated())
+            return 0;
+
+        /*have osd layer update, need do page flip*/
+        crtc->setCrtcPageUpdateStatus(true);
+
         bool bUpdate = false;
         int32_t ret = 0;
 

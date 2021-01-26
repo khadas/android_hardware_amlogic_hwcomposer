@@ -26,7 +26,6 @@ bool ClientComposer::isFbsSupport(
 
 int32_t ClientComposer::prepare() {
     mOverlayFbs.clear();
-    mClientTarget.reset();
     return 0;
 }
 
@@ -48,7 +47,9 @@ int32_t ClientComposer::setOutput(
     std::shared_ptr<DrmFramebuffer> & fb,
     hwc_region_t damage __unused,
     int composeIdx __unused) {
-    mClientTarget = fb;
+    mClientTarget.reset();
+    if (fb.get() != nullptr)
+        mClientTarget = fb;
     return 0;
 }
 

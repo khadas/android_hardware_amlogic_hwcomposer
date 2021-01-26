@@ -99,7 +99,7 @@ int32_t DrmBo::import(
     int halFormat = am_gralloc_get_format(buf);
     format = covertToDrmFormat(halFormat);
     if (format == DRM_FORMAT_INVALID) {
-        MESON_LOGE("import meet unknown format[%x] ", halFormat);
+        MESON_LOGE("import meet unknown format[%x], buf=%p", halFormat, buf);
         return -EINVAL;
     }
 
