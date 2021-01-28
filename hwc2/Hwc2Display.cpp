@@ -6,6 +6,9 @@
  *
  * Description:
  */
+
+#define LOG_NDEBUG 1
+
 #include <hardware/hwcomposer2.h>
 #include <inttypes.h>
 #include <time.h>
@@ -901,13 +904,13 @@ hwc2_error_t Hwc2Display::presentSkipValidateCheck() {
     for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
         std::shared_ptr<Hwc2Layer> layer = it->second;
         if (layer->mCompositionType == MESON_COMPOSITION_CLIENT) {
-            MESON_LOGE("only non client composition type support skip validate");
+            MESON_LOGV("only non client composition type support skip validate");
             return HWC2_ERROR_NOT_VALIDATED;
         }
     }
 
     if (mChangedCali) {
-        MESON_LOGE("calibrate info changed, need validate first");
+        MESON_LOGV("calibrate info changed, need validate first");
         return HWC2_ERROR_NOT_VALIDATED;
     }
 
@@ -916,18 +919,18 @@ hwc2_error_t Hwc2Display::presentSkipValidateCheck() {
         for (auto at = mLayers.begin(); at != mLayers.end(); at++) {
             std::shared_ptr<Hwc2Layer> curLayer = at->second;
             if (curLayer->isUpdated()) {
-                MESON_LOGE("layer (%llu) info changed",curLayer->getUniqueId());
+                MESON_LOGV("layer (%llu) info changed",curLayer->getUniqueId());
                 changed = true;
                 break;
             }
         }
 
         if (changed == true) {
-            MESON_LOGE("layer info changed");
+            MESON_LOGV("layer info changed");
             return HWC2_ERROR_NOT_VALIDATED;
         }
     } else {
-        MESON_LOGE("layer size changed, need validate first");
+        MESON_LOGV("layer size changed, need validate first");
         return HWC2_ERROR_NOT_VALIDATED;
     }
     return HWC2_ERROR_NONE;
@@ -946,11 +949,11 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
         if (mValidateDisplay == false) {
             hwc2_error_t err = presentSkipValidateCheck();
             if (err != HWC2_ERROR_NONE) {
-                MESON_LOGI("presentDisplay without validateDisplay err(%d)",err);
+                MESON_LOGV("presentDisplay without validateDisplay err(%d)",err);
                 return err;
             }
 
-            MESON_LOGI("present skip validate");
+            MESON_LOGV("present skip validate");
             mCompositionStrategy->updateComposition();
 
             /*dump at skip validate display, for we need check by some composition info.*/
