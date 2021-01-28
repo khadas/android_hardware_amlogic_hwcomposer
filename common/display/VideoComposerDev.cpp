@@ -71,11 +71,11 @@ int32_t VideoComposerDev::setFrames(
         buffer_handle_t buf = fb->mBufferHandle;
 
         vFrameInfo->sideband_type = 0;
-        if (fb->mFbType == DRM_FB_VIDEO_OMX_V4L ||
-            fb->mFbType == DRM_FB_VIDEO_UVM_DMA) {
+        if (fb->mFbType == DRM_FB_VIDEO_OMX_V4L) {
             vFrameInfo->fd = am_gralloc_get_omx_v4l_file(buf);
             vFrameInfo->type = 0;
-        } else if (fb->mFbType == DRM_FB_VIDEO_DMABUF) {
+        } else if (fb->mFbType == DRM_FB_VIDEO_DMABUF ||
+            fb->mFbType == DRM_FB_VIDEO_UVM_DMA) {
             vFrameInfo->fd = am_gralloc_get_buffer_fd(buf);
             vFrameInfo->type = 1;
         } else if (fb->mFbType == DRM_FB_VIDEO_SIDEBAND ||
@@ -109,10 +109,14 @@ int32_t VideoComposerDev::setFrames(
         vFrameInfo->buffer_h = am_gralloc_get_height(buf);
         vFrameInfo->zorder = fb->mZorder;
         vFrameInfo->transform = fb->mTransform;
+        /*pass aligned buffer width and height to video composer*/
+        vFrameInfo->reserved[0] = am_gralloc_get_stride_in_pixel(buf);
+        vFrameInfo->reserved[1] = am_gralloc_get_aligned_height(buf);
 
-        MESON_LOGV("VideoComposerDev(%d) setframe (%d) (%d-%dx%d)",
+        MESON_LOGV("VideoComposerDev(%d) setframe (%d) (%d-%dx%d aligned wxh (%dx%d))",
                 mDrvFd, fb->mZorder, fb->mFbType,
-                vFrameInfo->buffer_w, vFrameInfo->buffer_h);
+                vFrameInfo->buffer_w, vFrameInfo->buffer_h,
+                vFrameInfo->reserved[0], vFrameInfo->reserved[1]);
     }
 
     if (ioctl(mDrvFd, VIDEO_COMPOSER_IOCTL_SET_FRAMES, &mVideoFramesInfo) != 0) {
