@@ -201,7 +201,7 @@ int32_t DrmCrtc::setMode(drm_mode_info_t & mode) {
     drmModeAtomicFree(req);
 
     connector->getDrmModeByBlobId(mDrmMode, modeBlob);
-    connector->getModeByBlobId(mMesonMode, modeBlob);
+    connector->DrmMode2Mode(mDrmMode, mMesonMode);
     MESON_LOGD("setmode:crtc[%d], name [%s] -modeblob[%d]",
         mId, mode.name, modeBlob);
     return ret;

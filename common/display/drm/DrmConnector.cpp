@@ -25,7 +25,8 @@ extern bool loadHdmiCurrentHdrType(std::string & hdrType);
 extern int32_t setHdmiALLM(bool on);
 extern int32_t loadHdmiSupportedContentTypes(std::vector<uint32_t> & supportedContentTypes);
 extern int32_t setHdmiContentType(uint32_t contentType);
-
+extern int32_t switchRatePolicy(bool fracRatePolicy);
+extern bool getFracModeStatus();
 
 DrmConnector::DrmConnector(int drmFd, drmModeConnectorPtr p)
     : HwDisplayConnector(),
@@ -34,6 +35,7 @@ DrmConnector::DrmConnector(int drmFd, drmModeConnectorPtr p)
     mType(p->connector_type) {
 
     mState = p->connection;
+    mFracMode = HWC_HDMI_FRAC_MODE;
     loadProperties(p);
 
     if (mState == DRM_MODE_CONNECTED) {
@@ -96,6 +98,7 @@ int32_t DrmConnector::loadDisplayModes(drmModeConnectorPtr p) {
     for (auto & it : mDrmModes)
         drmModeDestroyPropertyBlob(mDrmFd, it.first);
     mMesonModes.clear();
+    mFracRefreshRates.clear();
     mDrmModes.clear();
 
     /*add new display mode list.*/
@@ -131,8 +134,36 @@ int32_t DrmConnector::loadDisplayModes(drmModeConnectorPtr p) {
             continue;
         }
 
+        bool bNonFractionMode = false;
+        // default add frac refresh rate config, like 23.976hz, 29.97hz...
+        if (modeInfo.refreshRate == REFRESH_24kHZ
+                || modeInfo.refreshRate == REFRESH_30kHZ
+                || modeInfo.refreshRate == REFRESH_60kHZ
+                || modeInfo.refreshRate == REFRESH_120kHZ
+                || modeInfo.refreshRate == REFRESH_240kHZ) {
+            if (mFracMode == MODE_ALL || mFracMode == MODE_FRACTION) {
+                drm_mode_info_t fracMode = modeInfo;
+                fracMode.refreshRate = (modeInfo.refreshRate * 1000) / (float)1001;
+                fracMode.groupId = mMesonModes.size();
+                mMesonModes.emplace(mMesonModes.size(), fracMode);
+                mFracRefreshRates.push_back(fracMode.refreshRate);
+                MESON_LOGD("add fraction display mode (%s)", fracMode.name);
+            }
+        } else {
+            bNonFractionMode = true;
+        }
+
+        if (mFracMode == MODE_ALL || mFracMode == MODE_NON_FRACTION) {
+            bNonFractionMode = true;
+        }
+
+        if (bNonFractionMode) {
+            // add normal refresh rate config, like 24hz, 30hz...
+            modeInfo.groupId = mMesonModes.size();
+            mMesonModes.emplace(mMesonModes.size(), modeInfo);
+        }
+
         mDrmModes.emplace(blobid, drmModes[i]);
-        mMesonModes.emplace(blobid, modeInfo);
         MESON_LOGI("add display mode (%s-%s-%d, %dx%d, %f)",
             drmModes[i].name, modeInfo.name, blobid,
             modeInfo.pixelW, modeInfo.pixelH, modeInfo.refreshRate);
@@ -206,6 +237,22 @@ int32_t DrmConnector::getModes(
     return 0;
 }
 
+int32_t DrmConnector::setMode(drm_mode_info_t & mode) {
+    if (mFracMode == MODE_NON_FRACTION)
+        return 0;
+
+    /*update rate policy.*/
+    for (auto it = mFracRefreshRates.begin(); it != mFracRefreshRates.end(); it ++) {
+        if (*it == mode.refreshRate) {
+            switchRatePolicy(true);
+            return 0;
+        }
+    }
+
+    switchRatePolicy(false);
+    return 0;
+}
+
 bool DrmConnector::isConnected() {
     if (mState == DRM_MODE_CONNECTED)
         return true;
@@ -236,24 +283,14 @@ int DrmConnector::getUpdateProp(std::shared_ptr<DrmProperty> & prop) {
 
 uint32_t DrmConnector::getModeBlobId(drm_mode_info_t & mode) {
     std::lock_guard<std::mutex> lock(mMutex);
-    for (const auto & it : mMesonModes) {
-        if (strcmp(it.second.name, mode.name) == 0) {
+    for (const auto & it : mDrmModes) {
+        if (strstr(it.second.name, mode.name)) {
             return it.first;
         }
     }
 
     MESON_LOGE("getModeBlobId failed [%s]", mode.name);
     return 0;
-}
-
-int DrmConnector::getModeByBlobId(drm_mode_info_t & mode, uint32_t blobid) {
-    std::lock_guard<std::mutex> lock(mMutex);
-    auto it = mMesonModes.find(blobid);
-    if (it != mMesonModes.end()) {
-        memcpy(&mode, &(it->second), sizeof(drm_mode_info_t));
-        return 0;
-    }
-    return -EINVAL;
 }
 
 int DrmConnector::getDrmModeByBlobId(drmModeModeInfo & drmmode, uint32_t blobid) {
@@ -266,27 +303,39 @@ int DrmConnector::getDrmModeByBlobId(drmModeModeInfo & drmmode, uint32_t blobid)
 }
 
 int DrmConnector::DrmMode2Mode(drmModeModeInfo & drmmode, drm_mode_info_t & mode) {
-    uint32_t modeBlobId = 0;
-    for (const auto & it : mDrmModes) {
-        if (memcmp(&drmmode, &it.second, sizeof(drmModeModeInfo)) == 0) {
-            modeBlobId = it.first;
-            break;
+    for (const auto & it : mMesonModes) {
+        if (strstr(drmmode.name, it.second.name)) {
+            if (mFracMode == MODE_ALL || mFracMode == MODE_FRACTION) {
+                /* frac mode refresh rate */
+                if (drmmode.vrefresh == REFRESH_24kHZ
+                        || drmmode.vrefresh == REFRESH_30kHZ
+                        || drmmode.vrefresh == REFRESH_60kHZ
+                        || drmmode.vrefresh == REFRESH_120kHZ
+                        || drmmode.vrefresh == REFRESH_240kHZ) {
+                    if (getFracModeStatus()) { // is enable
+                        if (it.second.refreshRate == drmmode.vrefresh)
+                            continue;
+                    } else { // is disable
+                        if (it.second.refreshRate == ((drmmode.vrefresh * 1000) / (float)1001))
+                            continue;
+                    }
+                }
+            }
+
+            memcpy(&mode, &(it.second), sizeof(drm_mode_info_t));
+            return 0;
         }
     }
 
-    if (modeBlobId == 0) {
-        MESON_LOGE("DrmMode2Mode find drm mode failed (%s)", drmmode.name);
-        return -EINVAL;
-    }
-
-    return getModeByBlobId(mode, modeBlobId );
+    MESON_LOGE("DrmMode2Mode find drm mode failed (%s)", drmmode.name);
+    return -EINVAL;
 }
 
 void DrmConnector::dump(String8 & dumpstr) {
-    dumpstr.appendFormat("Connector (%s, %d x %d, %s, %s) mId(%d) mCrtcId(%d)\n",
+    dumpstr.appendFormat("Connector (%s, %d x %d, %s, %s) mId(%d) mCrtcId(%d) mFracMode(%d)\n",
         getName(), mPhyWidth, mPhyHeight,
         isSecure() ? "secure" : "unsecure", isConnected() ? "Connected" : "Removed",
-        mId, getCrtcId());
+        mId, getCrtcId(), mFracMode);
 
     //dump display config.
     dumpstr.append("   CONFIG   |   VSYNC_PERIOD   |   WIDTH   |   HEIGHT   |"

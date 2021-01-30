@@ -24,6 +24,8 @@ bool loadHdmiCurrentHdrType(std::string & hdrType);
 int32_t setHdmiALLM(bool on);
 int32_t loadHdmiSupportedContentTypes(std::vector<uint32_t> & supportedContentTypes);
 int32_t setHdmiContentType(uint32_t contentType);
+int32_t switchRatePolicy(bool fracRatePolicy);
+bool getFracModeStatus();
 
 /*HDMI related define*/
 static const std::vector<std::string> CONTENT_TYPES = {
@@ -39,15 +41,6 @@ static const std::vector<std::string> CONTENT_TYPES = {
 #define HDMI_TX_ALLM_MODE   "/sys/class/amhdmitx/amhdmitx0/allm_mode"
 #define HDMI_TX_CONTENT_TYPE_CAP  "/sys/class/amhdmitx/amhdmitx0/contenttype_cap"
 #define HDMI_TX_CONTENT_TYPE  "/sys/class/amhdmitx/amhdmitx0/contenttype_mode"
-
-
-enum {
-    REFRESH_24kHZ = 24,
-    REFRESH_30kHZ = 30,
-    REFRESH_60kHZ = 60,
-    REFRESH_120kHZ = 120,
-    REFRESH_240kHZ = 240
-};
 
 ConnectorHdmi::ConnectorHdmi(int32_t drvFd, uint32_t id)
     :   HwDisplayConnectorFbdev(drvFd, id) {
@@ -218,25 +211,6 @@ int32_t ConnectorHdmi::getIdentificationData(std::vector<uint8_t>& idOut) {
         return -EAGAIN;
     }
     idOut = mEDID;
-    return 0;
-}
-
-int32_t ConnectorHdmi::switchRatePolicy(bool fracRatePolicy) {
-    if (fracRatePolicy) {
-        if (!sysfs_set_string(HDMI_FRAC_RATE_POLICY, "1")) {
-            MESON_LOGV("Switch to frac rate policy SUCCESS.");
-        } else {
-            MESON_LOGE("Switch to frac rate policy FAIL.");
-            return -EFAULT;
-        }
-    } else {
-        if (!sysfs_set_string(HDMI_FRAC_RATE_POLICY, "0")) {
-            MESON_LOGV("Switch to normal rate policy SUCCESS.");
-        } else {
-            MESON_LOGE("Switch to normal rate policy FAIL.");
-            return -EFAULT;
-        }
-    }
     return 0;
 }
 
@@ -537,4 +511,25 @@ int32_t setHdmiContentType(uint32_t contentType) {
     return 0;
 }
 
+int32_t switchRatePolicy(bool fracRatePolicy) {
+    if (fracRatePolicy) {
+        if (!sysfs_set_string(HDMI_FRAC_RATE_POLICY, "1")) {
+            MESON_LOGV("Switch to frac rate policy SUCCESS.");
+        } else {
+            MESON_LOGE("Switch to frac rate policy FAIL.");
+            return -EFAULT;
+        }
+    } else {
+        if (!sysfs_set_string(HDMI_FRAC_RATE_POLICY, "0")) {
+            MESON_LOGV("Switch to normal rate policy SUCCESS.");
+        } else {
+            MESON_LOGE("Switch to normal rate policy FAIL.");
+            return -EFAULT;
+        }
+    }
+    return 0;
+}
 
+bool getFracModeStatus() {
+    return sysfs_get_int(HDMI_FRAC_RATE_POLICY, 1) == 1 ? true : false;
+}

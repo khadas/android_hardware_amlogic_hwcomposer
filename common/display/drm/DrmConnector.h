@@ -50,14 +50,12 @@ public:
 
     void dump(String8 & dumpstr);
 
-    /*TODO: unused function, need remove.*/
-    int32_t setMode(drm_mode_info_t & mode __unused) { return 0; }
+    int32_t setMode(drm_mode_info_t & mode );
 
     /*drm package internal use.*/
 public:
     uint32_t getEncoderId() {return mEncoderId;}
     uint32_t getModeBlobId(drm_mode_info_t & mode);
-    int getModeByBlobId(drm_mode_info_t & mode, uint32_t blobid);
     int getDrmModeByBlobId(drmModeModeInfo & drmmode, uint32_t blobid);
     int getCrtcProp(std::shared_ptr<DrmProperty> & prop);
     int getUpdateProp(std::shared_ptr<DrmProperty> & prop);
@@ -76,11 +74,13 @@ protected:
     uint32_t mType;
     uint32_t mEncoderId;
     drmModeConnection mState;
+    int32_t mFracMode;
 
     std::mutex mMutex;
     /*mode_id, modeinfo. mode_id is created by userspace, not from kernel.*/
     std::map<uint32_t, drmModeModeInfo> mDrmModes;
     std::map<uint32_t, drm_mode_info_t> mMesonModes;
+    std::vector<float> mFracRefreshRates;
 
     /*HxW in millimeters*/
     uint32_t mPhyWidth;

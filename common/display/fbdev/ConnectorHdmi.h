@@ -39,7 +39,6 @@ public:
 protected:
     virtual int32_t addDisplayMode(std::string& mode);
     bool checkConnectState();
-    int32_t switchRatePolicy(bool fracRatePolicy);
 
     int32_t loadDisplayModes();
     int32_t loadSupportedContentTypes();
@@ -49,12 +48,6 @@ protected:
     virtual void parseEDID();
 
 private:
-    enum {
-        MODE_FRACTION = 0,
-        MODE_NON_FRACTION,
-        MODE_ALL
-    };
-
     char mName[64];
     bool mConnected;
     bool mSecure;

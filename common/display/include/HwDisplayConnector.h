@@ -31,6 +31,20 @@ enum {
     CONTENT_TYPE_GAME = 4,
 };
 
+enum {
+    REFRESH_24kHZ = 24,
+    REFRESH_30kHZ = 30,
+    REFRESH_60kHZ = 60,
+    REFRESH_120kHZ = 120,
+    REFRESH_240kHZ = 240
+};
+
+enum {
+    MODE_FRACTION = 0,
+    MODE_NON_FRACTION,
+    MODE_ALL
+};
+
 class HwDisplayConnector {
 public:
     HwDisplayConnector() { }
