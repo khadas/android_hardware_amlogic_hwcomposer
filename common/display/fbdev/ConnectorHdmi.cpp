@@ -396,17 +396,19 @@ int32_t parseHdmiHdrCapabilities(drm_hdr_capabilities & hdrCaps) {
                 hdrCaps.minLuminance = getLineValue(pos, "Min: ");
             }
 
-            if (pos != NULL) pos = strstr(buf, "Hybrif Log-Gamma: ");
-            if ((NULL != pos) && ('1' == *(pos + strlen("Hybrif Log-Gamma: ")))) {
-                hdrCaps.HLGSupported = true;
+            if (pos != NULL) {
+                char* hybrif = strstr(pos, "Hybrif Log-Gamma: ");
+                if (NULL != hybrif) {
+                    if ('1' == *(hybrif + strlen("Hybrif Log-Gamma: ")))
+                        hdrCaps.HLGSupported = true;
+                } else {
+                    /* kernel 5.4, content change to: Hybrid Log-Gamma */
+                    char* hybrid = strstr(pos, "Hybrid Log-Gamma: ");
+                    if ((NULL != hybrid) && ('1' == *(hybrid + strlen("Hybrid Log-Gamma: "))))
+                        hdrCaps.HLGSupported = true;
+                }
             }
 
-            /* kernel 5.4, content change to: Hybrid Log-Gamma */
-            if (pos != NULL)
-                pos = strstr(buf, "Hybrid Log-Gamma: ");
-            if ((NULL != pos) && ('1' == *(pos + strlen("Hybrid Log-Gamma: ")))) {
-                hdrCaps.HLGSupported = true;
-            }
         }
         close(fd);
     }
