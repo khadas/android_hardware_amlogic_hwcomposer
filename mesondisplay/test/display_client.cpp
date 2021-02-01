@@ -30,6 +30,7 @@ static const struct option long_option[] = {
     {"G", required_argument, 0, 'G'},
     {"S", required_argument, 0, 'S'},
     {"dump-display-attribute", no_argument, 0, 'd'},
+    {"vsync-timestamp", no_argument, 0, 'v'},
     {0, 0, 0, 0}
 };
 
@@ -45,6 +46,7 @@ static void print_usage(const char* name) {
             "       -G \"[ui-rect|display-mode]\"\tget [logic ui rect|display mode]\n"
             "       -S \"[ui-rect]\"\tset [logic ui rect]\n"
             "                               \t eg: \"Content Protection\" 1\n"
+            "       -v, --get-vsyn-timestamp and period \t get primary display vsync timestamp and vsync period\n"
             "       -r,--raw-cmd           \tsend raw cmd\n", name);
 }
 
@@ -148,6 +150,13 @@ int main(int argc, char* argv[]) {
                 break;
             case 'r':
                 NOTIMPLEMENTED;
+                break;
+            case 'v':
+                int64_t vsyncTimestamp;
+                int32_t vsyncPeriod;
+                client->getDisplayVsyncAndPeriod(vsyncTimestamp, vsyncPeriod);
+                printf("vsyncTimestamp:%" PRId64 " ns Period:%d ns\n",
+                        vsyncTimestamp, vsyncPeriod);
                 break;
             case 'd':
                 {

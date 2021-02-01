@@ -184,6 +184,12 @@ void DisplayServer::message_handle(Json::Value& in, Json::Value& out) {
         adapter->getDisplayAttribute(in["name"].asString(), value,
                 (ConnectorType) in["p_displayType"].asUInt());
         ret["value"] = value;
+    } else if (cmd == "getDisplayVsyncAndPeriod") {
+        int64_t vsyncTimestamp;
+        int32_t vsyncPeriod;
+        adapter->getDisplayVsyncAndPeriod(vsyncTimestamp, vsyncPeriod);
+        std::string value = std::to_string(vsyncTimestamp) + "," + std::to_string(vsyncPeriod);
+        ret["value"] = value;
     } else if (cmd == "dumpDisplayAttribute") {
         if (!in.isMember("p_displayType"))
             goto OUT;

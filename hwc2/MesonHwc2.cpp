@@ -725,6 +725,12 @@ int32_t MesonHwc2::handleDisplayRequest(uint32_t request) {
     return 0;
 }
 
+/* get primary display vsync timestamp and vsync period */
+bool MesonHwc2::getDisplayVsyncAndPeriod(int64_t& timestamp, int32_t& vsyncPeriodNanos) {
+    GET_HWC_DISPLAY(0);
+    return hwcDisplay->getDisplayVsyncAndPeriod(timestamp, vsyncPeriodNanos);
+}
+
 /**********************Internal Implement********************/
 
 class MesonHwc2Observer

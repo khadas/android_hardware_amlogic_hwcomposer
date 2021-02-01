@@ -42,6 +42,7 @@ Hwc2Display::Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer) {
     mScaleValue = 1;
     mPresentFence = -1;
     mVideoTunnelThread = NULL;
+    mVsyncTimestamp = 0;
     memset(&mHdrCaps, 0, sizeof(mHdrCaps));
     memset(mColorMatrix, 0, sizeof(float) * 16);
     memset(&mCalibrateCoordinates, 0, sizeof(int) * 4);
@@ -338,6 +339,7 @@ void Hwc2Display::onUpdate(bool bHdcp) {
 }
 
 void Hwc2Display::onVsync(int64_t timestamp, uint32_t vsyncPeriodNanos) {
+    mVsyncTimestamp = timestamp;
     if (mObserver != NULL) {
         mObserver->onVsync(timestamp, vsyncPeriodNanos);
     } else {
@@ -346,13 +348,9 @@ void Hwc2Display::onVsync(int64_t timestamp, uint32_t vsyncPeriodNanos) {
 }
 
 void Hwc2Display::onVTVsync(int64_t timestamp, uint32_t vsyncPeriodNanos) {
+    mVsyncTimestamp = timestamp;
     if (mVideoTunnelThread != NULL)
         mVideoTunnelThread->onVtVsync(timestamp, vsyncPeriodNanos);
-
-    // expectPresent time is current vsync timestamp + 1 vsyncPeriod
-    hwc2_vsync_period_t period = 0;
-    getDisplayVsyncPeriod(&period);
-    mVsyncTime = timestamp + period;
 }
 
 void Hwc2Display::onModeChanged(int stage) {
@@ -1392,6 +1390,7 @@ void Hwc2Display::dump(String8 & dumpstr) {
     mModeMgr->dump(dumpstr);
     dumpstr.append("\n");
     mVsync->dump(dumpstr);
+    dumpstr.appendFormat("    VsyncTimestamp:%" PRId64 " ns\n", mVsyncTimestamp);
     dumpstr.append("\n");
 
     /*dump detail debug info*/
@@ -1440,6 +1439,16 @@ int32_t Hwc2Display::captureDisplayScreen(buffer_handle_t hnd) {
     return ret;
 }
 
+bool Hwc2Display::getDisplayVsyncAndPeriod(int64_t& timestamp, int32_t& vsyncPeriodNanos) {
+    timestamp = mVsyncTimestamp;
+
+    /* default set to 16.667 ms */
+    hwc2_vsync_period_t period = 1e9 / 60;
+    hwc2_error_t  ret = getDisplayVsyncPeriod(&period);
+    vsyncPeriodNanos = period;
+
+    return ret == HWC2_ERROR_NONE;
+}
 
 /*******************Video Tunnel API below*******************/
 void Hwc2Display::handleVtThread() {
@@ -1471,7 +1480,11 @@ void Hwc2Display::acquireVtLayers() {
     for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
         layer = it->second;
         if (layer->isVtBuffer()) {
-            layer->setPresentTime(mVsyncTime);
+            // expectPresent time is current vsync timestamp + 1 vsyncPeriod
+            hwc2_vsync_period_t period = 0;
+            getDisplayVsyncPeriod(&period);
+            nsecs_t expectPresentedTime = mVsyncTimestamp + period;
+            layer->setPresentTime(expectPresentedTime);
             ret = layer->acquireVtBuffer();
             if (ret != 0 && ret != -EAGAIN) {
                 MESON_LOGE("%s, acquire layer id=%llu failed, ret=%s",

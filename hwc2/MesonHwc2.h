@@ -141,6 +141,7 @@ public:
 
     uint32_t getDisplayRequest();
     int32_t handleDisplayRequest(uint32_t request);
+    bool getDisplayVsyncAndPeriod(int64_t& timestamp, int32_t& vsyncPeriodNanos);
 
 /*implement*/
 public:

@@ -349,6 +349,13 @@ bool DisplayAdapterLocal::getDisplayAttribute(
     return ret;
 }
 
+bool DisplayAdapterLocal::getDisplayVsyncAndPeriod(int64_t& vsyncTimestamp, int32_t& vsyncPeriodNanos) {
+    UNUSED(vsyncTimestamp);
+    UNUSED(vsyncPeriodNanos);
+    NOTIMPLEMENTED;
+    return false;
+}
+
 bool DisplayAdapterLocal::dumpDisplayAttribute(Json::Value& json, ConnectorType displayType) {
     Json::Value ret;
     UNUSED(displayType);

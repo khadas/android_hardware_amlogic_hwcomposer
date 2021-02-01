@@ -31,6 +31,8 @@ public:
     bool getDisplayRect(Rect& rect, ConnectorType displayType);
     bool setDisplayAttribute(const string& name, const string& value, ConnectorType displayType) override;
     bool getDisplayAttribute(const string& name, string& value, ConnectorType displayType) override;
+    bool getDisplayVsyncAndPeriod(int64_t& vsyncTimestamp, int32_t& vsyncPeriodNanos) override;
+
     bool dumpDisplayAttribute(Json::Value& json, ConnectorType displayType) override;
 
     static std::unique_ptr<DisplayAdapter> create();

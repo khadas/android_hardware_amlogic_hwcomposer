@@ -371,6 +371,14 @@ bool DisplayAdapterLocal::getDisplayAttribute(
     return ret;
 };
 
+bool DisplayAdapterLocal::getDisplayVsyncAndPeriod(int64_t& timestamp, int32_t& vsyncPeriodNanos) {
+    MesonHwc2::getInstance().getDisplayVsyncAndPeriod(timestamp, vsyncPeriodNanos);
+    //MESON_LOGV("getDisplayVsyncAndPeriod vsyncTime:%" PRId64 " ns period:%d ns",
+    //        timestamp, vsyncPeriodNanos);
+
+    return true;
+}
+
 std::unique_ptr<DisplayAdapter> DisplayAdapterLocal::create(DisplayAdapter::BackendType type) {
     switch (type) {
         case BackendType::DISPLAY_TYPE_DRM:

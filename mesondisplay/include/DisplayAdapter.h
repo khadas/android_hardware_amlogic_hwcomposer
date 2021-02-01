@@ -133,6 +133,8 @@ public:
 
     virtual bool setDisplayAttribute(const string& name, const string& value, ConnectorType displayType) = 0;
     virtual bool getDisplayAttribute(const string& name, string& value, ConnectorType displayType) = 0;
+    /* get  vsync timestamp and vsync peroid in nanos */
+    virtual bool getDisplayVsyncAndPeriod(int64_t& timestamp, int32_t& vsyncPeriodNanos) = 0;
 
     virtual bool dumpDisplayAttribute(Json::Value& json, ConnectorType displayType) {
         UNUSED(json);
@@ -156,6 +158,8 @@ bool DisplayMode2Json(const DisplayModeInfo& mode, Json::Value& json);
 std::unique_ptr<DisplayAdapter> DisplayAdapterCreateLocal(DisplayAdapter::BackendType type);
 std::unique_ptr<DisplayAdapter> DisplayAdapterCreateRemote();
 
+typedef DisplayAdapter* create_DisplayAdatperRemote();
+typedef void destroy_DisplayAdapterRemote(DisplayAdapter *adapter);
 
 };
 

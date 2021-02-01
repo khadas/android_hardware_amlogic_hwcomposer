@@ -148,6 +148,7 @@ public:
 /* meson display ddk */
 public:
     int32_t captureDisplayScreen(buffer_handle_t hnd);
+    bool getDisplayVsyncAndPeriod(int64_t& timestamp, int32_t& vsyncPeriodNanos);
 
 protected:
     /* For compose. */
@@ -234,13 +235,15 @@ protected:
     bool mVsyncState;
     float mScaleValue;
 
+    /* vsync timestamp */
+    nsecs_t mVsyncTimestamp;
+
     /* for video tunnel mode video*/
     std::shared_ptr<VideoTunnelThread> mVideoTunnelThread;
     nsecs_t mDisplayTimestamp;
     bool mDisplayConnection;
 
     bool mChangedCali;
-    nsecs_t mVsyncTime;
 };
 
 #endif/*HWC2_DISPLAY_H*/

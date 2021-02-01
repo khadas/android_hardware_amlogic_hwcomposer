@@ -150,6 +150,21 @@ bool DisplayAdapterRemote::getDisplayAttribute(
     }
 }
 
+bool DisplayAdapterRemote::getDisplayVsyncAndPeriod(int64_t& vsyncTimestamp, int32_t& vsyncPeriodNanos) {
+    Json::Value cmd, ret;
+    IF_SERVER_NOT_READY_RETURN(false);
+
+    cmd["cmd"] = "getDisplayVsyncAndPeriod";
+    ipc->send_request_wait_reply(cmd, ret);
+    if (ret.isMember("ret") && ret["ret"]["value"].isString()) {
+        sscanf(ret["ret"]["value"].asString().c_str(), "%" PRId64 ",%d",
+                &vsyncTimestamp, &vsyncPeriodNanos);
+        return true;
+    } else {
+        return false;
+    }
+}
+
 DisplayAdapterRemote::DisplayAdapterRemote() {
     ipc = DisplayClient::create("DisplayAdapterRemote");
     if (!ipc)
@@ -182,6 +197,20 @@ bool DisplayAdapterRemote::connectServerIfNeed() {
 
 std::unique_ptr<DisplayAdapter> DisplayAdapterCreateRemote() {
     return DisplayAdapterRemote::create();
+}
+
+// provide both a creation and a destruction function for users
+// who load C++ functions and classes dynamically using the dlopen API
+extern "C" {
+
+DisplayAdapter* createDisplayAdatperRemote() {
+    return new DisplayAdapterRemote;
+}
+
+void destroyDisplayAdapterRemote(DisplayAdapter * adapter) {
+    delete adapter;
+}
+
 }
 
 } //namespace android
