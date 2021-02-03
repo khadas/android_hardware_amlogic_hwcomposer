@@ -284,6 +284,7 @@ void Hwc2Display::onHotplug(bool connected) {
             return;
         }
         mPowerMode->setConnectorStatus(false);
+        mSkipComposition = true;
         if (mObserver != NULL ) {
             bSendPlugOut = true;
         }
@@ -375,6 +376,8 @@ void Hwc2Display::onModeChanged(int stage) {
                 if (mModeMgr->getDisplayMode(mDisplayMode) == 0) {
                     MESON_LOGD("Hwc2Display::onModeChanged getDisplayMode [%s]", mDisplayMode.name);
                     mPowerMode->setConnectorStatus(true);
+                    mSkipComposition = false;
+                    mOutsideChanged = true;
                     if (mSignalHpd) {
                         bSendPlugIn = true;
                         mSignalHpd = false;
@@ -401,6 +404,7 @@ void Hwc2Display::onModeChanged(int stage) {
         } else {
             /* begin change mode, need blank once */
             mPowerMode->setConnectorStatus(false);
+            mSkipComposition = true;
             return;
         }
     }
@@ -632,8 +636,12 @@ hwc2_error_t Hwc2Display::setCalibrateInfo(int32_t caliX,int32_t caliY,int32_t c
     mCalibrateCoordinates[2] = caliW;
     mCalibrateCoordinates[3] = caliH;
 
-    mChangedCali = true;
     return HWC2_ERROR_NONE;
+}
+
+void Hwc2Display::outsideChanged(){
+    /*outside hwc has changes need do validate first*/
+    mOutsideChanged= true;
 }
 
 int32_t Hwc2Display::getDisplayIdentificationData(uint32_t &outPort,
@@ -677,7 +685,6 @@ int32_t Hwc2Display::loadCalibrateInfo() {
     mCalibrateInfo.crtc_display_w = mCalibrateCoordinates[2];
     mCalibrateInfo.crtc_display_h = mCalibrateCoordinates[3];
 
-    mChangedCali = false;
     return 0;
 }
 
@@ -921,8 +928,9 @@ hwc2_error_t Hwc2Display::presentSkipValidateCheck() {
         }
     }
 
-    if (mChangedCali) {
-        MESON_LOGV("calibrate info changed, need validate first");
+    if (mOutsideChanged) {
+        mOutsideChanged = false;
+        MESON_LOGV("for every outside hwc's changes, need do validate first");
         return HWC2_ERROR_NOT_VALIDATED;
     }
 

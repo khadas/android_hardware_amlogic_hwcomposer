@@ -102,6 +102,7 @@ public:
     virtual hwc2_error_t getActiveConfig(hwc2_config_t* outConfig);
     virtual hwc2_error_t setActiveConfig(hwc2_config_t config);
     virtual hwc2_error_t setCalibrateInfo(int32_t caliX,int32_t caliY,int32_t caliW,int32_t caliH);
+    virtual void outsideChanged();
     virtual int32_t getDisplayIdentificationData(uint32_t &outPort,
             std::vector<uint8_t> &outData);
     virtual hwc2_error_t getDisplayCapabilities(
@@ -243,7 +244,7 @@ protected:
     nsecs_t mDisplayTimestamp;
     bool mDisplayConnection;
 
-    bool mChangedCali;
+    bool mOutsideChanged;
 };
 
 #endif/*HWC2_DISPLAY_H*/

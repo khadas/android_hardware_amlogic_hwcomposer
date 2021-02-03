@@ -388,6 +388,7 @@ int32_t MesonHwc2::validateDisplay(hwc2_display_t display,
     GET_HWC_DISPLAY(display);
     /*handle display request*/
     uint32_t request = getDisplayRequest();
+    setCalibrateInfo(display);
     if (request != 0) {
         handleDisplayRequest(request);
     }
@@ -399,10 +400,6 @@ int32_t MesonHwc2::validateDisplay(hwc2_display_t display,
 int32_t MesonHwc2::presentDisplay(hwc2_display_t display,
     int32_t* outPresentFence) {
     GET_HWC_DISPLAY(display);
-    if (mChangedViewPort) {
-        setCalibrateInfo(display);
-        mChangedViewPort = false;
-    }
     return hwcDisplay->presentDisplay(outPresentFence);
 }
 
@@ -849,8 +846,9 @@ int32_t MesonHwc2::captureDisplayScreen(buffer_handle_t hnd) {
 }
 
 bool MesonHwc2::setViewPort(const drm_rect_wh_t viewPort) {
+    GET_HWC_DISPLAY(0);
     mViewPort = viewPort;
-    mChangedViewPort = true;
+    hwcDisplay->outsideChanged();
     return true;
 }
 
