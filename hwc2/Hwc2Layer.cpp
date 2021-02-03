@@ -110,13 +110,14 @@ hwc2_error_t Hwc2Layer::handleDimLayer(buffer_handle_t buffer) {
 }
 
 hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) {
+    /*record for check fbType change status */
+    drm_fb_type_t preType = mFbType;
+
     /*
      * If video tunnel sideband recieve blank frame,
      * need release video tunnel resouce
      */
     releaseVtResource();
-    if (isVtBuffer())
-        mUpdated = true;
 
     /*
     * SurfaceFlinger will call setCompostionType() first,then setBuffer().
@@ -160,6 +161,9 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
     } else {
         mFbType = DRM_FB_RENDER;
     }
+
+    if (preType != mFbType)
+        mUpdated = true;
 
     mSecure = am_gralloc_is_secure_buffer(mBufferHandle);
     return HWC2_ERROR_NONE;
@@ -245,6 +249,7 @@ hwc2_error_t Hwc2Layer::setPlaneAlpha(float alpha) {
 
 hwc2_error_t Hwc2Layer::setTransform(hwc_transform_t transform) {
     mTransform = (int32_t)transform;
+    mUpdated = true;
     return HWC2_ERROR_NONE;
 }
 
@@ -260,6 +265,7 @@ hwc2_error_t Hwc2Layer::setSurfaceDamage(hwc_region_t damage) {
 
 hwc2_error_t Hwc2Layer::setCompositionType(hwc2_composition_t type){
     mHwcCompositionType = type;
+    mUpdated = true;
     return HWC2_ERROR_NONE;
 }
 
