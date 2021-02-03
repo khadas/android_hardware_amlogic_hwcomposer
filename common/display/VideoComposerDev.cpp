@@ -94,7 +94,7 @@ int32_t VideoComposerDev::setFrames(
             }
         } else {
             MESON_LOGE("unknow fb (%d) type %d !!", fb->mZorder, fb->mFbType);
-            break;
+            return -EINVAL;
         }
 
         vFrameInfo->dst_x = fb->mDisplayFrame.left;
