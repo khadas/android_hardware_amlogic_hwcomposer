@@ -449,7 +449,16 @@ int32_t Hwc2Layer::releaseVtResource() {
 
 void Hwc2Layer::setPresentTime(nsecs_t expectedPresentTime) {
     mExpectedPresentTime = ns2us(expectedPresentTime);
-    MESON_LOGV("[%s] vsyncTimeStamp:%" PRId64, __func__, mExpectedPresentTime);
+
+    static nsecs_t previousExpectedTime = 0;
+    if (previousExpectedTime == 0)
+        previousExpectedTime = mExpectedPresentTime;
+
+    [[maybe_unused]] nsecs_t diffExpected = mExpectedPresentTime - previousExpectedTime;
+    previousExpectedTime = mExpectedPresentTime;
+
+    MESON_LOGV("[%s] vsyncTimeStamp:%lld, diffExpected:%lld",
+            __func__, mExpectedPresentTime, diffExpected);
 }
 
 bool Hwc2Layer::shouldPresentNow() {

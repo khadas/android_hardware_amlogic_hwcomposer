@@ -92,6 +92,13 @@ void * HwcVsync::vsyncThread(void * data) {
     HwcVsync* pThis = (HwcVsync*)data;
     MESON_LOGV("HwDisplayVsync: vsyncThread start - (%p).", pThis);
 
+    // set HwcVsync thread to SCHED_FIFO to minimize jitter
+    struct sched_param param = {0};
+    param.sched_priority = 2;
+    if (sched_setscheduler(0, SCHED_FIFO, &param) != 0) {
+        MESON_LOGE("Couldn't set SCHED_FIFO for videotunnelthread");
+    }
+
     while (true) {
         {
             std::unique_lock<std::mutex> stateLock(pThis->mStatLock);
