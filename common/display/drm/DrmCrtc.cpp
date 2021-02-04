@@ -36,8 +36,6 @@ DrmCrtc::DrmCrtc(int drmFd, drmModeCrtcPtr p, uint32_t pipe)
     mConnectorId = 0;
     memset(&mMesonMode, 0, sizeof(mMesonMode));
 
-    mNeedPageFlip = false;
-
     MESON_LOGD("DrmCrtc init pipe(%d)-id(%d), mode (%s),active(%" PRId64 ")",
         mPipe, mId, mDrmMode.name, mActive->getValue());
 }
@@ -223,10 +221,8 @@ int32_t DrmCrtc::waitVBlank(nsecs_t & timestamp) {
 }
 
 drmModeAtomicReqPtr DrmCrtc::getAtomicReq() {
-    if (mReq == NULL) {
-        MESON_LOGD("No req, create a new one");
+    if (mReq == NULL)
         mReq = drmModeAtomicAlloc();
-    }
 
     return mReq;
 }
@@ -236,9 +232,9 @@ int32_t DrmCrtc::prePageFlip() {
     if (mReq) {
         MESON_LOGE("still have a req? previous display didnot finish?");
         drmModeAtomicFree(mReq);
+        mReq = NULL;
     }
 
-    mReq = drmModeAtomicAlloc();
     return 0;
 }
 
@@ -249,9 +245,7 @@ int32_t DrmCrtc::pageFlip(int32_t & out_fence) {
         return 0;
     }
 
-    if (!mNeedPageFlip) {
-        drmModeAtomicFree(mReq);
-        mReq = NULL;
+    if (!mReq) {
         out_fence = -1;
         return 0;
     }
@@ -271,7 +265,6 @@ int32_t DrmCrtc::pageFlip(int32_t & out_fence) {
 
     drmModeAtomicFree(mReq);
     mReq = NULL;
-    mNeedPageFlip = false;
     return ret;
 }
 
@@ -293,10 +286,6 @@ int32_t DrmCrtc::setPendingMode() {
 
     mPendingModes.clear();
     return 0;
-}
-
-void DrmCrtc::setCrtcPageUpdateStatus(bool status) {
-    mNeedPageFlip = status;
 }
 
 void DrmCrtc::dump(String8 & dumpstr) {

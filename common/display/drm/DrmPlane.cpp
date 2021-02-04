@@ -230,12 +230,13 @@ int32_t DrmPlane::setPlane(
     int blankOp) {
     bool bBlank = blankOp == UNBLANK ? false : true;
     DrmCrtc * crtc = (DrmCrtc *)mCrtc.get();
-    drmModeAtomicReqPtr req = crtc->getAtomicReq();
-    MESON_ASSERT(req != NULL, " plane get empty req.");
+    drmModeAtomicReqPtr req;
 
     if (bBlank) {
         if (!mBlank) {
             /*set fbid  =0&&crtc=0, driver will check it.*/
+            req = crtc->getAtomicReq();
+            MESON_ASSERT(req != NULL, " plane get empty req.");
             mFbId->setValue(0);
             mFbId->apply(req);
             mCrtcId->setValue(0);
@@ -246,11 +247,10 @@ int32_t DrmPlane::setPlane(
         if (!fb->isFbUpdated())
             return 0;
 
-        /*have osd layer update, need do page flip*/
-        crtc->setCrtcPageUpdateStatus(true);
-
         bool bUpdate = false;
         int32_t ret = 0;
+        req = crtc->getAtomicReq();
+        MESON_ASSERT(req != NULL, " plane get empty req.");
 
         mDrmBo = std::make_shared<DrmBo>();
         if ((ret = mDrmBo->import(fb)) != 0) {
