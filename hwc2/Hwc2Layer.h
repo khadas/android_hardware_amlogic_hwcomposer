@@ -83,10 +83,13 @@ protected:
     std::mutex mMutex;
     int mVtBufferFd;
     int mPreVtBufferFd;
+    int mReleaseFence;
     int64_t mTimeStamp;
+
     nsecs_t mExpectedPresentTime;
     bool mVtUpdate;
     bool mVtDeviceConnection;
+    bool mNeedReleaseVtResource;
 };
 
 

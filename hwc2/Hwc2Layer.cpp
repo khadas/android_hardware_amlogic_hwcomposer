@@ -14,6 +14,7 @@
 #include <sys/mman.h>
 #include <cutils/properties.h>
 #include <utils/Timers.h>
+#include <inttypes.h>
 
 #include "Hwc2Layer.h"
 #include "Hwc2Base.h"
@@ -26,6 +27,7 @@ Hwc2Layer::Hwc2Layer() : DrmFramebuffer(){
     mVtBufferFd    = -1;
     mPreVtBufferFd = -1;
     mVtUpdate      =  false;
+    mNeedReleaseVtResource = false;
     mTimeStamp     = -1;
 }
 
@@ -117,7 +119,8 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
      * If video tunnel sideband recieve blank frame,
      * need release video tunnel resouce
      */
-    releaseVtResource();
+    if (isVtBuffer())
+        mNeedReleaseVtResource = true;
 
     /*
     * SurfaceFlinger will call setCompostionType() first,then setBuffer().
@@ -312,6 +315,8 @@ hwc2_layer_t Hwc2Layer::getUniqueId() {
 
 void Hwc2Layer::clearUpdateFlag() {
     mUpdateZorder = mUpdated = false;
+    if (mNeedReleaseVtResource)
+        releaseVtResource();
 }
 
 bool Hwc2Layer::isVtBuffer() {
@@ -320,7 +325,7 @@ bool Hwc2Layer::isVtBuffer() {
 
 int32_t Hwc2Layer::getVtBuffer() {
     std::lock_guard<std::mutex> lock(mMutex);
-    if (mFbType != DRM_FB_VIDEO_TUNNEL_SIDEBAND)
+    if (!isVtBuffer())
         return -EINVAL;
 
     int ret = -1;
@@ -336,7 +341,7 @@ int32_t Hwc2Layer::getVtBuffer() {
 
 int32_t Hwc2Layer::acquireVtBuffer() {
     std::lock_guard<std::mutex> lock(mMutex);
-    if (mFbType != DRM_FB_VIDEO_TUNNEL_SIDEBAND) {
+    if (!isVtBuffer()) {
         MESON_LOGE("[%s] not videotunnel type", __func__);
         return -EINVAL;
     }
@@ -365,7 +370,7 @@ int32_t Hwc2Layer::acquireVtBuffer() {
     nsecs_t diffExpected = mTimeStamp - previousTimeStamp;
     previousTimeStamp = mTimeStamp;
 
-    MESON_LOGV("[%s] mVtBufferFd(%d) timestamp (%lld) timeDiff(%lld)",
+    MESON_LOGV("[%s] mVtBufferFd(%d) timestamp (%" PRId64 ") timeDiff(%" PRId64 ")",
             __func__, mVtBufferFd, mTimeStamp, diffExpected);
 
     diffExpected = 0;
@@ -375,27 +380,37 @@ int32_t Hwc2Layer::acquireVtBuffer() {
 
 int32_t Hwc2Layer::releaseVtBuffer() {
     std::lock_guard<std::mutex> lock(mMutex);
+    if (!isVtBuffer()) {
+        MESON_LOGD("layer:%" PRId64 " is not videotunnel layer", getUniqueId());
+        return -EINVAL;
+    }
+
     if (!mVtUpdate)
         return -EAGAIN;
 
     if (shouldPresentNow() == false) {
-        MESON_LOGV("[%s] current vt buffer not present", __func__);
+        MESON_LOGV("[%s] current vt buffer not present, timestamp not meet", __func__);
         return -EAGAIN;
     }
 
-    if (mPreVtBufferFd >= 0)
-        close(mPreVtBufferFd);
+    // First release vt buffer, save to the previous
+    if (mPreVtBufferFd < 0) {
+        mPreVtBufferFd = mVtBufferFd;
+        mFbHandleUpdated = false;
+        mVtUpdate = false;
+        mTimeStamp = -1;
+        return 0;
+    }
 
-    mPreVtBufferFd = mVtBufferFd >= 0 ? dup(mVtBufferFd) : -1;
-
-    int releaseFence = getPrevReleaseFence();
+    // set fence to the previous vt buffer
+    mReleaseFence = getPrevReleaseFence();
     int ret = VideoTunnelDev::getInstance().releaseBuffer(mTunnelId,
-            mVtBufferFd, releaseFence);
+            mPreVtBufferFd, mReleaseFence);
 
     MESON_LOGV("[%s] releaseFence:%d, bufferfd:%d, mPreVtBufferFd(%d)",
-            __func__, releaseFence, mVtBufferFd, mPreVtBufferFd);
+            __func__, mReleaseFence, mVtBufferFd, mPreVtBufferFd);
 
-    mVtBufferFd = -1;
+    mPreVtBufferFd = mVtBufferFd;
     mFbHandleUpdated = false;
     mVtUpdate = false;
     mTimeStamp = -1;
@@ -404,12 +419,22 @@ int32_t Hwc2Layer::releaseVtBuffer() {
 }
 
 int32_t Hwc2Layer::releaseVtResource() {
-    if (mFbType == DRM_FB_VIDEO_TUNNEL_SIDEBAND) {
-        if (mVtUpdate && mVtBufferFd >= 0)
-            releaseVtBuffer();
-        if (mPreVtBufferFd >= 0)
-            close(mPreVtBufferFd);
+    std::lock_guard<std::mutex> lock(mMutex);
+    if (isVtBuffer() || mNeedReleaseVtResource) {
+        if (mVtUpdate && mPreVtBufferFd >= 0)
+            VideoTunnelDev::getInstance().releaseBuffer(mTunnelId,
+                    mPreVtBufferFd, getPrevReleaseFence());
+
+        // todo: for the last vt buffer, there is no fence got from videocomposer
+        // when videocomposer is disabled. Now set it to -1. And releaseVtResource
+        // delay to clearUpdateFlag() when receive blank frame.
+        if (mVtBufferFd >= 0)
+            VideoTunnelDev::getInstance().releaseBuffer(mTunnelId,
+                    mVtBufferFd, -1);
+
+        mVtBufferFd = -1;
         mPreVtBufferFd = -1;
+        mVtUpdate = false;
 
         if (mVtDeviceConnection) {
             MESON_LOGD("Hwc2Layer release disconnect %d", mTunnelId);
@@ -417,13 +442,14 @@ int32_t Hwc2Layer::releaseVtResource() {
         }
 
         mVtDeviceConnection = false;
+        mNeedReleaseVtResource = false;
     }
     return 0;
 }
 
 void Hwc2Layer::setPresentTime(nsecs_t expectedPresentTime) {
     mExpectedPresentTime = ns2us(expectedPresentTime);
-    MESON_LOGV("[%s] vsyncTimeStamp:%lld", __func__, mExpectedPresentTime);
+    MESON_LOGV("[%s] vsyncTimeStamp:%" PRId64, __func__, mExpectedPresentTime);
 }
 
 bool Hwc2Layer::shouldPresentNow() {
