@@ -91,11 +91,6 @@ void VideoTunnelThread::handleVideoTunnelLayers() {
     spec.tv_sec = 0;
     spec.tv_nsec = 5000000;
 
-    int ret = VideoTunnelDev::getInstance().pollBuffer();
-    // poll timeout
-    if (ret == 0)
-        return;
-
     std::unique_lock<std::mutex> stateLock(mVtLock);
     while (!mVsyncComing) {
         mVtCondition.wait(stateLock);

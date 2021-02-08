@@ -10,6 +10,7 @@
 #ifndef HWC2_LAYER_H
 #define HWC2_LAYER_H
 
+#include <deque>
 #include <hardware/hwcomposer2.h>
 
 #include <BasicTypes.h>
@@ -62,7 +63,7 @@ public:
     int32_t releaseVtBuffer() override;
     int32_t releaseVtResource();
     void setPresentTime(nsecs_t expectedPresentTime);
-    bool shouldPresentNow();
+    bool shouldPresentNow(nsecs_t timestamp);
 
 public:
     android_dataspace_t mDataSpace;
@@ -79,12 +80,18 @@ protected:
     bool mUpdateZorder;
 
     /* for videotunnel type layer */
+    struct VtBufferItem {
+        int bufferFd;
+        int64_t timestamp;
+    };
+
     int mTunnelId;
     std::mutex mMutex;
     int mVtBufferFd;
     int mPreVtBufferFd;
-    int mReleaseFence;
-    int64_t mTimeStamp;
+    int64_t mTimestamp;
+    std::deque<VtBufferItem> mQueueItems;
+    int32_t mQueuedFrames;
 
     nsecs_t mExpectedPresentTime;
     bool mVtUpdate;

@@ -28,7 +28,8 @@ Hwc2Layer::Hwc2Layer() : DrmFramebuffer(){
     mPreVtBufferFd = -1;
     mVtUpdate      =  false;
     mNeedReleaseVtResource = false;
-    mTimeStamp     = -1;
+    mTimestamp     = -1;
+    mQueuedFrames = 0;
 }
 
 Hwc2Layer::~Hwc2Layer() {
@@ -187,6 +188,7 @@ hwc2_error_t Hwc2Layer::setSidebandStream(const native_handle_t* stream) {
         mTunnelId = channel_id;
         if (!mVtDeviceConnection) {
             MESON_LOGD("%s connect to videotunnel %d", __func__, mTunnelId);
+            mQueuedFrames = 0;
             VideoTunnelDev::getInstance().connect(mTunnelId);
             mVtDeviceConnection = true;
         }
@@ -328,13 +330,15 @@ int32_t Hwc2Layer::getVtBuffer() {
     if (!isVtBuffer())
         return -EINVAL;
 
-    int ret = -1;
     /* should present the current buffer now? */
-    if (shouldPresentNow()) {
+    int ret = -1;
+    if (shouldPresentNow(mTimestamp)) {
         ret = mVtUpdate ? mVtBufferFd : mPreVtBufferFd;
     } else {
         ret = mPreVtBufferFd;
     }
+
+    MESON_LOGV("[%s] vtBufferfd(%d)", __func__, ret);
 
     return ret;
 }
@@ -351,29 +355,61 @@ int32_t Hwc2Layer::acquireVtBuffer() {
         return -EINVAL;
     }
 
-    if (mVtUpdate)
+    // acquire all the buffer that is available
+    while (true) {
+        int vtBufferFd = -1;
+        int64_t vtTimestamp = -1;
+        int ret = VideoTunnelDev::getInstance().acquireBuffer(mTunnelId,
+                vtBufferFd, vtTimestamp);
+
+        if (ret == 0) {
+            VtBufferItem item = {vtBufferFd, vtTimestamp};
+            mQueueItems.push_back(item);
+            mQueuedFrames++;
+        } else {
+            // has no buffer available
+            break;
+        }
+    }
+
+    if (mQueueItems.empty())
         return -EAGAIN;
 
-    int ret = VideoTunnelDev::getInstance().acquireBuffer(mTunnelId,
-            mVtBufferFd, mTimeStamp);
-    if (ret < 0)
-        return ret;
+    /*
+     * getVtBuffer might drop the some buffers at the head of the queue
+     * if there is a buffer behind them which is timely to be presented.
+     */
+    int expiredItemCount = 0;
+    for (auto it = mQueueItems.begin(); it != mQueueItems.end(); it++) {
+        if (it->timestamp > 0 &&  shouldPresentNow(it->timestamp)) {
+            expiredItemCount++;
+        }
+    }
 
-    // acquire video tunnel buffer success
+    // drop expiredItemCount-1 buffers
+    int dropCount = expiredItemCount - 1;
+    while (dropCount > 0) {
+        auto item = mQueueItems.front();
+        VideoTunnelDev::getInstance().releaseBuffer(mTunnelId, item.bufferFd, getPrevReleaseFence());
+        mQueuedFrames--;
+        MESON_LOGD("vt buffer fd(%d) with timestamp(%" PRId64 ") expired droped "
+                "expectedPresent time(%" PRId64 ") queuedFrames(%d)",
+                item.bufferFd, item.timestamp,
+                mExpectedPresentTime, mQueuedFrames);
+        mQueueItems.pop_front();
+        dropCount--;
+    }
+
+    // update current mVtBuffer
     mVtUpdate = true;
-    mFbHandleUpdated = true;
+    mVtBufferFd = mQueueItems[0].bufferFd;
+    mTimestamp = mQueueItems[0].timestamp;
+    mFbHandleUpdated = shouldPresentNow(mTimestamp);
 
-    static nsecs_t previousTimeStamp = 0;
-    if (previousTimeStamp == 0)
-        previousTimeStamp = mTimeStamp;
-
-    nsecs_t diffExpected = mTimeStamp - previousTimeStamp;
-    previousTimeStamp = mTimeStamp;
-
-    MESON_LOGV("[%s] mVtBufferFd(%d) timestamp (%" PRId64 ") timeDiff(%" PRId64 ")",
-            __func__, mVtBufferFd, mTimeStamp, diffExpected);
-
-    diffExpected = 0;
+    MESON_LOGV("[%s] mVtBufferFd(%d) timestamp (%" PRId64 "us) expectedPresentTime(%"
+            PRId64 "us) nowTime(%" PRId64 "ns) shouldPresent:%d",
+            __func__, mVtBufferFd, mTimestamp,
+            mExpectedPresentTime, systemTime(CLOCK_MONOTONIC), mFbHandleUpdated);
 
     return 0;
 }
@@ -388,32 +424,42 @@ int32_t Hwc2Layer::releaseVtBuffer() {
     if (!mVtUpdate)
         return -EAGAIN;
 
-    if (shouldPresentNow() == false) {
-        MESON_LOGV("[%s] current vt buffer not present, timestamp not meet", __func__);
+    if (shouldPresentNow(mTimestamp) == false) {
+        MESON_LOGV("[%s] current vt buffer(%d) not present, timestamp not meet",
+                __func__, mVtBufferFd);
         return -EAGAIN;
     }
+
+    if (mQueueItems.empty()) {
+        MESON_LOGE("Queued vtbuffer is empty!!");
+        return -EINVAL;
+    }
+
+    // remove it from the queueItems
+    mQueueItems.pop_front();
 
     // First release vt buffer, save to the previous
     if (mPreVtBufferFd < 0) {
         mPreVtBufferFd = mVtBufferFd;
         mFbHandleUpdated = false;
         mVtUpdate = false;
-        mTimeStamp = -1;
+        mVtBufferFd = -1;
         return 0;
     }
 
     // set fence to the previous vt buffer
-    mReleaseFence = getPrevReleaseFence();
+    int releaseFence = getPrevReleaseFence();
     int ret = VideoTunnelDev::getInstance().releaseBuffer(mTunnelId,
-            mPreVtBufferFd, mReleaseFence);
+            mPreVtBufferFd, releaseFence);
+    mQueuedFrames--;
 
-    MESON_LOGV("[%s] releaseFence:%d, bufferfd:%d, mPreVtBufferFd(%d)",
-            __func__, mReleaseFence, mVtBufferFd, mPreVtBufferFd);
+    MESON_LOGV("[%s] releaseFence:%d, mVtBufferfd:%d, mPreVtBufferFd(%d), queuedFrames(%d)",
+            __func__, releaseFence, mVtBufferFd, mPreVtBufferFd, mQueuedFrames);
 
     mPreVtBufferFd = mVtBufferFd;
     mFbHandleUpdated = false;
     mVtUpdate = false;
-    mTimeStamp = -1;
+    mVtBufferFd = -1;
 
     return ret;
 }
@@ -421,23 +467,42 @@ int32_t Hwc2Layer::releaseVtBuffer() {
 int32_t Hwc2Layer::releaseVtResource() {
     std::lock_guard<std::mutex> lock(mMutex);
     if (isVtBuffer() || mNeedReleaseVtResource) {
-        if (mVtUpdate && mPreVtBufferFd >= 0)
+        MESON_LOGV("ReleaseVtResource");
+        if (mPreVtBufferFd >= 0) {
             VideoTunnelDev::getInstance().releaseBuffer(mTunnelId,
                     mPreVtBufferFd, getPrevReleaseFence());
+            mQueuedFrames--;
+            MESON_LOGV("ReleaseVtResource release(%d) queuedFrames(%d)",
+                    mPreVtBufferFd, mQueuedFrames);
+        }
 
         // todo: for the last vt buffer, there is no fence got from videocomposer
         // when videocomposer is disabled. Now set it to -1. And releaseVtResource
         // delay to clearUpdateFlag() when receive blank frame.
-        if (mVtBufferFd >= 0)
+        if (mVtBufferFd >= 0) {
             VideoTunnelDev::getInstance().releaseBuffer(mTunnelId,
-                    mVtBufferFd, -1);
+                    mVtBufferFd, getPrevReleaseFence());
+            mQueuedFrames--;
+            MESON_LOGV("ReleaseVtResource release(%d) queudFrames(%d)", mVtBufferFd, mQueuedFrames);
+            mQueueItems.pop_front();
+        }
+
+        // release the buffers in mQueueItems
+        for (auto it = mQueueItems.begin(); it != mQueueItems.end(); it++) {
+            VideoTunnelDev::getInstance().releaseBuffer(mTunnelId,
+                    it->bufferFd, -1);
+            mQueuedFrames--;
+            MESON_LOGV("ReleaseVtResource release(%d) queuedFrames(%d)",
+                    it->bufferFd, mQueuedFrames);
+        }
+        mQueueItems.clear();
 
         mVtBufferFd = -1;
         mPreVtBufferFd = -1;
         mVtUpdate = false;
 
         if (mVtDeviceConnection) {
-            MESON_LOGD("Hwc2Layer release disconnect %d", mTunnelId);
+            MESON_LOGD("Hwc2Layer release disconnect(%d) queuedFrames(%d)", mTunnelId, mQueuedFrames);
             VideoTunnelDev::getInstance().disconnect(mTunnelId);
         }
 
@@ -461,14 +526,14 @@ void Hwc2Layer::setPresentTime(nsecs_t expectedPresentTime) {
             __func__, mExpectedPresentTime, diffExpected);
 }
 
-bool Hwc2Layer::shouldPresentNow() {
-    if (mTimeStamp == -1)
+bool Hwc2Layer::shouldPresentNow(nsecs_t timestamp) {
+    if (timestamp == -1)
         return true;
 
-    const bool isDue =  mTimeStamp < mExpectedPresentTime;
+    const bool isDue =  timestamp < mExpectedPresentTime;
 
     // Ignore timestamps more than a second in the future
-    const bool isPlausible = mTimeStamp < (mExpectedPresentTime + s2ns(1));
+    const bool isPlausible = timestamp < (mExpectedPresentTime + s2ns(1));
 
     return  isDue ||  !isPlausible;
 }

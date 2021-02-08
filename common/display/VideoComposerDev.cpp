@@ -113,8 +113,8 @@ int32_t VideoComposerDev::setFrames(
         vFrameInfo->reserved[0] = am_gralloc_get_stride_in_pixel(buf);
         vFrameInfo->reserved[1] = am_gralloc_get_aligned_height(buf);
 
-        MESON_LOGV("VideoComposerDev(%d) setframe (%d) (%d-%dx%d aligned wxh (%dx%d))",
-                mDrvFd, fb->mZorder, fb->mFbType,
+        MESON_LOGV("VideoComposerDev(%d) setframe zorder(%d) Fbtype(%d) bufferFd(%d) (%dx%d) aligned wxh (%dx%d))",
+                mDrvFd, fb->mZorder, fb->mFbType, vFrameInfo->fd,
                 vFrameInfo->buffer_w, vFrameInfo->buffer_h,
                 vFrameInfo->reserved[0], vFrameInfo->reserved[1]);
     }
