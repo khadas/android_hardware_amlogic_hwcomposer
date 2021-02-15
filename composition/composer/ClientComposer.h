@@ -49,6 +49,8 @@ public:
     std::shared_ptr<DrmFramebuffer> getOutput(int composeIdx = 0);
 
 protected:
+    /* protect of mClientTarget */
+    std::mutex mMutex;
     std::shared_ptr<DrmFramebuffer> mClientTarget;
     std::vector<std::shared_ptr<DrmFramebuffer>> mOverlayFbs;
 };

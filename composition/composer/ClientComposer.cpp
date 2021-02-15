@@ -47,6 +47,7 @@ int32_t ClientComposer::setOutput(
     std::shared_ptr<DrmFramebuffer> & fb,
     hwc_region_t damage __unused,
     int composeIdx __unused) {
+    std::lock_guard<std::mutex> lock(mMutex);
     mClientTarget.reset();
     if (fb.get() != nullptr)
         mClientTarget = fb;
@@ -59,6 +60,7 @@ int32_t ClientComposer::start(int composeIdx __unused) {
 
 std::shared_ptr<DrmFramebuffer> ClientComposer::getOutput(
     int composeIdx __unused) {
+    std::lock_guard<std::mutex> lock(mMutex);
     return mClientTarget;
 }
 
