@@ -200,7 +200,6 @@ int32_t Hwc2Display::setVtVsync(std::shared_ptr<HwcVsync> vsync) {
  */
 int32_t Hwc2Display::blankDisplay() {
     MESON_LOGD("blank all display planes");
-    std::lock_guard<std::mutex> lock(mMutex);
 
     if (!mCrtc)
             return 0;
@@ -303,7 +302,9 @@ void Hwc2Display::onHotplug(bool connected) {
             mSignalHpd = true;
             return;
         }
+
         mPowerMode->setConnectorStatus(false);
+        blankDisplay();
         mSkipComposition = true;
         if (mObserver != NULL ) {
             bSendPlugOut = true;
@@ -334,15 +335,14 @@ void Hwc2Display::onHotplug(bool connected) {
  * Or framebuffer may allocate fail when do plug in/out quickly.
  */
 void Hwc2Display::cleanupBeforeDestroy() {
-    {/*clear framebuffer reference by gpu composer*/
-        std::lock_guard<std::mutex> lock(mMutex);
-        std::shared_ptr<IComposer> clientComposer = mComposers.find(MESON_CLIENT_COMPOSER)->second;
-        clientComposer->prepare();
-        // TODO: workaround to clear CLIENT_COMPOSER's clientTarget
-        hwc_region_t damage;
-        std::shared_ptr<DrmFramebuffer> fb = nullptr;
-        clientComposer->setOutput(fb, damage);
-    }
+    std::lock_guard<std::mutex> lock(mMutex);
+    /*clear framebuffer reference by gpu composer*/
+    std::shared_ptr<IComposer> clientComposer = mComposers.find(MESON_CLIENT_COMPOSER)->second;
+    clientComposer->prepare();
+    // TODO: workaround to clear CLIENT_COMPOSER's clientTarget
+    hwc_region_t damage;
+    std::shared_ptr<DrmFramebuffer> fb = nullptr;
+    clientComposer->setOutput(fb, damage);
 
     /*clear framebuffer reference by driver*/
     blankDisplay();
@@ -424,6 +424,7 @@ void Hwc2Display::onModeChanged(int stage) {
         } else {
             /* begin change mode, need blank once */
             mPowerMode->setConnectorStatus(false);
+            blankDisplay();
             mSkipComposition = true;
             return;
         }

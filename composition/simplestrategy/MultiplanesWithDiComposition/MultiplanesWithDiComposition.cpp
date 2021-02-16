@@ -1202,6 +1202,14 @@ int MultiplanesWithDiComposition::decideComposition() {
     int ret = 0;
     if (mFramebuffers.empty()) {
         MESON_LOGV("No layers to compose, exit.");
+        if (mClientComposer != NULL) {
+            hwc_region_t damage;
+            std::shared_ptr<DrmFramebuffer> fb = nullptr;
+
+            mClientComposer->prepare();
+            mClientComposer->setOutput(fb, damage, 1);
+        }
+
         return ret;
     }
 

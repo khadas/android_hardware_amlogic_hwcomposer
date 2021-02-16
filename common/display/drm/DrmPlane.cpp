@@ -244,6 +244,9 @@ int32_t DrmPlane::setPlane(
             mCrtcId->setValue(0);
             mCrtcId->apply(req);
             mDrmBo.reset();
+            /* clear drmbo cache */
+            std::queue<std::shared_ptr<DrmBo>> emptyCache;
+            std::swap(mBoCache, emptyCache);
         //}
     } else {
         if (!fb->isFbUpdated())
