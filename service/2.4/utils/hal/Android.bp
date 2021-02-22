@@ -15,16 +15,22 @@
 //
 
 cc_library_headers {
-    name: "android.hardware.graphics.composer@2.4-passthrough-vendor",
+    name: "android.hardware.graphics.composer@2.4-hal-vendor",
     defaults: ["hidl_defaults"],
     vendor: true,
+    shared_libs: [
+        "android.hardware.graphics.composer@2.4",
+    ],
+    export_shared_lib_headers: [
+        "android.hardware.graphics.composer@2.4",
+    ],
     header_libs: [
-        "android.hardware.graphics.composer@2.3-passthrough-vendor",
-        "android.hardware.graphics.composer@2.4-hal-vendor",
+        "android.hardware.graphics.composer@2.3-hal-vendor",
+        "android.hardware.graphics.composer@2.4-command-buffer",
     ],
     export_header_lib_headers: [
-        "android.hardware.graphics.composer@2.3-passthrough-vendor",
-        "android.hardware.graphics.composer@2.4-hal-vendor",
+        "android.hardware.graphics.composer@2.3-hal-vendor",
+        "android.hardware.graphics.composer@2.4-command-buffer",
     ],
     export_include_dirs: ["include"],
 }
