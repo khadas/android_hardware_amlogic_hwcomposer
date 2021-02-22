@@ -77,7 +77,7 @@ public:
     virtual int decideComposition() = 0;
 
     /*start composition, should set release fence to each Framebuffer.*/
-    virtual int commit() = 0;
+    virtual int commit(bool sf) = 0;
 
     virtual void dump(String8 & dumpstr) {
         dumpstr.appendFormat("Composition (%s):(0x%x)\n", getName(), mCompositionFlag);

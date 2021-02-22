@@ -89,7 +89,7 @@ int32_t VideoComposerDev::setFrames(
             vFrameInfo->type = 0;
             vFrameInfo->fd = fb->getVtBuffer();
             if (vFrameInfo->fd < 0) {
-                MESON_LOGE("vframe get invalid buffer fd");
+                MESON_LOGV("vframe get invalid buffer fd");
                 return -EINVAL;
             }
         } else {
@@ -97,6 +97,7 @@ int32_t VideoComposerDev::setFrames(
             return -EINVAL;
         }
 
+        bool isSidebandBuffer = fb->isSidebandBuffer();
         vFrameInfo->dst_x = fb->mDisplayFrame.left;
         vFrameInfo->dst_y = fb->mDisplayFrame.top;
         vFrameInfo->dst_w = fb->mDisplayFrame.right - fb->mDisplayFrame.left;
@@ -105,13 +106,13 @@ int32_t VideoComposerDev::setFrames(
         vFrameInfo->crop_y = fb->isVtBuffer() ? 0 : fb->mSourceCrop.top;
         vFrameInfo->crop_w = fb->isVtBuffer() ? -1 : fb->mSourceCrop.right - fb->mSourceCrop.left;
         vFrameInfo->crop_h = fb->isVtBuffer() ? -1 : fb->mSourceCrop.bottom - fb->mSourceCrop.top;
-        vFrameInfo->buffer_w = am_gralloc_get_width(buf);
-        vFrameInfo->buffer_h = am_gralloc_get_height(buf);
+        vFrameInfo->buffer_w = isSidebandBuffer ? 0 : am_gralloc_get_width(buf);
+        vFrameInfo->buffer_h = isSidebandBuffer ? 0 : am_gralloc_get_height(buf);
         vFrameInfo->zorder = fb->mZorder;
         vFrameInfo->transform = fb->mTransform;
         /*pass aligned buffer width and height to video composer*/
-        vFrameInfo->reserved[0] = am_gralloc_get_stride_in_pixel(buf);
-        vFrameInfo->reserved[1] = am_gralloc_get_aligned_height(buf);
+        vFrameInfo->reserved[0] = isSidebandBuffer ? 0 : am_gralloc_get_stride_in_pixel(buf);
+        vFrameInfo->reserved[1] = isSidebandBuffer ? 0 : am_gralloc_get_aligned_height(buf);
 
         MESON_LOGV("VideoComposerDev(%d) setframe zorder(%d) Fbtype(%d) bufferFd(%d) (%dx%d) aligned wxh (%dx%d))",
                 mDrvFd, fb->mZorder, fb->mFbType, vFrameInfo->fd,
@@ -127,6 +128,8 @@ int32_t VideoComposerDev::setFrames(
 
     if (mVideoFramesInfo.frame_info[0].composer_fen_fd >= 0)
         releaseFence = vFrameInfo->composer_fen_fd;
+
+    MESON_LOGV("VideoComposerDev(%d) setframe ReleaseFence(%d)", mDrvFd, releaseFence);
 
     return 0;
 }

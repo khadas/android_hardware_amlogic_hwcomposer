@@ -130,16 +130,21 @@ int MultiplanesWithDiComposition::processVideoFbs() {
     for (auto fbIt = mFramebuffers.begin(); fbIt != mFramebuffers.end(); ++fbIt) {
         bool bSideband = false;
         fb = fbIt->second;
+
+        /* skip dummy */
+        if (fb->mCompositionType == MESON_COMPOSITION_DUMMY)
+            continue;
+
         switch (fb->mFbType) {
             case DRM_FB_VIDEO_OVERLAY:
             case DRM_FB_VIDEO_SIDEBAND:
             case DRM_FB_VIDEO_SIDEBAND_TV:
+            case DRM_FB_VIDEO_TUNNEL_SIDEBAND:
                 bSideband = true;
                 [[clang::fallthrough]];
             case DRM_FB_VIDEO_OMX_V4L:
             case DRM_FB_VIDEO_DMABUF:
             case DRM_FB_VIDEO_UVM_DMA:
-            case DRM_FB_VIDEO_TUNNEL_SIDEBAND:
                 if (bSideband) {
                     sidebandFbs.push_back(fb);
                 } else {
@@ -200,7 +205,7 @@ int MultiplanesWithDiComposition::processVideoFbs() {
                 AM_VIDEO_HDR | AM_VIDEO_HDR10_PLUS | AM_VIDEO_HLG;
         for (auto it = mDIComposerFbs.begin(); it != mDIComposerFbs.end(); it++) {
             buf = (*it)->mBufferHandle;
-            if (am_gralloc_get_omx_video_type(buf, &video_type) == 0 &&
+            if (!(*it)->isSidebandBuffer() && am_gralloc_get_omx_video_type(buf, &video_type) == 0 &&
                 (video_type & videoTypes2Vd1) != 0) {
                 vd1Fb = *it;
                 mDIComposerFbs.erase(it);
@@ -1216,7 +1221,7 @@ int MultiplanesWithDiComposition::decideComposition() {
 }
 
 /* Commit DisplayPair to display. */
-int MultiplanesWithDiComposition::commit() {
+int MultiplanesWithDiComposition::commit(bool sf) {
     ATRACE_CALL();
     /* replace composer output with din0 Pair. */
     std::shared_ptr<DrmFramebuffer> composerOutput;
@@ -1269,12 +1274,15 @@ int MultiplanesWithDiComposition::commit() {
             dumpFbAndPlane(fb, plane, presentZorder, blankFlag);
         }
 
-        /* Set display info. */
-        int ret = plane->setPlane(fb, presentZorder, blankFlag);
-        fb->clearFbHandleFlag();
-        if (ret != 0) {
-            MESON_LOGE("%s setPlane failed", plane->getName());
-            setPlaneSuccess = false;
+        /* make sure SF donot refresh VtLayer and VT only refresh VtLayer*/
+        if ((sf && !fb->isVtBuffer()) || (!sf && fb->isVtBuffer())) {
+            /* Set display info. */
+            int ret = plane->setPlane(fb, presentZorder, blankFlag);
+            fb->clearFbHandleFlag();
+            if (ret != 0) {
+                MESON_LOGE("%s setPlane failed", plane->getName());
+                setPlaneSuccess = false;
+            }
         }
     }
 

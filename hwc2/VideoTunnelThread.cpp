@@ -14,13 +14,11 @@
 #include "MesonHwc2.h"
 #include <MesonLog.h>
 
-#include <time.h>
 #include <condition_variable>
 
 VideoTunnelThread::VideoTunnelThread(Hwc2Display * display) {
     mExit = false;
     mVsyncComing = false;
-    mStat = PROCESSOR_STOP;
     mDisplay = display;
 
     /* get capabilities */
@@ -35,61 +33,41 @@ VideoTunnelThread::VideoTunnelThread(Hwc2Display * display) {
         mSkipValidate = true;
     else
         mSkipValidate = false;
+
+    createThread();
 }
 
 VideoTunnelThread::~VideoTunnelThread() {
-    if (mStat != PROCESSOR_STOP) {
-        mExit = true;
-        pthread_join(mVtThread, NULL);
-        mStat = PROCESSOR_STOP;
-    }
+    MESON_LOGD("%s, Destroy VideoTunnelThread thread", __func__);
+    mExit = true;
+    pthread_join(mVtThread, NULL);
 }
 
-int VideoTunnelThread::start() {
+int VideoTunnelThread::createThread() {
     int ret;
-    if (mStat == PROCESSOR_START)
-        return 0;
 
-    MESON_LOGD("%s, VideoTunnelThread start thread", __func__);
+    MESON_LOGD("%s, Create VideoTunnelThread thread", __func__);
 
     ret = pthread_create(&mVtThread, NULL, threadMain, (void *)this);
     if (ret) {
-        MESON_LOGE("failed to start VideoTunnelThread: %s",
+        MESON_LOGE("failed to create VideoTunnelThread: %s",
                 strerror(ret));
         return ret;
     }
 
-    mExit = false;
-    mStat = PROCESSOR_START;
     return 0;
 }
 
-void VideoTunnelThread::stop() {
-    if (mStat == PROCESSOR_STOP)
-        return;
-
-    MESON_LOGD("%s, VideoTunnelThread stop thread", __func__);
-    mExit = true;
-    pthread_join(mVtThread, NULL);
-    mStat = PROCESSOR_STOP;
-}
-
-void VideoTunnelThread::onVtVsync(int64_t timestamp,
+void VideoTunnelThread::onVtVsync(int64_t timestamp __unused,
         uint32_t vsyncPeriodNanos __unused) {
     std::unique_lock<std::mutex> stateLock(mVtLock);
     mVsyncComing = true;
-    mVsyncTimestamp = timestamp;
     stateLock.unlock();
     mVtCondition.notify_all();
 }
 
 void VideoTunnelThread::handleVideoTunnelLayers() {
-    uint32_t outNumTypes, outNumRequests;
     int32_t outPresentFence = -1;
-    struct timespec spec;
-
-    spec.tv_sec = 0;
-    spec.tv_nsec = 5000000;
 
     std::unique_lock<std::mutex> stateLock(mVtLock);
     while (!mVsyncComing) {
@@ -98,29 +76,16 @@ void VideoTunnelThread::handleVideoTunnelLayers() {
     mVsyncComing = false;
     stateLock.unlock();
 
-    nanosleep(&spec, NULL); /* sleep 5ms */
-    // need exit?
-    if (mExit)
-        return;
+    mDisplay->acquireVtLayers();
 
-    if (mDisplay->getPreDisplayTime() < mVsyncTimestamp) {
-        if (mDisplay->handleVtDisplayConnection()) {
-            if (mSkipValidate) {
-                hwc2_error_t ret = mDisplay->presentDisplay(&outPresentFence);
-                if (ret == HWC2_ERROR_NOT_VALIDATED) {
-                    mDisplay->validateDisplay(&outNumTypes, &outNumRequests);
-                    mDisplay->presentDisplay(&outPresentFence);
-                }
-            } else {
-                mDisplay->validateDisplay(&outNumTypes, &outNumRequests);
-                mDisplay->presentDisplay(&outPresentFence);
-            }
+    if (mDisplay->handleVtDisplayConnection()) {
+        mDisplay->presentDisplay(&outPresentFence, false);
 
-            /* need close the present fence */
-            if (outPresentFence >= 0)
-                close(outPresentFence);
-        }
+        /* need close the present fence */
+        if (outPresentFence >= 0)
+            close(outPresentFence);
     }
+    mDisplay->releaseVtLayers();
 }
 
 void* VideoTunnelThread::threadMain(void *data) {

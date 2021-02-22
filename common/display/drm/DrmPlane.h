@@ -89,6 +89,8 @@ protected:
     std::queue<std::shared_ptr<DrmBo>> mBoCache;
 
     int mDbgFlag;
+
+    std::mutex mMutex;
 };
 
  #endif/*DRM_PLANE_H*/

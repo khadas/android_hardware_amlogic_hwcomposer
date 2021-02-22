@@ -23,9 +23,9 @@ typedef uint32_t u32;
 #define MAX_LAYER_COUNT 9
 
 typedef struct video_frame_info {
-    u32 fd;
-    u32 composer_fen_fd;
-    u32 disp_fen_fd;
+    int32_t fd;
+    int32_t composer_fen_fd;
+    int32_t disp_fen_fd;
     u32 buffer_w;
     u32 buffer_h;
     u32 dst_x;

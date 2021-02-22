@@ -15,6 +15,7 @@
 #include <BasicTypes.h>
 #include <DrmSync.h>
 #include <DrmTypes.h>
+#include <hardware/hwcomposer2.h>
 
 #include <am_gralloc_ext.h>
 
@@ -24,6 +25,9 @@ public:
     DrmFramebuffer();
     DrmFramebuffer(const native_handle_t * bufferhnd, int32_t acquireFence);
     virtual ~DrmFramebuffer();
+
+    void setUniqueId(hwc2_layer_t id);
+    hwc2_layer_t getUniqueId();
 
     int32_t setAcquireFence(int32_t fenceFd);
     std::shared_ptr<DrmFence> getAcquireFence();
@@ -38,8 +42,9 @@ public:
     int32_t unlock();
 
     bool isRotated();
+    bool isSidebandBuffer() {return mIsSidebandBuffer;}
 
-    bool isFbUpdated() {return (mUpdated || mFbHandleUpdated);}
+    virtual bool isFbUpdated() {return (mUpdated || mFbHandleUpdated);}
     bool isUpdated() {return mUpdated;}
     void clearFbHandleFlag();
 
@@ -50,7 +55,7 @@ public:
     virtual bool isVtBuffer() { return false;}
 
 protected:
-    void setBufferInfo(const native_handle_t * bufferhnd, int32_t acquireFence);
+    void setBufferInfo(const native_handle_t * bufferhnd, int32_t acquireFence, bool isSidebandBuffer=false);
     void clearBufferInfo();
 
     void reset();
@@ -70,8 +75,10 @@ public:
     bool mSecure;
     bool mUpdated;
     bool mFbHandleUpdated;
+    bool mIsSidebandBuffer;
 
     int32_t mCompositionType;
+    hwc2_layer_t mId;
 
     std::map<drm_hdr_meatadata_t, float> mHdrMetaData;
 protected:

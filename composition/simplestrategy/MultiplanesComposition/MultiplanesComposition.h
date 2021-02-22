@@ -66,7 +66,7 @@ public:
         float scaleValue);
     void updateComposition();
     int decideComposition();
-    int commit();
+    int commit(bool sf = true);
     void dump(String8 & dumpstr);
 
 protected:

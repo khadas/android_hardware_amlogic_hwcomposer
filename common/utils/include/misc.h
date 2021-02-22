@@ -28,8 +28,8 @@ int32_t sysfs_set_string(const char *path, const char *val);
 native_handle_t * gralloc_alloc_dma_buf(int w, int h, int format, bool bScanout, bool afbc = false);
 int32_t gralloc_free_dma_buf(native_handle_t * hnd);
 
-native_handle_t * gralloc_ref_dma_buf(const native_handle_t * hnd);
-int32_t gralloc_unref_dma_buf(native_handle_t * hnd);
+native_handle_t * gralloc_ref_dma_buf(const native_handle_t * hnd, bool isSidebandBuffer=false);
+int32_t gralloc_unref_dma_buf(native_handle_t * hnd, bool isSidebandBuffer=false);
 
 int32_t gralloc_lock_dma_buf(native_handle_t * handle, void** vaddr);
 int32_t gralloc_unlock_dma_buf(native_handle_t * handle);

@@ -40,7 +40,7 @@ public:
     void updateComposition();
 
     int decideComposition();
-    int commit();
+    int commit(bool sf = true);
 
 protected:
     void cleanup();

@@ -15,6 +15,7 @@ DrmFramebuffer::DrmFramebuffer()
       : mBufferHandle(NULL),
         mMapBase(NULL) {
     mUpdated = false;
+    mIsSidebandBuffer = false;
     reset();
 }
 
@@ -36,6 +37,14 @@ DrmFramebuffer::DrmFramebuffer(
 
 DrmFramebuffer::~DrmFramebuffer() {
     reset();
+}
+
+void DrmFramebuffer::setUniqueId(hwc2_layer_t id) {
+    mId = id;
+}
+
+hwc2_layer_t DrmFramebuffer::getUniqueId() {
+    return mId;
 }
 
 int32_t DrmFramebuffer::setAcquireFence(int32_t fenceFd) {
@@ -87,10 +96,12 @@ void DrmFramebuffer::clearFbHandleFlag() {
 
 void DrmFramebuffer::setBufferInfo(
     const native_handle_t * bufferhnd,
-    int32_t acquireFence) {
+    int32_t acquireFence,
+    bool isSidebandBuffer) {
     if (bufferhnd) {
         mFbHandleUpdated = true;
-        mBufferHandle = gralloc_ref_dma_buf(bufferhnd);
+        mIsSidebandBuffer = isSidebandBuffer;
+        mBufferHandle = gralloc_ref_dma_buf(bufferhnd, isSidebandBuffer);
         if (acquireFence >= 0)
             mAcquireFence = std::make_shared<DrmFence>(acquireFence);
     }
@@ -99,7 +110,7 @@ void DrmFramebuffer::setBufferInfo(
 void DrmFramebuffer::clearBufferInfo() {
     if (mBufferHandle) {
         unlock();
-        gralloc_unref_dma_buf(mBufferHandle);
+        gralloc_unref_dma_buf(mBufferHandle, mIsSidebandBuffer);
         mBufferHandle  = NULL;
         mFbHandleUpdated = false;
     }
@@ -110,7 +121,8 @@ void DrmFramebuffer::clearBufferInfo() {
     * 2. CureRelease move to PrevRelase, it can be returned in next loop.
     */
     mAcquireFence.reset();
-    mPrevReleaseFence = mCurReleaseFence;
+    //TODO: video tunnel thread will releas prevReleaseFence
+    //mPrevReleaseFence = mCurReleaseFence;
     mCurReleaseFence.reset();
     mAcquireFence = mCurReleaseFence = DrmFence::NO_FENCE;
 

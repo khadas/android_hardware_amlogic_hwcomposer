@@ -113,6 +113,7 @@ hwc2_error_t Hwc2Layer::handleDimLayer(buffer_handle_t buffer) {
 }
 
 hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) {
+    std::lock_guard<std::mutex> lock(mMutex);
     /*record for check fbType change status */
     drm_fb_type_t preType = mFbType;
 
@@ -174,8 +175,10 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
 }
 
 hwc2_error_t Hwc2Layer::setSidebandStream(const native_handle_t* stream) {
+    std::lock_guard<std::mutex> lock(mMutex);
+    MESON_LOGV("[%s] (%lld)", __func__, mId);
     clearBufferInfo();
-    setBufferInfo(stream, -1);
+    setBufferInfo(stream, -1, true);
 
     int type = AM_INVALID_SIDEBAND;
     int channel_id = 0;
@@ -307,14 +310,6 @@ int32_t Hwc2Layer::commitCompType(
     return 0;
 }
 
-void Hwc2Layer::setUniqueId(hwc2_layer_t id) {
-    mId = id;
-}
-
-hwc2_layer_t Hwc2Layer::getUniqueId() {
-    return mId;
-}
-
 void Hwc2Layer::clearUpdateFlag() {
     mUpdateZorder = mUpdated = false;
     if (mNeedReleaseVtResource)
@@ -323,6 +318,15 @@ void Hwc2Layer::clearUpdateFlag() {
 
 bool Hwc2Layer::isVtBuffer() {
     return mFbType == DRM_FB_VIDEO_TUNNEL_SIDEBAND;
+}
+
+bool Hwc2Layer::isFbUpdated(){
+    std::lock_guard<std::mutex> lock(mMutex);
+    if (isVtBuffer()) {
+        return (shouldPresentNow(mTimestamp) && mVtUpdate);
+    } else {
+        return (mUpdated || mFbHandleUpdated);
+    }
 }
 
 int32_t Hwc2Layer::getVtBuffer() {
@@ -375,6 +379,9 @@ int32_t Hwc2Layer::acquireVtBuffer() {
     if (mQueueItems.empty())
         return -EAGAIN;
 
+    static nsecs_t previousTimestamp = 0;
+    [[maybe_unused]] nsecs_t diffAdded = 0;
+
     /*
      * getVtBuffer might drop the some buffers at the head of the queue
      * if there is a buffer behind them which is timely to be presented.
@@ -390,12 +397,20 @@ int32_t Hwc2Layer::acquireVtBuffer() {
     int dropCount = expiredItemCount - 1;
     while (dropCount > 0) {
         auto item = mQueueItems.front();
+
+        if (previousTimestamp == 0)
+            previousTimestamp = item.timestamp;
+
+        diffAdded = item.timestamp - previousTimestamp;
+        previousTimestamp = item.timestamp;
+
         VideoTunnelDev::getInstance().releaseBuffer(mTunnelId, item.bufferFd, getPrevReleaseFence());
         mQueuedFrames--;
+
         MESON_LOGD("vt buffer fd(%d) with timestamp(%" PRId64 ") expired droped "
-                "expectedPresent time(%" PRId64 ") queuedFrames(%d)",
+                "expectedPresent time(%" PRId64 ") diffAdded(%" PRId64 ") queuedFrames(%d)",
                 item.bufferFd, item.timestamp,
-                mExpectedPresentTime, mQueuedFrames);
+                mExpectedPresentTime, diffAdded, mQueuedFrames);
         mQueueItems.pop_front();
         dropCount--;
     }
@@ -404,12 +419,17 @@ int32_t Hwc2Layer::acquireVtBuffer() {
     mVtUpdate = true;
     mVtBufferFd = mQueueItems[0].bufferFd;
     mTimestamp = mQueueItems[0].timestamp;
-    mFbHandleUpdated = shouldPresentNow(mTimestamp);
 
-    MESON_LOGV("[%s] mVtBufferFd(%d) timestamp (%" PRId64 "us) expectedPresentTime(%"
-            PRId64 "us) nowTime(%" PRId64 "ns) shouldPresent:%d",
+    if (previousTimestamp == 0)
+        previousTimestamp = mTimestamp;
+    diffAdded = mTimestamp - previousTimestamp;
+    previousTimestamp = mTimestamp;
+
+    MESON_LOGV("[%s] mVtBufferFd(%d) timestamp (%" PRId64 " us) expectedPresentTime(%"
+            PRId64 " us) diffAdded(%" PRId64 " us) shouldPresent:%d, queueFrameSize:%d",
             __func__, mVtBufferFd, mTimestamp,
-            mExpectedPresentTime, systemTime(CLOCK_MONOTONIC), mFbHandleUpdated);
+            mExpectedPresentTime, diffAdded,
+            shouldPresentNow(mTimestamp), mQueueItems.size());
 
     return 0;
 }
@@ -441,7 +461,6 @@ int32_t Hwc2Layer::releaseVtBuffer() {
     // First release vt buffer, save to the previous
     if (mPreVtBufferFd < 0) {
         mPreVtBufferFd = mVtBufferFd;
-        mFbHandleUpdated = false;
         mVtUpdate = false;
         mVtBufferFd = -1;
         return 0;
@@ -457,7 +476,6 @@ int32_t Hwc2Layer::releaseVtBuffer() {
             __func__, releaseFence, mVtBufferFd, mPreVtBufferFd, mQueuedFrames);
 
     mPreVtBufferFd = mVtBufferFd;
-    mFbHandleUpdated = false;
     mVtUpdate = false;
     mVtBufferFd = -1;
 

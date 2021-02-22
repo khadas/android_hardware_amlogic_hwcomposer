@@ -48,9 +48,6 @@ public:
 
     bool isSecure() { return mSecure;}
 
-    void setUniqueId(hwc2_layer_t id);
-    hwc2_layer_t getUniqueId();
-
     int32_t commitCompType(hwc2_composition_t hwcComp);
 
     bool isUpdateZorder() { return mUpdateZorder;}
@@ -58,6 +55,7 @@ public:
 
     /* video tunnel api */
     bool isVtBuffer() override;
+    bool isFbUpdated() override;
     int32_t getVtBuffer() override;
     int32_t acquireVtBuffer() override;
     int32_t releaseVtBuffer() override;
@@ -70,7 +68,6 @@ public:
     hwc2_composition_t mHwcCompositionType;
     hwc_region_t mVisibleRegion;
     hwc_region_t mDamageRegion;
-    hwc2_layer_t mId;
     drm_rect_t mBackupDisplayFrame;
 
 protected:

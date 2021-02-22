@@ -151,11 +151,11 @@ int32_t gralloc_free_dma_buf(native_handle_t * hnd) {
     return 0;
 }
 
-native_handle_t * gralloc_ref_dma_buf(const native_handle_t * hnd) {
+native_handle_t * gralloc_ref_dma_buf(const native_handle_t * hnd, bool isSidebandBuffer) {
     /*must use GraphicBufferMapper, for we need do lock&unlock by it later.*/
     static GraphicBufferMapper & maper = GraphicBufferMapper::get();
     buffer_handle_t rethnd;
-    if (am_gralloc_is_valid_graphic_buffer(hnd)) {
+    if (!isSidebandBuffer && am_gralloc_is_valid_graphic_buffer(hnd)) {
         int w = am_gralloc_get_width(hnd);
         int h = am_gralloc_get_height(hnd);
         int stridew = am_gralloc_get_stride_in_pixel(hnd);
@@ -174,11 +174,11 @@ native_handle_t * gralloc_ref_dma_buf(const native_handle_t * hnd) {
     return (native_handle_t *)rethnd;
 }
 
-int32_t gralloc_unref_dma_buf(native_handle_t * hnd) {
+int32_t gralloc_unref_dma_buf(native_handle_t * hnd, bool isSidebandBuffer) {
     static GraphicBufferMapper & maper = GraphicBufferMapper::get();
 
     bool bfreed = false;
-    if (am_gralloc_is_valid_graphic_buffer(hnd)) {
+    if (!isSidebandBuffer && am_gralloc_is_valid_graphic_buffer(hnd)) {
         if (NO_ERROR == maper.freeBuffer(hnd)) {
             bfreed = true;
         }

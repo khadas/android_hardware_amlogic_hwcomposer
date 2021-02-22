@@ -404,7 +404,7 @@ int SingleplaneComposition::buildOsdComposition() {
 }
 
 /*--------------------- commit to display ---------------------*/
-int SingleplaneComposition::commit() {
+int SingleplaneComposition::commit(bool sf __unused) {
     /*start compose, and add composer output.*/
     std::shared_ptr<DrmFramebuffer> composeOutput;
     if (mComposer.get()) {

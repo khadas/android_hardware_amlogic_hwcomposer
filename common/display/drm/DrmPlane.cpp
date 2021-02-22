@@ -228,6 +228,7 @@ int32_t DrmPlane::setPlane(
     std::shared_ptr<DrmFramebuffer> fb,
     uint32_t zorder,
     int blankOp) {
+    std::lock_guard<std::mutex> lock(mMutex);
     bool bBlank = blankOp == UNBLANK ? false : true;
     DrmCrtc * crtc = (DrmCrtc *)mCrtc.get();
     drmModeAtomicReqPtr req;

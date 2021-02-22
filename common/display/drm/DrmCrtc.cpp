@@ -249,7 +249,8 @@ int32_t DrmCrtc::pageFlip(int32_t & out_fence) {
     }
 
     if (!mReq) {
-        out_fence = -1;
+        //TODO: video tunnel thread will reset out_fence
+        //out_fence = -1;
         return 0;
     }
 

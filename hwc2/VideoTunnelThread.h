@@ -24,26 +24,18 @@ public:
         VideoTunnelThread(Hwc2Display * display);
         ~VideoTunnelThread();
 
-        int start();
-        void stop();
         void onVtVsync(int64_t timestamp, uint32_t vsyncPeriodNanos);
 
 protected:
         void handleVideoTunnelLayers();
+        int createThread();
         static void *threadMain(void * data);
 
 protected:
-        enum {
-            PROCESSOR_START = 0,
-            PROCESSOR_STOP,
-        };
-
         bool mExit;
         bool mVsyncComing;
         bool mSkipValidate;
-        int mStat;
         pthread_t mVtThread;
-        nsecs_t mVsyncTimestamp;
         std::mutex mVtLock;
         std::condition_variable mVtCondition;
         Hwc2Display * mDisplay;

@@ -43,7 +43,7 @@ Hwc2Display::Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer) {
     mVsyncState = false;
     mScaleValue = 1;
     mPresentFence = -1;
-    mVideoTunnelThread = NULL;
+    mVideoTunnelThread = nullptr;
     mVsyncTimestamp = 0;
     memset(&mHdrCaps, 0, sizeof(mHdrCaps));
     memset(mColorMatrix, 0, sizeof(float) * 16);
@@ -63,6 +63,12 @@ Hwc2Display::~Hwc2Display() {
 
     mVsync.reset();
     mModeMgr.reset();
+
+    if (mVideoTunnelThread) {
+        mVideoTunnelThread.reset();
+    }
+    mVtVsync.reset();
+
 
     if (mPostProcessor != NULL)
         mPostProcessor->stop();
@@ -164,6 +170,20 @@ int32_t Hwc2Display::setVsync(std::shared_ptr<HwcVsync> vsync) {
             mVsync = vsync;
             mVsync->setObserver(this);
             mVsync->setEnabled(mVsyncState);
+        }
+    }
+
+    return 0;
+}
+
+int32_t Hwc2Display::setVtVsync(std::shared_ptr<HwcVsync> vsync) {
+    std::lock_guard<std::mutex> lock(mMutex);
+    if (mVtVsync != vsync) {
+        if (mVtVsync.get()) {
+            mVtVsync->setObserver(NULL);
+        } else {
+            mVtVsync = vsync;
+            mVtVsync->setObserver(this);
         }
     }
 
@@ -342,7 +362,6 @@ void Hwc2Display::onUpdate(bool bHdcp) {
 }
 
 void Hwc2Display::onVsync(int64_t timestamp, uint32_t vsyncPeriodNanos) {
-    mVsyncTimestamp = timestamp;
     if (mObserver != NULL) {
         mObserver->onVsync(timestamp, vsyncPeriodNanos);
     } else {
@@ -352,8 +371,9 @@ void Hwc2Display::onVsync(int64_t timestamp, uint32_t vsyncPeriodNanos) {
 
 void Hwc2Display::onVTVsync(int64_t timestamp, uint32_t vsyncPeriodNanos) {
     mVsyncTimestamp = timestamp;
-    if (mVideoTunnelThread != NULL)
+    if (mVideoTunnelThread != nullptr) {
         mVideoTunnelThread->onVtVsync(timestamp, vsyncPeriodNanos);
+    }
 }
 
 void Hwc2Display::onModeChanged(int stage) {
@@ -547,13 +567,6 @@ hwc2_error_t Hwc2Display::collectLayersForPresent() {
             !layer->isVtBuffer()) {
             continue;
         }
-
-        if (layer->isVtBuffer() && layer->getVtBuffer() == -1) {
-            /* Check if layer buffer id is set or not
-             * when layer type is vt-sideband
-             * */
-            continue;
-        }
         mPresentLayers.push_back(buffer);
 
         if (isLayerHideForDebug(it->first)) {
@@ -734,8 +747,6 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
     mOverlayLayers.clear();
     mFailedDeviceComp = false;
     mSkipComposition = false;
-
-    handleVtThread();
 
     hwc2_error_t ret = collectLayersForPresent();
     if (ret != HWC2_ERROR_NONE) {
@@ -949,20 +960,16 @@ hwc2_error_t Hwc2Display::presentSkipValidateCheck() {
     return HWC2_ERROR_NONE;
 }
 
-hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
+hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence, bool sf) {
     ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
-    mDisplayTimestamp = systemTime(CLOCK_MONOTONIC);
-
-    if (mVideoTunnelThread)
-        acquireVtLayers();
 
     if (mSkipComposition) {
         *outPresentFence = -1;
     } else {
         if (mValidateDisplay == false) {
             hwc2_error_t err = presentSkipValidateCheck();
-            if (err != HWC2_ERROR_NONE) {
+            if (err != HWC2_ERROR_NONE && sf) {
                 MESON_LOGV("presentDisplay without validateDisplay err(%d)",err);
                 return err;
             }
@@ -988,16 +995,18 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
 
         mValidateDisplay = false;
 
-        if (mPresentFence >= 0)
-            close(mPresentFence);
-        mPresentFence = -1;
+        if (sf) {
+            if (mPresentFence >= 0)
+                close(mPresentFence);
+            mPresentFence = -1;
+        }
 
         /*start new pageflip, and prepare.*/
         if (mCrtc->prePageFlip() != 0 ) {
             return HWC2_ERROR_NO_RESOURCES;
         }
         /*Start to compose, set up plane info.*/
-        if (mPresentCompositionStg->commit() != 0) {
+        if (mPresentCompositionStg->commit(sf) != 0) {
             return HWC2_ERROR_NOT_VALIDATED;
         }
         #ifdef HWC_HDR_METADATA_SUPPORT
@@ -1011,9 +1020,11 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
         #endif
 
         /* reset layer flag to false */
-        for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
-            std::shared_ptr<Hwc2Layer> layer = it->second;
-            layer->clearUpdateFlag();
+        if (sf) {
+            for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
+                std::shared_ptr<Hwc2Layer> layer = it->second;
+                layer->clearUpdateFlag();
+            }
         }
 
         /* Page flip */
@@ -1029,9 +1040,6 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
         /*need use in getReleaseFence() later, dup to return to sf.*/
         *outPresentFence = ::dup(mPresentFence);
     }
-
-    if (mVideoTunnelThread)
-        releaseVtLayers();
 
     /*dump debug informations.*/
     bool dumpComposition = false;
@@ -1318,7 +1326,7 @@ void Hwc2Display::dumpPresentLayers(String8 & dumpstr) {
             layer->mBlendMode,
             layer->mPlaneAlpha,
             layer->mTransform,
-            am_gralloc_get_vpu_afbc_mask(layer->mBufferHandle),
+            layer->isSidebandBuffer() ? 0 : am_gralloc_get_vpu_afbc_mask(layer->mBufferHandle),
             layer->mSourceCrop.left,
             layer->mSourceCrop.top,
             layer->mSourceCrop.right,
@@ -1473,15 +1481,22 @@ void Hwc2Display::handleVtThread() {
         }
     }
 
-    if (haveVtLayer && mVideoTunnelThread == NULL) {
-        mVideoTunnelThread = std::make_shared<VideoTunnelThread>(this);
-        mVsync->setVideoTunnelEnabled(true);
-        mVideoTunnelThread->start();
-    } else if (!haveVtLayer && mVideoTunnelThread != NULL) {
-        mVideoTunnelThread->stop();
-        mVideoTunnelThread.reset();
-        mVsync->setVideoTunnelEnabled(false);
-        mVideoTunnelThread = NULL;
+    if (haveVtLayer) {
+        if (mVideoTunnelThread == nullptr) {
+            mVideoTunnelThread = std::make_shared<VideoTunnelThread>(this);
+        }
+        if (!mVtVsyncStatus) {
+            mVtVsync->setVideoTunnelEnabled(true);
+            mVtVsync->setMixMode();
+            mVtVsyncStatus = true;
+            MESON_LOGD("%s, set VideoTunnelThread Thread to Enabled", __func__);
+        }
+    } else {
+        if (mVideoTunnelThread != nullptr && mVtVsyncStatus) {
+            mVtVsync->setVideoTunnelEnabled(false);
+            mVtVsyncStatus = false;
+            MESON_LOGD("%s, set VideoTunnelThread Thread to Disabled", __func__);
+        }
     }
 }
 
@@ -1522,16 +1537,6 @@ void Hwc2Display::releaseVtLayers() {
     }
 }
 
-nsecs_t Hwc2Display::getPreDisplayTime() {
-    return mDisplayTimestamp;
-}
-
 bool Hwc2Display::handleVtDisplayConnection() {
-    std::lock_guard<std::mutex> lock(mMutex);
-    if (!mDisplayConnection) {
-        acquireVtLayers();
-        releaseVtLayers();
-    }
-
     return mDisplayConnection;
 }

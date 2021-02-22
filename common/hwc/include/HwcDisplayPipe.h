@@ -100,6 +100,8 @@ protected:
         std::vector<std::shared_ptr<HwDisplayPlane>> hwcPlanes;
         std::shared_ptr<HwDisplayConnector> hwcConnector;
         std::shared_ptr<HwcVsync> hwcVsync;
+        // for videotunnel thread
+        std::shared_ptr<HwcVsync> hwcVtVsync;
         std::shared_ptr<HwcPostProcessor> hwcPostProcessor;
 
         std::shared_ptr<HwcModeMgr> modeMgr;

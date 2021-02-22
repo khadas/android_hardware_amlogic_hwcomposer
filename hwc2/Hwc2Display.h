@@ -81,7 +81,7 @@ public:
     /*Compose flow*/
     virtual hwc2_error_t validateDisplay(uint32_t* outNumTypes,
         uint32_t* outNumRequests);
-    virtual hwc2_error_t presentDisplay(int32_t* outPresentFence);
+    virtual hwc2_error_t presentDisplay(int32_t* outPresentFence, bool sf = true);
     virtual hwc2_error_t acceptDisplayChanges();
     virtual hwc2_error_t getChangedCompositionTypes(
         uint32_t* outNumElements, hwc2_layer_t* outLayers,
@@ -128,6 +128,7 @@ public:
     virtual int32_t setPostProcessor(
         std::shared_ptr<HwcPostProcessor> processor);
     virtual int32_t setVsync(std::shared_ptr<HwcVsync> vsync);
+    virtual int32_t setVtVsync(std::shared_ptr<HwcVsync> vsync);
     virtual int32_t blankDisplay();
 
     virtual void onVsync(int64_t timestamp, uint32_t vsyncPeriodNanos);
@@ -143,7 +144,6 @@ public:
     virtual void handleVtThread();
     virtual void acquireVtLayers();
     virtual void releaseVtLayers();
-    virtual nsecs_t getPreDisplayTime();
     virtual bool handleVtDisplayConnection();
 
 /* meson display ddk */
@@ -241,7 +241,8 @@ protected:
 
     /* for video tunnel mode video*/
     std::shared_ptr<VideoTunnelThread> mVideoTunnelThread;
-    nsecs_t mDisplayTimestamp;
+    std::shared_ptr<HwcVsync> mVtVsync;
+    bool mVtVsyncStatus;
     bool mDisplayConnection;
 
     bool mOutsideChanged;

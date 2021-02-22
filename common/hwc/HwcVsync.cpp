@@ -14,11 +14,14 @@
 #include <inttypes.h>
 
 #define SF_VSYNC_DFT_PERIOD 60
+#define VT_OFFSET_TIME 5000000
 
 HwcVsync::HwcVsync() {
     mSoftVsync = true;
     mEnabled = false;
     mVTEnabled = false;
+    mMixVsync = false;
+    mMixRebase = false;
     mPreTimeStamp = 0;
     mReqPeriod = 0;
     mVsyncTime = 0;
@@ -48,8 +51,19 @@ int32_t HwcVsync::setObserver(HwcVsyncObserver * observer) {
 
 int32_t HwcVsync::setSoftwareMode() {
     std::unique_lock<std::mutex> stateLock(mStatLock);
+    mMixVsync = false;
     mSoftVsync = true;
     mCrtc.reset();
+    stateLock.unlock();
+    mStateCondition.notify_all();
+    return 0;
+}
+
+int32_t HwcVsync::setMixMode() {
+    std::unique_lock<std::mutex> stateLock(mStatLock);
+    mMixVsync = true;
+    mMixRebase = true;
+    mSoftVsync = false;
     stateLock.unlock();
     mStateCondition.notify_all();
     return 0;
@@ -59,6 +73,7 @@ int32_t HwcVsync::setHwMode(std::shared_ptr<HwDisplayCrtc> & crtc) {
     std::unique_lock<std::mutex> stateLock(mStatLock);
     mCrtc = crtc;
     mSoftVsync = false;
+    mMixVsync = false;
     stateLock.unlock();
     mStateCondition.notify_all();
     return 0;
@@ -116,6 +131,8 @@ void * HwcVsync::vsyncThread(void * data) {
         int32_t ret;
         if (pThis->mSoftVsync) {
             ret = pThis->waitSoftwareVsync(timestamp);
+        } else if (pThis->mMixVsync) {
+            ret = pThis->waitMixVsync(timestamp);
         } else {
             ret = pThis->waitHwVsync(timestamp);
         }
@@ -190,6 +207,32 @@ int32_t HwcVsync::waitSoftwareVsync(nsecs_t& vsync_timestamp) {
     vsync_timestamp = vsync_time;
 
     return err;
+}
+
+int32_t HwcVsync::waitMixVsync(nsecs_t& vsync_timestamp) {
+    static nsecs_t cur_vsync_period = 0;
+    if (cur_vsync_period != mReqPeriod || mMixRebase) {
+        MESON_LOGD("[%s] waitVBlank to get hw vsync timestamp", __func__);
+        mCrtc->waitVBlank(mVsyncTime);
+        mVsyncTime += VT_OFFSET_TIME;
+        cur_vsync_period = mReqPeriod;
+        mMixRebase = false;
+    } else {
+        nsecs_t now = systemTime(CLOCK_MONOTONIC);
+        mVsyncTime = mVsyncTime + cur_vsync_period +
+            (now - mVsyncTime ) /cur_vsync_period * cur_vsync_period;
+
+        struct timespec spec;
+        spec.tv_sec  = mVsyncTime / 1000000000;
+        spec.tv_nsec = mVsyncTime % 1000000000;
+        int err;
+        do {
+            err = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &spec, NULL);
+        } while (err<0 && errno == EINTR);
+    }
+
+    vsync_timestamp = mVsyncTime;
+    return 0;
 }
 
 void HwcVsync::dump(String8 &dumpstr) {

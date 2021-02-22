@@ -422,9 +422,14 @@ int32_t MesonHwc2::setCursorPosition(hwc2_display_t display,
 
 int32_t MesonHwc2::setLayerBuffer(hwc2_display_t display, hwc2_layer_t layer,
     buffer_handle_t buffer, int32_t acquireFence) {
+    int32_t ret;
     GET_HWC_DISPLAY(display);
     GET_HWC_LAYER(hwcDisplay, layer);
-    return hwcLayer->setBuffer(buffer, acquireFence);
+    ret = hwcLayer->setBuffer(buffer, acquireFence);
+    if (ret == HWC2_ERROR_NONE)
+        hwcDisplay->handleVtThread();
+
+    return ret;
 }
 
 int32_t MesonHwc2::setLayerSurfaceDamage(hwc2_display_t display,
@@ -478,9 +483,13 @@ int32_t MesonHwc2::setLayerPlaneAlpha(hwc2_display_t display,
 
 int32_t MesonHwc2::setLayerSidebandStream(hwc2_display_t display,
     hwc2_layer_t layer, const native_handle_t* stream) {
+    int32_t ret;
     GET_HWC_DISPLAY(display);
     GET_HWC_LAYER(hwcDisplay, layer);
-    return hwcLayer->setSidebandStream(stream);
+    ret = hwcLayer->setSidebandStream(stream);
+    if (ret == HWC2_ERROR_NONE)
+        hwcDisplay->handleVtThread();
+    return ret;
 }
 
 int32_t MesonHwc2::setLayerSourceCrop(hwc2_display_t display,
