@@ -19,6 +19,7 @@
 #include "DrmPlane.h"
 
 #define MESON_DRM_DRIVER_NAME "meson"
+#define MAX_PLANE_LIMIT 2
 
 std::shared_ptr<DrmDevice> DrmDevice::mInstance = NULL;
 
@@ -55,20 +56,16 @@ DrmDevice::~DrmDevice() {
 
 int32_t DrmDevice::getPlanes(
     std::vector<std::shared_ptr<HwDisplayPlane>> & planes) {
-    std::shared_ptr<HwDisplayPlane> osdPlane = nullptr;
+    int cnt = 0;
     for (const auto & it : mPlanes) {
-        planes.push_back(it.second);
-        if (it.second->getType() == DRM_PLANE_TYPE_OVERLAY)
-            osdPlane = it.second;
-    }
-
-    // TODO: remove it, when no mosaic with three osdplanes
-    // temp workaround, only use two osdPlanes
-    for (auto it = planes.begin(); it != planes.end(); it++) {
-        if (osdPlane == *it) {
-            planes.erase(it);
-            break;
+        if (it.second->getType() == DRM_PLANE_TYPE_OVERLAY
+            && !(it.second->getCapabilities() & PLANE_PRIMARY)) {
+            cnt++;
+            if (cnt >= MAX_PLANE_LIMIT)
+                continue;
         }
+
+        planes.push_back(it.second);
     }
 
     return 0;
