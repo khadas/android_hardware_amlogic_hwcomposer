@@ -375,16 +375,15 @@ int MultiplanesWithDiComposition::applyCompositionFlags() {
 int MultiplanesWithDiComposition::handleUVM() {
     if (mUVMFd > 0) {
         std::shared_ptr<DrmFramebuffer> fb;
-        auto fbIt = mFramebuffers.begin();
+        auto fbIt = mDisplayPairs.begin();
         struct uvm_fd_data fd_data;
 
-        for (; fbIt != mFramebuffers.end(); ++fbIt) {
-            fb = fbIt->second;
+        for (; fbIt != mDisplayPairs.end(); ++fbIt) {
+            fb = fbIt->fb;
 
             if (fb->mFbType == DRM_FB_VIDEO_UVM_DMA) {
                 fd_data.fd = am_gralloc_get_buffer_fd(fb->mBufferHandle);
                 fd_data.commit_display = 1;
-
                 if (ioctl(mUVMFd, UVM_IOC_SET_FD, &fd_data) != 0) {
                     MESON_LOGE("setUVM fd data ioctl error %s", strerror(errno));
                     return -1;
@@ -1206,9 +1205,6 @@ int MultiplanesWithDiComposition::decideComposition() {
         return ret;
     }
 
-    /* handle uvm */
-    handleUVM();
-
     /* handle VIDEO fbs. */
     processVideoFbs();
 
@@ -1231,6 +1227,9 @@ int MultiplanesWithDiComposition::commit(bool sf) {
         mComposer->start();
         composerOutput = mComposer->getOutput();
     }
+
+    /* handle uvm */
+    handleUVM();
 
     if (!mSkipValidate) {
         handleOverlayVideoZorder();
