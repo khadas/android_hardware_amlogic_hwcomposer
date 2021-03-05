@@ -16,10 +16,12 @@
 #include "AmVinfo.h"
 #include "ConnectorHdmi.h"
 #include <sstream>
+#include <string>
 
 #include "Dv.h"
 
-#define DV_ENABLE_STATUS "persist.vendor.sys.tv.dolbyvision.enable"
+#define PROP_DV_ENABLE_STATUS "persist.vendor.sys.tv.dolbyvision.enable"
+#define PROP_HDR_PREFERENCE "persist.vendor.sys.hdr_preference"
 
 int32_t parseHdmiHdrCapabilities(drm_hdr_capabilities & hdrCaps);
 bool loadHdmiCurrentHdrType(std::string & hdrType);
@@ -343,7 +345,11 @@ int32_t parseHdmiHdrCapabilities(drm_hdr_capabilities & hdrCaps) {
     char* pos = buf;
     int fd, len;
 
-    bool dv_enable = sc_get_property_boolean(DV_ENABLE_STATUS, false);
+    std::string hdr_preference;
+    sc_get_property_string(PROP_HDR_PREFERENCE, hdr_preference, "dolby_vision");
+    MESON_LOGI("hdr_preference (%s)", hdr_preference.c_str());
+
+    bool dv_enable = sc_get_property_boolean(PROP_DV_ENABLE_STATUS, false);
     MESON_LOGI("dv_enable status (%d)",dv_enable);
     memset(&hdrCaps, 0, sizeof(drm_hdr_capabilities));
 
@@ -420,6 +426,22 @@ int32_t parseHdmiHdrCapabilities(drm_hdr_capabilities & hdrCaps) {
             }
         }
     }
+
+    /* Overwrite HdrCapabilities according to user's HDR preference
+     * sdr: hides all HDR capabilities
+     * hdr: hides Dolby Vision capabilities
+     * dolby_vision: keeps all HDR capabilities
+     */
+    if (hdr_preference == "sdr") {
+      hdrCaps.DolbyVisionSupported = false;
+      hdrCaps.HDR10Supported = false;
+      hdrCaps.HDR10PlusSupported = false;
+      hdrCaps.HLGSupported = false;
+    } else if (hdr_preference == "hdr") {
+      hdrCaps.DolbyVisionSupported = false;
+    }
+
+
 
     MESON_LOGD("dolby version:%d, hlg:%d, hdr10:%d, hdr10+:%d max:%d, avg:%d, min:%d\n",
         hdrCaps.DolbyVisionSupported ? 1:0,

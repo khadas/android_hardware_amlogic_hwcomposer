@@ -244,6 +244,24 @@ bool sc_get_property_boolean(const char * prop, bool val) {
     return result;
 }
 
+int32_t sc_get_property_string(const char * prop, std::string & val, const std::string & def) {
+    CHK_SC_PROXY();
+
+    if (!prop) {
+        return -EINVAL;
+    }
+
+    gSC->getPropertyString(prop, def, [&val](const Result & ret, const hidl_string & retval) {
+        if (Result::OK == ret) {
+            val = retval.c_str();
+        } else {
+            val.clear();
+        }
+    });
+
+    return 0;
+}
+
 int32_t sc_set_property(const char * prop, const char *val ) {
     CHK_SC_PROXY();
 
