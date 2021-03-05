@@ -23,6 +23,7 @@ int32_t sc_read_sysfs(const char * path, std::string & val);
 int32_t sc_read_bootenv(const char * key, std::string & val);
 bool sc_set_bootenv(const char *key, const std::string &val);
 bool sc_get_property_boolean(const char * prop, bool val);
+int32_t sc_get_property_string(const char * prop, std::string & val, const std::string & def);
 int32_t sc_set_property(const char *prop, const char *val);
 
 int32_t sc_sink_support_dv(std::string &mode, bool &val);
