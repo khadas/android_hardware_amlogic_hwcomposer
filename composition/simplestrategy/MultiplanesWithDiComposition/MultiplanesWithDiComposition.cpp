@@ -139,12 +139,12 @@ int MultiplanesWithDiComposition::processVideoFbs() {
             case DRM_FB_VIDEO_OVERLAY:
             case DRM_FB_VIDEO_SIDEBAND:
             case DRM_FB_VIDEO_SIDEBAND_TV:
-            case DRM_FB_VIDEO_TUNNEL_SIDEBAND:
                 bSideband = true;
                 [[clang::fallthrough]];
             case DRM_FB_VIDEO_OMX_V4L:
             case DRM_FB_VIDEO_DMABUF:
             case DRM_FB_VIDEO_UVM_DMA:
+            case DRM_FB_VIDEO_TUNNEL_SIDEBAND:
                 if (bSideband) {
                     sidebandFbs.push_back(fb);
                 } else {
