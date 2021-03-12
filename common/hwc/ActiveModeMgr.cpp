@@ -19,8 +19,6 @@
 #define DEFUALT_DPI (160)
 #define DEFAULT_REFRESH_RATE (60.0f)
 
-#define UBOOTENV_BESTDOLBYVISION "ubootenv.var.bestdolbyvision"
-
 static const drm_mode_info_t fakeInitialMode = {
     .name              = "FAKE_INITIAL_MODE",
     .dpiX              = DEFUALT_DPI,
