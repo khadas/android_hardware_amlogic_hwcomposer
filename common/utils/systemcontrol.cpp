@@ -296,16 +296,17 @@ int32_t sc_get_dolby_version_type() {
 
 bool sc_is_dolby_version_enable() {
     std::string mode;
-    bool val;
+    bool unused, dv_enable = false;
+    sc_sink_support_dv(mode, unused);
 
-    sc_sink_support_dv(mode, val);
-    if (mode.empty()) {
-        return sc_get_property_boolean(PROP_DOLBY_VISION_ENABLE, false);
-    }
-
-    return sc_get_property_boolean(PROP_DOLBY_VISION_TV_ENABLE, false);
+    if (!sc_get_property_boolean(PROP_DOLBY_VISION_TV_ENABLE, false)) {
+        dv_enable = false;
+    } else if (!mode.empty()) {
+        dv_enable = true;
+     }
+ 
+    return dv_enable;
 }
-
 
 bool  sc_get_pref_display_mode(std::string & dispmode) {
     CHK_SC_PROXY();
