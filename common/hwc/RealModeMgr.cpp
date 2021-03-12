@@ -12,6 +12,7 @@
 #include <MesonLog.h>
 #include <HwcConfig.h>
 #include <hardware/hwcomposer2.h>
+#include <systemcontrol.h>
 
 #include "RealModeMgr.h"
 
@@ -30,6 +31,7 @@ static const drm_mode_info_t fakeInitialMode = {
 
 RealModeMgr::RealModeMgr() {
     mPreviousMode = fakeInitialMode;
+    mDvEnabled = false;
 }
 
 RealModeMgr::~RealModeMgr() {
@@ -93,6 +95,9 @@ int32_t RealModeMgr::update() {
                 useFakeMode = false;
             }
         }
+
+        mDvEnabled = sc_is_dolby_version_enable();
+        MESON_LOGD("RealModeMgr::update mDvEnabled(%d)", mDvEnabled);
 
         for (auto it = supportModes.begin(); it != supportModes.end(); it++) {
             mModes.emplace(mModes.size(), it->second);
@@ -178,7 +183,6 @@ int32_t  RealModeMgr::getDisplayAttribute(
 int32_t RealModeMgr::getActiveConfig(uint32_t * outConfig, int32_t caller __unused) {
     std::lock_guard<std::mutex> lock(mMutex);
     *outConfig = mActiveConfigId;
-    MESON_LOGV("[%s] ActiveConfigid=%d", __func__, *outConfig);
 
     return HWC2_ERROR_NONE;
 }
@@ -199,8 +203,32 @@ int32_t RealModeMgr::setActiveConfig(uint32_t config) {
         }
 
         mPreviousMode = cfg;
+
+        std::string bestDolbyVision;
+        bool needRecoveryBestDV = false;
+        if (mDvEnabled) {
+            if (!sc_read_bootenv(UBOOTENV_BESTDOLBYVISION, bestDolbyVision)) {
+                if (bestDolbyVision.empty()|| bestDolbyVision == "true") {
+                    MESON_LOGD("RealModeMgr set BestDVPolicy: false");
+                    sc_set_bootenv(UBOOTENV_BESTDOLBYVISION, "false");
+                    needRecoveryBestDV = true;
+                }
+            }
+        }
+
         mConnector->setMode(cfg);
-        mCrtc->setMode(cfg);
+
+        // set the display mode through systemControl
+        // As it will need update the colorspace/colordepth too.
+        MESON_LOGD("RealModeMgr::setActiveConfig setMode: %s", cfg.name);
+        std::string dispmode(cfg.name);
+        sc_set_display_mode(dispmode);
+
+        // If we need recovery best dobly vision policy, then recovery it.
+        if (mDvEnabled && needRecoveryBestDV) {
+            MESON_LOGD("RealModeMgr recovery BestDVPolicy: true");
+            sc_set_bootenv(UBOOTENV_BESTDOLBYVISION, "true");
+        }
     } else {
         MESON_LOGE("set invalild active config (%d)", config);
         return HWC2_ERROR_NOT_VALIDATED;

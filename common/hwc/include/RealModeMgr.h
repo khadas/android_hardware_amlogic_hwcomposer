@@ -60,6 +60,9 @@ protected:
 
     // protect mMode and mActiveConfigId
     std::mutex mMutex;
+
+    // Dolby Vision enanbled or not
+    bool mDvEnabled;
 };
 
 #endif // REAL_MODE_MGR_H
