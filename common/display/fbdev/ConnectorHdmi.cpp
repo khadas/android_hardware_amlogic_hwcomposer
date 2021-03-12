@@ -129,10 +129,13 @@ int32_t ConnectorHdmi::addDisplayMode(std::string& mode) {
 
     uint32_t dpiX  = DEFAULT_DISPLAY_DPI, dpiY = DEFAULT_DISPLAY_DPI;
     if (mPhyWidth > 16 && mPhyHeight > 9) {
-        dpiX = (vinfo->width  * 25.4f) / mPhyWidth * 1000;
-        dpiY = (vinfo->height  * 25.4f) / mPhyHeight * 1000;
+        dpiX = (vinfo->width  * 25.4f) / mPhyWidth;
+        dpiY = (vinfo->height  * 25.4f) / mPhyHeight;
         MESON_LOGI("add display mode real dpi (%d, %d)", dpiX, dpiY);
     }
+
+    dpiX = dpiX * 1000;
+    dpiY = dpiY * 1000;
 
     drm_mode_info_t modeInfo = {
         "",
