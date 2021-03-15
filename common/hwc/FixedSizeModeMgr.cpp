@@ -73,6 +73,8 @@ int32_t FixedSizeModeMgr::update() {
 
     if (useFakeMode) {
         mCurMode = mPreviousMode;
+        mCurMode.pixelW = mFbWidth;
+        mCurMode.pixelH = mFbHeight;
         strncpy(mCurMode.name, "FAKE_PREVIOUS_MODE", DRM_DISPLAY_MODE_LEN);
     }
 
