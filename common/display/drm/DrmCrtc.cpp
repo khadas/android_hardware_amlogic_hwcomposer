@@ -12,6 +12,7 @@
 #include <MesonLog.h>
 #include <string.h>
 #include <inttypes.h>
+#include <DebugHelper.h>
 
 #include <xf86drm.h>
 #include "DrmDevice.h"
@@ -262,10 +263,14 @@ int32_t DrmCrtc::pageFlip(int32_t & out_fence) {
     out_fence = -1;
     drmModeAtomicAddProperty(mReq, mId, mOutFencePtr->getId(), (uint64_t)&out_fence);
 
+    uint32_t flag = DRM_MODE_ATOMIC_NONBLOCK;
+    if (DebugHelper::getInstance().enableDrmBlockMode())
+        flag = 0;
+
     int32_t ret = drmModeAtomicCommit(
         mDrmFd,
         mReq,
-        DRM_MODE_ATOMIC_NONBLOCK,
+        flag,
         NULL);
     if (ret) {
         MESON_LOGE("pageFlip:atomic commit ret (%d)", ret);
@@ -273,6 +278,15 @@ int32_t DrmCrtc::pageFlip(int32_t & out_fence) {
 
     drmModeAtomicFree(mReq);
     mReq = NULL;
+
+    /* discard out fence */
+    if (DebugHelper::getInstance().discardOutFence()) {
+        std::shared_ptr<DrmFence> outfence =
+            std::make_shared<DrmFence>(out_fence);
+        outfence->waitForever("crtc-output");
+        out_fence = -1;
+    }
+
     return ret;
 }
 

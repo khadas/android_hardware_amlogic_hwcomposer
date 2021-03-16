@@ -245,7 +245,7 @@ int32_t DrmPlane::setPlane(
             mDrmBo.reset();
         }
     } else {
-        if (!fb->isFbUpdated())
+        if (mFb == fb && !fb->isFbUpdated())
             return 0;
 
         bool bUpdate = false;

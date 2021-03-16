@@ -121,8 +121,9 @@ void DrmFramebuffer::clearBufferInfo() {
     * 2. CureRelease move to PrevRelase, it can be returned in next loop.
     */
     mAcquireFence.reset();
-    //TODO: video tunnel thread will releas prevReleaseFence
-    //mPrevReleaseFence = mCurReleaseFence;
+    // not reset prevReleaseFence for sidebandBuffer, as vt sidebanbuffer use it later
+    if (!mIsSidebandBuffer)
+        mPrevReleaseFence = mCurReleaseFence;
     mCurReleaseFence.reset();
     mAcquireFence = mCurReleaseFence = DrmFence::NO_FENCE;
 
