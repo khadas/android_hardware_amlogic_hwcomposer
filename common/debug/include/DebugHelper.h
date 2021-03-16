@@ -54,6 +54,8 @@ public:
     /* for vpu scale limit */
     inline float getScaleLimit() {return mScaleLimit;}
 
+    inline bool enableDrmBlockMode() { return mDrmBlockMode; }
+
 protected:
     bool isEnabled();
     void clearOnePassCmd();
@@ -89,5 +91,6 @@ protected:
     /*handle osd in/out fence in hwc.*/
     bool mDiscardInFence;
     bool mDiscardOutFence;
+    bool mDrmBlockMode;
 };
 #endif

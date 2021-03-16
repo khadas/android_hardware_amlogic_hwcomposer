@@ -72,6 +72,7 @@ void MultiplanesWithDiComposition::init() {
     mForceClientComposer = false;
     mHaveClient          = false;
     mInsideVideoFbsFlag  = false;
+    mSkipValidate = false;
 
     /*crtc scale info.*/
     mDisplayRefFb.reset();
