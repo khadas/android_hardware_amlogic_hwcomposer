@@ -23,6 +23,7 @@ protected:
     int32_t getPipeCfg(uint32_t hwcid, PipeCfg & cfg);
     drm_connector_type_t getConnetorCfg(uint32_t hwcid);
     bool hasHdmiConnected();
+    bool isVMXCertification();
 
 };
 

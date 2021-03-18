@@ -153,19 +153,19 @@ int32_t DrmCrtc::setMode(drm_mode_info_t & mode) {
     DrmConnector * connector = (DrmConnector *)connectorIt.get();
     connector->getCrtcProp(crtcid);
 
+    /* If in hotplug process, set mode to PendingModes */
+    if (getHotplugStatus() == HotplugStatus::InHotplugProcess) {
+        MESON_LOGD("connector (%s) setMode %s to pendingMode", connector->getName(), mode.name);
+        mPendingModes.push_back(mode);
+        return 0;
+    }
+
     modeBlob = connector->getModeBlobId(mode);
     connector->getUpdateProp(updateprop);
 
     if (modeBlob == 0) {
         MESON_LOGE("Mode invalid for current pipe [%s]", mode.name);
         return -EINVAL;
-    }
-
-    /* If in hotplug process, set mode to PendingModes */
-    if (getHotplugStatus() == HotplugStatus::InHotplugProcess) {
-        MESON_LOGD("connector (%s) setMode %s to pendingMode", connector->getName(), mode.name);
-        mPendingModes.push_back(mode);
-        return 0;
     }
 
     blankAllPlanes();

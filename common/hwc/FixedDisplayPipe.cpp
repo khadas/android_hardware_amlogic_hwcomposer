@@ -12,6 +12,7 @@
 #include <MesonLog.h>
 #include <misc.h>
 #include <HwDisplayCrtc.h>
+#include "systemcontrol.h"
 
 #define HDMI_HAS_USED_STATE "/sys/class/amhdmitx/amhdmitx0/hdmi_used"
 
@@ -53,7 +54,13 @@ void FixedDisplayPipe::handleEvent(drm_display_event event, int val) {
                 MESON_LOGD("handleEvent  DRM_EVENT_HDMITX_HOTPLUG %d VS %d",
                     pipe->cfg.hwcConnectorType, targetConnector);
                 if (pipe->cfg.hwcConnectorType != targetConnector &&
-                        pipe->cfg.hwcConnectorType == DRM_MODE_CONNECTOR_TV) {
+                        (pipe->cfg.hwcConnectorType == DRM_MODE_CONNECTOR_TV || isVMXCertification())) {
+                    /*we need latest connector status, and no one will update
+                    *connector not bind to crtc, we update here.
+                    */
+                    std::shared_ptr<HwDisplayConnector> hwConnector;
+                    getConnector(targetConnector, hwConnector);
+                    hwConnector->update();
                     /*update display pipe.*/
                     updatePipe(pipe);
                 }
@@ -88,7 +95,7 @@ drm_connector_type_t FixedDisplayPipe::getConnetorCfg(uint32_t hwcid) {
             connector == DRM_MODE_CONNECTOR_TV) {
         std::shared_ptr<HwDisplayConnector> hwConnector;
         getConnector(DRM_MODE_CONNECTOR_HDMIA, hwConnector);
-        if (hwConnector->isConnected() || hasHdmiConnected()) {
+        if (hwConnector->isConnected()  || (hasHdmiConnected() && !isVMXCertification())) {
             connector = DRM_MODE_CONNECTOR_HDMIA;
         } else {
             connector = DRM_MODE_CONNECTOR_TV;
@@ -102,5 +109,11 @@ drm_connector_type_t FixedDisplayPipe::getConnetorCfg(uint32_t hwcid) {
 bool FixedDisplayPipe::hasHdmiConnected() {
     bool ret = sysfs_get_int(HDMI_HAS_USED_STATE, 0) == 1 ? true : false;
     MESON_LOGD("FixedDisplayPipe::hasHdmiConnected:%d", ret);
+    return ret;
+}
+
+bool FixedDisplayPipe::isVMXCertification() {
+    bool ret = sc_get_property_boolean("persist.vendor.sys.vmx", false);
+    MESON_LOGD("FixedDisplayPipe::isVMXCertification:%d", ret);
     return ret;
 }
