@@ -234,8 +234,7 @@ int32_t DrmPlane::setPlane(
     drmModeAtomicReqPtr req;
 
     if (bBlank) {
-        // TODO: remove the set blank every atomic commit When driver find the final solution
-        //if (!mBlank) {
+        if (!mBlank) {
             /*set fbid  =0&&crtc=0, driver will check it.*/
             req = crtc->getAtomicReq();
             MESON_ASSERT(req != NULL, " plane get empty req.");
@@ -247,7 +246,7 @@ int32_t DrmPlane::setPlane(
             /* clear drmbo cache */
             std::queue<std::shared_ptr<DrmBo>> emptyCache;
             std::swap(mBoCache, emptyCache);
-        //}
+        }
     } else {
         if (!fb->isFbUpdated())
             return 0;

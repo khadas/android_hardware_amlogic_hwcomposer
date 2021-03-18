@@ -1293,9 +1293,6 @@ int MultiplanesWithDiComposition::commit(bool sf) {
         }
     }
 
-    if (!setPlaneSuccess || !sf)
-        return HWC2_ERROR_NO_RESOURCES;
-
     /* Blank un-used plane. */
     auto planeIt = mHwcVideoPlanes.begin();
     for (; planeIt != mHwcVideoPlanes.end(); ++planeIt) {
@@ -1311,6 +1308,9 @@ int MultiplanesWithDiComposition::commit(bool sf) {
         (*planeIt)->setPlane(NULL, HWC_PLANE_FAKE_ZORDER, BLANK_FOR_NO_CONTENT);
         dumpUnusedPlane(*planeIt, BLANK_FOR_NO_CONTENT);
     }
+
+    if (!setPlaneSuccess)
+        return HWC2_ERROR_NO_RESOURCES;
 
     if (mDisplayRefFb.get()) {
         if (IS_FB_COMPOSED(mDisplayRefFb)) {
