@@ -23,6 +23,14 @@ ifndef HWC_HDMI_FRAC_MODE
 HWC_HDMI_FRAC_MODE := 0
 endif
 
+# TODO remove it when android S sdk released
+#ifeq ($(PLATFORM_VERSION_CODENAME), S)
+ifeq ($(filter S, $(PLATFORM_VERSION_CODENAME)), S)
+HWC_ANDROID_S := true
+else
+HWC_ANDROID_S := false
+endif
+
 # Setup configuration in Soong namespace
 #
 SOONG_CONFIG_NAMESPACES += meson_hwc
@@ -45,6 +53,7 @@ SOONG_CONFIG_meson_hwc += \
     enable_ge2d_composition \
     hdmi_frac_mode \
     hwc_pipeline \
+    android_version_s \
     vdin_fbprocessor \
     enable_active_mode \
     enable_real_mode \
@@ -83,3 +92,6 @@ SOONG_CONFIG_meson_hwc_target_app_layer_use_continuous_buffer := $(TARGET_APP_LA
 SOONG_CONFIG_meson_hwc_pipe_viu1vdinviu2_always_loopback := $(HWC_PIPE_VIU1VDINVIU2_ALWAYS_LOOPBACK)
 SOONG_CONFIG_meson_hwc_dynamic_switch_connector := $(HWC_DYNAMIC_SWITCH_CONNECTOR)
 SOONG_CONFIG_meson_hwc_dynamic_swich_viu := $(HWC_DYNAMIC_SWITCH_VIU)
+SOONG_CONFIG_meson_hwc_android_version_s := $(HWC_ANDROID_S)
+
+#$(warning "the value of version_s: $(HWC_ANDROID_S)")

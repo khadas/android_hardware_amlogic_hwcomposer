@@ -38,7 +38,6 @@ DisplayAdapter::BackendType DisplayAdapterRemote::displayType() {
 
 bool DisplayAdapterRemote::getSupportDisplayModes(vector<DisplayModeInfo>& displayModeList, ConnectorType displayType) {
     Json::Value cmd, ret;
-    Json::FastWriter write;
     IF_SERVER_NOT_READY_RETURN(false);
     cmd["cmd"] = "getSupportDisplayModes";
     cmd["p_displayType"] = displayType;
@@ -64,7 +63,6 @@ bool DisplayAdapterRemote::getSupportDisplayModes(vector<DisplayModeInfo>& displ
 
 bool DisplayAdapterRemote::getDisplayMode(string& mode, ConnectorType displayType) {
     Json::Value cmd, ret;
-    Json::FastWriter write;
     IF_SERVER_NOT_READY_RETURN(false);
     cmd["cmd"] = "getDisplayMode";
     cmd["p_displayType"] = displayType;
@@ -179,8 +177,7 @@ bool DisplayAdapterRemote::dumpDisplayAttribute(Json::Value& json, ConnectorType
     cmd["p_displayType"] = displayType;
     ipc->send_request_wait_reply(cmd, ret);
     if (ret.isMember("ret")) {
-        Json::StyledWriter  write;
-        DEBUG_INFO("Dump attributes:\n%s", write.write(ret["ret"]).c_str());
+        DEBUG_INFO("Dump attributes:\n%s", JsonValue2String(ret["ret"]).c_str());
         json = ret["ret"];
         return true;
     }

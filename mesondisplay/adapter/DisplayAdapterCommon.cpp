@@ -40,4 +40,38 @@ bool DisplayMode2Json(const DisplayModeInfo& mode, Json::Value& json) {
     return true;
 };
 
+std::string JsonValue2String(const Json::Value& json) {
+    std::string jsonStr;
+
+// TODO: when android S sdk is release, please use sdk version
+// for platform run on android R or before it
+#ifndef ANDROID_VERSION_S
+//#if PLATFORM_SDK_VERSION <= 30
+        Json::StyledWriter  write;
+        jsonStr = write.write(json);
+#else
+        Json::StreamWriterBuilder factory;
+        jsonStr = Json::writeString(factory, json);
+#endif
+
+        return jsonStr;
+}
+
+bool String2JsonValue(const std::string& inStr, Json::Value& out) {
+    bool ret = false;
+
+#ifndef ANDROID_VERSION_S
+    Json::Reader reader;
+    ret = reader.parse(inStr.c_str(), out);
+#else
+    Json::CharReaderBuilder builder;
+    std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+    ret = reader->parse(inStr.c_str(),
+                        inStr.c_str() + inStr.size(),
+                        &out, /* error_message = */ nullptr);
+#endif
+
+    return ret;
+}
+
 }; //namespace meson

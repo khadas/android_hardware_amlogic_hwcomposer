@@ -10,6 +10,7 @@
 #define LOG_NDEBUG 1
 
 #include "DisplayClient.h"
+#include "DisplayAdapter.h"
 #include "MesonLog.h"
 
 namespace meson{
@@ -55,15 +56,12 @@ std::unique_ptr<DisplayClient> DisplayClient::create(std::string name) {
 }
 
 int32_t DisplayClient::send_request_wait_reply(Json::Value& data, Json::Value& out) {
-    Json::FastWriter write;
     bool ret = false;
-    const hidl_string str = write.write(data);
+    const hidl_string str = JsonValue2String(data);
     if (is_ready) {
         MESON_LOGV("Client SendSync :%s", str.c_str());
         meson_ipc_client->send_msg_wait_reply(str, [&out, &ret](const hidl_string& in) {
-                Json::Reader reader;
-                const std::string tmp = in.c_str();
-                ret = reader.parse(tmp, out);
+                ret = String2JsonValue(in.c_str(), out);
                 });
     }
     if (ret == false) {
@@ -73,8 +71,7 @@ int32_t DisplayClient::send_request_wait_reply(Json::Value& data, Json::Value& o
 }
 
 int32_t DisplayClient::send_request(Json::Value& data) {
-    Json::FastWriter write;
-    const hidl_string str = write.write(data);
+    const hidl_string str = JsonValue2String(data);
     if (is_ready) {
         MESON_LOGV("Client Send :%s", str.c_str());
         meson_ipc_client->send_msg(str);

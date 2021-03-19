@@ -91,7 +91,7 @@ public:
             const int32_t layerId, captureDisplayScreen_cb hidl_cb) override;
 
 private:
-    bool check_recursion_record_and_push(const std::string& str);
+    bool check_recursion_record_and_push(const hidl_string& str);
     SafeStack<std::string> recursion_record;
     DISALLOW_COPY_AND_ASSIGN(MesonIpcServer);
 };

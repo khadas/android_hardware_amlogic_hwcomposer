@@ -152,8 +152,10 @@ private:
 
 
 bool Json2DisplayMode(const Json::Value& json, DisplayModeInfo& mode);
-
 bool DisplayMode2Json(const DisplayModeInfo& mode, Json::Value& json);
+
+std::string JsonValue2String(const Json::Value& json);
+bool String2JsonValue(const std::string& document, Json::Value& out);
 
 std::unique_ptr<DisplayAdapter> DisplayAdapterCreateLocal(DisplayAdapter::BackendType type);
 std::unique_ptr<DisplayAdapter> DisplayAdapterCreateRemote();

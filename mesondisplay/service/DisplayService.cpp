@@ -33,7 +33,7 @@ Return<void> MesonIpcServer::debug(const hidl_handle &handle __unused, const hid
     return Void();
 }
 
-bool MesonIpcServer::check_recursion_record_and_push(const std::string& str) {
+bool MesonIpcServer::check_recursion_record_and_push(const hidl_string& str) {
     if (recursion_record.size() >= RECURSION_LIMIT) {
         MESON_LOGD("Service reach recursion limited(%d), show stack below", RECURSION_LIMIT);
         //show the first str on top
@@ -51,26 +51,23 @@ bool MesonIpcServer::check_recursion_record_and_push(const std::string& str) {
 };
 
 Return<void> MesonIpcServer::send_msg_wait_reply(const hidl_string& msg_in, send_msg_wait_reply_cb _hidl_cb) {
-    bool ret;
-    Json::Reader reader;
-    Json::Value value, reply;
-    Json::FastWriter write;
-    hidl_string out_str;
-    const std::string tmp = msg_in.c_str();
     MESON_LOGV("Server << %s", msg_in.c_str());
 
-    if (!check_recursion_record_and_push(tmp)) {
+    if (!check_recursion_record_and_push(msg_in)) {
         _hidl_cb("");
         return Void();
     }
 
-    ret = reader.parse(tmp, value);
+    Json::Value value;
+    bool ret = String2JsonValue(msg_in.c_str(), value);
+
     if (!ret) {
         MESON_LOGE("Server message decode error!");
         _hidl_cb("");
     } else {
+        Json::Value reply;
         message_handle(value, reply);
-        out_str = write.write(reply);
+        hidl_string out_str = JsonValue2String(reply);
         MESON_LOGV("Server >> %s", out_str.c_str());
         _hidl_cb(out_str);
     }
@@ -79,20 +76,19 @@ Return<void> MesonIpcServer::send_msg_wait_reply(const hidl_string& msg_in, send
 }
 
 Return<void> MesonIpcServer::send_msg(const hidl_string& msg_in) {
-    bool ret;
-    Json::Reader reader;
-    Json::Value value, reply;
-    const std::string tmp = msg_in.c_str();
     MESON_LOGV("Server:<<:%s:", msg_in.c_str());
 
-    if (!check_recursion_record_and_push(tmp)) {
+    if (!check_recursion_record_and_push(msg_in)) {
         return Void();
     }
 
-    ret = reader.parse(tmp, value);
+    Json::Value value;
+    bool ret = String2JsonValue(msg_in.c_str(), value);
+
     if (!ret) {
         MESON_LOGE("Server message decode error!");
     } else {
+        Json::Value reply;
         message_handle(value, reply);
     }
     recursion_record.pop();

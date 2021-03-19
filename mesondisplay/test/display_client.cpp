@@ -161,9 +161,8 @@ int main(int argc, char* argv[]) {
             case 'd':
                 {
                     Json::Value json;
-                    Json::StyledWriter  write;
                     client->dumpDisplayAttribute(json, type);
-                    printf("Dump display attribute:\n%s", (write.write(json)).c_str());
+                    printf("Dump display attribute:\n%s", meson::JsonValue2String(json).c_str());
                 }
                 break;
             default:

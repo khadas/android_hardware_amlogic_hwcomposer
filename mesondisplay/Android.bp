@@ -12,9 +12,33 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+soong_config_module_type {
+    name: "meson_display_config_default",
+    module_type: "cc_defaults",
+    config_namespace: "meson_hwc",
+
+    bool_variables: [
+        "android_version_s",
+    ],
+
+    properties: [
+        "cflags",
+    ],
+}
+
+meson_display_config_default {
+    name: "meson_display_cc_defaults",
+    soong_config_variables: {
+        android_version_s: {
+            cflags: ["-DANDROID_VERSION_S"],
+        },
+    }
+}
+
 cc_library_static {
     // This is for recovery mode static lib
     name: "libmeson_display_adapter_local_static",
+    defaults: ["meson_display_cc_defaults"],
     vendor_available: true,
     recovery_available: true,
 
@@ -57,6 +81,7 @@ cc_library_static {
 
 cc_library_static {
     name: "meson_display.adapter_local_static",
+    defaults: ["meson_display_cc_defaults"],
     vendor: true,
 
     cflags: [
@@ -115,6 +140,7 @@ cc_library_static {
 cc_library_shared {
     // This is for meson display client
     name: "libmeson_display_adapter_remote",
+    defaults: ["meson_display_cc_defaults"],
     vendor: true,
 
     cflags: [
@@ -162,6 +188,7 @@ cc_library_shared {
 cc_library_shared {
     // This is for meson display server
     name: "libmeson_display_service",
+    defaults: ["meson_display_cc_defaults"],
     vendor: true,
 
     cflags: [

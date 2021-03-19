@@ -21,10 +21,9 @@
 class ipcserver: public meson::MesonIpcServer {
     public:
         void message_handle(Json::Value& in, Json::Value& out) {
-            Json::FastWriter write;
             UNUSED(in);
             UNUSED(out);
-            DEBUG_INFO("Get message:%s", write.write(in).c_str());
+            DEBUG_INFO("Get message:%s", meson::JsonValue2String(in).c_str());
         };
         ipcserver() {
             DEBUG_INFO("ipcserver created");
@@ -45,9 +44,8 @@ int main(int argc, char* argv[]) {
     if (argc == 1) {
         //IPC client
         Json::Value a = "test";
-        Json::Reader reader;
-        Json::FastWriter writer;
-        bool ok = reader.parse("{ \"property\" : \"value\" }", a);
+        const char* json = "{ \"property\" : \"value\" }";
+        bool ok = meson::String2JsonValue(json, a);
         if (!ok) {
             DEBUG_INFO("format error!");
         }
@@ -55,7 +53,7 @@ int main(int argc, char* argv[]) {
         auto client = meson::DisplayClient::create("meson_dispaly");
         while (true) {
             DEBUG_INFO("begin");
-            DEBUG_INFO("Send=>%s", writer.write(a).c_str());
+            DEBUG_INFO("Send=>%s", meson::JsonValue2String(a).c_str());
             sleep(3);
             client->send_request(a);
             sleep(3);
