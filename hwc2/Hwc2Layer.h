@@ -53,6 +53,7 @@ public:
     bool isUpdateZorder() { return mUpdateZorder;}
     void clearUpdateFlag();
 
+    void setLayerUpdate(bool update);
     /* video tunnel api */
     bool isVtBuffer() override;
     bool isFbUpdated() override;

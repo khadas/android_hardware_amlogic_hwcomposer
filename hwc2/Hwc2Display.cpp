@@ -706,9 +706,15 @@ int32_t Hwc2Display::loadCalibrateInfo() {
 // (i.e. not at the default resolution of 1080p)
 int32_t Hwc2Display::adjustDisplayFrame() {
     bool bNoScale = false;
+    bool bNeedUpdateLayer = false;
     if (mCalibrateInfo.framebuffer_w == mCalibrateInfo.crtc_display_w &&
         mCalibrateInfo.framebuffer_h == mCalibrateInfo.crtc_display_h) {
         bNoScale = true;
+    }
+
+    if (mOutsideChanged) {
+        mOutsideChanged = false;
+        bNeedUpdateLayer = true;
     }
 
     Hwc2Layer * layer;
@@ -730,6 +736,9 @@ int32_t Hwc2Display::adjustDisplayFrame() {
                 mCalibrateInfo.crtc_display_h / mCalibrateInfo.framebuffer_h) +
                 mCalibrateInfo.crtc_display_y;
         }
+
+        if (bNeedUpdateLayer)
+            layer->setLayerUpdate(true);
     }
 
     return 0;
@@ -941,7 +950,6 @@ hwc2_error_t Hwc2Display::presentSkipValidateCheck() {
     }
 
     if (mOutsideChanged) {
-        mOutsideChanged = false;
         MESON_LOGV("for every outside hwc's changes, need do validate first");
         return HWC2_ERROR_NOT_VALIDATED;
     }

@@ -310,6 +310,10 @@ int32_t Hwc2Layer::commitCompType(
     return 0;
 }
 
+void Hwc2Layer::setLayerUpdate(bool update) {
+    mUpdated = update;
+}
+
 void Hwc2Layer::clearUpdateFlag() {
     mUpdateZorder = mUpdated = false;
     if (mNeedReleaseVtResource)
