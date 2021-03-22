@@ -56,6 +56,7 @@ protected:
     int handleUVM();
     int allocateDiOutputFb(
         std::shared_ptr<DrmFramebuffer> & fb, uint32_t z);
+    int chooseOneVideoFb(std::shared_ptr<DrmFramebuffer> & videoFb);
 
 protected:
     struct DisplayPair {
@@ -95,7 +96,7 @@ protected:
     std::vector<std::shared_ptr<DrmFramebuffer>> mOverlayFbs;
     std::vector<std::shared_ptr<DrmFramebuffer>> mComposerFbs;  // Save Fbs that should be composered
     std::vector<std::shared_ptr<DrmFramebuffer>> mDIComposerFbs;
-    std::vector<std::shared_ptr<DrmFramebuffer>> mHwcVideoInputFbs[2];
+    std::vector<std::shared_ptr<DrmFramebuffer>> mHwcVideoInputFbs;
 
     std::list<DisplayPair> mDisplayPairs;
 
@@ -108,8 +109,10 @@ protected:
 
     /* Use for UVM */
     int mUVMFd;
-    float mScaleValue;
+    int mOsdPlaneNum;
+    int mVideoPlaneNum;
 
+    float mScaleValue;
     bool mSkipValidate;
 };
 
