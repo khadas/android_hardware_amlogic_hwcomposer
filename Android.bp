@@ -20,6 +20,7 @@ soong_config_module_type {
     bool_variables: [
         "hwc_release",
         "enable_keystone_correction",
+        "enable_video_aisr",
     ],
 
     properties: [
@@ -35,6 +36,10 @@ soong_config_bool_variable {
 
 soong_config_bool_variable {
     name: "enable_keystone_correction",
+}
+
+soong_config_bool_variable {
+    name: "enable_video_aisr",
 }
 
 meson_hwc_cc_defaults {
@@ -54,6 +59,10 @@ meson_hwc_cc_defaults {
             shared_libs: [
                 "libkeystonecorrection",
             ],
+        },
+
+        enable_video_aisr: {
+            cflags: ["-DENABLE_VIDEO_AISR"],
         },
     },
 

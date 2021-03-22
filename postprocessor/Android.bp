@@ -22,6 +22,8 @@ cc_library_static {
         "fbprocessor/FbProcessor.cpp",
         "fbprocessor/DummyProcessor.cpp",
         "fbprocessor/CopyProcessor.cpp",
+        "nnprocess/NnProcessor.cpp",
+        "nnprocess/sr_sdk.c"
     ],
 
     static_libs: [
@@ -30,9 +32,18 @@ cc_library_static {
         "hwc.display_static",
     ],
 
+    include_dirs: [
+        "vendor/amlogic/common/npu/nnsdk/include",
+	],
+
     export_include_dirs: [
         "include",
         "fbprocessor",
+        "nnprocess"
     ],
-
+	
+    shared_libs: [
+        "libion",
+        "libui",
+    ],
 }
