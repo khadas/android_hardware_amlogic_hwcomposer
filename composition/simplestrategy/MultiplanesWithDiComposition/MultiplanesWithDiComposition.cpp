@@ -21,13 +21,7 @@
 #include "am_gralloc_ext.h"
 #include <DebugHelper.h>
 
-#define OSD_PLANE_NUM_MAX         3  // Maximum osd planes of support
 #define OSD_OUTPUT_ONE_CHANNEL         1
-#define OSD_PLANE_DIN_ZERO             0    // din0: osd fb input
-#define OSD_PLANE_DIN_ONE              1    // din1: osd fb input
-#define OSD_PLANE_DIN_TWO              2    // din2: osd fb input
-#define VIDEO_PLANE_DIN_ONE            3    // video1: video fb input
-#define VIDEO_PLANE_DIN_TWO            4    // video2: video fb input
 
 #define OSD_FB_BEGIN_ZORDER            65   // osd zorder: 65 - 128
 #define TOP_VIDEO_FB_BEGIN_ZORDER      129  // top video zorder: 129 - 192
@@ -98,8 +92,7 @@ void MultiplanesWithDiComposition::init() {
     mOverlayFbs.clear();
     mComposerFbs.clear();
     mDIComposerFbs.clear();
-    mHwcVideoInputFbs[0].clear();
-    mHwcVideoInputFbs[1].clear();
+    mHwcVideoInputFbs.clear();
     mDisplayPairs.clear();
 
     mMinComposerZorder = INVALID_ZORDER;
@@ -120,6 +113,103 @@ int MultiplanesWithDiComposition::allocateDiOutputFb(
     fb->mZorder = z;
     return 0;
 }
+
+int MultiplanesWithDiComposition::chooseOneVideoFb(std::shared_ptr<DrmFramebuffer> & videoFb) {
+    videoFb.reset();
+    // no Video Fbs
+    if (mDIComposerFbs.empty())
+        return -EINVAL;
+
+    std::vector<int> video_types {AM_VIDEO_DI_POST, AM_VIDEO_SECURE, AM_VIDEO_DV,
+        AM_VIDEO_4K, AM_VIDEO_AFBC, AM_VIDEO_HDR, AM_VIDEO_HDR10_PLUS, AM_VIDEO_HLG};
+    std::multimap<int, std::shared_ptr<DrmFramebuffer>> video_type_maps;
+    int video_type;
+
+    for (auto it = mDIComposerFbs.begin(); it != mDIComposerFbs.end(); it++) {
+        auto buf = (*it)->mBufferHandle;
+        video_type = 0;
+        if (am_gralloc_get_omx_video_type(buf, &video_type) == 0) {
+            MESON_LOGV("[%s] fbId:%lld videoType:%x", __func__, (*it)->getUniqueId(), video_type);
+            for (auto type_it = video_types.begin(); type_it != video_types.end(); type_it++) {
+                if ((video_type & *type_it) == *type_it) {
+                    video_type_maps.insert(std::make_pair(*type_it, *it));
+                }
+            }
+        }
+    }
+
+    for (auto type_it = video_types.begin(); type_it != video_types.end(); type_it++) {
+        if (video_type_maps.count(*type_it) > 0) {
+            auto map_it = video_type_maps.lower_bound(*type_it);
+            videoFb = map_it->second;
+            break;
+        }
+    }
+
+    std::vector<std::shared_ptr<DrmFramebuffer>>::iterator itErase;
+    itErase = std::find(mDIComposerFbs.begin(), mDIComposerFbs.end(), videoFb);
+    if (itErase != mDIComposerFbs.end())
+        mDIComposerFbs.erase(itErase);
+
+    // got one
+    if (videoFb)
+        return 0;
+
+    /* find the biggest window and it can't overlap with other window.
+     * if no success, find one that can't overlap to others and post it
+     * to video_composer.0, post others to video_composer.1
+     */
+    drm_rect_t dispFrame, dispFrame1;
+    bool is_overlap;
+    std::shared_ptr<DrmFramebuffer> fb, fb1, large_fb;
+    std::vector<std::shared_ptr<DrmFramebuffer>> no_overlap_fbs;
+    int region = 0, max_region = 0;
+    for (auto it = mDIComposerFbs.begin(); it != mDIComposerFbs.end(); it++) {
+        fb = *it;
+        is_overlap = false;
+
+        if (!large_fb)
+            large_fb = fb;
+
+        /* find one that did not overlap with others */
+        dispFrame = fb->mDisplayFrame;
+        for (auto it1 = mDIComposerFbs.begin(); it1 != mDIComposerFbs.end(); it1++) {
+            fb1 = *it1;
+            dispFrame1 = fb1->mDisplayFrame;
+            if (fb == fb1)
+                continue;
+            if (std::max(0, std::min(dispFrame.right, dispFrame1.right) -
+                std::max(dispFrame.left, dispFrame1.left)) *
+                std::max(0, std::min(dispFrame.bottom, dispFrame1.bottom) -
+                std::max(dispFrame.top, dispFrame1.top))) {
+                is_overlap = true;
+                break;
+            }
+        }
+
+        if (!is_overlap)
+            no_overlap_fbs.push_back(fb);
+
+        /* find the largest the frame */
+        region = (dispFrame.right - dispFrame.left) * (dispFrame.bottom - dispFrame.top);
+        if ((dispFrame.right - dispFrame.left) * (dispFrame.bottom - dispFrame.top) > max_region) {
+            large_fb = fb;
+            max_region = region;
+        }
+    }
+    if (!no_overlap_fbs.empty())
+        videoFb = *(no_overlap_fbs.begin());
+    else if (large_fb)
+        videoFb = large_fb;
+
+    /*remove from list*/
+    itErase = std::find(mDIComposerFbs.begin(), mDIComposerFbs.end(), videoFb);
+    if (itErase != mDIComposerFbs.end())
+        mDIComposerFbs.erase(itErase);
+
+    return 0;
+}
+
 
 int MultiplanesWithDiComposition::processVideoFbs() {
     std::vector<std::shared_ptr<DrmFramebuffer>> sidebandFbs;
@@ -170,182 +260,88 @@ int MultiplanesWithDiComposition::processVideoFbs() {
         return 0;
 
     /*
-    * Composition: only 1 + N mode now, and most check are hardcode.
+    * Composition: only 1 + .. + N mode now
     * For vd1:
     * 1. sideband.
     * 2. special video types: AFBC/DV/HDR/HDR10/HLG/SECURE/DIPOST.
     * 3. no overlap & biggest one.
-    * For vd2:
-    * 1. compose always happened on vd2.
-    * 2. vd2 compose always output fullscreen buffer.
+    * For the last vd:
+    * 1. compose always happened on the last vd.
+    * 2. the last vd compose always output fullscreen buffer.
     * 3. vd1 should on top of vd2 when have video composed.
     */
 
-    /*------pick fb to vd1------*/
-    /*TODO: only one sideband supported now. */
-    std::shared_ptr<DrmFramebuffer> vd1Fb;
-    if (sidebandFbs.size() > 0) {
-        auto it = sidebandFbs.begin();
-        /*sideband always push to video plane 0*/
-        vd1Fb = *it;
-        it ++;
-        for (; it != sidebandFbs.end(); it ++) {
-            MESON_LOGD("too many sideband, skip.");
-            (*it)->mCompositionType = MESON_COMPOSITION_DUMMY;
-            videoFbNum --;
-        }
-        MESON_LOGV("get vd1fb from sideband %d - %d",
-            vd1Fb->mZorder, vd1Fb->mFbType);
-    }
+    videoFbNum = (sidebandFbs.size() > 0 ? 1 : 0) + (videoFbNum - sidebandFbs.size());
+    bool bVideoCompose = videoFbNum > mVideoPlaneNum ? true : false;
+    uint32_t videoZ = -1, usedPlanes = 0;
+    std::shared_ptr<DrmFramebuffer> videoFb;
 
-    if (!vd1Fb) {
-        buffer_handle_t buf;
-        int video_type;
-        int videoTypes2Vd1 = AM_VIDEO_DI_POST | AM_VIDEO_SECURE |
-                AM_VIDEO_DV | AM_VIDEO_4K | AM_VIDEO_AFBC |
-                AM_VIDEO_HDR | AM_VIDEO_HDR10_PLUS | AM_VIDEO_HLG;
-        for (auto it = mDIComposerFbs.begin(); it != mDIComposerFbs.end(); it++) {
-            buf = (*it)->mBufferHandle;
-            if (!(*it)->isSidebandBuffer() && am_gralloc_get_omx_video_type(buf, &video_type) == 0 &&
-                (video_type & videoTypes2Vd1) != 0) {
-                vd1Fb = *it;
-                mDIComposerFbs.erase(it);
-                MESON_LOGV("get vd1fb from special video %d-%d",
-                    vd1Fb->mZorder, vd1Fb->mFbType);
-                break;
-            }
-        }
-    }
+    fb.reset();
+    for (int i = 0; i < videoFbNum; i++) {
+        usedPlanes++;
+        /* Fbs set to the last hwcVideoPlane */
+        if (i >= mVideoPlaneNum -1) {
+            mHwcVideoInputFbs = mDIComposerFbs;
+            if (mHwcVideoInputFbs.size() > 0) {
+                if (bVideoCompose) {
+                    videoZ = minVideoZ;
+                    for (auto it = mHwcVideoInputFbs.begin(); it != mHwcVideoInputFbs.end(); it++) {
+                        (*it)->mCompositionType = MESON_COMPOSITION_DI;
+                    }
 
-    /* find the biggest window and it can't overlap with other window.
-    * if no success, find one that can't overlap to others and post it
-    * to video_composer.0, post others to video_composer.1
-    */
-    if (!vd1Fb) {
-        drm_rect_t dispFrame, dispFrame1;
-        bool is_overlap;
-        std::shared_ptr<DrmFramebuffer> fb, fb1;
-        std::vector<std::shared_ptr<DrmFramebuffer>> no_overlap_fbs;
-
-        for (auto it = mDIComposerFbs.begin(); it != mDIComposerFbs.end(); it++) {
-            fb = *it;
-            is_overlap = false;
-
-            /* find one that did not overlap with others */
-            dispFrame = fb->mDisplayFrame;
-            for (auto it1 = mDIComposerFbs.begin(); it1 != mDIComposerFbs.end(); it1++) {
-                fb1 = *it1;
-                dispFrame1 = fb1->mDisplayFrame;
-                if (fb == fb1)
-                    continue;
-                if (std::max(0, std::min(dispFrame.right, dispFrame1.right) -
-                    std::max(dispFrame.left, dispFrame1.left)) *
-                    std::max(0, std::min(dispFrame.bottom, dispFrame1.bottom) -
-                    std::max(dispFrame.top, dispFrame1.top))) {
-                    is_overlap = true;
-                    break;
+                    /*set dicomposer and get output video.*/
+                    std::vector<std::shared_ptr<DrmFramebuffer>> nofbs;
+                    mDiComposer->prepare();
+                    mDiComposer->addInputs(mDIComposerFbs, nofbs, i);
+                    /*TODO: workaround to pass zorder to composer.*/
+                    hwc_region_t damage;
+                    allocateDiOutputFb(fb, (*mHwcVideoInputFbs.begin())->mZorder);
+                    mDiComposer->setOutput(fb, damage, i);
+                } else {
+                    fb = *mHwcVideoInputFbs.begin();
+                    videoZ = fb->mZorder;
+                    fb->mCompositionType = MESON_COMPOSITION_PLANE_HWCVIDEO;
                 }
+
+                /*-----set buffer to displaypair------*/
+                mDisplayPairs.push_back(DisplayPair{
+                        (uint32_t)mOsdPlaneNum + i,  videoZ, fb, mHwcVideoPlanes[i]});
             }
-
-            if (!is_overlap)
-                no_overlap_fbs.push_back(fb);
+            break;
         }
 
-        if (no_overlap_fbs.size() > 0) {
-            vd1Fb = *(no_overlap_fbs.begin());
-        } else {
-            /*all layer have overlap, pick from top/bottom bigger layer. */
-            MESON_ASSERT(topFb != NULL && bottomFb != NULL && topFb != bottomFb,
-                    "top or bottom (%p vs %p) is not valid.", topFb.get(), bottomFb.get());
-            int topregion = 0, bottomregion = 0;
-            topregion = (topFb->mDisplayFrame.right - topFb->mDisplayFrame.left) *
-                (topFb->mDisplayFrame.bottom - topFb->mDisplayFrame.top);
-            bottomregion = (bottomFb->mDisplayFrame.right - bottomFb->mDisplayFrame.left) *
-                (bottomFb->mDisplayFrame.bottom - bottomFb->mDisplayFrame.top);
-            if (topregion > bottomregion)
-                vd1Fb = topFb;
-            else
-                vd1Fb = bottomFb;
-        }
-
-        /*remove vd1Fb from list*/
-        for (auto it = mDIComposerFbs.begin(); it != mDIComposerFbs.end(); it++) {
-            if (*it == vd1Fb) {
-                mDIComposerFbs.erase(it);
-                break;
+        /*TODO: only one sideband supported now. */
+        if (sidebandFbs.size() > 0) {
+            auto it = sidebandFbs.begin();
+            /*sideband always push to video plane 0*/
+            fb = *it;
+            it ++;
+            for (; it != sidebandFbs.end(); it ++) {
+                MESON_LOGD("too many sideband, skip.");
+                (*it)->mCompositionType = MESON_COMPOSITION_DUMMY;
             }
+            sidebandFbs.clear();
         }
 
-        MESON_LOGV("get vd1fb from large/nooverlap %d", vd1Fb->mFbType);
-    }
+        if (!fb)
+            chooseOneVideoFb(fb);
 
-    MESON_ASSERT(vd1Fb != NULL, "vd1 should always have buf.");
-    mHwcVideoInputFbs[0].push_back(vd1Fb);
-
-    /*------push remaining fbs to vd2------*/
-    if (mDIComposerFbs.size() > 0) {
-        mHwcVideoInputFbs[1] = mDIComposerFbs;
-    }
-
-    /*-----set buffer to displaypair------*/
-    bool bVideoCompose = mHwcVideoInputFbs[1].size() > 1 ? true : false;
-
-    bool bFixVideoZ = false;
-    if (mHwcVideoInputFbs[1].size() > 1 &&
-        (mHwcVideoPlanes[1]->getCapabilities() & PLANE_SUPPORT_ALPHA) == 0) {
-        /*for no alpha video layer, force vd1 top, vd2 bottom.*/
-        bFixVideoZ = true;
-    }
-
-    if (mHwcVideoInputFbs[1].size() > 0) {
-        uint32_t videoZ = -1;
-
-        if (bFixVideoZ) {
-            videoZ = minVideoZ;
-        } else {
-            fb = *mHwcVideoInputFbs[1].begin();
-            videoZ = fb->mZorder;
-        }
-
-        if (bVideoCompose) {
-            for (auto it = mHwcVideoInputFbs[1].begin(); it != mHwcVideoInputFbs[1].end(); it++) {
-                (*it)->mCompositionType = MESON_COMPOSITION_DI;
-            }
-            /*set dicomposer and get output video.*/
-            std::vector<std::shared_ptr<DrmFramebuffer>> nofbs;
-            mDiComposer->prepare();
-            mDiComposer->addInputs(mDIComposerFbs, nofbs, 1);
-            /*TODO: workaround to pass zorder to composer.*/
-            hwc_region_t damage;
-            allocateDiOutputFb(fb, (*mHwcVideoInputFbs[1].begin())->mZorder);
-            mDiComposer->setOutput(fb, damage, 1);
-        } else {
-            fb = *mHwcVideoInputFbs[1].begin();
-            fb->mCompositionType = MESON_COMPOSITION_PLANE_HWCVIDEO;
-        }
-
-        //MESON_LOGD("set vd2 %d, %d", mHwcVideoInputFbs[1].size(), fb->mFbType);
-        mDisplayPairs.push_back(
-            DisplayPair{VIDEO_PLANE_DIN_TWO,  videoZ, fb, mHwcVideoPlanes[1]});
-        mHwcVideoPlanes.erase(mHwcVideoPlanes.begin() + 1);
-    }
-
-    if (mHwcVideoInputFbs[0].size() > 0) {
-        uint32_t videoZ = -1;
-        fb = *mHwcVideoInputFbs[0].begin();
+        MESON_LOGV("[%s] id:%lld, setTo video %d ", __func__, fb->getUniqueId(), i);
         fb->mCompositionType = MESON_COMPOSITION_PLANE_HWCVIDEO;
-
-        if (bVideoCompose || bFixVideoZ) {
+        if (i == 0 && bVideoCompose)
             videoZ = maxVideoZ;
-        } else {
+        else
             videoZ = fb->mZorder;
-        }
+        mDisplayPairs.push_back(DisplayPair{
+                (uint32_t)mOsdPlaneNum + i, videoZ, fb, mHwcVideoPlanes[i]});
+        fb.reset();
 
-        //MESON_LOGD("set vd1 %d", fb->mFbType);
-        mDisplayPairs.push_back(
-            DisplayPair{VIDEO_PLANE_DIN_ONE, videoZ, fb, mHwcVideoPlanes[0]});
-        mHwcVideoPlanes.erase(mHwcVideoPlanes.begin());
     }
+
+    /* removed used planes from mHwcVideoPlanes */
+    for (uint32_t i = 0; i < usedPlanes; i++)
+        mHwcVideoPlanes.erase(mHwcVideoPlanes.begin());
+
 
     return 0;
 }
@@ -680,14 +676,11 @@ int MultiplanesWithDiComposition::setOsdFbs2PlanePairs() {
         }
     }
 
-    bool bDin0 = false;
-    bool bDin1 = false;
-    bool bDin2 = false;
+    uint32_t usedPlanes = 0;
 
     /*baseFb always post to din0*/
     mDisplayPairs.push_back(
-        DisplayPair{OSD_PLANE_DIN_ZERO, mDisplayRefFb->mZorder, mDisplayRefFb, mOsdPlanes[OSD_PLANE_DIN_ZERO]});
-    bDin0 = true;
+        DisplayPair{usedPlanes, mDisplayRefFb->mZorder, mDisplayRefFb, mOsdPlanes[usedPlanes]});
     /* Not composed fb, set to osd composition. */
     if (mDisplayRefFb->mCompositionType == MESON_COMPOSITION_UNDETERMINED)
         mDisplayRefFb->mCompositionType = MESON_COMPOSITION_PLANE_OSD;
@@ -700,15 +693,11 @@ int MultiplanesWithDiComposition::setOsdFbs2PlanePairs() {
          * we pick primary display.
          */
         /* Pick any available plane */
-        if (bDin1 == false) {
-            mDisplayPairs.push_back(
-                DisplayPair{OSD_PLANE_DIN_ONE, fb->mZorder, fb, mOsdPlanes[OSD_PLANE_DIN_ONE]});
-            bDin1 = true;
-        } else {
-            mDisplayPairs.push_back(
-                DisplayPair{OSD_PLANE_DIN_TWO, fb->mZorder, fb, mOsdPlanes[OSD_PLANE_DIN_TWO]});
-            bDin2 = true;
+        if (usedPlanes != mOsdPlanes.size() - 1) {
+            usedPlanes++;
         }
+        mDisplayPairs.push_back(
+                DisplayPair{usedPlanes, fb->mZorder, fb, mOsdPlanes[usedPlanes]});
 
         /* Not composed fb, set to osd composition. */
         if (fb->mCompositionType == MESON_COMPOSITION_UNDETERMINED)
@@ -716,15 +705,7 @@ int MultiplanesWithDiComposition::setOsdFbs2PlanePairs() {
     }
 
     /* removed used planes from mOsdPlanes */
-    uint32_t removePlanes = 0;
-    if (bDin0)
-        removePlanes ++;
-    if (bDin1)
-        removePlanes ++;
-    if (bDin2)
-        removePlanes ++;
-
-    for (uint32_t i = 0;i < removePlanes; i++) {
+    for (uint32_t i = 0; i <= usedPlanes; i++) {
         mOsdPlanes.erase(mOsdPlanes.begin());
     }
 
@@ -1009,7 +990,7 @@ int MultiplanesWithDiComposition::handleOsdCompostionWithVideo() {
 
     /* STEP 1: handle two video fbs. */
     if (mOverlayFbs.size() > 1) {
-        MESON_ASSERT(mOverlayFbs.size() <= 2, "Only support 2 video layers now.");
+        MESON_ASSERT(mOverlayFbs.size() <= 3, "Only support 3 video layers now.");
         /* CASE VIDEO_1: have two video fbs between ui fbs. */
         /* Calculate max/min video zorder. */
         mMinVideoZorder = INVALID_ZORDER;
@@ -1176,8 +1157,6 @@ void MultiplanesWithDiComposition::setup(
         switch (plane->getType()) {
             case OSD_PLANE:
                 mOsdPlanes.push_back(plane);
-                MESON_ASSERT(mOsdPlanes.size() <= OSD_PLANE_NUM_MAX,
-                    "More than three osd planes !!");
                 break;
 
             case HWC_VIDEO_PLANE:
@@ -1189,6 +1168,9 @@ void MultiplanesWithDiComposition::setup(
                 break;
         }
     }
+
+    mVideoPlaneNum = mHwcVideoPlanes.size();
+    mOsdPlaneNum = mOsdPlanes.size();
 }
 
 //for present skip validate need update composition
@@ -1267,10 +1249,10 @@ int MultiplanesWithDiComposition::commit(bool sf) {
             /* Set fb instead of composer output. */
             fb = composerOutput;
         } else  if (fb->mCompositionType == MESON_COMPOSITION_DI) {
-            mDiComposer->start(1);
+            mDiComposer->start(mVideoPlaneNum - 1);
             bool bDumpPlane = true;
             for (auto it = mDIComposerFbs.begin(); it != mDIComposerFbs.end(); ++it) {
-                MESON_LOGE("meet composer pair %d", (*it)->mCompositionType);
+                MESON_LOGV("meet composer pair %d", (*it)->mCompositionType);
                 if (bDumpPlane) {
                     dumpFbAndPlane(*it, plane, presentZorder, blankFlag);
                     bDumpPlane = false;

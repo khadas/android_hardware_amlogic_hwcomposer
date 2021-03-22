@@ -114,7 +114,7 @@ int32_t HwcVideoPlane::getVideodisableStatus(int& status) {
         return -1;
 
     if ((fd = open(mAmVideosPath,  O_RDWR, 0)) < 0) {
-        MESON_LOGE("open %s failed", mAmVideosPath);
+        //MESON_LOGE("open %s failed", mAmVideosPath);
         return -1;
     }
 
