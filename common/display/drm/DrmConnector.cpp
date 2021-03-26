@@ -107,6 +107,7 @@ int32_t DrmConnector::loadDisplayModes(drmModeConnectorPtr p) {
     uint32_t blobid = 0;
     MESON_LOGD("Connector %s loadDisplayModes get %d modes", getName(), p->count_modes);
     for (int i = 0;i < p->count_modes; i ++) {
+#if 0
         const struct vinfo_s * mesonVinfo = NULL;
 
         if (false /*getType() == DRM_MODE_CONNECTOR_HDMIA*/) {
@@ -121,8 +122,9 @@ int32_t DrmConnector::loadDisplayModes(drmModeConnectorPtr p) {
                     drmModes[i].name, drmModes[i].hdisplay, drmModes[i].vdisplay, drmModes[i].vrefresh);
             continue;
         }
+#endif
 
-        strncpy(modeInfo.name, mesonVinfo->name, DRM_DISPLAY_MODE_LEN);
+        strncpy(modeInfo.name, drmModes[i].name, DRM_DISPLAY_MODE_LEN);
         modeInfo.pixelW = drmModes[i].hdisplay;
         modeInfo.pixelH = drmModes[i].vdisplay;
         modeInfo.dpiX = (modeInfo.pixelW * 25.4f) / mPhyWidth * 1000;
@@ -130,7 +132,7 @@ int32_t DrmConnector::loadDisplayModes(drmModeConnectorPtr p) {
         modeInfo.refreshRate = drmModes[i].vrefresh;
 
         if (drmModeCreatePropertyBlob(mDrmFd, &drmModes[i], sizeof(drmModes[i]), &blobid) != 0) {
-            MESON_LOGE("CreateProp for mode failed %s", mesonVinfo->name);
+            MESON_LOGE("CreateProp for mode failed %s", modeInfo.name);
             continue;
         }
 
