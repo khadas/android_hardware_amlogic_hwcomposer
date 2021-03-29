@@ -243,9 +243,6 @@ int32_t DrmPlane::setPlane(
             mCrtcId->setValue(0);
             mCrtcId->apply(req);
             mDrmBo.reset();
-            /* clear drmbo cache */
-            std::queue<std::shared_ptr<DrmBo>> emptyCache;
-            std::swap(mBoCache, emptyCache);
         }
     } else {
         if (!fb->isFbUpdated())
@@ -365,6 +362,14 @@ int32_t DrmPlane::setPlane(
     }
 
     return 0;
+}
+
+/* release drm bo caches */
+void DrmPlane::clearPlaneResources() {
+    /* clear drmbo cache */
+    MESON_LOGD("drmplane clear drm bo caches");
+    std::queue<std::shared_ptr<DrmBo>> emptyCache;
+    std::swap(mBoCache, emptyCache);
 }
 
 void DrmPlane::setDebugFlag(int dbgFlag) {

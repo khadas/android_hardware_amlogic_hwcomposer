@@ -36,6 +36,9 @@ public:
     virtual int32_t setPlane(std::shared_ptr<DrmFramebuffer> fb,
         uint32_t zorder, int blankOp) = 0;
 
+    /* release caches */
+    virtual void clearPlaneResources() = 0;
+
     /*For debug, plane return a invalid type.*/
     enum {
         PLANE_DBG_IDLE = 1 << 0,

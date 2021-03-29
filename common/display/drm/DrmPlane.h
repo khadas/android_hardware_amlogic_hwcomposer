@@ -38,6 +38,8 @@ public:
     int32_t setPlane(std::shared_ptr<DrmFramebuffer> fb,
         uint32_t zorder, int blankOp);
 
+    void clearPlaneResources();
+
     void setDebugFlag(int dbgFlag);
 
     void dump(String8 & dumpstr);
