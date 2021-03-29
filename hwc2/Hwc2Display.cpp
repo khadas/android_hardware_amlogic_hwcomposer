@@ -217,6 +217,11 @@ int32_t Hwc2Display::blankDisplay() {
         outfence->wait(3000);
     }
 
+    /* we need release all cache handles */
+    for (auto it = mPlanes.begin(); it != mPlanes.end(); ++ it) {
+        (*it)->clearPlaneResources();
+    }
+
     return 0;
 }
 

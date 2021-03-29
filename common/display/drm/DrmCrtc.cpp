@@ -319,4 +319,9 @@ void DrmCrtc::blankAllPlanes() {
             std::make_shared<DrmFence>(fence);
         outfence->wait(3000);
     }
+
+    /* we need release all cache handles */
+    for (auto it = planes.begin(); it != planes.end(); it ++) {
+        (*it)->clearPlaneResources();
+    }
 }
