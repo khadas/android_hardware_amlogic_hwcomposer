@@ -20,6 +20,7 @@
 #include "HwcVideoPlane.h"
 #include "am_gralloc_ext.h"
 #include <DebugHelper.h>
+#include <HwcConfig.h>
 #include "UvmDev.h"
 
 #define OSD_OUTPUT_ONE_CHANNEL         1
@@ -38,6 +39,9 @@
 
 /* Constructor function */
 MultiplanesWithDiComposition::MultiplanesWithDiComposition() {
+    init();
+    mVideoProcessor.reset();
+    mPreOutProcessFb.reset();
 }
 
 /* Deconstructor function */
@@ -241,8 +245,17 @@ int MultiplanesWithDiComposition::processVideoFbs() {
         };
     }
 
-    if (videoFbNum == 0)
+    if (videoFbNum == 0) {
+        if (mVideoProcessor.get()) {
+            // release the last outbuffer
+            mVideoProcessor->onBufferDisplayed(mPreOutProcessFb, -1);
+            mVideoProcessor->teardown();
+            mVideoProcessor.reset();
+            mPreOutProcessFb.reset();
+        }
+
         return 0;
+    }
 
     /*
     * Composition: only 1 + .. + N mode now
@@ -273,7 +286,7 @@ int MultiplanesWithDiComposition::processVideoFbs() {
         sidebandFbs.clear();
         fb->mCompositionType = MESON_COMPOSITION_PLANE_HWCVIDEO;
         mDisplayPairs.push_back(DisplayPair{
-                (uint32_t)mOsdPlaneNum, fb->mZorder, fb, mHwcVideoPlanes[0]});
+                (uint32_t)mOsdPlaneNum, fb->mZorder, fb, mHwcVideoPlanes[0], nullptr});
         mHwcVideoPlanes.erase(mHwcVideoPlanes.begin());
         fb.reset();
 
@@ -284,6 +297,19 @@ int MultiplanesWithDiComposition::processVideoFbs() {
             }
         }
         return 0;
+    }
+
+    /*
+     * Video Processor: only support one video now
+     */
+    if (HwcConfig::isVideoProcessorEnabled()) {
+        if (videoFbNum == 1) {
+            // setup videoprocessor
+            if (!mVideoProcessor.get()) {
+                createFbProcessor(FB_VIDEO_PROCESSOR, mVideoProcessor);
+                mVideoProcessor->setup();
+            }
+        }
     }
 
     fb.reset();
@@ -315,7 +341,7 @@ int MultiplanesWithDiComposition::processVideoFbs() {
 
                 /*-----set buffer to displaypair------*/
                 mDisplayPairs.push_back(DisplayPair{
-                        (uint32_t)mOsdPlaneNum + i,  videoZ, fb, mHwcVideoPlanes[i]});
+                        (uint32_t)mOsdPlaneNum + i,  videoZ, fb, mHwcVideoPlanes[i], nullptr});
             }
             break;
         }
@@ -342,10 +368,10 @@ int MultiplanesWithDiComposition::processVideoFbs() {
             videoZ = maxVideoZ;
         else
             videoZ = fb->mZorder;
-        mDisplayPairs.push_back(DisplayPair{
-                (uint32_t)mOsdPlaneNum + i, videoZ, fb, mHwcVideoPlanes[i]});
-        fb.reset();
 
+        mDisplayPairs.push_back(DisplayPair{
+                (uint32_t)mOsdPlaneNum + i, videoZ, fb, mHwcVideoPlanes[i], (!i ? mVideoProcessor : nullptr)});
+        fb.reset();
     }
 
     /* removed used planes from mHwcVideoPlanes */
@@ -686,7 +712,7 @@ int MultiplanesWithDiComposition::setOsdFbs2PlanePairs() {
 
     /*baseFb always post to din0*/
     mDisplayPairs.push_back(
-        DisplayPair{usedPlanes, mDisplayRefFb->mZorder, mDisplayRefFb, mOsdPlanes[usedPlanes]});
+        DisplayPair{usedPlanes, mDisplayRefFb->mZorder, mDisplayRefFb, mOsdPlanes[usedPlanes], nullptr});
     /* Not composed fb, set to osd composition. */
     if (mDisplayRefFb->mCompositionType == MESON_COMPOSITION_UNDETERMINED)
         mDisplayRefFb->mCompositionType = MESON_COMPOSITION_PLANE_OSD;
@@ -703,7 +729,7 @@ int MultiplanesWithDiComposition::setOsdFbs2PlanePairs() {
             usedPlanes++;
         }
         mDisplayPairs.push_back(
-                DisplayPair{usedPlanes, fb->mZorder, fb, mOsdPlanes[usedPlanes]});
+                DisplayPair{usedPlanes, fb->mZorder, fb, mOsdPlanes[usedPlanes], nullptr});
 
         /* Not composed fb, set to osd composition. */
         if (fb->mCompositionType == MESON_COMPOSITION_UNDETERMINED)
@@ -1242,6 +1268,7 @@ int MultiplanesWithDiComposition::commit(bool sf) {
         std::shared_ptr<HwDisplayPlane> plane = displayIt->plane;
         int blankFlag = (mHideSecureLayer && fb->mSecure) ?
             BLANK_FOR_SECURE_CONTENT : UNBLANK;
+        std::shared_ptr<FbProcessor> fbProcessor = displayIt->processor;
 
         if (composerOutput.get() &&
             fb->mCompositionType == mComposer->getType()) {
@@ -1284,8 +1311,30 @@ int MultiplanesWithDiComposition::commit(bool sf) {
 
         /* make sure SF donot refresh VtLayer and VT only refresh VtLayer*/
         if ((sf && !fb->isVtBuffer()) || (!sf && fb->isVtBuffer())) {
-            /* Set display info. */
-            int ret = plane->setPlane(fb, presentZorder, blankFlag);
+            int processFence = -1;
+            int ret = -1;
+            std::shared_ptr<DrmFramebuffer> outFb;
+
+            /* for processor */
+            if (fbProcessor.get()) {
+                fbProcessor->asyncProcess(fb, outFb, processFence);
+                ret = plane->setPlane(outFb, presentZorder, blankFlag);
+                int releaseFence = outFb->getPrevReleaseFence();
+
+                if (!mPreOutProcessFb) {
+                    mPreOutProcessFb = outFb;
+                } else {
+                    fbProcessor->onBufferDisplayed(mPreOutProcessFb, releaseFence);
+                    mPreOutProcessFb = outFb;
+                }
+
+                fb->onLayerDisplayed(processFence, releaseFence);
+            }
+            else {
+                /* Set display info. */
+                ret = plane->setPlane(fb, presentZorder, blankFlag);
+            }
+
             fb->clearFbHandleFlag();
             if (ret != 0) {
                 MESON_LOGE("%s setPlane failed", plane->getName());

@@ -38,6 +38,9 @@ public:
     /*dup current release fence.*/
     int32_t getPrevReleaseFence();
 
+    /* need merge fence */
+    int32_t onLayerDisplayed(int32_t releaseFence, int32_t processFence);
+
     int32_t lock(void ** addr);
     int32_t unlock();
 

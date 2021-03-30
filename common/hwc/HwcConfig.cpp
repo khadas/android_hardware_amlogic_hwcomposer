@@ -227,6 +227,14 @@ float  HwcConfig::getMaxRefreshRate() {
 #endif
 }
 
+bool HwcConfig::isVideoProcessorEnabled() {
+#ifdef HWC_VIDEO_AISR
+    return true;
+#else
+    return false;
+#endif
+}
+
 void HwcConfig::dump(String8 & dumpstr) {
     if (isHeadlessMode()) {
         dumpstr.appendFormat("\t HeadlessMode refreshrate: %d", headlessRefreshRate());
@@ -257,6 +265,8 @@ void HwcConfig::dump(String8 & dumpstr) {
             dumpstr.appendFormat("\t DynamicSwitchConnector: %s", dynamicSwitchConnectorEnabled() ? "Y" : "N");
             dumpstr.append("\n");
             dumpstr.appendFormat("\t DynamicSwitchViu: %s", dynamicSwitchViuEnabled() ? "Y" : "N");
+            dumpstr.append("\n");
+            dumpstr.appendFormat("\t VideoProcessor: %s", isVideoProcessorEnabled() ? "Y" : "N");
             dumpstr.append("\n");
         }
     }

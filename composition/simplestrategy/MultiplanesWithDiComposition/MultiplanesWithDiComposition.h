@@ -11,6 +11,7 @@
 #define MULTIPLANESWITHDI_COMPOSITION_H
 
 #include <functional>
+#include <FbProcessor.h>
 #include "ICompositionStrategy.h"
 
 
@@ -64,6 +65,7 @@ protected:
         uint32_t presentZorder;
         std::shared_ptr<DrmFramebuffer> fb;     // UI or Video from SF
         std::shared_ptr<HwDisplayPlane> plane;  // osdPlane <= 3, videoPlane <= 2
+        std::shared_ptr<FbProcessor> processor; // fb processor
     };
 
     /* Input Flags from SF */
@@ -112,6 +114,10 @@ protected:
 
     float mScaleValue;
     bool mSkipValidate;
+
+    /* for video processor */
+    std::shared_ptr<FbProcessor> mVideoProcessor;
+    std::shared_ptr<DrmFramebuffer> mPreOutProcessFb;
 };
 
 

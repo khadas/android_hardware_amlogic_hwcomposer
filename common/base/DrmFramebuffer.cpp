@@ -61,6 +61,15 @@ int32_t DrmFramebuffer::setPrevReleaseFence(int32_t fenceFd) {
     return 0;
 }
 
+int32_t DrmFramebuffer::onLayerDisplayed(int32_t releaseFence,
+        int32_t processFence) {
+    mPrevReleaseFence = DrmFence::merge(
+                                "FBProcessor",
+                                std::make_shared<DrmFence>(releaseFence),
+                                std::make_shared<DrmFence>(processFence));
+    return 0;
+}
+
 int32_t DrmFramebuffer::setCurReleaseFence(int32_t fenceFd) {
     mCurReleaseFence.reset(new DrmFence(fenceFd));
     return 0;

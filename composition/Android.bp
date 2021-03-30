@@ -40,7 +40,6 @@ meson_hwc_composition_cc_defaults {
                 "composer/GE2DComposer.cpp",
             ],
             shared_libs: [
-                // TODO: add libge2d, when it change to bp.
                 "libge2d",
             ],
         },
@@ -69,6 +68,8 @@ cc_library_static {
         "hwc.base_static",
         "hwc.debug_static",
         "hwc.display_static",
+        "hwc.common_static",
+        "hwc.postprocessor_static",
     ],
 
     export_include_dirs: ["include"],

@@ -32,6 +32,10 @@ int32_t createFbProcessor(
             ret = createKeystoneCorrection(processor);
             break;
 #endif
+        // TODO: create real video processor when it ready
+        case FB_VIDEO_PROCESSOR:
+            processor = std::make_shared<DummyProcessor>();
+            break;
         default:
             MESON_ASSERT(0, "unknown processor type %d", type);
             processor = NULL;

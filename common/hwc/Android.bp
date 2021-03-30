@@ -43,6 +43,7 @@ soong_config_module_type {
         "pipe_viu1vdinviu2_always_loopback",
         "dynamic_switch_connector",
         "dynamic_swich_viu",
+        "enable_video_aisr",
     ],
 
     properties: [
@@ -100,6 +101,10 @@ soong_config_bool_variable {
 
 soong_config_bool_variable {
     name: "dynamic_swich_viu",
+}
+
+soong_config_bool_variable {
+    name: "enable_video_aisr",
 }
 
 meson_hwc_hwc_cc_defaults {
@@ -203,6 +208,9 @@ meson_hwc_hwc_cc_defaults {
 
         dynamic_swich_viu: {
             cflags: ["-DHWC_DYNAMIC_SWITCH_VIU"],
+        },
+        enable_video_aisr: {
+            cflags: ["-DHWC_VIDEO_AISR"],
         },
     },
 }

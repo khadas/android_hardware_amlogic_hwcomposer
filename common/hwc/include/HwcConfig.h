@@ -52,6 +52,8 @@ public:
     static bool dynamicSwitchViuEnabled();
 
     static float  getMaxRefreshRate();
+    static bool isVideoProcessorEnabled();
+
     static void dump(String8 & dumpstr);
 };
 #endif/*HWC_CONFIG_H*/
