@@ -21,6 +21,26 @@ int32_t DummyProcessor::setup() {
     return 0;
 }
 
+int32_t DummyProcessor::asyncProcess(
+        std::shared_ptr<DrmFramebuffer> & inputfb,
+        std::shared_ptr<DrmFramebuffer> & outfb,
+        int & processFence) {
+    // set the outfb as the input fb
+    outfb = inputfb;
+    processFence = -1;
+    return 0;
+}
+
+int32_t DummyProcessor::onBufferDisplayed(
+        std::shared_ptr<DrmFramebuffer> & outfb __unused,
+        int releaseFence) {
+    // close release fence
+    if (releaseFence >= 0)
+        close(releaseFence);
+
+    return 0;
+}
+
 int32_t DummyProcessor::process(
     std::shared_ptr<DrmFramebuffer> & inputfb,
     std::shared_ptr<DrmFramebuffer> & outfb) {
