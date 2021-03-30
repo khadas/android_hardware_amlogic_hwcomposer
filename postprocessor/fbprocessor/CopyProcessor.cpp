@@ -21,6 +21,19 @@ int32_t CopyProcessor::setup() {
     return 0;
 }
 
+int32_t CopyProcessor::asyncProcess(
+        std::shared_ptr<DrmFramebuffer> & inputfb __unused,
+        std::shared_ptr<DrmFramebuffer> & outfb __unused,
+        int & processFence __unused) {
+    return 0;
+}
+
+int32_t CopyProcessor::onBufferDisplayed(
+        std::shared_ptr<DrmFramebuffer> & outfb __unused,
+        int releaseFence __unused) {
+    return 0;
+}
+
 int32_t CopyProcessor::process(
     std::shared_ptr<DrmFramebuffer> & inputfb,
     std::shared_ptr<DrmFramebuffer> & outfb) {

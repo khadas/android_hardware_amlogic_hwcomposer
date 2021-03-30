@@ -17,6 +17,7 @@ typedef enum {
     FB_DUMMY_PROCESSOR = 0,
     FB_COPY_PROCESSOR,
     FB_KEYSTONE_PROCESSOR,
+    FB_VIDEO_PROCESSOR,
 } meson_fb_processor_t;
 
 class FbProcessor {
@@ -24,6 +25,17 @@ public:
     virtual ~FbProcessor() {}
 
     virtual int32_t setup() = 0;
+    /* non block operation, with process fence */
+    virtual int32_t asyncProcess(
+        std::shared_ptr<DrmFramebuffer> & inputfb,
+        std::shared_ptr<DrmFramebuffer> & outfb,
+        int & processFence) = 0;
+
+    /* for non block, let processor aware of release fence */
+    virtual int32_t onBufferDisplayed(
+        std::shared_ptr<DrmFramebuffer> & outfb,
+        int releaseFence) = 0;
+
     /*block operation, no fence.*/
     virtual int32_t process(
         std::shared_ptr<DrmFramebuffer> & inputfb,

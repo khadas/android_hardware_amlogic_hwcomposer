@@ -18,6 +18,14 @@ public:
     ~DummyProcessor();
 
     int32_t setup();
+    int32_t asyncProcess(
+        std::shared_ptr<DrmFramebuffer> & inputfb,
+        std::shared_ptr<DrmFramebuffer> & outfb,
+        int & processFence);
+    int32_t onBufferDisplayed(
+        std::shared_ptr<DrmFramebuffer> & outfb,
+        int releaseFence);
+
     int32_t process(
         std::shared_ptr<DrmFramebuffer> & inputfb,
         std::shared_ptr<DrmFramebuffer> & outfb);
