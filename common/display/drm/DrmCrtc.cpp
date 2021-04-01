@@ -7,7 +7,6 @@
  * Description:
  */
 #define ATRACE_TAG ATRACE_TAG_GRAPHICS
-#define HWC_PLANE_FAKE_ZORDER (1)
 
 #include <utils/Trace.h>
 #include <MesonLog.h>
@@ -168,7 +167,12 @@ int32_t DrmCrtc::setMode(drm_mode_info_t & mode) {
         return -EINVAL;
     }
 
-    blankAllPlanes();
+    /* If in hotplug process, set mode to PendingModes */
+    if (getHotplugStatus() == HotplugStatus::InHotplugProcess) {
+        MESON_LOGD("connector (%s) setMode %s to pendingMode", connector->getName(), mode.name);
+        mPendingModes.push_back(mode);
+        return 0;
+    }
 
     drmModeAtomicReqPtr req = drmModeAtomicAlloc();
 
@@ -305,23 +309,3 @@ void DrmCrtc::dump(String8 & dumpstr) {
                         mConnectorId == 0 ? "noConnector" : name);
 }
 
-void DrmCrtc::blankAllPlanes() {
-    /* blank all planes */
-    std::vector<std::shared_ptr<HwDisplayPlane>> planes;
-    int32_t fence = -1;
-
-    getDrmDevice()->getPlanes(planes);
-    for (auto it = planes.begin(); it != planes.end(); it ++) {
-        (*it)->setPlane(NULL, HWC_PLANE_FAKE_ZORDER, BLANK_FOR_NO_CONTENT);
-    }
-    if (pageFlip(fence) == 0) {
-        std::shared_ptr<DrmFence> outfence =
-            std::make_shared<DrmFence>(fence);
-        outfence->wait(3000);
-    }
-
-    /* we need release all cache handles */
-    for (auto it = planes.begin(); it != planes.end(); it ++) {
-        (*it)->clearPlaneResources();
-    }
-}
