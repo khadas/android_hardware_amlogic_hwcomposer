@@ -58,9 +58,6 @@ public:
 protected:
     int32_t loadProperties();
 
-private:
-    void blankAllPlanes();
-
 protected:
 	int mDrmFd;
     uint32_t mId;
