@@ -8,7 +8,9 @@
  */
 
 #define LOG_NDEBUG 1
+#define ATRACE_TAG ATRACE_TAG_GRAPHICS
 
+#include <utils/Trace.h>
 #include <MesonLog.h>
 #include <math.h>
 #include <sys/mman.h>
@@ -120,6 +122,7 @@ hwc2_error_t Hwc2Layer::handleDimLayer(buffer_handle_t buffer) {
 }
 
 hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) {
+    ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
     /*record for check fbType change status */
     drm_fb_type_t preType = mFbType;
@@ -212,6 +215,7 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
 }
 
 hwc2_error_t Hwc2Layer::setSidebandStream(const native_handle_t* stream) {
+    ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
     MESON_LOGV("[%s] (%lld)", __func__, mId);
     clearBufferInfo();
@@ -407,6 +411,7 @@ int32_t Hwc2Layer::getVtBuffer() {
 }
 
 int32_t Hwc2Layer::acquireVtBuffer() {
+    ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
     if (!isVtBuffer()) {
         MESON_LOGE("[%s] [%llu] not videotunnel type", __func__, mId);
@@ -499,6 +504,7 @@ int32_t Hwc2Layer::acquireVtBuffer() {
 }
 
 int32_t Hwc2Layer::releaseVtBuffer() {
+    ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
     if (!isVtBuffer()) {
         MESON_LOGD("layer:%" PRId64 " is not videotunnel layer", getUniqueId());
@@ -648,6 +654,7 @@ int32_t Hwc2Layer::doReleaseVtResource() {
 }
 
 void Hwc2Layer::setPresentTime(nsecs_t expectedPresentTime) {
+    ATRACE_CALL();
     nsecs_t previousExpectedTime;
     previousExpectedTime = ((mExpectedPresentTime == 0) ?
         ns2us(expectedPresentTime) : mExpectedPresentTime);

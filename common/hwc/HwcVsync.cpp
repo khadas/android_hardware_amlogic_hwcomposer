@@ -6,7 +6,9 @@
  *
  * Description:
  */
+#define ATRACE_TAG ATRACE_TAG_GRAPHICS
 
+#include <utils/Trace.h>
 #include <MesonLog.h>
 #include <HwcVsync.h>
 #include <HwDisplayCrtc.h>
@@ -167,12 +169,14 @@ void * HwcVsync::vsyncThread(void * data) {
 }
 
 int32_t HwcVsync::waitHwVsync(nsecs_t& vsync_timestamp) {
+    ATRACE_CALL();
     int32_t ret = mCrtc->waitVBlank(mVsyncTime);
     vsync_timestamp = mVsyncTime;
     return ret;
 }
 
 int32_t HwcVsync::waitSoftwareVsync(nsecs_t& vsync_timestamp) {
+    ATRACE_CALL();
     static nsecs_t vsync_time = 0;
     static nsecs_t old_vsync_period = 0;
     nsecs_t now = systemTime(CLOCK_MONOTONIC);
@@ -210,6 +214,7 @@ int32_t HwcVsync::waitSoftwareVsync(nsecs_t& vsync_timestamp) {
 }
 
 int32_t HwcVsync::waitMixVsync(nsecs_t& vsync_timestamp) {
+    ATRACE_CALL();
     static nsecs_t cur_vsync_period = 0;
     if (cur_vsync_period != mReqPeriod || mMixRebase) {
         MESON_LOGD("[%s] waitVBlank to get hw vsync timestamp", __func__);
