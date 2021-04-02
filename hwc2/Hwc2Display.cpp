@@ -1544,6 +1544,7 @@ void Hwc2Display::handleVtThread() {
 }
 
 void Hwc2Display::acquireVtLayers() {
+    ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
     int ret;
     std::shared_ptr<Hwc2Layer> layer;
@@ -1566,6 +1567,7 @@ void Hwc2Display::acquireVtLayers() {
 }
 
 void Hwc2Display::releaseVtLayers() {
+    ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
     int ret;
     std::shared_ptr<Hwc2Layer> layer;

@@ -8,7 +8,9 @@
  */
 
 #define VT_DEBUG 1
+#define ATRACE_TAG ATRACE_TAG_GRAPHICS
 
+#include <utils/Trace.h>
 #include "VideoTunnelThread.h"
 #include "VideoTunnelDev.h"
 #include "MesonHwc2.h"
@@ -62,6 +64,7 @@ void VideoTunnelThread::onVtVsync(int64_t timestamp __unused,
 }
 
 void VideoTunnelThread::handleVideoTunnelLayers() {
+    ATRACE_CALL();
     int32_t outPresentFence = -1;
 
     std::unique_lock<std::mutex> stateLock(mVtLock);
