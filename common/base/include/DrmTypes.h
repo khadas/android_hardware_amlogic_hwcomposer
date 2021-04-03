@@ -70,8 +70,6 @@ typedef enum drm_fb_type {
     /*no image data, but with pts.*/
     DRM_FB_VIDEO_OMX_PTS,
     DRM_FB_VIDEO_OMX_PTS_SECOND,
-    /*no image data, but with pts.*/
-    DRM_FB_VIDEO_OMX_V4L,
     /*real image data, and is contiguous buf*/
     DRM_FB_VIDEO_DMABUF,
     /*fake buf for di composer output.*/
