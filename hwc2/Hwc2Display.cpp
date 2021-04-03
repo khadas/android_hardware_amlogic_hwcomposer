@@ -127,10 +127,10 @@ int32_t Hwc2Display::setDisplayResource(
     for (auto it = mPlanes.begin(); it != mPlanes.end(); ++ it) {
         if ((*it)->getType() == OSD_PLANE) {
             osdPlanes ++;
-            if (osdPlanes > 1) {
-                strategyFlags |= MULTI_PLANES_WITH_DI;
-                break;
-            }
+        }
+
+        if (osdPlanes > 1 && (it == mPlanes.end() - 1 )) {
+            strategyFlags |= MULTI_PLANES_WITH_DI;
         }
     }
     auto newCompositionStrategy =

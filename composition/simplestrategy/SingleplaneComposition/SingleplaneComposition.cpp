@@ -49,6 +49,7 @@ void SingleplaneComposition::cleanup() {
     /*clean composer info*/
     mDummyComposer.reset();
     mClientComposer.reset();
+    mDiComposer.reset();
     mOverlayFbs.clear();
     mComposers.clear();
 
@@ -100,6 +101,10 @@ void SingleplaneComposition::setup(
             case MESON_COMPOSITION_CLIENT:
                 if (mClientComposer == NULL)
                     mClientComposer = composer;
+                break;
+            case MESON_COMPOSITION_DI:
+                if (mDiComposer == NULL)
+                    mDiComposer = composer;
                 break;
             default:
                 mComposers.push_back(composer);
