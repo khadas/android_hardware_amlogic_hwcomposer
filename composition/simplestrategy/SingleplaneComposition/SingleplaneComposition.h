@@ -65,6 +65,7 @@ protected:
     /*composers*/
     std::shared_ptr<IComposer> mDummyComposer;
     std::shared_ptr<IComposer> mClientComposer;
+    std::shared_ptr<IComposer> mDiComposer;
     std::vector<std::shared_ptr<IComposer>> mComposers;
 
     /*crtc*/
