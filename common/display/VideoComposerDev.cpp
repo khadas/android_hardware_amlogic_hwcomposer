@@ -71,10 +71,7 @@ int32_t VideoComposerDev::setFrames(
         buffer_handle_t buf = fb->mBufferHandle;
 
         vFrameInfo->sideband_type = 0;
-        if (fb->mFbType == DRM_FB_VIDEO_OMX_V4L) {
-            vFrameInfo->fd = am_gralloc_get_omx_v4l_file(buf);
-            vFrameInfo->type = 0;
-        } else if (fb->mFbType == DRM_FB_VIDEO_DMABUF ||
+        if (fb->mFbType == DRM_FB_VIDEO_DMABUF ||
             fb->mFbType == DRM_FB_VIDEO_UVM_DMA) {
             vFrameInfo->fd = am_gralloc_get_buffer_fd(buf);
             vFrameInfo->type = 1;
