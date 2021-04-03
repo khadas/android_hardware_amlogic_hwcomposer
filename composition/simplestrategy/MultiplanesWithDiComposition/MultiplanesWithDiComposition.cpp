@@ -1306,7 +1306,9 @@ int MultiplanesWithDiComposition::commit(bool sf) {
 
     planeIt = mOtherPlanes.begin();
     for (; planeIt != mOtherPlanes.end(); ++planeIt) {
-        (*planeIt)->setPlane(NULL, HWC_PLANE_FAKE_ZORDER, BLANK_FOR_NO_CONTENT);
+        if (sf) {
+            (*planeIt)->setPlane(NULL, HWC_PLANE_FAKE_ZORDER, BLANK_FOR_NO_CONTENT);
+        }
         dumpUnusedPlane(*planeIt, BLANK_FOR_NO_CONTENT);
     }
 

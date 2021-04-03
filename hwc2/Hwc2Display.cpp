@@ -1013,12 +1013,13 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence, bool sf) {
             if (mPresentFence >= 0)
                 close(mPresentFence);
             mPresentFence = -1;
+
+            /*start new pageflip, and prepare.*/
+            if (mCrtc->prePageFlip() != 0 ) {
+                return HWC2_ERROR_NO_RESOURCES;
+            }
         }
 
-        /*start new pageflip, and prepare.*/
-        if (mCrtc->prePageFlip() != 0 ) {
-            return HWC2_ERROR_NO_RESOURCES;
-        }
         /*Start to compose, set up plane info.*/
         if (mPresentCompositionStg->commit(sf) != 0) {
             return HWC2_ERROR_NOT_VALIDATED;
@@ -1039,12 +1040,13 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence, bool sf) {
                 std::shared_ptr<Hwc2Layer> layer = it->second;
                 layer->clearUpdateFlag();
             }
+
+            /* Page flip */
+            if (mCrtc->pageFlip(mPresentFence) < 0) {
+                return HWC2_ERROR_UNSUPPORTED;
+            }
         }
 
-        /* Page flip */
-        if (mCrtc->pageFlip(mPresentFence) < 0) {
-            return HWC2_ERROR_UNSUPPORTED;
-        }
         if (mPostProcessor != NULL) {
             int32_t displayFence = ::dup(mPresentFence);
             mPostProcessor->present(mProcessorFlags, displayFence);
