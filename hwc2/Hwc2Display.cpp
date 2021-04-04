@@ -808,7 +808,13 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
     if (mPowerMode->needBlankScreen(mPresentLayers.size())) {
         if (!mPowerMode->getScreenStatus()) {
             MESON_LOGD("Need to blank screen.");
-            mPresentLayers.clear();
+            /*set all layers to dummy*/
+            Hwc2Layer *layer;
+            for (auto it = mPresentLayers.begin() ; it != mPresentLayers.end(); it++) {
+                layer = (Hwc2Layer*)(it->get());
+                layer->mCompositionType = MESON_COMPOSITION_DUMMY;
+            }
+         //   mPresentLayers.clear();
         } else {
             mSkipComposition = true;
         }
