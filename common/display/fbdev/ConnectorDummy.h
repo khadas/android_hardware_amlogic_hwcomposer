@@ -23,6 +23,7 @@ public:
     bool isConnected();
     bool isSecure();
 
+    void updateHdrCaps() {};
     void getHdrCapabilities(drm_hdr_capabilities * caps);
     void dump(String8 & dumpstr);
 };

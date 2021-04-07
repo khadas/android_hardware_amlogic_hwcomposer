@@ -42,6 +42,7 @@ public:
     int32_t getIdentificationData(std::vector<uint8_t>& idOut);
 
     /*no drm stard props*/
+    void updateHdrCaps();
     void getHdrCapabilities(drm_hdr_capabilities * caps);
     std::string getCurrentHdrType();
     int32_t setContentType(uint32_t contentType);

@@ -65,6 +65,7 @@ public:
     virtual int32_t setMode(drm_mode_info_t & mode __unused)  = 0;
     virtual int32_t getModes(std::map<uint32_t, drm_mode_info_t> & modes) = 0;
 
+    virtual void updateHdrCaps() = 0;
     virtual void getHdrCapabilities(drm_hdr_capabilities * caps) = 0;
     virtual std::string getCurrentHdrType() { return "SDR"; }
 

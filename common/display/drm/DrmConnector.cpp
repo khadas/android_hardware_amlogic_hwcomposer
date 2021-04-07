@@ -407,6 +407,10 @@ int32_t DrmConnector::setAutoLowLatencyMode(bool on) {
     return setHdmiALLM(on);
 }
 
+void DrmConnector::updateHdrCaps() {
+    parseHdmiHdrCapabilities(mHdrCapabilities);
+}
+
 void DrmConnector::getHdrCapabilities(drm_hdr_capabilities * caps) {
     if (mType != DRM_MODE_CONNECTOR_HDMIA)
         return;

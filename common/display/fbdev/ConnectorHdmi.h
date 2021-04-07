@@ -26,6 +26,7 @@ public:
     virtual bool isSecure() ;
 
     virtual int32_t getModes(std::map<uint32_t, drm_mode_info_t> & modes);
+    virtual void updateHdrCaps();
     virtual void getHdrCapabilities(drm_hdr_capabilities * caps);
     virtual std::string getCurrentHdrType();
 
