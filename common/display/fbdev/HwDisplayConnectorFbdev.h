@@ -36,6 +36,7 @@ public:
     virtual bool isSecure() = 0;
     virtual bool isConnected() = 0;
 
+    virtual void updateHdrCaps() = 0;
     virtual void getHdrCapabilities(drm_hdr_capabilities * caps) = 0;
     virtual int32_t getIdentificationData(std::vector<uint8_t>& idOut);
     virtual void getSupportedContentTypes(std::vector<uint32_t> & supportedContentTypesOut);

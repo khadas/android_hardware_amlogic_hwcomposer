@@ -23,6 +23,7 @@ public:
     virtual bool isSecure();
     virtual bool isConnected();
 
+    virtual void updateHdrCaps() {};
     virtual void getHdrCapabilities(drm_hdr_capabilities * caps);
     virtual void dump(String8 & dumpstr);
 

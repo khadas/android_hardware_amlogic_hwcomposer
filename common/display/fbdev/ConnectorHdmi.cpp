@@ -217,6 +217,10 @@ int32_t ConnectorHdmi::getIdentificationData(std::vector<uint8_t>& idOut) {
     return 0;
 }
 
+void ConnectorHdmi::updateHdrCaps() {
+    parseHdmiHdrCapabilities(mHdrCapabilities);
+}
+
 void ConnectorHdmi::getHdrCapabilities(drm_hdr_capabilities * caps) {
     if (caps) {
         *caps = mHdrCapabilities;
@@ -330,6 +334,8 @@ int32_t parseHdmiHdrCapabilities(drm_hdr_capabilities & hdrCaps) {
     const char *DV_PATH = "/sys/class/amhdmitx/amhdmitx0/dv_cap";
     // HDR
     const char *HDR_PATH = "/sys/class/amhdmitx/amhdmitx0/hdr_cap";
+    // hdmr attr
+    const char *ATTR_PATH = "/sys/class/amhdmitx/amhdmitx0/attr";
 
     char buf[1024+1] = {0};
     char* pos = buf;
@@ -388,6 +394,14 @@ int32_t parseHdmiHdrCapabilities(drm_hdr_capabilities & hdrCaps) {
 
         }
         close(fd);
+    }
+
+    // mask off all hdr cap if  color depth is 8bit, set it to sdr
+    if (!sysfs_get_string(ATTR_PATH, buf, sizeof(buf))) {
+        if (strstr(buf, "8bit")) {
+            MESON_LOGD("mask off all hdrCaps, as it's 8bit color depth");
+            memset(&hdrCaps, 0, sizeof(drm_hdr_capabilities));
+        }
     }
 
     MESON_LOGD("dolby version:%d, hlg:%d, hdr10:%d, hdr10+:%d max:%d, avg:%d, min:%d\n",
