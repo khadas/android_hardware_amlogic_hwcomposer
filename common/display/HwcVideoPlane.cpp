@@ -162,8 +162,10 @@ int32_t HwcVideoPlane::setPlane(
     bool bBlank = blankOp == UNBLANK ? false : true;
     if (!bBlank) {
         MESON_ASSERT(fb.get() != NULL, "fb shoud not NULL");
-        if (!fb->isFbUpdated())
+        if (!fb->isFbUpdated()) {
+            mBlank = bBlank;
             return 0;
+        }
 
         /*diable video if sideband vide.*/
         drm_fb_type_t type = fb->mFbType;
@@ -213,7 +215,7 @@ int32_t HwcVideoPlane::setPlane(
 
         mDisplayedVideoType = fb->mFbType;
         mVideoFb = fb;
-    }else if (mBlank != bBlank) {
+    } else if (mBlank != bBlank) {
         mVideoComposer->enable(false);
         mDisplayedVideoType = DRM_FB_UNDEFINED;
         mVideoFb.reset();
