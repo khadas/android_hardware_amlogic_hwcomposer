@@ -15,6 +15,7 @@
 #include <math.h>
 #include <OmxUtil.h>
 #include <inttypes.h>
+#include <sys/utsname.h>
 
 #include "AmVinfo.h"
 #include "AmFramebuffer.h"
@@ -312,7 +313,23 @@ bool HwDisplayCrtcFbdev::updateHdrMetadata(
 }
 
 void HwDisplayCrtcFbdev::closeLogoDisplay() {
-    sysfs_set_string(DISPLAY_LOGO_INDEX, "-1");
+    struct utsname buf;
+    int major = 0;
+    int minor = 0;
+    if (uname(&buf) == 0) {
+        if (sscanf(buf.release, "%d.%d", &major, &minor) != 2) {
+            major = 0;
+        }
+    }
+    if (major == 0)
+        MESON_LOGE("Can't determine kernel version!");
+
+    if (major >= 5) {
+        sysfs_set_string(DISPLAY_LOGO_INDEX54, "-1");
+    } else {
+        sysfs_set_string(DISPLAY_LOGO_INDEX, "-1");
+    }
+
     sysfs_set_string(DISPLAY_FB0_FREESCALE_SWTICH, "0x10001");
     sysfs_set_string(DISPLAY_FB0_FREE_FB_MEM, "1");
 }
