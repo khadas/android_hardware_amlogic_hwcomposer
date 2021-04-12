@@ -112,6 +112,9 @@ enum {
 #define DISPLAY_LOGO_INDEX              "/sys/module/fb/parameters/osd_logo_index"
 #define DISPLAY_FB0_FREESCALE_SWTICH    "/sys/class/graphics/fb0/free_scale_switch"
 
+/* logo index on kernel 5.4 */
+#define DISPLAY_LOGO_INDEX54            "/sys/module/aml_media/parameters/osd_logo_index"
+
 /* legacy fb0 free fb memory */
 #define DISPLAY_FB0_FREE_FB_MEM    "/sys/class/graphics/fb0/free_fb_mem"
 
