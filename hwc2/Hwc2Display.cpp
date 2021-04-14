@@ -1413,6 +1413,13 @@ void Hwc2Display::dump(String8 & dumpstr) {
     if (mConnector)
         dumpstr.appendFormat("HDR current type: %s\n",
                 mConnector->getCurrentHdrType().c_str());
+    /* max supported DV mode */
+    std::string mode;
+    bool unused;
+    sc_sink_support_dv(mode, unused);
+    if (!mode.empty())
+        dumpstr.appendFormat("Max supported DV mode: %s\n", mode.c_str());
+
     dumpstr.append("HDR Capabilities:\n");
     dumpstr.appendFormat("    DolbyVision1=%d\n",
         mHdrCaps.DolbyVisionSupported ?  1 : 0);
