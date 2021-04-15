@@ -23,13 +23,15 @@
 Hwc2Layer::Hwc2Layer() : DrmFramebuffer(){
     mDataSpace     = HAL_DATASPACE_UNKNOWN;
     mUpdateZorder  = false;
-    mVtDeviceConnection = false;
     mVtBufferFd    = -1;
     mPreVtBufferFd = -1;
     mVtUpdate      =  false;
     mNeedReleaseVtResource = false;
     mTimestamp     = -1;
+    mExpectedPresentTime = 0;
     mQueuedFrames = 0;
+    mTunnelId = -1;
+    mQueueItems.clear();
 }
 
 Hwc2Layer::~Hwc2Layer() {
@@ -188,12 +190,26 @@ hwc2_error_t Hwc2Layer::setSidebandStream(const native_handle_t* stream) {
         mFbType = DRM_FB_VIDEO_SIDEBAND_TV;
     } else if (type == AM_FIXED_TUNNEL) {
         mFbType = DRM_FB_VIDEO_TUNNEL_SIDEBAND;
-        mTunnelId = channel_id;
-        if (!mVtDeviceConnection) {
-            MESON_LOGD("%s connect to videotunnel %d", __func__, mTunnelId);
-            mQueuedFrames = 0;
-            VideoTunnelDev::getInstance().connect(mTunnelId);
-            mVtDeviceConnection = true;
+        if (channel_id < 0)
+            return HWC2_ERROR_BAD_PARAMETER;
+
+        if (mTunnelId != channel_id) {
+            if (mTunnelId >= 0) {
+                doReleaseVtResource();
+            }
+
+            int ret = VideoTunnelDev::getInstance().connect(channel_id);
+            if (ret >= 0) {
+                MESON_LOGD("%s connect to videotunnel %d successed", __func__, channel_id);
+                mQueuedFrames = 0;
+                mQueueItems.clear();
+                mTunnelId = channel_id;
+            } else {
+                MESON_LOGE("%s connect to videotunnel %d failed, error %d",
+                        __func__, channel_id, ret);
+                mTunnelId = -1;
+                return HWC2_ERROR_BAD_PARAMETER;
+            }
         }
     } else {
         if (channel_id == AM_VIDEO_EXTERNAL) {
@@ -346,7 +362,7 @@ int32_t Hwc2Layer::getVtBuffer() {
         ret = mPreVtBufferFd;
     }
 
-    MESON_LOGV("[%s] vtBufferfd(%d)", __func__, ret);
+    MESON_LOGV("[%s] [%llu] vtBufferfd(%d)", __func__, mId, ret);
 
     return ret;
 }
@@ -354,12 +370,12 @@ int32_t Hwc2Layer::getVtBuffer() {
 int32_t Hwc2Layer::acquireVtBuffer() {
     std::lock_guard<std::mutex> lock(mMutex);
     if (!isVtBuffer()) {
-        MESON_LOGE("[%s] not videotunnel type", __func__);
+        MESON_LOGE("[%s] [%llu] not videotunnel type", __func__, mId);
         return -EINVAL;
     }
 
     if (mTunnelId < 0) {
-        MESON_LOGE("[%s] mTunelId  %d error", __func__, mTunnelId);
+        MESON_LOGE("[%s] [%llu] mTunelId  %d error", __func__, mId, mTunnelId);
         return -EINVAL;
     }
 
@@ -411,9 +427,9 @@ int32_t Hwc2Layer::acquireVtBuffer() {
         VideoTunnelDev::getInstance().releaseBuffer(mTunnelId, item.bufferFd, getPrevReleaseFence());
         mQueuedFrames--;
 
-        MESON_LOGD("vt buffer fd(%d) with timestamp(%" PRId64 ") expired droped "
+        MESON_LOGD("[%s] [%llu] vt buffer fd(%d) with timestamp(%" PRId64 ") expired droped "
                 "expectedPresent time(%" PRId64 ") diffAdded(%" PRId64 ") queuedFrames(%d)",
-                item.bufferFd, item.timestamp,
+                __func__, mId, item.bufferFd, item.timestamp,
                 mExpectedPresentTime, diffAdded, mQueuedFrames);
         mQueueItems.pop_front();
         dropCount--;
@@ -429,9 +445,9 @@ int32_t Hwc2Layer::acquireVtBuffer() {
     diffAdded = mTimestamp - previousTimestamp;
     previousTimestamp = mTimestamp;
 
-    MESON_LOGV("[%s] mVtBufferFd(%d) timestamp (%" PRId64 " us) expectedPresentTime(%"
+    MESON_LOGV("[%s] [%llu] mVtBufferFd(%d) timestamp (%" PRId64 " us) expectedPresentTime(%"
             PRId64 " us) diffAdded(%" PRId64 " us) shouldPresent:%d, queueFrameSize:%d",
-            __func__, mVtBufferFd, mTimestamp,
+            __func__, mId, mVtBufferFd, mTimestamp,
             mExpectedPresentTime, diffAdded,
             shouldPresentNow(mTimestamp), mQueueItems.size());
 
@@ -449,8 +465,8 @@ int32_t Hwc2Layer::releaseVtBuffer() {
         return -EAGAIN;
 
     if (shouldPresentNow(mTimestamp) == false) {
-        MESON_LOGV("[%s] current vt buffer(%d) not present, timestamp not meet",
-                __func__, mVtBufferFd);
+        MESON_LOGV("[%s] [%llu] current vt buffer(%d) not present, timestamp not meet",
+                __func__, mId, mVtBufferFd);
         return -EAGAIN;
     }
 
@@ -476,8 +492,8 @@ int32_t Hwc2Layer::releaseVtBuffer() {
             mPreVtBufferFd, releaseFence);
     mQueuedFrames--;
 
-    MESON_LOGV("[%s] releaseFence:%d, mVtBufferfd:%d, mPreVtBufferFd(%d), queuedFrames(%d)",
-            __func__, releaseFence, mVtBufferFd, mPreVtBufferFd, mQueuedFrames);
+    MESON_LOGV("[%s] [%llu] releaseFence:%d, mVtBufferfd:%d, mPreVtBufferFd(%d), queuedFrames(%d)",
+            __func__, mId, releaseFence, mVtBufferFd, mPreVtBufferFd, mQueuedFrames);
 
     mPreVtBufferFd = mVtBufferFd;
     mVtUpdate = false;
@@ -488,14 +504,19 @@ int32_t Hwc2Layer::releaseVtBuffer() {
 
 int32_t Hwc2Layer::releaseVtResource() {
     std::lock_guard<std::mutex> lock(mMutex);
+    MESON_LOGV("[%s] [%llu]", __func__, mId);
+    return doReleaseVtResource();
+}
+
+int32_t Hwc2Layer::doReleaseVtResource() {
     if (isVtBuffer() || mNeedReleaseVtResource) {
-        MESON_LOGV("ReleaseVtResource");
+        MESON_LOGV("[%s] [%llu]", __func__, mId);
         if (mPreVtBufferFd >= 0) {
             VideoTunnelDev::getInstance().releaseBuffer(mTunnelId,
                     mPreVtBufferFd, getPrevReleaseFence());
             mQueuedFrames--;
-            MESON_LOGV("ReleaseVtResource release(%d) queuedFrames(%d)",
-                    mPreVtBufferFd, mQueuedFrames);
+            MESON_LOGV("[%s] [%llu] release(%d) queuedFrames(%d)",
+                    __func__, mId, mPreVtBufferFd, mQueuedFrames);
         }
 
         // todo: for the last vt buffer, there is no fence got from videocomposer
@@ -505,7 +526,8 @@ int32_t Hwc2Layer::releaseVtResource() {
             VideoTunnelDev::getInstance().releaseBuffer(mTunnelId,
                     mVtBufferFd, getPrevReleaseFence());
             mQueuedFrames--;
-            MESON_LOGV("ReleaseVtResource release(%d) queudFrames(%d)", mVtBufferFd, mQueuedFrames);
+            MESON_LOGV("[%s] [%llu] release(%d) queudFrames(%d)",
+                    __func__, mId, mVtBufferFd, mQueuedFrames);
             mQueueItems.pop_front();
         }
 
@@ -514,8 +536,8 @@ int32_t Hwc2Layer::releaseVtResource() {
             VideoTunnelDev::getInstance().releaseBuffer(mTunnelId,
                     it->bufferFd, -1);
             mQueuedFrames--;
-            MESON_LOGV("ReleaseVtResource release(%d) queuedFrames(%d)",
-                    it->bufferFd, mQueuedFrames);
+            MESON_LOGV("[%s] [%llu] release(%d) queuedFrames(%d)",
+                    __func__, mId, it->bufferFd, mQueuedFrames);
         }
         mQueueItems.clear();
 
@@ -523,29 +545,30 @@ int32_t Hwc2Layer::releaseVtResource() {
         mPreVtBufferFd = -1;
         mVtUpdate = false;
 
-        if (mVtDeviceConnection) {
-            MESON_LOGD("Hwc2Layer release disconnect(%d) queuedFrames(%d)", mTunnelId, mQueuedFrames);
+        if (mTunnelId >= 0) {
+            MESON_LOGD("[%s] [%llu] Hwc2Layer release disconnect(%d) queuedFrames(%d)",
+                    __func__, mId, mTunnelId, mQueuedFrames);
             VideoTunnelDev::getInstance().disconnect(mTunnelId);
+            mTunnelId = -1;
         }
 
-        mVtDeviceConnection = false;
+        mQueuedFrames = 0;
         mNeedReleaseVtResource = false;
     }
     return 0;
 }
 
 void Hwc2Layer::setPresentTime(nsecs_t expectedPresentTime) {
+    nsecs_t previousExpectedTime;
+    previousExpectedTime = ((mExpectedPresentTime == 0) ?
+        ns2us(expectedPresentTime) : mExpectedPresentTime);
+
     mExpectedPresentTime = ns2us(expectedPresentTime);
 
-    static nsecs_t previousExpectedTime = 0;
-    if (previousExpectedTime == 0)
-        previousExpectedTime = mExpectedPresentTime;
-
     [[maybe_unused]] nsecs_t diffExpected = mExpectedPresentTime - previousExpectedTime;
-    previousExpectedTime = mExpectedPresentTime;
 
-    MESON_LOGV("[%s] vsyncTimeStamp:%lld, diffExpected:%lld",
-            __func__, mExpectedPresentTime, diffExpected);
+    MESON_LOGV("[%s] [%llu] vsyncTimeStamp:%lld, diffExpected:%lld",
+            __func__, mId, mExpectedPresentTime, diffExpected);
 }
 
 bool Hwc2Layer::shouldPresentNow(nsecs_t timestamp) {
