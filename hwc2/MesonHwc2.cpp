@@ -102,11 +102,11 @@ void MesonHwc2::dump(uint32_t* outSize, char* outBuffer) {
 
 void MesonHwc2::getCapabilities(uint32_t* outCount,
     int32_t* outCapabilities) {
-    *outCount = 2;
+    *outCount = 3;
     if (outCapabilities) {
-        *outCount = 2;
         outCapabilities[0] = HWC2_CAPABILITY_SIDEBAND_STREAM;
         outCapabilities[1] = HWC2_CAPABILITY_SKIP_VALIDATE;
+        outCapabilities[2] = HWC2_CAPABILITY_PRESENT_FENCE_IS_NOT_RELIABLE;
     }
 }
 

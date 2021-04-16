@@ -62,7 +62,7 @@ class HwcLoader : public V2_3::passthrough::HwcLoader {
             return nullptr;
         }
         auto hal = std::make_unique<HwcHal>();
-        return hal->initWithDevice(std::move(device), !adapted) ? std::move(hal) : nullptr;
+        return hal->initWithDevice(std::move(device), false) ? std::move(hal) : nullptr;
     }
 
     // create an IComposer instance
