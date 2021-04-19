@@ -7,6 +7,7 @@
  * Description:
  */
 #include <drm.h>
+#include <drm_fourcc.h>
 #include <string.h>
 
 #include <MesonLog.h>
@@ -271,9 +272,15 @@ int32_t DrmDevice::loadDrmResources() {
     for (int i = 0; i < planeRes->count_planes; i ++) {
         drmModePlanePtr metadata = drmModeGetPlane(
             mDrmFd, planeRes->planes[i]);
-        std::shared_ptr<HwDisplayPlane> plane =
-            std::make_shared<DrmPlane>(mDrmFd, metadata);
-        mPlanes.emplace(plane->getId(), std::move(plane));
+        for (int pfi= 0; pfi < metadata->count_formats; ++pfi ) {
+            if (DRM_FORMAT_ARGB8888 == metadata->formats[pfi]) {
+                MESON_LOGI("Load an osd plane %d for HWC.", pfi);
+                std::shared_ptr<HwDisplayPlane> plane =
+                    std::make_shared<DrmPlane>(mDrmFd, metadata);
+                mPlanes.emplace(plane->getId(), std::move(plane));
+                break;
+            }
+        }
         drmModeFreePlane(metadata);
     }
     drmModeFreePlaneResources(planeRes);
