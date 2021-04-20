@@ -755,6 +755,7 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
     ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
     /*clear data used in composition.*/
+    mLastPresentLayers = std::move(mPresentLayers);
     mPresentLayers.clear();
     mPresentComposers.clear();
     mPresentPlanes.clear();
@@ -1100,7 +1101,7 @@ hwc2_error_t Hwc2Display::getReleaseFences(uint32_t* outNumElements,
 
     {
         std::lock_guard<std::mutex> lock(mMutex);
-        for (auto it = mPresentLayers.begin(); it != mPresentLayers.end(); it++) {
+        for (auto it = mLastPresentLayers.begin(); it != mLastPresentLayers.end(); it++) {
             Hwc2Layer *layer = (Hwc2Layer*)(it->get());
             num++;
             if (needInfo) {
