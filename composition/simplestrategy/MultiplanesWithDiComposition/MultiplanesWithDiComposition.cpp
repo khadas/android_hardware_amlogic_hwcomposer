@@ -1231,9 +1231,12 @@ int MultiplanesWithDiComposition::commit(bool sf) {
             /* Set fb instead of composer output. */
             fb = composerOutput;
         } else  if (fb->mCompositionType == MESON_COMPOSITION_DI) {
-            mDiComposer->start(mVideoPlaneNum - 1);
             bool bDumpPlane = true;
+            bool hasVtBuffer = false;
             for (auto it = mDIComposerFbs.begin(); it != mDIComposerFbs.end(); ++it) {
+                if ((*it)->isVtBuffer())
+                    hasVtBuffer = true;
+
                 MESON_LOGV("meet composer pair %d", (*it)->mCompositionType);
                 if (bDumpPlane) {
                     dumpFbAndPlane(*it, plane, presentZorder, blankFlag);
@@ -1242,6 +1245,9 @@ int MultiplanesWithDiComposition::commit(bool sf) {
                     dumpComposedFb(*it);
                 }
             }
+            /* make sure SF donot refresh VtLayer and VT only refresh VtLayer*/
+            if ((sf && !hasVtBuffer) || (!sf && hasVtBuffer))
+                mDiComposer->start(mVideoPlaneNum - 1);
         } else {
             dumpFbAndPlane(fb, plane, presentZorder, blankFlag);
         }

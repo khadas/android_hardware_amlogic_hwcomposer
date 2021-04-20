@@ -58,16 +58,16 @@ int32_t VideoComposerDev::setFrames(
     releaseFence = -1;
     memset(&mVideoFramesInfo, 0, sizeof(mVideoFramesInfo));
 
-    mVideoFramesInfo.frame_count = composefbs.size();
+    mVideoFramesInfo.frame_count = 0;
     mVideoFramesInfo.layer_index = mDrvFd;
     mVideoFramesInfo.disp_zorder = z;
 
     MESON_LOGV("VideoComposerDev(%d) setframes (%d-%d)",
-            mDrvFd, mVideoFramesInfo.frame_count, mVideoFramesInfo.disp_zorder);
+            mDrvFd, composefbs.size(), mVideoFramesInfo.disp_zorder);
 
     for (int i = 0; i < composefbs.size(); i++) {
         fb = composefbs[i];
-        vFrameInfo = &mVideoFramesInfo.frame_info[i];
+        vFrameInfo = &mVideoFramesInfo.frame_info[mVideoFramesInfo.frame_count];
         buffer_handle_t buf = fb->mBufferHandle;
 
         vFrameInfo->sideband_type = 0;
@@ -88,14 +88,16 @@ int32_t VideoComposerDev::setFrames(
         } else if (fb->mFbType == DRM_FB_VIDEO_TUNNEL_SIDEBAND) {
             vFrameInfo->type = 0;
             vFrameInfo->fd = fb->getVtBuffer();
-            if (vFrameInfo->fd < 0) {
-                MESON_LOGV("vframe get invalid buffer fd");
-                return -EINVAL;
-            }
         } else {
             MESON_LOGE("unknow fb (%d) type %d !!", fb->mZorder, fb->mFbType);
             return -EINVAL;
         }
+
+        if ((vFrameInfo->type != 2) && (vFrameInfo->fd < 0)) {
+            MESON_LOGW("vframe get invalid buffer fd");
+            continue;
+        }
+        mVideoFramesInfo.frame_count++;
 
         bool isSidebandBuffer = fb->isSidebandBuffer();
         vFrameInfo->dst_x = fb->mDisplayFrame.left;
@@ -120,6 +122,11 @@ int32_t VideoComposerDev::setFrames(
                 vFrameInfo->reserved[0], vFrameInfo->reserved[1]);
     }
 
+    if (mVideoFramesInfo.frame_count == 0) {
+        MESON_LOGV("VideoComposerDEV(%d) has no frame count", mDrvFd);
+        return -EINVAL;
+    }
+
     if (ioctl(mDrvFd, VIDEO_COMPOSER_IOCTL_SET_FRAMES, &mVideoFramesInfo) != 0) {
         MESON_LOGE("video composer: ioctl error, %s(%d), mDrvFd = %d",
             strerror(errno), errno, mDrvFd);
@@ -127,7 +134,7 @@ int32_t VideoComposerDev::setFrames(
     }
 
     if (mVideoFramesInfo.frame_info[0].composer_fen_fd >= 0)
-        releaseFence = vFrameInfo->composer_fen_fd;
+        releaseFence = mVideoFramesInfo.frame_info[0].composer_fen_fd;
 
     MESON_LOGV("VideoComposerDev(%d) setframe ReleaseFence(%d)", mDrvFd, releaseFence);
 

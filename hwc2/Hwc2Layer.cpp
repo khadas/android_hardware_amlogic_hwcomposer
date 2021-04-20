@@ -483,6 +483,12 @@ int32_t Hwc2Layer::releaseVtBuffer() {
         mPreVtBufferFd = mVtBufferFd;
         mVtUpdate = false;
         mVtBufferFd = -1;
+
+        // CureRelease move to PrevRelase, it can be returned in next loop.
+        if (mCurReleaseFence.get() && mCurReleaseFence != DrmFence::NO_FENCE)
+            mPrevReleaseFence = mCurReleaseFence;
+        mCurReleaseFence.reset();
+
         return 0;
     }
 
@@ -499,12 +505,16 @@ int32_t Hwc2Layer::releaseVtBuffer() {
     mVtUpdate = false;
     mVtBufferFd = -1;
 
+    // CureRelease move to PrevRelase, it can be returned in next loop.
+    if (mCurReleaseFence.get() && mCurReleaseFence != DrmFence::NO_FENCE)
+        mPrevReleaseFence = mCurReleaseFence;
+    mCurReleaseFence.reset();
+
     return ret;
 }
 
 int32_t Hwc2Layer::releaseVtResource() {
     std::lock_guard<std::mutex> lock(mMutex);
-    MESON_LOGV("[%s] [%llu]", __func__, mId);
     return doReleaseVtResource();
 }
 
@@ -539,8 +549,8 @@ int32_t Hwc2Layer::doReleaseVtResource() {
             MESON_LOGV("[%s] [%llu] release(%d) queuedFrames(%d)",
                     __func__, mId, it->bufferFd, mQueuedFrames);
         }
-        mQueueItems.clear();
 
+        mQueueItems.clear();
         mVtBufferFd = -1;
         mPreVtBufferFd = -1;
         mVtUpdate = false;

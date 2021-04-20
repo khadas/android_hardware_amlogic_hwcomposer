@@ -81,10 +81,11 @@ public:
     hwc2_layer_t mId;
 
     std::map<drm_hdr_meatadata_t, float> mHdrMetaData;
-protected:
-    std::shared_ptr<DrmFence> mAcquireFence;
+
     std::shared_ptr<DrmFence> mPrevReleaseFence;
     std::shared_ptr<DrmFence> mCurReleaseFence;
+protected:
+    std::shared_ptr<DrmFence> mAcquireFence;
 
     void * mMapBase;
 };
