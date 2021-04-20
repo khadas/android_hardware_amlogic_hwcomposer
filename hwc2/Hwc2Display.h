@@ -202,6 +202,7 @@ protected:
     int32_t mLayerSeq;
 
     /* members used in present.*/
+    std::vector<std::shared_ptr<DrmFramebuffer>> mLastPresentLayers;
     std::vector<std::shared_ptr<DrmFramebuffer>> mPresentLayers;
     std::vector<std::shared_ptr<IComposer>> mPresentComposers;
     std::vector<std::shared_ptr<HwDisplayPlane>> mPresentPlanes;
