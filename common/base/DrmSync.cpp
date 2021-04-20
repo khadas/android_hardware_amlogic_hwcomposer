@@ -12,6 +12,9 @@
 #include <sync/sync.h>
 #include <sys/types.h>
 
+#include <string.h>
+#include <errno.h>
+
 #include <MesonLog.h>
 
 
@@ -86,7 +89,8 @@ int32_t DrmFence::dup() const{
 
     int32_t dupFence = ::dup(mFenceFd);
     if (dupFence < 0) {
-        MESON_LOGE("fence dup failed! please check it immeditely!");
+        MESON_LOGE("fence %d dup failed: %s! please check it immeditely!",
+                mFenceFd, strerror(errno));
     }
 
     return dupFence;
