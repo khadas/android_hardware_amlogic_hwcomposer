@@ -429,7 +429,8 @@ void Hwc2Display::onModeChanged(int stage) {
         } else {
             /* begin change mode, need blank once */
             mPowerMode->setConnectorStatus(false);
-            blankDisplay();
+            if (HwcConfig::primaryHotplugEnabled())
+                blankDisplay();
             mSkipComposition = true;
             return;
         }
