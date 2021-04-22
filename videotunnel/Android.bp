@@ -1,6 +1,7 @@
 cc_library_shared {
     name: "libvideotunnel",
-    vendor: true,
+    vendor_available: true,
+    system_ext_specific: true,
 
     srcs: [
         "video_tunnel.cpp",
