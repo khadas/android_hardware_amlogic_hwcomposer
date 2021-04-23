@@ -952,7 +952,6 @@ hwc2_error_t Hwc2Display::acceptDisplayChanges() {
 }
 
 hwc2_error_t Hwc2Display::presentSkipValidateCheck() {
-
     for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
         std::shared_ptr<Hwc2Layer> layer = it->second;
         if (layer->mCompositionType == MESON_COMPOSITION_CLIENT) {
@@ -988,9 +987,19 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence, bool sf) {
     if (mSkipComposition) {
         *outPresentFence = -1;
     } else {
+        /* videotunnel thread presentDisplay */
+        if (!sf) {
+            *outPresentFence = -1;
+            if (mValidateDisplay == false)
+                mCompositionStrategy->updateComposition();
+
+            mPresentCompositionStg->commit(sf);
+            return HWC2_ERROR_NONE;
+        }
+
         if (mValidateDisplay == false) {
             hwc2_error_t err = presentSkipValidateCheck();
-            if (err != HWC2_ERROR_NONE && sf) {
+            if (err != HWC2_ERROR_NONE) {
                 MESON_LOGV("presentDisplay without validateDisplay err(%d)",err);
                 return err;
             }
@@ -1015,16 +1024,13 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence, bool sf) {
         }
 
         mValidateDisplay = false;
+        if (mPresentFence >= 0)
+            close(mPresentFence);
+        mPresentFence = -1;
 
-        if (sf) {
-            if (mPresentFence >= 0)
-                close(mPresentFence);
-            mPresentFence = -1;
-
-            /*start new pageflip, and prepare.*/
-            if (mCrtc->prePageFlip() != 0 ) {
-                return HWC2_ERROR_NO_RESOURCES;
-            }
+        /*start new pageflip, and prepare.*/
+        if (mCrtc->prePageFlip() != 0 ) {
+            return HWC2_ERROR_NO_RESOURCES;
         }
 
         /*Start to compose, set up plane info.*/
@@ -1042,16 +1048,14 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence, bool sf) {
         #endif
 
         /* reset layer flag to false */
-        if (sf) {
-            for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
-                std::shared_ptr<Hwc2Layer> layer = it->second;
-                layer->clearUpdateFlag();
-            }
+        for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
+            std::shared_ptr<Hwc2Layer> layer = it->second;
+            layer->clearUpdateFlag();
+        }
 
-            /* Page flip */
-            if (mCrtc->pageFlip(mPresentFence) < 0) {
-                return HWC2_ERROR_UNSUPPORTED;
-            }
+        /* Page flip */
+        if (mCrtc->pageFlip(mPresentFence) < 0) {
+            return HWC2_ERROR_UNSUPPORTED;
         }
 
         if (mPostProcessor != NULL) {
