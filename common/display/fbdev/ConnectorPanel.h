@@ -37,12 +37,15 @@ protected:
         LCD_HEIGHT,
         LCD_SYNC_DURATION_NUM,
         LCD_SYNC_DURATION_DEN,
+        LCD_SCREEN_REAL_WIDTH,
+        LCD_SCREEN_REAL_HEIGHT,
         LCD_VALUE_MAX
     };
     bool mTabletMode;
     uint32_t mLcdValues[LCD_VALUE_MAX];
 
     char mName[64];
+    std::string mModeName;
 
 private:
     drm_hdr_capabilities mHdrCapabilities;

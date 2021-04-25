@@ -78,8 +78,23 @@ int32_t ConnectorPanel::parseLcdInfo() {
     "    viu_color_fmt:         %d\n"
     "    viu_mux:               %d\n\n",
     */
-
+#if BUILD_KERNEL_5_4 == true
+    char val[PROP_VALUE_LEN_MAX];
+    std::string lcdPath;
+    mModeName = "panel";
+    if (sys_get_string_prop("persist.vendor.hwc.lcdpath", val) > 0 && strcmp(val, "0") != 0) {
+        lcdPath = "/sys/class/aml_lcd/lcd";
+        lcdPath.append(val);
+        lcdPath.append("/vinfo");
+        mModeName.append(val);
+    } else {
+        lcdPath = "/sys/class/aml_lcd/lcd0/vinfo";
+    }
+    const char * lcdInfoPath = lcdPath.c_str();
+#else
     const char * lcdInfoPath = "/sys/class/lcd/vinfo";
+#endif
+
     const int valLenMax = 64;
     std::string lcdInfo;
 
@@ -108,12 +123,16 @@ int32_t ConnectorPanel::parseLcdInfo() {
                 " height:",
                 " sync_duration_num:",
                 " sync_duration_den:",
+                " screen_real_width:",
+                " screen_real_height:",
             };
             const int infoValueIdx[] = {
                 LCD_WIDTH,
                 LCD_HEIGHT,
                 LCD_SYNC_DURATION_NUM,
                 LCD_SYNC_DURATION_DEN,
+                LCD_SCREEN_REAL_WIDTH,
+                LCD_SCREEN_REAL_HEIGHT,
             };
             static int infoNum = sizeof(infoValueIdx) / sizeof(int);
 
@@ -138,14 +157,21 @@ int32_t ConnectorPanel::loadDisplayModes() {
     mDisplayModes.clear();
 
     if (mTabletMode) {
+        uint32_t dpiX  = DEFAULT_DISPLAY_DPI, dpiY = DEFAULT_DISPLAY_DPI;
+        if (mPhyWidth > 16 && mPhyHeight > 9) {
+            dpiX = (LCD_WIDTH  * 25.4f) / LCD_SCREEN_REAL_WIDTH;
+            dpiY = (LCD_HEIGHT  * 25.4f) / LCD_SCREEN_REAL_HEIGHT;
+            MESON_LOGI("add display mode lcd real dpi (%d, %d)", dpiX, dpiY);
+        }
         drm_mode_info_t modeInfo = {
-            "panel",
-            DEFAULT_DISPLAY_DPI,
-            DEFAULT_DISPLAY_DPI,
+            "",
+            dpiX,
+            dpiY,
             mLcdValues[LCD_WIDTH],
             mLcdValues[LCD_HEIGHT],
             (float)mLcdValues[LCD_SYNC_DURATION_NUM]/mLcdValues[LCD_SYNC_DURATION_DEN],
             0};
+        strncpy(modeInfo.name, mModeName.c_str(), sizeof(mModeName));
         mDisplayModes.emplace(mDisplayModes.size(), modeInfo);
         MESON_LOGE("use default value,get display mode: %s", modeInfo.name);
     } else {

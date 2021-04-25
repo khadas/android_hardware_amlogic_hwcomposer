@@ -96,7 +96,9 @@ int32_t DualDisplayPipe::init(
                 break;
             case DRM_MODE_CONNECTOR_LVDS:
                 {
-                    strcpy(displayMode.name, DRM_DISPLAY_MODE_PANEL);
+                    std::map<uint32_t, drm_mode_info_t> panelModes;
+                    stat.second->modeConnector->getModes(panelModes);
+                    strcpy(displayMode.name, panelModes[0].name);
                     stat.second->modeCrtc->setMode(displayMode);
                 }
                 break;
