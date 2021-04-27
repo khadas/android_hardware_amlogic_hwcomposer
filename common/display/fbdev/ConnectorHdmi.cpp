@@ -396,11 +396,13 @@ int32_t parseHdmiHdrCapabilities(drm_hdr_capabilities & hdrCaps) {
         close(fd);
     }
 
-    // mask off all hdr cap if  color depth is 8bit, set it to sdr
-    if (!sysfs_get_string(ATTR_PATH, buf, sizeof(buf))) {
-        if (strstr(buf, "8bit")) {
-            MESON_LOGD("mask off all hdrCaps, as it's 8bit color depth");
-            memset(&hdrCaps, 0, sizeof(drm_hdr_capabilities));
+    if (!hdrCaps.DolbyVisionSupported) {
+        // mask off all hdr cap if  color depth is 8bit, set it to sdr
+        if (!sysfs_get_string(ATTR_PATH, buf, sizeof(buf))) {
+            if (strstr(buf, "8bit")) {
+                MESON_LOGD("mask off all hdrCaps, as it's 8bit color depth");
+                memset(&hdrCaps, 0, sizeof(drm_hdr_capabilities));
+            }
         }
     }
 
