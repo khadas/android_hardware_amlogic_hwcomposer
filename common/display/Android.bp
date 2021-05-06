@@ -12,20 +12,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// *** THIS PACKAGE HAS SPECIAL LICENSING CONDITIONS.  PLEASE
-//     CONSULT THE OWNERS AND opensource-licensing@google.com BEFORE
-//     DEPENDING ON IT IN YOUR PROJECT. ***
-package {
-    // See: http://go/android-license-faq
-    // A large-scale-change added 'default_applicable_licenses' to import
-    // all of the 'license_kinds' from "hardware_amlogic_hwcomposer_license"
-    // to get the below license kinds:
-    //   SPDX-license-identifier-Apache-2.0
-    //   legacy_by_exception_only (by exception only)
-    //   legacy_proprietary (by exception only)
-    default_applicable_licenses: ["hardware_amlogic_hwcomposer_license"],
-}
-
 soong_config_module_type {
     name: "meson_hwc_display_cc_defaults",
     module_type: "cc_defaults",
