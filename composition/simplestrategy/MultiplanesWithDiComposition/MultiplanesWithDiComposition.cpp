@@ -20,6 +20,7 @@
 #include "HwcVideoPlane.h"
 #include "am_gralloc_ext.h"
 #include <DebugHelper.h>
+#include "UvmDev.h"
 
 #define OSD_OUTPUT_ONE_CHANNEL         1
 
@@ -35,27 +36,12 @@
 #define IS_FB_COMPOSED(fb) \
     (fb->mZorder >= mMinComposerZorder && fb->mZorder <= mMaxComposerZorder)
 
-#define UVM_DEV_PATH "/dev/uvm"
-#define UVM_IOC_MAGIC 'U'
-#define UVM_IOC_SET_FD _IOWR(UVM_IOC_MAGIC, 3, struct uvm_fd_data)
-
-struct uvm_fd_data {
-    int fd;
-    int commit_display;
-};
-
 /* Constructor function */
 MultiplanesWithDiComposition::MultiplanesWithDiComposition() {
-    mUVMFd = open(UVM_DEV_PATH, O_RDONLY | O_CLOEXEC);
-    if (mUVMFd < 0) {
-        MESON_LOGE("open uvm device error");
-    }
 }
 
 /* Deconstructor function */
 MultiplanesWithDiComposition::~MultiplanesWithDiComposition() {
-    if (mUVMFd >= 0)
-        close(mUVMFd);
 }
 
 /* Clean FrameBuffer, Composer and Plane. */
@@ -370,24 +356,20 @@ int MultiplanesWithDiComposition::applyCompositionFlags() {
 
 /* handle uvm, */
 int MultiplanesWithDiComposition::handleUVM() {
-    if (mUVMFd > 0) {
-        std::shared_ptr<DrmFramebuffer> fb;
-        auto fbIt = mDisplayPairs.begin();
-        struct uvm_fd_data fd_data;
+    std::shared_ptr<DrmFramebuffer> fb;
+    auto fbIt = mDisplayPairs.begin();
 
-        for (; fbIt != mDisplayPairs.end(); ++fbIt) {
-            fb = fbIt->fb;
-
-            if (fb->mFbType == DRM_FB_VIDEO_UVM_DMA) {
-                fd_data.fd = am_gralloc_get_buffer_fd(fb->mBufferHandle);
-                fd_data.commit_display = 1;
-                if (ioctl(mUVMFd, UVM_IOC_SET_FD, &fd_data) != 0) {
-                    MESON_LOGE("setUVM fd data ioctl error %s", strerror(errno));
-                    return -1;
-                }
+    for (; fbIt != mDisplayPairs.end(); ++fbIt) {
+        fb = fbIt->fb;
+        if (fb->mFbType == DRM_FB_VIDEO_UVM_DMA) {
+            int uFd = am_gralloc_get_buffer_fd(fb->mBufferHandle);
+            if (UvmDev::getInstance().commitDisplay(uFd, 1)) {
+                MESON_LOGE("UVM set fd data ioctl error %s", strerror(errno));
+                continue;
             }
         }
     }
+
     return 0;
 }
 

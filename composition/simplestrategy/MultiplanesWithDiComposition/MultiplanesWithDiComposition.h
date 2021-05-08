@@ -107,8 +107,6 @@ protected:
     uint32_t mMinVideoZorder;
     uint32_t mMaxVideoZorder;
 
-    /* Use for UVM */
-    int mUVMFd;
     int mOsdPlaneNum;
     int mVideoPlaneNum;
 
