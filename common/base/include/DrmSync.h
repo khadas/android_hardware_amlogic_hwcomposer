@@ -29,6 +29,26 @@ public:
         const std::shared_ptr<DrmFence> &f1,
         const std::shared_ptr<DrmFence> &f2);
 
+    enum class Status {
+        Invalid,     // Fence is invalid
+        Unsignaled,  // Fence is valid but has not yet signaled
+        Signaled,    // Fence is valid and has signaled
+    };
+
+    // getStatus() returns whether the fence has signaled yet. Prefer this to
+    // getSignalTime() or wait() if all you care about is whether the fence has
+    // signaled.
+    inline Status getStatus() {
+        switch (wait(0)) {
+            case 0:
+                return Status::Signaled;
+            case -ETIME:
+                return Status::Unsignaled;
+            default:
+                return Status::Invalid;
+        }
+    }
+
 public:
     static const std::shared_ptr<DrmFence> NO_FENCE;
 

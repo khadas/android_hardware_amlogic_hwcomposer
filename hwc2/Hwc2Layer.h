@@ -76,6 +76,13 @@ protected:
     hwc2_error_t handleDimLayer(buffer_handle_t buffer);
     int32_t doReleaseVtResource();
 
+    /* for NR */
+    int32_t attachUvmBuffer(const int bufferFd);
+    int32_t dettachUvmBuffer();
+    int32_t collectUvmBuffer(const int bufferFd, const int fence);
+    int32_t releaseUvmResource();
+    int32_t releaseUvmResourceLock();
+
 protected:
     bool mUpdateZorder;
 
@@ -96,6 +103,15 @@ protected:
     nsecs_t mExpectedPresentTime;
     bool mVtUpdate;
     bool mNeedReleaseVtResource;
+
+    /* for NR */
+    struct UvmBuffer {
+        int bufferFd;
+        std::shared_ptr<DrmFence> releaseFence;
+    };
+
+    std::deque<UvmBuffer> mUvmBufferQueue;
+    int mPreUvmBufferFd;
 };
 
 
