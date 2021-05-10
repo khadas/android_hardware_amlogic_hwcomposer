@@ -19,6 +19,7 @@
 #include "Hwc2Layer.h"
 #include "Hwc2Base.h"
 #include "VideoTunnelDev.h"
+#include "UvmDev.h"
 
 Hwc2Layer::Hwc2Layer() : DrmFramebuffer(){
     mDataSpace     = HAL_DATASPACE_UNKNOWN;
@@ -32,11 +33,15 @@ Hwc2Layer::Hwc2Layer() : DrmFramebuffer(){
     mQueuedFrames = 0;
     mTunnelId = -1;
     mQueueItems.clear();
+
+    mPreUvmBufferFd = -1;
+    mUvmBufferQueue.clear();
 }
 
 Hwc2Layer::~Hwc2Layer() {
     // release last video tunnel buffer
     releaseVtResource();
+    releaseUvmResource();
 }
 
 hwc2_error_t Hwc2Layer::handleDimLayer(buffer_handle_t buffer) {
@@ -123,8 +128,26 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
      * If video tunnel sideband recieve blank frame,
      * need release video tunnel resouce
      */
-    if (isVtBuffer())
+    if (isVtBuffer()) {
         mNeedReleaseVtResource = true;
+        releaseUvmResourceLock();
+    }
+
+    dettachUvmBuffer();
+
+    /*
+     * For UVM video buffer, set UVM flags.
+     * As the buffer will was update already
+     */
+    if (mFbType == DRM_FB_VIDEO_UVM_DMA) {
+        if (mPreUvmBufferFd >= 0) {
+            int fd = dup(am_gralloc_get_buffer_fd(buffer));
+            attachUvmBuffer(fd);
+            int releaseFence = getPrevReleaseFence();
+            collectUvmBuffer(mPreUvmBufferFd, releaseFence);
+            mPreUvmBufferFd = fd;
+        }
+    }
 
     /*
     * SurfaceFlinger will call setCompostionType() first,then setBuffer().
@@ -171,6 +194,20 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
 
     if (preType != mFbType)
         mUpdated = true;
+
+    // for the fist vum buffer
+    if (mFbType == DRM_FB_VIDEO_UVM_DMA) {
+        if (mPreUvmBufferFd < 0) {
+            int fd = dup(am_gralloc_get_buffer_fd(buffer));
+            attachUvmBuffer(fd);
+            mPreUvmBufferFd = fd;
+        }
+    }
+
+    // changed from UVM to other type
+    if (preType != mFbType && preType == DRM_FB_VIDEO_UVM_DMA) {
+        releaseUvmResourceLock();
+    }
 
     mSecure = am_gralloc_is_secure_buffer(mBufferHandle);
     return HWC2_ERROR_NONE;
@@ -390,6 +427,7 @@ int32_t Hwc2Layer::acquireVtBuffer() {
             VtBufferItem item = {vtBufferFd, vtTimestamp};
             mQueueItems.push_back(item);
             mQueuedFrames++;
+            attachUvmBuffer(vtBufferFd);
         } else {
             // has no buffer available
             break;
@@ -398,6 +436,8 @@ int32_t Hwc2Layer::acquireVtBuffer() {
 
     if (mQueueItems.empty())
         return -EAGAIN;
+
+    dettachUvmBuffer();
 
     static nsecs_t previousTimestamp = 0;
     [[maybe_unused]] nsecs_t diffAdded = 0;
@@ -424,8 +464,11 @@ int32_t Hwc2Layer::acquireVtBuffer() {
         diffAdded = item.timestamp - previousTimestamp;
         previousTimestamp = item.timestamp;
 
-        VideoTunnelDev::getInstance().releaseBuffer(mTunnelId, item.bufferFd, getPrevReleaseFence());
+        int releaseFence = getPrevReleaseFence();
+        VideoTunnelDev::getInstance().releaseBuffer(mTunnelId, item.bufferFd, releaseFence);
         mQueuedFrames--;
+
+        collectUvmBuffer(dup(item.bufferFd), dup(releaseFence));
 
         MESON_LOGD("[%s] [%llu] vt buffer fd(%d) with timestamp(%" PRId64 ") expired droped "
                 "expectedPresent time(%" PRId64 ") diffAdded(%" PRId64 ") queuedFrames(%d)",
@@ -497,6 +540,8 @@ int32_t Hwc2Layer::releaseVtBuffer() {
     int ret = VideoTunnelDev::getInstance().releaseBuffer(mTunnelId,
             mPreVtBufferFd, releaseFence);
     mQueuedFrames--;
+
+    collectUvmBuffer(dup(mPreVtBufferFd), dup(releaseFence));
 
     MESON_LOGV("[%s] [%llu] releaseFence:%d, mVtBufferfd:%d, mPreVtBufferFd(%d), queuedFrames(%d)",
             __func__, mId, releaseFence, mVtBufferFd, mPreVtBufferFd, mQueuedFrames);
@@ -625,3 +670,75 @@ bool Hwc2Layer::shouldPresentNow(nsecs_t timestamp) {
     return  isDue ||  !isPlausible;
 }
 
+int32_t Hwc2Layer::attachUvmBuffer(const int bufferFd) {
+    return UvmDev::getInstance().attachBuffer(bufferFd);
+}
+
+int32_t Hwc2Layer::dettachUvmBuffer() {
+    if (mUvmBufferQueue.size() <= 1)
+        return -EAGAIN;
+
+    int signalItemCount = 0;
+    for (auto it = mUvmBufferQueue.begin(); it != mUvmBufferQueue.end(); it++) {
+        auto currentStatus = it->releaseFence->getStatus();
+        // fence was signaled
+        if (currentStatus == DrmFence::Status::Signaled ||
+                currentStatus == DrmFence::Status::Invalid)
+            signalItemCount++;
+    }
+
+    MESON_LOGV("%s, UvmBufferQueue size:%d, signalItemCount:%d",
+            __func__, mUvmBufferQueue.size(), signalItemCount);
+
+    while (signalItemCount > 0) {
+        auto item = mUvmBufferQueue.front();
+        signalItemCount--;
+
+        MESON_LOGV("%s dettachBuffer:%d, fenceStatus:%d",
+                __func__, item.bufferFd, item.releaseFence->getStatus());
+        //dettach it
+        UvmDev::getInstance().dettachBuffer(item.bufferFd);
+        if (item.bufferFd >= 0)
+            close(item.bufferFd);
+
+        mUvmBufferQueue.pop_front();
+    }
+    return 0;
+}
+
+int32_t Hwc2Layer::collectUvmBuffer(const int fd, const int fence) {
+    if (fd < 0) {
+        MESON_LOGE("%s: get invalid fd", __func__);
+        if (fence >= 0)
+            close(fence);
+        return -EINVAL;
+    }
+    if (fence < 0)
+        MESON_LOGD("%s: get invalid fence", __func__);
+
+    UvmBuffer item = {fd, std::move(std::make_shared<DrmFence>(fence))};
+    mUvmBufferQueue.push_back(item);
+
+    return 0;
+}
+
+int32_t Hwc2Layer::releaseUvmResourceLock() {
+    for (auto it = mUvmBufferQueue.begin(); it != mUvmBufferQueue.end(); it++) {
+        if (it->bufferFd >= 0)
+            close(it->bufferFd);
+    }
+
+    mUvmBufferQueue.clear();
+    if (mPreUvmBufferFd >= 0)
+        close(mPreUvmBufferFd);
+
+    mPreUvmBufferFd = -1;
+
+    return 0;
+}
+
+int32_t Hwc2Layer::releaseUvmResource() {
+    std::lock_guard<std::mutex> lock(mMutex);
+
+    return releaseUvmResourceLock();
+}
