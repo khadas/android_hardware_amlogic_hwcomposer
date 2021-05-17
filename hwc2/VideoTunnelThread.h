@@ -21,24 +21,31 @@
 
 class VideoTunnelThread {
 public:
-        VideoTunnelThread(Hwc2Display * display);
-        ~VideoTunnelThread();
+    VideoTunnelThread(Hwc2Display * display);
+    ~VideoTunnelThread();
 
-        void onVtVsync(int64_t timestamp, uint32_t vsyncPeriodNanos);
-
-protected:
-        void handleVideoTunnelLayers();
-        int createThread();
-        static void *threadMain(void * data);
+    void onVtVsync(int64_t timestamp, uint32_t vsyncPeriodNanos);
 
 protected:
-        bool mExit;
-        bool mVsyncComing;
-        bool mSkipValidate;
-        pthread_t mVtThread;
-        std::mutex mVtLock;
-        std::condition_variable mVtCondition;
-        Hwc2Display * mDisplay;
+    void handleVideoTunnelLayers();
+    int createThread();
+    static void *bufferThreadMain(void * data);
+
+    int handleVideoTunnelCmds();
+    static void *cmdThreadMain(void *data);
+
+protected:
+    bool mExit;
+    bool mVsyncComing;
+
+    // videotunnel cmd thread
+    pthread_t mVtCmdThread;
+   // std::mutex mVtCmdLock;
+
+    pthread_t mVtBufferThread;
+    std::mutex mVtLock;
+    std::condition_variable mVtCondition;
+    Hwc2Display * mDisplay;
 };
 
 #endif

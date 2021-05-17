@@ -1576,3 +1576,20 @@ void Hwc2Display::releaseVtLayers() {
 bool Hwc2Display::handleVtDisplayConnection() {
     return mDisplayConnection;
 }
+
+int Hwc2Display::recieveVtCmds() {
+    std::lock_guard<std::mutex> lock(mMutex);
+
+    for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
+        auto layer = it->second;
+        if (layer->isVtBuffer()) {
+            int ret = layer->recieveVtCmds();
+            if (ret != 0 && ret != -EAGAIN) {
+                MESON_LOGE("%s, layer id=%llu recieve vt cmds failed:%s",
+                        __func__, layer->getUniqueId(), strerror(ret));
+            }
+        }
+    }
+
+    return 0;
+}

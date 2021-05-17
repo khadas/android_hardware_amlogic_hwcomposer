@@ -21,26 +21,14 @@ VideoTunnelThread::VideoTunnelThread(Hwc2Display * display) {
     mVsyncComing = false;
     mDisplay = display;
 
-    /* get capabilities */
-    uint32_t capCount = 0;
-    MesonHwc2::getInstance().getCapabilities(&capCount, nullptr);
-
-    std::vector<int32_t> caps(capCount);
-    MesonHwc2::getInstance().getCapabilities(&capCount, caps.data());
-    caps.resize(capCount);
-    /* check whether have skip validate capability */
-    if (std::find(caps.begin(), caps.end(), HWC2_CAPABILITY_SKIP_VALIDATE) != caps.end())
-        mSkipValidate = true;
-    else
-        mSkipValidate = false;
-
     createThread();
 }
 
 VideoTunnelThread::~VideoTunnelThread() {
     MESON_LOGD("%s, Destroy VideoTunnelThread thread", __func__);
     mExit = true;
-    pthread_join(mVtThread, NULL);
+    pthread_join(mVtBufferThread, NULL);
+    pthread_join(mVtCmdThread, NULL);
 }
 
 int VideoTunnelThread::createThread() {
@@ -48,9 +36,16 @@ int VideoTunnelThread::createThread() {
 
     MESON_LOGD("%s, Create VideoTunnelThread thread", __func__);
 
-    ret = pthread_create(&mVtThread, NULL, threadMain, (void *)this);
+    ret = pthread_create(&mVtBufferThread, NULL, bufferThreadMain, (void *)this);
     if (ret) {
-        MESON_LOGE("failed to create VideoTunnelThread: %s",
+        MESON_LOGE("failed to create VideoTunnel BUfferThread: %s",
+                strerror(ret));
+        return ret;
+    }
+
+    ret = pthread_create(&mVtCmdThread, NULL, cmdThreadMain, (void *)this);
+    if (ret) {
+        MESON_LOGE("failed to create VideoTunnel CmdThread: %s",
                 strerror(ret));
         return ret;
     }
@@ -88,7 +83,7 @@ void VideoTunnelThread::handleVideoTunnelLayers() {
     mDisplay->releaseVtLayers();
 }
 
-void* VideoTunnelThread::threadMain(void *data) {
+void* VideoTunnelThread::bufferThreadMain(void *data) {
     VideoTunnelThread* pThis = (VideoTunnelThread*)data;
 
     // set videotunnel thread to SCHED_FIFO to minimize jitter
@@ -109,3 +104,38 @@ void* VideoTunnelThread::threadMain(void *data) {
     }
 }
 
+int VideoTunnelThread::handleVideoTunnelCmds() {
+    int32_t outPresentFence = -1;
+    /*
+     * poll videotunnel cmd,
+     * will wait in videotunnel driver until recieve cmds
+     */
+    if (VideoTunnelDev::getInstance().pollCmds())
+        return -EAGAIN;
+
+    mDisplay->recieveVtCmds();
+
+    // present display once to disable video
+    mDisplay->presentDisplay(&outPresentFence, false);
+    if (outPresentFence >= 0)
+        close(outPresentFence);
+
+    return 0;
+}
+
+// videotunnel cmd handle thread
+void* VideoTunnelThread::cmdThreadMain(void *data) {
+    VideoTunnelThread* pThis = (VideoTunnelThread*)data;
+
+    while (true) {
+        if (pThis->mExit) {
+            MESON_LOGD("VideoTunnel Cmd Thread exit video tunnel loop");
+            pthread_exit(0);
+            return NULL;
+        }
+
+        pThis->handleVideoTunnelCmds();
+    }
+
+    return NULL;
+}

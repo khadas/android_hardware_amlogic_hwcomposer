@@ -513,6 +513,38 @@ int32_t Hwc2Layer::releaseVtBuffer() {
     return ret;
 }
 
+int32_t Hwc2Layer::recieveVtCmds() {
+    std::lock_guard<std::mutex> lock(mMutex);
+    if (!isVtBuffer())
+        return -EINVAL;
+
+    enum vt_cmd cmd;
+    int cmdData = -1;
+
+    int ret = VideoTunnelDev::getInstance().recieveCmd(mTunnelId, cmd, cmdData);
+    if (ret < 0)
+        return ret;
+
+    // process the cmd
+    if (cmd == VT_CMD_SET_VIDEO_STATUS) {
+        MESON_LOGD("recv videotunnel [%d] cmd=%d cmdData=%d", mTunnelId, cmd, cmdData);
+
+        // disable video cmd
+        if (cmdData == 1) {
+            // set it to dummy
+            mCompositionType = MESON_COMPOSITION_DUMMY;
+            // release all the vt release
+            doReleaseVtResource();
+        }
+    } else {
+        // Currently only support set video disable status
+        MESON_LOGE("Not supported videoTunnel [%d] cmd:%d", mTunnelId, cmd);
+    }
+
+    return 0;
+}
+
+
 int32_t Hwc2Layer::releaseVtResource() {
     std::lock_guard<std::mutex> lock(mMutex);
     return doReleaseVtResource();
@@ -592,3 +624,4 @@ bool Hwc2Layer::shouldPresentNow(nsecs_t timestamp) {
 
     return  isDue ||  !isPlausible;
 }
+
