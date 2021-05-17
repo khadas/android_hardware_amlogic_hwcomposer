@@ -26,7 +26,7 @@ public:
 
     int32_t recieveCmd(int tunnelId, enum vt_cmd& cmd, int& cmdData);
 
-    int32_t pollBuffer();
+    int32_t pollCmds();
 
 private:
     int mDrvFd;

@@ -56,10 +56,10 @@ int32_t VideoTunnelDev::recieveCmd(int tunnelId, enum vt_cmd& cmd, int& cmdData)
 }
 
 /*
- * Return of 0 means the operation timeout or error.
- * On success, return of 1 means videotunnel can acquire buffer
+ * Return of -EAGAIN means the operation timeout or error.
+ * On success, return of 0 means videotunnel can receive cmds
  */
-int32_t VideoTunnelDev::pollBuffer() {
+int32_t VideoTunnelDev::pollCmds() {
     struct pollfd fds[1];
     fds[0].fd = mDrvFd;
     fds[0].events = POLLIN;
@@ -67,8 +67,8 @@ int32_t VideoTunnelDev::pollBuffer() {
 
     int pollrtn = poll(fds, 1, VT_POOL_TIMEOUT);
     if (pollrtn > 0 && fds[0].revents == POLLIN) {
-        return 1;
+        return 0;
     }
 
-    return 0;
+    return -EAGAIN;
 }

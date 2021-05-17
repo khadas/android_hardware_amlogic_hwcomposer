@@ -146,6 +146,9 @@ public:
     virtual void releaseVtLayers();
     virtual bool handleVtDisplayConnection();
 
+    /* recieve videotunnel cmds */
+    virtual int recieveVtCmds();
+
 /* meson display ddk */
 public:
     int32_t captureDisplayScreen(buffer_handle_t hnd);
