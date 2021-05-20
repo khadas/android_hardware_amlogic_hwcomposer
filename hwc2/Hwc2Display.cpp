@@ -310,6 +310,7 @@ void Hwc2Display::onHotplug(bool connected) {
             return;
         }
 
+        mDisplayConnection = false;
         mPowerMode->setConnectorStatus(false);
         blankDisplay();
         mSkipComposition = true;
@@ -324,10 +325,8 @@ void Hwc2Display::onHotplug(bool connected) {
         if (mConnector && mConnector->getType() == DRM_MODE_CONNECTOR_HDMIA) {
             mModeMgr->update();
             mObserver->onHotplug(true);
-            mDisplayConnection = true;
         } else {
             mObserver->onHotplug(false);
-            mDisplayConnection = false;
         }
     }
 
@@ -430,6 +429,7 @@ void Hwc2Display::onModeChanged(int stage) {
             }
         } else {
             /* begin change mode, need blank once */
+            mDisplayConnection = false;
             mPowerMode->setConnectorStatus(false);
             if (HwcConfig::primaryHotplugEnabled())
                 blankDisplay();
@@ -1576,6 +1576,18 @@ void Hwc2Display::releaseVtLayers() {
 }
 
 bool Hwc2Display::handleVtDisplayConnection() {
+    std::lock_guard<std::mutex> lock(mMutex);
+    if (!mDisplayConnection) {
+        std::shared_ptr<Hwc2Layer> layer;
+        for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
+            layer = it->second;
+            if (layer->isVtBuffer() && layer->isFbUpdated()) {
+                /*not show when display disconnect*/
+                layer->setPrevReleaseFence(-1);
+            }
+        }
+    }
+
     return mDisplayConnection;
 }
 
