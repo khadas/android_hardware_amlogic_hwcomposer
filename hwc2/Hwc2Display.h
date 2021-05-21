@@ -264,6 +264,11 @@ protected:
     bool mFirstPresent;
 
     uint32_t mDisplayId;
+
+#if PLATFORM_SDK_VERSION == 30
+    // for self-adaptive
+    int mVideoLayerRegion;
+#endif
 };
 
 #endif/*HWC2_DISPLAY_H*/

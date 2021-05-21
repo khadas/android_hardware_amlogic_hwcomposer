@@ -53,6 +53,10 @@ Hwc2Display::Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer, uint32_t
     memset(&mHdrCaps, 0, sizeof(mHdrCaps));
     memset(mColorMatrix, 0, sizeof(float) * 16);
     memset(&mCalibrateCoordinates, 0, sizeof(int) * 4);
+#if PLATFORM_SDK_VERSION == 30
+    // for self-adaptive
+    mVideoLayerRegion = 0;
+#endif
 }
 
 Hwc2Display::~Hwc2Display() {
@@ -940,6 +944,12 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
 hwc2_error_t Hwc2Display::collectCompositionRequest(
     uint32_t* outNumTypes, uint32_t* outNumRequests) {
     Hwc2Layer *layer;
+#if PLATFORM_SDK_VERSION == 30
+    // for self-adaptive
+    int maxRegion = 0, region = 0;
+    ISystemControl::Rect maxRect{0, 0, 0, 0};
+#endif
+
     /*collect display requested, and changed composition type.*/
     for (auto it = mPresentLayers.begin() ; it != mPresentLayers.end(); it++) {
         layer = (Hwc2Layer*)(it->get());
@@ -957,7 +967,38 @@ hwc2_error_t Hwc2Display::collectCompositionRequest(
         }
         if (expectedHwcComposition == HWC2_COMPOSITION_SIDEBAND || layer->mCompositionType == MESON_COMPOSITION_PLANE_AMVIDEO)
             mProcessorFlags |= PRESENT_SIDEBAND;
+
+#if PLATFORM_SDK_VERSION == 30
+        // for self-adaptive
+        if (isVideoPlaneComposition(layer->mCompositionType)) {
+            /* For hdmi self-adaptive in systemcontrol.
+             * hdmi frame rate is on
+             * */
+            region = (layer->mDisplayFrame.right - layer->mDisplayFrame.left) *
+                    (layer->mDisplayFrame.bottom - layer->mDisplayFrame.top);
+            if (region > maxRegion) {
+                maxRegion = region;
+                maxRect.left   = layer->mDisplayFrame.left;
+                maxRect.right  = layer->mDisplayFrame.right;
+                maxRect.top    = layer->mDisplayFrame.top;
+                maxRect.bottom = layer->mDisplayFrame.bottom;
+            }
+        }
+#endif
     }
+
+#if PLATFORM_SDK_VERSION == 30
+    // for self-adaptive
+    if (maxRegion != 0 && mVideoLayerRegion != maxRegion) {
+        sc_frame_rate_display(true, maxRect);
+        mVideoLayerRegion = maxRegion;
+    }
+
+    if (maxRegion == 0 && mVideoLayerRegion != 0) {
+        sc_frame_rate_display(false, maxRect);
+        mVideoLayerRegion = 0;
+    }
+#endif
 
     /*collcet client clear layer.*/
     std::shared_ptr<IComposer> clientComposer =
