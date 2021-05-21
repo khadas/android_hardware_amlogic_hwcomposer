@@ -436,6 +436,21 @@ int32_t sc_set_hdmi_allm(bool on) {
     return 0;
 }
 
+#if PLATFORM_SDK_VERSION == 30
+// for self-adaptive
+int32_t sc_frame_rate_display(bool on, const ISystemControl::Rect& rect) {
+    CHK_SC_PROXY();
+
+    Result ret = gSC->frameRateDisplay(on, rect);
+    if (ret == Result::OK) {
+        return 0;
+    } else {
+        MESON_LOGE("sc_frame_rate_display FAIL.");
+        return -EFAULT;
+    }
+}
+#endif
+
 #else
 
 static sp<ISystemControlService> gSC = NULL;
@@ -544,4 +559,19 @@ int32_t sc_set_hdmi_allm(bool on) {
 
     return 0;
 }
+
+#if PLATFORM_SDK_VERSION == 30
+// for self-adaptive
+int32_t sc_frame_rate_display(bool on, const ISystemControl::Rect& rect) {
+    CHK_SC_PROXY();
+
+    Result ret = gSC->frameRateDisplay(on, rect);
+    if (ret == Result::OK) {
+        return 0;
+    } else {
+        MESON_LOGE("sc_frame_rate_display FAIL.");
+        return -EFAULT;
+    }
+}
+#endif
 #endif

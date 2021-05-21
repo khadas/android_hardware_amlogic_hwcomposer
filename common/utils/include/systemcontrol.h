@@ -11,6 +11,14 @@
 #include <errno.h>
 #include <BasicTypes.h>
 
+#if PLATFORM_SDK_VERSION >=  26
+#include <vendor/amlogic/hardware/systemcontrol/1.1/ISystemControl.h>
+using ::vendor::amlogic::hardware::systemcontrol::V1_1::ISystemControl;
+#else
+#include <ISystemControlService.h>
+#include <binder/IServiceManager.h>
+#endif
+
 int32_t sc_get_hdmitx_mode_list(std::vector<std::string>& edidlist);
 int32_t sc_get_hdmitx_hdcp_state(bool & val);
 int32_t sc_get_display_mode(std::string &dispmode);
@@ -38,4 +46,8 @@ int32_t read_sysfs(const char * path, std::string & val);
 
 int32_t sc_notify_hdmi_plugin();
 int32_t sc_set_hdmi_allm(bool on);
+#if PLATFORM_SDK_VERSION == 30
+// for self-adaptive
+int32_t sc_frame_rate_display(bool on,  const ISystemControl::Rect& rect);
+#endif
 #endif/*SYSTEM_CONTROL_H*/
