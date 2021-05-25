@@ -19,6 +19,42 @@
 #define DEFUALT_DPI (159)
 #define DEFAULT_REFRESH_RATE (60.0f)
 
+#ifndef ARRAY_SIZE
+#define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
+#endif
+
+/*
+ * sync with DISPLAY_MODE_LIST from systemcontrol/DisplayMode.cpp
+ * and filter the interlace mode
+ * */
+static const char* DISPLAY_MODE_LIST[] = {
+    "480p60hz",     // MODE_480P
+    "480cvbs",      // MODE_480CVBS
+    "576p50hz",     // MODE_576P
+    "576cvbs",      // MODE_576CVBS
+    "720p50hz",     // MODE_720P50HZ
+    "720p60hz",     // MODE_720P
+    "768p60hz",     // MODE_768P
+    "1080p24hz",    // MODE_1080P24HZ
+    "1080p25hz",    // MODE_1080P25HZ
+    "1080p30hz",    // MODE_1080P30HZ
+    "1080p50hz",    // MODE_1080P50HZ
+    "1080p60hz",    // MODE_1080P
+    "2160p24hz",    // MODE_4K2K24HZ
+    "2160p25hz",    // MODE_4K2K25HZ
+    "2160p30hz",    // MODE_4K2K30HZ
+    "2160p50hz",    // MODE_4K2K50HZ
+    "2160p60hz",    // MODE_4K2K60HZ
+    "smpte24hz",    // MODE_4K2KSMPTE
+    "smpte30hz",    // MODE_4K2KSMPTE30HZ
+    "smpte50hz",    // MODE_4K2KSMPTE50HZ
+    "smpte60hz",    // MODE_4K2KSMPTE60HZ
+    "panel",        // MODE_PANEL
+    "pal_m",        // MODE_PAL_M
+    "pal_n",        // MODE_PAL_N
+    "ntsc_m",       // MODE_NTSC_M
+};
+
 static const drm_mode_info_t fakeInitialMode = {
     .name              = "FAKE_INITIAL_MODE",
     .dpiX              = DEFUALT_DPI,
@@ -82,25 +118,30 @@ int32_t RealModeMgr::update() {
     std::lock_guard<std::mutex> lock(mMutex);
     bool useFakeMode = true;
     drm_mode_info_t realMode;
-    std::map<uint32_t, drm_mode_info_t> supportModes;
+    std::map<uint32_t, drm_mode_info_t> connecterModeList;
 
     /* reset ModeList */
     reset();
     if (mConnector->isConnected()) {
-        mConnector->getModes(supportModes);
+        mConnector->getModes(connecterModeList);
         if (mCrtc->getMode(realMode) == 0) {
             if (realMode.name[0] != 0) {
                 mCurMode = realMode;
                 mPreviousMode = realMode;
                 useFakeMode = false;
             }
+        } else {
+            strncpy(mCurMode.name, "invalid", DRM_DISPLAY_MODE_LEN);
         }
 
         mDvEnabled = sc_is_dolby_version_enable();
         MESON_LOGD("RealModeMgr::update mDvEnabled(%d)", mDvEnabled);
 
-        for (auto it = supportModes.begin(); it != supportModes.end(); it++) {
-            mModes.emplace(mModes.size(), it->second);
+        for (auto it = connecterModeList.begin(); it != connecterModeList.end(); it++) {
+            /* not filter the current mode */
+            if (isSupportModeForCurrentDevice(it->second) ||
+                    !strcmp(mCurMode.name, it->second.name))
+                mModes.emplace(mModes.size(), it->second);
         }
     }
 
@@ -235,6 +276,21 @@ int32_t RealModeMgr::setActiveConfig(uint32_t config) {
     }
 
     return HWC2_ERROR_NONE;
+}
+
+bool RealModeMgr::isSupportModeForCurrentDevice(drm_mode_info_t mode) {
+    // some hdmi output is not suitable for current device
+    bool ret = false;
+    uint32_t i;
+
+    for (i = 0; i < ARRAY_SIZE(DISPLAY_MODE_LIST); i++) {
+        if (!strcmp(DISPLAY_MODE_LIST[i], mode.name)) {
+            ret = true;
+            break;
+        }
+    }
+
+    return ret;
 }
 
 void RealModeMgr::dump(String8 & dumpstr) {
