@@ -44,6 +44,7 @@ public:
 
 protected:
     int32_t updateActiveConfig(const char* activeMode);
+    bool isSupportModeForCurrentDevice(drm_mode_info_t mode);
     void reset();
 
     std::shared_ptr<HwDisplayConnector> mConnector;
