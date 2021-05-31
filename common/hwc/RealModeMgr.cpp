@@ -214,7 +214,8 @@ int32_t  RealModeMgr::getDisplayAttribute(
                 break;
         }
     } else {
-        MESON_LOGE("[%s]: no support display config: %d", __func__, config);
+        MESON_LOGE("[%s]: no support display config: %d, mModes size:%d",
+                __func__, config, mModes.size());
         return HWC2_ERROR_UNSUPPORTED;
     }
 

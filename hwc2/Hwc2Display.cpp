@@ -14,6 +14,7 @@
 #include <hardware/hwcomposer2.h>
 #include <inttypes.h>
 #include <time.h>
+#include <thread>
 
 #include "Hwc2Display.h"
 #include "Hwc2Layer.h"
@@ -334,6 +335,9 @@ void Hwc2Display::onHotplug(bool connected) {
     if (mConnector && mConnector->getType() == DRM_MODE_CONNECTOR_HDMIA) {
         mVsync->setSoftwareMode();
     }
+
+    /* wait up the setActiveConfig, if hdmi plug out */
+    mStateCondition.notify_all();
 }
 
 /* clear all layers and blank display when extend display plugout,
@@ -427,6 +431,9 @@ void Hwc2Display::onModeChanged(int stage) {
             } else {
                 MESON_LOGE("No display oberserve register to display (%s)", getName());
             }
+
+            /* wait up the setActiveConfig */
+            mStateCondition.notify_all();
         } else {
             /* begin change mode, need blank once */
             mDisplayConnection = false;
@@ -1210,7 +1217,21 @@ hwc2_error_t Hwc2Display::getActiveConfig(
 hwc2_error_t Hwc2Display::setActiveConfig(
     hwc2_config_t config) {
     if (mModeMgr != NULL) {
-        return (hwc2_error_t)mModeMgr->setActiveConfig(config);
+        /* set to the same activeConfig */
+        hwc2_config_t activeCurr;
+        if (mModeMgr->getActiveConfig(&activeCurr) == HWC2_ERROR_NONE) {
+            if (config == activeCurr)
+                return HWC2_ERROR_NONE;
+        }
+
+        int ret = mModeMgr->setActiveConfig(config);
+        /* wait when the display start refresh at the new config */
+        std::unique_lock<std::mutex> stateLock(mStateLock);
+        mStateCondition.wait_for(stateLock, std::chrono::seconds(3));
+        /* For non seamless sleep wait for the signal steadble */
+        usleep(500 * 1000);
+
+        return (hwc2_error_t) ret;
     } else {
         MESON_LOGE("Display (%s) setActiveConfig miss valid DisplayConfigure.",
             getName());
@@ -1266,8 +1287,11 @@ hwc2_error_t Hwc2Display::getDisplayVsyncPeriod(hwc2_vsync_period_t* outVsyncPer
 hwc2_error_t Hwc2Display::setActiveConfigWithConstraints(hwc2_config_t config,
         hwc_vsync_period_change_constraints_t* vsyncPeriodChangeConstraints,
         hwc_vsync_period_change_timeline_t* outTimeline) {
+    MESON_LOGV("%s config:%d", __func__, config);
     bool validConfig = false;
     uint32_t arraySize = 0;
+    hwc2_error_t ret = HWC2_ERROR_NONE;
+
     if (mModeMgr->getDisplayConfigs(&arraySize, nullptr) != HWC2_ERROR_NONE)
         return HWC2_ERROR_BAD_CONFIG;
 
@@ -1286,15 +1310,32 @@ hwc2_error_t Hwc2Display::setActiveConfigWithConstraints(hwc2_config_t config,
         return HWC2_ERROR_BAD_CONFIG;
 
     if (vsyncPeriodChangeConstraints->seamlessRequired)
-        return HWC2_ERROR_SEAMLESS_NOT_POSSIBLE;
+        return HWC2_ERROR_SEAMLESS_NOT_ALLOWED;
+
+    int64_t desiredTimeNanos = vsyncPeriodChangeConstraints->desiredTimeNanos;
 
     /* todo remove it when support vrr */
     outTimeline->refreshRequired = false;
     hwc2_config_t activeConfig;
     if (mModeMgr->getActiveConfig(&activeConfig) != HWC2_ERROR_NONE)
         return HWC2_ERROR_BAD_CONFIG;
-    if (activeConfig != config)
-        return (hwc2_error_t)mModeMgr->setActiveConfig(config);
+
+
+    if (activeConfig != config) {
+        ret = setActiveConfig(config);
+
+        /* not return until the desired time reach */
+        nsecs_t now = systemTime(CLOCK_MONOTONIC);
+        if (now < desiredTimeNanos)
+            usleep(desiredTimeNanos - now);
+
+        now = systemTime(CLOCK_MONOTONIC);
+        outTimeline->newVsyncAppliedTimeNanos =
+            (now - desiredTimeNanos >= seconds_to_nanoseconds(1)) ?  desiredTimeNanos : now;
+
+        outTimeline->refreshRequired = false;
+        return ret;
+    }
 
     return HWC2_ERROR_NONE;
 }

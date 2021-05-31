@@ -14,6 +14,7 @@
 #include <vector>
 #include <unordered_map>
 #include <hardware/hwcomposer2.h>
+#include <condition_variable>
 
 #include <BitsMap.h>
 #include <HwcDisplay.h>
@@ -247,8 +248,11 @@ protected:
     std::shared_ptr<HwcVsync> mVtVsync;
     bool mVtVsyncStatus;
     bool mDisplayConnection;
-
     bool mOutsideChanged;
+
+    /* for activeConfig */
+    std::condition_variable mStateCondition;
+    std::mutex mStateLock;
 };
 
 #endif/*HWC2_DISPLAY_H*/
