@@ -851,7 +851,6 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
         mProcessorFlags |= PRESENT_BLANK;
     }
 
-    /* If mValidateDisplay = false, hwc will not handle presentDisplay. */
     mValidateDisplay = true;
 
     /*dump at end of validate, for we need check by some composition info.*/
@@ -987,46 +986,48 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence, bool sf) {
     ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
 
-    if (mSkipComposition) {
+    /* videotunnel thread presentDisplay */
+    if (!sf) {
         *outPresentFence = -1;
-    } else {
-        /* videotunnel thread presentDisplay */
-        if (!sf) {
-            *outPresentFence = -1;
+        if (!mSkipComposition) {
             if (mValidateDisplay == false)
                 mCompositionStrategy->updateComposition();
 
             mPresentCompositionStg->commit(sf);
-            return HWC2_ERROR_NONE;
+        }
+        return HWC2_ERROR_NONE;
+    }
+
+    if (mValidateDisplay == false) {
+        hwc2_error_t err = presentSkipValidateCheck();
+        if (err != HWC2_ERROR_NONE) {
+            MESON_LOGV("presentDisplay without validateDisplay err(%d)",err);
+            return err;
         }
 
-        if (mValidateDisplay == false) {
-            hwc2_error_t err = presentSkipValidateCheck();
-            if (err != HWC2_ERROR_NONE) {
-                MESON_LOGV("presentDisplay without validateDisplay err(%d)",err);
-                return err;
-            }
+        MESON_LOGV("present skip validate");
+        mCompositionStrategy->updateComposition();
 
-            MESON_LOGV("present skip validate");
-            mCompositionStrategy->updateComposition();
-
-            /*dump at skip validate display, for we need check by some composition info.*/
-            bool dumpLayers = false;
-            if (DebugHelper::getInstance().logCompositionDetail()) {
-                MESON_LOGE("***CompositionFlow (%s):\n", __func__);
-                dumpLayers = true;
-            } else if (mFailedDeviceComp) {
-                MESON_LOGE("***MonitorFailedDeviceComposition: \n");
-                dumpLayers = true;
-            }
-            if (dumpLayers) {
-                String8 layersDump;
-                dumpPresentLayers(layersDump);
-                MESON_LOGE("%s", layersDump.string());
-            }
+        /*dump at skip validate display, for we need check by some composition info.*/
+        bool dumpLayers = false;
+        if (DebugHelper::getInstance().logCompositionDetail()) {
+            MESON_LOGE("***CompositionFlow (%s):\n", __func__);
+            dumpLayers = true;
+        } else if (mFailedDeviceComp) {
+            MESON_LOGE("***MonitorFailedDeviceComposition: \n");
+            dumpLayers = true;
         }
+        if (dumpLayers) {
+            String8 layersDump;
+            dumpPresentLayers(layersDump);
+            MESON_LOGE("%s", layersDump.string());
+        }
+    }
 
-        mValidateDisplay = false;
+    mValidateDisplay = false;
+    if (mSkipComposition) {
+        *outPresentFence = -1;
+    } else {
         if (mPresentFence >= 0)
             close(mPresentFence);
         mPresentFence = -1;

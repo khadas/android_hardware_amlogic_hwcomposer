@@ -37,9 +37,14 @@ bool DisplayClient::tryGetService() {
         return true;
 
     int count = 0;
-    while (meson_ipc_client == NULL && count <= MAX_GET_SERVICE_COUNT) {
+    while (count <= MAX_GET_SERVICE_COUNT) {
         MESON_LOGD("Try get meson_ipc service(%d)", count);
         meson_ipc_client  = IMesonDisplayIPC::tryGetService();
+        if (!meson_ipc_client)
+            usleep(20*1000);  // sleep 20 ms wait for it ready
+        else
+            break;
+
         count++;
     }
 
