@@ -202,5 +202,6 @@ typedef struct display_zoom_info {
 
 const char * drmFbTypeToString(drm_fb_type_t fbtype);
 const char * drmPlaneBlankToString(drm_plane_blank_t planetype);
+bool drmHdrCapsDiffer(const drm_hdr_capabilities &hdr1, const drm_hdr_capabilities &hdr2);
 
 #endif/*DRM_TYPES_H*/

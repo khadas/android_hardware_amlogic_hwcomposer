@@ -388,6 +388,8 @@ void Hwc2Display::onVTVsync(int64_t timestamp, uint32_t vsyncPeriodNanos) {
 
 void Hwc2Display::onModeChanged(int stage) {
     bool bSendPlugIn = false;
+    bool hdrCapsChanged = false;
+
     {
         std::lock_guard<std::mutex> lock(mMutex);
         MESON_LOGD("On mode change state: [%s]", stage == 1 ? "Complete" : "Begin to change");
@@ -395,7 +397,10 @@ void Hwc2Display::onModeChanged(int stage) {
             if (mObserver != NULL) {
                 /*plug in and set displaymode ok, update inforamtion.*/
                 if (mSignalHpd) {
+                    const drm_hdr_capabilities_t oldCaps = mHdrCaps;
                     mConnector->getHdrCapabilities(&mHdrCaps);
+                    /* check whether hdr cap changed */
+                    hdrCapsChanged = drmHdrCapsDiffer(oldCaps, mHdrCaps);
                     mConnector->getSupportedContentTypes(mSupportedContentTypes);
 #ifdef HWC_HDR_METADATA_SUPPORT
                     mCrtc->getHdrMetadataKeys(mHdrKeys);
@@ -447,8 +452,8 @@ void Hwc2Display::onModeChanged(int stage) {
 
     mDisplayConnection = true;
     /*call hotplug out of lock, SF may call some hwc function to cause deadlock.*/
-    if (bSendPlugIn && mModeMgr->needCallHotPlug()) {
-        MESON_LOGD("onModeChanged mObserver->onHotplug(true)");
+    if (bSendPlugIn && (mModeMgr->needCallHotPlug() || hdrCapsChanged)) {
+        MESON_LOGD("onModeChanged mObserver->onHotplug(true) hdrCapsChanged:%d", hdrCapsChanged);
         mObserver->onHotplug(true);
     } else {
         MESON_LOGD("mModeMgr->resetTags");
@@ -1327,7 +1332,7 @@ hwc2_error_t Hwc2Display::setActiveConfigWithConstraints(hwc2_config_t config,
         /* not return until the desired time reach */
         nsecs_t now = systemTime(CLOCK_MONOTONIC);
         if (now < desiredTimeNanos)
-            usleep(desiredTimeNanos - now);
+            usleep(ns2us(desiredTimeNanos - now));
 
         now = systemTime(CLOCK_MONOTONIC);
         outTimeline->newVsyncAppliedTimeNanos =
