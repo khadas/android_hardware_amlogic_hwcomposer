@@ -114,6 +114,10 @@ void RealModeMgr::reset() {
     mActiveConfigId = -1;
 }
 
+void RealModeMgr::resetTags() {
+    mCallOnHotPlug = true;
+};
+
 int32_t RealModeMgr::update() {
     std::lock_guard<std::mutex> lock(mMutex);
     bool useFakeMode = true;
@@ -258,6 +262,7 @@ int32_t RealModeMgr::setActiveConfig(uint32_t config) {
             }
         }
 
+        mCallOnHotPlug = false;
         mConnector->setMode(cfg);
 
         // set the display mode through systemControl

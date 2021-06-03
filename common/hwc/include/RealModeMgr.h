@@ -31,7 +31,7 @@ public:
     void setDisplayResources(std::shared_ptr<HwDisplayCrtc> & crtc,
         std::shared_ptr<HwDisplayConnector> & connector);
     int32_t update();
-    bool needCallHotPlug() { return true; };
+    bool needCallHotPlug() { return mCallOnHotPlug; };
     int32_t getDisplayMode(drm_mode_info_t & mode);
 
     int32_t  getDisplayConfigs(uint32_t * outNumConfigs, uint32_t * outConfigs);
@@ -39,7 +39,7 @@ public:
             int32_t* outValue, int32_t caller);
     int32_t getActiveConfig(uint32_t * outConfig, int32_t caller);
     int32_t setActiveConfig(uint32_t config);
-    void resetTags() {};
+    void resetTags();
     void dump(String8 & dumpstr);
 
 protected:
@@ -64,6 +64,8 @@ protected:
 
     // Dolby Vision enanbled or not
     bool mDvEnabled;
+
+    bool mCallOnHotPlug;
 };
 
 #endif // REAL_MODE_MGR_H

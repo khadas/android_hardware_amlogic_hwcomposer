@@ -78,3 +78,18 @@ const char * drmPlaneBlankToString(drm_plane_blank_t blankType) {
     return typeStr;
 }
 
+/* whether the hdr/DV capabilities of hdr1 different from that of hdr2 */
+bool drmHdrCapsDiffer(const drm_hdr_capabilities &hdr1, const drm_hdr_capabilities &hdr2) {
+    bool differ = false;
+    if (hdr1.DolbyVisionSupported != hdr2.DolbyVisionSupported ) {
+        differ = true;
+    } else if (hdr1.HLGSupported != hdr2.HLGSupported) {
+        differ = true;
+    } else if(hdr1.HDR10Supported != hdr2.HDR10Supported) {
+        differ = true;
+    } else if (hdr1.HDR10PlusSupported != hdr2.HDR10PlusSupported) {
+        differ = true;
+    }
+
+    return differ;
+}
