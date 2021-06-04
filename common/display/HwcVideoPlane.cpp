@@ -14,6 +14,7 @@
 #include "HwcVideoPlane.h"
 #include <fcntl.h>
 
+#define INVALID_ID 0xffff
 
 inline bool isSidebandVideo(drm_fb_type_t fbtype) {
     if (fbtype == DRM_FB_VIDEO_SIDEBAND ||
@@ -32,6 +33,7 @@ HwcVideoPlane::HwcVideoPlane(int32_t drvFd, uint32_t id)
 
     snprintf(mName, 64, "HwcVideo-%d", id);
     mDisplayedVideoType = DRM_FB_UNDEFINED;
+    mPrevFbId = INVALID_ID;
     memset(mAmVideosPath, 0, sizeof(mAmVideosPath));
     getProperties();
     mBlank = true;
@@ -167,16 +169,29 @@ int32_t HwcVideoPlane::setPlane(
             return 0;
         }
 
-        /*diable video if sideband vide.*/
+        /*disable video*/
+        bool need_disable_video = false;
+        hwc2_layer_t id = fb->mId;
         drm_fb_type_t type = fb->mFbType;
+
+        /* disable video if sideband video */
         if (mDisplayedVideoType != DRM_FB_UNDEFINED) {
             if (type != mDisplayedVideoType) {
                 if (isSidebandVideo(type) && isSidebandVideo(mDisplayedVideoType)) {
-                    mVideoComposer->enable(false);
+                    need_disable_video = true;
                 }
                 mDisplayedVideoType = DRM_FB_UNDEFINED;
             }
         }
+
+        /*disable video if fb id changed*/
+        if (!need_disable_video && mPrevFbId != INVALID_ID && mPrevFbId != id) {
+            need_disable_video = true;
+        }
+        mPrevFbId = id;
+
+        if (need_disable_video)
+            mVideoComposer->enable(false);
 
         /* update video plane disable status */
         /* the value of blankOp is UNBLANK */
