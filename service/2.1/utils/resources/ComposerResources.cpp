@@ -331,6 +331,10 @@ Error ComposerLayerResource::getSidebandStream(uint32_t slot, bool fromCache,
                                                const native_handle_t* inHandle,
                                                const native_handle_t** outHandle,
                                                const native_handle** outReplacedHandle) {
+    if (mBufferCache.getCacheSize() > 0) {
+        mBufferCache.releaseCache(0);
+    }
+
     return mSidebandStreamCache.getHandle(slot, fromCache, inHandle, outHandle, outReplacedHandle);
 }
 

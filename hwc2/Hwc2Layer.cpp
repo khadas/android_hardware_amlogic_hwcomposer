@@ -256,6 +256,10 @@ hwc2_error_t Hwc2Layer::setSidebandStream(const native_handle_t* stream) {
         }
     }
 
+    /* fbtype is not tunnel sideband */
+    if (mFbType != DRM_FB_VIDEO_TUNNEL_SIDEBAND)
+        releaseUvmResourceLock();
+
     mSecure = false;
     mUpdated = true;
     return HWC2_ERROR_NONE;
