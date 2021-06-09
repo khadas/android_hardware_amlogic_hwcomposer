@@ -258,6 +258,19 @@ int MultiplanesWithDiComposition::processVideoFbs() {
     }
 
     /*
+     * Video Processor: only support one video now, not support legacy sideband
+     */
+    if (HwcConfig::isVideoProcessorEnabled()) {
+        if (videoFbNum - sidebandFbs.size() == 1) {
+            // setup videoprocessor
+            if (!mVideoProcessor.get()) {
+                createFbProcessor(FB_VIDEO_PROCESSOR, mVideoProcessor);
+                mVideoProcessor->setup();
+            }
+        }
+    }
+
+    /*
     * Composition: only 1 + .. + N mode now
     * For vd1:
     * 1. sideband.
@@ -297,19 +310,6 @@ int MultiplanesWithDiComposition::processVideoFbs() {
             }
         }
         return 0;
-    }
-
-    /*
-     * Video Processor: only support one video now
-     */
-    if (HwcConfig::isVideoProcessorEnabled()) {
-        if (videoFbNum == 1) {
-            // setup videoprocessor
-            if (!mVideoProcessor.get()) {
-                createFbProcessor(FB_VIDEO_PROCESSOR, mVideoProcessor);
-                mVideoProcessor->setup();
-            }
-        }
     }
 
     fb.reset();
