@@ -437,11 +437,12 @@ void Hwc2Display::onModeChanged(int stage) {
             return;
         }
     }
+
+    mDisplayConnection = true;
     /*call hotplug out of lock, SF may call some hwc function to cause deadlock.*/
     if (bSendPlugIn && mModeMgr->needCallHotPlug()) {
         MESON_LOGD("onModeChanged mObserver->onHotplug(true)");
         mObserver->onHotplug(true);
-        mDisplayConnection = true;
     } else {
         MESON_LOGD("mModeMgr->resetTags");
         mModeMgr->resetTags();

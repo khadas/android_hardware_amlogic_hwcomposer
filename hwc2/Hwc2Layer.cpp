@@ -465,10 +465,9 @@ int32_t Hwc2Layer::acquireVtBuffer() {
         previousTimestamp = item.timestamp;
 
         int releaseFence = getPrevReleaseFence();
+        collectUvmBuffer(dup(item.bufferFd), dup(releaseFence));
         VideoTunnelDev::getInstance().releaseBuffer(mTunnelId, item.bufferFd, releaseFence);
         mQueuedFrames--;
-
-        collectUvmBuffer(dup(item.bufferFd), dup(releaseFence));
 
         MESON_LOGD("[%s] [%llu] vt buffer fd(%d) with timestamp(%" PRId64 ") expired droped "
                 "expectedPresent time(%" PRId64 ") diffAdded(%" PRId64 ") queuedFrames(%d)",
@@ -537,11 +536,12 @@ int32_t Hwc2Layer::releaseVtBuffer() {
 
     // set fence to the previous vt buffer
     int releaseFence = getPrevReleaseFence();
+    collectUvmBuffer(dup(mPreVtBufferFd), dup(releaseFence));
+
     int ret = VideoTunnelDev::getInstance().releaseBuffer(mTunnelId,
             mPreVtBufferFd, releaseFence);
     mQueuedFrames--;
 
-    collectUvmBuffer(dup(mPreVtBufferFd), dup(releaseFence));
 
     MESON_LOGV("[%s] [%llu] releaseFence:%d, mVtBufferfd:%d, mPreVtBufferFd(%d), queuedFrames(%d)",
             __func__, mId, releaseFence, mVtBufferFd, mPreVtBufferFd, mQueuedFrames);
@@ -714,7 +714,7 @@ int32_t Hwc2Layer::collectUvmBuffer(const int fd, const int fence) {
         return -EINVAL;
     }
     if (fence < 0)
-        MESON_LOGD("%s: get invalid fence", __func__);
+        MESON_LOGV("%s: get invalid fence", __func__);
 
     UvmBuffer item = {fd, std::move(std::make_shared<DrmFence>(fence))};
     mUvmBufferQueue.push_back(item);
