@@ -347,8 +347,6 @@ int32_t parseHdmiHdrCapabilities(drm_hdr_capabilities & hdrCaps) {
     sc_get_property_string(PROP_HDR_PREFERENCE, hdr_preference, "dolby_vision");
     MESON_LOGI("hdr_preference (%s)", hdr_preference.c_str());
 
-    bool dv_enable = sc_get_property_boolean(PROP_DV_ENABLE_STATUS, false);
-    MESON_LOGI("dv_enable status (%d)",dv_enable);
     memset(&hdrCaps, 0, sizeof(drm_hdr_capabilities));
 
     if ((fd = open(DV_PATH, O_RDONLY)) < 0) {
@@ -357,9 +355,6 @@ int32_t parseHdmiHdrCapabilities(drm_hdr_capabilities & hdrCaps) {
     } else {
         if ((len = read(fd, buf, 1024)) < 0) {
             MESON_LOGE("read error: %s, %s\n", DV_PATH, strerror(errno));
-            hdrCaps.DolbyVisionSupported = false;
-        } else if (!dv_enable) {
-            MESON_LOGI("dv disabled");
             hdrCaps.DolbyVisionSupported = false;
         } else {
             bool devSupportDv = getDvSupportStatus();
@@ -438,8 +433,6 @@ int32_t parseHdmiHdrCapabilities(drm_hdr_capabilities & hdrCaps) {
     } else if (hdr_preference == "hdr") {
       hdrCaps.DolbyVisionSupported = false;
     }
-
-
 
     MESON_LOGD("dolby version:%d, hlg:%d, hdr10:%d, hdr10+:%d max:%d, avg:%d, min:%d\n",
         hdrCaps.DolbyVisionSupported ? 1:0,
