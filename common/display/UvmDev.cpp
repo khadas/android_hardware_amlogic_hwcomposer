@@ -46,7 +46,7 @@ int UvmDev::commitDisplay(const int fd, const int commit) {
 // dettach uvm hooked buffer
 int UvmDev::dettachBuffer(int fd) {
     struct uvm_hook_data hook_data = {
-        1 << VF_PROCESS_DECODER | 1 << VF_PROCESS_DI,
+        1 << VF_PROCESS_DI,
         fd,
         "dettach",
     };
