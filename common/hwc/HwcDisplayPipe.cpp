@@ -242,8 +242,13 @@ int32_t HwcDisplayPipe::updatePipe(std::shared_ptr<PipeStat> & stat) {
 
         drm_mode_info_t mode;
         if (0 == stat->modeMgr->getDisplayMode(mode)) {
-            stat->hwcVsync->setPeriod(1e9 / mode.refreshRate);
-            stat->hwcVtVsync->setPeriod(1e9 / mode.refreshRate);
+            float refresh_rate = mode.refreshRate;
+            if (HwcConfig::getMaxRefreshRate() > 0.0f &&
+                    mode.refreshRate > HwcConfig::getMaxRefreshRate()) {
+                refresh_rate = HwcConfig::getMaxRefreshRate();
+            }
+            stat->hwcVsync->setPeriod(1e9 / refresh_rate);
+            stat->hwcVtVsync->setPeriod(1e9 / refresh_rate);
         }
 
         stat->hwcDisplay->setVsync(stat->hwcVsync);
@@ -318,8 +323,13 @@ void HwcDisplayPipe::handleEvent(drm_display_event event, int val) {
                             /*update display dynamic info.*/
                             drm_mode_info_t mode;
                             if (0 == statIt.second->modeMgr->getDisplayMode(mode)) {
-                                statIt.second->hwcVsync->setPeriod(1e9 / mode.refreshRate);
-                                statIt.second->hwcVtVsync->setPeriod(1e9 / mode.refreshRate);
+                                float refresh_rate = mode.refreshRate;
+                                if (HwcConfig::getMaxRefreshRate() > 0.0f &&
+                                        mode.refreshRate > HwcConfig::getMaxRefreshRate()) {
+                                    refresh_rate = HwcConfig::getMaxRefreshRate();
+                                }
+                                statIt.second->hwcVsync->setPeriod(1e9 / refresh_rate);
+                                statIt.second->hwcVtVsync->setPeriod(1e9 / refresh_rate);
                                 if (HwcConfig::softwareVsyncEnabled()) {
                                     statIt.second->hwcVsync->setSoftwareMode();
                                 } else {
@@ -332,7 +342,7 @@ void HwcDisplayPipe::handleEvent(drm_display_event event, int val) {
                                 statIt.second->hwcVsync->setPeriod(1e9 / DEFAULT_REFRESH_RATE);
                                 statIt.second->hwcVsync->setSoftwareMode();
 
-                                statIt.second->hwcVtVsync->setPeriod(1e9 / mode.refreshRate);
+                                statIt.second->hwcVtVsync->setPeriod(1e9 / DEFAULT_REFRESH_RATE);
                                 statIt.second->hwcVtVsync->setSoftwareMode();
                             }
                         }

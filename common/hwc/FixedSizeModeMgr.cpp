@@ -105,11 +105,17 @@ int32_t  FixedSizeModeMgr::getDisplayAttribute(
             *outValue = mCurMode.pixelH;
             break;
         case HWC2_ATTRIBUTE_VSYNC_PERIOD:
+            float refresh_rate;
             if (HwcConfig::isHeadlessMode()) {
-                *outValue = 1e9 / HwcConfig::headlessRefreshRate();
+                refresh_rate = (float)HwcConfig::headlessRefreshRate();
             } else {
-                *outValue = 1e9 / mCurMode.refreshRate;
+                refresh_rate = mCurMode.refreshRate;
             }
+            if (HwcConfig::getMaxRefreshRate() > 0.0f &&
+                    refresh_rate > HwcConfig::getMaxRefreshRate()) {
+                refresh_rate = HwcConfig::getMaxRefreshRate();
+            }
+            *outValue = 1e9 / refresh_rate;
             break;
         case HWC2_ATTRIBUTE_DPI_X:
             *outValue = mCurMode.dpiX;

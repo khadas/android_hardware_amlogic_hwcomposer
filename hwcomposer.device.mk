@@ -23,6 +23,10 @@ ifndef HWC_HDMI_FRAC_MODE
 HWC_HDMI_FRAC_MODE := 0
 endif
 
+ifndef HWC_ENFORCES_MAX_REFRESH_RATE
+HWC_ENFORCES_MAX_REFRESH_RATE := 0
+endif
+
 # TODO remove it when android S sdk released
 #ifeq ($(PLATFORM_VERSION_CODENAME), S)
 #ifeq ($(filter S, $(PLATFORM_VERSION_CODENAME)), S)
@@ -45,6 +49,7 @@ SOONG_CONFIG_meson_hwc += \
     extend_fb_height \
     primary_connector_type \
     extend_connector_type \
+    enforces_max_refresh_rate \
     enable_headless_mode \
     enable_software_vsync \
     enable_primary_hotplug \
@@ -70,6 +75,7 @@ SOONG_CONFIG_meson_hwc_hwc_backend := $(HWC_BACKEND)
 SOONG_CONFIG_meson_hwc_display_num := $(HWC_DISPLAY_NUM)
 SOONG_CONFIG_meson_hwc_primary_fb_width := $(HWC_PRIMARY_FRAMEBUFFER_WIDTH)
 SOONG_CONFIG_meson_hwc_primary_fb_height := $(HWC_PRIMARY_FRAMEBUFFER_HEIGHT)
+SOONG_CONFIG_meson_hwc_enforces_max_refresh_rate := $(HWC_ENFORCES_MAX_REFRESH_RATE)
 SOONG_CONFIG_meson_hwc_extend_fb_width := $(HWC_EXTEND_FRAMEBUFFER_WIDTH)
 SOONG_CONFIG_meson_hwc_extend_fb_height := $(HWC_EXTEND_FRAMEBUFFER_HEIGHT)
 SOONG_CONFIG_meson_hwc_primary_connector_type := $(HWC_PRIMARY_CONNECTOR_TYPE)

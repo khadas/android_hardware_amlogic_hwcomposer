@@ -27,6 +27,7 @@ soong_config_module_type {
         "extend_fb_height",
         "primary_connector_type",
         "extend_connector_type",
+        "enforces_max_refresh_rate",
     ],
     bool_variables: [
         "enable_headless_mode",
@@ -149,6 +150,10 @@ meson_hwc_hwc_cc_defaults {
                 "-DHWC_ENABLE_HEADLESS_MODE",
                 "-DHWC_HEADLESS_REFRESHRATE=5",
             ],
+        },
+
+        enforces_max_refresh_rate: {
+            cflags: ["-DHWC_ENFORCES_MAX_REFRESH_RATE=%s"],
         },
 
         // bool variables

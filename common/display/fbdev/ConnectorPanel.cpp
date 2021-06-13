@@ -227,7 +227,7 @@ void ConnectorPanel:: dump(String8& dumpstr) {
 
     std::map<uint32_t, drm_mode_info_t>::iterator it = mDisplayModes.begin();
     for ( ; it != mDisplayModes.end(); ++it) {
-        dumpstr.appendFormat(" %2d     |      %.3f      |   %5d   |   %5d    |"
+        dumpstr.appendFormat("   %6d   |      %.3f      |   %5d   |   %5d    |"
             "    %3d    |    %3d    \n",
                  it->first,
                  it->second.refreshRate,
@@ -236,5 +236,7 @@ void ConnectorPanel:: dump(String8& dumpstr) {
                  it->second.dpiX,
                  it->second.dpiY);
     }
+    dumpstr.append("------------+------------------+-----------+------------+"
+        "-----------+-----------\n");
 }
 

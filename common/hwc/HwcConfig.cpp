@@ -219,6 +219,14 @@ bool HwcConfig::dynamicSwitchViuEnabled() {
 #endif
 }
 
+float  HwcConfig::getMaxRefreshRate() {
+#ifdef HWC_ENFORCES_MAX_REFRESH_RATE
+    return (float)HWC_ENFORCES_MAX_REFRESH_RATE;
+#else
+    return 0.0f;
+#endif
+}
+
 void HwcConfig::dump(String8 & dumpstr) {
     if (isHeadlessMode()) {
         dumpstr.appendFormat("\t HeadlessMode refreshrate: %d", headlessRefreshRate());

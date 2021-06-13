@@ -51,6 +51,7 @@ public:
     static bool dynamicSwitchConnectorEnabled();
     static bool dynamicSwitchViuEnabled();
 
+    static float  getMaxRefreshRate();
     static void dump(String8 & dumpstr);
 };
 #endif/*HWC_CONFIG_H*/
