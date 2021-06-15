@@ -25,7 +25,8 @@ endif
 
 # TODO remove it when android S sdk released
 #ifeq ($(PLATFORM_VERSION_CODENAME), S)
-ifeq ($(filter S, $(PLATFORM_VERSION_CODENAME)), S)
+#ifeq ($(filter S, $(PLATFORM_VERSION_CODENAME)), S)
+ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 31 && echo OK),OK)
 HWC_ANDROID_S := true
 else
 HWC_ANDROID_S := false
