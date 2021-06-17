@@ -148,6 +148,7 @@ public:
     void refresh(hwc2_display_t  display);
     void onVsync(hwc2_display_t display, int64_t timestamp, uint32_t vsyncPeriodNanos);
     void onHotplug(hwc2_display_t display, bool connected);
+    void onVsyncPeriodTimingChanged(hwc2_display_t display, hwc_vsync_period_change_timeline_t* updatedTimeline);
 
 public:
     MesonHwc2();
@@ -179,6 +180,8 @@ protected:
     hwc2_callback_data_t mVsyncData;
     HWC2_PFN_VSYNC_2_4 mVsync24Fn;
     hwc2_callback_data_t mVsync24Data;
+    HWC2_PFN_VSYNC_PERIOD_TIMING_CHANGED mVsyncPeriodTimingChangedFn;
+    hwc2_callback_data_t mVsyncPeriodData;
 
     uint32_t mVirtualDisplayIds;
 

@@ -168,6 +168,26 @@ void * HwcVsync::vsyncThread(void * data) {
     return NULL;
 }
 
+int32_t HwcVsync::waitVsync(nsecs_t& vsync_timestamp, nsecs_t& period) {
+    int ret;
+    if (mSoftVsync) {
+        ret = waitSoftwareVsync(vsync_timestamp);
+    } else if (mMixVsync) {
+        ret = waitMixVsync(vsync_timestamp);
+    } else {
+        ret = waitHwVsync(vsync_timestamp);
+    }
+
+    if (mPreTimeStamp != 0)
+        period = vsync_timestamp - mPreTimeStamp;
+    else
+        period = 0;
+
+    mPreTimeStamp = vsync_timestamp;
+
+    return ret;
+}
+
 int32_t HwcVsync::waitHwVsync(nsecs_t& vsync_timestamp) {
     ATRACE_CALL();
     int32_t ret = mCrtc->waitVBlank(mVsyncTime);

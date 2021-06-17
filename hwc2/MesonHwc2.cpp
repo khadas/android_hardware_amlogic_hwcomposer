@@ -160,6 +160,11 @@ int32_t MesonHwc2::registerCallback(int32_t descriptor,
             mVsync24Data = callbackData;
             break;
 
+        case HWC2_CALLBACK_VSYNC_PERIOD_TIMING_CHANGED:
+            mVsyncPeriodTimingChangedFn = reinterpret_cast<HWC2_PFN_VSYNC_PERIOD_TIMING_CHANGED>(pointer);
+            mVsyncPeriodData = callbackData;
+            break;
+
         default:
             MESON_LOGE("register unknown callback (%d)", descriptor);
             ret = HWC2_ERROR_UNSUPPORTED;
@@ -771,6 +776,11 @@ public:
         mHwc->onHotplug(mDispId, connected);
     }
 
+    void onVsyncPeriodTimingChanged(hwc_vsync_period_change_timeline_t* updatedTimeline) {
+        MESON_LOGD("Display (%d) timeline changed.", (int)mDispId);
+        mHwc->onVsyncPeriodTimingChanged(mDispId, updatedTimeline);
+    }
+
 protected:
     hwc2_display_t mDispId;
     MesonHwc2 * mHwc;
@@ -786,6 +796,8 @@ MesonHwc2::MesonHwc2() {
     mVsyncData = NULL;
     mVsync24Fn = NULL;
     mVsync24Data = NULL;
+    mVsyncPeriodTimingChangedFn = NULL;
+    mVsyncPeriodData = NULL;
     mDisplayRequests = 0;
     memset(&mViewPort, 0, sizeof(mViewPort));
     initialize();
@@ -850,6 +862,13 @@ void MesonHwc2::onHotplug(hwc2_display_t display, bool connected) {
         mHotplugFn(mHotplugData, display, connection);
     } else {
         MESON_LOGE("No hotplug callback registered.");
+    }
+}
+
+void MesonHwc2::onVsyncPeriodTimingChanged(hwc2_display_t display,
+        hwc_vsync_period_change_timeline_t* updatedTimeline) {
+    if (mVsyncPeriodTimingChangedFn) {
+        mVsyncPeriodTimingChangedFn(mVsyncData, display, updatedTimeline);
     }
 }
 
