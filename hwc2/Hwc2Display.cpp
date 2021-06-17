@@ -336,8 +336,16 @@ void Hwc2Display::onHotplug(bool connected) {
         mVsync->setSoftwareMode();
     }
 
-    /* wait up the setActiveConfig, if hdmi plug out */
+    /* wake up the setActiveConfig, if hdmi plug out */
     mStateCondition.notify_all();
+}
+
+void Hwc2Display::onVsyncPeriodTimingChanged(hwc_vsync_period_change_timeline_t* updatedTimeline) {
+    if (mObserver) {
+        mObserver->onVsyncPeriodTimingChanged(updatedTimeline);
+    } else {
+        MESON_LOGE("%s Hwc2Display (%p) observer is NULL", __func__, this);
+    }
 }
 
 /* clear all layers and blank display when extend display plugout,
@@ -437,7 +445,7 @@ void Hwc2Display::onModeChanged(int stage) {
                 MESON_LOGE("No display oberserve register to display (%s)", getName());
             }
 
-            /* wait up the setActiveConfig */
+            /* wake up the setActiveConfig */
             mStateCondition.notify_all();
         } else {
             /* begin change mode, need blank once */
@@ -1234,7 +1242,7 @@ hwc2_error_t Hwc2Display::setActiveConfig(
         std::unique_lock<std::mutex> stateLock(mStateLock);
         mStateCondition.wait_for(stateLock, std::chrono::seconds(3));
         /* For non seamless sleep wait for the signal steadble */
-        usleep(500 * 1000);
+        usleep(100 * 1000);
 
         return (hwc2_error_t) ret;
     } else {
@@ -1329,16 +1337,35 @@ hwc2_error_t Hwc2Display::setActiveConfigWithConstraints(hwc2_config_t config,
     if (activeConfig != config) {
         ret = setActiveConfig(config);
 
+        int32_t configPeriod;
+        if (mModeMgr->getDisplayAttribute(config, HWC2_ATTRIBUTE_VSYNC_PERIOD, &configPeriod)
+                != HWC2_ERROR_NONE)
+            return HWC2_ERROR_BAD_CONFIG;
+
+        nsecs_t vsyncTimestamp;
+        nsecs_t vsyncPeriod;
+        /* wait 3 vblank to confirm vsync have updated successfully */
+        for (int i = 0; i < 3; i++) {
+            mVsync->waitVsync(vsyncTimestamp, vsyncPeriod);
+            /* vsync in a reasonable value 0.5 ms */
+            if (abs(vsyncPeriod - configPeriod) < 500 * 1000)
+                break;
+        }
+
         /* not return until the desired time reach */
         nsecs_t now = systemTime(CLOCK_MONOTONIC);
         if (now < desiredTimeNanos)
             usleep(ns2us(desiredTimeNanos - now));
 
-        now = systemTime(CLOCK_MONOTONIC);
-        outTimeline->newVsyncAppliedTimeNanos =
-            (now - desiredTimeNanos >= seconds_to_nanoseconds(1)) ?  desiredTimeNanos : now;
+        outTimeline->newVsyncAppliedTimeNanos = vsyncTimestamp;
 
-        outTimeline->refreshRequired = false;
+        /* notify vsync timing period changed*/
+        hwc_vsync_period_change_timeline_t vsyncTimeline;
+        vsyncTimeline.newVsyncAppliedTimeNanos = vsyncTimestamp;
+        vsyncTimeline.refreshRequired = false;
+        vsyncTimeline.refreshTimeNanos = vsyncTimestamp + vsyncPeriod;
+        onVsyncPeriodTimingChanged(&vsyncTimeline);
+
         return ret;
     }
 

@@ -37,6 +37,7 @@ public:
     int32_t setPeriod(nsecs_t period);
     int32_t setEnabled(bool enabled);
     int32_t setVideoTunnelEnabled(bool enabled);
+    int32_t waitVsync(nsecs_t& vsync_timestamp, nsecs_t& period);
 
     void dump(String8 & dumpstr);
 

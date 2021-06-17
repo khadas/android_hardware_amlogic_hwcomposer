@@ -45,6 +45,7 @@ public:
     virtual void refresh() = 0;
     virtual void onVsync(int64_t timestamp, uint32_t vsyncPeriodNanos) = 0;
     virtual void onHotplug(bool connected) = 0;
+    virtual void onVsyncPeriodTimingChanged(hwc_vsync_period_change_timeline_t* updatedTimeline) = 0;
 };
 
 class Hwc2Display
@@ -134,6 +135,7 @@ public:
 
     virtual void onVsync(int64_t timestamp, uint32_t vsyncPeriodNanos);
     virtual void onHotplug(bool connected);
+    virtual void onVsyncPeriodTimingChanged(hwc_vsync_period_change_timeline_t* updatedTimeline);
     virtual void onUpdate(bool bHdcp);
     virtual void onModeChanged(int stage);
     virtual void getDispMode(drm_mode_info_t & dispMode);
