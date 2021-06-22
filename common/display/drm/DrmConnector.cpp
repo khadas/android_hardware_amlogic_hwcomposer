@@ -16,13 +16,13 @@
 #include <xf86drm.h>
 #include <string.h>
 #include <misc.h>
+#include <systemcontrol.h>
 
 #include "../fbdev/AmVinfo.h"
 
 /*TODO: re-use legacy hdmi sysfs.*/
 extern int32_t parseHdmiHdrCapabilities(drm_hdr_capabilities & hdrCaps);
 extern bool loadHdmiCurrentHdrType(std::string & hdrType);
-extern int32_t setHdmiALLM(bool on);
 extern int32_t loadHdmiSupportedContentTypes(std::vector<uint32_t> & supportedContentTypes);
 extern int32_t setHdmiContentType(uint32_t contentType);
 extern int32_t switchRatePolicy(bool fracRatePolicy);
@@ -404,7 +404,7 @@ int32_t DrmConnector::setAutoLowLatencyMode(bool on) {
     if (mType != DRM_MODE_CONNECTOR_HDMIA)
         return -ENOENT;
 
-    return setHdmiALLM(on);
+    return sc_set_hdmi_allm(on);
 }
 
 void DrmConnector::updateHdrCaps() {
