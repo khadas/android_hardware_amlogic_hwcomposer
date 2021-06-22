@@ -25,7 +25,6 @@
 
 int32_t parseHdmiHdrCapabilities(drm_hdr_capabilities & hdrCaps);
 bool loadHdmiCurrentHdrType(std::string & hdrType);
-int32_t setHdmiALLM(bool on);
 int32_t loadHdmiSupportedContentTypes(std::vector<uint32_t> & supportedContentTypes);
 int32_t setHdmiContentType(uint32_t contentType);
 int32_t switchRatePolicy(bool fracRatePolicy);
@@ -42,7 +41,6 @@ static const std::vector<std::string> CONTENT_TYPES = {
 
 #define HDMI_FRAC_RATE_POLICY "/sys/class/amhdmitx/amhdmitx0/frac_rate_policy"
 #define HDMI_TX_HPD_STATE   "/sys/class/amhdmitx/amhdmitx0/hpd_state"
-#define HDMI_TX_ALLM_MODE   "/sys/class/amhdmitx/amhdmitx0/allm_mode"
 #define HDMI_TX_CONTENT_TYPE_CAP  "/sys/class/amhdmitx/amhdmitx0/contenttype_cap"
 #define HDMI_TX_CONTENT_TYPE  "/sys/class/amhdmitx/amhdmitx0/contenttype_mode"
 
@@ -240,7 +238,7 @@ int32_t ConnectorHdmi::setContentType(uint32_t contentType) {
 }
 
 int32_t ConnectorHdmi::setAutoLowLatencyMode(bool on) {
-    return setHdmiALLM(on);
+    return sc_set_hdmi_allm(on);
 }
 
 std::string ConnectorHdmi::getCurrentHdrType() {
@@ -515,26 +513,6 @@ bool loadHdmiCurrentHdrType(std::string & hdrType) {
 
     return true;
 }
-
-int32_t setHdmiALLM(bool on) {
-    if (on) {
-        if (!sysfs_set_string(HDMI_TX_ALLM_MODE, "1")) {
-            MESON_LOGV("setAutoLowLatencyMode on SUCCESS.");
-        } else {
-            MESON_LOGE("setAutoLowLatencyMode on FAIL.");
-            return -EFAULT;
-        }
-    } else {
-        if (!sysfs_set_string(HDMI_TX_ALLM_MODE, "0")) {
-            MESON_LOGV("setAutoLowLatencyMode off SUCCESS.");
-        } else {
-            MESON_LOGE("setAutoLowLatencyMode off FAIL.");
-            return -EFAULT;
-        }
-    }
-    return 0;
-}
-
 
 int32_t loadHdmiSupportedContentTypes(std::vector<uint32_t> & supportedContentTypes) {
     supportedContentTypes.clear();

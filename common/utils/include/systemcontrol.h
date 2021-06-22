@@ -36,4 +36,5 @@ int32_t get_hdmitx_mode_list(std::vector<std::string>& edidlist);
 int32_t get_hdmitx_hdcp_state(bool & val);
 int32_t read_sysfs(const char * path, std::string & val);
 
+int32_t sc_set_hdmi_allm(bool on);
 #endif/*SYSTEM_CONTROL_H*/

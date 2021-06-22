@@ -28,8 +28,8 @@
 #define PROP_DOLBY_VISION_TV_ENABLE "persist.vendor.sys.tv.dolbyvision.enable"
 
 #if PLATFORM_SDK_VERSION >=  26
-#include <vendor/amlogic/hardware/systemcontrol/1.0/ISystemControl.h>
-using ::vendor::amlogic::hardware::systemcontrol::V1_0::ISystemControl;
+#include <vendor/amlogic/hardware/systemcontrol/1.1/ISystemControl.h>
+using ::vendor::amlogic::hardware::systemcontrol::V1_1::ISystemControl;
 using ::vendor::amlogic::hardware::systemcontrol::V1_0::Result;
 using ::android::hardware::hidl_vec;
 using ::android::hardware::hidl_string;
@@ -417,6 +417,15 @@ int32_t read_sysfs(const char * path, std::string & val) {
     return 0;
 }
 
+int32_t sc_set_hdmi_allm(bool on) {
+    int32_t value = on ? 1 : 0;
+
+    CHK_SC_PROXY();
+    MESON_LOGD("set auto low latency mode to %d", value);
+    gSC->setALLMState(value);
+
+    return 0;
+}
 
 #else
 
@@ -517,4 +526,13 @@ int32_t sc_read_sysfs(const char * path, std::string &dispmode) {
     }
 }
 
+int32_t sc_set_hdmi_allm(bool on) {
+    int32_t value = on ? 1 : 0;
+
+    CHK_SC_PROXY();
+    MESON_LOGD("set auto low latency mode to %d", value);
+    gSC->setALLMState(value);
+
+    return 0;
+}
 #endif
