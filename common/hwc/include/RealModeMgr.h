@@ -43,7 +43,7 @@ public:
     void dump(String8 & dumpstr);
 
 protected:
-    int32_t updateActiveConfig(const char* activeMode);
+    int32_t updateActiveConfig(drm_mode_info_t activeMode);
     bool isSupportModeForCurrentDevice(drm_mode_info_t mode);
     void reset();
 

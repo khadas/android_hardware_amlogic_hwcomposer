@@ -16,6 +16,7 @@
 
 #include <string>
 #include <inttypes.h>
+#include <math.h>
 
 #define DEFUALT_DPI (160)
 #define DEFAULT_REFRESH_RATE_60 (60.0f)
@@ -117,7 +118,7 @@ int32_t VariableModeMgr::initDefaultDispResources() {
     mDefaultMode =
         findMatchedMode(mFbWidth, mFbHeight, DEFAULT_REFRESH_RATE_60);
     mHwcActiveModes.emplace(mHwcActiveModes.size(), mDefaultMode);
-    updateHwcActiveConfig(mDefaultMode.name);
+    updateHwcActiveConfig(mDefaultMode);
     MESON_LOGV("initDefaultDispResources (%s)", mDefaultMode.name);
     return 0;
 }
@@ -130,7 +131,7 @@ int32_t VariableModeMgr::update() {
         updateHwcDispConfigs();
         drm_mode_info_t dispmode;
         if (getDisplayMode(dispmode) == 0) {
-            updateHwcActiveConfig(dispmode.name);
+            updateHwcActiveConfig(dispmode);
         } else {
             useFakeMode = true;
             MESON_LOGD("Get invalid display mode.");
@@ -139,7 +140,7 @@ int32_t VariableModeMgr::update() {
         useFakeMode = true;
 
     if (useFakeMode)
-        updateHwcActiveConfig(mDefaultMode.name);
+        updateHwcActiveConfig(mDefaultMode);
 
     MESON_LOG_FUN_LEAVE();
     return 0;
@@ -255,14 +256,15 @@ int32_t  VariableModeMgr::getDisplayAttribute(
 }
 
 int32_t  VariableModeMgr::updateHwcActiveConfig(
-    const char * activeMode) {
-    mActiveConfigStr = activeMode;
+    drm_mode_info_t activeMode) {
+    mActiveConfigStr = activeMode.name;
 
     for (auto it = mHwcActiveModes.begin(); it != mHwcActiveModes.end(); ++it) {
-        if (strncmp(activeMode, it->second.name, DRM_DISPLAY_MODE_LEN) == 0) {
+        if (strncmp(activeMode.name, it->second.name, DRM_DISPLAY_MODE_LEN) == 0 &&
+            fabs(activeMode.refreshRate - it->second.refreshRate) < 1e-2) {
             mHwcActiveConfigId = it->first;
             mFakeConfigId = mHwcActiveModes.size()-1;
-            MESON_LOGD("updateActiveConfig to (%s, %d)", activeMode, mHwcActiveConfigId);
+            MESON_LOGD("updateActiveConfig to (%s, %d)", activeMode.name, mHwcActiveConfigId);
             return HWC2_ERROR_NONE;
         }
     }
@@ -276,7 +278,7 @@ int32_t  VariableModeMgr::updateHwcActiveConfig(
     // hot plug events.
     mHwcActiveConfigId = mHwcActiveModes.size()-1;
     mFakeConfigId = mHwcActiveConfigId;
-    MESON_LOGD("updateActiveConfig something error to (%s, %d)", activeMode, mHwcActiveConfigId);
+    MESON_LOGD("updateActiveConfig something error to (%s, %d)", activeMode.name, mHwcActiveConfigId);
 
     return HWC2_ERROR_NONE;
 }
@@ -302,7 +304,7 @@ int32_t VariableModeMgr::setActiveConfig(
         drm_mode_info_t cfg = it->second;
 
         // update real active config.
-        updateHwcActiveConfig(cfg.name);
+        updateHwcActiveConfig(cfg);
 
         // since SF is asking to set the mode, we should update mSFActiveConfigId
         // as well here so that when SF calls getActiveConfig, we return correct

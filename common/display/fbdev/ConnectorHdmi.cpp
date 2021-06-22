@@ -196,9 +196,6 @@ int32_t ConnectorHdmi::getModes(std::map<uint32_t, drm_mode_info_t> & modes) {
 }
 
 int32_t ConnectorHdmi::setMode(drm_mode_info_t & mode) {
-    if (MODE_ALL == mFracMode)
-        return 0;
-
     /*update rate policy.*/
     for (auto it = mFracRefreshRates.begin(); it != mFracRefreshRates.end(); it ++) {
         if (*it == mode.refreshRate) {

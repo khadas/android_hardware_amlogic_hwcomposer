@@ -13,6 +13,7 @@
 #include <HwcConfig.h>
 #include <hardware/hwcomposer2.h>
 #include <systemcontrol.h>
+#include <math.h>
 
 #include "RealModeMgr.h"
 
@@ -94,9 +95,10 @@ void RealModeMgr::setDisplayResources(
     mCrtc = crtc;
 }
 
-int32_t RealModeMgr::updateActiveConfig(const char* activeMode) {
+int32_t RealModeMgr::updateActiveConfig(drm_mode_info_t activeMode) {
     for (auto it = mModes.begin(); it != mModes.end(); ++it) {
-        if (strncmp(activeMode, it->second.name, DRM_DISPLAY_MODE_LEN) == 0) {
+        if (strncmp(activeMode.name, it->second.name, DRM_DISPLAY_MODE_LEN) == 0 &&
+            fabs(activeMode.refreshRate - it->second.refreshRate) < 1e-2) {
             mActiveConfigId = it->first;
             MESON_LOGV("%s aciveConfigId = %d", __func__, mActiveConfigId);
             return HWC2_ERROR_NONE;
@@ -105,7 +107,7 @@ int32_t RealModeMgr::updateActiveConfig(const char* activeMode) {
 
     mActiveConfigId = mModes.size()-1;
     MESON_LOGD("%s failed to find [%s], default set activeConfigId to [%d]",
-            __func__, activeMode, mActiveConfigId);
+            __func__, activeMode.name, mActiveConfigId);
 
     return HWC2_ERROR_NONE;
 }
@@ -156,7 +158,7 @@ int32_t RealModeMgr::update() {
         mModes.emplace(mModes.size(), mCurMode);
     }
 
-    updateActiveConfig(mCurMode.name);
+    updateActiveConfig(mCurMode);
 
     return HWC2_ERROR_NONE;
 }
@@ -243,7 +245,7 @@ int32_t RealModeMgr::setActiveConfig(uint32_t config) {
     if (it != mModes.end()) {
         drm_mode_info_t cfg = it->second;
 
-        updateActiveConfig(cfg.name);
+        updateActiveConfig(cfg);
         if (strncmp(cfg.name, fakeInitialMode.name, DRM_DISPLAY_MODE_LEN) == 0) {
             MESON_LOGD("setActiveConfig default mode not supported");
             return HWC2_ERROR_NONE;

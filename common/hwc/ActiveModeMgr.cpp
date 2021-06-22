@@ -120,7 +120,7 @@ int32_t ActiveModeMgr::update() {
         mHwcActiveModes.emplace(mHwcActiveModes.size(), mCurMode);
     }
 
-    updateHwcActiveConfig(mCurMode.name);
+    updateHwcActiveConfig(mCurMode);
     updateSfDispConfigs();
 
     return 0;
@@ -249,17 +249,18 @@ int32_t  ActiveModeMgr::getDisplayAttribute(
    }
 }
 
-int32_t  ActiveModeMgr::updateHwcActiveConfig(const char * activeMode) {
+int32_t  ActiveModeMgr::updateHwcActiveConfig(drm_mode_info_t activeMode) {
     for (auto it = mHwcActiveModes.begin(); it != mHwcActiveModes.end(); ++it) {
-        if (!strncmp(activeMode, it->second.name, DRM_DISPLAY_MODE_LEN)) {
+        if (!strncmp(activeMode.name, it->second.name, DRM_DISPLAY_MODE_LEN) &&
+            fabs(activeMode.refreshRate - it->second.refreshRate) < 1e-2) {
             mHwcActiveConfigId = it->first;
-            MESON_LOGD("%s to (%s, %d)", __func__, activeMode, mHwcActiveConfigId);
+            MESON_LOGD("%s to (%s, %d)", __func__, activeMode.name, mHwcActiveConfigId);
             return HWC2_ERROR_NONE;
         }
     }
 
     mHwcActiveConfigId = mHwcActiveModes.size()-1;
-    MESON_LOGD("%s something error to (%s, %d)", __func__, activeMode, mHwcActiveConfigId);
+    MESON_LOGD("%s something error to (%s, %d)", __func__, activeMode.name, mHwcActiveConfigId);
 
     return HWC2_ERROR_NONE;
 }
@@ -293,7 +294,7 @@ int32_t ActiveModeMgr::setActiveConfig(uint32_t configId) {
 
         // update real active config.
         updateSfActiveConfig(configId, cfg);
-        updateHwcActiveConfig(cfg.name);
+        updateHwcActiveConfig(cfg);
         MESON_LOGD("ActiveModeMgr::setActiveConfig %d, name:%s", configId, cfg.name);
 
         mCallOnHotPlug = false;
