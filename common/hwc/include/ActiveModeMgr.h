@@ -45,7 +45,7 @@ public:
 
 protected:
     int32_t updateSfDispConfigs();
-    int32_t updateHwcActiveConfig(const char * activeMode);
+    int32_t updateHwcActiveConfig(drm_mode_info_t activeMode);
     int32_t updateSfActiveConfig(uint32_t config, drm_mode_info_t cfg);
     bool isFracRate(float refreshRate);
     void reset();

@@ -48,7 +48,7 @@ protected:
     int32_t initDefaultDispResources();
     int32_t updateHwcDispConfigs();
     int32_t updateSfDispConfigs();
-    int32_t updateHwcActiveConfig(const char * activeMode);
+    int32_t updateHwcActiveConfig(drm_mode_info_t activeMode);
 
     void reset();
     const drm_mode_info_t findMatchedMode(
