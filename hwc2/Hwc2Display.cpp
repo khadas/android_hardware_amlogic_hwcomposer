@@ -529,10 +529,15 @@ hwc2_error_t Hwc2Display::setColorTransform(const float* matrix,
 }
 
 hwc2_error_t Hwc2Display::setPowerMode(hwc2_power_mode_t mode) {
+    std::lock_guard<std::mutex> lock(mMutex);
     switch(mode) {
         case HWC2_POWER_MODE_ON:
-        case HWC2_POWER_MODE_OFF:
             MESON_LOG_EMPTY_FUN();
+            return HWC2_ERROR_NONE;
+        case HWC2_POWER_MODE_OFF:
+            /* need blank display when power off */
+            MESON_LOGD("%s OFF", __func__);
+            blankDisplay();
             return HWC2_ERROR_NONE;
         case HWC2_POWER_MODE_DOZE:
         case HWC2_POWER_MODE_DOZE_SUSPEND:
