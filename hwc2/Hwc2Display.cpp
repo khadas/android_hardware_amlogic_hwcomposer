@@ -1604,7 +1604,6 @@ void Hwc2Display::handleVtThread() {
         }
         if (!mVtVsyncStatus) {
             mVtVsync->setVideoTunnelEnabled(true);
-            mVtVsync->setMixMode();
             mVtVsyncStatus = true;
             MESON_LOGD("%s, set VideoTunnelThread Thread to Enabled", __func__);
         }

@@ -237,8 +237,7 @@ int32_t HwcDisplayPipe::updatePipe(std::shared_ptr<PipeStat> & stat) {
             stat->hwcVsync->setHwMode(stat->modeCrtc);
         }
 
-        stat->hwcVtVsync->setHwMode(stat->modeCrtc);
-        stat->hwcVtVsync->setMixMode();
+        stat->hwcVtVsync->setVtMode(stat->modeCrtc);
 
         drm_mode_info_t mode;
         if (0 == stat->modeMgr->getDisplayMode(mode)) {
@@ -335,8 +334,7 @@ void HwcDisplayPipe::handleEvent(drm_display_event event, int val) {
                                 } else {
                                     statIt.second->hwcVsync->setHwMode(statIt.second->modeCrtc);
                                 }
-                                statIt.second->hwcVtVsync->setHwMode(statIt.second->modeCrtc);
-                                statIt.second->hwcVtVsync->setMixMode();
+                                statIt.second->hwcVtVsync->setVtMode(statIt.second->modeCrtc);
                             } else {
                                 /* could not get mode, switch to software vsync */
                                 statIt.second->hwcVsync->setPeriod(1e9 / DEFAULT_REFRESH_RATE);

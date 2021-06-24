@@ -61,8 +61,10 @@ int32_t HwcVsync::setSoftwareMode() {
     return 0;
 }
 
-int32_t HwcVsync::setMixMode() {
+int32_t HwcVsync::setMixMode(std::shared_ptr<HwDisplayCrtc> & crtc) {
     std::unique_lock<std::mutex> stateLock(mStatLock);
+    if (crtc.get())
+        mCrtc = crtc;
     mMixVsync = true;
     mMixRebase = true;
     mSoftVsync = false;
@@ -79,6 +81,14 @@ int32_t HwcVsync::setHwMode(std::shared_ptr<HwDisplayCrtc> & crtc) {
     stateLock.unlock();
     mStateCondition.notify_all();
     return 0;
+}
+
+int32_t HwcVsync::setVtMode(std::shared_ptr<HwDisplayCrtc> & crtc) {
+#ifdef HWC_VT_HW_VSYNC
+    return setHwMode(crtc);
+#else
+    return setMixMode(crtc);
+#endif
 }
 
 int32_t HwcVsync::setPeriod(nsecs_t period) {

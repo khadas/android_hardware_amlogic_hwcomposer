@@ -31,6 +31,10 @@ ifndef HWC_VIDEO_AISR
 HWC_VIDEO_AISR := false
 endif
 
+ifndef HWC_VT_HW_VSYNC
+HWC_VT_HW_VSYNC := false
+endif
+
 # TODO remove it when android S sdk released
 #ifeq ($(PLATFORM_VERSION_CODENAME), S)
 #ifeq ($(filter S, $(PLATFORM_VERSION_CODENAME)), S)
@@ -73,7 +77,8 @@ SOONG_CONFIG_meson_hwc += \
     pipe_viu1vdinviu2_always_loopback \
     dynamic_switch_connector \
     dynamic_swich_viu \
-    enable_video_aisr
+    enable_video_aisr \
+    enable_vt_hwVsync
 
 SOONG_CONFIG_meson_hwc_hwc_release := $(HWC_RELEASE)
 SOONG_CONFIG_meson_hwc_hwc_backend := $(HWC_BACKEND)
@@ -106,5 +111,6 @@ SOONG_CONFIG_meson_hwc_dynamic_switch_connector := $(HWC_DYNAMIC_SWITCH_CONNECTO
 SOONG_CONFIG_meson_hwc_dynamic_swich_viu := $(HWC_DYNAMIC_SWITCH_VIU)
 SOONG_CONFIG_meson_hwc_android_version_s := $(HWC_ANDROID_S)
 SOONG_CONFIG_meson_hwc_enable_video_aisr := $(HWC_VIDEO_AISR)
+SOONG_CONFIG_meson_hwc_enable_vt_hwVsync := $(HWC_VT_HW_VSYNC)
 
 #$(warning "the value of version_s: $(HWC_ANDROID_S)")

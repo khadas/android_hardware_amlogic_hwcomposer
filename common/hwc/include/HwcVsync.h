@@ -32,8 +32,9 @@ public:
 
     int32_t setObserver(HwcVsyncObserver * observer);
     int32_t setSoftwareMode();
-    int32_t setMixMode();
+    int32_t setMixMode(std::shared_ptr<HwDisplayCrtc> & crtc);
     int32_t setHwMode(std::shared_ptr<HwDisplayCrtc> & crtc);
+    int32_t setVtMode(std::shared_ptr<HwDisplayCrtc> & crtc);
     int32_t setPeriod(nsecs_t period);
     int32_t setEnabled(bool enabled);
     int32_t setVideoTunnelEnabled(bool enabled);
