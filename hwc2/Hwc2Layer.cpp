@@ -132,7 +132,7 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
      * If video tunnel sideband recieve blank frame,
      * need release video tunnel resouce
      */
-    if (isVtBuffer()) {
+    if (isVtBufferUnlock()) {
         mNeedReleaseVtResource = true;
         releaseUvmResourceLock();
     }
@@ -270,6 +270,7 @@ hwc2_error_t Hwc2Layer::setSidebandStream(const native_handle_t* stream) {
 }
 
 hwc2_error_t Hwc2Layer::setColor(hwc_color_t color) {
+    std::lock_guard<std::mutex> lock(mMutex);
     clearBufferInfo();
 
     mColor.r = color.r;
@@ -381,12 +382,17 @@ void Hwc2Layer::clearUpdateFlag() {
 }
 
 bool Hwc2Layer::isVtBuffer() {
+    std::lock_guard<std::mutex> lock(mMutex);
+    return mFbType == DRM_FB_VIDEO_TUNNEL_SIDEBAND;
+}
+
+bool Hwc2Layer::isVtBufferUnlock() {
     return mFbType == DRM_FB_VIDEO_TUNNEL_SIDEBAND;
 }
 
 bool Hwc2Layer::isFbUpdated(){
     std::lock_guard<std::mutex> lock(mMutex);
-    if (isVtBuffer()) {
+    if (isVtBufferUnlock()) {
         return (shouldPresentNow(mTimestamp) && mVtUpdate);
     } else {
         return (mUpdated || mFbHandleUpdated);
@@ -395,7 +401,7 @@ bool Hwc2Layer::isFbUpdated(){
 
 int32_t Hwc2Layer::getVtBuffer() {
     std::lock_guard<std::mutex> lock(mMutex);
-    if (!isVtBuffer())
+    if (!isVtBufferUnlock())
         return -EINVAL;
 
     /* should present the current buffer now? */
@@ -414,7 +420,7 @@ int32_t Hwc2Layer::getVtBuffer() {
 int32_t Hwc2Layer::acquireVtBuffer() {
     ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
-    if (!isVtBuffer()) {
+    if (!isVtBufferUnlock()) {
         MESON_LOGE("[%s] [%llu] not videotunnel type", __func__, mId);
         return -EINVAL;
     }
@@ -509,7 +515,7 @@ int32_t Hwc2Layer::acquireVtBuffer() {
 int32_t Hwc2Layer::releaseVtBuffer() {
     ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
-    if (!isVtBuffer()) {
+    if (!isVtBufferUnlock()) {
         MESON_LOGD("layer:%" PRId64 " is not videotunnel layer", getUniqueId());
         return -EINVAL;
     }
@@ -571,7 +577,7 @@ int32_t Hwc2Layer::releaseVtBuffer() {
 
 int32_t Hwc2Layer::recieveVtCmds() {
     std::lock_guard<std::mutex> lock(mMutex);
-    if (!isVtBuffer())
+    if (!isVtBufferUnlock())
         return -EINVAL;
 
     enum vt_cmd cmd;
@@ -616,7 +622,7 @@ int32_t Hwc2Layer::releaseVtResource() {
 }
 
 int32_t Hwc2Layer::doReleaseVtResource(bool needDisconnect) {
-    if (isVtBuffer() || mNeedReleaseVtResource) {
+    if (isVtBufferUnlock() || mNeedReleaseVtResource) {
         MESON_LOGV("[%s] [%llu]", __func__, mId);
         if (mPreVtBufferFd >= 0) {
             VideoTunnelDev::getInstance().releaseBuffer(mTunnelId,

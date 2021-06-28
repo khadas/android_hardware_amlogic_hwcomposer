@@ -215,7 +215,8 @@ int MultiplanesWithDiComposition::processVideoFbs() {
         if (fb->mCompositionType == MESON_COMPOSITION_DUMMY)
             continue;
 
-        switch (fb->mFbType) {
+        drm_fb_type_t fbType = fb->getFbType();
+        switch (fbType) {
             case DRM_FB_VIDEO_OVERLAY:
             case DRM_FB_VIDEO_SIDEBAND:
             case DRM_FB_VIDEO_SIDEBAND_TV:
