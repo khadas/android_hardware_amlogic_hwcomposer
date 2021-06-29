@@ -211,7 +211,7 @@ int32_t HwcVideoPlane::setPlane(
         } else {
             int composefd = -1;
             /*Video post to display directlly.*/
-            if (mDisplayedVideoType == DRM_FB_UNDEFINED) {
+            if (need_disable_video || mDisplayedVideoType == DRM_FB_UNDEFINED) {
                 mVideoComposer->enable(true);
             }
             mVideoComposer->setFrame(fb, composefd, zorder);
@@ -231,6 +231,7 @@ int32_t HwcVideoPlane::setPlane(
     } else if (mBlank != bBlank) {
         mVideoComposer->enable(false);
         mDisplayedVideoType = DRM_FB_UNDEFINED;
+        mPrevFbId = INVALID_ID;
         mVideoFb.reset();
     }
 
