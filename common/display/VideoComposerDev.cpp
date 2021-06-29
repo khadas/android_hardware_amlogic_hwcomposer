@@ -28,7 +28,7 @@ int32_t VideoComposerDev::enable(bool bEnable) {
     if (mEnable == bEnable)
         return 0;
 
-    MESON_LOGV("VideoComposerDev (%d) set (%d).\n", mDrvFd, bEnable);
+    MESON_LOGD("VideoComposerDev (%d) set (%d).\n", mDrvFd, bEnable);
     int val = bEnable ? 1 : 0;
     if (ioctl(mDrvFd, VIDEO_COMPOSER_IOCTL_SET_ENABLE, &val) != 0) {
         MESON_LOGE("VideoComposerDev: ioctl error, %s(%d), mDrvFd = %d",
