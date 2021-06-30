@@ -284,7 +284,6 @@ int DrmConnector::getUpdateProp(std::shared_ptr<DrmProperty> & prop) {
 }
 
 uint32_t DrmConnector::getModeBlobId(drm_mode_info_t & mode) {
-    std::lock_guard<std::mutex> lock(mMutex);
     for (const auto & it : mDrmModes) {
         if (!strcmp(it.second.name, mode.name)) {
             return it.first;

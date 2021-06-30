@@ -63,6 +63,8 @@ public:
 
     int DrmMode2Mode(drmModeModeInfo & drmmode, drm_mode_info_t & mode);
 
+    std::mutex mMutex;
+
 protected:
     int32_t loadDisplayModes(drmModeConnectorPtr p);
     int32_t loadProperties(drmModeConnectorPtr p);
@@ -77,7 +79,6 @@ protected:
     drmModeConnection mState;
     int32_t mFracMode;
 
-    std::mutex mMutex;
     /*mode_id, modeinfo. mode_id is created by userspace, not from kernel.*/
     std::map<uint32_t, drmModeModeInfo> mDrmModes;
     std::map<uint32_t, drm_mode_info_t> mMesonModes;
