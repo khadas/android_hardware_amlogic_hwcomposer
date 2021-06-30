@@ -53,7 +53,7 @@ DrmConnector::~DrmConnector() {
 
 }
 
-int32_t DrmConnector::loadProperties(drmModeConnectorPtr p) {
+int32_t DrmConnector::loadProperties(drmModeConnectorPtr p __unused) {
     ATRACE_CALL();
     struct {
         const char * propname;
@@ -69,24 +69,23 @@ int32_t DrmConnector::loadProperties(drmModeConnectorPtr p) {
     const int connectorPropsNum = sizeof(connectorProps)/sizeof(connectorProps[0]);
     int initedProps = 0;
 
-    for (int i = 0; i < p->count_props; i++) {
-        drmModePropertyPtr prop =
-            drmModeGetProperty(mDrmFd, p->props[i]);
+    drmModeObjectPropertiesPtr props =
+        drmModeObjectGetProperties(mDrmFd, mId, DRM_MODE_OBJECT_CONNECTOR);
+    MESON_ASSERT(props != NULL, "DrmConnector::loadProperties failed.");
+
+    for (int i = 0; i < props->count_props; i++) {
+        drmModePropertyPtr prop = drmModeGetProperty(mDrmFd, props->props[i]);
         for (int j = 0; j < connectorPropsNum; j++) {
             if (strcmp(prop->name, connectorProps[j].propname) == 0) {
-                std::shared_ptr<DrmProperty> tmpprop= *connectorProps[j].drmprop;
-                if (!tmpprop) {
-                    *(connectorProps[j].drmprop) =
-                        std::make_shared<DrmProperty>(prop, mId, p->prop_values[i]);
-                } else {
-                    tmpprop->setValue(p->prop_values[i]);
-                }
+                *(connectorProps[j].drmprop) =
+                    std::make_shared<DrmProperty>(prop, mId, props->prop_values[i]);
                 initedProps ++;
                 break;
             }
         }
        drmModeFreeProperty(prop);
     }
+    drmModeFreeObjectProperties(props);
 
     return 0;
 }
