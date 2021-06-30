@@ -151,6 +151,10 @@ int32_t DrmCrtc::setMode(drm_mode_info_t & mode) {
 
     auto connectorIt = getDrmDevice()->getConnectorById(mConnectorId);
     DrmConnector * connector = (DrmConnector *)connectorIt.get();
+
+    // get the lock of DrmConnector as it may update when crtc set mode
+    std::lock_guard<std::mutex> connectorLock(connector->mMutex);
+
     connector->getCrtcProp(crtcid);
 
     /* If in hotplug process, set mode to PendingModes */
