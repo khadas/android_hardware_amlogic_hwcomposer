@@ -261,6 +261,31 @@ int MultiplanesWithDiComposition::processVideoFbs() {
     uint32_t videoZ = -1, usedPlanes = 0;
     std::shared_ptr<DrmFramebuffer> videoFb;
 
+    if (mVideoPlaneNum == 1 && sidebandFbs.size() > 0) {
+        /* for just one hwcVideoPlane and have sideband video*/
+        auto it = sidebandFbs.begin();
+        fb = *it;
+        it ++;
+        for (; it != sidebandFbs.end(); it ++) {
+            MESON_LOGD("too many sideband, skip.");
+            (*it)->mCompositionType = MESON_COMPOSITION_DUMMY;
+        }
+        sidebandFbs.clear();
+        fb->mCompositionType = MESON_COMPOSITION_PLANE_HWCVIDEO;
+        mDisplayPairs.push_back(DisplayPair{
+                (uint32_t)mOsdPlaneNum, fb->mZorder, fb, mHwcVideoPlanes[0]});
+        mHwcVideoPlanes.erase(mHwcVideoPlanes.begin());
+        fb.reset();
+
+        mHwcVideoInputFbs = mDIComposerFbs;
+        if (mHwcVideoInputFbs.size() > 0) {
+            for (auto it = mHwcVideoInputFbs.begin(); it != mHwcVideoInputFbs.end(); it++) {
+                (*it)->mCompositionType = MESON_COMPOSITION_DUMMY;
+            }
+        }
+        return 0;
+    }
+
     fb.reset();
     for (int i = 0; i < videoFbNum; i++) {
         usedPlanes++;
