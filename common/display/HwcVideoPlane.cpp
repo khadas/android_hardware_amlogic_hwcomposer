@@ -222,11 +222,11 @@ int32_t HwcVideoPlane::setPlane(
 
             /*update last frame release fence*/
             if (DebugHelper::getInstance().discardOutFence()) {
-                fb->setPrevReleaseFence(-1);
+                fb->setCurReleaseFence(-1);
                 if (composefd >= 0)
                     close(composefd);
             } else {
-                fb->setPrevReleaseFence(composefd);
+                fb->setCurReleaseFence(composefd);
             }
         }
 
