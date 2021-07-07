@@ -49,6 +49,7 @@ Hwc2Display::Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer, uint32_t
     mVsyncTimestamp = 0;
     mFirstPresent = true;
     mDisplayId = display;
+    mFRPeriodNanos = 0;
     memset(&mHdrCaps, 0, sizeof(mHdrCaps));
     memset(mColorMatrix, 0, sizeof(float) * 16);
     memset(&mCalibrateCoordinates, 0, sizeof(int) * 4);
@@ -1626,9 +1627,45 @@ bool Hwc2Display::getDisplayVsyncAndPeriod(int64_t& timestamp, int32_t& vsyncPer
     /* default set to 16.667 ms */
     hwc2_vsync_period_t period = 1e9 / 60;
     hwc2_error_t  ret = getDisplayVsyncPeriod(&period);
-    vsyncPeriodNanos = period;
+
+    if (mFRPeriodNanos == 0) {
+        vsyncPeriodNanos = period;
+    } else {
+        // has frame rate hint, return it
+        vsyncPeriodNanos = mFRPeriodNanos;
+    }
 
     return ret == HWC2_ERROR_NONE;
+}
+
+bool Hwc2Display::setFrameRateHint(std::string value) {
+    if (!value.compare("0")) {
+        mFRPeriodNanos = 0;
+    } else if (!value.compare("6000")) {
+        mFRPeriodNanos = 1e9 / 60;
+    } else if (!value.compare("5994")) {
+        mFRPeriodNanos = 1e9 / 59.94;
+    } else if (!value.compare("5000")) {
+        mFRPeriodNanos = 1e9 / 50;
+    } else {
+        MESON_LOGE("%s unsupport value:%s", __func__, value.c_str());
+        return false;
+    }
+
+    MESON_LOGD("%s value:%s", __func__, value.c_str());
+    if (mVtVsync.get()) {
+        // set vt vsync period
+        hwc2_vsync_period_t period = 1e9 / 60;
+        getDisplayVsyncPeriod(&period);
+        period = mFRPeriodNanos == 0 ? period : mFRPeriodNanos;
+        MESON_LOGD("%s setPeriod to %d", __func__, period);
+        mVtVsync->setPeriod(period);
+    } else {
+        MESON_LOGE("%s no videotunnel vsync thread", __func__);
+        return false;
+    }
+
+    return true;
 }
 
 /*******************Video Tunnel API below*******************/
@@ -1680,6 +1717,8 @@ void Hwc2Display::acquireVtLayers() {
             // expectPresent time is current vsync timestamp + 1 vsyncPeriod
             hwc2_vsync_period_t period = 0;
             getDisplayVsyncPeriod(&period);
+            period = mFRPeriodNanos == 0 ? period : mFRPeriodNanos;
+
             nsecs_t expectPresentedTime = mVsyncTimestamp + period;
             layer->setPresentTime(expectPresentedTime);
             ret = layer->acquireVtBuffer();

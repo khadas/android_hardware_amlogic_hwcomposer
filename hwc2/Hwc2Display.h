@@ -158,6 +158,7 @@ public:
 public:
     int32_t captureDisplayScreen(buffer_handle_t hnd);
     bool getDisplayVsyncAndPeriod(int64_t& timestamp, int32_t& vsyncPeriodNanos);
+    bool setFrameRateHint(std::string value);
 
 protected:
     /* For compose. */
@@ -247,6 +248,7 @@ protected:
 
     /* vsync timestamp */
     nsecs_t mVsyncTimestamp;
+    int32_t mFRPeriodNanos;
 
     /* for video tunnel mode video*/
     std::shared_ptr<VideoTunnelThread> mVideoTunnelThread;

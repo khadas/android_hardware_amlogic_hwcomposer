@@ -29,6 +29,7 @@ enum DisplayAttribute {
     DA_SDR_MODE,
     DA_HDMI_COLOR_ATTR,
     DA_HDMI_AVMUTE,
+    DA_FR_HINT,
     DA_DISPLAY_ATTRIBUTE__COUNT
 };
 

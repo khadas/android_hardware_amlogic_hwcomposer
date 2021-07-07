@@ -33,6 +33,7 @@ using namespace std;
 #define DISPLAY_HDR_CAP                         "HDR CAP"
 #define DISPLAY_HDMI_COLOR_ATTR                 "HDMI Color ATTR"
 #define DISPLAY_HDMI_AVMUTE                     "HDMI Avmute"
+#define DISPLAY_FR_HINT                         "FRAME HINT"
 
 typedef struct {
     string name;

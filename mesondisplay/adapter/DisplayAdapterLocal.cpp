@@ -139,6 +139,7 @@ DisplayAdapterLocal::DisplayAdapterLocal() {
     DA_DEFINE(SDR_MODE, "0", update_sys_node);
     DA_DEFINE(HDMI_COLOR_ATTR, "0", update_sys_node);
     DA_DEFINE(HDMI_AVMUTE, "0", update_sys_node);
+    DA_DEFINE(FR_HINT, "0", update_sys_node);
 
 #define DA_SET_NODE(ID, NODE) \
     display_attrs[DA_##ID].sysfs_node = NODE
@@ -169,6 +170,7 @@ DisplayAdapterLocal::DisplayAdapterLocal() {
     DA_SET_NODE(HDR_CAP ,"/sys/class/amhdmitx/amhdmitx0/hdr_cap");
     DA_SET_NODE(HDMI_COLOR_ATTR ,"/sys/class/amhdmitx/amhdmitx0/attr");
     DA_SET_NODE(HDMI_AVMUTE ,"/sys/devices/virtual/amhdmitx/amhdmitx0/avmute");
+    DA_SET_NODE(FR_HINT, "/sys/class/display/fr_hint");
 
 #define DA_SET_READ_ONLY(ID) \
     display_attrs[DA_##ID].is_read_only = true
@@ -348,7 +350,10 @@ bool DisplayAdapterLocal::setDisplayAttribute(
     DisplayTypeConv(type, displayType);
     DisplayAttributeInfo* info = getDisplayAttributeInfo(name, displayType);
     if (info && info->update_fun) {
-       ret = info->update_fun(*info, value, out, UT_SET_VALUE);
+        ret = info->update_fun(*info, value, out, UT_SET_VALUE);
+        if (!name.compare(DISPLAY_FR_HINT)) {
+            MesonHwc2::getInstance().setFrameRateHint(value);
+        }
     }
     if (ret == false) {
         MESON_LOGV("Set display attribute \"%s\" fail", name.c_str());
