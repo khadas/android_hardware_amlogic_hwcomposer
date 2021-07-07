@@ -159,6 +159,7 @@ public:
     int32_t captureDisplayScreen(buffer_handle_t hnd);
     bool setViewPort(const drm_rect_wh_t viewPort);
     void getViewPort(drm_rect_wh_t& viewPort);
+    bool setFrameRateHint(std::string value);
 
 protected:
     int32_t initialize();

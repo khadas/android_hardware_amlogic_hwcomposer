@@ -888,6 +888,11 @@ void MesonHwc2::getViewPort(drm_rect_wh_t & viewPort) {
     viewPort = mViewPort;
 }
 
+bool MesonHwc2::setFrameRateHint(std::string value) {
+    GET_HWC_DISPLAY(0);
+    return hwcDisplay->setFrameRateHint(value);
+}
+
 int32_t MesonHwc2::initialize() {
     std::map<uint32_t, std::shared_ptr<HwcDisplay>> mhwcDisps;
     mDisplayPipe = createDisplayPipe(HwcConfig::getPipeline());
