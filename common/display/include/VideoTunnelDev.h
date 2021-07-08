@@ -23,10 +23,10 @@ public:
 
     int32_t acquireBuffer(int tunnelId, int& bufferFd, int64_t& timeStamp);
     int32_t releaseBuffer(int tunnelId, int bufferFd, int fenceFd);
-
     int32_t recieveCmd(int tunnelId, enum vt_cmd& cmd, int& cmdData);
 
-    int32_t pollCmds();
+    int32_t setNonBlockMode();
+    int32_t pollGameModeBuffer();
 
 private:
     int mDrvFd;

@@ -8,7 +8,9 @@
  */
 
 #define LOG_NDEBUG 1
+#define ATRACE_TAG ATRACE_TAG_GRAPHICS
 
+#include <utils/Trace.h>
 #include <VideoComposerDev.h>
 #include <MesonLog.h>
 #include <sys/ioctl.h>
@@ -53,6 +55,7 @@ int32_t VideoComposerDev::setFrames(
     std::vector<std::shared_ptr<DrmFramebuffer>> & composefbs,
     int & releaseFence,
     uint32_t z) {
+    ATRACE_CALL();
     std::shared_ptr<DrmFramebuffer> fb;
     video_frame_info_t * vFrameInfo;
     releaseFence = -1;

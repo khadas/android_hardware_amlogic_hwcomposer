@@ -207,6 +207,18 @@ TEST_F(VideoTunnelTest, send_recv_VideoCmd)
     EXPECT_EQ(dataSend, dataRecv);
     EXPECT_EQ(getpid(), clientRecv);
 
+    cmdSend = VT_CMD_SET_GAME_MODE;
+    dataSend = 1;
+
+    EXPECT_EQ(OK, mProducer->sendCmd(cmdSend, dataSend));
+
+    EXPECT_EQ(OK, mConsumer->consumerConnect());
+    EXPECT_EQ(OK, mConsumer->recvCmd(cmdRecv, dataRecv, clientRecv));
+
+    EXPECT_EQ(cmdSend, cmdRecv);
+    EXPECT_EQ(dataSend, dataRecv);
+    EXPECT_EQ(getpid(), clientRecv);
+
     EXPECT_EQ(OK, mProducer->producerDisconnect());
     EXPECT_EQ(OK, mConsumer->consumerDisconnect());
 }

@@ -31,18 +31,27 @@ protected:
     int createThread();
     static void *bufferThreadMain(void * data);
 
+    // for vt cmd process thread
     int handleVideoTunnelCmds();
     static void *cmdThreadMain(void *data);
 
+    // game mode thread
+    int stopGameMode();
+    int startGameMode();
+    int handleGameMode();
+    static void *gameModeThreadMain(void *data);
+
 protected:
     bool mExit;
+    bool mGameExit;
     bool mVsyncComing;
+    std::mutex mMutex;
 
     // videotunnel cmd thread
     pthread_t mVtCmdThread;
-   // std::mutex mVtCmdLock;
-
     pthread_t mVtBufferThread;
+    pthread_t mVtGameModeThread;
+
     std::mutex mVtLock;
     std::condition_variable mVtCondition;
     Hwc2Display * mDisplay;

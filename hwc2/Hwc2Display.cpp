@@ -388,6 +388,7 @@ void Hwc2Display::onVsync(int64_t timestamp, uint32_t vsyncPeriodNanos) {
 }
 
 void Hwc2Display::onVTVsync(int64_t timestamp, uint32_t vsyncPeriodNanos) {
+    ATRACE_CALL();
     mVsyncTimestamp = timestamp;
     if (mVideoTunnelThread != nullptr) {
         mVideoTunnelThread->onVtVsync(timestamp, vsyncPeriodNanos);
@@ -503,6 +504,7 @@ void Hwc2Display::destroyLayerId(hwc2_layer_t id) {
 }
 
 hwc2_error_t Hwc2Display::createLayer(hwc2_layer_t * outLayer) {
+    ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
 
     std::shared_ptr<Hwc2Layer> layer = std::make_shared<Hwc2Layer>();
@@ -515,6 +517,7 @@ hwc2_error_t Hwc2Display::createLayer(hwc2_layer_t * outLayer) {
 }
 
 hwc2_error_t Hwc2Display::destroyLayer(hwc2_layer_t  inLayer) {
+    ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
     auto layerit = mLayers.find(inLayer);
     if (layerit == mLayers.end())
@@ -1675,17 +1678,34 @@ bool Hwc2Display::handleVtDisplayConnection() {
 
 int Hwc2Display::recieveVtCmds() {
     std::lock_guard<std::mutex> lock(mMutex);
+    int ret = 0;
 
     for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
         auto layer = it->second;
         if (layer->isVtBuffer()) {
-            int ret = layer->recieveVtCmds();
-            if (ret != 0 && ret != -EAGAIN) {
-                MESON_LOGE("%s, layer id=%llu recieve vt cmds failed:%s",
-                        __func__, layer->getUniqueId(), strerror(ret));
+            ret |= layer->recieveVtCmds();
+        }
+    }
+
+    return ret;
+}
+
+/*
+ * whether the videotunnel layer has new game buffer
+ */
+bool Hwc2Display::newGameBuffer() {
+    std::lock_guard<std::mutex> lock(mMutex);
+    bool ret = false;
+
+    for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
+        auto layer = it->second;
+        if (layer->isVtBuffer()) {
+            if (layer->newGameBuffer()) {
+                ret = true;
+                break;
             }
         }
     }
 
-    return 0;
+    return ret;
 }

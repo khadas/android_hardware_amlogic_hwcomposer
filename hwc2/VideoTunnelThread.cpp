@@ -20,6 +20,7 @@
 
 VideoTunnelThread::VideoTunnelThread(Hwc2Display * display) {
     mExit = false;
+    mGameExit = false;
     mVsyncComing = false;
     mDisplay = display;
 
@@ -57,6 +58,7 @@ int VideoTunnelThread::createThread() {
 
 void VideoTunnelThread::onVtVsync(int64_t timestamp __unused,
         uint32_t vsyncPeriodNanos __unused) {
+    ATRACE_CALL();
     std::unique_lock<std::mutex> stateLock(mVtLock);
     mVsyncComing = true;
     stateLock.unlock();
@@ -74,16 +76,20 @@ void VideoTunnelThread::handleVideoTunnelLayers() {
     mVsyncComing = false;
     stateLock.unlock();
 
-    mDisplay->acquireVtLayers();
+    {
+        /* lock it as game mode thread may present vide too */
+        std::lock_guard<std::mutex> lock(mMutex);
+        mDisplay->acquireVtLayers();
 
-    if (mDisplay->handleVtDisplayConnection()) {
-        mDisplay->presentDisplay(&outPresentFence, false);
+        if (mDisplay->handleVtDisplayConnection()) {
+            mDisplay->presentDisplay(&outPresentFence, false);
 
-        /* need close the present fence */
-        if (outPresentFence >= 0)
-            close(outPresentFence);
+            /* need close the present fence */
+            if (outPresentFence >= 0)
+                close(outPresentFence);
+        }
+        mDisplay->releaseVtLayers();
     }
-    mDisplay->releaseVtLayers();
 }
 
 void* VideoTunnelThread::bufferThreadMain(void *data) {
@@ -109,19 +115,25 @@ void* VideoTunnelThread::bufferThreadMain(void *data) {
 
 int VideoTunnelThread::handleVideoTunnelCmds() {
     int32_t outPresentFence = -1;
-    /*
-     * poll videotunnel cmd,
-     * will wait in videotunnel driver until recieve cmds
-     */
-    if (VideoTunnelDev::getInstance().pollCmds())
-        return -EAGAIN;
 
-    mDisplay->recieveVtCmds();
+    std::mutex cmdMtx;
+    std::unique_lock<std::mutex> stateLock(cmdMtx);
+    mVtCondition.wait_for(stateLock, std::chrono::milliseconds(20));
 
-    // present display once to disable video
-    mDisplay->presentDisplay(&outPresentFence, false);
-    if (outPresentFence >= 0)
-        close(outPresentFence);
+    int ret = mDisplay->recieveVtCmds();
+    if (ret < 0)
+        return ret;
+
+    if (ret & VT_CMD_DISABLE_VIDEO) {
+        // present display once to disable video
+        mDisplay->presentDisplay(&outPresentFence, false);
+        if (outPresentFence >= 0)
+            close(outPresentFence);
+    } else if (ret & VT_CMD_GAME_MODE_ENABLE) {
+        startGameMode();
+    } else if (ret & VT_CMD_GAME_MODE_DISABLE) {
+        stopGameMode();
+    }
 
     return 0;
 }
@@ -138,6 +150,87 @@ void* VideoTunnelThread::cmdThreadMain(void *data) {
         }
 
         pThis->handleVideoTunnelCmds();
+    }
+
+    return NULL;
+}
+
+int VideoTunnelThread::startGameMode() {
+    MESON_LOGD("%s", __func__);
+    // start game thread
+    mGameExit = false;
+    if (!mGameExit) {
+        int ret = pthread_create(&mVtGameModeThread, NULL, gameModeThreadMain, (void *)this);
+        if (ret) {
+            MESON_LOGE("failed to create VideoTunnel BUfferThread: %s",
+                    strerror(ret));
+            return ret;
+        }
+    } else {
+        MESON_LOGD("%s game mode thread alread in running", __func__);
+    }
+
+    return 0;
+}
+
+int VideoTunnelThread::stopGameMode() {
+    MESON_LOGD("%s", __func__);
+    mGameExit = true;
+    pthread_join(mVtGameModeThread, NULL);
+
+    return 0;
+}
+
+int VideoTunnelThread::handleGameMode() {
+    /*
+     * poll videotunnel game buffer
+     * will wait in videotunnel driver until recieve buffers
+     */
+    int32_t outPresentFence = -1;
+    int ret = VideoTunnelDev::getInstance().pollGameModeBuffer();
+
+   /* success */
+   if (ret == 0) {
+       std::lock_guard<std::mutex> lock(mMutex);
+       do {
+           mDisplay->acquireVtLayers();
+
+           if (mDisplay->handleVtDisplayConnection()) {
+               mDisplay->presentDisplay(&outPresentFence, false);
+
+               /* need close the present fence */
+               if (outPresentFence >= 0)
+                   close(outPresentFence);
+           }
+           mDisplay->releaseVtLayers();
+       } while (mDisplay->newGameBuffer());
+   }
+
+    return ret;
+}
+
+void *VideoTunnelThread::gameModeThreadMain(void *data) {
+    VideoTunnelThread* pThis = (VideoTunnelThread*)data;
+
+    // set videotunnel thread to SCHED_FIFO to minimize jitter
+    struct sched_param param = {0};
+    param.sched_priority = 2;
+    if (sched_setscheduler(0, SCHED_FIFO, &param) != 0) {
+        MESON_LOGE("Couldn't set SCHED_FIFO for videotunnelthread");
+    }
+
+    while (true) {
+        if (pThis->mGameExit) {
+            MESON_LOGD("VideoTunnel game mode Thread exit");
+            pthread_exit(0);
+            return NULL;
+        }
+
+        int ret = pThis->handleGameMode();
+        if (ret != 0 && ret != -EAGAIN) {
+            MESON_LOGE("handle Game mode error:%d, exit", ret);
+            return NULL;
+        }
     }
 
     return NULL;
