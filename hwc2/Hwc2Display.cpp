@@ -1490,6 +1490,7 @@ void Hwc2Display::dumpHwDisplayPlane(String8 &dumpstr) {
 }
 
 void Hwc2Display::dump(String8 & dumpstr) {
+    std::lock_guard<std::mutex> lock(mMutex);
     /*update for debug*/
     if (DebugHelper::getInstance().debugHideLayers() ||
         DebugHelper::getInstance().debugPlanes()) {
