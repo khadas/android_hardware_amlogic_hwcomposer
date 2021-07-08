@@ -34,6 +34,7 @@ Hwc2Layer::Hwc2Layer() : DrmFramebuffer(){
     mExpectedPresentTime = 0;
     mQueuedFrames = 0;
     mTunnelId = -1;
+    mGameMode = false;
     mQueueItems.clear();
 
     mPreUvmBufferFd = -1;
@@ -458,6 +459,8 @@ int32_t Hwc2Layer::acquireVtBuffer() {
 
     // drop expiredItemCount-1 buffers
     int dropCount = expiredItemCount - 1;
+    ATRACE_INT64("Hwc2Layer:DropCount", dropCount);
+
     while (dropCount > 0) {
         auto item = mQueueItems.front();
 
@@ -574,25 +577,34 @@ int32_t Hwc2Layer::recieveVtCmds() {
     if (ret < 0)
         return ret;
 
+    MESON_LOGD("recv videotunnel [%d] cmd=%d cmdData=%d", mTunnelId, cmd, cmdData);
+    ret = 0;
     // process the cmd
     if (cmd == VT_CMD_SET_VIDEO_STATUS) {
-        MESON_LOGD("recv videotunnel [%d] cmd=%d cmdData=%d", mTunnelId, cmd, cmdData);
-
         // disable video cmd
         if (cmdData == 1) {
             // set it to dummy
             mCompositionType = MESON_COMPOSITION_DUMMY;
             // release all the vt release
             doReleaseVtResource();
+            ret |= VT_CMD_DISABLE_VIDEO;
         }
+    } if (cmd == VT_CMD_SET_GAME_MODE) {
+        if (cmdData == 1) {
+            ret |= VT_CMD_GAME_MODE_ENABLE;
+            mGameMode = true;
+        } else if (cmdData == 0) {
+            ret |= VT_CMD_GAME_MODE_DISABLE;
+            mGameMode = false;
+        }
+        MESON_LOGD("recv cmds mGameMode:%d", mGameMode);
     } else {
-        // Currently only support set video disable status
+        // Currently only support set video disable status and game mode
         MESON_LOGE("Not supported videoTunnel [%d] cmd:%d", mTunnelId, cmd);
     }
 
-    return 0;
+    return ret;
 }
-
 
 int32_t Hwc2Layer::releaseVtResource() {
     std::lock_guard<std::mutex> lock(mMutex);
@@ -639,10 +651,15 @@ int32_t Hwc2Layer::doReleaseVtResource() {
         if (mTunnelId >= 0) {
             MESON_LOGD("[%s] [%llu] Hwc2Layer release disconnect(%d) queuedFrames(%d)",
                     __func__, mId, mTunnelId, mQueuedFrames);
+
+            if (mGameMode)
+                VideoTunnelDev::getInstance().setNonBlockMode();
+
             VideoTunnelDev::getInstance().disconnect(mTunnelId);
             mTunnelId = -1;
         }
 
+        mGameMode = false;
         mQueuedFrames = 0;
         mNeedReleaseVtResource = false;
     }
@@ -658,6 +675,7 @@ void Hwc2Layer::setPresentTime(nsecs_t expectedPresentTime) {
     mExpectedPresentTime = ns2us(expectedPresentTime);
 
     [[maybe_unused]] nsecs_t diffExpected = mExpectedPresentTime - previousExpectedTime;
+    ATRACE_INT64("Hwc2Layer:DiffExpected", diffExpected);
 
     MESON_LOGV("[%s] [%llu] vsyncTimeStamp:%lld, diffExpected:%lld",
             __func__, mId, mExpectedPresentTime, diffExpected);
@@ -667,12 +685,26 @@ bool Hwc2Layer::shouldPresentNow(nsecs_t timestamp) {
     if (timestamp == -1)
         return true;
 
+    // game mode ignore timestamps
+    if (mGameMode)
+        return true;
+
     const bool isDue =  timestamp < mExpectedPresentTime;
 
     // Ignore timestamps more than a second in the future
     const bool isPlausible = timestamp < (mExpectedPresentTime + s2ns(1));
 
     return  isDue ||  !isPlausible;
+}
+
+bool Hwc2Layer::newGameBuffer() {
+    std::lock_guard<std::mutex> lock(mMutex);
+    if (mGameMode) {
+        return mQueueItems.size();
+    }
+
+    /* not game mode */
+    return false;
 }
 
 int32_t Hwc2Layer::attachUvmBuffer(const int bufferFd) {

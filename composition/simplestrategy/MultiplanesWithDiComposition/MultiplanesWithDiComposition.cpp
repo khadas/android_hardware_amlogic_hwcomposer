@@ -10,8 +10,8 @@
 #define LOG_NDEBUG 1
 #define ATRACE_TAG ATRACE_TAG_GRAPHICS
 
-#include <hardware/hwcomposer2.h>
 #include <utils/Trace.h>
+#include <hardware/hwcomposer2.h>
 #include "MultiplanesWithDiComposition.h"
 #include <DrmTypes.h>
 #include <MesonLog.h>
@@ -1190,6 +1190,7 @@ void MultiplanesWithDiComposition::updateComposition() {
 
 /* Decide to choose whcih Fbs and how to build OsdFbs2Plane pairs. */
 int MultiplanesWithDiComposition::decideComposition() {
+    ATRACE_CALL();
     int ret = 0;
     if (mFramebuffers.empty()) {
         MESON_LOGV("No layers to compose, exit.");

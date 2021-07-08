@@ -151,6 +151,7 @@ public:
 
     /* recieve videotunnel cmds */
     virtual int recieveVtCmds();
+    virtual bool newGameBuffer();
 
 /* meson display ddk */
 public:

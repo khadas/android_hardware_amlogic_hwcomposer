@@ -59,16 +59,24 @@ int32_t VideoTunnelDev::recieveCmd(int tunnelId, enum vt_cmd& cmd, int& cmdData)
  * Return of -EAGAIN means the operation timeout or error.
  * On success, return of 0 means videotunnel can receive cmds
  */
-int32_t VideoTunnelDev::pollCmds() {
+int32_t VideoTunnelDev::pollGameModeBuffer() {
     struct pollfd fds[1];
     fds[0].fd = mDrvFd;
     fds[0].events = POLLIN;
     fds[0].revents = 0;
 
     int pollrtn = poll(fds, 1, VT_POOL_TIMEOUT);
-    if (pollrtn > 0 && fds[0].revents == POLLIN) {
-        return 0;
+    if (pollrtn > 0) {
+        /* can ready to read */
+        if (fds[0].revents == POLLIN)
+            return 0;
+        else if (fds[0].revents == POLLERR)
+            return -EINVAL;
     }
 
     return -EAGAIN;
+}
+
+int32_t VideoTunnelDev::setNonBlockMode() {
+    return meson_vt_set_mode(mDrvFd, 0);
 }

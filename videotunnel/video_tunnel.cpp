@@ -318,8 +318,7 @@ int meson_vt_set_mode(int fd, int block_mode) {
  * -EAGAIN - no reply from server (a timeout 4ms may be happened)
  */
 int meson_vt_send_cmd(int fd, int tunnel_id, enum vt_cmd cmd, int cmd_data) {
-    enum vt_video_cmd_e vcmd = (cmd == VT_CMD_SET_VIDEO_STATUS ?
-            VT_VIDEO_SET_STATUS : VT_VIDEO_GET_STATUS);
+    enum vt_video_cmd_e vcmd = (enum vt_video_cmd_e) cmd;
 
     struct vt_ctrl_data data = {
         .tunnel_id = tunnel_id,
@@ -355,15 +354,13 @@ int meson_vt_recv_cmd(int fd, int tunnel_id, enum vt_cmd *cmd, int *cmd_data, in
     if (ret < 0)
         return ret;
 
-    *cmd = (data.video_cmd == VT_VIDEO_SET_STATUS ?
-            VT_CMD_SET_VIDEO_STATUS : VT_CMD_GET_VIDEO_STATUS);
+    *cmd = (enum vt_cmd) data.video_cmd;
 
     *cmd_data = data.video_cmd_data;
     *client_id = data.client_id;
 
     return ret;
 }
-
 #ifdef __cplusplus
 }
 #endif

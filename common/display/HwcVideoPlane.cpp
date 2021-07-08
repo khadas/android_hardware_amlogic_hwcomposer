@@ -6,6 +6,9 @@
  *
  * Description:
  */
+#define ATRACE_TAG ATRACE_TAG_GRAPHICS
+
+#include <utils/Trace.h>
 #include <DebugHelper.h>
 #include <MesonLog.h>
 #include <misc.h>
@@ -158,6 +161,7 @@ int32_t HwcVideoPlane::setVideodisableStatus(int status) {
 int32_t HwcVideoPlane::setPlane(
     std::shared_ptr<DrmFramebuffer> fb,
     uint32_t zorder, int blankOp) {
+    ATRACE_CALL();
     MESON_ASSERT(mDrvFd >= 0, "osd plane fd is not valiable!");
 
     bool bBlank = blankOp == UNBLANK ? false : true;

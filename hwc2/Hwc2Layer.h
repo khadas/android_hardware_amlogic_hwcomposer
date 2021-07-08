@@ -16,6 +16,9 @@
 #include <BasicTypes.h>
 #include <DrmFramebuffer.h>
 
+#define VT_CMD_DISABLE_VIDEO     0x01
+#define VT_CMD_GAME_MODE_ENABLE  0x02
+#define VT_CMD_GAME_MODE_DISABLE 0x04
 
 class Hwc2Layer : public DrmFramebuffer {
 /*Interfaces for hwc2.0 api.*/
@@ -64,6 +67,7 @@ public:
     int32_t releaseVtResource();
     void setPresentTime(nsecs_t expectedPresentTime);
     bool shouldPresentNow(nsecs_t timestamp);
+    bool newGameBuffer();
 
 public:
     android_dataspace_t mDataSpace;
@@ -99,6 +103,7 @@ protected:
     int64_t mTimestamp;
     std::deque<VtBufferItem> mQueueItems;
     int32_t mQueuedFrames;
+    bool mGameMode;
 
     nsecs_t mExpectedPresentTime;
     bool mVtUpdate;

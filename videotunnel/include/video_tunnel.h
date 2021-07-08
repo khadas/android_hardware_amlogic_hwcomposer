@@ -19,6 +19,7 @@ extern "C" {
 enum vt_cmd {
     VT_CMD_SET_VIDEO_STATUS,
     VT_CMD_GET_VIDEO_STATUS,
+    VT_CMD_SET_GAME_MODE,
 };
 
 int meson_vt_open();
