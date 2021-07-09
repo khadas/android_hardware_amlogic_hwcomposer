@@ -68,6 +68,7 @@ static const drm_mode_info_t fakeInitialMode = {
 RealModeMgr::RealModeMgr() {
     mPreviousMode = fakeInitialMode;
     mDvEnabled = false;
+    mCallOnHotPlug = true;
 }
 
 RealModeMgr::~RealModeMgr() {

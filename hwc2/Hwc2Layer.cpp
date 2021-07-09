@@ -717,7 +717,7 @@ int32_t Hwc2Layer::dettachUvmBuffer() {
 
 int32_t Hwc2Layer::collectUvmBuffer(const int fd, const int fence) {
     if (fd < 0) {
-        MESON_LOGE("%s: get invalid fd", __func__);
+        MESON_LOGV("%s: get invalid fd", __func__);
         if (fence >= 0)
             close(fence);
         return -EINVAL;
