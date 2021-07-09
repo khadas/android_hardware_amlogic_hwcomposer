@@ -828,7 +828,7 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
     /*check power mode*/
     if (mPowerMode->needBlankScreen(mPresentLayers.size())) {
         if (!mPowerMode->getScreenStatus()) {
-            MESON_LOGD("Need to blank screen.");
+            MESON_LOGV("Need to blank screen.");
             /*set all layers to dummy*/
             Hwc2Layer *layer;
             for (auto it = mPresentLayers.begin() ; it != mPresentLayers.end(); it++) {

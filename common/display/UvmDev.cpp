@@ -6,6 +6,7 @@
  *
  * Description:
  */
+#define LOG_NDEBUG 1
 
 #include <fcntl.h>
 #include <sys/ioctl.h>
@@ -65,7 +66,7 @@ int UvmDev::attachBuffer(const int fd) {
     };
 
     if (ioctl(mDrvFd, UVM_IOC_SET_INFO, &hook_data) != 0) {
-        MESON_LOGE("set uvm %d detach flag failed: %s", fd, strerror(errno));
+        MESON_LOGV("set uvm %d detach flag failed: %s", fd, strerror(errno));
         return -1;
     }
 
