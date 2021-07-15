@@ -668,6 +668,7 @@ int32_t MesonHwc2::setCalibrateInfo(hwc2_display_t display){
 #endif
     } else {
         if (!HwcConfig::preDisplayCalibrateEnabled() &&
+			strcmp(mDispMode.name, "panel") != 0 &&
             mViewPort.x >= 0 &&mViewPort.y >= 0 &&
             mViewPort.w > 0 && mViewPort.h > 0 &&
             mViewPort.x + mViewPort.w <= mDispMode.pixelW &&
