@@ -38,6 +38,7 @@
 #include <HwDisplayManager.h>
 #include <misc.h>
 #include <UvmDev.h>
+#include <AmVecmDev.h>
 
 Hwc2Display::Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer, uint32_t display) {
     mObserver = observer;
@@ -588,13 +589,35 @@ hwc2_error_t Hwc2Display::setCursorPosition(hwc2_layer_t layer __unused,
 
 hwc2_error_t Hwc2Display::setColorTransform(const float* matrix,
     android_color_transform_t hint) {
+    bool enable = false;
     if (hint == HAL_COLOR_TRANSFORM_IDENTITY) {
-        mForceClientComposer = false;
         memset(mColorMatrix, 0, sizeof(float) * 16);
     } else {
-        mForceClientComposer = true;
         memcpy(mColorMatrix, matrix, sizeof(float) * 16);
+        enable = true;
     }
+
+    String8 matrixDump;
+    matrixDump.append("\n-------------------------------------------------\n");
+    for (int i = 0; i < 16; i ++ )  {
+        matrixDump.appendFormat("%6f ", matrix[i]);
+        if ((i+1) % 4 == 0)
+            matrixDump.append("\n");
+    }
+    matrixDump.append("-------------------------------------------------\n");
+
+    MESON_LOGV("%s hint %d color matrix:%s",
+            __func__, hint, matrixDump.string());
+
+    if (mConnector && (mConnector->getType() == DRM_MODE_CONNECTOR_HDMIA ||
+                       mConnector->getType() == DRM_MODE_CONNECTOR_TV)) {
+        mForceClientComposer = false;
+        AmVecmDev::getInstance().setColorTransform(matrix, enable);
+    } else {
+        // TODO: remove it when driver is support ColorTransform on TV product.
+        mForceClientComposer = enable;
+    }
+
     return HWC2_ERROR_NONE;
 }
 
