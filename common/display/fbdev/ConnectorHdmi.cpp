@@ -347,7 +347,7 @@ int32_t parseHdmiHdrCapabilities(drm_hdr_capabilities & hdrCaps) {
     // HDR
     const char *HDR_PATH = "/sys/class/amhdmitx/amhdmitx0/hdr_cap";
     // hdmr attr
-    const char *ATTR_PATH = "/sys/class/amhdmitx/amhdmitx0/attr";
+    [[maybe_unused]] const char *ATTR_PATH = "/sys/class/amhdmitx/amhdmitx0/attr";
 
     char buf[1024+1] = {0};
     char* pos = buf;
@@ -420,6 +420,7 @@ int32_t parseHdmiHdrCapabilities(drm_hdr_capabilities & hdrCaps) {
         close(fd);
     }
 
+#if PLATFORM_SDK_VERSION == 30
     if (!hdrCaps.DolbyVisionSupported) {
         // mask off all hdr cap if  color depth is 8bit, set it to sdr
         if (!sysfs_get_string(ATTR_PATH, buf, sizeof(buf))) {
@@ -429,6 +430,7 @@ int32_t parseHdmiHdrCapabilities(drm_hdr_capabilities & hdrCaps) {
             }
         }
     }
+#endif
 
     /* Overwrite HdrCapabilities according to user's HDR preference
      * sdr: hides all HDR capabilities
