@@ -8,14 +8,15 @@
  */
 
 //#define LOG_NDEBUG 1
+#define ATRACE_TAG ATRACE_TAG_GRAPHICS
 
-
+#include <utils/Trace.h>
 #include <MesonLog.h>
 #include "VideoTunnelDev.h"
 #include <poll.h>
 
 #define VT_ROLE_CONSUMER  1
-#define VT_POOL_TIMEOUT 32  //ms
+#define VT_POLL_TIMEOUT 32  //ms
 
 ANDROID_SINGLETON_STATIC_INSTANCE(VideoTunnelDev)
 
@@ -65,7 +66,7 @@ int32_t VideoTunnelDev::pollGameModeBuffer() {
     fds[0].events = POLLIN;
     fds[0].revents = 0;
 
-    int pollrtn = poll(fds, 1, VT_POOL_TIMEOUT);
+    int pollrtn = poll(fds, 1, VT_POLL_TIMEOUT);
     if (pollrtn > 0) {
         /* can ready to read */
         if (fds[0].revents == POLLIN)
@@ -79,4 +80,8 @@ int32_t VideoTunnelDev::pollGameModeBuffer() {
 
 int32_t VideoTunnelDev::setNonBlockMode() {
     return meson_vt_set_mode(mDrvFd, 0);
+}
+
+int32_t VideoTunnelDev::pollCmds() {
+    return meson_vt_poll_cmd(mDrvFd, VT_POLL_TIMEOUT);
 }

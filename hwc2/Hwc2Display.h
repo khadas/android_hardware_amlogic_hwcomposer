@@ -84,6 +84,7 @@ public:
     virtual hwc2_error_t validateDisplay(uint32_t* outNumTypes,
         uint32_t* outNumRequests);
     virtual hwc2_error_t presentDisplay(int32_t* outPresentFence, bool sf = true);
+    virtual hwc2_error_t presentVideo(int32_t* outPresentFence);
     virtual hwc2_error_t acceptDisplayChanges();
     virtual hwc2_error_t getChangedCompositionTypes(
         uint32_t* outNumElements, hwc2_layer_t* outLayers,
@@ -252,6 +253,7 @@ protected:
     bool mVtVsyncStatus;
     bool mDisplayConnection;
     bool mOutsideChanged;
+    std::mutex mVtMutex;
 
     /* for activeConfig */
     std::condition_variable mStateCondition;

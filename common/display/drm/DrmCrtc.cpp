@@ -271,6 +271,7 @@ int32_t DrmCrtc::pageFlip(int32_t & out_fence) {
     if (DebugHelper::getInstance().enableDrmBlockMode())
         flag = 0;
 
+    ATRACE_BEGIN("AtomicCommit");
     int32_t ret = drmModeAtomicCommit(
         mDrmFd,
         mReq,
@@ -279,6 +280,7 @@ int32_t DrmCrtc::pageFlip(int32_t & out_fence) {
     if (ret) {
         MESON_LOGE("pageFlip:atomic commit ret (%d)", ret);
     }
+    ATRACE_END();
 
     drmModeAtomicFree(mReq);
     mReq = NULL;

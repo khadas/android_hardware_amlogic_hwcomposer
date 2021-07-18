@@ -38,6 +38,7 @@ int meson_vt_dequeue_buffer(int fd, int tunnel_id, int *buffer_fd, int *fence_fd
 int meson_vt_acquire_buffer(int fd, int tunnel_id, int *buffer_fd,
         int *fence_fd, int64_t *expected_present_time);
 int meson_vt_release_buffer(int fd, int tunnel_id, int buffer_fd, int fence_fd);
+int meson_vt_poll_cmd(int fd, int time_out);
 
 /* for video cmd */
 int meson_vt_set_mode(int fd, int block_mode);
