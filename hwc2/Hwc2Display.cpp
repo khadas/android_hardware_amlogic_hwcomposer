@@ -271,6 +271,7 @@ hwc2_error_t Hwc2Display::getFrameMetadataKeys(
 #endif
 
 hwc2_error_t Hwc2Display::setVsyncEnable(hwc2_vsync_t enabled) {
+    ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
     bool state;
     switch (enabled) {
@@ -504,6 +505,7 @@ void Hwc2Display::destroyLayerId(hwc2_layer_t id) {
 hwc2_error_t Hwc2Display::createLayer(hwc2_layer_t * outLayer) {
     ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
+    std::lock_guard<std::mutex> vtLock(mVtMutex);
 
     std::shared_ptr<Hwc2Layer> layer = std::make_shared<Hwc2Layer>();
     uint32_t idx = createLayerId();
@@ -517,6 +519,7 @@ hwc2_error_t Hwc2Display::createLayer(hwc2_layer_t * outLayer) {
 hwc2_error_t Hwc2Display::destroyLayer(hwc2_layer_t  inLayer) {
     ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
+    std::lock_guard<std::mutex> vtLock(mVtMutex);
     auto layerit = mLayers.find(inLayer);
     if (layerit == mLayers.end())
         return HWC2_ERROR_BAD_LAYER;
@@ -550,6 +553,7 @@ hwc2_error_t Hwc2Display::setColorTransform(const float* matrix,
 }
 
 hwc2_error_t Hwc2Display::setPowerMode(hwc2_power_mode_t mode) {
+    ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
     switch(mode) {
         case HWC2_POWER_MODE_ON:
@@ -679,6 +683,7 @@ hwc2_error_t Hwc2Display::collectCompositionStgForPresent() {
 }
 
 hwc2_error_t Hwc2Display::setCalibrateInfo(int32_t caliX,int32_t caliY,int32_t caliW,int32_t caliH){
+    ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
     mCalibrateCoordinates[0] = caliX;
     mCalibrateCoordinates[1] = caliY;
@@ -859,11 +864,14 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
         /*update displayframe before do composition.*/
         if (mPresentLayers.size() > 0)
             adjustDisplayFrame();
-        /*setup composition strategy.*/
-        mPresentCompositionStg->setup(mPresentLayers,
-            mPresentComposers, mPresentPlanes, mCrtc, compositionFlags, mScaleValue);
-        if (mPresentCompositionStg->decideComposition() < 0) {
-            return HWC2_ERROR_NO_RESOURCES;
+        {
+            // need hold the mutex of vt
+            std::lock_guard<std::mutex> vtLock(mVtMutex);
+            /*setup composition strategy.*/
+            mPresentCompositionStg->setup(mPresentLayers,
+                mPresentComposers, mPresentPlanes, mCrtc, compositionFlags, mScaleValue);
+            if (mPresentCompositionStg->decideComposition() < 0)
+                return HWC2_ERROR_NO_RESOURCES;
         }
 
         /*collect changed dispplay, layer, compostiion.*/
@@ -971,6 +979,7 @@ hwc2_error_t Hwc2Display::getChangedCompositionTypes(
 }
 
 hwc2_error_t Hwc2Display::acceptDisplayChanges() {
+    ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
    /* commit composition type */
     for (auto it = mPresentLayers.begin(); it != mPresentLayers.end(); it++) {
@@ -1013,18 +1022,6 @@ hwc2_error_t Hwc2Display::presentSkipValidateCheck() {
 hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence, bool sf) {
     ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
-
-    /* videotunnel thread presentDisplay */
-    if (!sf) {
-        *outPresentFence = -1;
-        if (!mSkipComposition) {
-            if (mValidateDisplay == false)
-                mCompositionStrategy->updateComposition();
-
-            mPresentCompositionStg->commit(sf);
-        }
-        return HWC2_ERROR_NONE;
-    }
 
     if (mValidateDisplay == false) {
         hwc2_error_t err = presentSkipValidateCheck();
@@ -1118,6 +1115,20 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence, bool sf) {
     return HWC2_ERROR_NONE;
 }
 
+hwc2_error_t Hwc2Display::presentVideo(int32_t* outPresentFence) {
+    ATRACE_CALL();
+    std::lock_guard<std::mutex> vtLock(mVtMutex);
+    /* videotunnel thread presentDisplay */
+    *outPresentFence = -1;
+    if (!mSkipComposition) {
+        if (mValidateDisplay == false)
+            mCompositionStrategy->updateComposition();
+
+        mPresentCompositionStg->commit(false);
+    }
+    return HWC2_ERROR_NONE;
+}
+
 /*getRelaseFences is return the fence for previous frame, for DPU based
 compsition, it is reasonable, current frame's present fence is the release
 fence for previous frame.
@@ -1125,6 +1136,7 @@ But for m2m composer, there is no present fence, only release fence for
 current frame, need do speical process to return it in next present loop.*/
 hwc2_error_t Hwc2Display::getReleaseFences(uint32_t* outNumElements,
     hwc2_layer_t* outLayers, int32_t* outFences) {
+    ATRACE_CALL();
     uint32_t num = 0;
     bool needInfo = false;
     if (outLayers && outFences)
@@ -1154,6 +1166,7 @@ hwc2_error_t Hwc2Display::getReleaseFences(uint32_t* outNumElements,
 
 hwc2_error_t Hwc2Display::setClientTarget(buffer_handle_t target,
     int32_t acquireFence, int32_t dataspace, hwc_region_t damage) {
+    ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
     /*create DrmFramebuffer for client target.*/
     std::shared_ptr<DrmFramebuffer> clientFb =  std::make_shared<DrmFramebuffer>(
@@ -1618,9 +1631,9 @@ void Hwc2Display::handleVtThread() {
 
 void Hwc2Display::acquireVtLayers() {
     ATRACE_CALL();
-    std::lock_guard<std::mutex> lock(mMutex);
-    int ret;
+    std::lock_guard<std::mutex> vtLock(mVtMutex);
     std::shared_ptr<Hwc2Layer> layer;
+    int ret;
 
     for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
         layer = it->second;
@@ -1641,7 +1654,7 @@ void Hwc2Display::acquireVtLayers() {
 
 void Hwc2Display::releaseVtLayers() {
     ATRACE_CALL();
-    std::lock_guard<std::mutex> lock(mMutex);
+    std::lock_guard<std::mutex> vtLock(mVtMutex);
     int ret;
     std::shared_ptr<Hwc2Layer> layer;
 
@@ -1658,7 +1671,7 @@ void Hwc2Display::releaseVtLayers() {
 }
 
 bool Hwc2Display::handleVtDisplayConnection() {
-    std::lock_guard<std::mutex> lock(mMutex);
+    std::lock_guard<std::mutex> vtLock(mVtMutex);
     if (!mDisplayConnection) {
         std::shared_ptr<Hwc2Layer> layer;
         for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
@@ -1674,7 +1687,8 @@ bool Hwc2Display::handleVtDisplayConnection() {
 }
 
 int Hwc2Display::recieveVtCmds() {
-    std::lock_guard<std::mutex> lock(mMutex);
+    ATRACE_CALL();
+    std::lock_guard<std::mutex> vtLock(mVtMutex);
     int ret = 0;
 
     for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
@@ -1691,7 +1705,8 @@ int Hwc2Display::recieveVtCmds() {
  * whether the videotunnel layer has new game buffer
  */
 bool Hwc2Display::newGameBuffer() {
-    std::lock_guard<std::mutex> lock(mMutex);
+    ATRACE_CALL();
+    std::lock_guard<std::mutex> vtLock(mVtMutex);
     bool ret = false;
 
     for (auto it = mLayers.begin(); it != mLayers.end(); it++) {

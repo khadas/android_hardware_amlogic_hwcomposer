@@ -1127,6 +1127,7 @@ void MultiplanesWithDiComposition::setup(
     uint32_t reqFlag,
     float scaleValue) {
     ATRACE_CALL();
+    std::lock_guard<std::mutex> lock(mMutex);
     init();
 
     mCompositionFlag = reqFlag;
@@ -1205,6 +1206,9 @@ void MultiplanesWithDiComposition::setup(
 
 //for present skip validate need update composition
 void MultiplanesWithDiComposition::updateComposition() {
+    ATRACE_CALL();
+    std::lock_guard<std::mutex> lock(mMutex);
+
     mOtherPlanes.clear();
     mDumpStr.clear();
     mSkipValidate = true;
@@ -1213,6 +1217,7 @@ void MultiplanesWithDiComposition::updateComposition() {
 /* Decide to choose whcih Fbs and how to build OsdFbs2Plane pairs. */
 int MultiplanesWithDiComposition::decideComposition() {
     ATRACE_CALL();
+    std::lock_guard<std::mutex> lock(mMutex);
     int ret = 0;
     if (mFramebuffers.empty()) {
         MESON_LOGV("No layers to compose, exit.");
@@ -1241,6 +1246,8 @@ int MultiplanesWithDiComposition::decideComposition() {
 /* Commit DisplayPair to display. */
 int MultiplanesWithDiComposition::commit(bool sf) {
     ATRACE_CALL();
+    std::lock_guard<std::mutex> lock(mMutex);
+
     /* replace composer output with din0 Pair. */
     std::shared_ptr<DrmFramebuffer> composerOutput;
     bool setPlaneSuccess = true;
