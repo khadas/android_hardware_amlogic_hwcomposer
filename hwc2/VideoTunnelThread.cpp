@@ -82,7 +82,7 @@ void VideoTunnelThread::handleVideoTunnelLayers() {
         mDisplay->acquireVtLayers();
 
         if (mDisplay->handleVtDisplayConnection()) {
-            mDisplay->presentDisplay(&outPresentFence, false);
+            mDisplay->presentVideo(&outPresentFence);
 
             /* need close the present fence */
             if (outPresentFence >= 0)
@@ -116,9 +116,12 @@ void* VideoTunnelThread::bufferThreadMain(void *data) {
 int VideoTunnelThread::handleVideoTunnelCmds() {
     int32_t outPresentFence = -1;
 
-    std::mutex cmdMtx;
-    std::unique_lock<std::mutex> stateLock(cmdMtx);
-    mVtCondition.wait_for(stateLock, std::chrono::milliseconds(20));
+    /*
+     * poll videotunnel cmd,
+     * will wait in videotunnel driver until recieve cmds
+     */
+    if (VideoTunnelDev::getInstance().pollCmds() <= 0)
+        return -EAGAIN;
 
     int ret = mDisplay->recieveVtCmds();
     if (ret < 0)
@@ -126,7 +129,7 @@ int VideoTunnelThread::handleVideoTunnelCmds() {
 
     if (ret & VT_CMD_DISABLE_VIDEO) {
         // present display once to disable video
-        mDisplay->presentDisplay(&outPresentFence, false);
+        mDisplay->presentVideo(&outPresentFence);
         if (outPresentFence >= 0)
             close(outPresentFence);
     } else if (ret & VT_CMD_GAME_MODE_ENABLE) {
@@ -196,7 +199,7 @@ int VideoTunnelThread::handleGameMode() {
            mDisplay->acquireVtLayers();
 
            if (mDisplay->handleVtDisplayConnection()) {
-               mDisplay->presentDisplay(&outPresentFence, false);
+               mDisplay->presentVideo(&outPresentFence);
 
                /* need close the present fence */
                if (outPresentFence >= 0)

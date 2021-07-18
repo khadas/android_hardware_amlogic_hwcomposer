@@ -28,6 +28,8 @@ public:
     int32_t setNonBlockMode();
     int32_t pollGameModeBuffer();
 
+    int32_t pollCmds();
+
 private:
     int mDrvFd;
 };

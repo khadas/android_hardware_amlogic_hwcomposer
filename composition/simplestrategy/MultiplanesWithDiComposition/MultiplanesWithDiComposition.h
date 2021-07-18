@@ -110,6 +110,8 @@ protected:
     int mOsdPlaneNum;
     int mVideoPlaneNum;
 
+    std::mutex mMutex;
+
     float mScaleValue;
     bool mSkipValidate;
 };

@@ -566,6 +566,7 @@ int32_t Hwc2Layer::releaseVtBuffer() {
 }
 
 int32_t Hwc2Layer::recieveVtCmds() {
+    ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
     if (!isVtBuffer())
         return -EINVAL;
@@ -607,6 +608,7 @@ int32_t Hwc2Layer::recieveVtCmds() {
 }
 
 int32_t Hwc2Layer::releaseVtResource() {
+    ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
     return doReleaseVtResource();
 }

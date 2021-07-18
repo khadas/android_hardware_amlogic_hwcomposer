@@ -169,7 +169,7 @@ int meson_vt_disconnect(int fd, int tunnel_id, int role) {
  * @param tunnel_id     [in] tunnel id to connect
  * @param buffer_fd     [in] buffer fd to transfer
  * @param fence_fd      [in] fence fd (acquire fence) currently not used
- * @param expected_present_time     [in] monotonic time timestamp
+ * @param expected_present_time     [in] monotonic time timestamp (in us)
  *
  * Return of a value other than 0 means an error has occurred:
  * -EINVAL - invalid parameter, one of the bellow conditions occurred:
@@ -282,6 +282,29 @@ int meson_vt_release_buffer(int fd, int tunnel_id, int buffer_fd, int fence_fd) 
     /* fence fd has transfered to prodouce, now close it */
     if (fence_fd >= 0)
         close(fence_fd);
+
+    return ret;
+}
+
+/*
+ * Wait for the vt session to become ready to recieve cmds
+ *
+ * @param fd            [in] Videotunnel device fd
+ * @param time_out      [in] time out in ms
+ *
+ * On success, a positive number is return.
+ * Return of 0 indicates  that the call timed out
+ * -EINVAL - invalid param, no videotunnel or has not connect
+ */
+int meson_vt_poll_cmd(int fd, int time_out) {
+    int ret;
+
+    struct vt_ctrl_data data = {
+        .ctrl_cmd = VT_CTRL_POLL_CMD,
+        .video_cmd_data = time_out,
+    };
+
+    ret = meson_vt_ioctl(fd, VT_IOC_CTRL, &data);
 
     return ret;
 }
