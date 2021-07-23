@@ -57,7 +57,6 @@ int32_t DrmConnector::loadProperties(drmModeConnectorPtr p __unused) {
 //        {DRM_HDMI_PROP_HDRCAP, &mHdrCaps},
     };
     const int connectorPropsNum = sizeof(connectorProps)/sizeof(connectorProps[0]);
-    int initedProps = 0;
 
     drmModeObjectPropertiesPtr props =
         drmModeObjectGetProperties(mDrmFd, mId, DRM_MODE_OBJECT_CONNECTOR);
@@ -65,11 +64,14 @@ int32_t DrmConnector::loadProperties(drmModeConnectorPtr p __unused) {
 
     for (int i = 0; i < props->count_props; i++) {
         drmModePropertyPtr prop = drmModeGetProperty(mDrmFd, props->props[i]);
+        if (strcmp(prop->name, DRM_CONNECTOR_PROP_CRTCID) == 0 && mCrtcId.get()) {
+            //TODO: WA for only set crtcid prop at initialization
+            continue;
+        }
         for (int j = 0; j < connectorPropsNum; j++) {
             if (strcmp(prop->name, connectorProps[j].propname) == 0) {
                 *(connectorProps[j].drmprop) =
                     std::make_shared<DrmProperty>(prop, mId, props->prop_values[i]);
-                initedProps ++;
                 break;
             }
         }
