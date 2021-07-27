@@ -868,7 +868,7 @@ void MesonHwc2::onHotplug(hwc2_display_t display, bool connected) {
 void MesonHwc2::onVsyncPeriodTimingChanged(hwc2_display_t display,
         hwc_vsync_period_change_timeline_t* updatedTimeline) {
     if (mVsyncPeriodTimingChangedFn) {
-        mVsyncPeriodTimingChangedFn(mVsyncData, display, updatedTimeline);
+        mVsyncPeriodTimingChangedFn(mVsyncPeriodData, display, updatedTimeline);
     }
 }
 
