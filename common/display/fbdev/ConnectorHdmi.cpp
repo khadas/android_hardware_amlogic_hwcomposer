@@ -234,6 +234,16 @@ int32_t ConnectorHdmi::setContentType(uint32_t contentType) {
     return setHdmiContentType(contentType);
 }
 
+bool ConnectorHdmi::checkFracMode(const drm_mode_info_t & mode) {
+    bool currentIsFrac = sysfs_get_int(HDMI_FRAC_RATE_POLICY, 1) == 1 ? true : false;
+    bool modeIsFrac =
+        std::find( mFracRefreshRates.begin(),
+                mFracRefreshRates.end(),
+                mode.refreshRate) != mFracRefreshRates.end();
+
+    return (currentIsFrac && modeIsFrac) || (!currentIsFrac && !modeIsFrac);
+}
+
 int32_t ConnectorHdmi::setAutoLowLatencyMode(bool on) {
     return sc_set_hdmi_allm(on);
 }

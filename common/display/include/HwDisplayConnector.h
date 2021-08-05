@@ -68,6 +68,7 @@ public:
     virtual void updateHdrCaps() = 0;
     virtual void getHdrCapabilities(drm_hdr_capabilities * caps) = 0;
     virtual std::string getCurrentHdrType() { return "SDR"; }
+    virtual bool checkFracMode(const drm_mode_info_t & mode __unused) { return true; };
 
     virtual int32_t getIdentificationData(std::vector<uint8_t>& idOut) = 0;
 

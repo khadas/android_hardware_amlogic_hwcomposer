@@ -147,13 +147,14 @@ int32_t HwDisplayCrtcFbdev::update() {
         } else {
             for (auto it = mModes.begin(); it != mModes.end(); it ++) {
                 MESON_LOGD("update: (%s) mode (%s)", displayMode.c_str(), it->second.name);
-                if (strcmp(it->second.name, displayMode.c_str()) == 0) {
+                if (strcmp(it->second.name, displayMode.c_str()) == 0 &&
+                        checkFracMode(it->second)) {
                     memcpy(&mCurModeInfo, &it->second, sizeof(drm_mode_info_t));
                     break;
                 }
             }
-            MESON_LOGD("crtc(%d) update (%s) (%" PRIuFAST16 ") -> (%s).",
-                mId, displayMode.c_str(), mModes.size(), mCurModeInfo.name);
+            MESON_LOGD("crtc(%d) update (%s) (%" PRIuFAST16 ") -> (%s) %f.",
+                mId, displayMode.c_str(), mModes.size(), mCurModeInfo.name, mCurModeInfo.refreshRate);
         }
     } else {
         /*clear mode info.*/
@@ -309,6 +310,10 @@ bool HwDisplayCrtcFbdev::updateHdrMetadata(
         (vframe_master_display_colour_s_t *)hdrVideoInfo;
     *hdrinfo = newHdr;
     return true;
+}
+
+bool HwDisplayCrtcFbdev::checkFracMode(const drm_mode_info_t & mode) {
+    return mConnector->checkFracMode(mode);
 }
 
 void HwDisplayCrtcFbdev::closeLogoDisplay() {

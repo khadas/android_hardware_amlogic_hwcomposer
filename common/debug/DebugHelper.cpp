@@ -67,7 +67,7 @@ void DebugHelper::clearOnePassCmd() {
 
 void DebugHelper::clearPersistCmd() {
     mDisableUiHwc = false;
-    mDumpDetail = true;
+    mDumpDetail = false;
     mEnableVsyncDetail = false;
 
     mLogFps = false;
@@ -144,7 +144,7 @@ void DebugHelper::resolveCmd() {
     return;
 #else
     clearOnePassCmd();
-    mEnabled = sys_get_bool_prop(DEBUG_HELPER_ENABLE_PROP, true);
+    mEnabled = sys_get_bool_prop(DEBUG_HELPER_ENABLE_PROP, false);
 
     if (mEnabled) {
         char debugCmd[128] = {0};

@@ -36,6 +36,7 @@ public:
     int32_t getIdentificationData(std::vector<uint8_t>& idOut) override;
     int32_t setAutoLowLatencyMode(bool on) override;
     int32_t setContentType(uint32_t contentType) override;
+    bool checkFracMode(const drm_mode_info_t & mode) override;
 
 protected:
     virtual int32_t addDisplayMode(std::string& mode);

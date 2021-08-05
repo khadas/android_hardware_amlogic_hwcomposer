@@ -60,6 +60,7 @@ protected:
     int32_t writeCurDisplayMode(std::string & dispmode);
     void closeLogoDisplay();
     bool updateHdrMetadata(std::map<drm_hdr_meatadata_t, float> & hdrmedata);
+    bool checkFracMode(const drm_mode_info_t & mode);
 
 protected:
     int32_t mId;

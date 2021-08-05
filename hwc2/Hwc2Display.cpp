@@ -1244,8 +1244,6 @@ hwc2_error_t Hwc2Display::setActiveConfig(
         /* wait when the display start refresh at the new config */
         std::unique_lock<std::mutex> stateLock(mStateLock);
         mStateCondition.wait_for(stateLock, std::chrono::seconds(3));
-        /* For non seamless sleep wait for the signal steadble */
-        usleep(100 * 1000);
 
         return (hwc2_error_t) ret;
     } else {
@@ -1360,7 +1358,9 @@ hwc2_error_t Hwc2Display::setActiveConfigWithConstraints(hwc2_config_t config,
         if (now < desiredTimeNanos)
             usleep(ns2us(desiredTimeNanos - now));
 
-        outTimeline->newVsyncAppliedTimeNanos = vsyncTimestamp;
+        now = systemTime(CLOCK_MONOTONIC);
+        outTimeline->newVsyncAppliedTimeNanos =
+            (now - desiredTimeNanos >= seconds_to_nanoseconds(1)) ?  desiredTimeNanos : now;
 
         /* notify vsync timing period changed*/
         hwc_vsync_period_change_timeline_t vsyncTimeline;
@@ -1454,26 +1454,24 @@ void Hwc2Display::dumpPresentLayers(String8 & dumpstr) {
 }
 
 void Hwc2Display::dumpHwDisplayPlane(String8 &dumpstr) {
-    if (DebugHelper::getInstance().dumpDetailInfo()) {
-        dumpstr.append("HwDisplayPlane Info:\n");
-        dumpstr.append("------------------------------------------------------------"
-                "-----------------------------------------------------------------\n");
-        dumpstr.append("|  ID   |Zorder| type |     source crop     |      dis Frame"
-                "      | fd | fm | b_st | p_st | blend | alpha |  op  | afbc fm  |\n");
-        dumpstr.append("+-------+------+------+---------------------+-----------------"
-                "----+----+----+------+------+-------+-------+------+----------+\n");
+    dumpstr.append("HwDisplayPlane Info:\n");
+    dumpstr.append("------------------------------------------------------------"
+            "-----------------------------------------------------------------\n");
+    dumpstr.append("|  ID   |Zorder| type |     source crop     |      dis Frame"
+            "      | fd | fm | b_st | p_st | blend | alpha |  op  | afbc fm  |\n");
+    dumpstr.append("+-------+------+------+---------------------+-----------------"
+            "----+----+----+------+------+-------+-------+------+----------+\n");
 
-        /* dump osd plane */
-        for (auto  it = mPresentPlanes.begin(); it != mPresentPlanes.end(); it++) {
-            std::shared_ptr<HwDisplayPlane> plane = *it;
-            if (!strncmp("OSD", plane->getName(), 3)) {
-                plane->dump(dumpstr);
-            }
+    /* dump osd plane */
+    for (auto  it = mPresentPlanes.begin(); it != mPresentPlanes.end(); it++) {
+        std::shared_ptr<HwDisplayPlane> plane = *it;
+        if (!strncmp("OSD", plane->getName(), 3)) {
+            plane->dump(dumpstr);
         }
-        dumpstr.append("------------------------------------------------------------"
-                "-----------------------------------------------------------------\n");
-        dumpstr.append("\n");
     }
+    dumpstr.append("------------------------------------------------------------"
+            "-----------------------------------------------------------------\n");
+    dumpstr.append("\n");
 }
 
 void Hwc2Display::dump(String8 & dumpstr) {
@@ -1532,6 +1530,17 @@ void Hwc2Display::dump(String8 & dumpstr) {
     dumpstr.appendFormat("    VsyncTimestamp:%" PRId64 " ns\n", mVsyncTimestamp);
     dumpstr.append("\n");
 
+    /* dump present layers info*/
+    dumpstr.append("Present layers:\n");
+    dumpPresentLayers(dumpstr);
+    dumpstr.append("\n");
+
+    /* dump composition stragegy.*/
+    if (mPresentCompositionStg) {
+        mPresentCompositionStg->dump(dumpstr);
+        dumpstr.append("\n");
+    }
+
     /*dump detail debug info*/
     if (DebugHelper::getInstance().dumpDetailInfo()) {
         /* dump composers*/
@@ -1541,27 +1550,16 @@ void Hwc2Display::dump(String8 & dumpstr) {
         }
         dumpstr.append("\n");
 
-        /* dump present layers info*/
-        dumpstr.append("Present layers:\n");
-        dumpPresentLayers(dumpstr);
-        dumpstr.append("\n");
-
-        /* dump composition stragegy.*/
-        if (mPresentCompositionStg) {
-            mPresentCompositionStg->dump(dumpstr);
-            dumpstr.append("\n");
-        }
-
         if (mConnector)
             mConnector->dump(dumpstr);
 
         if (mCrtc)
             mCrtc->dump(dumpstr);
+
+        dumpHwDisplayPlane(dumpstr);
     }
 
     dumpstr.append("\n");
-    dumpHwDisplayPlane(dumpstr);
-
 }
 
 int32_t Hwc2Display::captureDisplayScreen(buffer_handle_t hnd) {
