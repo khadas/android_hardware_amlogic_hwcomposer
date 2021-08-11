@@ -78,7 +78,7 @@ public:
 
 protected:
     hwc2_error_t handleDimLayer(buffer_handle_t buffer);
-    int32_t doReleaseVtResource();
+    int32_t doReleaseVtResource(bool needDisconnect = true);
 
     /* for NR */
     int32_t attachUvmBuffer(const int bufferFd);

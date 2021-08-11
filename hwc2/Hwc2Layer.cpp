@@ -586,7 +586,7 @@ int32_t Hwc2Layer::recieveVtCmds() {
             // set it to dummy
             mCompositionType = MESON_COMPOSITION_DUMMY;
             // release all the vt release
-            doReleaseVtResource();
+            doReleaseVtResource(false);
             ret |= VT_CMD_DISABLE_VIDEO;
         }
     } if (cmd == VT_CMD_SET_GAME_MODE) {
@@ -611,7 +611,7 @@ int32_t Hwc2Layer::releaseVtResource() {
     return doReleaseVtResource();
 }
 
-int32_t Hwc2Layer::doReleaseVtResource() {
+int32_t Hwc2Layer::doReleaseVtResource(bool needDisconnect) {
     if (isVtBuffer() || mNeedReleaseVtResource) {
         MESON_LOGV("[%s] [%llu]", __func__, mId);
         if (mPreVtBufferFd >= 0) {
@@ -648,7 +648,7 @@ int32_t Hwc2Layer::doReleaseVtResource() {
         mPreVtBufferFd = -1;
         mVtUpdate = false;
 
-        if (mTunnelId >= 0) {
+        if (mTunnelId >= 0 && needDisconnect) {
             MESON_LOGD("[%s] [%llu] Hwc2Layer release disconnect(%d) queuedFrames(%d)",
                     __func__, mId, mTunnelId, mQueuedFrames);
 
