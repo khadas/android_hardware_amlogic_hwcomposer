@@ -143,7 +143,8 @@ void SingleplaneComposition::setup(
 }
 
 void SingleplaneComposition::updateComposition() {
-
+    mUnusedPlanes.clear();
+    mDumpStr.clear();
 }
 /*--------------------- Decide composition ---------------------*/
 int SingleplaneComposition::decideComposition() {

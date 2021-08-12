@@ -1341,3 +1341,10 @@ int MultiplanesWithDiComposition::commit(bool sf) {
     return 0;
 }
 
+void MultiplanesWithDiComposition::dump(String8 & dumpstr) {
+    ICompositionStrategy::dump(dumpstr);
+    dumpstr.appendFormat("BaseScaleInfo (%dx%d->%dx%d, %dx%d) \n",
+        mOsdDisplayFrame.framebuffer_w, mOsdDisplayFrame.framebuffer_h,
+        mOsdDisplayFrame.crtc_display_x, mOsdDisplayFrame.crtc_display_y,
+        mOsdDisplayFrame.crtc_display_w, mOsdDisplayFrame.crtc_display_h);
+}

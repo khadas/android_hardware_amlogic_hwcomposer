@@ -31,7 +31,7 @@ public:
 
     int decideComposition();
     int commit(bool sf = true);
-    //void dump(String8 & dumpstr);
+    void dump(String8 & dumpstr);
 
 protected:
     int processVideoFbs();

@@ -133,6 +133,7 @@ protected:
     uint32_t mMaxComposerZorder;
     uint32_t mMinVideoZorder;
     uint32_t mMaxVideoZorder;
+    bool mSkipValidate;
 };
 
 

@@ -46,6 +46,7 @@ void MultiplanesComposition::init() {
     mForceClientComposer = false;
     mHaveClient          = false;
     mInsideVideoFbsFlag  = false;
+    mSkipValidate = false;
 
     /*crtc scale info.*/
     mDisplayRefFb.reset();
@@ -919,7 +920,9 @@ void MultiplanesComposition::setup(
 }
 
 void MultiplanesComposition::updateComposition() {
-
+    mOtherPlanes.clear();
+    mDumpStr.clear();
+    mSkipValidate = true;
 }
 
 /* Decide to choose whcih Fbs and how to build OsdFbs2Plane pairs. */
@@ -969,8 +972,10 @@ int MultiplanesComposition::commit(bool sf  __unused) {
         composerOutput = mComposer->getOutput();
     }
 
-    handleOverlayVideoZorder();
-    handleDispayLayerZorder();
+    if (!mSkipValidate) {
+        handleOverlayVideoZorder();
+        handleDispayLayerZorder();
+    }
 
     /* Commit display path. */
     for (auto displayIt = mDisplayPairs.begin(); displayIt != mDisplayPairs.end(); ++displayIt) {
@@ -1045,6 +1050,7 @@ int MultiplanesComposition::commit(bool sf  __unused) {
     }
 
     mCrtc->setDisplayFrame(mOsdDisplayFrame);
+    mSkipValidate = false;
     return 0;
 }
 
