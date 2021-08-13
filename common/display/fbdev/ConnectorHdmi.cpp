@@ -235,6 +235,9 @@ int32_t ConnectorHdmi::setContentType(uint32_t contentType) {
 }
 
 bool ConnectorHdmi::checkFracMode(const drm_mode_info_t & mode) {
+    if (mFracMode != MODE_ALL) {
+        return true;
+    }
     bool currentIsFrac = sysfs_get_int(HDMI_FRAC_RATE_POLICY, 1) == 1 ? true : false;
     bool modeIsFrac =
         std::find( mFracRefreshRates.begin(),
