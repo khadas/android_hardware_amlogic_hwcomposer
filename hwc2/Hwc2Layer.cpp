@@ -530,7 +530,7 @@ int32_t Hwc2Layer::releaseVtBuffer() {
     }
 
     if (mQueueItems.empty()) {
-        MESON_LOGE("Queued vtbuffer is empty!!");
+        MESON_LOGV("Queued vtbuffer is empty!!");
         return -EINVAL;
     }
 

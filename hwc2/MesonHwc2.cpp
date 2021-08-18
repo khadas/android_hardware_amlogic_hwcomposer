@@ -735,7 +735,7 @@ uint32_t MesonHwc2::getDisplayRequest() {
     uint32_t request = mDisplayRequests;
     mDisplayRequests = 0;
     if (request > 0) {
-        MESON_LOGE("getDisplayRequest %x", request);
+        MESON_LOGD("getDisplayRequest %x", request);
     }
     return request;
 }
