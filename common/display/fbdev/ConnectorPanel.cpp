@@ -147,12 +147,12 @@ int32_t ConnectorPanel::loadDisplayModes() {
             (float)mLcdValues[LCD_SYNC_DURATION_NUM]/mLcdValues[LCD_SYNC_DURATION_DEN],
             0};
         mDisplayModes.emplace(mDisplayModes.size(), modeInfo);
-        MESON_LOGE("use default value,get display mode: %s", modeInfo.name);
+        MESON_LOGD("use default value,get display mode: %s", modeInfo.name);
     } else {
         std::string dispmode;
         int pipeidx = GET_PIPE_IDX_BY_ID(mCrtcId);
         if (0 == read_vout_mode(pipeidx, dispmode) ) {
-            MESON_LOGE("ConnectorPanel current mode  (%s) . ", dispmode.c_str());
+            MESON_LOGD("ConnectorPanel current mode  (%s) . ", dispmode.c_str());
         } else {
             MESON_LOGE("ConnectorPanel current mod invalid. ");
         }
@@ -164,7 +164,7 @@ int32_t ConnectorPanel::loadDisplayModes() {
             dispmode.replace(pos, 4, "50hz");
             addDisplayMode(dispmode);
         } else {
-            MESON_LOGE("loadDisplayModes can not find 60hz in %s", dispmode.c_str());
+            MESON_LOGD("loadDisplayModes can not find 60hz in %s", dispmode.c_str());
         }
     }
     return 0;

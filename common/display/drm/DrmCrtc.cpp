@@ -6,6 +6,7 @@
  *
  * Description:
  */
+#define LOG_NDEBUG 1
 #define ATRACE_TAG ATRACE_TAG_GRAPHICS
 
 #include <utils/Trace.h>
@@ -135,7 +136,7 @@ int32_t DrmCrtc::getMode(drm_mode_info_t & mode) {
             mode = mPendingModes.back();
     }
 
-    MESON_LOGD("Crtc [%d] getmode %llu:[%dx%d-%f].",
+    MESON_LOGV("Crtc [%d] getmode %llu:[%dx%d-%f].",
         mId, mModeBlobId->getValue(), mode.pixelW, mode.pixelH, mode.refreshRate);
     return 0;
 }

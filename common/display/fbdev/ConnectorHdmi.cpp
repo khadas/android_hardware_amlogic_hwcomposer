@@ -70,7 +70,7 @@ int32_t ConnectorHdmi::update() {
         get_hdmitx_hdcp_state(mSecure);
     }
 
-    MESON_LOGE("ConnectorHdmi::update to %d", mConnected);
+    MESON_LOGD("ConnectorHdmi::update to %d", mConnected);
 
     MESON_LOG_FUN_LEAVE();
     return 0;
