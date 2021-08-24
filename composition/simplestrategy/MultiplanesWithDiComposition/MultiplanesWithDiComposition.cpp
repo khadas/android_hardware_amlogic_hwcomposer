@@ -114,7 +114,7 @@ int MultiplanesWithDiComposition::chooseOneVideoFb(std::shared_ptr<DrmFramebuffe
     for (auto it = mDIComposerFbs.begin(); it != mDIComposerFbs.end(); it++) {
         auto buf = (*it)->mBufferHandle;
         video_type = 0;
-        if (am_gralloc_get_omx_video_type(buf, &video_type) == 0) {
+        if (!(*it)->mIsSidebandBuffer && am_gralloc_get_omx_video_type(buf, &video_type) == 0) {
             MESON_LOGV("[%s] fbId:%lld videoType:%x", __func__, (*it)->getUniqueId(), video_type);
             for (auto type_it = video_types.begin(); type_it != video_types.end(); type_it++) {
                 if ((video_type & *type_it) == *type_it) {
