@@ -63,15 +63,10 @@ int32_t DrmFramebuffer::setPrevReleaseFence(int32_t fenceFd) {
 
 int32_t DrmFramebuffer::onLayerDisplayed(int32_t releaseFence,
         int32_t processFence) {
-    if (releaseFence < 0 || processFence < 0) {
-        int32_t fenceFd = (releaseFence < 0) ? processFence : releaseFence;
-        mCurReleaseFence.reset(new DrmFence(fenceFd));
-    } else {
-        mCurReleaseFence = DrmFence::merge(
-                                    "FBProcessor",
-                                    std::make_shared<DrmFence>(releaseFence),
-                                    std::make_shared<DrmFence>(processFence));
-    }
+    mPrevReleaseFence = DrmFence::merge(
+                                "FBProcessor",
+                                std::make_shared<DrmFence>(releaseFence),
+                                std::make_shared<DrmFence>(processFence));
     return 0;
 }
 
@@ -83,12 +78,6 @@ int32_t DrmFramebuffer::setCurReleaseFence(int32_t fenceFd) {
 int32_t DrmFramebuffer::getPrevReleaseFence() {
     if (mPrevReleaseFence.get())
         return mPrevReleaseFence->dup();
-    return -1;
-}
-
-int32_t DrmFramebuffer::getCurReleaseFence() {
-    if (mCurReleaseFence.get())
-        return mCurReleaseFence->dup();
     return -1;
 }
 
@@ -142,11 +131,9 @@ void DrmFramebuffer::clearBufferInfo() {
     */
     mAcquireFence.reset();
     // not reset prevReleaseFence for sidebandBuffer, as vt sidebanbuffer use it later
-    if (!mIsSidebandBuffer) {
+    if (!mIsSidebandBuffer)
         mPrevReleaseFence = mCurReleaseFence;
-        mCurReleaseFence.reset();
-        mCurReleaseFence = DrmFence::NO_FENCE;
-    }
+    mCurReleaseFence.reset();
     mAcquireFence = mCurReleaseFence = DrmFence::NO_FENCE;
 
     mFbType        = DRM_FB_RENDER;

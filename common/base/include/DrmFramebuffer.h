@@ -37,7 +37,6 @@ public:
     int32_t setCurReleaseFence(int32_t fenceFd);
     /*dup current release fence.*/
     int32_t getPrevReleaseFence();
-    int32_t getCurReleaseFence();
 
     /* need merge fence */
     int32_t onLayerDisplayed(int32_t releaseFence, int32_t processFence);

@@ -41,6 +41,7 @@
 MultiplanesWithDiComposition::MultiplanesWithDiComposition() {
     init();
     mVideoProcessor.reset();
+    mPreOutProcessFb.reset();
 }
 
 /* Deconstructor function */
@@ -246,9 +247,13 @@ int MultiplanesWithDiComposition::processVideoFbs() {
 
     if (videoFbNum == 0) {
         if (mVideoProcessor.get()) {
+            // release the last outbuffer
+            mVideoProcessor->onBufferDisplayed(mPreOutProcessFb, -1);
             mVideoProcessor->teardown();
             mVideoProcessor.reset();
+            mPreOutProcessFb.reset();
         }
+
         return 0;
     }
 
@@ -1314,10 +1319,16 @@ int MultiplanesWithDiComposition::commit(bool sf) {
             if (fbProcessor.get()) {
                 fbProcessor->asyncProcess(fb, outFb, processFence);
                 ret = plane->setPlane(outFb, presentZorder, blankFlag);
-                int releaseFence = outFb->getCurReleaseFence();
-                fbProcessor->onBufferDisplayed(outFb,
-                        (releaseFence >= 0) ? ::dup(releaseFence) : -1);
-                fb->onLayerDisplayed(releaseFence, processFence);
+                int releaseFence = outFb->getPrevReleaseFence();
+
+                if (!mPreOutProcessFb) {
+                    mPreOutProcessFb = outFb;
+                } else {
+                    fbProcessor->onBufferDisplayed(mPreOutProcessFb, releaseFence);
+                    mPreOutProcessFb = outFb;
+                }
+
+                fb->onLayerDisplayed(processFence, releaseFence);
             }
             else {
                 /* Set display info. */
