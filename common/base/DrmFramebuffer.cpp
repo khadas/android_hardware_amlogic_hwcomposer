@@ -141,13 +141,13 @@ void DrmFramebuffer::clearBufferInfo() {
     * 2. CureRelease move to PrevRelase, it can be returned in next loop.
     */
     mAcquireFence.reset();
-    mAcquireFence = DrmFence::NO_FENCE;
     // not reset prevReleaseFence for sidebandBuffer, as vt sidebanbuffer use it later
-    if (!isVtBufferUnlock()) {
+    if (!mIsSidebandBuffer) {
         mPrevReleaseFence = mCurReleaseFence;
         mCurReleaseFence.reset();
         mCurReleaseFence = DrmFence::NO_FENCE;
     }
+    mAcquireFence = mCurReleaseFence = DrmFence::NO_FENCE;
 
     mFbType        = DRM_FB_RENDER;
     mSecure         = false;
@@ -178,7 +178,3 @@ bool DrmFramebuffer::isRotated() {
     return mTransform != 0;
 }
 
-drm_fb_type_t DrmFramebuffer::getFbType() {
-    std::lock_guard<std::mutex> lock(mMutex);
-    return mFbType;
-}

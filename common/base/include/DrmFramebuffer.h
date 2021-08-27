@@ -51,8 +51,6 @@ public:
     virtual bool isFbUpdated() {return (mUpdated || mFbHandleUpdated);}
     bool isUpdated() {return mUpdated;}
     void clearFbHandleFlag();
-    drm_fb_type_t getFbType();
-
 
     // Virtuals for video tunnel
     virtual int32_t getVtBuffer() { return -EINVAL; }
@@ -64,7 +62,6 @@ public:
 protected:
     void setBufferInfo(const native_handle_t * bufferhnd, int32_t acquireFence, bool isSidebandBuffer=false);
     void clearBufferInfo();
-    virtual bool isVtBufferUnlock() {return false;}
 
     void reset();
 
@@ -96,7 +93,6 @@ protected:
     std::shared_ptr<DrmFence> mAcquireFence;
 
     void * mMapBase;
-    std::mutex mMutex;
 };
 
 #endif/*DRM_FRAMEBUFFER_H*/
