@@ -117,7 +117,6 @@ protected:
 
     /* for video processor */
     std::shared_ptr<FbProcessor> mVideoProcessor;
-    std::shared_ptr<DrmFramebuffer> mPreOutProcessFb;
 };
 
 
