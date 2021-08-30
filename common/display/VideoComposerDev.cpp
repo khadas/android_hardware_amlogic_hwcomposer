@@ -74,22 +74,23 @@ int32_t VideoComposerDev::setFrames(
         buffer_handle_t buf = fb->mBufferHandle;
 
         vFrameInfo->sideband_type = 0;
-        if (fb->mFbType == DRM_FB_VIDEO_DMABUF ||
-            fb->mFbType == DRM_FB_VIDEO_UVM_DMA) {
+        drm_fb_type_t fbType = fb->getFbType();
+        if (fbType == DRM_FB_VIDEO_DMABUF ||
+            fbType == DRM_FB_VIDEO_UVM_DMA) {
             vFrameInfo->fd = am_gralloc_get_buffer_fd(buf);
             vFrameInfo->type = 1;
-        } else if (fb->mFbType == DRM_FB_VIDEO_SIDEBAND ||
-            fb->mFbType == DRM_FB_VIDEO_SIDEBAND_SECOND ||
-            fb->mFbType == DRM_FB_VIDEO_SIDEBAND_TV) {
+        } else if (fbType == DRM_FB_VIDEO_SIDEBAND ||
+            fbType == DRM_FB_VIDEO_SIDEBAND_SECOND ||
+            fbType == DRM_FB_VIDEO_SIDEBAND_TV) {
             vFrameInfo->type = 2;
             int sideband_type;
             am_gralloc_get_sideband_type(buf, &sideband_type);
             vFrameInfo->sideband_type = sideband_type;
-        } else if (fb->mFbType == DRM_FB_VIDEO_TUNNEL_SIDEBAND) {
+        } else if (fbType == DRM_FB_VIDEO_TUNNEL_SIDEBAND) {
             vFrameInfo->type = 0;
             vFrameInfo->fd = fb->getVtBuffer();
         } else {
-            MESON_LOGE("unknow fb (%d) type %d !!", fb->mZorder, fb->mFbType);
+            MESON_LOGE("unknow fb (%d) type %d !!", fb->mZorder, fbType);
             return -EINVAL;
         }
 
@@ -117,7 +118,7 @@ int32_t VideoComposerDev::setFrames(
         vFrameInfo->reserved[1] = isSidebandBuffer ? 0 : am_gralloc_get_aligned_height(buf);
 
         MESON_LOGV("VideoComposerDev(%d) setframe zorder(%d) Fbtype(%d) bufferFd(%d) (%dx%d) aligned wxh (%dx%d))",
-                mDrvFd, fb->mZorder, fb->mFbType, vFrameInfo->fd,
+                mDrvFd, fb->mZorder, fbType, vFrameInfo->fd,
                 vFrameInfo->buffer_w, vFrameInfo->buffer_h,
                 vFrameInfo->reserved[0], vFrameInfo->reserved[1]);
     }

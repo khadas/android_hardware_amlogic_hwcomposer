@@ -79,6 +79,7 @@ public:
 protected:
     hwc2_error_t handleDimLayer(buffer_handle_t buffer);
     int32_t doReleaseVtResource(bool needDisconnect = true);
+    bool isVtBufferUnlock() override;
 
     /* for NR */
     int32_t attachUvmBuffer(const int bufferFd);
@@ -97,7 +98,6 @@ protected:
     };
 
     int mTunnelId;
-    std::mutex mMutex;
     int mVtBufferFd;
     int mPreVtBufferFd;
     int64_t mTimestamp;
