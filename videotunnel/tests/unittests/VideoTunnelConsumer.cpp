@@ -68,14 +68,14 @@ int VideoTunnelConsumer::releaseBuffer(VTBufferItem &item) {
     return meson_vt_release_buffer(mDevFd, mTunnelId, item.getBufferFd(), mReleaseFence);
 }
 
-int VideoTunnelConsumer::recvCmd(enum vt_cmd &cmd, int &data, int &client, bool block) {
+int VideoTunnelConsumer::recvCmd(enum vt_cmd &cmd, struct vt_cmd_data &data, bool block) {
     int ret;
     if (block) {
         do {
-            ret = meson_vt_recv_cmd(mDevFd, mTunnelId, &cmd, &data, &client);
+            ret = meson_vt_recv_cmd(mDevFd, mTunnelId, &cmd, &data);
         } while (ret == -EAGAIN);
     } else {
-        ret = meson_vt_recv_cmd(mDevFd, mTunnelId, &cmd, &data, &client);
+        ret = meson_vt_recv_cmd(mDevFd, mTunnelId, &cmd, &data);
     }
 
     return ret;
