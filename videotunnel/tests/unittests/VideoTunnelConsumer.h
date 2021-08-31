@@ -27,7 +27,7 @@ public:
     int consumerDisconnect();
     int acquireBuffer(VTBufferItem &item, bool block = true);
     int releaseBuffer(VTBufferItem &item);
-    int recvCmd(enum vt_cmd &cmd, int &data, int &client, bool block = true);
+    int recvCmd(enum vt_cmd &cmd, struct vt_cmd_data &data, bool block = true);
     int setBlockMode(bool block);
 
     int handleCmd();

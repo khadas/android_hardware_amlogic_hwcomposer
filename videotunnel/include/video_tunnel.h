@@ -20,6 +20,20 @@ enum vt_cmd {
     VT_CMD_SET_VIDEO_STATUS,
     VT_CMD_GET_VIDEO_STATUS,
     VT_CMD_SET_GAME_MODE,
+    VT_CMD_SET_SOURCE_CROP,
+};
+
+struct vt_rect {
+    int left;
+    int top;
+    int right;
+    int bottom;
+};
+
+struct vt_cmd_data {
+    struct vt_rect crop;
+    int data;
+    int client;
 };
 
 int meson_vt_open();
@@ -33,6 +47,9 @@ int meson_vt_disconnect(int fd, int tunnel_id, int role);
 int meson_vt_queue_buffer(int fd, int tunnel_id, int buffer_fd,
         int fence_fd, int64_t expected_present_time);
 int meson_vt_dequeue_buffer(int fd, int tunnel_id, int *buffer_fd, int *fence_fd);
+int meson_vt_set_sourceCrop(int fd, int tunnel_id, struct vt_rect rect);
+
+//int meson_vt_set_sourceCrop(int fd, int tunnel_id, int left, int top, int right, int bottom);
 
 /* for consumer */
 int meson_vt_acquire_buffer(int fd, int tunnel_id, int *buffer_fd,
@@ -43,7 +60,7 @@ int meson_vt_poll_cmd(int fd, int time_out);
 /* for video cmd */
 int meson_vt_set_mode(int fd, int block_mode);
 int meson_vt_send_cmd(int fd, int tunnel_id, enum vt_cmd cmd, int cmd_data);
-int meson_vt_recv_cmd(int fd, int tunnel_id, enum vt_cmd *cmd, int *cmd_data, int *client_id);
+int meson_vt_recv_cmd(int fd, int tunnel_id, enum vt_cmd *cmd, struct vt_cmd_data *cmd_data);
 
 //int meson_vt_reply_cmd(int fd, enum vt_cmd cmd, int cmd_data, int client_id);
 

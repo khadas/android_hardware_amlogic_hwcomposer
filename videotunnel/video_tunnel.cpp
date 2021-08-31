@@ -222,6 +222,38 @@ int meson_vt_dequeue_buffer(int fd, int tunnel_id, int *buffer_fd, int *fence_fd
     return ret;
 }
 
+
+/* Set the video source crop
+ *
+ * @param fd            [in] Videotunnel device fd
+ * @param tunnel_id     [in] tunnel id
+ *
+ * @param buffer_fd     [out] buffer fd acquired form videotunnel
+ * @param fence_fd      [out] acquire fence, not used now
+ * @param expected_present_time [out] monotonic time timestamp
+ *
+ * Return of 0 means the operation completed as normal.
+ * Return of a negative value means an error has occurred:
+ */
+int meson_vt_set_sourceCrop(int fd, int tunnel_id, struct vt_rect rect) {
+    enum vt_video_cmd_e vcmd = VT_VIDEO_SET_SOURCE_CROP;
+    struct vt_krect crop = {
+        .left = rect.left,
+        .top = rect.top,
+        .right = rect.right,
+        .bottom = rect.bottom,
+    };
+
+    struct vt_ctrl_data data = {
+        .tunnel_id = tunnel_id,
+        .ctrl_cmd = VT_CTRL_SEND_CMD,
+        .video_cmd = vcmd,
+        .source_crop = crop,
+    };
+
+    return meson_vt_ioctl(fd, VT_IOC_CTRL, &data);
+}
+
 /*
  * Acquire buffer attemps to acquire ownership of the next pending buffer in the videotunnel.
  * If no buffer is pending then it returns -EAGAIN with a default 4ms timeout. If a buffer is
@@ -364,7 +396,7 @@ int meson_vt_send_cmd(int fd, int tunnel_id, enum vt_cmd cmd, int cmd_data) {
  * Return of 0 means the operation completed as normal.
  * -EAGAIN - no cmd from client (a timeout 4ms may be happened)
  */
-int meson_vt_recv_cmd(int fd, int tunnel_id, enum vt_cmd *cmd, int *cmd_data, int *client_id) {
+int meson_vt_recv_cmd(int fd, int tunnel_id, enum vt_cmd *cmd, struct vt_cmd_data *cmd_data) {
     int ret;
 
     struct vt_ctrl_data data = {
@@ -379,8 +411,18 @@ int meson_vt_recv_cmd(int fd, int tunnel_id, enum vt_cmd *cmd, int *cmd_data, in
 
     *cmd = (enum vt_cmd) data.video_cmd;
 
-    *cmd_data = data.video_cmd_data;
-    *client_id = data.client_id;
+    if (*cmd == VT_CMD_SET_SOURCE_CROP) {
+        cmd_data->crop = {
+            .left = data.source_crop.left,
+            .top = data.source_crop.top,
+            .right = data.source_crop.right,
+            .bottom = data.source_crop.bottom,
+        };
+    } else  {
+        cmd_data->data = data.video_cmd_data;
+    }
+
+    cmd_data->client = data.client_id;
 
     return ret;
 }
