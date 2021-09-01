@@ -108,6 +108,7 @@ void DrmFramebuffer::reset() {
     mDisplayFrame.top    = mSourceCrop.top    = 0;
     mDisplayFrame.right  = mSourceCrop.right  = 0;
     mDisplayFrame.bottom = mSourceCrop.bottom = 0;
+    memset(&mVtSourceCrop, 0, sizeof(mVtSourceCrop));
 }
 
 void DrmFramebuffer::clearFbHandleFlag() {
@@ -181,4 +182,19 @@ bool DrmFramebuffer::isRotated() {
 drm_fb_type_t DrmFramebuffer::getFbType() {
     std::lock_guard<std::mutex> lock(mMutex);
     return mFbType;
+}
+
+drm_rect_t DrmFramebuffer::getSourceCrop() {
+    // overrider the source crop if has vtSourceCrop
+    if (mVtSourceCrop.left > 0 || mVtSourceCrop.top > 0 ||
+            mVtSourceCrop.right > 0 || mVtSourceCrop.bottom > 0) {
+        return mVtSourceCrop;
+    } else {
+        if (isVtBuffer()) {
+            drm_rect_t crop = {0, 0, -1, -1};
+            return crop;
+        }
+
+        return mSourceCrop;
+    }
 }

@@ -101,14 +101,15 @@ int32_t VideoComposerDev::setFrames(
         mVideoFramesInfo.frame_count++;
 
         bool isSidebandBuffer = fb->isSidebandBuffer();
+        drm_rect_t sourceCrop = fb->getSourceCrop();
         vFrameInfo->dst_x = fb->mDisplayFrame.left;
         vFrameInfo->dst_y = fb->mDisplayFrame.top;
         vFrameInfo->dst_w = fb->mDisplayFrame.right - fb->mDisplayFrame.left;
         vFrameInfo->dst_h = fb->mDisplayFrame.bottom - fb->mDisplayFrame.top;
-        vFrameInfo->crop_x = fb->isVtBuffer() ?  0 : fb->mSourceCrop.left;
-        vFrameInfo->crop_y = fb->isVtBuffer() ? 0 : fb->mSourceCrop.top;
-        vFrameInfo->crop_w = fb->isVtBuffer() ? -1 : fb->mSourceCrop.right - fb->mSourceCrop.left;
-        vFrameInfo->crop_h = fb->isVtBuffer() ? -1 : fb->mSourceCrop.bottom - fb->mSourceCrop.top;
+        vFrameInfo->crop_x = sourceCrop.left;
+        vFrameInfo->crop_y = sourceCrop.top;
+        vFrameInfo->crop_w = sourceCrop.right - sourceCrop.left;
+        vFrameInfo->crop_h = sourceCrop.bottom - sourceCrop.top;
         vFrameInfo->buffer_w = isSidebandBuffer ? 0 : am_gralloc_get_width(buf);
         vFrameInfo->buffer_h = isSidebandBuffer ? 0 : am_gralloc_get_height(buf);
         vFrameInfo->zorder = fb->mZorder;
