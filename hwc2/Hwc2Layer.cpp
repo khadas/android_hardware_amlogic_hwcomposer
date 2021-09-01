@@ -577,20 +577,25 @@ int32_t Hwc2Layer::recieveVtCmds() {
         return -EINVAL;
 
     enum vt_cmd cmd;
-    int cmdData = -1;
+    struct vt_cmd_data cmdData;
 
     int ret = VideoTunnelDev::getInstance().recieveCmd(mTunnelId, cmd, cmdData);
     if (ret < 0)
         return ret;
 
-    MESON_LOGD("recv videotunnel [%d] cmd=%d cmdData=%d", mTunnelId, cmd, cmdData);
+    MESON_LOGD("recv videotunnel [%d] cmd=%d", mTunnelId, cmd);
+    if (cmd == VT_CMD_SET_SOURCE_CROP)
+        MESON_LOGD("recv source crop:(%d %d %d %d)",
+                cmdData.crop.left, cmdData.crop.top, cmdData.crop.right, cmdData.crop.bottom);
+    else
+        MESON_LOGD("recv cmdData: %d", cmdData.data);
+
     ret = 0;
     // process the cmd
-
     switch (cmd) {
         case VT_CMD_SET_VIDEO_STATUS:
             // disable video cmd
-            if (cmdData == 1) {
+            if (cmdData.data == 1) {
                 // release all the vt release
                 doReleaseVtResource(false);
                 ret |= VT_CMD_DISABLE_VIDEO;
@@ -598,14 +603,20 @@ int32_t Hwc2Layer::recieveVtCmds() {
             }
             break;
         case VT_CMD_SET_GAME_MODE:
-            if (cmdData == 1) {
+            if (cmdData.data == 1) {
                 ret |= VT_CMD_GAME_MODE_ENABLE;
                 mGameMode = true;
-            } else if (cmdData == 0) {
+            } else if (cmdData.data == 0) {
                 ret |= VT_CMD_GAME_MODE_DISABLE;
                 mGameMode = false;
             }
             MESON_LOGD("recv cmds mGameMode:%d", mGameMode);
+            break;
+        case VT_CMD_SET_SOURCE_CROP:
+            mVtSourceCrop.left = cmdData.crop.left;
+            mVtSourceCrop.top = cmdData.crop.top;
+            mVtSourceCrop.right = cmdData.crop.right;
+            mVtSourceCrop.bottom = cmdData.crop.bottom;
             break;
         default:
             MESON_LOGE("Not supported videoTunnel [%d] cmd:%d", mTunnelId, cmd);
@@ -662,10 +673,10 @@ int32_t Hwc2Layer::doReleaseVtResource(bool needDisconnect) {
         if (mTunnelId >= 0 && needDisconnect) {
             MESON_LOGD("[%s] [%llu] Hwc2Layer release disconnect(%d) queuedFrames(%d)",
                     __func__, mId, mTunnelId, mQueuedFrames);
-
             if (mGameMode)
                 VideoTunnelDev::getInstance().setNonBlockMode();
 
+            memset(&mVtSourceCrop, 0, sizeof(mVtSourceCrop));
             VideoTunnelDev::getInstance().disconnect(mTunnelId);
             mTunnelId = -1;
         }
@@ -702,8 +713,8 @@ bool Hwc2Layer::shouldPresentNow(nsecs_t timestamp) {
 
     const bool isDue =  timestamp < mExpectedPresentTime;
 
-    // Ignore timestamps more than a second in the future
-    const bool isPlausible = timestamp < (mExpectedPresentTime + s2ns(1));
+    // Ignore timestamps more than a second in the future, timestamp is us
+    const bool isPlausible = timestamp < (mExpectedPresentTime + s2ns(1)/1000);
 
     return  isDue ||  !isPlausible;
 }

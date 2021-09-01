@@ -1448,6 +1448,8 @@ void Hwc2Display::dumpPresentLayers(String8 & dumpstr) {
         "  AFBC  |    Source Crop    |    Display Frame  |\n");
     for (auto it = mPresentLayers.begin(); it != mPresentLayers.end(); it++) {
         Hwc2Layer *layer = (Hwc2Layer*)(it->get());
+        drm_rect_t sourceCrop = layer->getSourceCrop();
+
         dumpstr.append("+------+-----+------------+-----+--------+-+--------+"
             "-------------------+-------------------+\n");
         dumpstr.appendFormat("|%6" PRIu64 "|%5d|%12s|%5d|%8f|%1d|%8x|%4d %4d %4d %4d"
@@ -1459,10 +1461,10 @@ void Hwc2Display::dumpPresentLayers(String8 & dumpstr) {
             layer->mPlaneAlpha,
             layer->mTransform,
             layer->isSidebandBuffer() ? 0 : am_gralloc_get_vpu_afbc_mask(layer->mBufferHandle),
-            layer->mSourceCrop.left,
-            layer->mSourceCrop.top,
-            layer->mSourceCrop.right,
-            layer->mSourceCrop.bottom,
+            sourceCrop.left,
+            sourceCrop.top,
+            sourceCrop.right,
+            sourceCrop.bottom,
             layer->mDisplayFrame.left,
             layer->mDisplayFrame.top,
             layer->mDisplayFrame.right,
