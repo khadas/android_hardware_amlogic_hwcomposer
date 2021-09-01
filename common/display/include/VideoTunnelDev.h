@@ -23,7 +23,7 @@ public:
 
     int32_t acquireBuffer(int tunnelId, int& bufferFd, int64_t& timeStamp);
     int32_t releaseBuffer(int tunnelId, int bufferFd, int fenceFd);
-    int32_t recieveCmd(int tunnelId, enum vt_cmd& cmd, int& cmdData);
+    int32_t recieveCmd(int tunnelId, enum vt_cmd& cmd, struct vt_cmd_data & cmdData);
 
     int32_t setNonBlockMode();
     int32_t pollGameModeBuffer();
