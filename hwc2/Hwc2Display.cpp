@@ -320,7 +320,6 @@ void Hwc2Display::onHotplug(bool connected) {
             bSendPlugOut = true;
         }
     }
-
     /*call hotplug out of lock, SF may call some hwc function to cause deadlock.*/
     if (bSendPlugOut) {
         /* when hdmi plugout, send CONNECT message for "hdmi-only" */
@@ -397,6 +396,7 @@ void Hwc2Display::onVTVsync(int64_t timestamp, uint32_t vsyncPeriodNanos) {
 void Hwc2Display::onModeChanged(int stage) {
     bool bSendPlugIn = false;
     bool hdrCapsChanged = false;
+    bool bNotifySC = false;
 
     {
         std::lock_guard<std::mutex> lock(mMutex);
@@ -424,6 +424,7 @@ void Hwc2Display::onModeChanged(int stage) {
                     if (mSignalHpd) {
                         bSendPlugIn = true;
                         mSignalHpd = false;
+                        bNotifySC = true;
                     } else {
                         /*Workaround: needed for NTS test.*/
                         if (HwcConfig::primaryHotplugEnabled()
@@ -463,6 +464,8 @@ void Hwc2Display::onModeChanged(int stage) {
     if (bSendPlugIn && (mModeMgr->needCallHotPlug() || hdrCapsChanged)) {
         MESON_LOGD("onModeChanged mObserver->onHotplug(true) hdrCapsChanged:%d", hdrCapsChanged);
         mObserver->onHotplug(true);
+        if (bNotifySC)
+            sc_notify_hdmi_plugin();
     } else {
         MESON_LOGD("mModeMgr->resetTags");
         mModeMgr->resetTags();

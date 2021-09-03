@@ -116,6 +116,12 @@ int32_t sc_get_hdmitx_hdcp_state(bool & val) {
     return 0;
 }
 
+int32_t sc_notify_hdmi_plugin() {
+    CHK_SC_PROXY();
+    gSC->notifyPlugin();
+    return 0;
+}
+
 int32_t  sc_get_display_mode(std::string & dispmode) {
     CHK_SC_PROXY();
 
