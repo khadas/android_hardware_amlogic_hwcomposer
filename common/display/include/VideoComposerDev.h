@@ -22,6 +22,10 @@ typedef uint32_t u32;
 #define VIDEO_COMPOSER_IOCTL_SET_DISABLE  _IOW(VIDEO_COMPOSER_IOC_MAGIC, 0x02, int)
 #define MAX_LAYER_COUNT 9
 
+enum source_type_t {
+    DTV_FIX_TUNNEL = 1,
+};
+
 typedef struct video_frame_info {
     int32_t fd;
     int32_t composer_fen_fd;
@@ -40,7 +44,8 @@ typedef struct video_frame_info {
     u32 transform;
     u32 type;
     u32 sideband_type;
-    u32 reserved[3];
+    u32 reserved[2];
+    u32 source_type;
 } video_frame_info_t;
 
 typedef struct video_frames_info {
