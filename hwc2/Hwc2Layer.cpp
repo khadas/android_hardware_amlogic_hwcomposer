@@ -137,28 +137,20 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
         releaseUvmResourceLock();
     }
 
-    dettachUvmBuffer();
-
-    /*
-     * For UVM video buffer, set UVM flags.
-     * As the buffer will was update already
-     */
-    if (mFbType == DRM_FB_VIDEO_UVM_DMA) {
-        if (mPreUvmBufferFd >= 0) {
-            int fd = dup(am_gralloc_get_buffer_fd(buffer));
-            attachUvmBuffer(fd);
-            int releaseFence = getPrevReleaseFence();
-            collectUvmBuffer(mPreUvmBufferFd, releaseFence);
-            mPreUvmBufferFd = fd;
-        }
-    }
-
     /*
     * SurfaceFlinger will call setCompostionType() first,then setBuffer().
     * So it is safe to calc drm_fb_type_t mFbType here.
     */
     clearBufferInfo();
     setBufferInfo(buffer, acquireFence);
+
+    /*
+    * For UVM video buffer, set UVM flags.
+    * As the buffer will was update already
+    */
+    if (preType == DRM_FB_VIDEO_UVM_DMA && mPreUvmBufferFd >= 0)
+        collectUvmBuffer(mPreUvmBufferFd, getPrevReleaseFence());
+    dettachUvmBuffer();
 
     if (buffer == NULL) {
         MESON_LOGE("Receive null buffer, it is impossible.");
@@ -171,6 +163,8 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
         mFbType = DRM_FB_CURSOR;
     } else if (am_gralloc_is_uvm_dma_buffer(buffer)) {
         mFbType = DRM_FB_VIDEO_UVM_DMA;
+        mPreUvmBufferFd = dup(am_gralloc_get_buffer_fd(buffer));
+        attachUvmBuffer(mPreUvmBufferFd);
     } else if (am_gralloc_is_omx_metadata_buffer(buffer)) {
         int tunnel = 0;
         int ret = am_gralloc_get_omx_metadata_tunnel(buffer, &tunnel);
