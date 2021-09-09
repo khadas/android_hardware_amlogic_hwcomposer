@@ -234,6 +234,7 @@ int32_t DrmCrtc::waitVBlank(nsecs_t & timestamp) {
 }
 
 drmModeAtomicReqPtr DrmCrtc::getAtomicReq() {
+    std::lock_guard<std::mutex> lock(mMutex);
     if (mReq == NULL)
         mReq = drmModeAtomicAlloc();
 
@@ -242,6 +243,7 @@ drmModeAtomicReqPtr DrmCrtc::getAtomicReq() {
 
 int32_t DrmCrtc::prePageFlip() {
     ATRACE_CALL();
+    std::lock_guard<std::mutex> lock(mMutex);
     if (mReq) {
         MESON_LOGE("still have a req? previous display didnot finish?");
         drmModeAtomicFree(mReq);
@@ -253,6 +255,7 @@ int32_t DrmCrtc::prePageFlip() {
 
 int32_t DrmCrtc::pageFlip(int32_t & out_fence) {
     ATRACE_CALL();
+    std::lock_guard<std::mutex> lock(mMutex);
     if (mActive->getValue() == 0) {
         out_fence = -1;
         return 0;
