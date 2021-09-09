@@ -117,8 +117,10 @@ int32_t sc_get_hdmitx_hdcp_state(bool & val) {
 }
 
 int32_t sc_notify_hdmi_plugin() {
+#if PLATFORM_SDK_VERSION > 30
     CHK_SC_PROXY();
     gSC->notifyPlugin();
+#endif
     return 0;
 }
 
