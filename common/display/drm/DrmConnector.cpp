@@ -34,19 +34,8 @@ DrmConnector::DrmConnector(int drmFd, drmModeConnectorPtr p)
     mId(p->connector_id),
     mType(p->connector_type) {
 
-    mState = p->connection;
     mFracMode = HWC_HDMI_FRAC_MODE;
-    loadProperties(p);
-
-    if (mState == DRM_MODE_CONNECTED) {
-        mEncoderId = p->encoder_id;
-        mPhyWidth = p->mmWidth;
-        mPhyHeight = p->mmHeight;
-        loadDisplayModes(p);
-        parseHdmiHdrCapabilities(mHdrCapabilities);
-    } else {
-        memset(&mHdrCapabilities, 0, sizeof(mHdrCapabilities));
-    }
+    loadConnectorInfo(p);
 }
 
 DrmConnector::~DrmConnector() {
@@ -106,23 +95,6 @@ int32_t DrmConnector::loadDisplayModes(drmModeConnectorPtr p) {
     uint32_t blobid = 0;
     MESON_LOGD("Connector %s loadDisplayModes get %d modes", getName(), p->count_modes);
     for (int i = 0;i < p->count_modes; i ++) {
-#if 0
-        const struct vinfo_s * mesonVinfo = NULL;
-
-        if (false /*getType() == DRM_MODE_CONNECTOR_HDMIA*/) {
-            mesonVinfo = findMatchedVoutMode(drmModes[i]);
-        } else {
-            vmode_e ivmode = vmode_name_to_mode(drmModes[i].name);
-            mesonVinfo = get_tv_info(ivmode);
-        }
-
-        if (!mesonVinfo) {
-            MESON_LOGE("find mode failed[%s %d x %d -%u]",
-                    drmModes[i].name, drmModes[i].hdisplay, drmModes[i].vdisplay, drmModes[i].vrefresh);
-            continue;
-        }
-#endif
-
         strncpy(modeInfo.name, drmModes[i].name, DRM_DISPLAY_MODE_LEN);
         modeInfo.pixelW = drmModes[i].hdisplay;
         modeInfo.pixelH = drmModes[i].vdisplay;
@@ -174,6 +146,36 @@ int32_t DrmConnector::loadDisplayModes(drmModeConnectorPtr p) {
     return 0;
 }
 
+int32_t DrmConnector::loadConnectorInfo(drmModeConnectorPtr metadata) {
+    /*update state*/
+    mState = metadata->connection;
+
+    if (mState == DRM_MODE_CONNECTED) {
+        mEncoderId = metadata->encoder_id;
+        mPhyWidth = metadata->mmWidth;
+        mPhyHeight = metadata->mmHeight;
+        if (mPhyWidth == 0 || mPhyHeight == 0) {
+            struct vinfo_base_s vinfo;
+            if (read_vout_info(0, &vinfo) == 0) {
+                mPhyWidth = vinfo.screen_real_width;
+                mPhyHeight = vinfo.screen_real_height;
+                MESON_LOGE("read screen size %dx%d from vinfo",
+                    mPhyWidth,mPhyHeight);
+            }
+        }
+
+        /*update prop*/
+        loadProperties(metadata);
+        loadDisplayModes(metadata);
+        parseHdmiHdrCapabilities(mHdrCapabilities);
+    } else {
+        MESON_LOGE("DrmConnector[%s] still DISCONNECTED.", getName());
+        memset(&mHdrCapabilities, 0, sizeof(mHdrCapabilities));
+    }
+
+    return 0;
+}
+
 uint32_t DrmConnector::getId() {
     return mId;
 }
@@ -205,20 +207,7 @@ drm_connector_type_t DrmConnector::getType() {
 int32_t DrmConnector::update() {
     ATRACE_CALL();
     drmModeConnectorPtr metadata = drmModeGetConnector(mDrmFd, mId);
-    /*update state*/
-    mState = metadata->connection;
-    mEncoderId = metadata->encoder_id;
-    mPhyWidth = metadata->mmWidth;
-    mPhyHeight = metadata->mmHeight;
-    if (mState == DRM_MODE_CONNECTED) {
-        /*update prop*/
-        loadProperties(metadata);
-        loadDisplayModes(metadata);
-        parseHdmiHdrCapabilities(mHdrCapabilities);
-    } else {
-        MESON_LOGE("DrmConnector[%s] still DISCONNECTED.", getName());
-    }
-
+    loadConnectorInfo(metadata);
     drmModeFreeConnector(metadata);
     return 0;
 }
