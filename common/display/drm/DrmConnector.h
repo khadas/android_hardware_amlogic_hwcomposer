@@ -66,6 +66,7 @@ public:
     std::mutex mMutex;
 
 protected:
+    int32_t loadConnectorInfo(drmModeConnectorPtr metadata);
     int32_t loadDisplayModes(drmModeConnectorPtr p);
     int32_t loadProperties(drmModeConnectorPtr p);
 
