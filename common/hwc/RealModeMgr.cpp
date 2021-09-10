@@ -130,25 +130,30 @@ int32_t RealModeMgr::update() {
     /* reset ModeList */
     reset();
     if (mConnector->isConnected()) {
+        mDvEnabled = sc_is_dolby_version_enable();
+        MESON_LOGD("RealModeMgr::update mDvEnabled(%d)", mDvEnabled);
+
         mConnector->getModes(connecterModeList);
-        if (mCrtc->getMode(realMode) == 0) {
+        int ret = mCrtc->getMode(realMode);
+        if (ret == 0) {
             if (realMode.name[0] != 0) {
                 mCurMode = realMode;
                 mPreviousMode = realMode;
                 useFakeMode = false;
+
+                MESON_LOGD("RealModeMgr::update get current mode:%s", realMode.name);
+                for (auto it = connecterModeList.begin(); it != connecterModeList.end(); it++) {
+                    /* not filter the current mode */
+                    if (isSupportModeForCurrentDevice(it->second) ||
+                            !strcmp(mCurMode.name, it->second.name))
+                        mModes.emplace(mModes.size(), it->second);
+                }
+            } else {
+                MESON_LOGI("RealModeMgr::update could not get current mode");
             }
         } else {
             strncpy(mCurMode.name, "invalid", DRM_DISPLAY_MODE_LEN);
-        }
-
-        mDvEnabled = sc_is_dolby_version_enable();
-        MESON_LOGD("RealModeMgr::update mDvEnabled(%d)", mDvEnabled);
-
-        for (auto it = connecterModeList.begin(); it != connecterModeList.end(); it++) {
-            /* not filter the current mode */
-            if (isSupportModeForCurrentDevice(it->second) ||
-                    !strcmp(mCurMode.name, it->second.name))
-                mModes.emplace(mModes.size(), it->second);
+            MESON_LOGI("RealModeMgr::update could not get current mode:%d", ret);
         }
     }
 

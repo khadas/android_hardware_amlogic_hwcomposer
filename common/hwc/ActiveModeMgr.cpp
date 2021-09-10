@@ -80,15 +80,6 @@ int32_t ActiveModeMgr::update() {
     reset();
 
     if (mConnector->isConnected()) {
-        mConnector->getModes(supportedModes);
-        if (mCrtc->getMode(activeMode) == 0) {
-            mCurMode = activeMode;
-            mPreviousMode = activeMode;
-            useFakeMode = false;
-        } else {
-            strncpy(mCurMode.name, "invalid", DRM_DISPLAY_MODE_LEN);
-        }
-
         // detect the Dobly vision support status
         bool unused = false;
         std::string highestModeForDv;
@@ -97,20 +88,30 @@ int32_t ActiveModeMgr::update() {
         MESON_LOGD("ActiveModeMgr::update mDvEnabled(%d), highestModeForDv:%s",
                 mDvEnabled, highestModeForDv.c_str());
 
-        for (auto it = supportedModes.begin(); it != supportedModes.end(); it++) {
-            // support dolby version
-            if (mDvEnabled) {
-                // filter 4K modes if DV support not all the 2160P modes
-                if (strstr(mCurMode.name, it->second.name) == NULL &&
-                        strstr(highestModeForDv.c_str(), "2160p60hz") == NULL) {
-                    if ((strstr(it->second.name, "2160p") != NULL)
-                            || (strstr(it->second.name, "smpte") != NULL)) {
-                        continue;
+        mConnector->getModes(supportedModes);
+        if (mCrtc->getMode(activeMode) == 0) {
+            mCurMode = activeMode;
+            mPreviousMode = activeMode;
+            useFakeMode = false;
+
+            for (auto it = supportedModes.begin(); it != supportedModes.end(); it++) {
+                // support dolby version
+                if (mDvEnabled) {
+                    // filter 4K modes if DV support not all the 2160P modes
+                    if (strstr(mCurMode.name, it->second.name) == NULL &&
+                            strstr(highestModeForDv.c_str(), "2160p60hz") == NULL) {
+                        if ((strstr(it->second.name, "2160p") != NULL)
+                                || (strstr(it->second.name, "smpte") != NULL)) {
+                            continue;
+                        }
                     }
                 }
-            }
 
-            mHwcActiveModes.emplace(mHwcActiveModes.size(), it->second);
+                mHwcActiveModes.emplace(mHwcActiveModes.size(), it->second);
+            }
+        } else {
+            strncpy(mCurMode.name, "invalid", DRM_DISPLAY_MODE_LEN);
+            MESON_LOGI("ActiveModeMgr::update could not get current mode");
         }
     }
 
