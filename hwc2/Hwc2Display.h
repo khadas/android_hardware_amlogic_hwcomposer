@@ -258,6 +258,7 @@ protected:
     /* for activeConfig */
     std::condition_variable mStateCondition;
     std::mutex mStateLock;
+    bool mFirstPresent;
 };
 
 #endif/*HWC2_DISPLAY_H*/
