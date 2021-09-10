@@ -46,6 +46,7 @@ Hwc2Display::Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer) {
     mPresentFence = -1;
     mVideoTunnelThread = nullptr;
     mVsyncTimestamp = 0;
+    mFirstPresent = true;
     memset(&mHdrCaps, 0, sizeof(mHdrCaps));
     memset(mColorMatrix, 0, sizeof(float) * 16);
     memset(&mCalibrateCoordinates, 0, sizeof(int) * 4);
@@ -453,7 +454,7 @@ void Hwc2Display::onModeChanged(int stage) {
             /* begin change mode, need blank once */
             mDisplayConnection = false;
             mPowerMode->setConnectorStatus(false);
-            if (HwcConfig::primaryHotplugEnabled())
+            if (HwcConfig::primaryHotplugEnabled() && !mFirstPresent)
                 blankDisplay();
             mSkipComposition = true;
             return;
@@ -1022,6 +1023,9 @@ hwc2_error_t Hwc2Display::presentSkipValidateCheck() {
 hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence, bool sf) {
     ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
+
+    if (mFirstPresent)
+        mFirstPresent = false;
 
     if (mValidateDisplay == false) {
         hwc2_error_t err = presentSkipValidateCheck();
