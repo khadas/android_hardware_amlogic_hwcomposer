@@ -47,6 +47,8 @@ void FixedDisplayPipe::handleEvent(drm_display_event event, int val) {
             */
             pipe->modeConnector->update();
 
+            pipe->modeCrtc->update();
+
             if (connectorType == HWC_HDMI_CVBS) {
                 targetConnector = connected ?
                     DRM_MODE_CONNECTOR_HDMIA : DRM_MODE_CONNECTOR_TV;

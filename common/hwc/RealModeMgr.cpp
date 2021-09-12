@@ -155,6 +155,8 @@ int32_t RealModeMgr::update() {
             strncpy(mCurMode.name, "invalid", DRM_DISPLAY_MODE_LEN);
             MESON_LOGI("RealModeMgr::update could not get current mode:%d", ret);
         }
+    } else {
+        MESON_LOGD("RealModeMgr::update no connector");
     }
 
     if (useFakeMode) {
