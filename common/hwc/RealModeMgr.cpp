@@ -150,6 +150,8 @@ int32_t RealModeMgr::update() {
                     !strcmp(mCurMode.name, it->second.name))
                 mModes.emplace(mModes.size(), it->second);
         }
+    } else {
+        MESON_LOGD("RealModeMgr::update no connector");
     }
 
     if (useFakeMode) {

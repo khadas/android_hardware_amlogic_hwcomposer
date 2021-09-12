@@ -137,25 +137,33 @@ int32_t HwDisplayCrtcFbdev::update() {
     mConnected = mConnector->isConnected();
 
     if (mConnected) {
+        bool findCurMode = false;
         mConnector->getModes(mModes);
 
         /*1. update current displayMode.*/
         std::string displayMode;
         readCurDisplayMode(displayMode);
-        if (displayMode.empty()) {
-             MESON_LOGE("displaymode should not null when connected.");
+        if (displayMode.empty() || displayMode.compare("invalid") == 0) {
+             MESON_LOGD("crtc(%d) displaymode is null or invalid when connected.", mId);
+        } else if (mModes.empty()) {
+            MESON_LOGD("crtc(%d) could not get modes from conector", mId);
         } else {
             for (auto it = mModes.begin(); it != mModes.end(); it ++) {
                 MESON_LOGD("update: (%s) mode (%s)", displayMode.c_str(), it->second.name);
                 if (strcmp(it->second.name, displayMode.c_str()) == 0
                      && it->second.refreshRate == it->second.refreshRate) {
                     memcpy(&mCurModeInfo, &it->second, sizeof(drm_mode_info_t));
+                    findCurMode = true;
                     break;
                 }
             }
             MESON_LOGD("crtc(%d) update (%s) (%" PRIuFAST16 ") -> (%s).",
                 mId, displayMode.c_str(), mModes.size(), mCurModeInfo.name);
         }
+
+        /* could not find current mode, clear it */
+        if (!findCurMode)
+            memset(&mCurModeInfo, 0, sizeof(mCurModeInfo));
     } else {
         /*clear mode info.*/
         memset(&mCurModeInfo, 0, sizeof(mCurModeInfo));

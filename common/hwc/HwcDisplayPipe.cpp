@@ -311,8 +311,8 @@ void HwcDisplayPipe::handleEvent(drm_display_event event, int val) {
                         pipeIdx = DRM_PIPE_VOUT2;
                     for (auto statIt : mPipeStats) {
                         if (statIt.second->modeCrtc->getPipe() == pipeIdx) {
-                            statIt.second->modeCrtc->update();
                             statIt.second->modeConnector->update();
+                            statIt.second->modeCrtc->update();
                             statIt.second->modeMgr->update();
                             statIt.second->hwcDisplay->onModeChanged(val);
                             /*update display dynamic info.*/
