@@ -203,7 +203,7 @@ int32_t Hwc2Display::setVtVsync(std::shared_ptr<HwcVsync> vsync) {
  * only configed to triple size of FrameBuffer, there will be one non continuous FrameBuffer
  * and lead to messed display.
  */
-int32_t Hwc2Display::blankDisplay() {
+int32_t Hwc2Display::blankDisplay(bool resetLayers) {
     MESON_LOGD("blank all display planes");
 
     if (!mCrtc)
@@ -225,6 +225,13 @@ int32_t Hwc2Display::blankDisplay() {
     /* we need release all cache handles */
     for (auto it = mPlanes.begin(); it != mPlanes.end(); ++ it) {
         (*it)->clearPlaneResources();
+    }
+
+    if (resetLayers) {
+        std::lock_guard<std::mutex> vtLock(mVtMutex);
+        MESON_LOGD("%s clear layers", __func__);
+        mLayers.clear();
+        mPresentLayers.clear();
     }
 
     return 0;
@@ -458,7 +465,7 @@ void Hwc2Display::onModeChanged(int stage) {
             mDisplayConnection = false;
             mPowerMode->setConnectorStatus(false);
             if (HwcConfig::primaryHotplugEnabled() && !mFirstPresent)
-                blankDisplay();
+                blankDisplay(true);
             mSkipComposition = true;
             return;
         }
@@ -579,6 +586,7 @@ hwc2_error_t Hwc2Display::setPowerMode(hwc2_power_mode_t mode) {
 }
 
 std::shared_ptr<Hwc2Layer> Hwc2Display::getLayerById(hwc2_layer_t id) {
+    std::lock_guard<std::mutex> lock(mMutex);
     std::unordered_map<hwc2_layer_t, std::shared_ptr<Hwc2Layer>>::iterator it =
         mLayers.find(id);
 
