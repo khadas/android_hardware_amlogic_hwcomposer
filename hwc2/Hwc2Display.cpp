@@ -1127,7 +1127,7 @@ hwc2_error_t Hwc2Display::presentVideo(int32_t* outPresentFence) {
         if (mValidateDisplay == false)
             mCompositionStrategy->updateComposition();
 
-        mPresentCompositionStg->commit(false);
+        mCompositionStrategy->commit(false);
     }
     return HWC2_ERROR_NONE;
 }
