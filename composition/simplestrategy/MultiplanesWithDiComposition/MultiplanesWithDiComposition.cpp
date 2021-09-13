@@ -793,13 +793,15 @@ int MultiplanesWithDiComposition::setOsdFbs2PlanePairs() {
 
     uint32_t usedPlanes = 0;
 
-    /*baseFb always post to din0*/
-    mDisplayPairs.push_back(
-        DisplayPair{usedPlanes, mDisplayRefFb->mZorder, mDisplayRefFb, mOsdPlanes[usedPlanes],
-            std::vector<std::shared_ptr<FbProcessor>>()});
-    /* Not composed fb, set to osd composition. */
-    if (mDisplayRefFb->mCompositionType == MESON_COMPOSITION_UNDETERMINED)
-        mDisplayRefFb->mCompositionType = MESON_COMPOSITION_PLANE_OSD;
+    if (mDisplayRefFb.get()) {
+        /*baseFb always post to din0*/
+        mDisplayPairs.push_back(
+            DisplayPair{usedPlanes, mDisplayRefFb->mZorder, mDisplayRefFb, mOsdPlanes[usedPlanes],
+                std::vector<std::shared_ptr<FbProcessor>>()});
+        /* Not composed fb, set to osd composition. */
+        if (mDisplayRefFb->mCompositionType == MESON_COMPOSITION_UNDETERMINED)
+            mDisplayRefFb->mCompositionType = MESON_COMPOSITION_PLANE_OSD;
+    }
 
     for (auto fbIt = mFramebuffers.begin(); fbIt != mFramebuffers.end(); ++fbIt) {
         std::shared_ptr<DrmFramebuffer> fb = fbIt->second;
