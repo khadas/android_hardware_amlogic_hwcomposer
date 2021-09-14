@@ -164,11 +164,10 @@ bool DisplayAdapterRemote::getDisplayVsyncAndPeriod(int64_t& vsyncTimestamp, int
 }
 
 DisplayAdapterRemote::DisplayAdapterRemote() {
-    ipc = DisplayClient::create("DisplayAdapterRemote");
+    ipc = &DisplayClient::getInstance();
     if (!ipc)
         MESON_LOGE("Error when connect with Server");
 };
-
 
 bool DisplayAdapterRemote::dumpDisplayAttribute(Json::Value& json, ConnectorType displayType) {
     Json::Value cmd, ret;

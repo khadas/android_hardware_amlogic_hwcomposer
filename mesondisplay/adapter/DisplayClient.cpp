@@ -15,6 +15,7 @@
 
 namespace meson{
 using namespace std;
+using namespace ::android;
 using namespace ::android::hardware::graphics;
 
 using ::android::hardware::hidl_string;
@@ -23,6 +24,9 @@ using ::android::hardware::hidl_vec;
 using ::vendor::amlogic::display::meson_display_ipc::V1_0::IMesonDisplayIPC;
 using ::vendor::amlogic::display::meson_display_ipc::V1_0::Error;
 
+std::mutex DisplayClient::sLock;
+DisplayClient * DisplayClient::sInstance(nullptr);
+
 static const int MAX_GET_SERVICE_COUNT = 5;
 
 DisplayClient::DisplayClient(std::string str)
@@ -30,6 +34,17 @@ DisplayClient::DisplayClient(std::string str)
         meson_ipc_client = NULL;
         is_ready = false;
         mMapper_ready = false;
+}
+
+DisplayClient &DisplayClient::getInstance() {
+    std::lock_guard<std::mutex> lock(sLock);
+    DisplayClient *instance = sInstance;
+    if (instance == nullptr) {
+        instance = new DisplayClient("client");
+        sInstance = instance;
+    }
+
+    return *instance;
 }
 
 bool DisplayClient::tryGetService() {
@@ -54,10 +69,6 @@ bool DisplayClient::tryGetService() {
         is_ready = false;
 
     return is_ready;
-}
-
-std::unique_ptr<DisplayClient> DisplayClient::create(std::string name) {
-    return std::unique_ptr<DisplayClient>(new DisplayClient(name));
 }
 
 int32_t DisplayClient::send_request_wait_reply(Json::Value& data, Json::Value& out) {

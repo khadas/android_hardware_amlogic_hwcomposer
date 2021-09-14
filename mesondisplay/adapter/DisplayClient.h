@@ -33,13 +33,12 @@ using IMapper_4_0 = ::android::hardware::graphics::mapper::V4_0::IMapper;
 
 class DisplayClient {
 public:
-    DisplayClient(std::string name);
     ~DisplayClient() = default;
     bool tryGetService();
     int32_t send_request_wait_reply(Json::Value& data, Json::Value& out);
     int32_t send_request(Json::Value& data);
-    static std::unique_ptr<DisplayClient> create(std::string name);
     bool captureDisplayScreen(const native_handle_t** outBufferHandle);
+    static DisplayClient &getInstance();
 
 protected:
     std::string name;
@@ -49,12 +48,14 @@ protected:
 
     bool is_ready;
 private:
+    DisplayClient(std::string name);
     bool initMap();
     bool importBuffer(hidl_handle &rawHandle, const native_handle_t** outBufferHandle);
 
     bool mMapper_ready;
 
-    DISALLOW_COPY_AND_ASSIGN(DisplayClient);
+    static std::mutex sLock;
+    static DisplayClient *sInstance;
 };
 
 } //namespace meson

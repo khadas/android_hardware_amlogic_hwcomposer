@@ -50,7 +50,7 @@ int main(int argc, char* argv[]) {
             DEBUG_INFO("format error!");
         }
 
-        auto client = meson::DisplayClient::create("meson_dispaly");
+        auto client = &meson::DisplayClient::getInstance();
         while (true) {
             DEBUG_INFO("begin");
             DEBUG_INFO("Send=>%s", meson::JsonValue2String(a).c_str());
