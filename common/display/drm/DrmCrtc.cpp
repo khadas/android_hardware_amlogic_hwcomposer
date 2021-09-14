@@ -19,6 +19,10 @@
 #include "DrmDevice.h"
 #include "DrmCrtc.h"
 #include "DrmConnector.h"
+#include "misc.h"
+
+/* emulation fb0 of drm free fb memory sysfs node*/
+#define DISPLAY_FB0_FREE_FB_MEM_DRM    "/sys/class/graphics/fb0/force_free_mem"
 
 DrmCrtc::DrmCrtc(int drmFd, drmModeCrtcPtr p, uint32_t pipe)
     : HwDisplayCrtc(),
@@ -314,6 +318,12 @@ int32_t DrmCrtc::setPendingMode() {
 
     mPendingModes.clear();
     return 0;
+}
+
+
+void DrmCrtc::closeLogoDisplay() {
+    /* free fb0 memory if it used */
+    sysfs_set_string(DISPLAY_FB0_FREE_FB_MEM_DRM, "1");
 }
 
 void DrmCrtc::dump(String8 & dumpstr) {

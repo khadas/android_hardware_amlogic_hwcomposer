@@ -33,7 +33,6 @@ HwDisplayCrtcFbdev::HwDisplayCrtcFbdev(int drvFd, int32_t id)
     mId = id;
     mPipe = GET_PIPE_IDX_BY_ID(id);
     mDrvFd = drvFd;
-    mFirstPresent = true;
     mBinded = false;
     /*for old vpu, always one channel.
     *for new vpu, it can be 1 or 2.
@@ -193,11 +192,6 @@ int32_t HwDisplayCrtcFbdev::prePageFlip() {
 }
 
 int32_t HwDisplayCrtcFbdev::pageFlip(int32_t &out_fence) {
-    if (mFirstPresent) {
-        mFirstPresent = false;
-        closeLogoDisplay();
-    }
-
     osd_page_flip_info_t flipInfo;
     flipInfo.background_w = mScaleInfo.framebuffer_w;
     flipInfo.background_h = mScaleInfo.framebuffer_h;

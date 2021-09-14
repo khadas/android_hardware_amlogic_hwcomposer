@@ -1027,8 +1027,10 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence, bool sf) {
     ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
 
-    if (mFirstPresent)
+    if (mFirstPresent) {
         mFirstPresent = false;
+        mCrtc->closeLogoDisplay();
+    }
 
     if (mValidateDisplay == false) {
         hwc2_error_t err = presentSkipValidateCheck();

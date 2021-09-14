@@ -52,6 +52,7 @@ public:
     virtual int32_t writeCurDisplayAttr(std::string & dispattr) = 0;
     virtual int32_t setPendingMode() = 0;
     virtual void dump(String8 & dumpstr __unused) {}
+    virtual void closeLogoDisplay();
 
     /* for hotplut */
     enum class HotplugStatus {
