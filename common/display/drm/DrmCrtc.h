@@ -46,6 +46,7 @@ public:
     int32_t setHdrMetadata(std::map<drm_hdr_meatadata_t, float> & hdrmedata __unused) { return 0; }
 
     int32_t setPendingMode();
+    void closeLogoDisplay();
 
     void dump(String8 & dumpstr);
 
