@@ -42,7 +42,7 @@ private:
 
     // For later start server.
     bool connectServerIfNeed();
-    std::unique_ptr<DisplayClient> ipc;
+    DisplayClient *ipc;
     DISALLOW_COPY_AND_ASSIGN(DisplayAdapterRemote);
 };
 
