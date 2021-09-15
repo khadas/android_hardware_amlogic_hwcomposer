@@ -43,6 +43,10 @@ ifndef BUILD_KERNEL_5_4
 BUILD_KERNEL_5_4 := false
 endif
 
+ifndef HWC_UVM_DETTACH
+HWC_UVM_DETTACH := false
+endif
+
 # TODO remove it when android S sdk released
 #ifeq ($(PLATFORM_VERSION_CODENAME), S)
 #ifeq ($(filter S, $(PLATFORM_VERSION_CODENAME)), S)
@@ -88,7 +92,8 @@ SOONG_CONFIG_meson_hwc += \
     enable_video_aisr \
     enable_video_aipq \
     enable_vt_hwVsync \
-    enable_build_kernel_54
+    enable_build_kernel_54 \
+    enable_uvm_dettach
 
 SOONG_CONFIG_meson_hwc_hwc_release := $(HWC_RELEASE)
 SOONG_CONFIG_meson_hwc_hwc_backend := $(HWC_BACKEND)
@@ -124,5 +129,6 @@ SOONG_CONFIG_meson_hwc_enable_video_aisr := $(HWC_VIDEO_AISR)
 SOONG_CONFIG_meson_hwc_enable_video_aipq := $(HWC_VIDEO_AIPQ)
 SOONG_CONFIG_meson_hwc_enable_vt_hwVsync := $(HWC_VT_HW_VSYNC)
 SOONG_CONFIG_meson_hwc_enable_build_kernel_54 := $(BUILD_KERNEL_5_4)
+SOONG_CONFIG_meson_hwc_enable_uvm_dettach := $(HWC_UVM_DETTACH)
 
 #$(warning "the value of version_s: $(HWC_ANDROID_S)")
