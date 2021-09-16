@@ -228,8 +228,17 @@ float  HwcConfig::getMaxRefreshRate() {
 }
 
 bool HwcConfig::isVideoProcessorEnabled() {
-#ifdef HWC_VIDEO_AISR
-    return true;
+#ifdef ENABLE_VIDEO_AISR
+    char value[PROPERTY_VALUE_MAX];
+    int ret = 0;
+    const char* str = "vendor.hwc.aisr_enable";
+
+    if (property_get(str, value, NULL) > 0) {
+        ret = atoi(value);
+        if (ret)
+            return true;
+    }
+    return false;
 #else
     return false;
 #endif

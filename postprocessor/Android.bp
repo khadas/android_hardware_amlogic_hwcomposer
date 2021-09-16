@@ -12,9 +12,50 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+soong_config_module_type {
+    name: "meson_hwc_postprocessor_defaults",
+    module_type: "cc_defaults",
+    config_namespace: "meson_hwc",
+
+    bool_variables: [
+        "enable_video_aisr",
+    ],
+
+    properties: [
+        "srcs",
+        "include_dirs",
+        "shared_libs",
+        "export_include_dirs",
+    ],
+}
+
+meson_hwc_postprocessor_defaults {
+    name: "hwcomposer_postprocessor_defaults",
+    vendor: true,
+
+    soong_config_variables: {
+        enable_video_aisr: {
+            srcs: [
+                "nnprocess/NnProcessor.cpp",
+                "nnprocess/sr_sdk.c",
+            ],
+            include_dirs: [
+                "vendor/amlogic/common/npu/nnsdk/include",
+            ],
+            shared_libs: [
+                "libion",
+                "libui",
+            ],
+            export_include_dirs: [
+                "nnprocess",
+            ]
+        },
+    },
+}
+
 cc_library_static {
     name: "hwc.postprocessor_static",
-    defaults: ["hwcomposer_cc_defaults"],
+    defaults: ["hwcomposer_cc_defaults", "hwcomposer_postprocessor_defaults"],
     vendor: true,
 
     srcs: [
@@ -34,5 +75,4 @@ cc_library_static {
         "include",
         "fbprocessor",
     ],
-
 }
