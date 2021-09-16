@@ -11,8 +11,10 @@
 #include <FbProcessor.h>
 #include "DummyProcessor.h"
 #include "CopyProcessor.h"
+#ifdef ENABLE_VIDEO_AISR
+#include "../nnprocess/NnProcessor.h"
+#endif
 
-/*in libkeystonecorrection.so*/
 extern int32_t createKeystoneCorrection(
     std::shared_ptr<FbProcessor> & processor);
 
@@ -33,9 +35,11 @@ int32_t createFbProcessor(
             break;
 #endif
         // TODO: create real video processor when it ready
+#ifdef ENABLE_VIDEO_AISR
         case FB_VIDEO_PROCESSOR:
-            processor = std::make_shared<DummyProcessor>();
+            processor = std::make_shared<NnProcessor>();
             break;
+#endif
         default:
             MESON_ASSERT(0, "unknown processor type %d", type);
             processor = NULL;
