@@ -35,6 +35,10 @@ ifndef HWC_VT_HW_VSYNC
 HWC_VT_HW_VSYNC := false
 endif
 
+ifndef BUILD_KERNEL_5_4
+BUILD_KERNEL_5_4 := false
+endif
+
 # TODO remove it when android S sdk released
 #ifeq ($(PLATFORM_VERSION_CODENAME), S)
 #ifeq ($(filter S, $(PLATFORM_VERSION_CODENAME)), S)
@@ -78,7 +82,8 @@ SOONG_CONFIG_meson_hwc += \
     dynamic_switch_connector \
     dynamic_swich_viu \
     enable_video_aisr \
-    enable_vt_hwVsync
+    enable_vt_hwVsync \
+    enable_build_kernel_54
 
 SOONG_CONFIG_meson_hwc_hwc_release := $(HWC_RELEASE)
 SOONG_CONFIG_meson_hwc_hwc_backend := $(HWC_BACKEND)
@@ -112,5 +117,6 @@ SOONG_CONFIG_meson_hwc_dynamic_swich_viu := $(HWC_DYNAMIC_SWITCH_VIU)
 SOONG_CONFIG_meson_hwc_android_version_s := $(HWC_ANDROID_S)
 SOONG_CONFIG_meson_hwc_enable_video_aisr := $(HWC_VIDEO_AISR)
 SOONG_CONFIG_meson_hwc_enable_vt_hwVsync := $(HWC_VT_HW_VSYNC)
+SOONG_CONFIG_meson_hwc_enable_build_kernel_54 := $(BUILD_KERNEL_5_4)
 
 #$(warning "the value of version_s: $(HWC_ANDROID_S)")

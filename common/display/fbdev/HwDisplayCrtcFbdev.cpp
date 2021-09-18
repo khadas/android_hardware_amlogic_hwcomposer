@@ -58,7 +58,7 @@ int32_t HwDisplayCrtcFbdev::bind(
     }
 
     mConnector = connector;
-    mConnector->setCrtcId(mPipe);
+    mConnector->setCrtcId(mId);
     mBinded = true;
     return 0;
 }
