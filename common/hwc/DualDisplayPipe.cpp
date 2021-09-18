@@ -90,7 +90,8 @@ int32_t DualDisplayPipe::init(
                                 strcpy(displayMode.name, prefdisplayMode.c_str());
                             }
                         }
-                        sc_set_display_mode(prefdisplayMode);
+                        strcpy(displayMode.name, prefdisplayMode.c_str());
+                        stat.second->modeCrtc->setMode(displayMode);
                     }
                 }
                 break;
@@ -227,8 +228,9 @@ void DualDisplayPipe::handleEvent(drm_display_event event, int val) {
                     }
                 }
 
-                MESON_LOGD("HDMI SET display mode %s.", prefdisplayMode.c_str());
-                sc_set_display_mode(prefdisplayMode);
+                MESON_LOGD("HDMI SET display mode %s.", displayMode.name);
+                //strcpy(displayModeTemp.name, prefdisplayMode.c_str());
+                statIt.second->modeCrtc->setMode(displayMode);
 
                 if (connected) {
                     statIt.second->modeConnector->update();

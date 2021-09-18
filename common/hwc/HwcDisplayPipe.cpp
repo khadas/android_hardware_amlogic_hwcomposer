@@ -346,8 +346,13 @@ void HwcDisplayPipe::handleEvent(drm_display_event event, int val) {
                         }
                     }
                 } else {
+                    int pipeIdx = DRM_PIPE_VOUT1;
+                    if (event == DRM_EVENT_VOUT2_MODE_CHANGED)
+                        pipeIdx = DRM_PIPE_VOUT2;
                     for (auto statIt : mPipeStats) {
-                        statIt.second->hwcDisplay->onModeChanged(val);
+                        if (statIt.second->modeCrtc->getPipe() == pipeIdx) {
+                            statIt.second->hwcDisplay->onModeChanged(val);
+                        }
                     }
                 }
             }

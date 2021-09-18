@@ -88,7 +88,7 @@ int32_t HwDisplayConnectorFbdev::addDisplayMode(std::string& mode) {
     struct vinfo_s info;
     const struct vinfo_s* vinfo = NULL;
 
-    if (VMODE_LCD == vmode) {
+    if (VMODE_LCD == vmode || strstr(mode.c_str(),"panel")) {
         /*panel display info is not fixed, need read from vout*/
         struct vinfo_base_s baseinfo;
         if (mCrtcId == 0)

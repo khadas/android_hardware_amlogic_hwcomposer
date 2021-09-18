@@ -26,11 +26,7 @@
         getHwDisplayManager()->getConnector(connector, type); \
         if (connector) { \
             int crtcid = connector->getCrtcId(); \
-            if (crtcid == 0) { \
-                crtc = getHwDisplayManager()->getCrtcByPipe(DRM_PIPE_VOUT1); \
-            } else { \
-                crtc = getHwDisplayManager()->getCrtcById(crtcid); \
-            } \
+            crtc = getHwDisplayManager()->getCrtcById(crtcid); \
         } \
 
 namespace meson{
