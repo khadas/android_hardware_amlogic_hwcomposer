@@ -38,6 +38,8 @@ meson_hwc_postprocessor_defaults {
             srcs: [
                 "nnprocess/NnProcessor.cpp",
                 "nnprocess/sr_sdk.c",
+                "nnprocess/AipqProcessor.cpp",
+                "nnprocess/pq_sdk.c",
             ],
             include_dirs: [
                 "vendor/amlogic/common/npu/nnsdk/include",

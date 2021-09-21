@@ -12,7 +12,8 @@
 #include "DummyProcessor.h"
 #include "CopyProcessor.h"
 #ifdef ENABLE_VIDEO_AISR
-#include "../nnprocess/NnProcessor.h"
+#include "NnProcessor.h"
+#include "AipqProcessor.h"
 #endif
 
 extern int32_t createKeystoneCorrection(

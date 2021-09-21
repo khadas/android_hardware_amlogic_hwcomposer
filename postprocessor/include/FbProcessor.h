@@ -18,6 +18,7 @@ typedef enum {
     FB_COPY_PROCESSOR,
     FB_KEYSTONE_PROCESSOR,
     FB_VIDEO_PROCESSOR,
+    FB_AIPQ_PROCESSOR,
 } meson_fb_processor_t;
 
 class FbProcessor {
