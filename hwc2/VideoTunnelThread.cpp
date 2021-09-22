@@ -20,7 +20,7 @@
 
 VideoTunnelThread::VideoTunnelThread(Hwc2Display * display) {
     mExit = false;
-    mGameExit = false;
+    mGameExit = true;
     mVsyncComing = false;
     mDisplay = display;
 
@@ -41,7 +41,7 @@ int VideoTunnelThread::createThread() {
 
     ret = pthread_create(&mVtBufferThread, NULL, bufferThreadMain, (void *)this);
     if (ret) {
-        MESON_LOGE("failed to create VideoTunnel BUfferThread: %s",
+        MESON_LOGE("failed to create VideoTunnel BufferThread: %s",
                 strerror(ret));
         return ret;
     }
@@ -50,6 +50,13 @@ int VideoTunnelThread::createThread() {
     if (ret) {
         MESON_LOGE("failed to create VideoTunnel CmdThread: %s",
                 strerror(ret));
+        return ret;
+    }
+
+    // game thread
+    ret = pthread_create(&mVtGameModeThread, NULL, gameModeThreadMain, (void *)this);
+    if (ret) {
+        MESON_LOGE("failed to create VideoTunnel GameThread: %s", strerror(ret));
         return ret;
     }
 
@@ -159,32 +166,27 @@ void* VideoTunnelThread::cmdThreadMain(void *data) {
 }
 
 int VideoTunnelThread::startGameMode() {
+    ATRACE_CALL();
+    std::unique_lock<std::mutex> stateLock(mVtGameLock);
     MESON_LOGD("%s", __func__);
-    // start game thread
     mGameExit = false;
-    if (!mGameExit) {
-        int ret = pthread_create(&mVtGameModeThread, NULL, gameModeThreadMain, (void *)this);
-        if (ret) {
-            MESON_LOGE("failed to create VideoTunnel BUfferThread: %s",
-                    strerror(ret));
-            return ret;
-        }
-    } else {
-        MESON_LOGD("%s game mode thread alread in running", __func__);
-    }
+    stateLock.unlock();
 
+    mVtGameCondition.notify_all();
     return 0;
 }
 
 int VideoTunnelThread::stopGameMode() {
+    ATRACE_CALL();
+    std::unique_lock<std::mutex> stateLock(mVtGameLock);
     MESON_LOGD("%s", __func__);
     mGameExit = true;
-    pthread_join(mVtGameModeThread, NULL);
-
+    stateLock.unlock();
     return 0;
 }
 
 int VideoTunnelThread::handleGameMode() {
+    ATRACE_CALL();
     /*
      * poll videotunnel game buffer
      * will wait in videotunnel driver until recieve buffers
@@ -224,15 +226,15 @@ void *VideoTunnelThread::gameModeThreadMain(void *data) {
 
     while (true) {
         if (pThis->mGameExit) {
-            MESON_LOGD("VideoTunnel game mode Thread exit");
-            pthread_exit(0);
-            return NULL;
+            std::unique_lock<std::mutex> stateLock(pThis->mVtGameLock);
+            pThis->mVtGameCondition.wait(stateLock);
+            stateLock.unlock();
         }
 
         int ret = pThis->handleGameMode();
         if (ret != 0 && ret != -EAGAIN) {
-            MESON_LOGE("handle Game mode error:%d, exit", ret);
-            return NULL;
+            MESON_LOGD("handle Game mode ret:%d", ret);
+            pThis->mGameExit = true;
         }
     }
 
