@@ -55,6 +55,10 @@ protected:
     std::mutex mVtLock;
     std::condition_variable mVtCondition;
     Hwc2Display * mDisplay;
+
+    // for game mode
+    std::mutex mVtGameLock;
+    std::condition_variable mVtGameCondition;
 };
 
 #endif
