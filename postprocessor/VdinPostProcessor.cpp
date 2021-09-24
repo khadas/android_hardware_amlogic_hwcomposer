@@ -332,8 +332,10 @@ int32_t VdinPostProcessor::process() {
     ATRACE_BEGIN("PostProcess");
     std::unique_lock<std::mutex> lock(mMutex);
     static int capCnt = 0;
+    static int preCmd = -1;
     if (mCmdQ.size() > 0) {
         int cmd = mCmdQ.front();
+        preCmd = cmd;
         mCmdQ.pop();
         if (cmd & PRESENT_SIDEBAND) {
             mProcessMode = PROCESS_ALWAYS;
@@ -355,7 +357,13 @@ int32_t VdinPostProcessor::process() {
             mProcessMode = PROCESS_ONCE;
             capCnt = VDIN_CAP_CNT;
         }
+    } else {
+        if (mProcessMode == PROCESS_ONCE && (preCmd & PRESENT_CAPSCREEN)) {
+            mProcessMode = PROCESS_ALWAYS;
+            preCmd = -1;
+        }
     }
+
     if (mProcessMode == PROCESS_IDLE) {
         //wait new present cmd.
         MESON_LOGD("In idle, waiting new cmd.");
