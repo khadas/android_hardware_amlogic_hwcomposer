@@ -79,7 +79,7 @@ int32_t VdinPostProcessor::postVout(std::shared_ptr<DrmFramebuffer> fb) {
         mVout->setDisplayFrame(osdDisplayFrame);
 
         fb->mFbType = DRM_FB_SCANOUT;
-        fb->mBlendMode = DRM_BLEND_MODE_PREMULTIPLIED;
+        fb->mBlendMode = DRM_BLEND_MODE_COVERAGE;
         fb->mPlaneAlpha = 1.0f;
         fb->mTransform = 0;
         mDisplayPlane->setPlane(fb, DEFAULT_FB_ZORDER, UNBLANK);
