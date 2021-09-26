@@ -71,6 +71,7 @@ public:
     bool newGameBuffer();
     bool isNeedClearLastFrame();
     int32_t getSolidColorBuffer();
+    void vtRefresh();
 
 public:
     android_dataspace_t mDataSpace;
@@ -93,6 +94,7 @@ protected:
 
     /* solid color buffer for video tunnel layer */
     void freeSolidColorBuffer();
+    void setVtPrevReleaseFence();
 
 protected:
     bool mUpdateZorder;
@@ -114,6 +116,7 @@ protected:
 
     nsecs_t mExpectedPresentTime;
     bool mVtUpdate;
+    bool mVtRefreshed;
     bool mNeedReleaseVtResource;
     bool mNeedClearLastFrame;
     bool mEnableSolidColor;
@@ -121,6 +124,5 @@ protected:
     std::shared_ptr<UvmDettach> mUvmDettach;
     int mPreUvmBufferFd;
 };
-
 
 #endif/*HWC2_LAYER_H*/

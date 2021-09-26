@@ -827,8 +827,10 @@ int32_t Hwc2Display::adjustDisplayFrame() {
                 mCalibrateInfo.crtc_display_y;
         }
 
-        if (bNeedUpdateLayer)
+        if (bNeedUpdateLayer) {
             layer->setLayerUpdate(true);
+            layer->vtRefresh();
+        }
     }
 
     return 0;
@@ -1906,4 +1908,18 @@ bool Hwc2Display::newGameBuffer() {
     }
 
     return ret;
+}
+
+/*
+ * Refresh video tunnel layers. As mode change may blank the display once.
+ */
+void Hwc2Display::refreshVtLayers() {
+    ATRACE_CALL();
+    std::lock_guard<std::mutex> vtLock(mVtMutex);
+
+    for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
+        auto layer = it->second;
+        if (layer->isVtBuffer())
+            layer->vtRefresh();
+    }
 }

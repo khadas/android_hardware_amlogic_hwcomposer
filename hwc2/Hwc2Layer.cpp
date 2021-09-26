@@ -38,6 +38,7 @@ Hwc2Layer::Hwc2Layer() : DrmFramebuffer(){
     mGameMode = false;
     mNeedClearLastFrame = false;
     mEnableSolidColor = false;
+    mVtRefreshed = false;
     mQueueItems.clear();
 
     mPreUvmBufferFd = -1;
@@ -278,6 +279,7 @@ hwc2_error_t Hwc2Layer::setSourceCrop(hwc_frect_t crop) {
     mSourceCrop.right = (int) floorf(crop.right);
     mSourceCrop.bottom = (int) floorf(crop.bottom);
     mUpdated = true;
+    vtRefresh();
     return HWC2_ERROR_NONE;
 }
 
@@ -289,6 +291,7 @@ hwc2_error_t Hwc2Layer::setDisplayFrame(hwc_rect_t frame) {
     mBackupDisplayFrame.bottom = frame.bottom;
 
     mUpdated = true;
+    vtRefresh();
     return HWC2_ERROR_NONE;
 }
 
@@ -335,6 +338,7 @@ hwc2_error_t Hwc2Layer::setDataspace(android_dataspace_t dataspace) {
 hwc2_error_t Hwc2Layer::setZorder(uint32_t z) {
     mZorder = z;
     mUpdateZorder = mUpdated = true;
+    vtRefresh();
     return HWC2_ERROR_NONE;
 }
 
@@ -378,10 +382,10 @@ bool Hwc2Layer::isVtBufferUnlock() {
     return mFbType == DRM_FB_VIDEO_TUNNEL_SIDEBAND;
 }
 
-bool Hwc2Layer::isFbUpdated(){
+bool Hwc2Layer::isFbUpdated() {
     std::lock_guard<std::mutex> lock(mMutex);
     if (isVtBufferUnlock()) {
-        return (shouldPresentNow(mTimestamp) && mVtUpdate);
+        return (shouldPresentNow(mTimestamp) && mVtUpdate) || mVtRefreshed;
     } else {
         return (mUpdated || mFbHandleUpdated);
     }
@@ -510,6 +514,15 @@ int32_t Hwc2Layer::releaseVtBuffer() {
         return -EINVAL;
     }
 
+    if (mVtRefreshed && !mVtUpdate) {
+        mVtRefreshed = false;
+        MESON_LOGV("[%s] [%llu] mVtRefreshed", __func__, mId);
+        /* set release fence */
+        setVtPrevReleaseFence();
+        return 0;
+    }
+    mVtRefreshed = false;
+
     if (!mVtUpdate)
         return -EAGAIN;
 
@@ -521,7 +534,7 @@ int32_t Hwc2Layer::releaseVtBuffer() {
 
     if (mQueueItems.empty()) {
         MESON_LOGV("Queued vtbuffer is empty!!");
-        return -EINVAL;
+        return -EAGAIN;
     }
 
     // remove it from the queueItems
@@ -532,12 +545,7 @@ int32_t Hwc2Layer::releaseVtBuffer() {
         mPreVtBufferFd = mVtBufferFd;
         mVtUpdate = false;
         mVtBufferFd = -1;
-
-        // CureRelease move to PrevRelase, it can be returned in next loop.
-        if (mCurReleaseFence.get() && mCurReleaseFence != DrmFence::NO_FENCE)
-            mPrevReleaseFence = mCurReleaseFence;
-        mCurReleaseFence.reset();
-
+        setVtPrevReleaseFence();
         return 0;
     }
 
@@ -556,11 +564,7 @@ int32_t Hwc2Layer::releaseVtBuffer() {
     mPreVtBufferFd = mVtBufferFd;
     mVtUpdate = false;
     mVtBufferFd = -1;
-
-    // CureRelease move to PrevRelase, it can be returned in next loop.
-    if (mCurReleaseFence.get() && mCurReleaseFence != DrmFence::NO_FENCE)
-        mPrevReleaseFence = mCurReleaseFence;
-    mCurReleaseFence.reset();
+    setVtPrevReleaseFence();
 
     return ret;
 }
@@ -799,4 +803,16 @@ int32_t Hwc2Layer::getSolidColorBuffer() {
     }
 
     return mSolidColorBufferfd;
+}
+
+/* refresh vt layer */
+void Hwc2Layer::vtRefresh() {
+    mVtRefreshed = true;
+}
+
+void Hwc2Layer::setVtPrevReleaseFence() {
+    // CureRelease move to PrevRelase, it can be returned in next loop.
+    if (mCurReleaseFence.get() && mCurReleaseFence != DrmFence::NO_FENCE)
+        mPrevReleaseFence = mCurReleaseFence;
+    mCurReleaseFence.reset();
 }

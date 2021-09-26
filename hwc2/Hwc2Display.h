@@ -154,6 +154,8 @@ public:
     virtual int recieveVtCmds();
     virtual bool newGameBuffer();
 
+    virtual void refreshVtLayers();
+
 /* meson display ddk */
 public:
     int32_t captureDisplayScreen(buffer_handle_t hnd);
