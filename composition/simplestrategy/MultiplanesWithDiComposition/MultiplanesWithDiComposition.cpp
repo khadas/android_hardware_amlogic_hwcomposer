@@ -1309,8 +1309,18 @@ int MultiplanesWithDiComposition::commit(bool sf) {
             dumpFbAndPlane(fb, plane, presentZorder, blankFlag);
         }
 
+        /*vt layer will send black frame or disable vc when buffer is invalid */
+        if (fb->isVtBuffer() && (fb->getVtBuffer() < 0)) {
+            if (fb->isNeedClearLastFrame())
+                blankFlag = BLANK_FOR_NO_CONTENT;
+            else
+                blankFlag = UNBLANK;
+            plane->setPlane(fb, presentZorder, blankFlag);
+            continue;
+        }
+
         /* make sure SF donot refresh VtLayer and VT only refresh VtLayer*/
-        if ((sf && !fb->isVtBuffer()) || (!sf && fb->isVtBuffer())) {
+        if ((sf && !fb->isVtBuffer()) || (!sf && fb->isVtBuffer() && (fb->getVtBuffer() >= 0))) {
             int processFence = -1;
             int ret = -1;
             std::shared_ptr<DrmFramebuffer> outFb;

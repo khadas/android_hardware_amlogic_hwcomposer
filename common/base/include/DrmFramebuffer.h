@@ -63,6 +63,7 @@ public:
     virtual bool isVtBuffer() { return false;}
     virtual int32_t recieveVtCmds() { return 0; }
     virtual bool isNeedClearLastFrame() {return false; }
+    virtual int32_t getSolidColorBuffer() { return -EINVAL; }
 
 protected:
     void setBufferInfo(const native_handle_t * bufferhnd, int32_t acquireFence, bool isSidebandBuffer=false);
