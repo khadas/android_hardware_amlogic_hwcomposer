@@ -69,7 +69,7 @@ public:
     bool shouldPresentNow(nsecs_t timestamp);
     bool newGameBuffer();
     bool isNeedClearLastFrame();
-
+    int32_t getSolidColorBuffer();
 public:
     android_dataspace_t mDataSpace;
     hwc2_composition_t mHwcCompositionType;
@@ -88,6 +88,9 @@ protected:
     int32_t releaseUvmResource();
     int32_t releaseUvmResourceLock();
 
+    /* solid color buffer for video tunnel layer */
+    void freeSolidColorBuffer();
+
 protected:
     bool mUpdateZorder;
 
@@ -100,6 +103,7 @@ protected:
     int mTunnelId;
     std::mutex mMutex;
     int mVtBufferFd;
+    int mSolidColorBufferfd;
     int mPreVtBufferFd;
     int64_t mTimestamp;
     std::deque<VtBufferItem> mQueueItems;

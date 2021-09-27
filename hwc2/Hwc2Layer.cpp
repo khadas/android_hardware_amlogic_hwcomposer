@@ -17,6 +17,7 @@
 #include <cutils/properties.h>
 #include <utils/Timers.h>
 #include <inttypes.h>
+#include <misc.h>
 
 #include "Hwc2Layer.h"
 #include "Hwc2Base.h"
@@ -28,6 +29,7 @@ Hwc2Layer::Hwc2Layer() : DrmFramebuffer(){
     mUpdateZorder  = false;
     mVtBufferFd    = -1;
     mPreVtBufferFd = -1;
+    mSolidColorBufferfd = -1;
     mVtUpdate      =  false;
     mNeedReleaseVtResource = false;
     mTimestamp     = -1;
@@ -245,6 +247,8 @@ hwc2_error_t Hwc2Layer::setSidebandStream(const native_handle_t* stream) {
                 mQueuedFrames = 0;
                 mQueueItems.clear();
                 mTunnelId = channel_id;
+                getSolidColorBuffer();
+                mVtUpdate = true;
             } else {
                 MESON_LOGE("%s [%lld] connect to videotunnel %d failed, error %d",
                         __func__, mId, channel_id, ret);
@@ -652,6 +656,8 @@ int32_t Hwc2Layer::doReleaseVtResource(bool needDisconnect) {
         mVtBufferFd = -1;
         mPreVtBufferFd = -1;
         mVtUpdate = false;
+        mTimestamp = -1;
+        freeSolidColorBuffer();
 
         if (mTunnelId >= 0 && needDisconnect) {
             MESON_LOGD("[%s] [%llu] Hwc2Layer release disconnect(%d) queuedFrames(%d)",
@@ -793,4 +799,25 @@ bool Hwc2Layer::isNeedClearLastFrame() {
     }
 
     return false;
+}
+
+void Hwc2Layer::freeSolidColorBuffer() {
+    if (mSolidColorBufferfd >= 0) {
+        close(mSolidColorBufferfd);
+        mSolidColorBufferfd = -1;
+    }
+}
+
+int32_t Hwc2Layer::getSolidColorBuffer() {
+    /* will send a colorFrame to VC when get a null VT buffer
+     * at the beginning */
+    if (mSolidColorBufferfd < 0) {
+        int fd = gralloc_get_solid_color_buf_fd(SET_VIDEO_TO_BLACK);
+
+        if (fd >= 0)
+            mSolidColorBufferfd = dup(fd);
+    }
+
+    mVtUpdate = false;
+    return mSolidColorBufferfd;
 }

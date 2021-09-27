@@ -33,6 +33,7 @@
 #include <systemcontrol.h>
 #include <am_gralloc_ext.h>
 #include <HwDisplayManager.h>
+#include <misc.h>
 
 Hwc2Display::Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer) {
     mObserver = observer;
@@ -75,6 +76,8 @@ Hwc2Display::~Hwc2Display() {
     if (mPostProcessor != NULL)
         mPostProcessor->stop();
     mPostProcessor.reset();
+
+    gralloc_free_solid_color_buf();
 }
 
 int32_t Hwc2Display::setModeMgr(std::shared_ptr<HwcModeMgr> & mgr) {
@@ -1620,6 +1623,7 @@ void Hwc2Display::handleVtThread() {
 
     if (haveVtLayer) {
         if (mVideoTunnelThread == nullptr) {
+            gralloc_alloc_solid_color_buf();
             mVideoTunnelThread = std::make_shared<VideoTunnelThread>(this);
         }
         if (!mVtVsyncStatus) {
