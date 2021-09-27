@@ -139,14 +139,16 @@ int32_t RealModeMgr::update() {
             if (realMode.name[0] != 0) {
                 mCurMode = realMode;
                 mPreviousMode = realMode;
-                useFakeMode = false;
 
                 MESON_LOGD("RealModeMgr::update get current mode:%s", realMode.name);
                 for (auto it = connecterModeList.begin(); it != connecterModeList.end(); it++) {
                     /* not filter the current mode */
-                    if (isSupportModeForCurrentDevice(it->second) ||
-                            !strcmp(mCurMode.name, it->second.name))
+                    if (!strcmp(mCurMode.name, it->second.name)) {
                         mModes.emplace(mModes.size(), it->second);
+                        useFakeMode = false;
+                    } else if (isSupportModeForCurrentDevice(it->second)) {
+                        mModes.emplace(mModes.size(), it->second);
+                    }
                 }
             } else {
                 MESON_LOGI("RealModeMgr::update could not get current mode");
@@ -161,6 +163,7 @@ int32_t RealModeMgr::update() {
 
     if (useFakeMode) {
         mCurMode = mPreviousMode;
+        MESON_LOGD("RealModeMgr::update use previous mode");
         strncpy(mCurMode.name, "FAKE_PREVIOUS_MODE", DRM_DISPLAY_MODE_LEN);
         mModes.emplace(mModes.size(), mCurMode);
     }

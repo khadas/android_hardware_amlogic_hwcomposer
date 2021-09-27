@@ -92,7 +92,6 @@ int32_t ActiveModeMgr::update() {
         if (mCrtc->getMode(activeMode) == 0) {
             mCurMode = activeMode;
             mPreviousMode = activeMode;
-            useFakeMode = false;
 
             for (auto it = supportedModes.begin(); it != supportedModes.end(); it++) {
                 // support dolby version
@@ -105,6 +104,10 @@ int32_t ActiveModeMgr::update() {
                             continue;
                         }
                     }
+                }
+
+                if (!strcmp(mCurMode.name, it->second.name)) {
+                    useFakeMode = false;
                 }
 
                 mHwcActiveModes.emplace(mHwcActiveModes.size(), it->second);
