@@ -112,6 +112,7 @@ cc_library_static {
         "libcutils",
         "libutils",
         "libdrm",
+        "libion",
     ],
 
     header_libs: [
@@ -209,6 +210,7 @@ cc_library_shared {
         "libcutils",
         "libutils",
         "libbase",
+        "libion",
     ],
 
     static_libs: [

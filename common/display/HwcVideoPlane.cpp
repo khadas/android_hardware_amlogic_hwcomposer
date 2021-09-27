@@ -167,10 +167,6 @@ int32_t HwcVideoPlane::setPlane(
     bool bBlank = blankOp == UNBLANK ? false : true;
     if (!bBlank) {
         MESON_ASSERT(fb.get() != NULL, "fb shoud not NULL");
-        if (!fb->isFbUpdated()) {
-            mBlank = bBlank;
-            return 0;
-        }
 
         /*disable video*/
         bool need_disable_video = false;
@@ -196,6 +192,16 @@ int32_t HwcVideoPlane::setPlane(
         if (need_disable_video)
             mVideoComposer->enable(false);
 
+        mDisplayedVideoType = fb->mFbType;
+        mVideoFb = fb;
+
+        if (!fb->isFbUpdated()) {
+            if (need_disable_video)
+                bBlank = BLANK_FOR_NO_CONTENT;
+
+            mBlank = bBlank;
+            return 0;
+        }
         /* update video plane disable status */
         /* the value of blankOp is UNBLANK */
         if (fb->mFbType == DRM_FB_VIDEO_UVM_DMA ||
@@ -215,9 +221,7 @@ int32_t HwcVideoPlane::setPlane(
         } else {
             int composefd = -1;
             /*Video post to display directlly.*/
-            if (need_disable_video || mDisplayedVideoType == DRM_FB_UNDEFINED) {
-                mVideoComposer->enable(true);
-            }
+            mVideoComposer->enable(true);
             mVideoComposer->setFrame(fb, composefd, zorder);
 
             /*update last frame release fence*/
@@ -229,9 +233,6 @@ int32_t HwcVideoPlane::setPlane(
                 fb->setCurReleaseFence(composefd);
             }
         }
-
-        mDisplayedVideoType = fb->mFbType;
-        mVideoFb = fb;
     } else if (mBlank != bBlank) {
         mVideoComposer->enable(false);
         mDisplayedVideoType = DRM_FB_UNDEFINED;

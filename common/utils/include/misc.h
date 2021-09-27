@@ -14,6 +14,14 @@
 #include <cutils/native_handle.h>
 
 #define PROP_VALUE_LEN_MAX  92
+#define VIDEO_BUFFER_W 160
+#define VIDEO_BUFFER_H 90
+
+typedef enum {
+    SET_VIDEO_TO_BLACK = 0,
+    SET_VIDEO_TO_GREEN,
+    SET_VIDEO_INVALID,
+} video_color_t;
 
 bool sys_get_bool_prop(const char* prop, bool defVal);
 int32_t sys_get_string_prop(const char* prop, char * val);
@@ -34,5 +42,7 @@ int32_t gralloc_unref_dma_buf(native_handle_t * hnd, bool isSidebandBuffer=false
 int32_t gralloc_lock_dma_buf(native_handle_t * handle, void** vaddr);
 int32_t gralloc_unlock_dma_buf(native_handle_t * handle);
 
-
+int32_t gralloc_alloc_solid_color_buf();
+int32_t gralloc_free_solid_color_buf();
+int32_t gralloc_get_solid_color_buf_fd(video_color_t color);
 #endif/*MISC_H*/
