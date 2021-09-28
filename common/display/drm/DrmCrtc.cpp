@@ -140,7 +140,7 @@ int32_t DrmCrtc::getMode(drm_mode_info_t & mode) {
             mode = mPendingModes.back();
     }
 
-    MESON_LOGV("Crtc [%d] getmode %llu:[%dx%d-%f].",
+    MESON_LOGV("Crtc [%d] getmode %" PRIu64 ":[%dx%d-%f].",
         mId, mModeBlobId->getValue(), mode.pixelW, mode.pixelH, mode.refreshRate);
     return 0;
 }
@@ -331,7 +331,7 @@ void DrmCrtc::closeLogoDisplay() {
 
 void DrmCrtc::dump(String8 & dumpstr) {
     dumpstr.appendFormat("Crtc mPipeId(%d) - mId(%d):\n", mPipe, mId);
-    dumpstr.appendFormat("\t Active (%llu), ModeId (%llu) mMode (%s)\n",
+    dumpstr.appendFormat("\t Active (%" PRIu64 "), ModeId (%" PRIu64 ") mMode (%s)\n",
                         mActive->getValue(), mModeBlobId->getValue(),
                         mDrmMode.name);
 

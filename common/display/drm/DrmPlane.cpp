@@ -7,6 +7,7 @@
  * Description:
  */
 
+#include <inttypes.h>
 #include <MesonLog.h>
 #include <DebugHelper.h>
 
@@ -442,8 +443,8 @@ bool DrmPlane::validateFormat(uint32_t format, uint64_t modifier) {
 void DrmPlane::dump(String8 & dumpstr) {
     if (!mBlank) {
         dumpstr.appendFormat("| osd%2d |"
-               " %4lld | %4d | %4d %4d %4d %4d | %4d %4d %4d %4d | %2d | %2d | %4d |"
-               " %4d | %5lld | %5lld | %4x |%8llx  |\n",
+               " (%" PRId64 ") | %4d | %4d %4d %4d %4d | %4d %4d %4d %4d | %2d | %2d | %4d |"
+               " %4d | (%" PRId64 ") | (%" PRId64 ") | %4x |(%" PRIx64 ")  |\n",
                 mId,
                 mZpos->getValue(), 0,
                 mDrmBo->srcRect.left,mDrmBo->srcRect.top,mDrmBo->srcRect.right,mDrmBo->srcRect.bottom,
