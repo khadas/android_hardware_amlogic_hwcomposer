@@ -1015,7 +1015,7 @@ hwc2_error_t Hwc2Display::presentSkipValidateCheck() {
         for (auto at = mLayers.begin(); at != mLayers.end(); at++) {
             std::shared_ptr<Hwc2Layer> curLayer = at->second;
             if (curLayer->isUpdated()) {
-                MESON_LOGV("layer (%llu) info changed",curLayer->getUniqueId());
+                MESON_LOGV("layer (%" PRIu64 ") info changed",curLayer->getUniqueId());
                 return HWC2_ERROR_NOT_VALIDATED;
             }
         }
@@ -1661,7 +1661,7 @@ void Hwc2Display::acquireVtLayers() {
             layer->setPresentTime(expectPresentedTime);
             ret = layer->acquireVtBuffer();
             if (ret != 0 && ret != -EAGAIN) {
-                MESON_LOGE("%s, acquire layer id=%llu failed, ret=%s",
+                MESON_LOGE("%s, acquire layer id=%" PRIu64 " failed, ret=%s",
                         __func__, layer->getUniqueId(), strerror(ret));
             }
         }
@@ -1679,7 +1679,7 @@ void Hwc2Display::releaseVtLayers() {
         if (layer->isVtBuffer()) {
             ret = layer->releaseVtBuffer();
             if (ret != 0 && ret != -EAGAIN) {
-                MESON_LOGE("%s, release layer id=%llu failed, ret=%s",
+                MESON_LOGE("%s, release layer id=%" PRIu64 " failed, ret=%s",
                         __func__, layer->getUniqueId(), strerror(ret));
             }
         }

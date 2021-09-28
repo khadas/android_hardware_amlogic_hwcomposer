@@ -120,7 +120,7 @@ int MultiplanesWithDiComposition::chooseOneVideoFb(std::shared_ptr<DrmFramebuffe
         auto buf = (*it)->mBufferHandle;
         video_type = 0;
         if (!(*it)->mIsSidebandBuffer && am_gralloc_get_omx_video_type(buf, &video_type) == 0) {
-            MESON_LOGV("[%s] fbId:%lld videoType:%x", __func__, (*it)->getUniqueId(), video_type);
+            MESON_LOGV("[%s] fbId:%" PRIu64 " videoType:%x", __func__, (*it)->getUniqueId(), video_type);
             for (auto type_it = video_types.begin(); type_it != video_types.end(); type_it++) {
                 if ((video_type & *type_it) == *type_it) {
                     video_type_maps.insert(std::make_pair(*type_it, *it));
@@ -444,7 +444,7 @@ int MultiplanesWithDiComposition::processVideoFbs() {
         if (!fb)
             chooseOneVideoFb(fb);
 
-        MESON_LOGV("[%s] id:%lld, setTo video %d ", __func__, fb->getUniqueId(), i);
+        MESON_LOGV("[%s] id:%" PRIu64 ", setTo video %d ", __func__, fb->getUniqueId(), i);
         fb->mCompositionType = MESON_COMPOSITION_PLANE_HWCVIDEO;
         if (i == 0 && bVideoCompose)
             videoZ = maxVideoZ;

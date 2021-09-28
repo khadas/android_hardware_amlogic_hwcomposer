@@ -66,7 +66,7 @@ int32_t VideoComposerDev::setFrames(
     mVideoFramesInfo.layer_index = mDrvFd;
     mVideoFramesInfo.disp_zorder = z;
 
-    MESON_LOGV("VideoComposerDev(%d) setframes (%d-%d)",
+    MESON_LOGV("VideoComposerDev(%d) setframes (%zu-%d)",
             mDrvFd, composefbs.size(), mVideoFramesInfo.disp_zorder);
 
     bool isBlackBuffer = false;
@@ -133,7 +133,7 @@ int32_t VideoComposerDev::setFrames(
             vFrameInfo->buffer_h = am_gralloc_get_height(buf);
         }
 
-        MESON_LOGV("VideoComposerDev(%d) layerId(%llu) setframe zorder(%d) "
+        MESON_LOGV("VideoComposerDev(%d) layerId(%" PRIu64 ") setframe zorder(%d) "
                 "Fbtype(%s) bufferFd(%d) (%dx%d) aligned wxh (%dx%d))",
                 mDrvFd, fb->mId, fb->mZorder, drmFbTypeToString(fbType), vFrameInfo->fd,
                 vFrameInfo->buffer_w, vFrameInfo->buffer_h,

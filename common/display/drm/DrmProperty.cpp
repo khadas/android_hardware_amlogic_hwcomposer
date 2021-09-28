@@ -178,7 +178,7 @@ void DrmProperty::dump(String8 &dumpstr) {
     } else if (mType == DRM_MODE_PROP_ENUM) {
         dumpstr.append("enums:");
         for (int i = 0; i < mPropRes.count_enums; i++)
-            dumpstr.appendFormat(" %s=%llu",mPropRes.enums[i].name,
+            dumpstr.appendFormat(" %s=%llu", mPropRes.enums[i].name,
                 mPropRes.enums[i].value);
         dumpstr.append("\n");
     } else if (mType == DRM_MODE_PROP_BLOB) {
