@@ -172,6 +172,10 @@ public:
     int64_t mFence_receive_count;
     int64_t mFence_wait_count;
     bool mIsModelInterfaceExist;
+    int64_t mDupCount;
+    int64_t mCloseCount;
+    static int64_t mTotalDupCount;
+    static int64_t mTotalCloseCount;
 };
 
 #endif
