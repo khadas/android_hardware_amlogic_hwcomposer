@@ -36,6 +36,8 @@
                 struct uvm_hook_data)
 
 int NnProcessor::mInstanceID = 0;
+int64_t NnProcessor::mTotalDupCount = 0;
+int64_t NnProcessor::mTotalCloseCount = 0;
 struct time_info_t NnProcessor::mTime[NN_MODE_COUNT];
 void* NnProcessor::mNn_qcontext[NN_MODE_COUNT];
 int NnProcessor::log_level = 0;
@@ -93,12 +95,22 @@ NnProcessor::NnProcessor() {
     }
 
     mInstanceID++;
+    mDupCount = 0;
+    mCloseCount = 0;
 }
 
 NnProcessor::~NnProcessor() {
     int i;
 
-    ALOGD("~NnProcessor");
+    ALOGD("~NnProcessor: mDupCount =%lld, mCloseCount =%lld, total %lld %lld",
+        mDupCount, mCloseCount, mTotalDupCount, mTotalCloseCount);
+
+    if (mDupCount != mCloseCount)
+        ALOGE("~NnProcessor:count err: %lld %lld", mDupCount, mCloseCount);
+
+    if (mTotalDupCount != mTotalCloseCount)
+        ALOGE("~NnProcessor:total count err: %lld %lld", mTotalDupCount, mTotalCloseCount);
+
     if (mInited)
         teardown();
 
@@ -306,6 +318,8 @@ int32_t NnProcessor::asyncProcess(
     }
 
     dup_fd = dup(input_fd);
+    mDupCount++;
+    mTotalDupCount++;
 
     mBuf_index++;
     if (mBuf_index == SR_OUT_BUF_COUNT)
@@ -313,11 +327,13 @@ int32_t NnProcessor::asyncProcess(
 
     mBuf_index_cur = mBuf_index;
     ALOGD_IF(nn_check_D(),
-        "%s: i=%d, fence_fd_last =%d, fence_fd=%d",
+        "%s: i=%d, fence_fd_last =%d, fence_fd=%d, %lld %lld",
         __FUNCTION__,
         mBuf_index,
         mSrBuf[mBuf_index].fence_fd_last,
-        mSrBuf[mBuf_index].fence_fd);
+        mSrBuf[mBuf_index].fence_fd,
+        mDupCount,
+        mCloseCount);
 
     mSrBuf[mBuf_index].fence_fd_last = mSrBuf[mBuf_index].fence_fd;
     mSrBuf[mBuf_index].fence_fd = -1;
@@ -390,10 +406,26 @@ int32_t NnProcessor::onBufferDisplayed(
 int32_t NnProcessor::teardown() {
     mExitThread = true;
     int i;
+    int shared_fd = -1;
 
     ALOGD("%s.\n", __FUNCTION__);
+
     if (mInited)
         pthread_join(mThread, NULL);
+
+    while (mBuf_index_q.size() > 0)
+    {
+        std::lock_guard<std::mutex> lock(mMutex);
+        shared_fd = mBuf_index_q.front();
+        if (shared_fd != -1) {
+            close(shared_fd);
+            mCloseCount++;
+            mTotalCloseCount++;
+        }
+        mBuf_index_q.pop();
+        ALOGD("%s: close fd =%d\n", __FUNCTION__, shared_fd);
+    }
+
     freeDmaBuffers();
 
     for (i = 0; i < SR_OUT_BUF_COUNT; i++) {
@@ -474,6 +506,8 @@ void NnProcessor::threadProcess() {
     }
 
     close(shared_fd);
+    mCloseCount++;
+    mTotalCloseCount++;
     return;
 }
 
