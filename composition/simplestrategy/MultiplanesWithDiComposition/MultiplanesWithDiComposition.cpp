@@ -1282,9 +1282,6 @@ int MultiplanesWithDiComposition::commit(bool sf) {
             /* make sure SF donot refresh VtLayer and VT only refresh VtLayer*/
             if ((sf && !hasVtBuffer) || (!sf && hasVtBuffer))
                 mDiComposer->start(mVideoPlaneNum - 1);
-        } else if (fb->mCompositionType == MESON_COMPOSITION_DUMMY) {
-            /* dummy need blank plane */
-            plane->setPlane(NULL, HWC_PLANE_FAKE_ZORDER, BLANK_FOR_NO_CONTENT);
         } else {
             dumpFbAndPlane(fb, plane, presentZorder, blankFlag);
         }
@@ -1292,6 +1289,9 @@ int MultiplanesWithDiComposition::commit(bool sf) {
         /* make sure SF donot refresh VtLayer and VT only refresh VtLayer*/
         if ((sf && !fb->isVtBuffer()) || (!sf && fb->isVtBuffer())) {
             /* Set display info. */
+            if (fb->isNeedClearLastFrame())
+                blankFlag = BLANK_FOR_NO_CONTENT;
+
             int ret = plane->setPlane(fb, presentZorder, blankFlag);
             fb->clearFbHandleFlag();
             if (ret != 0) {

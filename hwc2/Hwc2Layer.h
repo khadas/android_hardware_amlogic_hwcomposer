@@ -68,6 +68,7 @@ public:
     void setPresentTime(nsecs_t expectedPresentTime);
     bool shouldPresentNow(nsecs_t timestamp);
     bool newGameBuffer();
+    bool isNeedClearLastFrame();
 
 public:
     android_dataspace_t mDataSpace;
@@ -108,6 +109,7 @@ protected:
     nsecs_t mExpectedPresentTime;
     bool mVtUpdate;
     bool mNeedReleaseVtResource;
+    bool mNeedClearLastFrame;
 
     /* for NR */
     struct UvmBuffer {
