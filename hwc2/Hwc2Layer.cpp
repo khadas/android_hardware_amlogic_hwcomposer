@@ -35,6 +35,7 @@ Hwc2Layer::Hwc2Layer() : DrmFramebuffer(){
     mQueuedFrames = 0;
     mTunnelId = -1;
     mGameMode = false;
+    mNeedClearLastFrame = false;
     mQueueItems.clear();
 
     mPreUvmBufferFd = -1;
@@ -212,7 +213,7 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
 hwc2_error_t Hwc2Layer::setSidebandStream(const native_handle_t* stream) {
     ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
-    MESON_LOGV("[%s] (%lld)", __func__, mId);
+    MESON_LOGV("[%s] [%lld]", __func__, mId);
     clearBufferInfo();
     setBufferInfo(stream, -1, true);
 
@@ -234,13 +235,13 @@ hwc2_error_t Hwc2Layer::setSidebandStream(const native_handle_t* stream) {
 
             int ret = VideoTunnelDev::getInstance().connect(channel_id);
             if (ret >= 0) {
-                MESON_LOGD("%s connect to videotunnel %d successed", __func__, channel_id);
+                MESON_LOGD("%s [%lld] connect to videotunnel %d successed", __func__, mId, channel_id);
                 mQueuedFrames = 0;
                 mQueueItems.clear();
                 mTunnelId = channel_id;
             } else {
-                MESON_LOGE("%s connect to videotunnel %d failed, error %d",
-                        __func__, channel_id, ret);
+                MESON_LOGE("%s [%lld] connect to videotunnel %d failed, error %d",
+                        __func__, mId, channel_id, ret);
                 mTunnelId = -1;
                 return HWC2_ERROR_BAD_PARAMETER;
             }
@@ -591,32 +592,34 @@ int32_t Hwc2Layer::recieveVtCmds() {
 
     ret = 0;
     // process the cmd
-    if (cmd == VT_CMD_SET_VIDEO_STATUS) {
-        // disable video cmd
-        if (cmdData.data == 1) {
-            // set it to dummy
-            mCompositionType = MESON_COMPOSITION_DUMMY;
-            // release all the vt release
-            doReleaseVtResource(false);
-            ret |= VT_CMD_DISABLE_VIDEO;
-        }
-    } if (cmd == VT_CMD_SET_GAME_MODE) {
-        if (cmdData.data == 1) {
-            ret |= VT_CMD_GAME_MODE_ENABLE;
-            mGameMode = true;
-        } else if (cmdData.data == 0) {
-            ret |= VT_CMD_GAME_MODE_DISABLE;
-            mGameMode = false;
-        }
-        MESON_LOGD("recv cmds mGameMode:%d", mGameMode);
-    } if (cmd == VT_CMD_SET_SOURCE_CROP) {
-        mVtSourceCrop.left = cmdData.crop.left;
-        mVtSourceCrop.top = cmdData.crop.top;
-        mVtSourceCrop.right = cmdData.crop.right;
-        mVtSourceCrop.bottom = cmdData.crop.bottom;
-    } else {
-        // Currently only support set video disable status and game mode
-        MESON_LOGE("Not supported videoTunnel [%d] cmd:%d", mTunnelId, cmd);
+    switch (cmd) {
+        case VT_CMD_SET_VIDEO_STATUS:
+            // disable video cmd
+            if (cmdData.data == 1) {
+                // release all the vt release
+                doReleaseVtResource(false);
+                ret |= VT_CMD_DISABLE_VIDEO;
+                mNeedClearLastFrame = true;
+            }
+            break;
+        case VT_CMD_SET_GAME_MODE:
+            if (cmdData.data == 1) {
+                ret |= VT_CMD_GAME_MODE_ENABLE;
+                mGameMode = true;
+            } else if (cmdData.data == 0) {
+                ret |= VT_CMD_GAME_MODE_DISABLE;
+                mGameMode = false;
+            }
+            MESON_LOGD("recv cmds mGameMode:%d", mGameMode);
+            break;
+        case VT_CMD_SET_SOURCE_CROP:
+            mVtSourceCrop.left = cmdData.crop.left;
+            mVtSourceCrop.top = cmdData.crop.top;
+            mVtSourceCrop.right = cmdData.crop.right;
+            mVtSourceCrop.bottom = cmdData.crop.bottom;
+            break;
+        default:
+            MESON_LOGE("Not supported videoTunnel [%d] cmd:%d", mTunnelId, cmd);
     }
 
     return ret;
@@ -795,4 +798,14 @@ int32_t Hwc2Layer::releaseUvmResource() {
     std::lock_guard<std::mutex> lock(mMutex);
 
     return releaseUvmResourceLock();
+}
+
+bool Hwc2Layer::isNeedClearLastFrame() {
+    if (mNeedClearLastFrame) {
+        /* need do disable video composer once */
+        mNeedClearLastFrame = false;
+        return true;
+    }
+
+    return false;
 }
