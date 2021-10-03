@@ -79,7 +79,17 @@ struct vt_buffer_data {
 	int buffer_fd;
 	int fence_fd;
 	int buffer_status;
-	long long time_stamp;
+	int64_t time_stamp;
+};
+
+/*
+ * struct vt_display_vsync
+ * display vsync info transfer between producer and consumer
+ */
+struct vt_display_vsync {
+	int tunnel_id;
+	uint64_t timestamp;
+	uint32_t period;
 };
 
 #define VT_IOC_MAGIC 'V'
@@ -140,4 +150,18 @@ struct vt_buffer_data {
  */
 #define VT_IOC_ACQUIRE_BUFFER	_IOWR(VT_IOC_MAGIC, 6, \
 				      struct vt_buffer_data)
+
+/**
+ * VT_IOC_GET_VSYNCTIME - producer get display vsync timestamp
+ * and period from videotunnel.
+ */
+#define VT_IOC_GET_VSYNCTIME	_IOWR(VT_IOC_MAGIC, 7, \
+				      struct vt_display_vsync)
+
+/**
+ * VT_IOC_SET_VSYNCTIME - consumer set display vsync timestamp
+ * and period to videotunnel.
+ */
+#define VT_IOC_SET_VSYNCTIME	_IOWR(VT_IOC_MAGIC, 8, \
+				      struct vt_display_vsync)
 #endif
