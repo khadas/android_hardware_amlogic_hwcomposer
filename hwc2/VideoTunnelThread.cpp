@@ -66,6 +66,10 @@ int VideoTunnelThread::createThread() {
 void VideoTunnelThread::onVtVsync(int64_t timestamp __unused,
         uint32_t vsyncPeriodNanos __unused) {
     ATRACE_CALL();
+    //set vsync info to videotunnel driver
+    if (VideoTunnelDev::getInstance().setDisplayVsyncInfo(timestamp, vsyncPeriodNanos) < 0)
+        MESON_LOGE("failed set display vsync info to videotunnel");
+
     std::unique_lock<std::mutex> stateLock(mVtLock);
     mVsyncComing = true;
     stateLock.unlock();

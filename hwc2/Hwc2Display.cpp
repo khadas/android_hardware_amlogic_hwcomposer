@@ -1359,6 +1359,7 @@ hwc2_error_t Hwc2Display::getDisplayCapabilities(
 }
 
 hwc2_error_t Hwc2Display::getDisplayVsyncPeriod(hwc2_vsync_period_t* outVsyncPeriod) {
+    ATRACE_CALL();
     hwc2_config_t config;
     int32_t configPeriod;
 
@@ -1657,6 +1658,7 @@ int32_t Hwc2Display::captureDisplayScreen(buffer_handle_t hnd) {
 }
 
 bool Hwc2Display::getDisplayVsyncAndPeriod(int64_t& timestamp, int32_t& vsyncPeriodNanos) {
+    ATRACE_CALL();
     timestamp = mVsyncTimestamp;
 
     /* default set to 16.667 ms */
