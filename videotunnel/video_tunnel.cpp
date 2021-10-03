@@ -267,6 +267,34 @@ int meson_vt_set_sourceCrop(int fd, int tunnel_id, struct vt_rect rect) {
     return meson_vt_ioctl(fd, VT_IOC_CTRL, &data);
 }
 
+/* get display vsync timestam and period from videotunnel
+ *
+ * @param fd            [in] Videotunnel device fd
+ * @param tunnel_id     [in] tunnel id
+ *
+ * @param timestamp     [out] timestamp for the vsync
+ * @param period        [out] vsync period in nanos
+ *
+ * Return of 0 means the operation completed as normal.
+ * Return of a negative value means an error has occurred:
+ */
+int meson_vt_getDisplayVsyncAndPeroid(int fd, int tunnel_id, uint64_t *timestamp, uint32_t *period) {
+    int ret = -1;
+    struct vt_display_vsync data = {
+        .tunnel_id = tunnel_id,
+    };
+
+    ret = meson_vt_ioctl(fd, VT_IOC_GET_VSYNCTIME, &data);
+
+    if (ret < 0)
+        return ret;
+
+    *timestamp = data.timestamp;
+    *period = data.period;
+
+    return ret;
+}
+
 /*
  * Acquire buffer attemps to acquire ownership of the next pending buffer in the videotunnel.
  * If no buffer is pending then it returns -EAGAIN with a default 4ms timeout. If a buffer is
@@ -354,6 +382,27 @@ int meson_vt_poll_cmd(int fd, int time_out) {
     return ret;
 }
 
+/* set display vsync timestam and period to videotunnel
+ *
+ * @param fd            [in] Videotunnel device fd
+ * @param tunnel_id     [in] tunnel id
+ *
+ * @param timestamp     [in] timestamp for the vsync
+ * @param period        [in] vsync period in nanos
+ *
+ * Return of 0 means the operation completed as normal.
+ * Return of a negative value means an error has occurred:
+ */
+int meson_vt_setDisplayVsyncAndPeroid(int fd, int tunnel_id, uint64_t timestamp, uint32_t period) {
+    struct vt_display_vsync data = {
+        .tunnel_id = tunnel_id,
+        .timestamp = timestamp,
+        .period = period,
+    };
+
+    return meson_vt_ioctl(fd, VT_IOC_SET_VSYNCTIME, &data);
+}
+
 /*
  * Set the videotunnel driver to block mode or not
  *
@@ -439,6 +488,7 @@ int meson_vt_recv_cmd(int fd, int tunnel_id, enum vt_cmd *cmd, struct vt_cmd_dat
 
     return ret;
 }
+
 #ifdef __cplusplus
 }
 #endif
