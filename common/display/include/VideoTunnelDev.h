@@ -30,6 +30,8 @@ public:
 
     int32_t pollCmds();
 
+    int32_t setDisplayVsyncInfo(uint64_t timestamp, uint32_t vsyncPeriodNanos);
+
 private:
     int mDrvFd;
 };

@@ -168,7 +168,7 @@ void * HwcVsync::vsyncThread(void * data) {
                 pThis->mObserver->onVsync(timestamp, period);
             }
             if (pThis->mVTEnabled) {
-                pThis->mObserver->onVTVsync(timestamp, period);
+                pThis->mObserver->onVTVsync(timestamp, pThis->mReqPeriod);
             }
         } else {
             if (ret != 0)

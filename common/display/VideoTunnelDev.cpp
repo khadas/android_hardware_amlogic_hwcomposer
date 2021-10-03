@@ -84,3 +84,8 @@ int32_t VideoTunnelDev::setNonBlockMode() {
 int32_t VideoTunnelDev::pollCmds() {
     return meson_vt_poll_cmd(mDrvFd, VT_POLL_TIMEOUT);
 }
+
+int32_t VideoTunnelDev::setDisplayVsyncInfo(uint64_t timestamp, uint32_t vsyncPeriodNanos) {
+    // ignored tunnel id now
+    return meson_vt_setDisplayVsyncAndPeroid(mDrvFd, -1, timestamp, vsyncPeriodNanos);
+}
