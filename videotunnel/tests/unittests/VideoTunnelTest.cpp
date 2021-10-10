@@ -111,7 +111,7 @@ TEST_F(VideoTunnelTest, dequeueBuffer_withoutConnect)
     EXPECT_EQ(-EINVAL, mProducer->dequeueBuffer(dequeueItem, false));
 }
 
-TEST_F(VideoTunnelTest, dequeueBuffer)
+TEST_F(VideoTunnelTest, dequeueBuffer_noconsumer)
 {
     VTBufferItem queueItem;
     queueItem.allocateBuffer();
@@ -120,8 +120,32 @@ TEST_F(VideoTunnelTest, dequeueBuffer)
     EXPECT_EQ(OK, mProducer->queueBuffer(queueItem));
 
     VTBufferItem dequeueItem;
-    EXPECT_EQ(-EAGAIN, mProducer->dequeueBuffer(dequeueItem, false));
+    EXPECT_EQ(-ENOTCONN, mProducer->dequeueBuffer(dequeueItem, false));
     EXPECT_EQ(OK, mProducer->producerDisconnect());
+}
+
+TEST_F(VideoTunnelTest, cancelBuffer)
+{
+    VTBufferItem queueItem;
+    queueItem.allocateBuffer();
+
+    EXPECT_EQ(OK, mProducer->producerConnect());
+    EXPECT_EQ(OK, mProducer->queueBuffer(queueItem));
+
+    VTBufferItem dequeueItem;
+    EXPECT_EQ(-ENOTCONN, mProducer->dequeueBuffer(dequeueItem));
+
+    // cancelBuffer
+    EXPECT_EQ(OK, mProducer->cancelBuffer());
+
+    EXPECT_EQ(OK, mProducer->dequeueBuffer(dequeueItem));
+    EXPECT_EQ(queueItem.getBufferFd(), dequeueItem.getBufferFd());
+
+    EXPECT_EQ(dequeueItem.getReleaseFenceFd(), -1);
+
+    EXPECT_EQ(OK, mProducer->producerDisconnect());
+
+    queueItem.releaseBuffer(true);
 }
 
 TEST_F(VideoTunnelTest, dequeueBuffer_releaseBuffer)

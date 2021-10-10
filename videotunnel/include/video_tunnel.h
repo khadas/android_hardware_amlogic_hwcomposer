@@ -47,6 +47,7 @@ int meson_vt_disconnect(int fd, int tunnel_id, int role);
 int meson_vt_queue_buffer(int fd, int tunnel_id, int buffer_fd,
         int fence_fd, int64_t expected_present_time);
 int meson_vt_dequeue_buffer(int fd, int tunnel_id, int *buffer_fd, int *fence_fd);
+int meson_vt_cancel_buffer(int fd, int tunnel_id);
 int meson_vt_set_sourceCrop(int fd, int tunnel_id, struct vt_rect rect);
 
 //int meson_vt_set_sourceCrop(int fd, int tunnel_id, int left, int top, int right, int bottom);
