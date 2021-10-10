@@ -56,6 +56,10 @@ int VideoTunnelProducer::dequeueBuffer(VTBufferItem &item, bool block) {
     return ret;
 }
 
+int VideoTunnelProducer::cancelBuffer() {
+    return meson_vt_cancel_buffer(mDevFd, mTunnelId);
+}
+
 int VideoTunnelProducer::sendCmd(vt_cmd cmd, int data) {
     return meson_vt_send_cmd(mDevFd, mTunnelId, cmd, data);
 }

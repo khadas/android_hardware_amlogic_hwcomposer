@@ -222,6 +222,19 @@ int meson_vt_dequeue_buffer(int fd, int tunnel_id, int *buffer_fd, int *fence_fd
     return ret;
 }
 
+/*
+ * cancelBuffer returns all the dequeued buffers to the BufferQueue, but doesn't
+ * queue it for use by the consumer.
+ *
+ * @param fd            [in] Videotunnel device fd
+ * @param tunnel_id     [in] tunnel id to connect
+ *
+ * Return of a value other than 0 means an error has occurred:
+ * -EINVAL - invalid param, no videotunnel or has not connect
+ */
+int meson_vt_cancel_buffer(int fd, int tunnel_id) {
+    return meson_vt_control(fd, tunnel_id, VT_ROLE_PRODUCER, VT_CTRL_CANCEL_BUFFER);
+}
 
 /* Set the video source crop
  *

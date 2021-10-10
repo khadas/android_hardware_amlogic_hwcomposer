@@ -24,6 +24,7 @@ public:
 
     int queueBuffer(VTBufferItem &item);
     int dequeueBuffer(VTBufferItem &item, bool block = true);
+    int cancelBuffer();
     int sendCmd(vt_cmd cmd, int data);
 
     int getVideoTunnelId() const { return mTunnelId; };
