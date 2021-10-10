@@ -19,6 +19,7 @@ soong_config_module_type {
 
     bool_variables: [
         "enable_video_aisr",
+        "enable_video_aipq",
     ],
 
     properties: [
@@ -38,6 +39,20 @@ meson_hwc_postprocessor_defaults {
             srcs: [
                 "nnprocess/NnProcessor.cpp",
                 "nnprocess/sr_sdk.c",
+            ],
+            include_dirs: [
+                "vendor/amlogic/common/npu/nnsdk/include",
+            ],
+            shared_libs: [
+                "libion",
+                "libui",
+            ],
+            export_include_dirs: [
+                "nnprocess",
+            ]
+        },
+        enable_video_aipq: {
+            srcs: [
                 "nnprocess/AipqProcessor.cpp",
                 "nnprocess/pq_sdk.c",
             ],

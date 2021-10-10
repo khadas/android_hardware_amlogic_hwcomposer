@@ -59,15 +59,21 @@ protected:
         std::shared_ptr<DrmFramebuffer> & fb, uint32_t z);
     int chooseOneVideoFb(std::shared_ptr<DrmFramebuffer> & videoFb);
 
-protected:
     struct DisplayPair {
         uint32_t din;                           // 0: din0, 1: din1, 2:din2, 3:video1, 4:video2
         uint32_t presentZorder;
         std::shared_ptr<DrmFramebuffer> fb;     // UI or Video from SF
         std::shared_ptr<HwDisplayPlane> plane;  // osdPlane <= 3, videoPlane <= 2
-        std::shared_ptr<FbProcessor> processor; // fb processor
+        std::vector<std::shared_ptr<FbProcessor>> processors; // fb processor
     };
 
+    // for video processor
+    int setUpProcessor();
+    int tearDownProcessor();
+    int collectProcessor();
+    bool runProcessor(struct DisplayPair &dp, int &blankFlag, int &ret);
+
+protected:
     /* Input Flags from SF */
     bool mHDRMode;
     bool mHideSecureLayer;
@@ -118,7 +124,9 @@ protected:
     bool mSkipValidate;
 
     /* for video processor */
-    std::shared_ptr<FbProcessor> mVideoProcessor;
+    std::shared_ptr<FbProcessor> mSrProcessor;
+    std::shared_ptr<FbProcessor> mPqProcessor;
+    std::vector<std::shared_ptr<FbProcessor>> mProcessors;
 };
 
 

@@ -21,6 +21,7 @@ soong_config_module_type {
         "hwc_release",
         "enable_keystone_correction",
         "enable_video_aisr",
+        "enable_video_aipq",
     ],
 
     properties: [
@@ -40,6 +41,10 @@ soong_config_bool_variable {
 
 soong_config_bool_variable {
     name: "enable_video_aisr",
+}
+
+soong_config_bool_variable {
+    name: "enable_video_aipq",
 }
 
 meson_hwc_cc_defaults {
@@ -63,6 +68,10 @@ meson_hwc_cc_defaults {
 
         enable_video_aisr: {
             cflags: ["-DENABLE_VIDEO_AISR"],
+        },
+
+        enable_video_aipq: {
+            cflags: ["-DENABLE_VIDEO_AIPQ"],
         },
     },
 

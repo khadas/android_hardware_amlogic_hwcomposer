@@ -65,6 +65,10 @@ public:
     virtual bool isNeedClearLastFrame() {return false; }
     virtual int32_t getSolidColorBuffer() { return -EINVAL; }
 
+    // for video processor
+    int32_t setProcessFence(int32_t fenceFd);
+    int32_t getProcessFence();
+
 protected:
     void setBufferInfo(const native_handle_t * bufferhnd, int32_t acquireFence, bool isSidebandBuffer=false);
     void clearBufferInfo();
@@ -99,6 +103,7 @@ public:
     std::shared_ptr<DrmFence> mCurReleaseFence;
 protected:
     std::shared_ptr<DrmFence> mAcquireFence;
+    std::shared_ptr<DrmFence> mProcessFence;
 
     void * mMapBase;
     std::mutex mMutex;
