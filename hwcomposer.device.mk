@@ -31,6 +31,10 @@ ifndef HWC_VIDEO_AISR
 HWC_VIDEO_AISR := false
 endif
 
+ifndef HWC_VIDEO_AIPQ
+HWC_VIDEO_AIPQ := false
+endif
+
 ifndef HWC_VT_HW_VSYNC
 HWC_VT_HW_VSYNC := false
 endif
@@ -82,6 +86,7 @@ SOONG_CONFIG_meson_hwc += \
     dynamic_switch_connector \
     dynamic_swich_viu \
     enable_video_aisr \
+    enable_video_aipq \
     enable_vt_hwVsync \
     enable_build_kernel_54
 
@@ -116,6 +121,7 @@ SOONG_CONFIG_meson_hwc_dynamic_switch_connector := $(HWC_DYNAMIC_SWITCH_CONNECTO
 SOONG_CONFIG_meson_hwc_dynamic_swich_viu := $(HWC_DYNAMIC_SWITCH_VIU)
 SOONG_CONFIG_meson_hwc_android_version_s := $(HWC_ANDROID_S)
 SOONG_CONFIG_meson_hwc_enable_video_aisr := $(HWC_VIDEO_AISR)
+SOONG_CONFIG_meson_hwc_enable_video_aipq := $(HWC_VIDEO_AIPQ)
 SOONG_CONFIG_meson_hwc_enable_vt_hwVsync := $(HWC_VT_HW_VSYNC)
 SOONG_CONFIG_meson_hwc_enable_build_kernel_54 := $(BUILD_KERNEL_5_4)
 

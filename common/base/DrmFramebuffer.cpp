@@ -61,6 +61,17 @@ int32_t DrmFramebuffer::setPrevReleaseFence(int32_t fenceFd) {
     return 0;
 }
 
+int32_t DrmFramebuffer::setProcessFence(int32_t fenceFd) {
+    mProcessFence.reset(new DrmFence(fenceFd));
+    return 0;
+}
+
+int32_t DrmFramebuffer::getProcessFence() {
+    if (mProcessFence.get())
+        return mProcessFence->dup();
+    return -1;
+}
+
 int32_t DrmFramebuffer::onLayerDisplayed(int32_t releaseFence,
         int32_t processFence) {
     if (releaseFence < 0 || processFence < 0) {
@@ -96,6 +107,7 @@ void DrmFramebuffer::reset() {
     clearBufferInfo();
     mPrevReleaseFence.reset();
     mCurReleaseFence.reset();
+    mProcessFence.reset();
     mHdrMetaData.clear();
     mBlendMode       = DRM_BLEND_MODE_INVALID;
     mPlaneAlpha      = 1.0;
@@ -149,6 +161,8 @@ void DrmFramebuffer::clearBufferInfo() {
         mCurReleaseFence.reset();
         mCurReleaseFence = DrmFence::NO_FENCE;
     }
+    mProcessFence.reset();
+    mProcessFence = DrmFence::NO_FENCE;
 
     mFbType        = DRM_FB_RENDER;
     mSecure         = false;

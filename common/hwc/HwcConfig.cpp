@@ -227,7 +227,7 @@ float  HwcConfig::getMaxRefreshRate() {
 #endif
 }
 
-bool HwcConfig::isVideoProcessorEnabled() {
+bool HwcConfig::AiSrProcessorEnabled() {
 #ifdef ENABLE_VIDEO_AISR
     char value[PROPERTY_VALUE_MAX];
     int ret = 0;
@@ -239,6 +239,14 @@ bool HwcConfig::isVideoProcessorEnabled() {
             return true;
     }
     return false;
+#else
+    return false;
+#endif
+}
+
+bool HwcConfig::AiPqProcessorEnabled() {
+#ifdef ENABLE_VIDEO_AIPQ
+    return true;
 #else
     return false;
 #endif
@@ -275,7 +283,9 @@ void HwcConfig::dump(String8 & dumpstr) {
             dumpstr.append("\n");
             dumpstr.appendFormat("\t DynamicSwitchViu: %s", dynamicSwitchViuEnabled() ? "Y" : "N");
             dumpstr.append("\n");
-            dumpstr.appendFormat("\t VideoProcessor: %s", isVideoProcessorEnabled() ? "Y" : "N");
+            dumpstr.appendFormat("\t AiSrProcessor: %s", AiSrProcessorEnabled() ? "Y" : "N");
+            dumpstr.append("\n");
+            dumpstr.appendFormat("\t AiPqProcessor: %s", AiPqProcessorEnabled() ? "Y" : "N");
             dumpstr.append("\n");
         }
     }

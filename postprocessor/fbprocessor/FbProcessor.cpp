@@ -13,6 +13,8 @@
 #include "CopyProcessor.h"
 #ifdef ENABLE_VIDEO_AISR
 #include "NnProcessor.h"
+#endif
+#ifdef ENABLE_VIDEO_AIPQ
 #include "AipqProcessor.h"
 #endif
 
@@ -37,8 +39,13 @@ int32_t createFbProcessor(
 #endif
         // TODO: create real video processor when it ready
 #ifdef ENABLE_VIDEO_AISR
-        case FB_VIDEO_PROCESSOR:
+        case FB_AISR_PROCESSOR:
             processor = std::make_shared<NnProcessor>();
+            break;
+#endif
+#ifdef ENABLE_VIDEO_AIPQ
+        case FB_AIPQ_PROCESSOR:
+            processor = std::make_shared<AipqProcessor>();
             break;
 #endif
         default:

@@ -51,8 +51,9 @@ public:
     static bool dynamicSwitchConnectorEnabled();
     static bool dynamicSwitchViuEnabled();
 
-    static float  getMaxRefreshRate();
-    static bool isVideoProcessorEnabled();
+    static float getMaxRefreshRate();
+    static bool AiSrProcessorEnabled();
+    static bool AiPqProcessorEnabled();
 
     static void dump(String8 & dumpstr);
 };
