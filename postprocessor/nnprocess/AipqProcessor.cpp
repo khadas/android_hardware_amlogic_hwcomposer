@@ -443,7 +443,7 @@ int32_t AipqProcessor::asyncProcess(
     int ready_size = 0;
     int input_fd = -1;
 
-    mLogLevel = PropGetInt("vendor.hwc.aipq_log", 1);
+    mLogLevel = PropGetInt("vendor.hwc.aipq_log", 0);
 
     processFence = -1;
     outfb = inputfb;
@@ -572,7 +572,6 @@ int32_t AipqProcessor::teardown() {
 
 void AipqProcessor::threadProcess() {
     int shared_fd = -1;
-    int nn_bypass = false;
     int size = 0;
 
     size = mBuf_fd_q.size();
@@ -582,15 +581,13 @@ void AipqProcessor::threadProcess() {
     }
     if (size > 1)
         ALOGE("%s: more than one buf need process size=%d", __FUNCTION__, size);
-    nn_bypass = PropGetInt("vendor.hwc.aipq_bypass", 0);
 
     {
         std::lock_guard<std::mutex> lock(mMutex);
         shared_fd = mBuf_fd_q.front();
     }
 
-    if (nn_bypass != 0)
-        ai_pq_process(shared_fd);
+    ai_pq_process(shared_fd);
 
     {
         std::lock_guard<std::mutex> lock(mMutex);
