@@ -1424,12 +1424,16 @@ bool Hwc2Display::isLayerHideForDebug(hwc2_layer_t id) {
 hwc2_error_t Hwc2Display::getDisplayCapabilities(
             uint32_t* outNumCapabilities, uint32_t* outCapabilities) {
     if (outCapabilities == nullptr) {
-        *outNumCapabilities = 1;
+        if (mConnector->isConnected() == false)
+            *outNumCapabilities = 1;
+        else
+            *outNumCapabilities = 2;
     } else {
         if (mConnector->isConnected() == false) {
             outCapabilities[0] = HWC2_DISPLAY_CAPABILITY_INVALID;
         } else {
-            outCapabilities[0] = HWC2_DISPLAY_CAPABILITY_AUTO_LOW_LATENCY_MODE;
+            outCapabilities[0] = HWC2_DISPLAY_CAPABILITY_SKIP_CLIENT_COLOR_TRANSFORM;
+            outCapabilities[1] = HWC2_DISPLAY_CAPABILITY_AUTO_LOW_LATENCY_MODE;
         }
     }
     return HWC2_ERROR_NONE;
