@@ -20,9 +20,12 @@
 #include <sched.h>
 #include <cutils/properties.h>
 
-#define NN_PB_2 "/vendor/bin/nn/SRNetx2_e8.nb"  /*1080p->4k*/
-#define NN_PB_3 "/vendor/bin/nn/SRNetx3_e8.nb"
-#define NN_PB_4 "/vendor/bin/nn/SRNetx4_960_e8.nb"  /*540p->4k*/
+#define NN_PB_2      "/vendor/bin/nn/SRNetx2_e8.nb"  /*1080p->4k*/
+#define NN_PB_3      "/vendor/bin/nn/SRNetx3_e8.nb"
+#define NN_PB_4      "/vendor/bin/nn/SRNetx4_960_e8.nb"  /*540p->4k*/
+#define NN_PB_2_I    "/vendor/bin/nn/SRNetx2_i_e8.nb"  /*1080I->4k*/
+#define NN_PB_3_I    "/vendor/bin/nn/SRNetx3_i_e8.nb"
+#define NN_PB_4_I    "/vendor/bin/nn/SRNetx4_960_i_e8.nb"  /*540I->4k*/
 
 #define FENCE_TIMEOUT_MS 1000
 
@@ -48,9 +51,10 @@ int NnProcessor::nn_check_D() {
 }
 
 NnProcessor::NnProcessor() {
-    int i = 0;
-
     ALOGD("NnProcessor");
+
+    int i = 0;
+    int interlaceCheckProp = 0;
     mBuf_Alloced = false;
     mExitThread = true;
     pthread_mutex_init(&m_waitMutex, NULL);
@@ -87,6 +91,14 @@ NnProcessor::NnProcessor() {
     if (mUvmHander < 0) {
         ALOGE("can not open uvm");
     }
+
+    interlaceCheckProp = PropGetInt("vendor.hwc.aisr_check_interlace", 1);
+    if (interlaceCheckProp == 1) {
+        ALOGD("need check I/P source.\n");
+        mNeed_check_interlace = true;
+    } else
+        mNeed_check_interlace = false;
+
     mIsModelInterfaceExist = (isInterfaceImplement() == 1);
 
     if (!mModelLoaded && mIsModelInterfaceExist) {
@@ -115,6 +127,8 @@ NnProcessor::~NnProcessor() {
         teardown();
 
     for (i = 0; i < NN_MODE_COUNT; i++) {
+        if (!mNeed_check_interlace && i > 2)
+            break;
         if (mTime[i].count > 0) {
             mTime[i].avg_time = mTime[i].total_time / mTime[i].count;
         }
@@ -169,6 +183,7 @@ int32_t NnProcessor::setup() {
     }
 
     mNn_mode = -1;
+    mNn_interlace_flag = 0;
     mInited = true;
     mBuf_index = 0;
     mBuf_index_cur = -1;
@@ -543,13 +558,19 @@ int NnProcessor::LoadNNModel() {
     mNn_qcontext[0] = nn_init(NN_PB_4);
     mNn_qcontext[1] = nn_init(NN_PB_3);
     mNn_qcontext[2] = nn_init(NN_PB_2);
+
+    if (mNeed_check_interlace) {
+        mNn_qcontext[3] = nn_init(NN_PB_4_I);
+        mNn_qcontext[4] = nn_init(NN_PB_3_I);
+        mNn_qcontext[5] = nn_init(NN_PB_2_I);
+    }
     clock_gettime(CLOCK_MONOTONIC, &time2);
     uint64_t totalTime = (time2.tv_sec * 1000000LL + time2.tv_nsec / 1000)
                     - (time1.tv_sec * 1000000LL + time1.tv_nsec / 1000);
 
-    if ((mNn_qcontext[0] == NULL) ||
-        (mNn_qcontext[1] == NULL) ||
-        (mNn_qcontext[2] == NULL)) {
+    if ((mNn_qcontext[0] == NULL) || (mNn_qcontext[1] == NULL) || (mNn_qcontext[2] == NULL) ||
+        (mNeed_check_interlace &&
+        ((mNn_qcontext[3] == NULL) || (mNn_qcontext[4] == NULL) || (mNn_qcontext[5] == NULL)))) {
         ALOGE("%s: load NN model failed.\n", __FUNCTION__);
         ret = 0;
     } else {
@@ -604,18 +625,18 @@ int32_t NnProcessor::ai_sr_process(
         ALOGD_IF(nn_check_D(),"UVM_IOC_GET_HF_INFO fail =%d.\n", ret);
     }
     ALOGD_IF(nn_check_D(),
-        "hf_phy=%lld, %d * %d, align: %d * %d, sf_fd=%d, input_fd=%d.\n",
+        "hf_phy=%lld, %d * %d, align: %d * %d, interlace: %d, sf_fd=%d, input_fd=%d.\n",
         ai_sr_info->hf_phy_addr,
         ai_sr_info->hf_width,
         ai_sr_info->hf_height,
         ai_sr_info->hf_align_w,
         ai_sr_info->hf_align_h,
+        ai_sr_info->src_interlace_flag,
         sr_buf->fd,
         input_fd);
     ai_sr_info->nn_out_fd = sr_buf->fd;
-
     if (ai_sr_info->hf_align_w == 960) {
-        if (ai_sr_info->hf_width > 960| ai_sr_info->hf_height > 540)
+        if (ai_sr_info->hf_width > 960 || ai_sr_info->hf_height > 540)
             hf_info_err = true;
         need_nn_mode = NN_MODE_4X4;
     } else if (ai_sr_info->hf_align_w == 1280) {
@@ -638,12 +659,18 @@ int32_t NnProcessor::ai_sr_process(
         return 0;
     }
 
-    if (need_nn_mode != mNn_mode) {
+    if ((need_nn_mode != mNn_mode) ||
+        (mNeed_check_interlace && (mNn_interlace_flag != ai_sr_info->src_interlace_flag))) {
         mNn_mode = need_nn_mode;
+        mNn_interlace_flag = ai_sr_info->src_interlace_flag;
         mode_changed = true;
     }
 
-    nn_mode_index = NN_MODE_COUNT - mNn_mode;
+    if ((mNeed_check_interlace && (mNn_interlace_flag == 1)) ||
+        !mNeed_check_interlace)
+        nn_mode_index = NN_MODE_COUNT - mNn_mode;//interlace
+    else
+        nn_mode_index = NN_MODE_COUNT - mNn_mode - 3;
 
     ai_sr_info->nn_mode = mNn_mode;
     ai_sr_info->nn_status = NN_START_DOING;
@@ -680,7 +707,6 @@ int32_t NnProcessor::ai_sr_process(
                 nn_time,
                 ai_sr_info->nn_index,
                 mNn_mode);
-        nn_mode_index = NN_MODE_COUNT - mNn_mode;
         if (mode_changed == false) {
             if (mTime[nn_mode_index].count == 0) {
                 mTime[nn_mode_index].max_time = nn_time;
@@ -706,6 +732,8 @@ int32_t NnProcessor::ai_sr_process(
 
     if ((mNn_Index % 3000) == 0) {
         for (i = 0; i < NN_MODE_COUNT; i++) {
+            if (!mNeed_check_interlace && i > 2)
+                break;
             if (mTime[i].count > 0) {
                 mTime[i].avg_time = mTime[i].total_time / mTime[i].count;
             }
