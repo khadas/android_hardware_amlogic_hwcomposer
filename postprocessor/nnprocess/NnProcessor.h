@@ -19,7 +19,7 @@
 #define SR_OUT_BUF_COUNT 5
 
 #define META_DATA_SIZE      (256)
-#define NN_MODE_COUNT       (3)
+#define NN_MODE_COUNT       (6)
 
 enum buf_status_e {
     BUF_INVALID = 0,
@@ -85,6 +85,7 @@ struct uvm_ai_sr_info {
     int32_t nn_index;
     int32_t nn_mode;
     int32_t get_info_type;
+    int32_t src_interlace_flag;
 };
 
 struct uvm_hf_info_t {
@@ -153,6 +154,8 @@ public:
     static int log_level;
     bool mBuf_Alloced;
     bool mNeed_fence;
+    int mNn_interlace_flag;
+    bool mNeed_check_interlace;
     int64_t mFence_receive_count;
     int64_t mFence_wait_count;
     bool mIsModelInterfaceExist;
