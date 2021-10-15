@@ -62,9 +62,10 @@ protected:
 protected:
 	int mDrmFd;
     uint32_t mId;
-    /*Pipe is the crtc index in kernel.
-   *connector report possible crtc with shifted mask.
-  */
+    /*
+     * Pipe is the crtc index in kernel.
+     * connector report possible crtc with shifted mask.
+     */
     uint32_t mPipe;
     drmModeModeInfo mDrmMode;
     drm_mode_info mMesonMode;
@@ -79,6 +80,9 @@ protected:
     std::mutex mMutex;
     uint32_t mConnectorId;
     std::vector<drm_mode_info> mPendingModes;
+
+    /* uboot logo closed */
+    bool mLogoClosed;
 };
 
 #endif/*DRM_CRTC_H*/

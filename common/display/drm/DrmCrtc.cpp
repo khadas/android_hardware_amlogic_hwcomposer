@@ -20,6 +20,7 @@
 #include "DrmCrtc.h"
 #include "DrmConnector.h"
 #include "misc.h"
+#include "DrmPlane.h"
 
 /* emulation fb0 of drm free fb memory sysfs node*/
 #define DISPLAY_FB0_FREE_FB_MEM_DRM    "/sys/class/graphics/fb0/force_free_mem"
@@ -29,7 +30,8 @@ DrmCrtc::DrmCrtc(int drmFd, drmModeCrtcPtr p, uint32_t pipe)
     mDrmFd(drmFd),
     mId(p->crtc_id),
     mPipe(pipe),
-    mReq(NULL) {
+    mReq(NULL),
+    mLogoClosed(false) {
     loadProperties();
     MESON_ASSERT(p->mode_valid == mActive->getValue(), "valid mode info mismatch.");
 
@@ -195,6 +197,13 @@ int32_t DrmCrtc::setMode(drm_mode_info_t & mode) {
         }
     }
 
+    connector->getDrmModeByBlobId(mDrmMode, modeBlob);
+    if (!mLogoClosed) {
+        DrmPlane *plane = (DrmPlane *) getDrmDevice()->getPrimaryPlane(mPipe);
+        if (plane)
+            plane->setCrtcProps(req, mDrmMode);
+    }
+
     /*set prop value*/
     MESON_ASSERT(crtcid->getValue() == mId, "crtc/connector NOT bind?!");
     mActive->setValue(1);
@@ -215,7 +224,6 @@ int32_t DrmCrtc::setMode(drm_mode_info_t & mode) {
 
     drmModeAtomicFree(req);
 
-    connector->getDrmModeByBlobId(mDrmMode, modeBlob);
     connector->DrmMode2Mode(mDrmMode, mMesonMode);
     MESON_LOGD("setmode:crtc[%d], name [%s] -modeblob[%d]",
         mId, mode.name, modeBlob);
@@ -325,6 +333,7 @@ int32_t DrmCrtc::setPendingMode() {
 
 
 void DrmCrtc::closeLogoDisplay() {
+    mLogoClosed = true;
     /* free fb0 memory if it used */
     sysfs_set_string(DISPLAY_FB0_FREE_FB_MEM_DRM, "1");
 }

@@ -188,6 +188,16 @@ int32_t DrmDevice::unbind(std::shared_ptr<HwDisplayCrtc> & crtc) {
     return 0;
 }
 
+HwDisplayPlane *DrmDevice::getPrimaryPlane(int pipeId __unused) {
+    for (const auto & it : mPlanes) {
+        if (it.second->getCapabilities() & PLANE_PRIMARY) {
+            return it.second.get();
+        }
+    }
+
+    return nullptr;
+}
+
 void DrmDevice::loadPipe() {
     std::lock_guard<std::mutex> lock(mMutex);
     for (auto & et : mEncoders) {
