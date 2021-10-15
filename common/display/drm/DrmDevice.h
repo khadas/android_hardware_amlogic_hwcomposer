@@ -50,6 +50,8 @@ public:
     static std::shared_ptr<DrmDevice> & getInstance();
     static void destroyInstance();
 
+    HwDisplayPlane* getPrimaryPlane(int pipeId);
+
 protected:
     void loadResources();
     void loadPipe();

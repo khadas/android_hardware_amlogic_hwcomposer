@@ -38,6 +38,8 @@ public:
     int32_t setPlane(std::shared_ptr<DrmFramebuffer> fb,
         uint32_t zorder, int blankOp);
 
+    int32_t setCrtcProps(drmModeAtomicReqPtr &req, drmModeModeInfo &mode);
+
     void clearPlaneResources();
 
     void setDebugFlag(int dbgFlag);

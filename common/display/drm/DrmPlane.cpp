@@ -440,6 +440,21 @@ bool DrmPlane::validateFormat(uint32_t format, uint64_t modifier) {
     return false;
 }
 
+int32_t DrmPlane::setCrtcProps(drmModeAtomicReqPtr &req, drmModeModeInfo &mode) {
+    MESON_LOGD("%s (%dx%d)", __func__, mode.hdisplay, mode.vdisplay);
+    mCrtcX->setValue(0);
+    mCrtcY->setValue(0);
+    mCrtcW->setValue(mode.hdisplay);
+    mCrtcH->setValue(mode.vdisplay);
+
+    mCrtcX->apply(req);
+    mCrtcY->apply(req);
+    mCrtcW->apply(req);
+    mCrtcH->apply(req);
+
+    return 0;
+}
+
 void DrmPlane::dump(String8 & dumpstr) {
     if (!mBlank) {
         dumpstr.appendFormat("| osd%2d |"
