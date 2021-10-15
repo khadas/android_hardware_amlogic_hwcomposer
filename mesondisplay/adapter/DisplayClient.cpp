@@ -21,6 +21,7 @@ using namespace ::android::hardware::graphics;
 using ::android::hardware::hidl_string;
 using ::android::hardware::hidl_handle;
 using ::android::hardware::hidl_vec;
+using ::android::hardware::Return;
 using ::vendor::amlogic::display::meson_display_ipc::V1_0::IMesonDisplayIPC;
 using ::vendor::amlogic::display::meson_display_ipc::V1_0::Error;
 
@@ -76,9 +77,12 @@ int32_t DisplayClient::send_request_wait_reply(Json::Value& data, Json::Value& o
     const hidl_string str = JsonValue2String(data);
     if (is_ready) {
         MESON_LOGV("Client SendSync :%s", str.c_str());
-        meson_ipc_client->send_msg_wait_reply(str, [&out, &ret](const hidl_string& in) {
+        auto retval = meson_ipc_client->send_msg_wait_reply(str, [&out, &ret](const hidl_string& in) {
                 ret = String2JsonValue(in.c_str(), out);
                 });
+        if (!retval.isOk()) {
+              return -1;
+        }
     }
     if (ret == false) {
         MESON_LOGE("Server reply format error !");
@@ -90,7 +94,10 @@ int32_t DisplayClient::send_request(Json::Value& data) {
     const hidl_string str = JsonValue2String(data);
     if (is_ready) {
         MESON_LOGV("Client Send :%s", str.c_str());
-        meson_ipc_client->send_msg(str);
+        auto ret = meson_ipc_client->send_msg(str);
+        if (!ret.isOk()) {
+            return -1;
+        }
     }
     return 0;
 }
