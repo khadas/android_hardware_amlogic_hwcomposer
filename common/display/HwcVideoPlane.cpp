@@ -63,6 +63,17 @@ int32_t HwcVideoPlane::getFixedZorder() {
 }
 
 uint32_t HwcVideoPlane::getPossibleCrtcs() {
+    if ( mMode ==0) {
+        MESON_LOGE("HwcVideoPlane::getPossibleCrtcs DRM_PIPE_VOUT1 ");
+        return 1 << DRM_PIPE_VOUT1;
+    } else if ( mMode ==1) {
+        MESON_LOGE("HwcVideoPlane::getPossibleCrtcs DRM_PIPE_VOUT1 ");
+        return 1 << DRM_PIPE_VOUT2;
+    } else if ( mMode ==2) {
+        MESON_LOGE("HwcVideoPlane::getPossibleCrtcs DRM_PIPE_VOUT1 ");
+        return 1 << DRM_PIPE_VOUT1;
+    }
+
     return 1 << DRM_PIPE_VOUT1;
 }
 
@@ -96,6 +107,7 @@ int32_t HwcVideoPlane::getProperties() {
 
 
 void HwcVideoPlane::setAmVideoPath(int id) {
+    mMode = id;
     if (id == 0) {
         strncpy(mAmVideosPath, "/sys/class/video/disable_video", sizeof(mAmVideosPath));
     } else if (id == 1) {
