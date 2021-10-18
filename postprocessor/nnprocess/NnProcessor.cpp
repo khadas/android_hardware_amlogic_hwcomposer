@@ -407,6 +407,8 @@ int32_t NnProcessor::teardown() {
     mExitThread = true;
     int i;
     int shared_fd = -1;
+    int buf_index;
+    struct sr_buffer_t *sr_buf;
 
     ALOGD("%s.\n", __FUNCTION__);
 
@@ -416,14 +418,16 @@ int32_t NnProcessor::teardown() {
     while (mBuf_index_q.size() > 0)
     {
         std::lock_guard<std::mutex> lock(mMutex);
-        shared_fd = mBuf_index_q.front();
+        buf_index = mBuf_index_q.front();
+        sr_buf = &mSrBuf[buf_index];
+        shared_fd = sr_buf->shared_fd;
         if (shared_fd != -1) {
             close(shared_fd);
             mCloseCount++;
             mTotalCloseCount++;
         }
         mBuf_index_q.pop();
-        ALOGD("%s: close fd =%d\n", __FUNCTION__, shared_fd);
+        ALOGD("%s: close fd =%d, buf_index=%d\n", __FUNCTION__, shared_fd, buf_index);
     }
 
     freeDmaBuffers();
