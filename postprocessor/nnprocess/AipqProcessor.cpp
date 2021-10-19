@@ -23,7 +23,6 @@
 #define BUFFER_SIZE 224 * 224 * 3
 
 #define FENCE_TIMEOUT_MS 1000
-#define MAX_CACHE_COUNT 3
 
 #define UVM_IOC_MAGIC 'U'
 
@@ -328,6 +327,8 @@ AipqProcessor::AipqProcessor() {
     mInited = false;
     mUvmHander = -1;
     mNn_Index = 0;
+    mCacheIndex = 0;
+    mBuf_index = 0;
 
     if (mInstanceID == 0) {
         mTime.count = 0;
@@ -358,6 +359,12 @@ AipqProcessor::AipqProcessor() {
     for (int i = 0; i < AI_PQ_TOP; i++) {
         mLastNnValue[i].maxclass = 0;
         mLastNnValue[i].maxprob = 0;
+    }
+
+    for (int i = 0; i < AIPQ_MAX_CACHE_COUNT; i++) {
+        mAipqIndex[i].buf_index = 0;
+        mAipqIndex[i].pq_value_index = 0;
+        mAipqIndex[i].shared_fd = 0;
     }
 }
 
@@ -442,6 +449,7 @@ int32_t AipqProcessor::asyncProcess(
     int dup_fd = -1;
     int ready_size = 0;
     int input_fd = -1;
+    int pq_value_index;
 
     mLogLevel = PropGetInt("vendor.hwc.aipq_log", 0);
 
@@ -477,8 +485,14 @@ int32_t AipqProcessor::asyncProcess(
     aipq_info->need_do_aipq = 0;
     aipq_info->repert_frame = 0;
 
-    for (int i = 0; i < AI_PQ_TOP; i++) {
-        aipq_info->nn_value[i]= mLastNnValue[i];
+    {
+        std::lock_guard<std::mutex> lock(mMutex_index);
+
+        for (int i = 0; i < AI_PQ_TOP; i++) {
+            aipq_info->nn_value[i]= mLastNnValue[i];
+        }
+        aipq_info->nn_value[AI_PQ_TOP - 1].maxclass = mBuf_index;
+        pq_value_index = mLastNnValue[AI_PQ_TOP - 1].maxprob;
     }
 
     ret_attatch = ioctl(mUvmHander, UVM_IOC_ATTATCH, &hook_data);
@@ -510,16 +524,27 @@ int32_t AipqProcessor::asyncProcess(
     mDupCount++;
     mTotalDupCount++;
 
-    ALOGD_IF(check_D(), "%s: dup_fd =%d", __FUNCTION__, dup_fd);
+    mAipqIndex[mCacheIndex].buf_index = mBuf_index;
+    mAipqIndex[mCacheIndex].pq_value_index = pq_value_index;
+    mAipqIndex[mCacheIndex].shared_fd = dup_fd;
+
+    ALOGD_IF(check_D(), "dup_fd =%d, mBuf_index=%d, pq_index=%d, diff=%d",
+        dup_fd, mBuf_index, pq_value_index, mBuf_index - pq_value_index);
+
     {
         std::lock_guard<std::mutex> lock(mMutex);
-        mBuf_fd_q.push(dup_fd);
+        mBuf_fd_q.push(mCacheIndex);
     }
+
+    mBuf_index++;
+    mCacheIndex++;
+    if (mCacheIndex == AIPQ_MAX_CACHE_COUNT)
+        mCacheIndex = 0;
 
     triggerEvent();
     while (1) {
         ready_size = mBuf_fd_q.size();
-        if (ready_size >= MAX_CACHE_COUNT) {
+        if (ready_size >= AIPQ_MAX_CACHE_COUNT) {
             usleep(2*1000);
             ALOGE("too many buf need aipq process, wait ready_size =%d", ready_size);
         } else
@@ -546,6 +571,7 @@ int32_t AipqProcessor::onBufferDisplayed(
 int32_t AipqProcessor::teardown() {
     mExitThread = true;
     int shared_fd = -1;
+    int cache_index;
 
     ALOGD("%s.\n", __FUNCTION__);
     if (mInited)
@@ -554,7 +580,8 @@ int32_t AipqProcessor::teardown() {
     while (mBuf_fd_q.size() > 0)
     {
         std::lock_guard<std::mutex> lock(mMutex);
-        shared_fd = mBuf_fd_q.front();
+        cache_index = mBuf_fd_q.front();
+        shared_fd = mAipqIndex[cache_index].shared_fd;
         if (shared_fd != -1) {
             close(shared_fd);
             mCloseCount++;
@@ -573,6 +600,7 @@ int32_t AipqProcessor::teardown() {
 void AipqProcessor::threadProcess() {
     int shared_fd = -1;
     int size = 0;
+    int cache_index;
 
     size = mBuf_fd_q.size();
     if (size == 0) {
@@ -584,10 +612,11 @@ void AipqProcessor::threadProcess() {
 
     {
         std::lock_guard<std::mutex> lock(mMutex);
-        shared_fd = mBuf_fd_q.front();
+        cache_index = mBuf_fd_q.front();
     }
+    shared_fd = mAipqIndex[cache_index].shared_fd;
 
-    ai_pq_process(shared_fd);
+    ai_pq_process(cache_index);
 
     {
         std::lock_guard<std::mutex> lock(mMutex);
@@ -778,7 +807,7 @@ void AipqProcessor::nn_value_reorder(img_classify_out_t *nn_out, struct nn_value
 }
 
 
-int32_t AipqProcessor::ai_pq_process(int input_fd) {
+int32_t AipqProcessor::ai_pq_process(int cache_index) {
     int ret;
     struct timespec tm_0;
     struct timespec tm_1;
@@ -790,6 +819,9 @@ int32_t AipqProcessor::ai_pq_process(int input_fd) {
     uint64_t nn_time;
     int dump_index;
     img_classify_out_t *nn_out = NULL;
+    int input_fd  = mAipqIndex[cache_index].shared_fd;
+    bool update_pq_value = false;
+    int next_index;
 
     struct uvm_hook_data hook_data;
     struct uvm_aipq_info_t *uvm_info;
@@ -833,8 +865,8 @@ int32_t AipqProcessor::ai_pq_process(int input_fd) {
         mTime_2 = tm_2.tv_sec * 1000000LL + tm_2.tv_nsec / 1000;
         ge2d_time = mTime_1 - mTime_0;
         nn_time = mTime_2 - mTime_1;
-        ALOGD_IF(check_D(), "aipq_process ge2d %lld, nn %lld, total %lld\n",
-            ge2d_time, nn_time, ge2d_time + nn_time);
+        ALOGD_IF(check_D(), "aipq_process ge2d %lld, nn %lld, total %lld mNn_Index=%d\n",
+            ge2d_time, nn_time, ge2d_time + nn_time, mNn_Index);
         if (nn_time > 20000)
             ALOGE("nn time too long %lld.\n", nn_time);
         mTime.total_time += nn_time;
@@ -843,16 +875,38 @@ int32_t AipqProcessor::ai_pq_process(int input_fd) {
 
     nn_value_reorder(nn_out, aipq_info->nn_value);
 
-    for (int i = 0; i < AI_PQ_TOP; i++) {
-        mLastNnValue[i] = aipq_info->nn_value[i];
+    {
+        std::lock_guard<std::mutex> lock(mMutex_index);
+
+        aipq_info->nn_value[AI_PQ_TOP - 1].maxprob = mNn_Index;
+
+        for (int i = 0; i < AI_PQ_TOP; i++) {
+            mLastNnValue[i] = aipq_info->nn_value[i];
+        }
     }
 
-/*    ret = ioctl(mUvmHander, UVM_IOC_SET_INFO, &hook_data);
-    if (ret < 0) {
-        ALOGE("UVM_IOC_SET_HF_OUTPUT fail =%d.\n", ret);
+    if (cache_index == AIPQ_MAX_CACHE_COUNT - 1)
+        next_index = 0;
+    else
+        next_index = cache_index + 1;
+
+    if (mAipqIndex[next_index].buf_index > mAipqIndex[next_index].pq_value_index + 1
+        && mAipqIndex[next_index].buf_index > mAipqIndex[cache_index].buf_index) {
+        update_pq_value = true;
+        aipq_info->nn_value[AI_PQ_TOP - 1].maxclass = mAipqIndex[next_index].buf_index;
+        ALOGD("update_pq_value: %d, %d, new=%d",
+            mAipqIndex[next_index].buf_index,
+            mAipqIndex[next_index].pq_value_index,
+            mNn_Index);
     }
-*/
-    mNn_Index++;
+
+    if (update_pq_value) {
+        ret = ioctl(mUvmHander, UVM_IOC_SET_INFO, &hook_data);
+        if (ret < 0) {
+            ALOGE("UVM_IOC_SET_HF_OUTPUT fail =%d.\n", ret);
+        }
+    }
+
     if ((mNn_Index % 3000) == 0) {
             if (mTime.count > 0) {
                 mTime.avg_time = mTime.total_time / mTime.count;
@@ -863,6 +917,9 @@ int32_t AipqProcessor::ai_pq_process(int input_fd) {
                 mTime.min_time,
                 mTime.avg_time);
     }
+
+    mNn_Index++;
+
     return ret;
 }
 

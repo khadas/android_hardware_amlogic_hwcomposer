@@ -22,6 +22,7 @@
 #define MAX_SCENE 7
 #define AI_OUT_SCENE 5
 #define AI_PQ_TOP AI_OUT_SCENE
+#define AIPQ_MAX_CACHE_COUNT 5
 #define AIPQ_NB_PATH            "/vendor/bin/nn/PQNet.nb"
 #define AIPQ_SCENE_DATA_PATH    "/vendor/etc/scenes_data.txt"
 
@@ -75,6 +76,12 @@ union uvm_aipq_ioctl_arg {
     struct uvm_aipq_info uvm_info;
 };
 
+struct aipq_index_value_t {
+    int buf_index;
+    int pq_value_index;
+    int shared_fd;
+};
+
 class AipqProcessor : public FbProcessor {
 public:
     AipqProcessor();
@@ -100,6 +107,7 @@ public:
     static void *mNn_qcontext;
     static bool mModelLoaded;
     mutable std::mutex mMutex;
+    mutable std::mutex mMutex_index;
     std::queue<int> mBuf_fd_q;
     static void * threadMain(void * data);
     int LoadNNModel();
@@ -129,6 +137,9 @@ public:
     static int64_t mTotalDupCount;
     static int64_t mTotalCloseCount;
     struct nn_value_t mLastNnValue[AI_PQ_TOP];
+    struct aipq_index_value_t mAipqIndex[AIPQ_MAX_CACHE_COUNT];
+    int mCacheIndex;
+    int mBuf_index;
 };
 
 #endif
