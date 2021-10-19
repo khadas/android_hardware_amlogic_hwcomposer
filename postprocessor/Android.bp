@@ -24,8 +24,8 @@ soong_config_module_type {
 
     properties: [
         "srcs",
-        "include_dirs",
         "shared_libs",
+        "header_libs",
         "export_include_dirs",
     ],
 }
@@ -40,12 +40,12 @@ meson_hwc_postprocessor_defaults {
                 "nnprocess/NnProcessor.cpp",
                 "nnprocess/sr_sdk.c",
             ],
-            include_dirs: [
-                "vendor/amlogic/common/npu/nnsdk/include",
-            ],
             shared_libs: [
                 "libion",
                 "libui",
+            ],
+            header_libs: [
+                "libnnsdk_headers",
             ],
             export_include_dirs: [
                 "nnprocess",
@@ -56,12 +56,12 @@ meson_hwc_postprocessor_defaults {
                 "nnprocess/AipqProcessor.cpp",
                 "nnprocess/pq_sdk.c",
             ],
-            include_dirs: [
-                "vendor/amlogic/common/npu/nnsdk/include",
-            ],
             shared_libs: [
                 "libion",
                 "libui",
+            ],
+            header_libs: [
+                "libnnsdk_headers",
             ],
             export_include_dirs: [
                 "nnprocess",
