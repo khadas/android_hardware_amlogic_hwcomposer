@@ -475,8 +475,8 @@ int32_t Hwc2Layer::acquireVtBuffer() {
         diffAdded = item.timestamp - previousTimestamp;
         previousTimestamp = item.timestamp;
 
-        int releaseFence = getPrevReleaseFence();
-        collectUvmBuffer(dup(item.bufferFd), dup(releaseFence));
+        int releaseFence = -1;
+        collectUvmBuffer(dup(item.bufferFd), releaseFence);
         VideoTunnelDev::getInstance().releaseBuffer(mTunnelId, item.bufferFd, releaseFence);
         mQueuedFrames--;
 
