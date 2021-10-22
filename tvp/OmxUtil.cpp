@@ -74,9 +74,14 @@ int setomxpts(int time_video) {
     return ioctl(amvideo_handle, AMSTREAM_IOC_SET_OMX_VPTS, (unsigned long)&time_video);
 }
 
+
 int setomxpts(uint32_t* omx_info,bool use_videosync) {
     if (use_videosync) {
-        return ioctl(videosync_handle, VIDEOSYNC_IOC_SET_OMX_VPTS, (unsigned int)omx_info);
+		#ifdef ARM64_BIT
+        return ioctl(videosync_handle, VIDEOSYNC_IOC_SET_OMX_VPTS, (unsigned long)omx_info);
+		#else
+		return ioctl(videosync_handle, VIDEOSYNC_IOC_SET_OMX_VPTS, (unsigned int)omx_info);
+		#endif
     } else {
         return ioctl(amvideo_handle, AMSTREAM_IOC_SET_OMX_VPTS, (unsigned long)omx_info);
     }

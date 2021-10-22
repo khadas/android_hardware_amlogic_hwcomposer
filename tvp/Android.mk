@@ -15,6 +15,10 @@
 LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
+ifeq ($(ANDROID_BUILD_TYPE), 64)
+    LOCAL_CFLAGS += -DARM64_BIT
+endif
+
 LOCAL_SRC_FILES := OmxUtil.cpp
 
 LOCAL_C_INCLUDES := system/core/include
