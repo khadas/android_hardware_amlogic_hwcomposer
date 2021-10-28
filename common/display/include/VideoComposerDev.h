@@ -24,6 +24,7 @@ typedef uint32_t u32;
 
 enum source_type_t {
     DTV_FIX_TUNNEL = 1,
+    HWC_CREAT_ION = 2,
 };
 
 typedef struct video_frame_info {

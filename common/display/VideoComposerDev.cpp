@@ -94,11 +94,12 @@ int32_t VideoComposerDev::setFrames(
                 vFrameInfo->fd = fb->getSolidColorBuffer();
                 vFrameInfo->type = 1;
                 isBlackBuffer = true;
+                vFrameInfo->source_type = HWC_CREAT_ION;
             } else {
                 vFrameInfo->fd = fd;
                 vFrameInfo->type = 0;
+                vFrameInfo->source_type = DTV_FIX_TUNNEL;
             }
-            vFrameInfo->source_type = DTV_FIX_TUNNEL;
         } else {
             MESON_LOGE("unknow fb (%d) type %d !!", fb->mZorder, fbType);
             return -EINVAL;
