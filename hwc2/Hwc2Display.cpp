@@ -329,10 +329,8 @@ void Hwc2Display::onHotplug(bool connected) {
         /* when hdmi plugout, send CONNECT message for "hdmi-only" */
         if (mConnector && mConnector->getType() == DRM_MODE_CONNECTOR_HDMIA) {
             mModeMgr->update();
-            mObserver->onHotplug(true);
-        } else {
-            mObserver->onHotplug(false);
         }
+        mObserver->onHotplug(connected);
     }
 
     /* switch to software vsync when hdmi plug out and no cvbs mode */
@@ -806,6 +804,7 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
     mOverlayLayers.clear();
     mFailedDeviceComp = false;
     mSkipComposition = false;
+    mConfirmSkip = false;
 
     hwc2_error_t ret = collectLayersForPresent();
     if (ret != HWC2_ERROR_NONE) {
@@ -858,6 +857,7 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
                 layer = (Hwc2Layer*)(it->get());
                 layer->mCompositionType = MESON_COMPOSITION_DUMMY;
             }
+            mConfirmSkip = true;
          //   mPresentLayers.clear();
         } else {
             mSkipComposition = true;
@@ -865,7 +865,7 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
     }
     /*do composition*/
     if (!mSkipComposition) {
-        mPowerMode->setScreenStatus(mPresentLayers.size() > 0 ? false : true);
+        mPowerMode->setScreenStatus((mPresentLayers.size() > 0 ? false : true) || mConfirmSkip);
         /*update calibrate info.*/
         loadCalibrateInfo();
         /*update displayframe before do composition.*/

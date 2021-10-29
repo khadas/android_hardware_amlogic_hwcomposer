@@ -224,6 +224,7 @@ protected:
 
     std::shared_ptr<HwcPowerMode> mPowerMode;
     bool mSkipComposition;
+    bool mConfirmSkip;
     bool mSignalHpd;
     bool mValidateDisplay;
     int32_t mPresentFence;
