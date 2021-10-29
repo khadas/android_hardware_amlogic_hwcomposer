@@ -842,8 +842,7 @@ void MesonHwc2::onHotplug(hwc2_display_t display, bool connected) {
 
     if (connection == HWC2_CONNECTION_DISCONNECTED) {
         if (display == HWC_DISPLAY_PRIMARY) {
-            MESON_LOGD("Primary cannot disconnect on android.");
-            return ;
+            connection = HWC2_CONNECTION_CONNECTED;
         } else {
             /*will remove display, clear display resource now. */
             std::shared_ptr<Hwc2Display> hwcDisplay;
