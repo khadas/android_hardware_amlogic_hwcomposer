@@ -61,10 +61,6 @@ int32_t DualDisplayPipe::init(
         60.0,
         0
     };
-    /*reset dual pipeline displaymode to NULL*/
-    for (auto stat : mPipeStats) {
-        stat.second->modeCrtc->setMode(displayMode);
-    }
     /*set vout displaymode*/
     for (auto stat : mPipeStats) {
         switch (stat.second->cfg.modeConnectorType) {
