@@ -19,6 +19,8 @@
 #include <sched.h>
 #include "pq_sdk.h"
 #include <cutils/properties.h>
+#include <ion/ion.h>
+#include <linux/ion_4.12.h>
 
 #define BUFFER_SIZE 224 * 224 * 3
 
@@ -977,23 +979,77 @@ int AipqProcessor::allocDmaBuffer() {
         return -1;
     }
 
-    ALOGD("mIonFd=%d, buffer_size=%d, ION_HEAP_TYPE_CUSTOM=%d, ion_flags=%d",
+    ion_user_handle_t ion_hnd;
+    int cnt;
+    bool query_custom_type = false;
+    uint32_t custom_type = ION_HEAP_TYPE_CUSTOM;
+    int err = ion_query_heap_cnt(mIonFd, &cnt);
+    if (err < 0) {
+        ALOGD("ion get heap cnt fail\n");
+    }
+    std::vector<ion_heap_data> heaps;
+    heaps.resize(cnt);
+    err = ion_query_get_heaps(mIonFd, cnt, &heaps[0]);
+    if (err < 0) {
+        ALOGE("ion get heap fail\n");
+    }
+    for (int i = 0; i < cnt; i ++) {
+        ALOGD("heap name:%s id:%d", heaps[i].name, heaps[i].heap_id);
+        if (strstr(heaps[i].name, "codec_mm_cma") != NULL) {
+            query_custom_type = true;
+            custom_type = heaps[i].heap_id;
+            break;
+        }
+    }
+
+    if (!query_custom_type) {
+        ALOGE("query_custom_type fail\n");
+        return -1;
+    }
+
+    ALOGD("ion_alloc_fd: mIonFd=%d, buffer_size=%d, custom_type=%d, ion_flags=%d, is_legacy=%d",
         mIonFd,
         buffer_size,
-        ION_HEAP_TYPE_CUSTOM,
-        ion_flags);
-    ret = ion_alloc_fd(mIonFd, buffer_size,
-                       0,
-                       1 << 16,
-                       ION_FLAG_EXTEND_MESON_HEAP | ion_flags,
-                       &shared_fd);
-    if (ret) {
-        ALOGE("ion alloc error, ret=%x\n", ret);
-        freeDmaBuffers();
-        return -1;
+        custom_type,
+        ion_flags,
+        ion_is_legacy(mIonFd));
+
+    if (ion_is_legacy(mIonFd)) {
+        ret = ion_alloc(mIonFd, buffer_size,
+                           0,
+                           1 << custom_type,
+                           ion_flags,
+                           &ion_hnd);
+        if (ret) {
+            ALOGE("ion alloc error, ret=%x\n", ret);
+            freeDmaBuffers();
+            return -1;
+        } else {
+            mAipq_Buf.ion_hnd = ion_hnd;
+        }
+        ret = ion_share(mIonFd, ion_hnd, &shared_fd);
+        if (ret) {
+            ALOGE("ion share error!\n");
+            freeDmaBuffers();
+            return -1;
+        } else {
+            mAipq_Buf.fd = shared_fd;
+        }
     } else {
-        mAipq_Buf.fd = shared_fd;
+        ret = ion_alloc_fd(mIonFd, buffer_size,
+                           0,
+                           1 << custom_type,
+                           ION_FLAG_EXTEND_MESON_HEAP | ion_flags,
+                           &shared_fd);
+        if (ret) {
+            ALOGE("ion alloc error, ret=%x\n", ret);
+            freeDmaBuffers();
+            return -1;
+        } else {
+            mAipq_Buf.fd = shared_fd;
+        }
     }
+
     void *cpu_ptr = mmap(NULL,
                          buffer_size,
                          PROT_READ | PROT_WRITE, MAP_SHARED,
