@@ -12,6 +12,7 @@
 #include "DrmConnector.h"
 #include "DrmDevice.h"
 #include <inttypes.h>
+#include <limits>
 
 #include <xf86drm.h>
 #include <string.h>
@@ -217,7 +218,7 @@ int32_t DrmConnector::setCrtcId(uint32_t crtcid) {
 }
 
 uint32_t DrmConnector::getCrtcId() {
-    return (uint32_t)mCrtcId->getValue();
+    return !mCrtcId ? numeric_limits<uint32_t>::max() : mCrtcId->getValue();
 }
 
 int32_t DrmConnector::getModes(
