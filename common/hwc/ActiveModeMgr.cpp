@@ -31,7 +31,7 @@ static const drm_mode_info_t fakeInitialMode = {
 
 ActiveModeMgr::ActiveModeMgr()
     : mCallOnHotPlug(true),
-      mPreviousMode(fakeInitialMode),
+      mLastActiveMode(fakeInitialMode),
       mDvEnabled(false) {
 }
 
@@ -90,14 +90,11 @@ int32_t ActiveModeMgr::update() {
 
         mConnector->getModes(supportedModes);
         if (mCrtc->getMode(activeMode) == 0) {
-            mCurMode = activeMode;
-            mPreviousMode = activeMode;
-
             for (auto it = supportedModes.begin(); it != supportedModes.end(); it++) {
                 // support dolby version
                 if (mDvEnabled) {
                     // filter 4K modes if DV support not all the 2160P modes
-                    if (strstr(mCurMode.name, it->second.name) == NULL &&
+                    if (strstr(activeMode.name, it->second.name) == NULL &&
                             strstr(highestModeForDv.c_str(), "2160p60hz") == NULL) {
                         if ((strstr(it->second.name, "2160p") != NULL)
                                 || (strstr(it->second.name, "smpte") != NULL)) {
@@ -106,25 +103,28 @@ int32_t ActiveModeMgr::update() {
                     }
                 }
 
-                if (!strcmp(mCurMode.name, it->second.name)) {
+                // Do not report dummy_l to frameworks, report the previous active mode instead
+                if (!strcmp(activeMode.name, it->second.name) && strcmp(activeMode.name, "dummy_l")) {
                     useFakeMode = false;
                 }
 
                 mHwcActiveModes.emplace(mHwcActiveModes.size(), it->second);
             }
         } else {
-            strncpy(mCurMode.name, "invalid", DRM_DISPLAY_MODE_LEN);
             MESON_LOGI("ActiveModeMgr::update could not get current mode");
         }
     }
 
-    if (useFakeMode) {
-        mCurMode = mPreviousMode;
-        strncpy(mCurMode.name, "FAKE_PREVIOUS_MODE", DRM_DISPLAY_MODE_LEN);
-        mHwcActiveModes.emplace(mHwcActiveModes.size(), mCurMode);
+    if (!useFakeMode) {
+        mLastActiveMode = activeMode;
+    } else {
+        MESON_LOGD("ActiveModeMgr::update use previous mode (%dx%d)",
+                mLastActiveMode.pixelW, mLastActiveMode.pixelH);
+        strncpy(mLastActiveMode.name, "FAKE_PREVIOUS_MODE", DRM_DISPLAY_MODE_LEN);
+        mHwcActiveModes.emplace(mHwcActiveModes.size(), mLastActiveMode);
     }
 
-    updateHwcActiveConfig(mCurMode);
+    updateHwcActiveConfig(mLastActiveMode);
     updateSfDispConfigs();
 
     return 0;
@@ -168,8 +168,8 @@ int32_t ActiveModeMgr::updateSfDispConfigs() {
         uint32_t cWidth = cfg.pixelW;
 
         // if current mode < 1080P, filter the mode that bigger than current mode
-        if (mCurMode.pixelW < 1920) {
-            if (cWidth > mCurMode.pixelW)
+        if (mLastActiveMode.pixelW < 1920) {
+            if (cWidth > mLastActiveMode.pixelW)
                 continue;
         }
 
@@ -344,7 +344,7 @@ void ActiveModeMgr::resetTags() {
 };
 
 void ActiveModeMgr::dump(String8 & dumpstr) {
-    dumpstr.appendFormat("ActiveModeMgr(hwc): %s\n", mCurMode.name);
+    dumpstr.appendFormat("ActiveModeMgr(hwc): %s\n", mLastActiveMode.name);
     dumpstr.append("---------------------------------------------------------"
         "-------------------------------------------------\n");
     dumpstr.append("|   CONFIG   |   VSYNC_PERIOD   |   WIDTH   |   HEIGHT   |"
@@ -372,7 +372,7 @@ void ActiveModeMgr::dump(String8 & dumpstr) {
     dumpstr.append("---------------------------------------------------------"
         "-------------------------------------------------\n");
 
-    dumpstr.appendFormat("ActiveModeMgr(sf): %s\n", mCurMode.name);
+    dumpstr.appendFormat("ActiveModeMgr(sf): %s\n", mLastActiveMode.name);
     dumpstr.append("---------------------------------------------------------"
         "-------------------------------------------------\n");
     dumpstr.append("|   CONFIG   |   VSYNC_PERIOD   |   WIDTH   |   HEIGHT   |"

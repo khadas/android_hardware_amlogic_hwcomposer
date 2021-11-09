@@ -470,7 +470,9 @@ void Hwc2Display::onModeChanged(int stage) {
             /* begin change mode, need blank once */
             mDisplayConnection = false;
             mPowerMode->setConnectorStatus(false);
-            if (HwcConfig::primaryHotplugEnabled() && !mFirstPresent)
+            // only blank display and clear layers when we can send hotplug event
+            // as the framework display will recreate when it receive hotplug event
+            if (HwcConfig::primaryHotplugEnabled() && !mFirstPresent && mModeMgr->needCallHotPlug())
                 blankDisplay(true);
             mSkipComposition = true;
             return;

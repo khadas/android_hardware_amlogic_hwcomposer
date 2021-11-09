@@ -60,8 +60,7 @@ protected:
     uint32_t mFbHeight;
 
     bool mCallOnHotPlug;
-    drm_mode_info_t mCurMode;
-    drm_mode_info_t mPreviousMode;
+    drm_mode_info_t mLastActiveMode;
     std::mutex mMutex;
 
     // Used for HWC
