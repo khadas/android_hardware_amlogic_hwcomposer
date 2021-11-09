@@ -17,15 +17,25 @@
 #include "HwcConfig.h"
 #include "MesonLog.h"
 #include <sys/utsname.h>
+#include <limits>
 
 #define SYSFS_DISPLAY_MODE              "/sys/class/display/mode"
+#define MAX_TRY_COUNT                   5
 
 #define GET_CRTC_BY_CONNECTOR(type) \
         std::shared_ptr<HwDisplayConnector> connector; \
         std::shared_ptr<HwDisplayCrtc> crtc = NULL; \
         getHwDisplayManager()->getConnector(connector, type); \
         if (connector) { \
-            int crtcid = connector->getCrtcId(); \
+            uint32_t crtcid = numeric_limits<uint32_t>::max(); \
+            int count = 0; \
+            do { \
+                if ((crtcid = connector->getCrtcId()) ==\
+                        numeric_limits<uint32_t>::max()) \
+                    usleep(20*1000); \
+                else \
+                    break; \
+            } while (count++ <= MAX_TRY_COUNT); \
             crtc = getHwDisplayManager()->getCrtcById(crtcid); \
         } \
 
