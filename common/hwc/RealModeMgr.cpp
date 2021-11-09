@@ -67,7 +67,7 @@ static const drm_mode_info_t fakeInitialMode = {
 };
 
 RealModeMgr::RealModeMgr() {
-    mPreviousMode = fakeInitialMode;
+    mLatestRealMode = fakeInitialMode;
     mDvEnabled = false;
     mCallOnHotPlug = true;
 }
@@ -137,38 +137,37 @@ int32_t RealModeMgr::update() {
         int ret = mCrtc->getMode(realMode);
         if (ret == 0) {
             if (realMode.name[0] != 0) {
-                mCurMode = realMode;
-                mPreviousMode = realMode;
-
                 MESON_LOGD("RealModeMgr::update get current mode:%s", realMode.name);
                 for (auto it = connecterModeList.begin(); it != connecterModeList.end(); it++) {
-                    /* not filter the current mode */
-                    if (!strcmp(mCurMode.name, it->second.name)) {
+                    // if the current mode is dummy_l and connector has connected, we are in suspend process.
+                    // Do not report dummy_l to frameworks, report the previous active mode instead
+                    // not filter the current mode except dummy_l
+                    if (!strcmp(realMode.name, it->second.name) && strcmp(realMode.name, "dummy_l")) {
                         mModes.emplace(mModes.size(), it->second);
                         useFakeMode = false;
                     } else if (isSupportModeForCurrentDevice(it->second)) {
                         mModes.emplace(mModes.size(), it->second);
                     }
                 }
-            } else {
-                MESON_LOGI("RealModeMgr::update could not get current mode");
+
             }
         } else {
-            strncpy(mCurMode.name, "invalid", DRM_DISPLAY_MODE_LEN);
             MESON_LOGI("RealModeMgr::update could not get current mode:%d", ret);
         }
     } else {
         MESON_LOGD("RealModeMgr::update no connector");
     }
 
-    if (useFakeMode) {
-        mCurMode = mPreviousMode;
-        MESON_LOGD("RealModeMgr::update use previous mode");
-        strncpy(mCurMode.name, "FAKE_PREVIOUS_MODE", DRM_DISPLAY_MODE_LEN);
-        mModes.emplace(mModes.size(), mCurMode);
+    if (!useFakeMode) {
+        mLatestRealMode = realMode;
+    } else {
+        MESON_LOGD("RealModeMgr::update use previous mode (%dx%d)",
+                mLatestRealMode.pixelW, mLatestRealMode.pixelH);
+        strncpy(mLatestRealMode.name, "FAKE_PREVIOUS_MODE", DRM_DISPLAY_MODE_LEN);
+        mModes.emplace(mModes.size(), mLatestRealMode);
     }
 
-    updateActiveConfig(mCurMode);
+    updateActiveConfig(mLatestRealMode);
 
     return HWC2_ERROR_NONE;
 }
@@ -255,13 +254,13 @@ int32_t RealModeMgr::setActiveConfig(uint32_t config) {
     if (it != mModes.end()) {
         drm_mode_info_t cfg = it->second;
 
-        updateActiveConfig(cfg);
         if (strncmp(cfg.name, fakeInitialMode.name, DRM_DISPLAY_MODE_LEN) == 0) {
             MESON_LOGD("setActiveConfig default mode not supported");
             return HWC2_ERROR_NONE;
         }
 
-        mPreviousMode = cfg;
+        mLatestRealMode = cfg;
+        updateActiveConfig(cfg);
 
         std::string bestDolbyVision;
         bool needRecoveryBestDV = false;
@@ -313,7 +312,7 @@ bool RealModeMgr::isSupportModeForCurrentDevice(drm_mode_info_t mode) {
 }
 
 void RealModeMgr::dump(String8 & dumpstr) {
-    dumpstr.appendFormat("RealModeMgr:(%s)\n", mCurMode.name);
+    dumpstr.appendFormat("RealModeMgr:(%s)\n", mLatestRealMode.name);
     dumpstr.append("-----------------------------------------------------------"
         "---------------------------------------------------\n");
     dumpstr.append("|  CONFIG   |   VSYNC_PERIOD   |   WIDTH   |   HEIGHT   |"

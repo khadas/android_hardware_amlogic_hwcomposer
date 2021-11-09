@@ -54,9 +54,7 @@ protected:
     uint32_t mHwcFbHeight;
 
     std::map<uint32_t, drm_mode_info_t> mModes;
-    drm_mode_info_t mCurMode;
-    // save the previous active mode
-    drm_mode_info_t mPreviousMode;
+    drm_mode_info_t mLatestRealMode;
     uint32_t mActiveConfigId;
 
     // protect mMode and mActiveConfigId
