@@ -51,7 +51,7 @@ public:
 class Hwc2Display
     : public HwcDisplay, public HwcVsyncObserver {
 public:
-    Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer);
+    Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer, uint32_t display);
     virtual ~Hwc2Display();
 
     virtual void dump(String8 & dumpstr);
@@ -260,6 +260,8 @@ protected:
     std::condition_variable mStateCondition;
     std::mutex mStateLock;
     bool mFirstPresent;
+
+    uint32_t mDisplayId;
 };
 
 #endif/*HWC2_DISPLAY_H*/

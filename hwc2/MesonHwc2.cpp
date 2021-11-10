@@ -895,7 +895,7 @@ int32_t MesonHwc2::initialize() {
     for (uint32_t i = 0; i < HwcConfig::getDisplayNum(); i ++) {
         /*create hwc2display*/
         auto displayObserver = std::make_shared<MesonHwc2Observer>(i, this);
-        auto disp = std::make_shared<Hwc2Display>(displayObserver);
+        auto disp = std::make_shared<Hwc2Display>(displayObserver, i);
         disp->initialize();
         mDisplays.emplace(i, disp);
         auto baseDisp = std::dynamic_pointer_cast<HwcDisplay>(disp);
