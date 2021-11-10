@@ -29,7 +29,10 @@ enum {
     OSD_AFBC          = (1 << 5),
     OSD_VIU2          = (1 << 29),
     OSD_VIU1          = (1 << 30),
-    OSD_LAYER_ENABLE  = (1 << 31)
+    OSD_LAYER_ENABLE  = (1 << 31),
+    VIDEO_COMPOSER_0     = (1 << 18),
+    VIDEO_COMPOSER_1     = (1 << 20),
+    VIDEO_COMPOSER_2     = (1 << 22),
 };
 
 /*video plane caps.*/

@@ -46,6 +46,7 @@ protected:
 protected:
     int32_t mDrvFd;
     uint32_t mId;
+    uint32_t mIndex;
     int32_t mCapability;
 
     char mName[64];
