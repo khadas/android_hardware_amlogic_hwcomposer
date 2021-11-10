@@ -58,6 +58,7 @@ public:
 
 protected:
     int32_t loadProperties();
+    int32_t setModeLocked(drm_mode_info_t & mode);
 
 protected:
 	int mDrmFd;
