@@ -150,6 +150,11 @@ int32_t DrmCrtc::getMode(drm_mode_info_t & mode) {
 int32_t DrmCrtc::setMode(drm_mode_info_t & mode) {
     ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
+    return setModeLocked(mode);
+}
+
+int32_t DrmCrtc::setModeLocked(drm_mode_info_t & mode) {
+    ATRACE_CALL();
     int ret;
     std::shared_ptr<DrmProperty> crtcid;
     std::shared_ptr<DrmProperty> modeid;
@@ -318,6 +323,7 @@ int DrmCrtc::setConnectorId(uint32_t connectorId) {
 }
 
 int32_t DrmCrtc::setPendingMode() {
+    std::lock_guard<std::mutex> lock(mMutex);
     if (mPendingModes.empty()) {
         MESON_LOGD("[%s] pending modes vector empty", __func__);
         return 0;
@@ -325,7 +331,7 @@ int32_t DrmCrtc::setPendingMode() {
 
     drm_mode_info_t mode = mPendingModes.back();
     MESON_LOGD("[%s] mode %s", __func__, mode.name);
-    setMode(mode);
+    setModeLocked(mode);
 
     mPendingModes.clear();
     return 0;
