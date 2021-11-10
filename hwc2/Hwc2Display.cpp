@@ -35,7 +35,7 @@
 #include <HwDisplayManager.h>
 #include <misc.h>
 
-Hwc2Display::Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer) {
+Hwc2Display::Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer, uint32_t display) {
     mObserver = observer;
     mForceClientComposer = false;
     mPowerMode  = std::make_shared<HwcPowerMode>();
@@ -48,6 +48,7 @@ Hwc2Display::Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer) {
     mVideoTunnelThread = nullptr;
     mVsyncTimestamp = 0;
     mFirstPresent = true;
+    mDisplayId = display;
     memset(&mHdrCaps, 0, sizeof(mHdrCaps));
     memset(mColorMatrix, 0, sizeof(float) * 16);
     memset(&mCalibrateCoordinates, 0, sizeof(int) * 4);
@@ -622,6 +623,13 @@ hwc2_error_t Hwc2Display::collectLayersForPresent() {
             !layer->isVtBuffer()) {
             continue;
         }
+
+       /* TODO: only primary display supprot video tunnel video.
+        * will add video tunnel support on external display
+        * */
+        if (layer->isVtBuffer() && mDisplayId != HWC_DISPLAY_PRIMARY)
+            layer->mCompositionType = MESON_COMPOSITION_DUMMY;;
+
         mPresentLayers.push_back(buffer);
 
         if (isLayerHideForDebug(it->first)) {
@@ -1626,6 +1634,13 @@ bool Hwc2Display::getDisplayVsyncAndPeriod(int64_t& timestamp, int32_t& vsyncPer
 /*******************Video Tunnel API below*******************/
 void Hwc2Display::handleVtThread() {
     bool haveVtLayer = false;
+
+    /* TODO: only primary display supprot video tunnel video.
+     * will add video tunnel support on external display
+     * */
+    if (mDisplayId != HWC_DISPLAY_PRIMARY)
+        return ;
+
     for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
         std::shared_ptr<Hwc2Layer> layer = it->second;
         if (layer->isVtBuffer()) {
