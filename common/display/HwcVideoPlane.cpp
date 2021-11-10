@@ -54,6 +54,28 @@ uint32_t HwcVideoPlane::getType() {
 }
 
 uint32_t HwcVideoPlane::getCapabilities() {
+    int retValue;
+    int capacity;
+    if (ioctl(mDrvFd, VIDEO_COMPOSER_IOCTL_GET_PANEL_CAPABILITY, &retValue) != 0) {
+        MESON_LOGE("video plane get capibility ioctl (%d) return(%d)", retValue, errno);
+        return 0;
+    }
+    capacity =(retValue >> (2 * mIndex + 18) & 0x3);
+
+    switch ( capacity ) {
+            case 0:
+                mCapability |= PLANE_SUPPORT_1;
+                break;
+            case 1:
+                mCapability |= PLANE_SUPPORT_2;
+                break;
+            case 2:
+                mCapability |= PLANE_SUPPORT_3;
+                break;
+            default:
+                return mCapability;
+    }
+
     /*HWCVideoplane always support zorder.*/
     return mCapability;
 }
@@ -63,6 +85,17 @@ int32_t HwcVideoPlane::getFixedZorder() {
 }
 
 uint32_t HwcVideoPlane::getPossibleCrtcs() {
+    int32_t ret = 0;
+    if (mCapability & PLANE_SUPPORT_1) {
+        ret |=( 1 << DRM_PIPE_VOUT1 );
+    }
+    if (mCapability & PLANE_SUPPORT_2)  {
+        ret |=( 1 << DRM_PIPE_VOUT2 );
+    }
+
+    if (ret != 0) {
+        return ret;
+    }
     return 1 << DRM_PIPE_VOUT1;
 }
 
@@ -74,6 +107,7 @@ bool HwcVideoPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
 }
 
 int32_t HwcVideoPlane::getProperties() {
+    mCapability = 0;
     int capacity = 0;
     int fd = open("/dev/amvideo",  O_RDWR, 0);
     if (fd > 0) {
@@ -96,6 +130,8 @@ int32_t HwcVideoPlane::getProperties() {
 
 
 void HwcVideoPlane::setAmVideoPath(int id) {
+    mIndex = id;
+    getCapabilities();
     if (id == 0) {
         strncpy(mAmVideosPath, "/sys/class/video/disable_video", sizeof(mAmVideosPath));
     } else if (id == 1) {
