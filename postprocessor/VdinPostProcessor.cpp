@@ -294,6 +294,13 @@ int32_t VdinPostProcessor::present(int flags, int32_t fence) {
 
 void * VdinPostProcessor::threadMain(void * data) {
     MESON_ASSERT(data, "vdin data should not be NULL.");
+
+    struct sched_param param = {0};
+    param.sched_priority = 2;
+    if (sched_setscheduler(0, SCHED_FIFO | SCHED_RESET_ON_FORK, &param) != 0) {
+        ALOGE("Couldn't set SCHED_FIFO: %d", errno);
+    }
+
     VdinPostProcessor * pThis = (VdinPostProcessor *) data;
     pThis->reset();
     if (pThis->mFbProcessor)
