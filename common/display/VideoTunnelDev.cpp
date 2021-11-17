@@ -57,21 +57,20 @@ int32_t VideoTunnelDev::recieveCmd(int tunnelId, enum vt_cmd& cmd, struct vt_cmd
 
 /*
  * Return of -EAGAIN means the operation timeout or error.
- * On success, return of 0 means videotunnel can receive cmds
+ * On success, return of 0 means videotunnel can receive  game mode buffer
  */
 int32_t VideoTunnelDev::pollGameModeBuffer() {
-    struct pollfd fds[1];
-    fds[0].fd = mDrvFd;
-    fds[0].events = POLLIN;
-    fds[0].revents = 0;
+    struct pollfd pfd;
+    pfd.fd = mDrvFd;
+    pfd.events = POLLIN | POLLRDNORM | POLLOUT | POLLWRNORM | POLLRDBAND;
+    pfd.revents = 0;
 
-    int pollrtn = poll(fds, 1, VT_POLL_TIMEOUT);
+    int pollrtn = poll(&pfd, 1, VT_POLL_TIMEOUT);
     if (pollrtn > 0) {
-        /* can ready to read */
-        if (fds[0].revents == POLLIN)
-            return 0;
-        else if (fds[0].revents == POLLERR)
+        if ((pfd.revents & POLLERR) ||(pfd.revents & POLLRDBAND))
             return -EINVAL;
+        else if (pfd.revents & POLLIN)
+            return 0;
     }
 
     return -EAGAIN;
@@ -83,6 +82,24 @@ int32_t VideoTunnelDev::setNonBlockMode() {
 
 int32_t VideoTunnelDev::pollCmds() {
     return meson_vt_poll_cmd(mDrvFd, VT_POLL_TIMEOUT);
+}
+
+VideoTunnelDev::VtPollStatus VideoTunnelDev::pollBufferAndCmds() {
+    struct pollfd pfd;
+    pfd.fd = mDrvFd;
+    pfd.events = POLLIN | POLLRDNORM | POLLOUT | POLLWRNORM | POLLRDBAND;
+    pfd.revents = 0;
+
+    int pollrtn = poll(&pfd, 1, VT_POLL_TIMEOUT);
+    if (pollrtn > 0) {
+        if (pfd.revents & POLLIN)
+            return VtPollStatus::eBufferReady;
+
+        if (pfd.revents & POLLOUT)
+            return VtPollStatus::eCmdReady;
+    }
+
+    return VtPollStatus::eNotReady;
 }
 
 int32_t VideoTunnelDev::setDisplayVsyncInfo(uint64_t timestamp, uint32_t vsyncPeriodNanos) {
