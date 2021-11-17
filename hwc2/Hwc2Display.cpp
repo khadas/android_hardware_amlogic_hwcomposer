@@ -321,6 +321,11 @@ void Hwc2Display::onHotplug(bool connected) {
     {
         std::lock_guard<std::mutex> lock(mMutex);
         if (connected) {
+            if (mConnector && mConnector->getType() != DRM_MODE_CONNECTOR_HDMIA) {
+                mOutsideChanged = true;
+                mPowerMode->setConnectorStatus(true);
+                mObserver->refresh();
+            }
             mSignalHpd = true;
             return;
         }
@@ -338,8 +343,8 @@ void Hwc2Display::onHotplug(bool connected) {
         /* when hdmi plugout, send CONNECT message for "hdmi-only" */
         if (mConnector && mConnector->getType() == DRM_MODE_CONNECTOR_HDMIA) {
             mModeMgr->update();
+            mObserver->onHotplug(connected);
         }
-        mObserver->onHotplug(connected);
     }
 
     /* switch to software vsync when hdmi plug out and no cvbs mode */
