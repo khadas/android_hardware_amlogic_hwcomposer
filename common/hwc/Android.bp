@@ -233,6 +233,7 @@ cc_library_static {
         "FixedDisplayPipe.cpp",
         "LoopbackDisplayPipe.cpp",
         "DualDisplayPipe.cpp",
+        "UvmDettach.cpp",
     ],
 
     static_libs: [

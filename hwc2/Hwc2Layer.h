@@ -15,6 +15,7 @@
 
 #include <BasicTypes.h>
 #include <DrmFramebuffer.h>
+#include <UvmDettach.h>
 
 #define VT_CMD_DISABLE_VIDEO     0x01
 #define VT_CMD_GAME_MODE_ENABLE  0x02
@@ -116,13 +117,7 @@ protected:
     bool mNeedReleaseVtResource;
     bool mNeedClearLastFrame;
 
-    /* for NR */
-    struct UvmBuffer {
-        int bufferFd;
-        std::shared_ptr<DrmFence> releaseFence;
-    };
-
-    std::deque<UvmBuffer> mUvmBufferQueue;
+    std::shared_ptr<UvmDettach> mUvmDettach;
     int mPreUvmBufferFd;
 };
 
