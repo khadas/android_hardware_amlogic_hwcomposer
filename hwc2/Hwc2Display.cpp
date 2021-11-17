@@ -319,6 +319,11 @@ void Hwc2Display::onHotplug(bool connected) {
     {
         std::lock_guard<std::mutex> lock(mMutex);
         if (connected) {
+            if (mConnector && mConnector->getType() != DRM_MODE_CONNECTOR_HDMIA) {
+                mOutsideChanged = true;
+                mPowerMode->setConnectorStatus(true);
+                mObserver->refresh();
+            }
             mSignalHpd = true;
             return;
         }
