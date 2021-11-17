@@ -18,6 +18,12 @@ public:
     VideoTunnelDev();
     ~VideoTunnelDev();
 
+    enum class VtPollStatus { // flags for pollBufferAndCmds
+        eBufferReady = 0x01,
+        eCmdReady = 0x02,
+        eNotReady = 0x03,
+    };
+
     int32_t connect(int tunnelId);
     int32_t disconnect(int tunnelId);
 
@@ -27,8 +33,8 @@ public:
 
     int32_t setNonBlockMode();
     int32_t pollGameModeBuffer();
-
     int32_t pollCmds();
+    VtPollStatus pollBufferAndCmds();
 
     int32_t setDisplayVsyncInfo(uint64_t timestamp, uint32_t vsyncPeriodNanos);
 
