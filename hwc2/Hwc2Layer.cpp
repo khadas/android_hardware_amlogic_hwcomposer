@@ -22,7 +22,6 @@
 #include "Hwc2Layer.h"
 #include "Hwc2Base.h"
 #include "VideoTunnelDev.h"
-#include "UvmDev.h"
 
 Hwc2Layer::Hwc2Layer() : DrmFramebuffer(){
     mDataSpace     = HAL_DATASPACE_UNKNOWN;
@@ -41,7 +40,6 @@ Hwc2Layer::Hwc2Layer() : DrmFramebuffer(){
     mQueueItems.clear();
 
     mPreUvmBufferFd = -1;
-    mUvmBufferQueue.clear();
 }
 
 Hwc2Layer::~Hwc2Layer() {
@@ -151,9 +149,9 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
     * For UVM video buffer, set UVM flags.
     * As the buffer will was update already
     */
+    dettachUvmBuffer();
     if (preType == DRM_FB_VIDEO_UVM_DMA && mPreUvmBufferFd >= 0)
         collectUvmBuffer(mPreUvmBufferFd, getPrevReleaseFence());
-    dettachUvmBuffer();
 
     if (buffer == NULL) {
         MESON_LOGE("Receive null buffer, it is impossible.");
@@ -193,15 +191,6 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
 
     if (preType != mFbType)
         mUpdated = true;
-
-    // for the fist vum buffer
-    if (mFbType == DRM_FB_VIDEO_UVM_DMA) {
-        if (mPreUvmBufferFd < 0) {
-            int fd = dup(am_gralloc_get_buffer_fd(buffer));
-            attachUvmBuffer(fd);
-            mPreUvmBufferFd = fd;
-        }
-    }
 
     // changed from UVM to other type
     if (preType != mFbType && preType == DRM_FB_VIDEO_UVM_DMA) {
@@ -733,69 +722,36 @@ bool Hwc2Layer::newGameBuffer() {
     return false;
 }
 
+/* ========================== Uvm Attach =================================== */
+/* just for non-tunnel type video */
 int32_t Hwc2Layer::attachUvmBuffer(const int bufferFd) {
-    return UvmDev::getInstance().attachBuffer(bufferFd);
+    if (!mUvmDettach)
+        mUvmDettach = std::make_shared<UvmDettach>(mId);
+
+    return mUvmDettach->attachUvmBuffer(bufferFd);
 }
 
 int32_t Hwc2Layer::dettachUvmBuffer() {
-    if (mUvmBufferQueue.size() <= 1)
-        return -EAGAIN;
+    if (mUvmDettach)
+        return mUvmDettach->dettachUvmBuffer();
 
-    int signalItemCount = 0;
-    for (auto it = mUvmBufferQueue.begin(); it != mUvmBufferQueue.end(); it++) {
-        auto currentStatus = it->releaseFence->getStatus();
-        // fence was signaled
-        if (currentStatus == DrmFence::Status::Signaled ||
-                currentStatus == DrmFence::Status::Invalid)
-            signalItemCount++;
-    }
-
-    MESON_LOGV("%s, UvmBufferQueue size:%zu, signalItemCount:%d",
-            __func__, mUvmBufferQueue.size(), signalItemCount);
-
-    while (signalItemCount > 0) {
-        auto item = mUvmBufferQueue.front();
-        signalItemCount--;
-
-        MESON_LOGV("%s dettachBuffer:%d, fenceStatus:%d",
-                __func__, item.bufferFd, item.releaseFence->getStatus());
-        //dettach it
-        UvmDev::getInstance().dettachBuffer(item.bufferFd);
-        if (item.bufferFd >= 0)
-            close(item.bufferFd);
-
-        mUvmBufferQueue.pop_front();
-    }
     return 0;
 }
 
 int32_t Hwc2Layer::collectUvmBuffer(const int fd, const int fence) {
-    if (fd < 0) {
-        MESON_LOGV("%s: get invalid fd", __func__);
-        if (fence >= 0)
-            close(fence);
-        return -EINVAL;
-    }
-    if (fence < 0)
-        MESON_LOGV("%s: get invalid fence", __func__);
-
-    UvmBuffer item = {fd, std::move(std::make_shared<DrmFence>(fence))};
-    mUvmBufferQueue.push_back(item);
+    if (mUvmDettach)
+        return mUvmDettach->collectUvmBuffer(fd, fence);
 
     return 0;
 }
 
 int32_t Hwc2Layer::releaseUvmResourceLock() {
-    for (auto it = mUvmBufferQueue.begin(); it != mUvmBufferQueue.end(); it++) {
-        if (it->bufferFd >= 0)
-            close(it->bufferFd);
-    }
-
-    mUvmBufferQueue.clear();
     if (mPreUvmBufferFd >= 0)
         close(mPreUvmBufferFd);
-
     mPreUvmBufferFd = -1;
+
+    if (mUvmDettach)
+        return mUvmDettach->releaseUvmResource();
 
     return 0;
 }
@@ -805,6 +761,7 @@ int32_t Hwc2Layer::releaseUvmResource() {
 
     return releaseUvmResourceLock();
 }
+/* ========================= End Uvm Attach ================================= */
 
 bool Hwc2Layer::isNeedClearLastFrame() {
     if (mNeedClearLastFrame) {
