@@ -761,7 +761,7 @@ int32_t Hwc2Display::loadCalibrateInfo() {
     }
 
     if (mDisplayMode.pixelW == 0 || mDisplayMode.pixelH == 0) {
-        ALOGE("[%s]: Displaymode is invalid(%s, %dx%d)!",
+        ALOGV("[%s]: Displaymode is invalid(%s, %dx%d)!",
                 __func__, mDisplayMode.name, mDisplayMode.pixelW, mDisplayMode.pixelH);
         return -ENOENT;
     }
