@@ -85,7 +85,6 @@ int32_t DrmConnector::loadProperties(drmModeConnectorPtr p __unused) {
 int32_t DrmConnector::loadDisplayModes(drmModeConnectorPtr p) {
     ATRACE_CALL();
     /*clear old mode list.*/
-    std::lock_guard<std::mutex> lock(mMutex);
     for (auto & it : mDrmModes)
         drmModeDestroyPropertyBlob(mDrmFd, it.first);
     mMesonModes.clear();
@@ -150,8 +149,12 @@ int32_t DrmConnector::loadDisplayModes(drmModeConnectorPtr p) {
 }
 
 int32_t DrmConnector::loadConnectorInfo(drmModeConnectorPtr metadata) {
+    std::lock_guard<std::mutex> lock(mMutex);
     /*update state*/
     mState = metadata->connection;
+
+    /*update prop*/
+    loadProperties(metadata);
 
     if (mState == DRM_MODE_CONNECTED) {
         mEncoderId = metadata->encoder_id;
@@ -167,8 +170,6 @@ int32_t DrmConnector::loadConnectorInfo(drmModeConnectorPtr metadata) {
             }
         }
 
-        /*update prop*/
-        loadProperties(metadata);
         loadDisplayModes(metadata);
         parseHdmiHdrCapabilities(mHdrCapabilities);
     } else {
@@ -216,10 +217,12 @@ int32_t DrmConnector::update() {
 }
 
 int32_t DrmConnector::setCrtcId(uint32_t crtcid) {
+    std::lock_guard<std::mutex> lock(mMutex);
     return mCrtcId->setValue(crtcid);
 }
 
 uint32_t DrmConnector::getCrtcId() {
+    std::lock_guard<std::mutex> lock(mMutex);
     return !mCrtcId ? numeric_limits<uint32_t>::max() : mCrtcId->getValue();
 }
 
