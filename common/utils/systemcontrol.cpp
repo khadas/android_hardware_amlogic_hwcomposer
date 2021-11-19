@@ -366,18 +366,18 @@ static bool get_hdmi_edid_data(char *data, uint32_t len) {
         int count = 0;
         while (true) {
             sysfs_get_string_original(DISPLAY_HDMI_EDID, data, len);
-            if (strlen(data) > 0)
+            if (strnlen(data, len) > 0)
                 break;
 
             if (count >= 5) {
-                strcpy(data, "null edid");
+                strncpy(data, "null edid", len);
                 break;
             }
             count++;
             usleep(500000);
         }
     } else {
-        strcpy(data, "null edid");
+        strncpy(data, "null edid", len);
     }
 
     return true;
@@ -389,9 +389,10 @@ int32_t get_hdmitx_mode_list(std::vector<std::string>& edidlist) {
 
     edidlist.clear();
     get_hdmi_edid_data(edid_buf, MAX_BUFFER_LEN);
+    edid_buf[MAX_BUFFER_LEN - 1] = '\0';
     char *ptr = strtok(edid_buf, delim);
     while (ptr != NULL) {
-        int len = strlen(ptr);
+        int len = strnlen(ptr, MODE_LEN);
         if (ptr[len - 1] == '*')
             ptr[len - 1] = '\0';
 
