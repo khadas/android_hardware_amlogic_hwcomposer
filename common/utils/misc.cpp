@@ -101,7 +101,8 @@ int32_t sysfs_get_string(const char* path, char *str, int32_t len) {
 int32_t sysfs_get_string_original(const char *path, char *str, int32_t len) {
     char * buf = new char[len];
     int32_t ret = sysfs_get_string_ex(path, (char*)buf, len, true);
-    strcpy(str, buf);
+    strncpy(str, buf, len);
+    str[len-1] = '\0';
     delete[] buf;
     return ret;
 }
