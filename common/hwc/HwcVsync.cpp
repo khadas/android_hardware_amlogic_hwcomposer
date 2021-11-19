@@ -139,7 +139,7 @@ void * HwcVsync::vsyncThread(void * data) {
             }
         }
 
-        nsecs_t timestamp;
+        nsecs_t timestamp = 0;
         int32_t ret;
         if (pThis->mSoftVsync) {
             ret = pThis->waitSoftwareVsync(timestamp);
@@ -248,6 +248,8 @@ int32_t HwcVsync::waitMixVsync(nsecs_t& vsync_timestamp) {
     static nsecs_t cur_vsync_period = 0;
     if (cur_vsync_period != mReqPeriod || mMixRebase) {
         MESON_LOGD("[%s] waitVBlank to get hw vsync timestamp", __func__);
+        if (!mCrtc.get())
+            return -EFAULT;
         mCrtc->waitVBlank(mVsyncTime);
         mVsyncTime += VT_OFFSET_TIME;
         cur_vsync_period = mReqPeriod;
