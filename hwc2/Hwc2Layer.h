@@ -16,10 +16,17 @@
 #include <BasicTypes.h>
 #include <DrmFramebuffer.h>
 #include <UvmDettach.h>
+#include <VtConsumer.h>
 
 #define VT_CMD_DISABLE_VIDEO     0x01
 #define VT_CMD_GAME_MODE_ENABLE  0x02
 #define VT_CMD_GAME_MODE_DISABLE 0x04
+
+typedef enum {
+    VT_VIDEO_STATUS_HIDE,
+    VT_VIDEO_STATUS_CLEAR_LAST_FRAME,
+    VT_VIDEO_STATUS_SHOW,
+} vt_video_display_status;
 
 class Hwc2Layer : public DrmFramebuffer {
 /*Interfaces for hwc2.0 api.*/
@@ -58,6 +65,8 @@ public:
     void clearUpdateFlag();
 
     void setLayerUpdate(bool update);
+    int getVideoType();
+
     /* video tunnel api */
     bool isVtBuffer() override;
     bool isFbUpdated() override;
@@ -69,8 +78,20 @@ public:
     void setPresentTime(nsecs_t expectedPresentTime);
     bool shouldPresentNow(nsecs_t timestamp);
     bool newGameBuffer();
-    bool isNeedClearLastFrame();
     int32_t getSolidColorBuffer();
+
+    bool isVtNeedClearLastFrame();
+    bool isVtNeedHideVideo();
+    int32_t onVtFrameAvailable(std::vector<VtBufferItem> & items);
+    void onVtFrameDisplayed(int bufferFd, int fenceFd);
+    void onVtVideoHide();
+    void onVtVideoBlank();
+    void onVtVideoShow();
+    void onVtVideoGameMode(int data);
+    int32_t getVtVideoStatus();
+    void setVtSourceCrop(drm_rect_t & rect);
+    void onNeedShowTempBuffer(int colorType);
+    void setVideoType(int videoType);
 
 public:
     android_dataspace_t mDataSpace;
@@ -79,10 +100,30 @@ public:
     hwc_region_t mDamageRegion;
     drm_rect_t mBackupDisplayFrame;
 
+public:
+    // for videotunnel
+    class VtContentChangeListener : public VtConsumer::VtContentListener {
+    public:
+        VtContentChangeListener(Hwc2Layer* layer) : mLayer(layer) {};
+        ~VtContentChangeListener() {};
+
+        int32_t onFrameAvailable(std::vector<VtBufferItem> & items);
+        void onVideoHide();
+        void onVideoBlank();
+        void onVideoShow();
+        void onVideoGameMode(int data);
+        int32_t getVideoStatus();
+        void onSourceCropChange(vt_rect_t & crop);
+        void onNeedShowTempBuffer(int colorType);
+        void setVideoType(int videoType);
+    private:
+        Hwc2Layer* mLayer;
+    };
+
 protected:
     hwc2_error_t handleDimLayer(buffer_handle_t buffer);
     int32_t doReleaseVtResource(bool needDisconnect = true);
-    bool isVtBufferUnlock() override;
+    bool isVtBufferLocked() override;
 
     /* for NR */
     int32_t attachUvmBuffer(const int bufferFd);
@@ -97,25 +138,21 @@ protected:
 protected:
     bool mUpdateZorder;
 
-    /* for videotunnel type layer */
-    struct VtBufferItem {
-        int bufferFd;
-        int64_t timestamp;
-    };
-
+    bool mGameMode;
+    bool mVtUpdate;
+    bool mNeedReleaseVtResource;
     int mTunnelId;
     int mVtBufferFd;
     int mSolidColorBufferfd;
     int mPreVtBufferFd;
-    int64_t mTimestamp;
-    std::deque<VtBufferItem> mQueueItems;
+    int mAMVideoType;
     int32_t mQueuedFrames;
-    bool mGameMode;
-
+    int64_t mTimestamp;
     nsecs_t mExpectedPresentTime;
-    bool mVtUpdate;
-    bool mNeedReleaseVtResource;
-    bool mNeedClearLastFrame;
+    nsecs_t mPreviousTimestamp;
+    std::deque<VtBufferItem> mQueueItems;
+    std::shared_ptr<VtConsumer> mVtConsumer;
+    vt_video_display_status mVideoDisplayStatus;
 
     std::shared_ptr<UvmDettach> mUvmDettach;
     int mPreUvmBufferFd;

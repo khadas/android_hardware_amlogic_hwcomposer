@@ -113,6 +113,7 @@ cc_library_static {
         "libutils",
         "libdrm",
         "libion",
+        "libvideotunnel",
     ],
 
     header_libs: [
@@ -123,6 +124,7 @@ cc_library_static {
         "hwc.common_static",
         "hwc.composition_static",
         "hwc.postprocessor_static",
+        "hwc.vt_static",
         "hwc.display_static",
         "hwc.utils_static",
         "hwc.base_static",

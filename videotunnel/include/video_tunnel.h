@@ -16,25 +16,27 @@
 extern "C" {
 #endif
 
-enum vt_cmd {
+typedef enum vt_cmd {
     VT_CMD_SET_VIDEO_STATUS,
     VT_CMD_GET_VIDEO_STATUS,
     VT_CMD_SET_GAME_MODE,
     VT_CMD_SET_SOURCE_CROP,
-};
+    VT_CMD_SET_SOLID_COLOR_BUF,
+    VT_CMD_SET_VIDEO_TYPE,
+} vt_cmd_t;
 
-struct vt_rect {
+typedef struct vt_rect {
     int left;
     int top;
     int right;
     int bottom;
-};
+} vt_rect_t;
 
-struct vt_cmd_data {
+typedef struct vt_cmd_data {
     struct vt_rect crop;
     int data;
     int client;
-};
+} vt_cmd_data_t;
 
 int meson_vt_open();
 int meson_vt_close(int fd);

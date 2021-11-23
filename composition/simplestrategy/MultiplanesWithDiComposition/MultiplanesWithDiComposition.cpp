@@ -118,9 +118,8 @@ int MultiplanesWithDiComposition::chooseOneVideoFb(std::shared_ptr<DrmFramebuffe
     int video_type;
 
     for (auto it = mDIComposerFbs.begin(); it != mDIComposerFbs.end(); it++) {
-        auto buf = (*it)->mBufferHandle;
-        video_type = 0;
-        if (!(*it)->mIsSidebandBuffer && am_gralloc_get_omx_video_type(buf, &video_type) == 0) {
+        video_type = (*it)->getVideoType();
+        if (video_type > 0) {
             MESON_LOGV("[%s] fbId:%" PRIu64 " videoType:%x", __func__, (*it)->getUniqueId(), video_type);
             for (auto type_it = video_types.begin(); type_it != video_types.end(); type_it++) {
                 if ((video_type & *type_it) == *type_it) {
@@ -1402,7 +1401,7 @@ int MultiplanesWithDiComposition::commit(bool sf) {
 
         /*vt layer will send black frame or disable vc when buffer is invalid */
         if (fb->isVtBuffer() && (fb->getVtBuffer() < 0)) {
-            if (fb->isNeedClearLastFrame())
+            if (fb->isVtNeedClearLastFrame())
                 blankFlag = BLANK_FOR_NO_CONTENT;
             else
                 blankFlag = UNBLANK;
@@ -1413,7 +1412,7 @@ int MultiplanesWithDiComposition::commit(bool sf) {
         /* make sure SF donot refresh VtLayer and VT only refresh VtLayer*/
         if ((sf && !fb->isVtBuffer()) || (!sf && fb->isVtBuffer() && (fb->getVtBuffer() >= 0))) {
             int ret = -1;
-            if (fb->isNeedClearLastFrame())
+            if (fb->isVtNeedClearLastFrame())
                 blankFlag = BLANK_FOR_NO_CONTENT;
 
             if (!runProcessor(*displayIt, blankFlag, ret))
