@@ -49,6 +49,7 @@ public:
 
     bool isRotated();
     bool isSidebandBuffer() {return mIsSidebandBuffer;}
+    virtual int getVideoType() {return 0;};
 
     virtual bool isFbUpdated() {return (mUpdated || mFbHandleUpdated);}
     bool isUpdated() {return mUpdated;}
@@ -64,7 +65,7 @@ public:
     virtual int32_t releaseVtBuffer() { return 0; }
     virtual bool isVtBuffer() { return false;}
     virtual int32_t recieveVtCmds() { return 0; }
-    virtual bool isNeedClearLastFrame() {return false; }
+    virtual bool isVtNeedClearLastFrame() {return false; }
     virtual int32_t getSolidColorBuffer() { return -EINVAL; }
 
     // for video processor
@@ -74,7 +75,7 @@ public:
 protected:
     void setBufferInfo(const native_handle_t * bufferhnd, int32_t acquireFence, bool isSidebandBuffer=false);
     void clearBufferInfo();
-    virtual bool isVtBufferUnlock() {return false;}
+    virtual bool isVtBufferLocked() {return false;}
 
     void reset();
 
