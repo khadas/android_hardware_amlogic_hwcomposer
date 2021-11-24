@@ -1638,6 +1638,10 @@ bool Hwc2Display::getDisplayVsyncAndPeriod(int64_t& timestamp, int32_t& vsyncPer
     return ret == HWC2_ERROR_NONE;
 }
 
+bool Hwc2Display::isDisplayConnected() {
+    return (mConnector == nullptr)?false:mConnector->isConnected();
+}
+
 bool Hwc2Display::setFrameRateHint(std::string value) {
     if (!value.compare("0")) {
         mFRPeriodNanos = 0;
