@@ -143,7 +143,10 @@ int32_t MesonHwc2::registerCallback(int32_t descriptor,
             if (mHotplugFn) {
                 mHotplugFn(mHotplugData, HWC_DISPLAY_PRIMARY, true);
                 if (HwcConfig::getDisplayNum() > 1) {
-                    mHotplugFn(mHotplugData, HWC_DISPLAY_EXTERNAL, true);
+                    GET_HWC_DISPLAY(1);
+                    if (hwcDisplay->isDisplayConnected()) {
+                        mHotplugFn(mHotplugData, HWC_DISPLAY_EXTERNAL, true);
+                    }
                 }
             }
             break;

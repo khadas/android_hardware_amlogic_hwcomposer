@@ -159,6 +159,7 @@ public:
     int32_t captureDisplayScreen(buffer_handle_t hnd);
     bool getDisplayVsyncAndPeriod(int64_t& timestamp, int32_t& vsyncPeriodNanos);
     bool setFrameRateHint(std::string value);
+    bool isDisplayConnected();
 
 protected:
     /* For compose. */
