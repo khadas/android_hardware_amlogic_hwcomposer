@@ -25,6 +25,7 @@
 #define AIPQ_MAX_CACHE_COUNT 5
 #define AIPQ_NB_PATH            "/vendor/bin/nn/PQNet.nb"
 #define AIPQ_SCENE_DATA_PATH    "/vendor/etc/scenes_data.txt"
+#define AIPQ_SKIP_FRAME_HEIGHT    1088
 
 struct aipq_buffer_t {
     int fd;
@@ -62,7 +63,9 @@ struct uvm_aipq_info {
     int32_t aipq_value_index;
     int32_t get_info_type;
     int32_t need_do_aipq;
-    int32_t repert_frame;
+    int32_t repeat_frame;
+    int32_t dw_width;
+    int32_t dw_height;
 };
 
 struct uvm_aipq_info_t {
