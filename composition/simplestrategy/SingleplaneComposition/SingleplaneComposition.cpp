@@ -13,27 +13,13 @@
 #include "HwcVideoPlane.h"
 #include <fcntl.h>
 #include <sys/ioctl.h>
-
-
-#define UVM_DEV_PATH "/dev/uvm"
-#define UVM_IOC_MAGIC 'U'
-#define UVM_IOC_SET_FD _IOWR(UVM_IOC_MAGIC, 3, struct uvm_fd_data)
-
-struct uvm_fd_data {
-    int fd;
-    int commit_display;
-};
+#include "UvmDev.h"
 
 /*---------------------  SingleplaneComposition  ---------------------*/
 SingleplaneComposition::SingleplaneComposition() {
-    mUVMFd = open(UVM_DEV_PATH, O_RDONLY | O_CLOEXEC);
-    if (mUVMFd < 0) {
-        MESON_LOGE("open uvm device error");
-    }
 }
 
 SingleplaneComposition::~SingleplaneComposition() {
-    if (mUVMFd >= 0) close(mUVMFd);
 }
 
 /*---------------------  Setup composition  ---------------------*/
@@ -159,9 +145,6 @@ int SingleplaneComposition::decideComposition() {
     /*hide secure layer, and force client.*/
     applyCompositionFlags();
 
-    /* handle uvm */
-    handleUVM();
-
     buildOsdComposition();
 
     /* record overlayFbs and start to compose */
@@ -174,26 +157,19 @@ int SingleplaneComposition::decideComposition() {
 }
 
 int SingleplaneComposition::handleUVM() {
-    if (mUVMFd > 0) {
-        std::shared_ptr<DrmFramebuffer> fb;
-        auto fbIt = mFramebuffers.begin();
-        struct uvm_fd_data fd_data;
+    auto displayIt = mDisplayPairs.begin();
+    for (; displayIt != mDisplayPairs.end(); ++displayIt) {
+        std::shared_ptr<DrmFramebuffer> fb = (*displayIt).fb;
+        if (fb->mFbType == DRM_FB_VIDEO_UVM_DMA) {
+            int uFd = am_gralloc_get_buffer_fd(fb->mBufferHandle);
 
-        for (; fbIt != mFramebuffers.end(); ++fbIt) {
-            fb = *fbIt;
-
-            if (fb->mFbType == DRM_FB_VIDEO_UVM_DMA) {
-                fd_data.fd = am_gralloc_get_buffer_fd(fb->mBufferHandle);
-                fd_data.commit_display =
-                    (fb->mCompositionType == MESON_COMPOSITION_DUMMY) ? 0 : 1;
-
-                if (ioctl(mUVMFd, UVM_IOC_SET_FD, &fd_data) != 0) {
-                    MESON_LOGE("setUVM fd data ioctl error %s", strerror(errno));
-                    return -1;
-                }
+            if (UvmDev::getInstance().commitDisplay(uFd, 1)) {
+                MESON_LOGE("setUVM fd data ioctl error %s", strerror(errno));
+                return -1;
             }
         }
     }
+
     return 0;
 }
 
@@ -410,6 +386,9 @@ int SingleplaneComposition::buildOsdComposition() {
 /*--------------------- commit to display ---------------------*/
 int SingleplaneComposition::commit(bool sf __unused) {
     /*start compose, and add composer output.*/
+    /* handle uvm */
+    handleUVM();
+
     std::shared_ptr<DrmFramebuffer> composeOutput;
     if (mComposer.get()) {
         mComposer->start();
