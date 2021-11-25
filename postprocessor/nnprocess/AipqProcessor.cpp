@@ -485,7 +485,7 @@ int32_t AipqProcessor::asyncProcess(
     uvm_info->shared_fd = input_fd;
     aipq_info->shared_fd = input_fd;
     aipq_info->need_do_aipq = 0;
-    aipq_info->repert_frame = 0;
+    aipq_info->repeat_frame = 0;
 
     {
         std::lock_guard<std::mutex> lock(mMutex_index);
@@ -508,7 +508,7 @@ int32_t AipqProcessor::asyncProcess(
         goto error;
     }
 
-    if (aipq_info->repert_frame != 0) {
+    if (aipq_info->repeat_frame != 0) {
         ALOGD_IF(check_D(), "aipq not need do again");
         goto bypass;
     }
@@ -520,6 +520,18 @@ int32_t AipqProcessor::asyncProcess(
             goto error;
         }
         mBuf_Alloced = true;
+    }
+
+    //reduce system loading by bypass aipq when 4kh264 video//
+    if ((aipq_info->dw_height > AIPQ_SKIP_FRAME_HEIGHT) &&
+        ((mBuf_index % 2) == 0)) {
+        ALOGD_IF(check_D(),"%s: mBuf_index=%d, pq_index=%d, diff=%d.\n",
+              __FUNCTION__,
+              mBuf_index,
+              pq_value_index,
+              mBuf_index - pq_value_index);
+        mBuf_index++;
+        return 0;
     }
 
     dup_fd = dup(input_fd);
@@ -537,7 +549,6 @@ int32_t AipqProcessor::asyncProcess(
         std::lock_guard<std::mutex> lock(mMutex);
         mBuf_fd_q.push(mCacheIndex);
     }
-
     mBuf_index++;
     mCacheIndex++;
     if (mCacheIndex == AIPQ_MAX_CACHE_COUNT)
@@ -609,6 +620,7 @@ void AipqProcessor::threadProcess() {
         waitEvent(2 * 1000);
         return;
     }
+
     if (size > 1)
         ALOGE("%s: more than one buf need process size=%d", __FUNCTION__, size);
 
@@ -880,7 +892,7 @@ int32_t AipqProcessor::ai_pq_process(int cache_index) {
     {
         std::lock_guard<std::mutex> lock(mMutex_index);
 
-        aipq_info->nn_value[AI_PQ_TOP - 1].maxprob = mNn_Index;
+        aipq_info->nn_value[AI_PQ_TOP - 1].maxprob = mAipqIndex[cache_index].buf_index;
 
         for (int i = 0; i < AI_PQ_TOP; i++) {
             mLastNnValue[i] = aipq_info->nn_value[i];
