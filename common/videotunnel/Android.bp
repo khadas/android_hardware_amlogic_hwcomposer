@@ -18,12 +18,15 @@ cc_library_static {
     vendor: true,
 
     srcs: [
+        "VideoTunnelDev.cpp",
         "VtConsumer.cpp",
-        "VtResourceMgr.cpp",
+        "VtInstance.cpp",
+        "VtInstanceMgr.cpp",
     ],
 
     static_libs: [
         "hwc.utils_static",
+        "hwc.base_static",
     ],
 
     export_include_dirs: [

@@ -81,9 +81,13 @@ public:
     int32_t getSolidColorBuffer();
     void vtRefresh();
 
+    int32_t registerConsumer();
+    int32_t unregisterConsumer();
+    // TODO: VIDEOTUNNL: need fix funcName when remove old videotunnel
+    int32_t releaseVtResource_new();
     bool isVtNeedClearLastFrame();
     bool isVtNeedHideVideo();
-    int32_t onVtFrameAvailable(std::vector<VtBufferItem> & items);
+    int32_t onVtFrameAvailable(std::vector<std::shared_ptr<VtBufferItem>> & items);
     void onVtFrameDisplayed(int bufferFd, int fenceFd);
     void onVtVideoHide();
     void onVtVideoBlank();
@@ -108,7 +112,7 @@ public:
         VtContentChangeListener(Hwc2Layer* layer) : mLayer(layer) {};
         ~VtContentChangeListener() {};
 
-        int32_t onFrameAvailable(std::vector<VtBufferItem> & items);
+        int32_t onFrameAvailable(std::vector<std::shared_ptr<VtBufferItem>> & items);
         void onVideoHide();
         void onVideoBlank();
         void onVideoShow();

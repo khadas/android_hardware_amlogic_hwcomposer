@@ -13,21 +13,46 @@
 #include <vector>
 
 #include <video_tunnel.h>
+#include <DrmSync.h>
 #include <MesonLog.h>
 
 struct VtBufferItem {
     VtBufferItem()
-    : mVtBufferFd(-1),
+    : mRef(-1),
+      mVtBufferFd(-1),
       mTimeStamp(-1) {
+      mReleaseFence = DrmFence::NO_FENCE;
     }
+
     VtBufferItem(int bufferFd, int64_t timeStamp)
     : mVtBufferFd(bufferFd),
       mTimeStamp(timeStamp) {
+      mRef = -1;
+      mReleaseFence = DrmFence::NO_FENCE;
     }
 
-    int mVtBufferFd;
+    ~VtBufferItem() {
+        mReleaseFence.reset();
+    }
+
+    void refHandle() {
+        if (mRef == -1)
+            mRef = 1;
+        else
+            ++mRef;
+    }
+    bool unrefHandle() {
+        return ((--mRef) == 0) ? true : false;
+    }
+    bool needReleaseBufferFd() {
+        return (mRef == 0) ? true : false;
+    }
+
+    int mRef;
+    const int mVtBufferFd;
     // the buffer expected present time
-    int64_t mTimeStamp;
+    const int64_t mTimeStamp;
+    std::shared_ptr<DrmFence> mReleaseFence;
 };
 
 class VtConsumer {
@@ -46,7 +71,7 @@ public:
         virtual ~VtContentListener() {};
         // buffer interfaces
         virtual int32_t onFrameAvailable(
-                std::vector<VtBufferItem> & items __unused) {return 0;};
+                std::vector<std::shared_ptr<VtBufferItem>> & items __unused) {return 0;};
 
         // cmd interfaces
         virtual void onVideoHide() {};
@@ -67,6 +92,7 @@ public:
 
     int32_t onVtCmds(vt_cmd & cmd, vt_cmd_data_t & cmdData);
     int32_t onVtFrameDisplayed(int bufferFd, int fenceFd);
+    int32_t onFrameAvailable(std::vector<std::shared_ptr<VtBufferItem>> & items);
 
 private:
     int mTunnelId;
