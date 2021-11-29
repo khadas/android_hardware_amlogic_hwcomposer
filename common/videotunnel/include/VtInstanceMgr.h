@@ -6,29 +6,34 @@
  *
  * Description:
  */
-#ifndef MESON_VT_RESOURCE_MGR
-#define MESON_VT_RESOURCE_MGR
+#ifndef MESON_VT_INSTANCE_MGR
+#define MESON_VT_INSTANCE_MGR
 
 #include <memory>
 #include <map>
 
 #include <utils/Singleton.h>
 #include <video_tunnel.h>
-#include <VtConsumer.h>
+#include "VtConsumer.h"
+#include "VtInstance.h"
 
-class VtResourceMgr : public android::Singleton<VtResourceMgr> {
+class VtInstanceMgr : public android::Singleton<VtInstanceMgr> {
 public:
-    VtResourceMgr();
-    ~VtResourceMgr();
+    VtInstanceMgr();
+    ~VtInstanceMgr();
 
     int32_t connectInstance(int tunnelId, std::shared_ptr<VtConsumer> & consumer);
     int32_t disconnectInstance(int tunnelId, std::shared_ptr<VtConsumer> & consumer);
+    void clearUpInstances();
+    bool tryDestroyInstanceLocked(int tunnelId);
 
-    int32_t acquireBuffer();
-    int32_t recieveCmd();
+    int32_t pollVtCmds();
+    int32_t handleBuffers();
+    int32_t handleCmds();
 
 private:
-    //std::map<int, std::shared_ptr<VtInstance>> mInstances;
+    std::map<int, std::shared_ptr<VtInstance>> mInstances;
+    std::mutex mMutex;
 };
 
-#endif /* MESON_VT_RESOURCE_MGR */
+#endif /* MESON_VT_INSTANCE_MGR */

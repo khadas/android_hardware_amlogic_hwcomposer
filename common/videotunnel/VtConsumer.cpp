@@ -123,3 +123,12 @@ int32_t VtConsumer::onVtFrameDisplayed(int bufferFd, int fenceFd) {
         return -1;
     }
 }
+
+int32_t VtConsumer::onFrameAvailable(
+        std::vector<std::shared_ptr<VtBufferItem>> & items) {
+    if (mContentListener.get()) {
+        return mContentListener->onFrameAvailable(items);
+    } else {
+        return -1;
+    }
+}

@@ -12,22 +12,38 @@
 #include <memory>
 #include <vector>
 
-#include <video_tunnel.h>
-#include <VtConsumer.h>
+//#include <BitsMap.h>
+#include <DrmSync.h>
+
+#include "video_tunnel.h"
+#include "VtConsumer.h"
 
 class VtInstance : public VtConsumer::VtReleaseListener {
 public:
-    VtInstance();
+    VtInstance(int tunnelId);
     virtual ~VtInstance();
 
     int32_t registerVtConsumer(std::shared_ptr<VtConsumer> & consumer);
     int32_t unregisterVtConsumer(std::shared_ptr<VtConsumer> & consumer);
 
-    int32_t onFrameRelease(VtBufferItem &item, int fenceFd) override;
+    int32_t connect();
+    void disconnect();
+    int32_t acquireBuffer();
+    void releaseBufferLocked(std::shared_ptr<VtBufferItem> & item);
+    void releaseBuffers();
+    int32_t recieveCmds();
+    void setReleaseFence();
+
+    int32_t onFrameDisplayed(int bufferFd, int fenceFd) override;
+
+    bool needDestroyThisInstance();
 
 private:
     int mTunnelId;
     std::vector<std::shared_ptr<VtConsumer>> mConsumers;
+    std::vector<std::shared_ptr<VtBufferItem>> mBufferQueue;
+    //std::shared_ptr<BitsMap> mSlotBitmap;
+    std::mutex mMutex;
 
     // todo need define vtBuffer?
 };
