@@ -46,7 +46,6 @@ protected:
 protected:
     int32_t mDrvFd;
     uint32_t mId;
-    uint32_t mComposerNum;
     int32_t mCapability;
 
     char mName[64];

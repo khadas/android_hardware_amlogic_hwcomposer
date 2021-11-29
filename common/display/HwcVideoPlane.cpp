@@ -40,7 +40,6 @@ HwcVideoPlane::HwcVideoPlane(int32_t drvFd, uint32_t id)
     memset(mAmVideosPath, 0, sizeof(mAmVideosPath));
     getProperties();
     mBlank = true;
-    getCapabilities();
 }
 
 HwcVideoPlane::~HwcVideoPlane() {
@@ -55,27 +54,6 @@ uint32_t HwcVideoPlane::getType() {
 }
 
 uint32_t HwcVideoPlane::getCapabilities() {
-    int capacity;
-    if (ioctl(mDrvFd, VIDEO_COMPOSER_IOCTL_GET_PANEL_CAPABILITY, &capacity) != 0) {
-        MESON_LOGE("video plane get capibility ioctl (%d) return(%d)", capacity, errno);
-        return 0;
-    }
-
-    MESON_LOGE("video plane get capibility ioctl return(%d) fd is %d ", capacity,mDrvFd);
-
-    if (capacity & VIDEO_PANEL_1) {
-        mCapability |= PLANE_SUPPORT_PANEL_1;
-        MESON_LOGD("capibility support 1");
-    }
-    if (capacity & VIDEO_PANEL_2) {
-        mCapability |= PLANE_SUPPORT_PANEL_2;
-        MESON_LOGD("capibility support 2");
-    }
-    if (capacity & VIDEO_PANEL_3) {
-        mCapability |= PLANE_SUPPORT_PANEL_3;
-        MESON_LOGD("capibility support 3");
-    }
-
     /*HWCVideoplane always support zorder.*/
     return mCapability;
 }
@@ -85,17 +63,6 @@ int32_t HwcVideoPlane::getFixedZorder() {
 }
 
 uint32_t HwcVideoPlane::getPossibleCrtcs() {
-
-    if ((mComposerNum == 0 ) && (mCapability & PLANE_SUPPORT_PANEL_1)) {
-        return 1 << DRM_PIPE_VOUT2;
-    }
-	if ((mComposerNum == 1 ) && (mCapability & PLANE_SUPPORT_PANEL_2))  {
-        return 1 << DRM_PIPE_VOUT2;
-    }
-	if ((mComposerNum == 2 ) && (mCapability & PLANE_SUPPORT_PANEL_3)) {
-        return  1 << DRM_PIPE_VOUT2;
-    }
-
     return 1 << DRM_PIPE_VOUT1;
 }
 
@@ -129,7 +96,6 @@ int32_t HwcVideoPlane::getProperties() {
 
 
 void HwcVideoPlane::setAmVideoPath(int id) {
-     mComposerNum = id;
     if (id == 0) {
         strncpy(mAmVideosPath, "/sys/class/video/disable_video", sizeof(mAmVideosPath));
     } else if (id == 1) {
