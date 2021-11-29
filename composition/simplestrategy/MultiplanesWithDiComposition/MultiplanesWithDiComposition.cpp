@@ -1352,7 +1352,7 @@ int MultiplanesWithDiComposition::commit(bool sf) {
     /* handle uvm */
     handleUVM();
 
-    if (!mSkipValidate) {
+    if (!mSkipValidate && sf) {
         handleOverlayVideoZorder();
         handleDispayLayerZorder();
     }
@@ -1470,11 +1470,11 @@ int MultiplanesWithDiComposition::commit(bool sf) {
     }
 
     mCrtc->setDisplayFrame(mOsdDisplayFrame);
-    mSkipValidate = false;
     return 0;
 }
 
 void MultiplanesWithDiComposition::dump(String8 & dumpstr) {
+    std::lock_guard<std::mutex> lock(mMutex);
     ICompositionStrategy::dump(dumpstr);
     dumpstr.appendFormat("BaseScaleInfo (%dx%d->%dx%d, %dx%d) \n",
         mOsdDisplayFrame.framebuffer_w, mOsdDisplayFrame.framebuffer_h,

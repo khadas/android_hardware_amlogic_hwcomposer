@@ -823,6 +823,7 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
     uint32_t* outNumRequests) {
     ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
+    std::lock_guard<std::mutex> vtLock(mVtMutex);
     /*clear data used in composition.*/
     mPresentLayers.clear();
     mPresentComposers.clear();
@@ -859,16 +860,6 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
         compositionFlags |= COMPOSE_FORCE_CLIENT;
     }
 
-/*debug: for blend mode test, switch between device&client
- * to check if there is display flicker.
- */
-#if 0
-    static int count = 0;
-    count ++;
-    if (count % 3 == 1)
-        compositionFlags |= COMPOSE_FORCE_CLIENT;
-#endif
-
     if (HwcConfig::secureLayerProcessEnabled()) {
         if (!mConnector->isSecure()) {
             compositionFlags |= COMPOSE_HIDE_SECURE_FB;
@@ -899,15 +890,11 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
         /*update displayframe before do composition.*/
         if (mPresentLayers.size() > 0)
             adjustDisplayFrame();
-        {
-            // need hold the mutex of vt
-            std::lock_guard<std::mutex> vtLock(mVtMutex);
-            /*setup composition strategy.*/
-            mPresentCompositionStg->setup(mPresentLayers,
-                mPresentComposers, mPresentPlanes, mCrtc, compositionFlags, mScaleValue);
-            if (mPresentCompositionStg->decideComposition() < 0)
-                return HWC2_ERROR_NO_RESOURCES;
-        }
+        /*setup composition strategy.*/
+        mPresentCompositionStg->setup(mPresentLayers,
+            mPresentComposers, mPresentPlanes, mCrtc, compositionFlags, mScaleValue);
+        if (mPresentCompositionStg->decideComposition() < 0)
+            return HWC2_ERROR_NO_RESOURCES;
 
         /*collect changed dispplay, layer, compostiion.*/
         ret = collectCompositionRequest(outNumTypes, outNumRequests);
@@ -1126,7 +1113,6 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence, bool sf) {
         }
     }
 
-    mValidateDisplay = false;
     if (mSkipComposition) {
         *outPresentFence = -1;
     } else {
@@ -1188,6 +1174,7 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence, bool sf) {
         mPresentCompositionStg->dump(compDump);
         MESON_LOGE("%s", compDump.string());
     }
+    mValidateDisplay = false;
 
     return HWC2_ERROR_NONE;
 }
