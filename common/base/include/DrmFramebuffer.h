@@ -19,6 +19,8 @@
 
 #include <am_gralloc_ext.h>
 
+#define INVALID_ID 0xffff
+
 /*buffer for display or render.*/
 class DrmFramebuffer {
 public:

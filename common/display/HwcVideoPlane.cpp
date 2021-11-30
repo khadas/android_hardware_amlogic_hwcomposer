@@ -17,8 +17,6 @@
 #include "HwcVideoPlane.h"
 #include <fcntl.h>
 
-#define INVALID_ID 0xffff
-
 inline bool isSidebandVideo(drm_fb_type_t fbtype) {
     if (fbtype == DRM_FB_VIDEO_SIDEBAND ||
         fbtype == DRM_FB_VIDEO_SIDEBAND_TV ||
@@ -220,7 +218,8 @@ int32_t HwcVideoPlane::setPlane(
         }
 
         /*disable video if fb id changed*/
-        if (!need_disable_video && mPrevFbId != INVALID_ID && mPrevFbId != id) {
+        if (!need_disable_video && mPrevFbId != INVALID_ID &&
+             id != INVALID_ID && mPrevFbId != id) {
             need_disable_video = true;
         }
         mPrevFbId = id;
@@ -232,9 +231,6 @@ int32_t HwcVideoPlane::setPlane(
         mVideoFb = fb;
 
         if (!fb->isFbUpdated()) {
-            if (need_disable_video)
-                bBlank = BLANK_FOR_NO_CONTENT;
-
             mBlank = bBlank;
             return 0;
         }
