@@ -102,6 +102,7 @@ int MultiplanesWithDiComposition::allocateDiOutputFb(
     fb->mFbType = DRM_FB_DI_COMPOSE_OUTPUT;
     fb->mCompositionType = MESON_COMPOSITION_DI;
     fb->mZorder = z;
+    fb->mId = INVALID_ID;
     return 0;
 }
 
