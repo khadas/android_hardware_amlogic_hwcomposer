@@ -73,7 +73,7 @@ int32_t DualDisplayPipe::init(
                 {
                     if (mHdmi_connected == true) {
                         /*get hdmi prefect display mode firstly for init default config*/
-                        std::string prefdisplayMode;
+                        /*std::string prefdisplayMode;
                         if (sc_get_pref_display_mode(prefdisplayMode) == false) {
                             strcpy(displayMode.name, DRM_DISPLAY_MODE_DEFAULT);
                             prefdisplayMode = DRM_DISPLAY_MODE_DEFAULT;
@@ -85,8 +85,8 @@ int32_t DualDisplayPipe::init(
                             } else {
                                 strcpy(displayMode.name, prefdisplayMode.c_str());
                             }
-                        }
-                        strcpy(displayMode.name, prefdisplayMode.c_str());
+                        }*/
+                        strcpy(displayMode.name, DRM_DISPLAY_MODE_DEFAULT);
                         stat.second->modeCrtc->setMode(displayMode);
                     }
                 }
