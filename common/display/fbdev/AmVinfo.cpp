@@ -96,7 +96,7 @@ static struct vmode_match_s vmode_match_table[] = {
 	{"2160p50hz",     VMODE_4K2K_50HZ},
 	{"2160p5g",       VMODE_4K2K_5G},
 	{"4k1k120hz420",  VMODE_4K1K_120HZ_Y420},
-	{"4k1k120hz",     VMODE_4K1K_120HZ},
+	{"3840x1080p120hz",VMODE_4K1K_120HZ},
 	{"4k1k100hz420",  VMODE_4K1K_100HZ_Y420},
 	{"4k1k100hz",     VMODE_4K1K_100HZ},
 	{"4k05k240hz420", VMODE_4K05K_240HZ_Y420},
@@ -701,7 +701,7 @@ static const struct vinfo_s tv_info[] = {
 	},
 #endif
 	{ /* VMODE_4K1K_120HZ */
-		.name              = "4k1k120hz",
+		.name              = "3840x1080p120hz",
 		.mode              = VMODE_4K1K_120HZ,
 		.width             = 3840,
 		.height            = 1080,
