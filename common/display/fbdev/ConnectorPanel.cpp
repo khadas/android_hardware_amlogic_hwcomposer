@@ -163,6 +163,10 @@ int32_t ConnectorPanel::loadDisplayModes() {
             dpiY = (LCD_HEIGHT  * 25.4f) / LCD_SCREEN_REAL_HEIGHT;
             MESON_LOGI("add display mode lcd real dpi (%d, %d)", dpiX, dpiY);
         }
+
+        dpiX = dpiX * 1000;
+        dpiY = dpiY * 1000;
+
         drm_mode_info_t modeInfo = {
             "",
             dpiX,
