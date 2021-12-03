@@ -238,13 +238,20 @@ bool ConnectorHdmi::checkFracMode(const drm_mode_info_t & mode) {
     if (mFracMode != MODE_ALL) {
         return true;
     }
-    bool currentIsFrac = sysfs_get_int(HDMI_FRAC_RATE_POLICY, 1) == 1 ? true : false;
-    bool modeIsFrac =
-        std::find( mFracRefreshRates.begin(),
-                mFracRefreshRates.end(),
-                mode.refreshRate) != mFracRefreshRates.end();
 
-    return (currentIsFrac && modeIsFrac) || (!currentIsFrac && !modeIsFrac);
+    // only check frac refresh rate
+    if (mode.refreshRate != REFRESH_25kHZ
+            && mode.refreshRate != REFRESH_50kHZ) {
+        bool currentIsFrac =
+            sysfs_get_int(HDMI_FRAC_RATE_POLICY, 1) == 1 ? true : false;
+        bool modeIsFrac =
+            std::find( mFracRefreshRates.begin(), mFracRefreshRates.end(),
+                    mode.refreshRate) != mFracRefreshRates.end();
+
+        return (currentIsFrac && modeIsFrac) || (!currentIsFrac && !modeIsFrac);
+    }
+
+    return true;
 }
 
 int32_t ConnectorHdmi::setAutoLowLatencyMode(bool on) {
