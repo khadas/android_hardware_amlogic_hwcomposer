@@ -34,7 +34,9 @@ enum {
 
 enum {
     REFRESH_24kHZ = 24,
+    REFRESH_25kHZ = 25,
     REFRESH_30kHZ = 30,
+    REFRESH_50kHZ = 50,
     REFRESH_60kHZ = 60,
     REFRESH_120kHZ = 120,
     REFRESH_240kHZ = 240
