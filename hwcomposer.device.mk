@@ -132,3 +132,4 @@ SOONG_CONFIG_meson_hwc_enable_build_kernel_54 := $(BUILD_KERNEL_5_4)
 SOONG_CONFIG_meson_hwc_enable_uvm_dettach := $(HWC_UVM_DETTACH)
 
 #$(warning "the value of version_s: $(HWC_ANDROID_S)")
+$(warning "the value of uvm_dettach: $(HWC_UVM_DETTACH)")
