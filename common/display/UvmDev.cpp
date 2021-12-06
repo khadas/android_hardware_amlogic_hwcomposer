@@ -44,8 +44,6 @@ int UvmDev::commitDisplay(const int fd, const int commit) {
     return 0;
 }
 
-
-#ifdef HWC_UVM_DETTACH
 // dettach uvm hooked buffer
 int UvmDev::dettachBuffer(int fd) {
     struct uvm_hook_data hook_data = {
@@ -74,13 +72,3 @@ int UvmDev::attachBuffer(const int fd) {
 
     return 0;
 }
-
-#else
-int UvmDev::dettachBuffer(int fd __unused) {
-    return 0;
-}
-
-int UvmDev::attachBuffer(const int fd __unused) {
-    return 0;
-}
-#endif

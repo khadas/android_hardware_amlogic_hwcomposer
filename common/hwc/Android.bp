@@ -44,6 +44,7 @@ soong_config_module_type {
         "dynamic_switch_connector",
         "dynamic_swich_viu",
         "enable_vt_hwVsync",
+        "enable_uvm_dettach",
     ],
 
     properties: [
@@ -105,6 +106,10 @@ soong_config_bool_variable {
 
 soong_config_bool_variable {
     name: "enable_vt_hwVsync",
+}
+
+soong_config_bool_variable {
+    name: "enable_uvm_dettach",
 }
 
 meson_hwc_hwc_cc_defaults {
@@ -211,6 +216,9 @@ meson_hwc_hwc_cc_defaults {
         },
         enable_vt_hwVsync: {
             cflags: ["-DHWC_VT_HW_VSYNC"],
+        },
+        enable_uvm_dettach: {
+            cflags: ["-DHWC_UVM_DETTACH"],
         },
     },
 }
