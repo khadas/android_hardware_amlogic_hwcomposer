@@ -28,6 +28,14 @@ typedef enum {
     VT_VIDEO_STATUS_SHOW,
 } vt_video_display_status;
 
+class VtDisplayObserver {
+public:
+    VtDisplayObserver() {};
+    virtual ~VtDisplayObserver() {};
+    virtual void onFrameAvailable() = 0;
+    virtual void onVtVideoGameMode(bool enable) = 0;
+};
+
 class Hwc2Layer : public DrmFramebuffer {
 /*Interfaces for hwc2.0 api.*/
 public:
@@ -97,6 +105,8 @@ public:
     void onNeedShowTempBuffer(int colorType);
     void setVideoType(int videoType);
 
+    void setDisplayObserver(std::shared_ptr<VtDisplayObserver> observer);
+
 public:
     android_dataspace_t mDataSpace;
     hwc2_composition_t mHwcCompositionType;
@@ -157,6 +167,7 @@ protected:
     std::deque<VtBufferItem> mQueueItems;
     std::shared_ptr<VtConsumer> mVtConsumer;
     vt_video_display_status mVideoDisplayStatus;
+    std::shared_ptr<VtDisplayObserver> mDisplayObserver;
 
     std::shared_ptr<UvmDettach> mUvmDettach;
     int mPreUvmBufferFd;

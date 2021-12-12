@@ -494,8 +494,10 @@ int32_t MesonHwc2::setLayerSidebandStream(hwc2_display_t display,
     GET_HWC_DISPLAY(display);
     GET_HWC_LAYER(hwcDisplay, layer);
     ret = hwcLayer->setSidebandStream(stream);
-    if (ret == HWC2_ERROR_NONE)
+    if (ret == HWC2_ERROR_NONE) {
+        hwcLayer->setDisplayObserver(hwcDisplay);
         hwcDisplay->handleVtThread();
+    }
     return ret;
 }
 

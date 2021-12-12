@@ -43,6 +43,7 @@ Hwc2Display::Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer, uint32_t
     mDisplayConnection = true;
     mValidateDisplay = false;
     mVsyncState = false;
+    mGameMode=false;
     mScaleValue = 1;
     mPresentFence = -1;
     mVideoTunnelThread = nullptr;
@@ -1710,6 +1711,19 @@ bool Hwc2Display::setFrameRateHint(std::string value) {
 }
 
 /*******************Video Tunnel API below*******************/
+void Hwc2Display::onFrameAvailable() {
+    if (mGameMode == true) {
+        // flash video
+        // mVideoTunnelThread->doFlash();
+        return;
+    }
+}
+
+void Hwc2Display::onVtVideoGameMode(bool enable) {
+    mGameMode = enable;
+}
+
+
 void Hwc2Display::handleVtThread() {
     bool haveVtLayer = false;
 

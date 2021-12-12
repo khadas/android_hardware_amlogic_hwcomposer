@@ -49,7 +49,7 @@ public:
 };
 
 class Hwc2Display
-    : public HwcDisplay, public HwcVsyncObserver {
+    : public HwcDisplay, public HwcVsyncObserver, public VtDisplayObserver {
 public:
     Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer, uint32_t display);
     virtual ~Hwc2Display();
@@ -153,6 +153,8 @@ public:
     /* recieve videotunnel cmds */
     virtual int recieveVtCmds();
     virtual bool newGameBuffer();
+    virtual void onFrameAvailable();
+    virtual void onVtVideoGameMode(bool enable);
 
 /* meson display ddk */
 public:
@@ -254,6 +256,7 @@ protected:
     /* for video tunnel mode video*/
     std::shared_ptr<VideoTunnelThread> mVideoTunnelThread;
     std::shared_ptr<HwcVsync> mVtVsync;
+    bool mGameMode;
     bool mVtVsyncStatus;
     bool mDisplayConnection;
     bool mOutsideChanged;

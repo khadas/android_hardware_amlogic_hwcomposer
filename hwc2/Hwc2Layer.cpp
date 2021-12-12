@@ -43,6 +43,8 @@ Hwc2Layer::Hwc2Layer() : DrmFramebuffer(){
     mQueueItems.clear();
 
     mPreUvmBufferFd = -1;
+
+    mDisplayObserver = nullptr;
 }
 
 Hwc2Layer::~Hwc2Layer() {
@@ -783,6 +785,14 @@ int32_t Hwc2Layer::getSolidColorBuffer() {
 }
 
 /* ======================== videotunnel api ================================= */
+void Hwc2Layer::setDisplayObserver(std::shared_ptr<VtDisplayObserver> observer) {
+    std::lock_guard<std::mutex> lock(mMutex);
+    if (!isVtBuffer() || mDisplayObserver.get())
+        return;
+
+    mDisplayObserver = observer;
+}
+
 int32_t Hwc2Layer::registerConsumer() {
     int32_t ret = -1;
 
@@ -989,6 +999,7 @@ int32_t Hwc2Layer::onVtFrameAvailable(
             mExpectedPresentTime, diffAdded,
             shouldPresentNow(mTimestamp), mQueueItems.size());
 
+    mDisplayObserver->onFrameAvailable();
     return 0;
 }
 
@@ -1012,6 +1023,7 @@ void Hwc2Layer::onVtVideoGameMode(int data) {
         mGameMode = (data == 1 ? true : false);
         MESON_LOGD("[%s] [%" PRIu64 "] %s video game mode",
                 __func__, mId, mGameMode ? "enable" : "disable");
+        mDisplayObserver->onVtVideoGameMode(mGameMode);
     }
 }
 int32_t Hwc2Layer::getVtVideoStatus() {
