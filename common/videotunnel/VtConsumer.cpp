@@ -6,33 +6,26 @@
  *
  * Description:
  */
+#define LOG_NDEBUG 1
 
 #include "VtConsumer.h"
 
-VtConsumer::VtConsumer(int tunnelId) {
+VtConsumer::VtConsumer(int tunnelId, uint32_t layerId) {
     mTunnelId = tunnelId;
-    mReleaseListener = NULL;
-    mContentListener = NULL;
+    mReleaseListener = nullptr;
+    mContentListener = nullptr;
+    snprintf(mName, 64, "VtConsumer-%d-%u", tunnelId, layerId);
 }
 
 VtConsumer::~VtConsumer() {
-    if (mReleaseListener.get())
-        mReleaseListener.reset();
-
-    if (mContentListener.get())
-        mContentListener.reset();
 }
 
-int32_t VtConsumer::setReleaseListener(
-        std::shared_ptr<VtReleaseListener> &listener) {
-    if (!listener.get()) {
-        MESON_LOGE("%s, [%d] set release listener is null",
-                __func__, mTunnelId);
+int32_t VtConsumer::setReleaseListener(VtReleaseListener *listener) {
+    if (!listener) {
+        MESON_LOGE("[%s] [%s] set release listener is null",
+                __func__, mName);
         return -1;
     }
-
-    if (mReleaseListener.get())
-        mReleaseListener.reset();
 
     mReleaseListener = listener;
 
@@ -42,8 +35,8 @@ int32_t VtConsumer::setReleaseListener(
 int32_t VtConsumer::setVtContentListener(
         std::shared_ptr<VtContentListener> &listener) {
     if (!listener.get()) {
-        MESON_LOGE("%s, [%d] set content listener is null",
-                __func__, mTunnelId);
+        MESON_LOGE("[%s] [%s] set content listener is null",
+                __func__, mName);
         return -1;
     }
 
@@ -57,15 +50,14 @@ int32_t VtConsumer::setVtContentListener(
 
 int32_t VtConsumer::onVtCmds(vt_cmd_t & cmd, vt_cmd_data_t & cmdData) {
     if (!mContentListener.get()) {
-        MESON_LOGE("%s, [%d] not found content listener",
-                __func__, mTunnelId);
+        MESON_LOGE("[%s] [%s] not found content listener", __func__, mName);
         return -1;
     }
 
     switch (cmd) {
         case VT_CMD_SET_VIDEO_STATUS:
-            MESON_LOGV("%s, [%d] received VT_CMD_SET_VIDEO_STATUS",
-                    __func__, mTunnelId);
+            MESON_LOGV("[%s] [%s] received VT_CMD_SET_VIDEO_STATUS %d",
+                    __func__, mName, cmdData.data);
             switch (cmdData.data) {
                 case 0:
                     mContentListener->onVideoHide();
@@ -77,39 +69,39 @@ int32_t VtConsumer::onVtCmds(vt_cmd_t & cmd, vt_cmd_data_t & cmdData) {
                     mContentListener->onVideoShow();
                     break;
                 default:
-                    MESON_LOGW("%s, [%d] get an invalid parameter(%d) for "
+                    MESON_LOGW("[%s] [%s] get an invalid parameter(%d) for "
                             "cmd VT_CMD_SET_VIDEO_STATUS",
-                            __func__, mTunnelId, cmdData.data);
+                            __func__, mName, cmdData.data);
             }
             break;
         case VT_CMD_GET_VIDEO_STATUS:
-            MESON_LOGV("%s, [%d] received cmd VT_CMD_GET_VIDEO_STATUS",
-                    __func__, mTunnelId);
+            MESON_LOGV("[%s] [%s] received cmd VT_CMD_GET_VIDEO_STATUS",
+                    __func__, mName);
             break;
         case VT_CMD_SET_GAME_MODE:
-            MESON_LOGV("%s, [%d] received cmd VT_CMD_SET_GAME_MODE",
-                    __func__, mTunnelId);
+            MESON_LOGV("[%s] [%s] received cmd VT_CMD_SET_GAME_MODE",
+                    __func__, mName);
             mContentListener->onVideoGameMode(cmdData.data);
             break;
         case VT_CMD_SET_SOURCE_CROP:
-            MESON_LOGV("%s, [%d] received cmd VT_CMD_SET_VIDEO_STATUS(%d %d %d %d)",
-                    __func__, mTunnelId, cmdData.crop.left, cmdData.crop.top,
+            MESON_LOGV("[%s] [%s] received cmd VT_CMD_SET_VIDEO_STATUS(%d %d %d %d)",
+                    __func__, mName, cmdData.crop.left, cmdData.crop.top,
                     cmdData.crop.right, cmdData.crop.bottom);
             mContentListener->onSourceCropChange(cmdData.crop);
             break;
         case VT_CMD_SET_SOLID_COLOR_BUF:
-            MESON_LOGV("%s, [%d] received cmd VT_CMD_SET_SOLID_COLOR_BUF %d",
-                    __func__, mTunnelId, cmdData.data);
+            MESON_LOGV("[%s] [%s] received cmd VT_CMD_SET_SOLID_COLOR_BUF %d",
+                    __func__, mName, cmdData.data);
             mContentListener->onNeedShowTempBuffer(cmdData.data);
             break;
         case VT_CMD_SET_VIDEO_TYPE:
-            MESON_LOGV("%s, [%d] received cmd VT_CMD_SET_VIDEO_TYPE",
-                    __func__, mTunnelId);
+            MESON_LOGV("[%s] [%s] received cmd VT_CMD_SET_VIDEO_TYPE",
+                    __func__, mName);
             mContentListener->setVideoType(cmdData.data);
             break;
         default:
-            MESON_LOGW("%s, [%d] reveived an invalid CMD %d",
-                    __func__, mTunnelId, (int)cmd);
+            MESON_LOGW("[%s] [%s] reveived an invalid CMD %d",
+                    __func__, mName, (int)cmd);
             return -1;
     }
 
@@ -117,7 +109,9 @@ int32_t VtConsumer::onVtCmds(vt_cmd_t & cmd, vt_cmd_data_t & cmdData) {
 }
 
 int32_t VtConsumer::onVtFrameDisplayed(int bufferFd, int fenceFd) {
-    if (mReleaseListener.get()) {
+    MESON_LOGV("[%s] [%s] bufferFd=%d, fenceFd=%d",
+            __func__, mName, bufferFd, fenceFd);
+    if (mReleaseListener) {
         return mReleaseListener->onFrameDisplayed(bufferFd, fenceFd);
     } else {
         return -1;
@@ -126,6 +120,8 @@ int32_t VtConsumer::onVtFrameDisplayed(int bufferFd, int fenceFd) {
 
 int32_t VtConsumer::onFrameAvailable(
         std::vector<std::shared_ptr<VtBufferItem>> & items) {
+    MESON_LOGV("[%s] [%s] items.size=%d",
+            __func__, mName, items.size());
     if (mContentListener.get()) {
         return mContentListener->onFrameAvailable(items);
     } else {

@@ -33,7 +33,7 @@ public:
     /*Compose flow*/
     hwc2_error_t validateDisplay(uint32_t* outNumTypes,
         uint32_t* outNumRequests);
-    hwc2_error_t presentDisplay(int32_t* outPresentFence, bool sf = true);
+    hwc2_error_t presentDisplay(int32_t* outPresentFence);
     hwc2_error_t acceptDisplayChanges();
     hwc2_error_t getChangedCompositionTypes(
         uint32_t* outNumElements, hwc2_layer_t* outLayers,

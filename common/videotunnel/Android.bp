@@ -22,6 +22,7 @@ cc_library_static {
         "VtConsumer.cpp",
         "VtInstance.cpp",
         "VtInstanceMgr.cpp",
+        "VtHandleEventsThread.cpp",
     ],
 
     static_libs: [

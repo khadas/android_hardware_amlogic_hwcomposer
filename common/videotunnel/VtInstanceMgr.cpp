@@ -7,6 +7,10 @@
  * Description:
  */
 
+#define LOG_NDEBUG 1
+
+#include <unistd.h>
+
 #include "VtInstanceMgr.h"
 #include "VideoTunnelDev.h"
 
@@ -14,10 +18,13 @@ ANDROID_SINGLETON_STATIC_INSTANCE(VtInstanceMgr)
 
 VtInstanceMgr::VtInstanceMgr() {
     mInstances.clear();
+    mVtHandleEventsThread = nullptr;
 }
 
 VtInstanceMgr::~VtInstanceMgr() {
     mInstances.clear();
+    if (mVtHandleEventsThread)
+        mVtHandleEventsThread->stopThread();
 }
 
 /* call from consumer */
@@ -41,7 +48,7 @@ int32_t VtInstanceMgr::connectInstance(int tunnelId,
                 __func__, tunnelId, ret);
             return ret;
          }
-         mInstances.emplace(tunnelId, std::move(ptrInstance));
+         mInstances.emplace(tunnelId, ptrInstance);
     } else {
         ptrInstance = instanceIt->second;
     }
@@ -54,14 +61,17 @@ int32_t VtInstanceMgr::connectInstance(int tunnelId,
         MESON_LOGD("%s, [%d] connect video composer successed",
             __func__, tunnelId);
 
+    if (!mVtHandleEventsThread) {
+        mVtHandleEventsThread = std::make_shared<VtHandleEventsThread>();
+    }
     return ret;
 }
 
 /* call from consumer */
 int32_t VtInstanceMgr::disconnectInstance(int tunnelId,
         std::shared_ptr<VtConsumer> & consumer) {
-    std::lock_guard<std::mutex> lock(mMutex);
     int ret = -1;
+    bool need_distroy_thread = false;
     std::shared_ptr<VtInstance> ptrInstance;
 
     if (tunnelId < 0 || !consumer.get()) {
@@ -69,22 +79,38 @@ int32_t VtInstanceMgr::disconnectInstance(int tunnelId,
             __func__, tunnelId);
         return ret;
     }
-    if (mInstances.empty()) {
-        MESON_LOGW("%s, [%d] currently not found instance",
-            __func__, tunnelId);
-        return ret;
+
+    {
+        std::lock_guard<std::mutex> lock(mMutex);
+        if (mInstances.empty()) {
+            MESON_LOGW("%s, [%d] currently not found instance",
+                __func__, tunnelId);
+            return ret;
+        }
+
+        auto instanceIt = mInstances.find(tunnelId);
+        if (instanceIt != mInstances.end()) {
+            ptrInstance = instanceIt->second;
+            ret = ptrInstance->unregisterVtConsumer(consumer);
+            if (ret < 0)
+                MESON_LOGE("%s, [%d] unregister consumer failed: %d",
+                    __func__, tunnelId, ret);
+            if (ptrInstance->needDestroyThisInstance()) {
+                MESON_LOGD("%s, destory instance %d successed", __func__, tunnelId);
+                mInstances.erase(tunnelId);
+            }
+        }
+
+        if (mInstances.empty() && mVtHandleEventsThread)
+            need_distroy_thread = true;
     }
 
-    auto instanceIt = mInstances.find(tunnelId);
-    if (instanceIt != mInstances.end()) {
-        ptrInstance = instanceIt->second;
-        ret = ptrInstance->unregisterVtConsumer(consumer);
-        if (ret < 0)
-            MESON_LOGE("%s, [%d] unregister consumer failed: %d",
-                __func__, tunnelId, ret);
+    if (need_distroy_thread) {
+        MESON_LOGD("%s, all the instances are released,  stop handEventsThread", __func__);
+        mVtHandleEventsThread->stopThread();
+        mVtHandleEventsThread.reset();
+        mVtHandleEventsThread = nullptr;
     }
-
-    tryDestroyInstanceLocked(tunnelId);
 
     return ret;
 }
@@ -109,30 +135,10 @@ void VtInstanceMgr::clearUpInstances() {
     }
 }
 
-bool VtInstanceMgr::tryDestroyInstanceLocked(int tunnelId) {
-    std::shared_ptr<VtInstance> ptrInstance;
-    std::map<int, std::shared_ptr<VtInstance>>::iterator it;
+VideoTunnelDev::VtPollStatus VtInstanceMgr::pollVtEvents() {
+    VideoTunnelDev::VtPollStatus ret;
 
-    it = mInstances.find(tunnelId);
-    if (it != mInstances.end()) {
-        ptrInstance = it->second;
-        if (ptrInstance->needDestroyThisInstance()) {
-            mInstances.erase(tunnelId);
-            MESON_LOGD("%s, destory instance %d successed", __func__, tunnelId);
-            return true;
-        } else {
-            MESON_LOGV("%s, instance %d have valid consumer", __func__, tunnelId);
-        }
-    } else
-        MESON_LOGW("%s, cannot find %d instance", __func__, tunnelId);
-
-    return false;
-}
-
-int32_t VtInstanceMgr::pollVtCmds() {
-    int32_t ret;
-
-    ret = VideoTunnelDev::getInstance().pollCmds();
+    ret = VideoTunnelDev::getInstance().pollBufferAndCmds();
 
     return ret;
 }

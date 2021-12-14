@@ -31,7 +31,8 @@ public:
 	void updateComposition();
 
     int decideComposition();
-    int commit(bool sf = true);
+    int commit(bool sf);
+    int commmitVtVideo();
     void dump(String8 & dumpstr);
 
 protected:

@@ -79,9 +79,7 @@ public:
     bool isVtBuffer() override;
     bool isFbUpdated() override;
     int32_t getVtBuffer() override;
-    int32_t acquireVtBuffer() override;
     int32_t releaseVtBuffer() override;
-    int32_t recieveVtCmds() override;
     int32_t releaseVtResource();
     void setPresentTime(nsecs_t expectedPresentTime);
     bool shouldPresentNow(nsecs_t timestamp);
@@ -91,12 +89,10 @@ public:
 
     int32_t registerConsumer();
     int32_t unregisterConsumer();
-    // TODO: VIDEOTUNNL: need fix funcName when remove old videotunnel
-    int32_t releaseVtResource_new();
     bool isVtNeedClearLastFrame();
     bool isVtNeedHideVideo();
     int32_t onVtFrameAvailable(std::vector<std::shared_ptr<VtBufferItem>> & items);
-    void onVtFrameDisplayed(int bufferFd, int fenceFd);
+    int32_t onVtFrameDisplayed(int bufferFd, int fenceFd);
     void onVtVideoHide();
     void onVtVideoBlank();
     void onVtVideoShow();
@@ -137,7 +133,7 @@ public:
 
 protected:
     hwc2_error_t handleDimLayer(buffer_handle_t buffer);
-    int32_t doReleaseVtResource(bool needDisconnect = true);
+    int32_t releaseVtResourceLocked(bool needDisconnect = true);
     bool isVtBufferLocked() override;
 
     /* for NR */
@@ -153,6 +149,8 @@ protected:
 
 protected:
     bool mUpdateZorder;
+    bool mVtRefreshed;
+    bool mEnableSolidColor;
 
     bool mGameMode;
     bool mVtUpdate;
@@ -163,13 +161,11 @@ protected:
     int mPreVtBufferFd;
     int mAMVideoType;
     int32_t mQueuedFrames;
-
     int64_t mTimestamp;
     nsecs_t mExpectedPresentTime;
-    bool mVtRefreshed;
-    bool mEnableSolidColor;
     nsecs_t mPreviousTimestamp;
     std::deque<VtBufferItem> mQueueItems;
+    std::shared_ptr<VtConsumer::VtContentListener> mContentListener;
     std::shared_ptr<VtConsumer> mVtConsumer;
     vt_video_display_status mVideoDisplayStatus;
     std::shared_ptr<VtDisplayObserver> mDisplayObserver;

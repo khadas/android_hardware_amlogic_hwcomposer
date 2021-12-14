@@ -16,6 +16,9 @@
 #include <video_tunnel.h>
 #include "VtConsumer.h"
 #include "VtInstance.h"
+#include "VtHandleEventsThread.h"
+#include "VideoTunnelDev.h"
+
 
 class VtInstanceMgr : public android::Singleton<VtInstanceMgr> {
 public:
@@ -25,14 +28,14 @@ public:
     int32_t connectInstance(int tunnelId, std::shared_ptr<VtConsumer> & consumer);
     int32_t disconnectInstance(int tunnelId, std::shared_ptr<VtConsumer> & consumer);
     void clearUpInstances();
-    bool tryDestroyInstanceLocked(int tunnelId);
 
-    int32_t pollVtCmds();
+    VideoTunnelDev::VtPollStatus pollVtEvents();
     int32_t handleBuffers();
     int32_t handleCmds();
 
 private:
     std::map<int, std::shared_ptr<VtInstance>> mInstances;
+    std::shared_ptr<VtHandleEventsThread> mVtHandleEventsThread;
     std::mutex mMutex;
 };
 
