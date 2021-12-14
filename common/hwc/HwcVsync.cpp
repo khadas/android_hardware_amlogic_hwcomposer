@@ -110,6 +110,9 @@ int32_t HwcVsync::setEnabled(bool enabled) {
 int32_t HwcVsync::setVideoTunnelEnabled(bool enabled) {
     std::unique_lock<std::mutex> stateLock(mStatLock);
     mVTEnabled = enabled;
+
+    if (mMixVsync == true)
+        mMixRebase = true;
     stateLock.unlock();
     mStateCondition.notify_all();
     return 0;
