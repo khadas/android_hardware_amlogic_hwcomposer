@@ -96,7 +96,7 @@ hwc2_error_t VirtualDisplay::validateDisplay(uint32_t* outNumTypes,
     return HWC2_ERROR_NONE;
 }
 
-hwc2_error_t VirtualDisplay::presentDisplay(int32_t* outPresentFence, bool sf __unused) {
+hwc2_error_t VirtualDisplay::presentDisplay(int32_t* outPresentFence) {
     std::shared_ptr<DrmFence> fence = DrmFence::merge("virtual-present",
         mOutputFence, mClientFence);
     *outPresentFence = fence->dup();

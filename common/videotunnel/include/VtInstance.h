@@ -30,7 +30,7 @@ public:
     void disconnect();
     int32_t acquireBuffer();
     void releaseBufferLocked(std::shared_ptr<VtBufferItem> & item);
-    void releaseBuffers();
+    void releaseInstanceBuffers();
     int32_t recieveCmds();
     void setReleaseFence();
 
@@ -45,7 +45,8 @@ private:
     //std::shared_ptr<BitsMap> mSlotBitmap;
     std::mutex mMutex;
 
-    // todo need define vtBuffer?
+    char mName[64];
+
 };
 
 #endif  /* MESON_VT_INSTANCE_H */

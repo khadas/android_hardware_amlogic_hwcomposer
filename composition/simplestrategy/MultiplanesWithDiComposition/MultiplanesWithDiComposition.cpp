@@ -1401,7 +1401,7 @@ int MultiplanesWithDiComposition::commit(bool sf) {
 
         /*vt layer will send black frame or disable vc when buffer is invalid */
         if (fb->isVtBuffer() && (fb->getVtBuffer() < 0)) {
-            if (fb->isVtNeedClearLastFrame())
+            if (fb->isVtNeedClearLastFrame() || fb->isVtNeedHideVideo())
                 blankFlag = BLANK_FOR_NO_CONTENT;
             else
                 blankFlag = UNBLANK;
@@ -1412,7 +1412,7 @@ int MultiplanesWithDiComposition::commit(bool sf) {
         /* make sure SF donot refresh VtLayer and VT only refresh VtLayer*/
         if ((sf && !fb->isVtBuffer()) || (!sf && fb->isVtBuffer() && (fb->getVtBuffer() >= 0))) {
             int ret = -1;
-            if (fb->isVtNeedClearLastFrame())
+            if (fb->isVtNeedClearLastFrame() || fb->isVtNeedHideVideo())
                 blankFlag = BLANK_FOR_NO_CONTENT;
 
             if (!runProcessor(*displayIt, blankFlag, ret))

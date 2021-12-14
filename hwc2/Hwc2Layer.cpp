@@ -226,20 +226,20 @@ hwc2_error_t Hwc2Layer::setSidebandStream(const native_handle_t* stream) {
 
         if (mTunnelId != channel_id) {
             if (mTunnelId >= 0) {
-                doReleaseVtResource();
+                releaseVtResourceLocked();
             }
+            mTunnelId = channel_id;
 
-            int ret = VideoTunnelDev::getInstance().connect(channel_id);
-            //mVtConsumer = std::make_shared<VtConsumer> (channel_id);
+            int ret = registerConsumer();
             if (ret >= 0) {
-                MESON_LOGD("%s [%" PRId64 "] connect to videotunnel %d successed", __func__, mId, channel_id);
+                MESON_LOGD("%s [%" PRId64 "] register consumer for videotunnel %d successed",
+                    __func__, mId, channel_id);
                 mQueuedFrames = 0;
                 mQueueItems.clear();
-                mTunnelId = channel_id;
                 getSolidColorBuffer();
                 mVtUpdate = true;
             } else {
-                MESON_LOGE("%s [%" PRId64 "] connect to videotunnel %d failed, error %d",
+                MESON_LOGE("%s [%" PRId64 "] register consumer for videotunnel %d failed, error %d",
                         __func__, mId, channel_id, ret);
                 mTunnelId = -1;
                 return HWC2_ERROR_BAD_PARAMETER;
@@ -375,6 +375,48 @@ void Hwc2Layer::clearUpdateFlag() {
         releaseVtResource();
 }
 
+/* ========================== Uvm Attach =================================== */
+/* just for non-tunnel type video */
+int32_t Hwc2Layer::attachUvmBuffer(const int bufferFd) {
+    if (!mUvmDettach)
+        mUvmDettach = std::make_shared<UvmDettach>(mId);
+
+    return mUvmDettach->attachUvmBuffer(bufferFd);
+}
+
+int32_t Hwc2Layer::dettachUvmBuffer() {
+    if (mUvmDettach)
+        return mUvmDettach->dettachUvmBuffer();
+
+    return 0;
+}
+
+int32_t Hwc2Layer::collectUvmBuffer(const int fd, const int fence) {
+    if (mUvmDettach)
+        return mUvmDettach->collectUvmBuffer(fd, fence);
+
+    return 0;
+}
+
+int32_t Hwc2Layer::releaseUvmResourceLock() {
+    if (mPreUvmBufferFd >= 0)
+        close(mPreUvmBufferFd);
+    mPreUvmBufferFd = -1;
+
+    if (mUvmDettach)
+        return mUvmDettach->releaseUvmResource();
+
+    return 0;
+}
+
+int32_t Hwc2Layer::releaseUvmResource() {
+    std::lock_guard<std::mutex> lock(mMutex);
+
+    return releaseUvmResourceLock();
+}
+/* ========================= End Uvm Attach ================================= */
+
+/* ======================== videotunnel api ================================= */
 bool Hwc2Layer::isVtBuffer() {
     std::lock_guard<std::mutex> lock(mMutex);
     return mFbType == DRM_FB_VIDEO_TUNNEL_SIDEBAND;
@@ -411,93 +453,25 @@ int32_t Hwc2Layer::getVtBuffer() {
     return ret;
 }
 
-int32_t Hwc2Layer::acquireVtBuffer() {
-    ATRACE_CALL();
-    std::lock_guard<std::mutex> lock(mMutex);
-    if (!isVtBufferLocked()) {
-        MESON_LOGE("[%s] [%" PRIu64 "] not videotunnel type", __func__, mId);
-        return -EINVAL;
+void Hwc2Layer::freeSolidColorBuffer() {
+    if (mSolidColorBufferfd >= 0) {
+        close(mSolidColorBufferfd);
+        mSolidColorBufferfd = -1;
+    }
+}
+
+int32_t Hwc2Layer::getSolidColorBuffer() {
+    /* will send a colorFrame to VC when get a null VT buffer
+     * at the beginning */
+    if (mSolidColorBufferfd < 0) {
+        int fd = gralloc_get_solid_color_buf_fd(SET_VIDEO_TO_BLACK);
+
+        if (fd >= 0)
+            mSolidColorBufferfd = dup(fd);
     }
 
-    if (mTunnelId < 0) {
-        MESON_LOGE("[%s] [%" PRIu64 "] mTunelId  %d error", __func__, mId, mTunnelId);
-        return -EINVAL;
-    }
-
-    // acquire all the buffer that is available
-    while (true) {
-        int vtBufferFd = -1;
-        int64_t vtTimestamp = -1;
-        int ret = VideoTunnelDev::getInstance().acquireBuffer(mTunnelId,
-                vtBufferFd, vtTimestamp);
-
-        if (ret == 0) {
-            VtBufferItem item = {vtBufferFd, vtTimestamp};
-            mQueueItems.push_back(item);
-            mQueuedFrames++;
-            attachUvmBuffer(vtBufferFd);
-        } else {
-            // has no buffer available
-            break;
-        }
-    }
-
-    if (mQueueItems.empty())
-        return -EAGAIN;
-
-    dettachUvmBuffer();
-
-    [[maybe_unused]] nsecs_t diffAdded = 0;
-
-    /*
-     * getVtBuffer might drop the some buffers at the head of the queue
-     * if there is a buffer behind them which is timely to be presented.
-     */
-    int expiredItemCount = 0;
-    for (auto it = mQueueItems.begin(); it != mQueueItems.end(); it++) {
-        if (it->mTimeStamp > 0 &&  shouldPresentNow(it->mTimeStamp)) {
-            expiredItemCount++;
-        }
-    }
-
-    // drop expiredItemCount-1 buffers
-    int dropCount = expiredItemCount - 1;
-    ATRACE_INT64("Hwc2Layer:DropCount", dropCount);
-
-    while (dropCount > 0) {
-        auto item = mQueueItems.front();
-
-        diffAdded = item.mTimeStamp - mPreviousTimestamp;
-        mPreviousTimestamp = item.mTimeStamp;
-
-        int releaseFence = -1;
-        collectUvmBuffer(dup(item.mVtBufferFd), releaseFence);
-        VideoTunnelDev::getInstance().releaseBuffer(mTunnelId, item.mVtBufferFd, releaseFence);
-        mQueuedFrames--;
-
-        MESON_LOGD("[%s] [%" PRIu64 "] vt buffer fd(%d) with timestamp(%" PRId64 ") expired droped "
-                "expectedPresent time(%" PRId64 ") diffAdded(%" PRId64 ") queuedFrames(%d)",
-                __func__, mId, item.mVtBufferFd, item.mTimeStamp,
-                mExpectedPresentTime, diffAdded, mQueuedFrames);
-        mQueueItems.pop_front();
-        dropCount--;
-    }
-
-    // update current mVtBuffer
-    mVtUpdate = true;
-    mVtBufferFd = mQueueItems[0].mVtBufferFd;
-    mTimestamp = mQueueItems[0].mTimeStamp;
-
-    diffAdded = mTimestamp - mPreviousTimestamp;
-    mPreviousTimestamp = mTimestamp;
-
-    MESON_LOGV("[%s] [%" PRIu64 "] mVtBufferFd(%d) timestamp (%" PRId64 " us) expectedPresentTime(%"
-            PRId64 " us) diffAdded(%" PRId64 " us) shouldPresent:%d, queueFrameSize:%zu",
-            __func__, mId, mVtBufferFd, mTimestamp,
-            mExpectedPresentTime, diffAdded,
-            shouldPresentNow(mTimestamp), mQueueItems.size());
-
-    return 0;
+    mVtUpdate = false;
+    return mSolidColorBufferfd;
 }
 
 int32_t Hwc2Layer::releaseVtBuffer() {
@@ -543,8 +517,7 @@ int32_t Hwc2Layer::releaseVtBuffer() {
     int releaseFence = getPrevReleaseFence();
     collectUvmBuffer(dup(mPreVtBufferFd), dup(releaseFence));
 
-    int ret = VideoTunnelDev::getInstance().releaseBuffer(mTunnelId,
-            mPreVtBufferFd, releaseFence);
+    int32_t ret = onVtFrameDisplayed(mPreVtBufferFd, releaseFence);
     mQueuedFrames--;
 
 
@@ -563,73 +536,18 @@ int32_t Hwc2Layer::releaseVtBuffer() {
     return ret;
 }
 
-int32_t Hwc2Layer::recieveVtCmds() {
-    ATRACE_CALL();
-    std::lock_guard<std::mutex> lock(mMutex);
-    if (!isVtBufferLocked())
-        return -EINVAL;
-
-    enum vt_cmd cmd;
-    struct vt_cmd_data cmdData;
-
-    int ret = VideoTunnelDev::getInstance().recieveCmd(mTunnelId, cmd, cmdData);
-    if (ret < 0)
-        return ret;
-
-    MESON_LOGD("recv videotunnel [%d] cmd=%d", mTunnelId, cmd);
-    if (cmd == VT_CMD_SET_SOURCE_CROP)
-        MESON_LOGD("recv source crop:(%d %d %d %d)",
-                cmdData.crop.left, cmdData.crop.top, cmdData.crop.right, cmdData.crop.bottom);
-    else
-        MESON_LOGD("recv cmdData: %d", cmdData.data);
-
-    ret = 0;
-    // process the cmd
-    switch (cmd) {
-        case VT_CMD_SET_VIDEO_STATUS:
-            // disable video cmd
-            if (cmdData.data == 1) {
-                // release all the vt release
-                doReleaseVtResource(false);
-                ret |= VT_CMD_DISABLE_VIDEO;
-                mVideoDisplayStatus = VT_VIDEO_STATUS_CLEAR_LAST_FRAME;
-            }
-            break;
-        case VT_CMD_SET_GAME_MODE:
-            if (cmdData.data == 1) {
-                ret |= VT_CMD_GAME_MODE_ENABLE;
-                mGameMode = true;
-            } else if (cmdData.data == 0) {
-                ret |= VT_CMD_GAME_MODE_DISABLE;
-                mGameMode = false;
-            }
-            MESON_LOGD("recv cmds mGameMode:%d", mGameMode);
-            break;
-        case VT_CMD_SET_SOURCE_CROP:
-            mVtSourceCrop.left = cmdData.crop.left;
-            mVtSourceCrop.top = cmdData.crop.top;
-            mVtSourceCrop.right = cmdData.crop.right;
-            mVtSourceCrop.bottom = cmdData.crop.bottom;
-            break;
-        default:
-            MESON_LOGE("Not supported videoTunnel [%d] cmd:%d", mTunnelId, cmd);
-    }
-
-    return ret;
-}
-
 int32_t Hwc2Layer::releaseVtResource() {
-    ATRACE_CALL();
+    /* layer will destroy or layer FbType changed to non-videotunnel */
     std::lock_guard<std::mutex> lock(mMutex);
-    return doReleaseVtResource();
+    return releaseVtResourceLocked();
 }
 
-int32_t Hwc2Layer::doReleaseVtResource(bool needDisconnect) {
+int32_t Hwc2Layer::releaseVtResourceLocked(bool needDisconnect) {
+    ATRACE_CALL();
     if (isVtBufferLocked() || mNeedReleaseVtResource) {
         MESON_LOGV("[%s] [%" PRIu64 "]", __func__, mId);
         if (mPreVtBufferFd >= 0) {
-            VideoTunnelDev::getInstance().releaseBuffer(mTunnelId,
-                    mPreVtBufferFd, getPrevReleaseFence());
+            onVtFrameDisplayed(mPreVtBufferFd, getPrevReleaseFence());
             mQueuedFrames--;
             MESON_LOGV("[%s] [%" PRIu64 "] release(%d) queuedFrames(%d)",
                     __func__, mId, mPreVtBufferFd, mQueuedFrames);
@@ -639,8 +557,7 @@ int32_t Hwc2Layer::doReleaseVtResource(bool needDisconnect) {
         // when videocomposer is disabled. Now set it to -1. And releaseVtResource
         // delay to clearUpdateFlag() when receive blank frame.
         if (mVtBufferFd >= 0) {
-            VideoTunnelDev::getInstance().releaseBuffer(mTunnelId,
-                    mVtBufferFd, getPrevReleaseFence());
+            onVtFrameDisplayed(mVtBufferFd, getPrevReleaseFence());
             mQueuedFrames--;
             MESON_LOGV("[%s] [%" PRIu64 "] release(%d) queudFrames(%d)",
                     __func__, mId, mVtBufferFd, mQueuedFrames);
@@ -649,8 +566,7 @@ int32_t Hwc2Layer::doReleaseVtResource(bool needDisconnect) {
 
         // release the buffers in mQueueItems
         for (auto it = mQueueItems.begin(); it != mQueueItems.end(); it++) {
-            VideoTunnelDev::getInstance().releaseBuffer(mTunnelId,
-                    it->mVtBufferFd, -1);
+            onVtFrameDisplayed(it->mVtBufferFd, -1);
             mQueuedFrames--;
             MESON_LOGV("[%s] [%" PRIu64 "] release(%d) queuedFrames(%d)",
                     __func__, mId, it->mVtBufferFd, mQueuedFrames);
@@ -666,15 +582,9 @@ int32_t Hwc2Layer::doReleaseVtResource(bool needDisconnect) {
         if (mTunnelId >= 0 && needDisconnect) {
             MESON_LOGD("[%s] [%" PRIu64 "] Hwc2Layer release disconnect(%d) queuedFrames(%d)",
                     __func__, mId, mTunnelId, mQueuedFrames);
-            if (mGameMode)
-                VideoTunnelDev::getInstance().setNonBlockMode();
-
-            memset(&mVtSourceCrop, 0, sizeof(mVtSourceCrop));
-            VideoTunnelDev::getInstance().disconnect(mTunnelId);
-            mTunnelId = -1;
+            unregisterConsumer();
         }
 
-        mGameMode = false;
         mQueuedFrames = 0;
         mNeedReleaseVtResource = false;
     }
@@ -722,78 +632,16 @@ bool Hwc2Layer::newGameBuffer() {
     return false;
 }
 
-/* ========================== Uvm Attach =================================== */
-/* just for non-tunnel type video */
-int32_t Hwc2Layer::attachUvmBuffer(const int bufferFd) {
-    if (!mUvmDettach)
-        mUvmDettach = std::make_shared<UvmDettach>(mId);
-
-    return mUvmDettach->attachUvmBuffer(bufferFd);
-}
-
-int32_t Hwc2Layer::dettachUvmBuffer() {
-    if (mUvmDettach)
-        return mUvmDettach->dettachUvmBuffer();
-
-    return 0;
-}
-
-int32_t Hwc2Layer::collectUvmBuffer(const int fd, const int fence) {
-    if (mUvmDettach)
-        return mUvmDettach->collectUvmBuffer(fd, fence);
-
-    return 0;
-}
-
-int32_t Hwc2Layer::releaseUvmResourceLock() {
-    if (mPreUvmBufferFd >= 0)
-        close(mPreUvmBufferFd);
-    mPreUvmBufferFd = -1;
-
-    if (mUvmDettach)
-        return mUvmDettach->releaseUvmResource();
-
-    return 0;
-}
-
-int32_t Hwc2Layer::releaseUvmResource() {
-    std::lock_guard<std::mutex> lock(mMutex);
-
-    return releaseUvmResourceLock();
-}
-/* ========================= End Uvm Attach ================================= */
-
-void Hwc2Layer::freeSolidColorBuffer() {
-    if (mSolidColorBufferfd >= 0) {
-        close(mSolidColorBufferfd);
-        mSolidColorBufferfd = -1;
-    }
-}
-
-int32_t Hwc2Layer::getSolidColorBuffer() {
-    /* will send a colorFrame to VC when get a null VT buffer
-     * at the beginning */
-    if (mSolidColorBufferfd < 0) {
-        int fd = gralloc_get_solid_color_buf_fd(SET_VIDEO_TO_BLACK);
-
-        if (fd >= 0)
-            mSolidColorBufferfd = dup(fd);
-    }
-
-    mVtUpdate = false;
-    return mSolidColorBufferfd;
-}
-
-/* ======================== videotunnel api ================================= */
 void Hwc2Layer::setDisplayObserver(std::shared_ptr<VtDisplayObserver> observer) {
     std::lock_guard<std::mutex> lock(mMutex);
-    if (!isVtBuffer() || mDisplayObserver.get())
+    if (!isVtBufferLocked() || mDisplayObserver.get())
         return;
 
     mDisplayObserver = observer;
 }
 
 int32_t Hwc2Layer::registerConsumer() {
+    ATRACE_CALL();
     int32_t ret = -1;
 
     if (mTunnelId < 0) {
@@ -802,12 +650,22 @@ int32_t Hwc2Layer::registerConsumer() {
         return ret;
     }
 
-    if (!mVtConsumer.get())
-        mVtConsumer = std::make_shared<VtConsumer> (mTunnelId);
+	if (!mContentListener)
+        mContentListener = std::make_shared<VtContentChangeListener>(this);
+
+    if (mVtConsumer)
+		mVtConsumer.reset();
+
+    mVtConsumer = std::make_shared<VtConsumer> (mTunnelId, mId);
+    ret = mVtConsumer->setVtContentListener(mContentListener);
+    if (ret < 0) {
+        MESON_LOGE("[%s] [%" PRIu64 "] set %d content listener failed ",
+            __func__, mId, mTunnelId);
+        return ret;
+    }
 
     ret = VtInstanceMgr::getInstance().connectInstance(mTunnelId, mVtConsumer);
-
-    if (!ret)
+    if (ret >= 0)
         MESON_LOGD("[%s] [%" PRIu64 "] connect to instance %d seccussed",
             __func__, mId, mTunnelId);
     else
@@ -818,6 +676,7 @@ int32_t Hwc2Layer::registerConsumer() {
 }
 
 int32_t Hwc2Layer::unregisterConsumer() {
+    ATRACE_CALL();
     int32_t ret = -1;
 
     if (mTunnelId < 0) {
@@ -826,99 +685,58 @@ int32_t Hwc2Layer::unregisterConsumer() {
         return ret;
     }
 
-    if (!mVtConsumer.get()) {
-        MESON_LOGE("[%s] [%" PRIu64 "] consumer %d not create",
+    if (!mVtConsumer) {
+        MESON_LOGV("[%s] [%" PRIu64 "] consumer %d not create",
             __func__, mId, mTunnelId);
         return ret;
     }
 
-    releaseVtResource_new();
+    if (mGameMode)
+        VideoTunnelDev::getInstance().setNonBlockMode();
+    mGameMode = false;
+
+    memset(&mVtSourceCrop, 0, sizeof(mVtSourceCrop));
+
     ret = VtInstanceMgr::getInstance().disconnectInstance(mTunnelId, mVtConsumer);
+    mVtConsumer.reset();
+    mVtConsumer = nullptr;
 
     return ret;
-}
-
-// TODO: VIDEOTUNNL: need fix funcName when remove old videotunnel
-int32_t Hwc2Layer::releaseVtResource_new() {
-    if (isVtBufferLocked() || mNeedReleaseVtResource) {
-        MESON_LOGV("[%s] [%" PRIu64 "]", __func__, mId);
-        if (mPreVtBufferFd >= 0) {
-            onVtFrameDisplayed(mPreVtBufferFd, getPrevReleaseFence());
-            mQueuedFrames--;
-            MESON_LOGV("[%s] [%" PRIu64 "] release(%d) queuedFrames(%d)",
-                    __func__, mId, mPreVtBufferFd, mQueuedFrames);
-        }
-
-        // todo: for the last vt buffer, there is no fence got from videocomposer
-        // when videocomposer is disabled. Now set it to -1. And releaseVtResource
-        // delay to clearUpdateFlag() when receive blank frame.
-        if (mVtBufferFd >= 0) {
-            onVtFrameDisplayed(mVtBufferFd, getPrevReleaseFence());
-            mQueuedFrames--;
-            MESON_LOGV("[%s] [%" PRIu64 "] release(%d) queudFrames(%d)",
-                    __func__, mId, mVtBufferFd, mQueuedFrames);
-            mQueueItems.pop_front();
-        }
-
-        // release the buffers in mQueueItems
-        for (auto it = mQueueItems.begin(); it != mQueueItems.end(); it++) {
-            onVtFrameDisplayed(it->mVtBufferFd, -1);
-            mQueuedFrames--;
-            MESON_LOGV("[%s] [%" PRIu64 "] release(%d) queuedFrames(%d)",
-                    __func__, mId, it->mVtBufferFd, mQueuedFrames);
-        }
-
-        mQueueItems.clear();
-        mVtBufferFd = -1;
-        mPreVtBufferFd = -1;
-        mVtUpdate = false;
-        mTimestamp = -1;
-        freeSolidColorBuffer();
-
-        if (mTunnelId >= 0) {
-            MESON_LOGD("[%s] [%" PRIu64 "] Hwc2Layer release disconnect(%d) queuedFrames(%d)",
-                    __func__, mId, mTunnelId, mQueuedFrames);
-            if (mGameMode)
-                VideoTunnelDev::getInstance().setNonBlockMode();
-
-            memset(&mVtSourceCrop, 0, sizeof(mVtSourceCrop));
-            mTunnelId = -1;
-        }
-
-        mGameMode = false;
-        mQueuedFrames = 0;
-        mNeedReleaseVtResource = false;
-    }
-    return 0;
-
 }
 
 bool Hwc2Layer::isVtNeedClearLastFrame() {
     if (mVideoDisplayStatus == VT_VIDEO_STATUS_CLEAR_LAST_FRAME) {
         /* need do disable video composer once */
         mVideoDisplayStatus = VT_VIDEO_STATUS_SHOW;
+        releaseVtResourceLocked(false);
+        return true;
+    }
+    return false;
+}
+
+bool Hwc2Layer::isVtNeedHideVideo() {
+    if (mVideoDisplayStatus == VT_VIDEO_STATUS_HIDE) {
+        setPrevReleaseFence(-1);
+        releaseVtResourceLocked(false);
         return true;
     }
 
     return false;
 }
 
-bool Hwc2Layer::isVtNeedHideVideo() {
-    if (mVideoDisplayStatus == VT_VIDEO_STATUS_HIDE)
-        return true;
-
-    return false;
-}
-
-void Hwc2Layer::onVtFrameDisplayed(int bufferFd, int fenceFd) {
+int32_t Hwc2Layer::onVtFrameDisplayed(int bufferFd, int fenceFd) {
     ATRACE_CALL();
 
-    int ret = -1;
+    int32_t ret = -1;
+    MESON_LOGV("[%s] [%" PRIu64 "] mTunelId %d, release vtBuffer(%d), fenceFd(%d)",
+            __func__, mId, mTunnelId, bufferFd, fenceFd);
     ret = mVtConsumer->onVtFrameDisplayed(bufferFd, fenceFd);
     if (ret) {
         MESON_LOGD("[%s] [%" PRIu64 "] release vt buffer error, "
                 "bufferFd=%d, fenceFd:%d", __func__, mId, bufferFd, fenceFd);
     }
+
+    return ret;
 }
 
 int32_t Hwc2Layer::onVtFrameAvailable(
@@ -936,12 +754,15 @@ int32_t Hwc2Layer::onVtFrameAvailable(
     }
 
     if (mTunnelId < 0) {
-        MESON_LOGE("[%s] [%" PRIu64 "] mTunelId  %d error", __func__, mId, mTunnelId);
+        MESON_LOGE("[%s] [%" PRIu64 "] mTunelId %d error", __func__, mId, mTunnelId);
         return -EINVAL;
     }
 
     for (auto it=items.begin(); it != items.end(); it ++) {
         VtBufferItem item = {(*it)->mVtBufferFd, (*it)->mTimeStamp};
+        MESON_LOGV("[%s] [%" PRIu64 "] mTunelId %d, "
+                "get vtBuffer(%d), timeStamp(%" PRId64 ")", __func__,
+                mId, mTunnelId, (*it)->mVtBufferFd, (*it)->mTimeStamp);
         mQueueItems.push_back(item);
         mQueuedFrames++;
         attachUvmBuffer(item.mVtBufferFd);
@@ -999,19 +820,32 @@ int32_t Hwc2Layer::onVtFrameAvailable(
             mExpectedPresentTime, diffAdded,
             shouldPresentNow(mTimestamp), mQueueItems.size());
 
-    mDisplayObserver->onFrameAvailable();
+    if (mGameMode)
+        mDisplayObserver->onFrameAvailable();
     return 0;
 }
 
 void Hwc2Layer::onVtVideoHide() {
+    /* clear lastframe and donot show this video layer
+     * until receive show video CMD
+     */
+    std::lock_guard<std::mutex> lock(mMutex);
+    MESON_LOGD("[%s] [%" PRIu64 "]", __func__, mId);
     mVideoDisplayStatus = VT_VIDEO_STATUS_HIDE;
 }
 
 void Hwc2Layer::onVtVideoBlank() {
+    /* clear lastFrame and blank plane,
+     * will redisplay when receive new frame
+     */
+    std::lock_guard<std::mutex> lock(mMutex);
+    MESON_LOGD("[%s] [%" PRIu64 "]", __func__, mId);
     mVideoDisplayStatus = VT_VIDEO_STATUS_CLEAR_LAST_FRAME;
 }
 
 void Hwc2Layer::onVtVideoShow() {
+    std::lock_guard<std::mutex> lock(mMutex);
+    MESON_LOGD("[%s] [%" PRIu64 "]", __func__, mId);
     mVideoDisplayStatus = VT_VIDEO_STATUS_SHOW;
 }
 
@@ -1032,6 +866,7 @@ int32_t Hwc2Layer::getVtVideoStatus() {
 }
 
 void Hwc2Layer::setVtSourceCrop(drm_rect_t & rect) {
+    std::lock_guard<std::mutex> lock(mMutex);
     mVtSourceCrop.left   = rect.left;
     mVtSourceCrop.top    = rect.top;
     mVtSourceCrop.right  = rect.right;
@@ -1108,5 +943,4 @@ void Hwc2Layer::VtContentChangeListener::onNeedShowTempBuffer(int colorType) {
 void Hwc2Layer::VtContentChangeListener::setVideoType(int videoType) {
     mLayer->setVideoType(videoType);
 }
-
 /* ========================================================================= */

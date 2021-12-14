@@ -30,7 +30,7 @@
 #include "MesonHwc2Defs.h"
 #include "HwcModeMgr.h"
 
-class VideoTunnelThread;
+class VtDisplayThread;
 
 /* IComposerClient@2.4::DisplayConnectionType */
 enum {
@@ -83,8 +83,7 @@ public:
     /*Compose flow*/
     virtual hwc2_error_t validateDisplay(uint32_t* outNumTypes,
         uint32_t* outNumRequests);
-    virtual hwc2_error_t presentDisplay(int32_t* outPresentFence, bool sf = true);
-    virtual hwc2_error_t presentVideo(int32_t* outPresentFence);
+    virtual hwc2_error_t presentDisplay(int32_t* outPresentFence);
     virtual hwc2_error_t acceptDisplayChanges();
     virtual hwc2_error_t getChangedCompositionTypes(
         uint32_t* outNumElements, hwc2_layer_t* outLayers,
@@ -131,7 +130,6 @@ public:
     virtual int32_t setPostProcessor(
         std::shared_ptr<HwcPostProcessor> processor);
     virtual int32_t setVsync(std::shared_ptr<HwcVsync> vsync);
-    virtual int32_t setVtVsync(std::shared_ptr<HwcVsync> vsync);
     virtual int32_t blankDisplay(bool restLayers = false);
 
     virtual void onVsync(int64_t timestamp, uint32_t vsyncPeriodNanos);
@@ -144,14 +142,14 @@ public:
 
 /* video tunnel api*/
 public:
+    virtual hwc2_error_t presentVtVideo(int32_t* outPresentFence);
+
+    virtual int32_t setVtVsync(std::shared_ptr<HwcVsync> vsync);
     virtual void onVTVsync(int64_t timestamp, uint32_t vsyncPeriodNanos);
     virtual void handleVtThread();
-    virtual void acquireVtLayers();
+    virtual void setVtLayersPresentTime();
     virtual void releaseVtLayers();
     virtual bool handleVtDisplayConnection();
-
-    /* recieve videotunnel cmds */
-    virtual int recieveVtCmds();
     virtual bool newGameBuffer();
     virtual void onFrameAvailable();
     virtual void onVtVideoGameMode(bool enable);
@@ -254,9 +252,9 @@ protected:
     int32_t mFRPeriodNanos;
 
     /* for video tunnel mode video*/
-    std::shared_ptr<VideoTunnelThread> mVideoTunnelThread;
+    std::shared_ptr<VtDisplayThread> mVtDisplayThread;
     std::shared_ptr<HwcVsync> mVtVsync;
-    bool mGameMode;
+    int32_t mNumGameModeLayers;
     bool mVtVsyncStatus;
     bool mDisplayConnection;
     bool mOutsideChanged;

@@ -61,11 +61,10 @@ public:
 
     // Virtuals for video tunnel
     virtual int32_t getVtBuffer() { return -EINVAL; }
-    virtual int32_t acquireVtBuffer() { return 0; }
     virtual int32_t releaseVtBuffer() { return 0; }
     virtual bool isVtBuffer() { return false;}
-    virtual int32_t recieveVtCmds() { return 0; }
-    virtual bool isVtNeedClearLastFrame() {return false; }
+    virtual bool isVtNeedHideVideo() { return false; }
+    virtual bool isVtNeedClearLastFrame() { return false; }
     virtual int32_t getSolidColorBuffer() { return -EINVAL; }
 
     // for video processor

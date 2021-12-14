@@ -57,7 +57,7 @@ struct VtBufferItem {
 
 class VtConsumer {
 public:
-    VtConsumer(int tunnelId);
+    VtConsumer(int tunnelId, uint32_t layerId);
     virtual ~VtConsumer();
 
     class VtReleaseListener {
@@ -86,7 +86,7 @@ public:
     };
 
     /*register VtInstance callback */
-    int32_t setReleaseListener(std::shared_ptr<VtReleaseListener> &listener);
+    int32_t setReleaseListener(VtReleaseListener* listener);
     /* register Hwc2Layer callback */
     int32_t setVtContentListener(std::shared_ptr<VtContentListener> &listener);
 
@@ -97,9 +97,10 @@ public:
 private:
     int mTunnelId;
     /* VtInstance callback */
-    std::shared_ptr<VtReleaseListener> mReleaseListener;
+    VtReleaseListener* mReleaseListener;
     /* Hwc2Layer callback */
     std::shared_ptr<VtContentListener> mContentListener;
+    char mName[64];
 };
 
 #endif  /* MESON_VT_CONSUMER_H */
