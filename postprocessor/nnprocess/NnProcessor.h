@@ -58,7 +58,7 @@ enum nn_mode_e {
 enum get_info_type_e {
     GET_INVALID = 0,
     GET_HF_INFO = 1,
-    GET_HF_DATA = 2,
+    GET_VINFO_SIZE = 2,
 };
 
 struct time_info_t {
@@ -81,11 +81,15 @@ struct uvm_ai_sr_info {
     int32_t hf_height;
     int32_t hf_align_w;
     int32_t hf_align_h;
+    int32_t buf_align_w;
+    int32_t buf_align_h;
     int32_t nn_status;
     int32_t nn_index;
     int32_t nn_mode;
     int32_t get_info_type;
     int32_t src_interlace_flag;
+    int32_t vinfo_width;
+    int32_t vinfo_height;
 };
 
 struct uvm_hf_info_t {
@@ -163,6 +167,8 @@ public:
     int64_t mCloseCount;
     static int64_t mTotalDupCount;
     static int64_t mTotalCloseCount;
+    int mVInfo_width;
+    int mVInfo_height;
 };
 
 #endif
