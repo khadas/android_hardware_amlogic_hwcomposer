@@ -78,6 +78,8 @@ NnProcessor::NnProcessor() {
     mNn_Index = 0;
     mDumpHf = 0;
     mLast_buf = NULL;
+    mVInfo_width = 0;
+    mVInfo_height = 0;
     if (mInstanceID == 0) {
         for (i = 0; i < NN_MODE_COUNT; i++) {
             mTime[i].count = 0;
@@ -261,6 +263,7 @@ int32_t NnProcessor::asyncProcess(
         goto bypass;
 
     if (!mUvmHander) {
+        ALOGE("%s: uvm not opened.\n", __FUNCTION__);
         goto bypass;
     }
 
@@ -321,7 +324,28 @@ int32_t NnProcessor::asyncProcess(
     if (ai_sr_info->hf_phy_addr == 0 ||
         ai_sr_info->hf_width == 0 ||
         ai_sr_info->hf_height == 0) {
-        ALOGD_IF(nn_check_D(), "attatch: vf no hf");
+        ALOGD_IF(nn_check_D(), "%s: vf no hf", __FUNCTION__);
+        goto error;
+    }
+
+    if ((mVInfo_width == 0) || (mVInfo_height == 0)) {
+        ai_sr_info->get_info_type = GET_VINFO_SIZE;
+        ret = ioctl(mUvmHander, UVM_IOC_GET_INFO, &hook_data);
+        if (ret < 0) {
+            ALOGE("GET_VINFO_SIZE failed.\n");
+            goto bypass;
+        } else {
+            mVInfo_width = ai_sr_info->vinfo_width;
+            mVInfo_height = ai_sr_info->vinfo_height;
+            ALOGD_IF(nn_check_D(), "vinfo width: %d, height: %d.\n",
+                     mVInfo_width,
+                     mVInfo_height);
+        }
+    }
+
+    if (mVInfo_width == 1920 &&
+        (ai_sr_info->hf_width > 960 || ai_sr_info->hf_height > 540)) {
+        ALOGD_IF(nn_check_D(), "not 540p, don't support.\n");
         goto error;
     }
 
@@ -393,6 +417,7 @@ error:
     }
 
 bypass:
+    ALOGD_IF(nn_check_D(), "NN_BYPASS");
     return 0;
 }
 
@@ -613,8 +638,8 @@ int32_t NnProcessor::ai_sr_process(
     ai_sr_info->nn_out_fd = sr_buf->fd;
     ai_sr_info->nn_status = NN_WAIT_DOING;
     ai_sr_info->nn_index = mNn_Index++;
-    ai_sr_info->nn_out_width = 3840;
-    ai_sr_info->nn_out_height = 2160;
+    ai_sr_info->nn_out_width = mVInfo_width;
+    ai_sr_info->nn_out_height = mVInfo_height;
 
     ret = ioctl(mUvmHander, UVM_IOC_SET_INFO, &hook_data);
     if (ret < 0) {
@@ -631,33 +656,54 @@ int32_t NnProcessor::ai_sr_process(
         ai_sr_info->hf_phy_addr,
         ai_sr_info->hf_width,
         ai_sr_info->hf_height,
-        ai_sr_info->hf_align_w,
-        ai_sr_info->hf_align_h,
+        ai_sr_info->buf_align_w,
+        ai_sr_info->buf_align_h,
         ai_sr_info->src_interlace_flag,
         sr_buf->fd,
         input_fd);
     ai_sr_info->nn_out_fd = sr_buf->fd;
-    if (ai_sr_info->hf_align_w == 960) {
-        if (ai_sr_info->hf_width > 960 || ai_sr_info->hf_height > 540)
-            hf_info_err = true;
-        need_nn_mode = NN_MODE_4X4;
-    } else if (ai_sr_info->hf_align_w == 1280) {
-        if (ai_sr_info->hf_width > 1280 || ai_sr_info->hf_height > 720)
-            hf_info_err = true;
-        need_nn_mode = NN_MODE_3X3;
-    } else if (ai_sr_info->hf_align_w == 1920) {
-        if (ai_sr_info->hf_width > 1920 || ai_sr_info->hf_height > 1080)
-            hf_info_err = true;
-        need_nn_mode = NN_MODE_2X2;
-    } else
-        return 0;
+    if (mVInfo_width == 3840) {
+        if (ai_sr_info->hf_align_w == 960) {
+            if (ai_sr_info->hf_width > 960 || ai_sr_info->hf_height > 540)
+                hf_info_err = true;
+            need_nn_mode = NN_MODE_4X4;
+            ai_sr_info->buf_align_w = 960;
+            ai_sr_info->buf_align_h = 540;
+        } else if (ai_sr_info->hf_align_w == 1280) {
+            if (ai_sr_info->hf_width > 1280 || ai_sr_info->hf_height > 720)
+                hf_info_err = true;
+            need_nn_mode = NN_MODE_3X3;
+            ai_sr_info->buf_align_w = 1280;
+            ai_sr_info->buf_align_h = 720;
+        } else if (ai_sr_info->hf_align_w == 1920) {
+            if (ai_sr_info->hf_width > 1920 || ai_sr_info->hf_height > 1080)
+                hf_info_err = true;
+            need_nn_mode = NN_MODE_2X2;
+            ai_sr_info->buf_align_w = 1920;
+            ai_sr_info->buf_align_h = 1080;
+        } else
+            return 0;
+    } else {
+        if (ai_sr_info->hf_align_w == 960) {
+            if (ai_sr_info->hf_width > 960 || ai_sr_info->hf_height > 540)
+                hf_info_err = true;
+            need_nn_mode = NN_MODE_2X2;
+            ai_sr_info->buf_align_w = 1920;
+            ai_sr_info->buf_align_h = 1080;
+        } else {
+            ALOGD_IF(nn_check_D(), "not 540p,no need ai_sr.\n");
+            return 0;
+        }
+    }
 
     if (hf_info_err) {
-        ALOGE("hf info err: %d * %d, align: %d * %d.\n",
+        ALOGE("hf info err: %d * %d, hf_align: %d * %d, buf_align: %d * %d.\n",
             ai_sr_info->hf_width,
             ai_sr_info->hf_height,
             ai_sr_info->hf_align_w,
-            ai_sr_info->hf_align_h);
+            ai_sr_info->hf_align_h,
+            ai_sr_info->buf_align_w,
+            ai_sr_info->buf_align_h);
         return 0;
     }
 
@@ -751,7 +797,7 @@ int32_t NnProcessor::ai_sr_process(
 }
 
 void NnProcessor::dump_nn_out(struct sr_buffer_t *sr_buf) {
-    const char* dump_path = "/data/tmp/nn_out.yuv";
+    const char* dump_path = "/data/nn_out.yuv";
     FILE * dump_file = NULL;
 
     ALOGD("%s: fd_ptr=%p, phy=%llx, size=%d",
