@@ -15,6 +15,8 @@
 #include <fcntl.h>
 #include <string>
 #include <systemcontrol.h>
+#include <sys/utsname.h>
+
 #include "Dv.h"
 
 #define DV_SUPPORT_INFO_LEN_MAX (40)
@@ -78,27 +80,41 @@ int32_t ConnectorPanel::parseLcdInfo() {
     "    viu_color_fmt:         %d\n"
     "    viu_mux:               %d\n\n",
     */
-#if BUILD_KERNEL_5_4 == true
-    char val[PROP_VALUE_LEN_MAX];
-    std::string lcdPath;
-    mModeName = "panel";
-    if (sys_get_string_prop("persist.vendor.hwc.lcdpath", val) > 0 && strcmp(val, "0") != 0) {
-        lcdPath = "/sys/class/aml_lcd/lcd";
-        lcdPath.append(val);
-        lcdPath.append("/vinfo");
-        mModeName.append(val);
-    } else {
-        lcdPath = "/sys/class/aml_lcd/lcd0/vinfo";
+
+    struct utsname buf;
+    int major = 0;
+    int minor = 0;
+    const char * lcdInfoPath;
+    if (uname(&buf) == 0) {
+        if (sscanf(buf.release, "%d.%d", &major, &minor) != 2) {
+            major = 0;
+        }
     }
-    const char * lcdInfoPath = lcdPath.c_str();
-#else
-    const char * lcdInfoPath = "/sys/class/lcd/vinfo";
-#endif
+
+    if (major == 0)
+        MESON_LOGE("Can't determine kernel version!");
+
+    if (major >= 5) {
+        char val[PROP_VALUE_LEN_MAX];
+        std::string lcdPath;
+        mModeName = "panel";
+        if (sys_get_string_prop("persist.vendor.hwc.lcdpath", val) > 0 && strcmp(val, "0") != 0) {
+            lcdPath = "/sys/class/aml_lcd/lcd";
+            lcdPath.append(val);
+            lcdPath.append("/vinfo");
+            mModeName.append(val);
+        } else {
+            lcdPath = "/sys/class/aml_lcd/lcd0/vinfo";
+        }
+        lcdInfoPath = lcdPath.c_str();
+    } else {
+        lcdInfoPath = "/sys/class/lcd/vinfo";
+    }
 
     const int valLenMax = 64;
     std::string lcdInfo;
 
-    if (sc_read_sysfs(lcdInfoPath, lcdInfo) == 0 &&
+    if (read_sysfs(lcdInfoPath, lcdInfo) == 0 &&
         lcdInfo.size() > 0) {
        // MESON_LOGD("Lcdinfo:(%s)", lcdInfo.c_str());
 
