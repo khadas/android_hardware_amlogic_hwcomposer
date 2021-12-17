@@ -20,10 +20,6 @@ soong_config_module_type {
     "hdmi_frac_mode",
     ],
 
-    bool_variables: [
-        "enable_build_kernel_54",
-    ],
-
     variables: [
         "hwc_backend",
     ],
@@ -49,11 +45,6 @@ meson_hwc_display_cc_defaults {
             ],
         },
 
-        enable_build_kernel_54: {
-            cflags: [
-                "-DBUILD_KERNEL_5_4"
-            ],
-        },
     },
 
     srcs: [
