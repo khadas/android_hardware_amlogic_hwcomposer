@@ -311,6 +311,7 @@ int32_t NnProcessor::asyncProcess(
         }
     }
 
+    ai_sr_info->need_do_aisr = 0;
     ai_sr_info->fence_fd = fence_fd;
     ai_sr_info->nn_out_fd = -1;
     ai_sr_info->nn_status = NN_WAIT_DOING;
@@ -319,6 +320,11 @@ int32_t NnProcessor::asyncProcess(
     if (ret_attatch != 0) {
         ALOGE("attatch err: ret_attatch =%d", ret_attatch);
         goto bypass;
+    }
+
+    if (ai_sr_info->need_do_aisr == 0) {
+        ALOGD_IF(nn_check_D(), "%s: aisr bypass", __FUNCTION__);
+        goto error;
     }
 
     if (ai_sr_info->hf_phy_addr == 0 ||

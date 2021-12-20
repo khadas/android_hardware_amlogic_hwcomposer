@@ -90,6 +90,7 @@ struct uvm_ai_sr_info {
     int32_t src_interlace_flag;
     int32_t vinfo_width;
     int32_t vinfo_height;
+    int32_t need_do_aisr;
 };
 
 struct uvm_hf_info_t {
