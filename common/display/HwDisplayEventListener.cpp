@@ -177,7 +177,7 @@ void * HwDisplayEventListener::ueventThread(void * data) {
 
         rtn = poll(fds, 2, -1);
 
-        if (rtn > 0 && fds[0].revents == POLLIN) {
+        if (rtn > 0 && (fds[0].revents & POLLIN)) {
             ssize_t len = uevent_kernel_multicast_recv(pThis->mEventSocket,
                 pThis->mUeventMsg, UEVENT_MAX_LEN - 2);
             if (len > 0)
