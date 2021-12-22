@@ -62,7 +62,7 @@ public:
 
 /*Extend api.*/
 public:
-    Hwc2Layer();
+    Hwc2Layer(uint32_t dispId);
     virtual ~Hwc2Layer();
 
     bool isSecure() { return mSecure;}
@@ -102,6 +102,7 @@ public:
     void setVideoType(int videoType);
 
     void setDisplayObserver(std::shared_ptr<VtDisplayObserver> observer);
+    void handleDisplayDisconnet(bool connect);
 
 public:
     android_dataspace_t mDataSpace;
@@ -156,6 +157,7 @@ protected:
     int mSolidColorBufferfd;
     int mPreVtBufferFd;
     int mAMVideoType;
+    uint32_t mDisplayId;
     int32_t mQueuedFrames;
     int64_t mTimestamp;
     nsecs_t mExpectedPresentTime;

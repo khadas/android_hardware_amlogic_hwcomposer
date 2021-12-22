@@ -198,7 +198,7 @@ int32_t Hwc2Display::setVsync(std::shared_ptr<HwcVsync> vsync) {
  * and lead to messed display.
  */
 int32_t Hwc2Display::blankDisplay(bool resetLayers) {
-    MESON_LOGD("blank all display planes");
+    MESON_LOGD("displayId:%d, blank all display planes", mDisplayId);
 
     if (!mCrtc)
             return 0;
@@ -223,7 +223,7 @@ int32_t Hwc2Display::blankDisplay(bool resetLayers) {
 
     if (resetLayers) {
         std::lock_guard<std::mutex> vtLock(mVtMutex);
-        MESON_LOGD("%s clear layers", __func__);
+        MESON_LOGD("%s displayId:%d, clear layers", __func__, mDisplayId);
         mLayers.clear();
         mPresentLayers.clear();
     }
@@ -308,7 +308,8 @@ hwc2_error_t Hwc2Display::setVsyncEnable(hwc2_vsync_t enabled) {
 // accordingly.
 void Hwc2Display::onHotplug(bool connected) {
     bool bSendPlugOut = false;
-    MESON_LOGD("On hot plug: [%s]", connected == true ? "Plug in" : "Plug out");
+    MESON_LOGD("displayID:%d, On hot plug: [%s]",
+            mDisplayId, connected == true ? "Plug in" : "Plug out");
 
     {
         std::lock_guard<std::mutex> lock(mMutex);
@@ -319,6 +320,7 @@ void Hwc2Display::onHotplug(bool connected) {
                 mObserver->refresh();
             }
             mSignalHpd = true;
+            handleVtThread();
             return;
         }
 
@@ -522,11 +524,12 @@ hwc2_error_t Hwc2Display::createLayer(hwc2_layer_t * outLayer) {
     std::lock_guard<std::mutex> lock(mMutex);
     std::lock_guard<std::mutex> vtLock(mVtMutex);
 
-    std::shared_ptr<Hwc2Layer> layer = std::make_shared<Hwc2Layer>();
+    std::shared_ptr<Hwc2Layer> layer = std::make_shared<Hwc2Layer>(mDisplayId);
     uint32_t idx = createLayerId();
     *outLayer = idx;
     layer->setUniqueId(*outLayer);
     mLayers.emplace(*outLayer, layer);
+    MESON_LOGV("%s displayId:%d, layerId:%u", __func__, mDisplayId, idx);
 
     return HWC2_ERROR_NONE;
 }
@@ -541,6 +544,8 @@ hwc2_error_t Hwc2Display::destroyLayer(hwc2_layer_t  inLayer) {
 
     std::shared_ptr<Hwc2Layer> layer = layerit->second;
     DebugHelper::getInstance().removeDebugLayer((int)inLayer);
+    MESON_LOGV("%s displayId:%d, layerId:%" PRIu64 "",
+            __func__, mDisplayId, inLayer);
     mLayers.erase(inLayer);
 
     handleVtThread();
@@ -624,12 +629,6 @@ hwc2_error_t Hwc2Display::collectLayersForPresent() {
             !layer->isVtBuffer()) {
             continue;
         }
-
-       /* TODO: only primary display supprot video tunnel video.
-        * will add video tunnel support on external display
-        * */
-        if (layer->isVtBuffer() && mDisplayId != HWC_DISPLAY_PRIMARY)
-            layer->mCompositionType = MESON_COMPOSITION_DUMMY;;
 
         mPresentLayers.push_back(buffer);
 
@@ -966,12 +965,12 @@ hwc2_error_t Hwc2Display::collectCompositionRequest(
 #if PLATFORM_SDK_VERSION == 30
     // for self-adaptive
     if (maxRegion != 0 && mVideoLayerRegion != maxRegion) {
-        sc_frame_rate_display(true, maxRect);
+        //sc_frame_rate_display(true, maxRect);
         mVideoLayerRegion = maxRegion;
     }
 
     if (maxRegion == 0 && mVideoLayerRegion != 0) {
-        sc_frame_rate_display(false, maxRect);
+        //sc_frame_rate_display(false, maxRect);
         mVideoLayerRegion = 0;
     }
 #endif
@@ -1722,7 +1721,6 @@ void Hwc2Display::onFrameAvailable() {
 }
 
 void Hwc2Display::onVtVideoGameMode(bool enable) {
-    std::lock_guard<std::mutex> vtLock(mVtMutex);
     if (enable)
         mNumGameModeLayers ++;
     else
@@ -1749,13 +1747,15 @@ void Hwc2Display::handleVtThread() {
         if (!mVtVsyncStatus) {
             mVtVsync->setVideoTunnelEnabled(true);
             mVtVsyncStatus = true;
-            MESON_LOGD("%s, set video tunnel thread to Enabled", __func__);
+            MESON_LOGD("%s, displayId:%d set video tunnel thread to Enabled",
+                    __func__, mDisplayId);
         }
     } else {
         if (mVtDisplayThread && mVtVsyncStatus) {
             mVtVsync->setVideoTunnelEnabled(false);
             mVtVsyncStatus = false;
-            MESON_LOGD("%s, set video tunnel threadto Disabled", __func__);
+            MESON_LOGD("%s, displayId:%d, set video tunnel thread to Disabled",
+                    __func__, mDisplayId);
         }
     }
 }
@@ -1797,14 +1797,13 @@ void Hwc2Display::releaseVtLayers() {
 
 bool Hwc2Display::handleVtDisplayConnection() {
     std::lock_guard<std::mutex> vtLock(mVtMutex);
-    if (!mDisplayConnection) {
-        std::shared_ptr<Hwc2Layer> layer;
-        for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
-            layer = it->second;
-            if (layer->isVtBuffer() && layer->isFbUpdated()) {
-                /*not show when display disconnect*/
-                layer->setPrevReleaseFence(-1);
-            }
+    std::shared_ptr<Hwc2Layer> layer;
+    for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
+        layer = it->second;
+        if (layer->isVtBuffer()) {
+            MESON_LOGV("%s: displayId:%d layerId:%" PRIu64 " mDisplayConnection:%d",
+                    __func__, mDisplayId, layer->getUniqueId(), mDisplayConnection);
+            layer->handleDisplayDisconnet(mDisplayConnection);
         }
     }
 
@@ -1816,15 +1815,11 @@ bool Hwc2Display::handleVtDisplayConnection() {
  */
 bool Hwc2Display::newGameBuffer() {
     ATRACE_CALL();
-    std::lock_guard<std::mutex> vtLock(mVtMutex);
     bool ret = false;
 
-    if (mNumGameModeLayers == 0)
-        return false;
-
-    for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
-        auto layer = it->second;
-        if (layer->isVtBuffer()) {
+    if (mNumGameModeLayers > 0) {
+        for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
+            auto layer = it->second;
             if (layer->newGameBuffer()) {
                 ret = true;
                 break;

@@ -24,7 +24,7 @@
 #include "Hwc2Base.h"
 #include "VideoTunnelDev.h"
 
-Hwc2Layer::Hwc2Layer() : DrmFramebuffer(){
+Hwc2Layer::Hwc2Layer(uint32_t dispId) : DrmFramebuffer(){
     mDataSpace     = HAL_DATASPACE_UNKNOWN;
     mUpdateZorder  = false;
     mVtBufferFd    = -1;
@@ -45,6 +45,7 @@ Hwc2Layer::Hwc2Layer() : DrmFramebuffer(){
     mPreUvmBufferFd = -1;
 
     mDisplayObserver = nullptr;
+    mDisplayId = dispId;
 }
 
 Hwc2Layer::~Hwc2Layer() {
@@ -448,7 +449,7 @@ int32_t Hwc2Layer::getVtBuffer() {
         ret = mPreVtBufferFd;
     }
 
-    MESON_LOGV("[%s] [%" PRIu64 "] vtBufferfd(%d)", __func__, mId, ret);
+    MESON_LOGV("[%s] [%d] [%" PRIu64 "] vtBufferfd(%d)", __func__, mDisplayId, mId, ret);
 
     return ret;
 }
@@ -482,17 +483,20 @@ int32_t Hwc2Layer::releaseVtBuffer() {
         return -EINVAL;
     }
 
-    if (!mVtUpdate)
+    if (!mVtUpdate) {
+        MESON_LOGV("[%s] [%d] [%" PRIu64 "] vt buffer not update", __func__, mDisplayId, mId);
         return -EAGAIN;
+    }
 
     if (shouldPresentNow(mTimestamp) == false) {
-        MESON_LOGV("[%s] [%" PRIu64 "] current vt buffer(%d) not present, timestamp not meet",
-                __func__, mId, mVtBufferFd);
+        MESON_LOGV("[%s] [%d] [%" PRIu64 "] current vt buffer(%d) not present, timestamp not meet",
+                __func__, mDisplayId, mId, mVtBufferFd);
         return -EAGAIN;
     }
 
     if (mQueueItems.empty()) {
-        MESON_LOGV("Queued vtbuffer is empty!!");
+        MESON_LOGV("[%s] [%d] [%" PRIu64 "] Queued vtbuffer is empty!!",
+                __func__, mDisplayId, mId);
         return -EINVAL;
     }
 
@@ -517,12 +521,11 @@ int32_t Hwc2Layer::releaseVtBuffer() {
     int releaseFence = getPrevReleaseFence();
     collectUvmBuffer(dup(mPreVtBufferFd), dup(releaseFence));
 
+    MESON_LOGV("[%s] [%d] [%" PRIu64 "] releaseFence:%d, mVtBufferfd:%d, mPreVtBufferFd(%d), queuedFrames(%d)",
+            __func__, mDisplayId, mId, releaseFence, mVtBufferFd, mPreVtBufferFd, mQueuedFrames);
+
     int32_t ret = onVtFrameDisplayed(mPreVtBufferFd, releaseFence);
     mQueuedFrames--;
-
-
-    MESON_LOGV("[%s] [%" PRIu64 "] releaseFence:%d, mVtBufferfd:%d, mPreVtBufferFd(%d), queuedFrames(%d)",
-            __func__, mId, releaseFence, mVtBufferFd, mPreVtBufferFd, mQueuedFrames);
 
     mPreVtBufferFd = mVtBufferFd;
     mVtUpdate = false;
@@ -545,22 +548,25 @@ int32_t Hwc2Layer::releaseVtResource() {
 int32_t Hwc2Layer::releaseVtResourceLocked(bool needDisconnect) {
     ATRACE_CALL();
     if (isVtBufferLocked() || mNeedReleaseVtResource) {
-        MESON_LOGV("[%s] [%" PRIu64 "]", __func__, mId);
+        MESON_LOGV("[%s] [%d] [%" PRIu64 "]", __func__, mDisplayId, mId);
+        if (!mVtConsumer)
+            return 0;
+
         if (mPreVtBufferFd >= 0) {
-            onVtFrameDisplayed(mPreVtBufferFd, getPrevReleaseFence());
+            onVtFrameDisplayed(mPreVtBufferFd, -1);
             mQueuedFrames--;
-            MESON_LOGV("[%s] [%" PRIu64 "] release(%d) queuedFrames(%d)",
-                    __func__, mId, mPreVtBufferFd, mQueuedFrames);
+            MESON_LOGV("[%s] [%d] [%" PRIu64 "] release(%d) queuedFrames(%d)",
+                    __func__, mDisplayId, mId, mPreVtBufferFd, mQueuedFrames);
         }
 
         // todo: for the last vt buffer, there is no fence got from videocomposer
         // when videocomposer is disabled. Now set it to -1. And releaseVtResource
         // delay to clearUpdateFlag() when receive blank frame.
         if (mVtBufferFd >= 0) {
-            onVtFrameDisplayed(mVtBufferFd, getPrevReleaseFence());
+            onVtFrameDisplayed(mVtBufferFd, -1);
             mQueuedFrames--;
-            MESON_LOGV("[%s] [%" PRIu64 "] release(%d) queudFrames(%d)",
-                    __func__, mId, mVtBufferFd, mQueuedFrames);
+            MESON_LOGV("[%s] [%d] [%" PRIu64 "] release(%d) queudFrames(%d)",
+                    __func__, mDisplayId, mId, mVtBufferFd, mQueuedFrames);
             mQueueItems.pop_front();
         }
 
@@ -568,8 +574,8 @@ int32_t Hwc2Layer::releaseVtResourceLocked(bool needDisconnect) {
         for (auto it = mQueueItems.begin(); it != mQueueItems.end(); it++) {
             onVtFrameDisplayed(it->mVtBufferFd, -1);
             mQueuedFrames--;
-            MESON_LOGV("[%s] [%" PRIu64 "] release(%d) queuedFrames(%d)",
-                    __func__, mId, it->mVtBufferFd, mQueuedFrames);
+            MESON_LOGV("[%s] [%d] [%" PRIu64 "] release(%d) queuedFrames(%d)",
+                    __func__, mDisplayId, mId, it->mVtBufferFd, mQueuedFrames);
         }
 
         mQueueItems.clear();
@@ -580,8 +586,8 @@ int32_t Hwc2Layer::releaseVtResourceLocked(bool needDisconnect) {
         freeSolidColorBuffer();
 
         if (mTunnelId >= 0 && needDisconnect) {
-            MESON_LOGD("[%s] [%" PRIu64 "] Hwc2Layer release disconnect(%d) queuedFrames(%d)",
-                    __func__, mId, mTunnelId, mQueuedFrames);
+            MESON_LOGD("[%s] [%d] [%" PRIu64 "] Hwc2Layer release disconnect(%d) queuedFrames(%d)",
+                    __func__, mDisplayId, mId, mTunnelId, mQueuedFrames);
             unregisterConsumer();
         }
 
@@ -591,8 +597,21 @@ int32_t Hwc2Layer::releaseVtResourceLocked(bool needDisconnect) {
     return 0;
 }
 
+void Hwc2Layer::handleDisplayDisconnet(bool connect) {
+    MESON_LOGV("[%s] [%d] [%" PRIu64 "] connect:%d", __func__, mDisplayId, mId, connect);
+    if (connect) {
+        registerConsumer();
+    } else {
+        releaseVtResource();
+    }
+}
+
 void Hwc2Layer::setPresentTime(nsecs_t expectedPresentTime) {
     ATRACE_CALL();
+
+    if (mGameMode)
+        return;
+
     nsecs_t previousExpectedTime;
     previousExpectedTime = ((mExpectedPresentTime == 0) ?
         ns2us(expectedPresentTime) : mExpectedPresentTime);
@@ -602,8 +621,8 @@ void Hwc2Layer::setPresentTime(nsecs_t expectedPresentTime) {
     [[maybe_unused]] nsecs_t diffExpected = mExpectedPresentTime - previousExpectedTime;
     ATRACE_INT64("Hwc2Layer:DiffExpected", diffExpected);
 
-    MESON_LOGV("[%s] [%" PRIu64 "] vsyncTimeStamp:%" PRId64 ", diffExpected:%" PRId64 "",
-            __func__, mId, mExpectedPresentTime, diffExpected);
+    MESON_LOGV("[%s] [%d] [%" PRIu64 "] vsyncTimeStamp:%" PRId64 ", diffExpected:%" PRId64 "",
+            __func__, mDisplayId, mId, mExpectedPresentTime, diffExpected);
 }
 
 bool Hwc2Layer::shouldPresentNow(nsecs_t timestamp) {
@@ -624,12 +643,29 @@ bool Hwc2Layer::shouldPresentNow(nsecs_t timestamp) {
 
 bool Hwc2Layer::newGameBuffer() {
     std::lock_guard<std::mutex> lock(mMutex);
-    if (mGameMode) {
-        return mQueueItems.size();
+    bool ret = false;
+    if (isVtBufferLocked() && mGameMode) {
+        ret =  (mQueueItems.size() > 0) ? true : false;
+        MESON_LOGV("[%s] [%d] [%" PRIu64 "] return %d",
+            __func__, mDisplayId, mId, ret);
     }
 
+    if (ret) {
+        // update current mVtBuffer
+        mVtUpdate = true;
+        mVtBufferFd = mQueueItems[0].mVtBufferFd;
+        mTimestamp = mQueueItems[0].mTimeStamp;
+
+        [[maybe_unused]] nsecs_t diffAdded = mTimestamp - mPreviousTimestamp;
+        mPreviousTimestamp = mTimestamp;
+
+        MESON_LOGV("[%s] [%d] [%" PRIu64 "] mVtBufferFd(%d) timestamp (%" PRId64 " us) expectedPresentTime(%"
+                PRId64 " us) diffAdded(%" PRId64 " us) shouldPresent:%d, queueFrameSize:%zu",
+                __func__, mDisplayId, mId, mVtBufferFd, mTimestamp, mExpectedPresentTime, diffAdded,
+                shouldPresentNow(mTimestamp), mQueueItems.size());
+    }
     /* not game mode */
-    return false;
+    return ret;
 }
 
 void Hwc2Layer::setDisplayObserver(std::shared_ptr<VtDisplayObserver> observer) {
@@ -645,32 +681,35 @@ int32_t Hwc2Layer::registerConsumer() {
     int32_t ret = -1;
 
     if (mTunnelId < 0) {
-        MESON_LOGE("[%s] [%" PRIu64 "] tunneld is less then 0, cannot register consumer",
-            __func__, mId);
+        MESON_LOGE("[%s] [%d] [%" PRIu64 "] tunneld is less then 0, cannot register consumer",
+            __func__, mDisplayId, mId);
         return ret;
     }
 
-	if (!mContentListener)
+    if (mVtConsumer)
+        return 0;
+
+    mVtConsumer = std::make_shared<VtConsumer> (mTunnelId,
+                                                mDisplayId,
+                                                mId);
+
+    if (!mContentListener)
         mContentListener = std::make_shared<VtContentChangeListener>(this);
 
-    if (mVtConsumer)
-		mVtConsumer.reset();
-
-    mVtConsumer = std::make_shared<VtConsumer> (mTunnelId, mId);
     ret = mVtConsumer->setVtContentListener(mContentListener);
     if (ret < 0) {
-        MESON_LOGE("[%s] [%" PRIu64 "] set %d content listener failed ",
-            __func__, mId, mTunnelId);
+        MESON_LOGE("[%s] [%d] [%" PRIu64 "] set %d content listener failed ",
+            __func__, mDisplayId, mId, mTunnelId);
         return ret;
     }
 
     ret = VtInstanceMgr::getInstance().connectInstance(mTunnelId, mVtConsumer);
     if (ret >= 0)
-        MESON_LOGD("[%s] [%" PRIu64 "] connect to instance %d seccussed",
-            __func__, mId, mTunnelId);
+        MESON_LOGD("[%s] [%d] [%" PRIu64 "] connect to instance %d seccussed",
+            __func__, mDisplayId, mId, mTunnelId);
     else
-        MESON_LOGE("[%s] [%" PRIu64 "] connect to instance %d failed",
-            __func__, mId, mTunnelId);
+        MESON_LOGE("[%s] [%d] [%" PRIu64 "] connect to instance %d failed",
+            __func__, mDisplayId, mId, mTunnelId);
 
     return ret;
 }
@@ -680,20 +719,20 @@ int32_t Hwc2Layer::unregisterConsumer() {
     int32_t ret = -1;
 
     if (mTunnelId < 0) {
-        MESON_LOGE("[%s] [%" PRIu64 "] tunneld is less then 0, cannot unregister consumer",
-            __func__, mId);
+        MESON_LOGE("[%s] [%d] [%" PRIu64 "] tunneld is less then 0, cannot unregister consumer",
+            __func__, mDisplayId, mId);
         return ret;
     }
 
     if (!mVtConsumer) {
-        MESON_LOGV("[%s] [%" PRIu64 "] consumer %d not create",
-            __func__, mId, mTunnelId);
+        MESON_LOGV("[%s] [%d] [%" PRIu64 "] consumer %d not create",
+            __func__, mDisplayId, mId, mTunnelId);
         return ret;
     }
 
     if (mGameMode)
-        VideoTunnelDev::getInstance().setNonBlockMode();
-    mGameMode = false;
+        mDisplayObserver->onVtVideoGameMode(false);
+    //mGameMode = false;
 
     memset(&mVtSourceCrop, 0, sizeof(mVtSourceCrop));
 
@@ -728,12 +767,12 @@ int32_t Hwc2Layer::onVtFrameDisplayed(int bufferFd, int fenceFd) {
     ATRACE_CALL();
 
     int32_t ret = -1;
-    MESON_LOGV("[%s] [%" PRIu64 "] mTunelId %d, release vtBuffer(%d), fenceFd(%d)",
-            __func__, mId, mTunnelId, bufferFd, fenceFd);
+    MESON_LOGV("[%s] [%d] [%" PRIu64 "] mTunelId %d, release vtBuffer(%d), fenceFd(%d)",
+            __func__, mDisplayId, mId, mTunnelId, bufferFd, fenceFd);
     ret = mVtConsumer->onVtFrameDisplayed(bufferFd, fenceFd);
     if (ret) {
-        MESON_LOGD("[%s] [%" PRIu64 "] release vt buffer error, "
-                "bufferFd=%d, fenceFd:%d", __func__, mId, bufferFd, fenceFd);
+        MESON_LOGD("[%s] [%d] [%" PRIu64 "] release vt buffer error, "
+                "bufferFd=%d, fenceFd:%d", __func__, mDisplayId, mId, bufferFd, fenceFd);
     }
 
     return ret;
@@ -742,27 +781,27 @@ int32_t Hwc2Layer::onVtFrameDisplayed(int bufferFd, int fenceFd) {
 int32_t Hwc2Layer::onVtFrameAvailable(
         std::vector<std::shared_ptr<VtBufferItem>> & items) {
     ATRACE_CALL();
-    std::lock_guard<std::mutex> lock(mMutex);
+    mMutex.lock();
     nsecs_t diffAdded = 0;
     int expiredItemCount = 0;
     int dropCount = 0;
 
 
     if (!isVtBufferLocked()) {
-        MESON_LOGE("[%s] [%" PRIu64 "] not videotunnel type", __func__, mId);
+        MESON_LOGE("[%s] [%d] [%" PRIu64 "] not videotunnel type", __func__, mDisplayId, mId);
         return -EINVAL;
     }
 
     if (mTunnelId < 0) {
-        MESON_LOGE("[%s] [%" PRIu64 "] mTunelId %d error", __func__, mId, mTunnelId);
+        MESON_LOGE("[%s] [%d] [%" PRIu64 "] mTunelId %d error", __func__, mDisplayId, mId, mTunnelId);
         return -EINVAL;
     }
 
     for (auto it=items.begin(); it != items.end(); it ++) {
         VtBufferItem item = {(*it)->mVtBufferFd, (*it)->mTimeStamp};
-        MESON_LOGV("[%s] [%" PRIu64 "] mTunelId %d, "
+        MESON_LOGV("[%s] [%d] [%" PRIu64 "] mTunelId %d, "
                 "get vtBuffer(%d), timeStamp(%" PRId64 ")", __func__,
-                mId, mTunnelId, (*it)->mVtBufferFd, (*it)->mTimeStamp);
+                mDisplayId, mId, mTunnelId, (*it)->mVtBufferFd, (*it)->mTimeStamp);
         mQueueItems.push_back(item);
         mQueuedFrames++;
         attachUvmBuffer(item.mVtBufferFd);
@@ -798,9 +837,9 @@ int32_t Hwc2Layer::onVtFrameAvailable(
         onVtFrameDisplayed(item.mVtBufferFd, releaseFence);
         mQueuedFrames--;
 
-        MESON_LOGD("[%s] [%" PRIu64 "] vt buffer fd(%d) with timestamp(%" PRId64 ") expired droped "
-                "expectedPresent time(%" PRId64 ") diffAdded(%" PRId64 ") queuedFrames(%d)",
-                __func__, mId, item.mVtBufferFd, item.mTimeStamp,
+        MESON_LOGD("[%s] [%d] [%" PRIu64 "] vt buffer fd(%d) with timestamp(%" PRId64 ") expired "
+                "droped expectedPresent time(%" PRId64 ") diffAdded(%" PRId64 ") queuedFrames(%d)",
+                __func__, mDisplayId,mId, item.mVtBufferFd, item.mTimeStamp,
                 mExpectedPresentTime, diffAdded, mQueuedFrames);
         mQueueItems.pop_front();
         dropCount--;
@@ -814,12 +853,12 @@ int32_t Hwc2Layer::onVtFrameAvailable(
     diffAdded = mTimestamp - mPreviousTimestamp;
     mPreviousTimestamp = mTimestamp;
 
-    MESON_LOGV("[%s] [%" PRIu64 "] mVtBufferFd(%d) timestamp (%" PRId64 " us) expectedPresentTime(%"
+    MESON_LOGV("[%s] [%d] [%" PRIu64 "] mVtBufferFd(%d) timestamp (%" PRId64 " us) expectedPresentTime(%"
             PRId64 " us) diffAdded(%" PRId64 " us) shouldPresent:%d, queueFrameSize:%zu",
-            __func__, mId, mVtBufferFd, mTimestamp,
-            mExpectedPresentTime, diffAdded,
+            __func__, mDisplayId, mId, mVtBufferFd, mTimestamp, mExpectedPresentTime, diffAdded,
             shouldPresentNow(mTimestamp), mQueueItems.size());
 
+    mMutex.unlock();
     if (mGameMode)
         mDisplayObserver->onFrameAvailable();
     return 0;
@@ -829,8 +868,7 @@ void Hwc2Layer::onVtVideoHide() {
     /* clear lastframe and donot show this video layer
      * until receive show video CMD
      */
-    std::lock_guard<std::mutex> lock(mMutex);
-    MESON_LOGD("[%s] [%" PRIu64 "]", __func__, mId);
+    MESON_LOGD("[%s] [%d] [%" PRIu64 "]", __func__, mDisplayId, mId);
     mVideoDisplayStatus = VT_VIDEO_STATUS_HIDE;
 }
 
@@ -838,25 +876,23 @@ void Hwc2Layer::onVtVideoBlank() {
     /* clear lastFrame and blank plane,
      * will redisplay when receive new frame
      */
-    std::lock_guard<std::mutex> lock(mMutex);
-    MESON_LOGD("[%s] [%" PRIu64 "]", __func__, mId);
+    MESON_LOGD("[%s] [%d] [%" PRIu64 "]", __func__, mDisplayId, mId);
     mVideoDisplayStatus = VT_VIDEO_STATUS_CLEAR_LAST_FRAME;
 }
 
 void Hwc2Layer::onVtVideoShow() {
-    std::lock_guard<std::mutex> lock(mMutex);
-    MESON_LOGD("[%s] [%" PRIu64 "]", __func__, mId);
+    MESON_LOGD("[%s] [%d] [%" PRIu64 "]", __func__, mDisplayId, mId);
     mVideoDisplayStatus = VT_VIDEO_STATUS_SHOW;
 }
 
 void Hwc2Layer::onVtVideoGameMode(int data) {
     if (data != 1 && data != 0) {
-        MESON_LOGW("[%s] [%" PRIu64 "] get an invalid param for gameMode",
-                __func__, mId);
+        MESON_LOGW("[%s] [%d] [%" PRIu64 "] get an invalid param for gameMode",
+                __func__, mDisplayId, mId);
     } else {
         mGameMode = (data == 1 ? true : false);
-        MESON_LOGD("[%s] [%" PRIu64 "] %s video game mode",
-                __func__, mId, mGameMode ? "enable" : "disable");
+        MESON_LOGD("[%s] [%d] [%" PRIu64 "] %s video game mode",
+                __func__, mDisplayId, mId, mGameMode ? "enable" : "disable");
         mDisplayObserver->onVtVideoGameMode(mGameMode);
     }
 }

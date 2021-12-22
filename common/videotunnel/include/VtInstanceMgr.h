@@ -33,6 +33,8 @@ public:
     int32_t handleBuffers();
     int32_t handleCmds();
 
+protected:
+    const char *vtPollStatusToString(VideoTunnelDev::VtPollStatus status);
 private:
     std::map<int, std::shared_ptr<VtInstance>> mInstances;
     std::shared_ptr<VtHandleEventsThread> mVtHandleEventsThread;

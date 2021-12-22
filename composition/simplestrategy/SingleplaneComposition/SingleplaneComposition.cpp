@@ -57,6 +57,7 @@ void SingleplaneComposition::setup(
     std::shared_ptr<HwDisplayCrtc> & crtc,
     uint32_t reqFlag,
     float scaleValue __unused) {
+    std::lock_guard<std::mutex> lock(mMutex);
     cleanup();
 
     mCompositionFlag = reqFlag;
@@ -129,11 +130,13 @@ void SingleplaneComposition::setup(
 }
 
 void SingleplaneComposition::updateComposition() {
+    std::lock_guard<std::mutex> lock(mMutex);
     mUnusedPlanes.clear();
     mDumpStr.clear();
 }
 /*--------------------- Decide composition ---------------------*/
 int SingleplaneComposition::decideComposition() {
+    std::lock_guard<std::mutex> lock(mMutex);
     if (mFramebuffers.empty()) {
         MESON_LOGV("No layers to compose, exit.");
         return 0;
@@ -199,6 +202,8 @@ int SingleplaneComposition::processFbsOfExplicitComposition() {
             MESON_COMPOSITION_PLANE_HWCVIDEO},
         {DRM_FB_VIDEO_UVM_DMA, HWC_VIDEO_PLANE,
             MESON_COMPOSITION_PLANE_HWCVIDEO},
+        {DRM_FB_VIDEO_TUNNEL_SIDEBAND, HWC_VIDEO_PLANE,
+            MESON_COMPOSITION_PLANE_HWCVIDEO},
     };
     static int pairSize = sizeof(planeCompPairs) / sizeof(struct planeComp);
 
@@ -209,7 +214,7 @@ int SingleplaneComposition::processFbsOfExplicitComposition() {
             if (fb->mFbType == planeCompPairs[i].srcFb) {
                 destComp = planeCompPairs[i].destComp;
                 if (planeCompPairs[i].destPlane == LEGACY_VIDEO_PLANE) {
-                    if (mLegacyVideoPlane.get()) {
+                    if (mLegacyVideoPlane.get() && mLegacyVideoPlane) {
                         mDisplayPairs.push_back(DisplayPair{fb, mLegacyVideoPlane});
                         mLegacyVideoPlane.reset();
                     } else {
@@ -384,19 +389,22 @@ int SingleplaneComposition::buildOsdComposition() {
 }
 
 /*--------------------- commit to display ---------------------*/
-int SingleplaneComposition::commit(bool sf __unused) {
+int SingleplaneComposition::commit(bool sf) {
+    std::lock_guard<std::mutex> lock(mMutex);
     /*start compose, and add composer output.*/
     /* handle uvm */
     handleUVM();
 
     std::shared_ptr<DrmFramebuffer> composeOutput;
-    if (mComposer.get()) {
+    if (sf && mComposer.get()) {
         mComposer->start();
         composeOutput = mComposer->getOutput();
         if (composeOutput.get()) {
             mDisplayPairs.push_back(DisplayPair{composeOutput, mOsdPlane});
             mOsdPlane.reset();
         }
+    } else if (!sf && mComposer.get()) {
+        composeOutput = mComposer->getOutput();
     }
 
     display_zoom_info_t osdDisplayFrame;
@@ -442,27 +450,40 @@ int SingleplaneComposition::commit(bool sf __unused) {
         }
 
         /*set display info*/
-        plane->setPlane(fb, z, blankFlag);
+        if (!sf && fb->isVtBuffer()) {
+            if (fb->isVtNeedClearLastFrame() || fb->isVtNeedHideVideo())
+                blankFlag = BLANK_FOR_NO_CONTENT;
+
+            plane->setPlane(fb, z, blankFlag);
+        } else if (sf && !fb->isVtBuffer()) {
+            plane->setPlane(fb, z, blankFlag);
+        }
     }
 
     /*blank useless plane.*/
-    if (mCursorPlane.get())
-        mUnusedPlanes.push_back(mCursorPlane);
-    if (mLegacyVideoPlane.get())
-        mUnusedPlanes.push_back(mLegacyVideoPlane);
-    if (mOsdPlane.get())
-        mUnusedPlanes.push_back(mOsdPlane);
-    if (mHwcVideoPlane.get())
-        mUnusedPlanes.push_back(mHwcVideoPlane);
+    if (sf) {
+        if (mCursorPlane.get())
+            mUnusedPlanes.push_back(mCursorPlane);
+        if (mLegacyVideoPlane.get())
+            mUnusedPlanes.push_back(mLegacyVideoPlane);
+        if (mOsdPlane.get())
+            mUnusedPlanes.push_back(mOsdPlane);
+        if (mHwcVideoPlane.get())
+            mUnusedPlanes.push_back(mHwcVideoPlane);
 
-    auto planeit = mUnusedPlanes.begin();
-    for (;planeit != mUnusedPlanes.end(); ++planeit) {
-        (*planeit)->setPlane(NULL, HWC_PLANE_FAKE_ZORDER, BLANK_FOR_NO_CONTENT);
-        dumpUnusedPlane(*planeit, BLANK_FOR_NO_CONTENT);
+        auto planeit = mUnusedPlanes.begin();
+        for (;planeit != mUnusedPlanes.end(); ++planeit) {
+            (*planeit)->setPlane(NULL, HWC_PLANE_FAKE_ZORDER, BLANK_FOR_NO_CONTENT);
+            dumpUnusedPlane(*planeit, BLANK_FOR_NO_CONTENT);
+        }
+
+        /*set crtc info.*/
+        mCrtc->setDisplayFrame(osdDisplayFrame);
     }
-
-    /*set crtc info.*/
-    mCrtc->setDisplayFrame(osdDisplayFrame);
     return 0;
 }
 
+void SingleplaneComposition::dump(String8 & dumpstr) {
+    std::lock_guard<std::mutex> lock(mMutex);
+    ICompositionStrategy::dump(dumpstr);
+}

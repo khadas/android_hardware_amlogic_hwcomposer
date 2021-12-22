@@ -60,6 +60,7 @@ protected:
     nsecs_t mVsyncTime;
     nsecs_t mReqPeriod;
     nsecs_t mPreTimeStamp;
+    nsecs_t mCurVsyncPeriod;
 
     HwcVsyncObserver * mObserver;
     std::shared_ptr<HwDisplayCrtc> mCrtc;

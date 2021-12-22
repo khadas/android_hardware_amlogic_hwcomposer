@@ -10,11 +10,12 @@
 
 #include "VtConsumer.h"
 
-VtConsumer::VtConsumer(int tunnelId, uint32_t layerId) {
+VtConsumer::VtConsumer(int tunnelId, uint32_t dispId, uint32_t layerId) {
     mTunnelId = tunnelId;
     mReleaseListener = nullptr;
     mContentListener = nullptr;
-    snprintf(mName, 64, "VtConsumer-%d-%u", tunnelId, layerId);
+    snprintf(mName, 64, "VtConsumer-%u-%d-%u",
+            dispId, tunnelId, layerId);
 }
 
 VtConsumer::~VtConsumer() {

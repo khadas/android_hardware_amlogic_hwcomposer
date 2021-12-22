@@ -29,6 +29,7 @@ HwcVsync::HwcVsync() {
     mVsyncTime = 0;
     mExit = false;
     mObserver = NULL;
+    mCurVsyncPeriod = 0;
 
     int ret;
     ret = pthread_create(&hw_vsync_thread, NULL, vsyncThread, this);
@@ -248,19 +249,18 @@ int32_t HwcVsync::waitSoftwareVsync(nsecs_t& vsync_timestamp) {
 
 int32_t HwcVsync::waitMixVsync(nsecs_t& vsync_timestamp) {
     ATRACE_CALL();
-    static nsecs_t cur_vsync_period = 0;
-    if (cur_vsync_period != mReqPeriod || mMixRebase) {
+    if (mCurVsyncPeriod != mReqPeriod || mMixRebase) {
         MESON_LOGD("[%s] waitVBlank to get hw vsync timestamp", __func__);
         if (!mCrtc.get())
             return -EFAULT;
         mCrtc->waitVBlank(mVsyncTime);
         mVsyncTime += VT_OFFSET_TIME;
-        cur_vsync_period = mReqPeriod;
+        mCurVsyncPeriod = mReqPeriod;
         mMixRebase = false;
     } else {
         nsecs_t now = systemTime(CLOCK_MONOTONIC);
-        mVsyncTime = mVsyncTime + cur_vsync_period +
-            (now - mVsyncTime ) /cur_vsync_period * cur_vsync_period;
+        mVsyncTime = mVsyncTime + mCurVsyncPeriod +
+            (now - mVsyncTime ) /mCurVsyncPeriod * mCurVsyncPeriod;
 
         struct timespec spec;
         spec.tv_sec  = mVsyncTime / 1000000000;
