@@ -36,9 +36,11 @@ protected:
     bool mExit;
     bool needRefresh;
     std::mutex mMutex;
+    std::mutex mRefrashMutex;
     std::condition_variable mVtCondition;
     pthread_t mVtDisplayThread;
     Hwc2Display * mDisplay;
+    char mName[64];
 };
 
 #endif

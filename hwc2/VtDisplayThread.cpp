@@ -16,12 +16,13 @@ VtDisplayThread::VtDisplayThread(Hwc2Display * display) {
     mDisplay = display;
     mExit = false;
     needRefresh = false;
+    snprintf(mName, 64, "VtDisplayThread-%d", mDisplay->getDisplayId());
 
     createThread();
 }
 
 VtDisplayThread::~VtDisplayThread() {
-    MESON_LOGD("%s, Destroy Video Tunnel Display Thread", __func__);
+    MESON_LOGD("%s %s, Destroy Video Tunnel Display Thread", mName, __func__);
     mExit = true;
     pthread_join(mVtDisplayThread, NULL);
 }
@@ -31,8 +32,8 @@ int32_t VtDisplayThread::createThread() {
 
     ret = pthread_create(&mVtDisplayThread, NULL, VtDisplayThreadMain, (void *)this);
     if (ret) {
-        MESON_LOGE("%s, failed to create VideoTunnel CmdThread: %s",
-            __func__, strerror(ret));
+        MESON_LOGE("%s %s, failed to create VideoTunnel CmdThread: %s",
+            mName, __func__, strerror(ret));
     }
 
     return ret;
@@ -47,7 +48,7 @@ void VtDisplayThread::onVtVsync(int64_t timestamp, uint32_t vsyncPeriodNanos) {
     ATRACE_CALL();
     //set vsync info to videotunnel driver
     if (VideoTunnelDev::getInstance().setDisplayVsyncInfo(timestamp, vsyncPeriodNanos) < 0)
-        MESON_LOGE("%s, failed set display vsync info to videotunnel", __func__);
+        MESON_LOGE("%s %s, failed set display vsync info to videotunnel", mName, __func__);
 
     std::unique_lock<std::mutex> stateLock(mMutex);
     needRefresh = true;
@@ -70,12 +71,14 @@ void* VtDisplayThread::VtDisplayThreadMain(void *data) {
     struct sched_param param = {0};
     param.sched_priority = 2;
     if (sched_setscheduler(0, SCHED_FIFO, &param) != 0) {
-        MESON_LOGE("Couldn't set SCHED_FIFO for videotunnelthread");
+        MESON_LOGE("%s %s, Couldn't set SCHED_FIFO for videotunnelthread",
+            pThis->mName, __func__);
     }
 
     while (true) {
         if (pThis->mExit) {
-            MESON_LOGD("%s, VtDisplayThread exit video tunnel loop", __func__);
+            MESON_LOGD("%s %s, VtDisplayThread exit video tunnel loop",
+                pThis->mName, __func__);
             pthread_exit(0);
             return NULL;
         }
@@ -94,19 +97,22 @@ void VtDisplayThread::handleVtDisplay() {
         mVtCondition.wait(stateLock);
     }
     needRefresh = false;
-
-    do {
-        mDisplay->setVtLayersPresentTime();
-        if (mDisplay->handleVtDisplayConnection()) {
-            mDisplay->presentVtVideo(&outPresentFence);
-
-            /* need close the present fence */
-            if (outPresentFence >= 0)
-                close(outPresentFence);
-        }
-    } while (mDisplay->newGameBuffer());
-
-    mDisplay->releaseVtLayers();
     stateLock.unlock();
+
+    {
+        std::unique_lock<std::mutex> stateLock(mRefrashMutex);
+        do {
+            mDisplay->setVtLayersPresentTime();
+            if (mDisplay->handleVtDisplayConnection()) {
+                mDisplay->presentVtVideo(&outPresentFence);
+
+                /* need close the present fence */
+                if (outPresentFence >= 0)
+                    close(outPresentFence);
+            }
+            mDisplay->releaseVtLayers();
+        } while (mDisplay->newGameBuffer());
+
+    }
 }
 

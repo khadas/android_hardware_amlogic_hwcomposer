@@ -135,16 +135,36 @@ void VtInstanceMgr::clearUpInstances() {
     }
 }
 
+const char * VtInstanceMgr::vtPollStatusToString(VideoTunnelDev::VtPollStatus status) {
+    const char * str;
+    switch (status) {
+        case VideoTunnelDev::VtPollStatus::eBufferReady:
+            str = "VT Buffer Ready";
+            break;
+        case VideoTunnelDev::VtPollStatus::eCmdReady:
+            str = "VT Cmd Ready";
+            break;
+        case VideoTunnelDev::VtPollStatus::eNotReady:
+            str = "VT Not Ready";
+            break;
+        default:
+            str = "Status is not found";
+    }
+    return str;
+}
+
 VideoTunnelDev::VtPollStatus VtInstanceMgr::pollVtEvents() {
     VideoTunnelDev::VtPollStatus ret;
 
     ret = VideoTunnelDev::getInstance().pollBufferAndCmds();
+    MESON_LOGV("VtInstanceMgr::%s %s",
+            __func__, vtPollStatusToString(ret));
 
     return ret;
 }
 
 int32_t VtInstanceMgr::handleBuffers() {
-    std::lock_guard<std::mutex> lock(mMutex);
+    //std::lock_guard<std::mutex> lock(mMutex);
     int32_t ret = 0;
     std::shared_ptr<VtInstance> ptrInstance;
     auto instanceIt = mInstances.begin();
@@ -158,7 +178,7 @@ int32_t VtInstanceMgr::handleBuffers() {
 }
 
 int32_t VtInstanceMgr::handleCmds() {
-    std::lock_guard<std::mutex> lock(mMutex);
+    //std::lock_guard<std::mutex> lock(mMutex);
     int32_t ret = 0;
     std::shared_ptr<VtInstance> ptrInstance;
     auto instanceIt = mInstances.begin();

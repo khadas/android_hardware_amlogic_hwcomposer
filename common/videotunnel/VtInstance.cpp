@@ -80,7 +80,6 @@ int32_t VtInstance::registerVtConsumer(
         MESON_LOGE("[%s] [%s] consumer is null", __func__, mName);
         return -1;
     }
-    std::lock_guard<std::mutex> lock(mMutex);
     consumer->setReleaseListener(this);
     mConsumers.push_back(consumer);
     return 0;
@@ -98,7 +97,6 @@ int32_t VtInstance::unregisterVtConsumer(
         return ret;
     }
 
-    std::lock_guard<std::mutex> lock(mMutex);
     auto it = mConsumers.begin();
     for (; it != mConsumers.end(); it++) {
         std::shared_ptr<VtConsumer> item = (*it);
@@ -230,7 +228,6 @@ int32_t VtInstance::recieveCmds() {
     if (ret < 0)
         return ret;
 
-    std::lock_guard<std::mutex> lock(mMutex);
     for (auto it = mConsumers.begin(); it != mConsumers.end(); it++) {
         ret = (*it)->onVtCmds(cmd, cmdData);
     }
@@ -239,7 +236,6 @@ int32_t VtInstance::recieveCmds() {
 }
 
 bool VtInstance::needDestroyThisInstance() {
-    std::lock_guard<std::mutex> lock(mMutex);
     if (mConsumers.empty())
         return true;
     else

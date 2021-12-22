@@ -57,7 +57,7 @@ struct VtBufferItem {
 
 class VtConsumer {
 public:
-    VtConsumer(int tunnelId, uint32_t layerId);
+    VtConsumer(int tunnelId, uint32_t dispId, uint32_t layerId);
     virtual ~VtConsumer();
 
     class VtReleaseListener {

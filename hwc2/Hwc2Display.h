@@ -56,6 +56,8 @@ public:
 
     virtual void dump(String8 & dumpstr);
 
+    uint32_t getDisplayId() { return mDisplayId;}
+
 /*HWC2 interfaces.*/
 public:
     /*Connector releated.*/

@@ -41,6 +41,7 @@ public:
 
     int decideComposition();
     int commit(bool sf = true);
+    void dump(String8 & dumpstr);
 
 protected:
     void cleanup();
@@ -88,6 +89,7 @@ protected:
 
     /* Use for UVM */
     int mUVMFd;
+    std::mutex mMutex;
 };
 
 #endif/*SINGLEPLANE_COMPOSITION_H*/
