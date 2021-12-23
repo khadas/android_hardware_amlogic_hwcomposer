@@ -12,6 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+bootstrap_go_package {
+    name: "mesondisplay",
+    pkgPath: "android/soong/hwc_mesondisplay",
+    deps: [
+        "blueprint",
+        "soong",
+        "soong-android",
+        "soong-cc",
+        "soong-genrule",
+        "blueprint-bootstrap",
+        "soong-cc-config"
+    ],
+    srcs: [
+        "mesondisplay.go",
+    ],
+
+    pluginFor: ["soong_build"],
+}
+
+hwc_mesondisplay_go_defaults {
+    name: "mesondisplay_go_defaults",
+}
+
 soong_config_module_type {
     name: "meson_display_config_default",
     module_type: "cc_defaults",
@@ -38,7 +61,10 @@ meson_display_config_default {
 cc_library_static {
     // This is for recovery mode static lib
     name: "libmeson_display_adapter_local_static",
-    defaults: ["meson_display_cc_defaults"],
+    defaults: [
+    "meson_display_cc_defaults",
+    "mesondisplay_go_defaults"
+    ],
     vendor_available: true,
     recovery_available: true,
 
@@ -56,9 +82,6 @@ cc_library_static {
         "adapter",
     ],
 
-    static_libs: [
-        "libjsoncpp",
-    ],
 
     shared_libs: [
         "liblog",
@@ -81,7 +104,10 @@ cc_library_static {
 
 cc_library_static {
     name: "meson_display.adapter_local_static",
-    defaults: ["meson_display_cc_defaults"],
+    defaults: [
+    "meson_display_cc_defaults",
+    "mesondisplay_go_defaults"
+    ],
     vendor: true,
 
     cflags: [
@@ -129,8 +155,8 @@ cc_library_static {
         "hwc.debug_static",
         "hwc.composer_static",
         "omxutil.static",
-        "libjsoncpp",
     ],
+
 
     export_static_lib_headers: [
         "libjsoncpp",
@@ -141,7 +167,10 @@ cc_library_static {
 cc_library_shared {
     // This is for meson display client
     name: "libmeson_display_adapter_remote",
-    defaults: ["meson_display_cc_defaults"],
+    defaults: [
+    "meson_display_cc_defaults",
+    "mesondisplay_go_defaults"
+    ],
     vendor: true,
 
     cflags: [
@@ -177,9 +206,6 @@ cc_library_shared {
         "hwc.utils_log",
     ],
 
-    static_libs: [
-        "libjsoncpp",
-    ],
 
     export_static_lib_headers: [
         "libjsoncpp",
@@ -189,7 +215,10 @@ cc_library_shared {
 cc_library_shared {
     // This is for meson display server
     name: "libmeson_display_service",
-    defaults: ["meson_display_cc_defaults"],
+    defaults: [
+    "meson_display_cc_defaults",
+    "mesondisplay_go_defaults"
+    ],
     vendor: true,
 
     cflags: [
@@ -215,8 +244,8 @@ cc_library_shared {
 
     static_libs: [
         "hwc.utils_static",
-        "libjsoncpp",
     ],
+
 
     export_include_dirs: [
         "include",
