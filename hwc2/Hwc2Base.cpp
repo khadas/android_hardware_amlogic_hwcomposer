@@ -21,10 +21,16 @@ hwc2_composition_t mesonComp2Hwc2Comp(Hwc2Layer * layer) {
         case MESON_COMPOSITION_PLANE_AMVIDEO_SIDEBAND:
                 hwcCompostion = HWC2_COMPOSITION_SIDEBAND;
                 break;
+        case MESON_COMPOSITION_PLANE_HWCVIDEO:
+            if (layer->mFbType == DRM_FB_VIDEO_SIDEBAND_TV ||
+                layer->mFbType == DRM_FB_VIDEO_TUNNEL_SIDEBAND) {
+                hwcCompostion = HWC2_COMPOSITION_SIDEBAND;
+                break;
+            }
+            [[fallthrough]];
         case MESON_COMPOSITION_DUMMY:
         case MESON_COMPOSITION_DI:
         case MESON_COMPOSITION_PLANE_AMVIDEO:
-        case MESON_COMPOSITION_PLANE_HWCVIDEO:
         case MESON_COMPOSITION_PLANE_OSD:
         case MESON_COMPOSITION_GE2D:
         default:
