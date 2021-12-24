@@ -23,6 +23,7 @@
 #include <DebugHelper.h>
 #include <HwcConfig.h>
 #include "UvmDev.h"
+#include <misc.h>
 
 #define OSD_OUTPUT_ONE_CHANNEL         1
 
@@ -372,6 +373,12 @@ int MultiplanesWithDiComposition::processVideoFbs() {
     uint32_t videoZ = -1, usedPlanes = 0;
     std::shared_ptr<DrmFramebuffer> videoFb;
 
+    bool isSideBandDisable =false;
+    char val[PROP_VALUE_LEN_MAX];
+    if (sys_get_string_prop("vendor.hwc.sideband_disable", val) > 0 && strcmp(val, "0") != 0) {
+          isSideBandDisable = true;
+    }
+
     if (mVideoPlaneNum == 1 && sidebandFbs.size() > 0) {
         /* for just one hwcVideoPlane and have sideband video*/
         auto it = sidebandFbs.begin();
@@ -381,8 +388,13 @@ int MultiplanesWithDiComposition::processVideoFbs() {
             MESON_LOGD("too many sideband, skip.");
             (*it)->mCompositionType = MESON_COMPOSITION_DUMMY;
         }
+
         sidebandFbs.clear();
-        fb->mCompositionType = MESON_COMPOSITION_PLANE_HWCVIDEO;
+        if (isSideBandDisable) {
+           fb->mCompositionType = MESON_COMPOSITION_DUMMY;
+        } else {
+           fb->mCompositionType = MESON_COMPOSITION_PLANE_HWCVIDEO;
+        }
         mDisplayPairs.push_back(DisplayPair{
                 (uint32_t)mOsdPlaneNum, fb->mZorder, fb, mHwcVideoPlanes[0],
                 std::vector<std::shared_ptr<FbProcessor>>()});
