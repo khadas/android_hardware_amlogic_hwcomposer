@@ -89,7 +89,7 @@ static void load_sc_proxy() {
 int32_t sc_get_hdmitx_mode_list(std::vector<std::string>& edidlist) {
     CHK_SC_PROXY();
 
-    gSC->getSupportDispModeList([&edidlist](
+    auto rtn = gSC->getSupportDispModeList([&edidlist](
         const Result & ret, const hidl_vec<hidl_string> supportDispModes) {
         if (Result::OK == ret) {
             for (size_t i = 0; i < supportDispModes.size(); i++) {
@@ -99,6 +99,11 @@ int32_t sc_get_hdmitx_mode_list(std::vector<std::string>& edidlist) {
             edidlist.clear();
         }
     });
+
+    if (!rtn.isOk()) {
+        MESON_LOGE("%s Fail", __func__);
+        return -EFAULT;
+    }
 
     if (edidlist.empty()) {
         MESON_LOGE("syscontrol::readEdidList FAIL.");
@@ -110,9 +115,9 @@ int32_t sc_get_hdmitx_mode_list(std::vector<std::string>& edidlist) {
 
 int32_t sc_get_hdmitx_hdcp_state(bool & val) {
     CHK_SC_PROXY();
-    Result rtn = gSC->isHDCPTxAuthSuccess();
-    MESON_LOGD("hdcp status: %d", rtn);
-    val = (rtn == Result::OK) ? true : false;
+    auto rtn = gSC->isHDCPTxAuthSuccess();
+    val = (rtn.isOk()) ? true : false;
+    MESON_LOGD("hdcp status: %d", Result(rtn));
     return 0;
 }
 
@@ -127,7 +132,7 @@ int32_t sc_notify_hdmi_plugin() {
 int32_t  sc_get_display_mode(std::string & dispmode) {
     CHK_SC_PROXY();
 
-    gSC->getActiveDispMode([&dispmode](
+    auto rtn = gSC->getActiveDispMode([&dispmode](
         const Result & ret, const hidl_string & supportDispModes) {
         if (Result::OK == ret) {
             dispmode = supportDispModes.c_str();
@@ -135,6 +140,11 @@ int32_t  sc_get_display_mode(std::string & dispmode) {
             dispmode.clear();
         }
     });
+
+    if (!rtn.isOk()) {
+        MESON_LOGE("%s Fail", __func__);
+        return -EFAULT;
+    }
 
     if (dispmode.empty()) {
         MESON_LOGE("sc_get_display_mode FAIL.");
@@ -147,8 +157,8 @@ int32_t  sc_get_display_mode(std::string & dispmode) {
 int32_t sc_set_display_mode(std::string &dispmode) {
     CHK_SC_PROXY();
 
-    Result ret = gSC->setActiveDispMode(dispmode);
-    if (ret == Result::OK) {
+    auto ret = gSC->setActiveDispMode(dispmode);
+    if (ret.isOk()) {
         return 0;
     } else {
         MESON_LOGE("sc_set_display_mode FAIL.");
@@ -180,8 +190,8 @@ int32_t sc_get_osd_position(std::string &dispmode, int *position) {
 int32_t sc_write_sysfs(const char * path, std::string & val) {
     CHK_SC_PROXY();
 
-    Result ret = gSC->writeSysfs(path, val);
-    if (ret == Result::OK) {
+    auto ret = gSC->writeSysfs(path, val);
+    if (ret.isOk()) {
         return 0;
     } else {
         MESON_LOGE("sc_write_sysfs FAIL.");
@@ -192,7 +202,7 @@ int32_t sc_write_sysfs(const char * path, std::string & val) {
 int32_t sc_read_sysfs(const char * path, std::string & val) {
     CHK_SC_PROXY();
 
-    gSC->readSysfs(path, [&val](
+    auto rtn = gSC->readSysfs(path, [&val](
         const Result &ret, const hidl_string & retval) {
         if (Result::OK == ret) {
             val = retval.c_str();
@@ -200,6 +210,11 @@ int32_t sc_read_sysfs(const char * path, std::string & val) {
             val.clear();
         }
     });
+
+    if (!rtn.isOk()) {
+        MESON_LOGE("%s Fail", __func__);
+        return -EFAULT;
+    }
 
     if (val.empty()) {
         MESON_LOGE("sc_read_sysfs FAIL.");
@@ -211,7 +226,7 @@ int32_t sc_read_sysfs(const char * path, std::string & val) {
 int32_t sc_read_bootenv(const char * key, std::string & val) {
     CHK_SC_PROXY();
 
-    gSC->getBootEnv(key, [&val](
+    auto rtn = gSC->getBootEnv(key, [&val](
         const Result &ret, const hidl_string & retval) {
         if (Result::OK == ret) {
             val = retval.c_str();
@@ -220,6 +235,10 @@ int32_t sc_read_bootenv(const char * key, std::string & val) {
         }
     });
 
+    if (!rtn.isOk()) {
+        MESON_LOGE("%s Fail", __func__);
+        return -EFAULT;
+    }
     if (val.empty()) {
         MESON_LOGE("sc_read_bootenv FAIL.");
         return -EFAULT;
@@ -277,8 +296,8 @@ int32_t sc_set_property(const char * prop, const char *val ) {
         return -EINVAL;
     }
 
-    Result ret = gSC->setProperty(hidl_string(prop), hidl_string(val));
-    if (ret == Result::OK) {
+    auto ret = gSC->setProperty(hidl_string(prop), hidl_string(val));
+    if (ret.isOk()) {
         return 0;
     } else {
         MESON_LOGE("sc_set_property prop:%s val:%s FAIL.", prop, val);
@@ -337,7 +356,7 @@ bool sc_is_dolby_version_enable() {
 bool  sc_get_pref_display_mode(std::string & dispmode) {
     CHK_SC_PROXY();
 
-    gSC->getPrefHdmiDispMode([&dispmode](
+    auto rtn = gSC->getPrefHdmiDispMode([&dispmode](
         const Result & ret, const hidl_string & supportDispModes) {
         if (Result::OK == ret) {
             dispmode = supportDispModes.c_str();
@@ -345,6 +364,11 @@ bool  sc_get_pref_display_mode(std::string & dispmode) {
             dispmode.clear();
         }
     });
+
+    if (!rtn.isOk()) {
+        MESON_LOGE("%s Fail", __func__);
+        return -EFAULT;
+    }
 
     if (dispmode.empty()) {
         MESON_LOGE("sc_get_pref_display_mode FAIL.");
@@ -441,8 +465,8 @@ int32_t sc_set_hdmi_allm(bool on) {
 int32_t sc_frame_rate_display(bool on, const ISystemControl::Rect& rect) {
     CHK_SC_PROXY();
 
-    Result ret = gSC->frameRateDisplay(on, rect);
-    if (ret == Result::OK) {
+    auto ret = gSC->frameRateDisplay(on, rect);
+    if (ret.isOk()) {
         return 0;
     } else {
         MESON_LOGE("sc_frame_rate_display FAIL.");
@@ -474,18 +498,24 @@ static void load_sc_proxy() {
 int32_t sc_get_hdmitx_mode_list(std::vector<std::string>& edidlist) {
     CHK_SC_PROXY();
 
-    if (gSC->getSupportDispModeList(&edidlist)) {
+    auto ret = gSC->getSupportDispModeList(&edidlist)
+    if (ret.isOk()) {
         return 0;
     } else {
-        MESON_LOGE("syscontrol::readEdidList FAIL.");
+        MESON_LOGE("sc_get_hdmitx_mode_list FAIL.");
         return -EFAULT;
     }
 }
 
 int32_t sc_get_hdmitx_hdcp_state(bool & val) {
     CHK_SC_PROXY();
+
     int status;
-    gSC->isHDCPTxAuthSuccess(status);
+    auto ret = gSC->isHDCPTxAuthSuccess(status);
+    if (!ret.isOk()) {
+        MESON_LOGE("sc_get_hdmitx_hdcp_state FAIL.");
+        return -EFAULT
+    }
     val = (status == 1) ?  true : false;
     MESON_LOGD("hdcp status: %d", status);
     return 0;
@@ -494,7 +524,8 @@ int32_t sc_get_hdmitx_hdcp_state(bool & val) {
 int32_t  sc_get_display_mode(std::string & dispmode) {
     CHK_SC_PROXY();
 
-    if (gSC->getActiveDispMode(&dispmode)) {
+    auto ret = gSC->getActiveDispMode(&dispmode);
+    if (ret.isOk()) {
         return 0;
     } else {
         MESON_LOGE("sc_get_display_mode FAIL.");
@@ -505,7 +536,8 @@ int32_t  sc_get_display_mode(std::string & dispmode) {
 int32_t sc_set_display_mode(std::string &dispmode) {
     CHK_SC_PROXY();
 
-    if (gSC->setActiveDispMode(dispmode)) {
+    auto ret = gSC->setActiveDispMode(dispmode);
+    if (ret.isOk()) {
         return 0;
     } else {
         MESON_LOGE("sc_set_display_mode FAIL.");
@@ -518,7 +550,11 @@ int32_t sc_get_osd_position(std::string &dispmode, int *position) {
 
     const char * mode = dispmode.c_str();
     int left, top, width, height;
-    gSC->getPosition(String16(mode), left, top, width, height);
+    auto ret = gSC->getPosition(String16(mode), left, top, width, height);
+    if (!ret.isOk()) {
+        MESON_LOGE("sc_get_osd_position FAIL.");
+        return -EFAULT;
+    }
     position[0] = left;
     position[1] = top;
     position[2] = width;
@@ -529,8 +565,8 @@ int32_t sc_get_osd_position(std::string &dispmode, int *position) {
 int32_t sc_write_sysfs(const char * path, std::string &dispmode) {
     CHK_SC_PROXY();
 
-    Result ret = gSC->writeSysfs(dispmode);
-    if (ret == Result::OK) {
+    auto ret = gSC->writeSysfs(dispmode);
+    if (ret.isOk()) {
         return 0;
     } else {
         MESON_LOGE("sc_write_sysfs FAIL.");
@@ -541,8 +577,8 @@ int32_t sc_write_sysfs(const char * path, std::string &dispmode) {
 int32_t sc_read_sysfs(const char * path, std::string &dispmode) {
     CHK_SC_PROXY();
 
-    Result ret = gSC->readSysfs(dispmode);
-    if (ret == Result::OK) {
+    auto ret = gSC->readSysfs(dispmode);
+    if (ret.isOk()) {
         return 0;
     } else {
         MESON_LOGE("sc_read_sysfs FAIL.");
@@ -565,8 +601,8 @@ int32_t sc_set_hdmi_allm(bool on) {
 int32_t sc_frame_rate_display(bool on, const ISystemControl::Rect& rect) {
     CHK_SC_PROXY();
 
-    Result ret = gSC->frameRateDisplay(on, rect);
-    if (ret == Result::OK) {
+    auto ret = gSC->frameRateDisplay(on, rect);
+    if (ret.isOk()) {
         return 0;
     } else {
         MESON_LOGE("sc_frame_rate_display FAIL.");
