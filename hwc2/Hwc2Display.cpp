@@ -1146,6 +1146,20 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
             close(mPresentFence);
         mPresentFence = -1;
 
+        /*1.client target is always full screen, just post to crtc display axis.
+         *2.client target may not update while display frame need changed.
+         * When app not updated, sf won't update client target, but hwc
+         * need display frame. so always update it before commit.
+         */
+        if (mClientTarget.get()) {
+            mClientTarget->mDisplayFrame.left = mCalibrateInfo.crtc_display_x;
+            mClientTarget->mDisplayFrame.top = mCalibrateInfo.crtc_display_y;
+            mClientTarget->mDisplayFrame.right = mCalibrateInfo.crtc_display_x +
+                mCalibrateInfo.crtc_display_w;
+            mClientTarget->mDisplayFrame.bottom = mCalibrateInfo.crtc_display_y +
+                mCalibrateInfo.crtc_display_h;
+        }
+
         /*start new pageflip, and prepare.*/
         if (mCrtc->prePageFlip() != 0 ) {
             return HWC2_ERROR_NO_RESOURCES;
@@ -1245,37 +1259,32 @@ hwc2_error_t Hwc2Display::setClientTarget(buffer_handle_t target,
     ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
     /*create DrmFramebuffer for client target.*/
-    std::shared_ptr<DrmFramebuffer> clientFb =  std::make_shared<DrmFramebuffer>(
+    mClientTarget =  std::make_shared<DrmFramebuffer>(
         target, acquireFence);
-    clientFb->mFbType = DRM_FB_SCANOUT;
-    clientFb->mBlendMode = DRM_BLEND_MODE_PREMULTIPLIED;
-    clientFb->mPlaneAlpha = 1.0f;
-    clientFb->mTransform = 0;
-    clientFb->mDataspace = dataspace;
+    mClientTarget->mFbType = DRM_FB_SCANOUT;
+    mClientTarget->mBlendMode = DRM_BLEND_MODE_PREMULTIPLIED;
+    mClientTarget->mPlaneAlpha = 1.0f;
+    mClientTarget->mTransform = 0;
+    mClientTarget->mDataspace = dataspace;
 
     /* real mode set real source crop */
     if (HwcConfig::getModePolicy(0) ==  REAL_MODE_POLICY) {
         drm_mode_info_t mode;
         mModeMgr->getDisplayMode(mode);
-        clientFb->mSourceCrop.right = ((int32_t)mode.pixelW < clientFb->mSourceCrop.right)
-            ? mode.pixelW : clientFb->mSourceCrop.right;
-        clientFb->mSourceCrop.bottom = ((int32_t)mode.pixelH < clientFb->mSourceCrop.bottom)
-            ? mode.pixelH : clientFb->mSourceCrop.bottom;
+        mClientTarget->mSourceCrop.right = ((int32_t)mode.pixelW < mClientTarget->mSourceCrop.right)
+            ? mode.pixelW : mClientTarget->mSourceCrop.right;
+        mClientTarget->mSourceCrop.bottom = ((int32_t)mode.pixelH < mClientTarget->mSourceCrop.bottom)
+            ? mode.pixelH : mClientTarget->mSourceCrop.bottom;
     }
-
-    /*client target is always full screen, just post to crtc display axis.*/
-    clientFb->mDisplayFrame.left = mCalibrateInfo.crtc_display_x;
-    clientFb->mDisplayFrame.top = mCalibrateInfo.crtc_display_y;
-    clientFb->mDisplayFrame.right = mCalibrateInfo.crtc_display_x +
-        mCalibrateInfo.crtc_display_w;
-    clientFb->mDisplayFrame.bottom = mCalibrateInfo.crtc_display_y +
-        mCalibrateInfo.crtc_display_h;
+    /*clienttarget's displayframe which depends on output but not surfaceflinger,
+     *moved to PresentDisplay().
+     */
 
     /*set framebuffer to client composer.*/
     std::shared_ptr<IComposer> clientComposer =
         mComposers.find(MESON_CLIENT_COMPOSER)->second;
     if (clientComposer.get() &&
-        clientComposer->setOutput(clientFb, damage) == 0) {
+        clientComposer->setOutput(mClientTarget, damage) == 0) {
         return HWC2_ERROR_NONE;
     }
 
@@ -1751,6 +1760,20 @@ hwc2_error_t Hwc2Display::presentVtVideo(int32_t* outPresentFence) {
     if (!mSkipComposition) {
         if (mValidateDisplay == false)
             mCompositionStrategy->updateComposition();
+
+        /*1.client target is always full screen, just post to crtc display axis.
+         *2.client target may not update while display frame need changed.
+         * When app not updated, sf won't update client target, but hwc
+         * need display frame. so always update it before commit.
+         */
+        if (mClientTarget.get()) {
+            mClientTarget->mDisplayFrame.left = mCalibrateInfo.crtc_display_x;
+            mClientTarget->mDisplayFrame.top = mCalibrateInfo.crtc_display_y;
+            mClientTarget->mDisplayFrame.right = mCalibrateInfo.crtc_display_x +
+                mCalibrateInfo.crtc_display_w;
+            mClientTarget->mDisplayFrame.bottom = mCalibrateInfo.crtc_display_y +
+                mCalibrateInfo.crtc_display_h;
+        }
 
         mCompositionStrategy->commit(false);
         //TODO: mCompositionStrategy->commitVtVideo();

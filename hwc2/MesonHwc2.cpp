@@ -69,9 +69,10 @@ ANDROID_SINGLETON_STATIC_INSTANCE(MesonHwc2)
 /************************************************************
 *                        Hal Interface
 ************************************************************/
+#define DUMP_STR_LEN (8192*2 - 1)
 void MesonHwc2::dump(uint32_t* outSize, char* outBuffer) {
     if (outBuffer == NULL) {
-        *outSize = 8192;
+        *outSize = DUMP_STR_LEN;
         return ;
     }
 
@@ -98,7 +99,7 @@ void MesonHwc2::dump(uint32_t* outSize, char* outBuffer) {
     DebugHelper::getInstance().dump(dumpstr);
     dumpstr.append("\n");
 
-    strncpy(outBuffer, dumpstr.string(), dumpstr.size() > 8192 ? 8191 : dumpstr.size());
+    strncpy(outBuffer, dumpstr.string(), dumpstr.size() > DUMP_STR_LEN ? DUMP_STR_LEN : dumpstr.size());
 }
 
 void MesonHwc2::getCapabilities(uint32_t* outCount,

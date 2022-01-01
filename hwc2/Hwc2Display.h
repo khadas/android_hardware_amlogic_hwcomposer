@@ -223,6 +223,8 @@ protected:
     std::vector<hwc2_layer_t> mChangedLayers;
     std::vector<hwc2_layer_t> mOverlayLayers;
 
+    std::shared_ptr<DrmFramebuffer> mClientTarget;
+
     /*all go to client composer*/
     bool mForceClientComposer;
     float mColorMatrix[16];
