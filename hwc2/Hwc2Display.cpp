@@ -1038,6 +1038,10 @@ hwc2_error_t Hwc2Display::acceptDisplayChanges() {
 }
 
 hwc2_error_t Hwc2Display::presentSkipValidateCheck() {
+    if (DebugHelper::getInstance().disableUiHwc()) {
+        return HWC2_ERROR_NOT_VALIDATED;
+    }
+
     for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
         std::shared_ptr<Hwc2Layer> layer = it->second;
         if (layer->mCompositionType == MESON_COMPOSITION_CLIENT) {
