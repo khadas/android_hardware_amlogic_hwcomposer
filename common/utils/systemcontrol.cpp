@@ -436,6 +436,16 @@ int32_t sc_set_hdmi_allm(bool on) {
     return 0;
 }
 
+bool sc_update_density(int displayId, int width, int height) {
+    CHK_SC_PROXY();
+
+    Result ret = gSC->syncDensity(displayId,width,height);
+    if (ret != Result::OK)
+        return false;
+
+    return true;
+}
+
 #if PLATFORM_SDK_VERSION == 30
 // for self-adaptive
 int32_t sc_frame_rate_display(bool on, const ISystemControl::Rect& rect) {

@@ -160,6 +160,8 @@ int32_t RealModeMgr::update() {
 
     if (!useFakeMode) {
         mLatestRealMode = realMode;
+        //todo: replace the displayid for dualDisplay
+        sc_update_density(HWC_DISPLAY_PRIMARY, realMode.pixelW, realMode.pixelH);
     } else {
         MESON_LOGD("RealModeMgr::update use previous mode (%dx%d)",
                 mLatestRealMode.pixelW, mLatestRealMode.pixelH);

@@ -46,6 +46,8 @@ int32_t read_sysfs(const char * path, std::string & val);
 
 int32_t sc_notify_hdmi_plugin();
 int32_t sc_set_hdmi_allm(bool on);
+
+bool sc_update_density(int displayId, int width, int height);
 #if PLATFORM_SDK_VERSION == 30
 // for self-adaptive
 int32_t sc_frame_rate_display(bool on,  const ISystemControl::Rect& rect);
