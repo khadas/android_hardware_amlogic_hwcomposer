@@ -1685,11 +1685,29 @@ bool Hwc2Display::setFrameRateHint(std::string value) {
     }
 
     MESON_LOGD("%s value:%s", __func__, value.c_str());
+
+    hwc2_vsync_period_t period = 1e9 / 60;
+    getDisplayVsyncPeriod(&period);
+    period = mFRPeriodNanos == 0 ? period : mFRPeriodNanos;
+
+    if (mVsync.get()) {
+        MESON_LOGD("%s Vsync setMixMode", __func__);
+        mVsync->setMixMode(mCrtc);
+        mVsync->setPeriod(period);
+    }
+
+    // reset it from mix mode
+    if (mFRPeriodNanos == 0) {
+        if (HwcConfig::softwareVsyncEnabled()) {
+            mVsync->setSoftwareMode();
+        } else {
+            mVsync->setHwMode(mCrtc);
+        }
+        mVsync->setPeriod(period);
+    }
+
     if (mVtVsync.get()) {
         // set vt vsync period
-        hwc2_vsync_period_t period = 1e9 / 60;
-        getDisplayVsyncPeriod(&period);
-        period = mFRPeriodNanos == 0 ? period : mFRPeriodNanos;
         MESON_LOGD("%s setPeriod to %d", __func__, period);
         mVtVsync->setPeriod(period);
     } else {
