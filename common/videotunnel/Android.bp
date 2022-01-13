@@ -17,6 +17,11 @@ cc_library_static {
     defaults: ["hwcomposer_cc_defaults"],
     vendor: true,
 
+    cflags: [
+        "-Wno-unused-parameter",
+        "-Wno-format"
+    ],
+
     srcs: [
         "VideoTunnelDev.cpp",
         "VtConsumer.cpp",
