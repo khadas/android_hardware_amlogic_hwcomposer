@@ -217,7 +217,7 @@ int32_t HwcVsync::waitSoftwareVsync(nsecs_t& vsync_timestamp) {
     static nsecs_t vsync_time = 0;
     static nsecs_t old_vsync_period = 0;
     nsecs_t now = systemTime(CLOCK_MONOTONIC);
-    mReqPeriod = (mReqPeriod == 0) ? (1e9/SF_VSYNC_DFT_PERIOD) : mReqPeriod;
+    mReqPeriod = (mReqPeriod <= 0) ? (1e9/SF_VSYNC_DFT_PERIOD) : mReqPeriod;
 
     //cal the last vsync time with old period
     if (mReqPeriod != old_vsync_period) {
@@ -252,6 +252,7 @@ int32_t HwcVsync::waitSoftwareVsync(nsecs_t& vsync_timestamp) {
 
 int32_t HwcVsync::waitMixVsync(nsecs_t& vsync_timestamp) {
     ATRACE_CALL();
+    mReqPeriod = (mReqPeriod <= 0) ? (1e9/SF_VSYNC_DFT_PERIOD) : mReqPeriod;
     if (mCurVsyncPeriod != mReqPeriod || mMixRebase) {
         MESON_LOGD("[%s] waitVBlank to get hw vsync timestamp", __func__);
         if (!mCrtc.get())
