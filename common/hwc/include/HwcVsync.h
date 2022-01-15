@@ -56,6 +56,7 @@ protected:
     /* mix software and hardware vsync */
     bool mMixVsync;
     bool mMixRebase;
+    nsecs_t mMixOffset;
 
     nsecs_t mVsyncTime;
     nsecs_t mReqPeriod;

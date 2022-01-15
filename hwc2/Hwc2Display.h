@@ -183,6 +183,10 @@ protected:
     /* For content types.*/
     bool checkIfContentTypeIsSupported(uint32_t contentType);
 
+    /* For vsync */
+    int32_t adjustVsyncMode();
+    bool hasVideoLayerPresent();
+
     /*For debug*/
     void dumpPresentLayers(String8 & dumpstr);
     bool isLayerHideForDebug(hwc2_layer_t id);
@@ -252,6 +256,8 @@ protected:
     /* vsync timestamp */
     nsecs_t mVsyncTimestamp;
     int32_t mFRPeriodNanos;
+    /* for mixVsync */
+    bool mHasVideoPresent;
 
     /* for video tunnel mode video*/
     std::shared_ptr<VideoTunnelThread> mVideoTunnelThread;

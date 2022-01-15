@@ -29,6 +29,7 @@ HwcVsync::HwcVsync() {
     mVsyncTime = 0;
     mExit = false;
     mObserver = NULL;
+    mMixOffset = 0;
 
     int ret;
     ret = pthread_create(&hw_vsync_thread, NULL, vsyncThread, this);
@@ -84,6 +85,7 @@ int32_t HwcVsync::setHwMode(std::shared_ptr<HwDisplayCrtc> & crtc) {
 }
 
 int32_t HwcVsync::setVtMode(std::shared_ptr<HwDisplayCrtc> & crtc) {
+    mMixOffset = VT_OFFSET_TIME;
 #ifdef HWC_VT_HW_VSYNC
     return setHwMode(crtc);
 #else
@@ -254,7 +256,7 @@ int32_t HwcVsync::waitMixVsync(nsecs_t& vsync_timestamp) {
         if (!mCrtc.get())
             return -EFAULT;
         mCrtc->waitVBlank(mVsyncTime);
-        mVsyncTime += VT_OFFSET_TIME;
+        mVsyncTime += mMixOffset;
         cur_vsync_period = mReqPeriod;
         mMixRebase = false;
     } else {
@@ -277,8 +279,11 @@ int32_t HwcVsync::waitMixVsync(nsecs_t& vsync_timestamp) {
 
 void HwcVsync::dump(String8 &dumpstr) {
     dumpstr.appendFormat("HwcVsync mode(%s) period(%" PRId64 ") \n",
-        mSoftVsync ? "soft":"hw", mReqPeriod);
+        mSoftVsync ? "soft": (mMixVsync ? "mix" : "hw"), mReqPeriod);
+
     dumpstr.appendFormat("    mEnabled:%d, mExit:%d\n", mEnabled, mExit);
+    if (mMixVsync)
+        dumpstr.appendFormat("    mMixOffset:%" PRId64 "\n", mMixOffset);
 
     if (mObserver)
         dumpstr.appendFormat("    mObserver:%p\n", mObserver);
