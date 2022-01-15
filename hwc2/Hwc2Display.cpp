@@ -59,6 +59,7 @@ Hwc2Display::Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer, uint32_t
     // for self-adaptive
     mVideoLayerRegion = 0;
 #endif
+    mHasVideoPresent = false;
 }
 
 Hwc2Display::~Hwc2Display() {
@@ -933,6 +934,8 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
 
     mValidateDisplay = true;
 
+    adjustVsyncMode();
+
     /*dump at end of validate, for we need check by some composition info.*/
     bool dumpLayers = false;
     if (DebugHelper::getInstance().logCompositionDetail()) {
@@ -1518,6 +1521,43 @@ hwc2_error_t Hwc2Display::setContentType(uint32_t contentType) {
         return HWC2_ERROR_UNSUPPORTED;
 
     return HWC2_ERROR_NONE;
+}
+
+bool Hwc2Display::hasVideoLayerPresent() {
+    int videoLayers = 0;
+    for (auto it = mPresentLayers.begin(); it != mPresentLayers.end(); it++) {
+        drm_fb_type_t type = (*it)->mFbType;
+        if (type == DRM_FB_VIDEO_UVM_DMA || type == DRM_FB_VIDEO_OVERLAY)
+            videoLayers++;
+    }
+
+    return (videoLayers > 0);
+}
+
+// when there is nontunnel video playback, change vsync to MixMode
+int32_t Hwc2Display::adjustVsyncMode() {
+    /* we have nontunnel video now */
+    if (hasVideoLayerPresent()) {
+        /* we fist have it */
+        if (!mHasVideoPresent) {
+            MESON_LOGD("%s to MixMode", __func__);
+            mVsync->setMixMode(mCrtc);
+        }
+        mHasVideoPresent = true;
+    } else {
+        if (mHasVideoPresent) {
+            if (HwcConfig::softwareVsyncEnabled()) {
+                mVsync->setSoftwareMode();
+                MESON_LOGD("%s to SwMode", __func__);
+            } else {
+                mVsync->setHwMode(mCrtc);
+                MESON_LOGD("%s to HwMode", __func__);
+            }
+        }
+        mHasVideoPresent = false;
+    }
+
+    return 0;
 }
 
 void Hwc2Display::dumpPresentLayers(String8 & dumpstr) {

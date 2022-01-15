@@ -17,7 +17,6 @@
 
 #define SF_VSYNC_DFT_PERIOD 60
 #define VT_OFFSET_TIME 1000000
-#define DEFAULT_OFFSET_TIME 1000000
 
 HwcVsync::HwcVsync() {
     mSoftVsync = true;
@@ -30,8 +29,8 @@ HwcVsync::HwcVsync() {
     mVsyncTime = 0;
     mExit = false;
     mObserver = NULL;
+    mMixOffset = 0;
     mCurVsyncPeriod = 0;
-    mMixOffset = DEFAULT_OFFSET_TIME;
 
     int ret;
     ret = pthread_create(&hw_vsync_thread, NULL, vsyncThread, this);
@@ -284,6 +283,8 @@ void HwcVsync::dump(String8 &dumpstr) {
         mSoftVsync ? "soft": (mMixVsync ? "mix" : "hw"), mReqPeriod);
 
     dumpstr.appendFormat("    mEnabled:%d, mExit:%d\n", mEnabled, mExit);
+    if (mMixVsync)
+        dumpstr.appendFormat("    mMixOffset:%" PRId64 "\n", mMixOffset);
 
     if (mObserver)
         dumpstr.appendFormat("    mObserver:%p\n", mObserver);
