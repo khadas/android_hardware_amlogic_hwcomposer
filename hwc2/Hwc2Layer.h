@@ -116,6 +116,7 @@ protected:
     bool mVtUpdate;
     bool mNeedReleaseVtResource;
     bool mNeedClearLastFrame;
+    bool mEnableSolidColor;
 
     std::shared_ptr<UvmDettach> mUvmDettach;
     int mPreUvmBufferFd;

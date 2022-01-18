@@ -37,6 +37,7 @@ Hwc2Layer::Hwc2Layer() : DrmFramebuffer(){
     mTunnelId = -1;
     mGameMode = false;
     mNeedClearLastFrame = false;
+    mEnableSolidColor = false;
     mQueueItems.clear();
 
     mPreUvmBufferFd = -1;
@@ -231,7 +232,6 @@ hwc2_error_t Hwc2Layer::setSidebandStream(const native_handle_t* stream) {
                 mQueueItems.clear();
                 mTunnelId = channel_id;
                 getSolidColorBuffer();
-                mVtUpdate = true;
             } else {
                 MESON_LOGE("%s [%" PRId64 "] connect to videotunnel %d failed, error %d",
                         __func__, mId, channel_id, ret);
@@ -438,6 +438,8 @@ int32_t Hwc2Layer::acquireVtBuffer() {
 
     if (mQueueItems.empty())
         return -EAGAIN;
+    else
+        mEnableSolidColor = false;
 
     dettachUvmBuffer();
 
@@ -611,6 +613,9 @@ int32_t Hwc2Layer::recieveVtCmds() {
             mVtSourceCrop.right = cmdData.crop.right;
             mVtSourceCrop.bottom = cmdData.crop.bottom;
             break;
+        case VT_CMD_SET_SHOW_SOLID_COLOR:
+            mEnableSolidColor = true;
+            break;
         default:
             MESON_LOGE("Not supported videoTunnel [%d] cmd:%d", mTunnelId, cmd);
     }
@@ -783,6 +788,9 @@ void Hwc2Layer::freeSolidColorBuffer() {
 int32_t Hwc2Layer::getSolidColorBuffer() {
     /* will send a colorFrame to VC when get a null VT buffer
      * at the beginning */
+    if (!mEnableSolidColor)
+        return -1;
+
     if (mSolidColorBufferfd < 0) {
         int fd = gralloc_get_solid_color_buf_fd(SET_VIDEO_TO_BLACK);
 
@@ -790,6 +798,5 @@ int32_t Hwc2Layer::getSolidColorBuffer() {
             mSolidColorBufferfd = dup(fd);
     }
 
-    mVtUpdate = false;
     return mSolidColorBufferfd;
 }

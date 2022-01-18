@@ -30,7 +30,7 @@
 #define ION_FLAG_EXTEND_MESON_HEAP (1 << 30)
 #define ION_HEAP_TYPE_CUSTOM 16
 
-static int32_t solid_color_fd = -1;
+static buffer_handle_t solid_color_handle = NULL;
 
 bool sys_get_bool_prop(const char *prop, bool defVal) {
     return property_get_bool(prop, defVal);
@@ -223,36 +223,28 @@ int32_t gralloc_unlock_dma_buf(native_handle_t * handle) {
     return -EINVAL;
 }
 
-int32_t gralloc_alloc_solid_color_buf() {
-    int32_t ion_fd = -1;
-    int32_t len = VIDEO_BUFFER_W * VIDEO_BUFFER_H * 3 / 2;
-    int ret;
-    unsigned int heap_mask = 1 << ION_HEAP_TYPE_CUSTOM;
+void gralloc_alloc_solid_color_buf() {
+    static GraphicBufferAllocator & allocService = GraphicBufferAllocator::get();
+    uint32_t stride;
+    uint64_t usage = 0x408033;
+    int format = 17;
 
-    ion_fd = ion_open();
-    if (ion_fd < 0) {
-        MESON_LOGE("%s ion_open fail", __func__);
-        return -EINVAL;
+    if (solid_color_handle)
+        return;
+
+    if (NO_ERROR != allocService.allocate(
+        VIDEO_BUFFER_W, VIDEO_BUFFER_H, format, 1, usage,
+        &solid_color_handle, &stride, 0, "MesonHwcSolidColorBuffer")) {
+        MESON_LOGE("%s alloc buffer failed", __func__);
     }
-
-    ret = ion_alloc_fd(ion_fd, len, 0, heap_mask,
-            ION_FLAG_EXTEND_MESON_HEAP, &solid_color_fd);
-    if (ret < 0) {
-        MESON_LOGE("%s ion_alloc_fd fail, ret:%d",
-                __func__, ret);
-    }
-    close(ion_fd);
-
-    return ret;
 }
 
-int32_t gralloc_free_solid_color_buf() {
-    if (solid_color_fd >= 0) {
-        close(solid_color_fd);
-        solid_color_fd = -1;
+void gralloc_free_solid_color_buf() {
+    if (solid_color_handle) {
+        static GraphicBufferAllocator & allocService = GraphicBufferAllocator::get();
+        allocService.free(solid_color_handle);
+        solid_color_handle = NULL;
     }
-
-    return 0;
 }
 
 int32_t gralloc_get_solid_color_buf_fd(video_color_t color) {
@@ -261,7 +253,9 @@ int32_t gralloc_get_solid_color_buf_fd(video_color_t color) {
     unsigned char *cpu_ptr = NULL;
     static video_color_t pre_color = SET_VIDEO_INVALID;
 
-    if (solid_color_fd >= 0) {
+    if (solid_color_handle) {
+        int solid_color_fd =
+            am_gralloc_get_buffer_fd((native_handle_t *)solid_color_handle);
         if (pre_color == color)
             return solid_color_fd;
 
@@ -354,14 +348,12 @@ int32_t gralloc_unlock_dma_buf(native_handle_t * handle) {
     return -EINVAL;
 }
 
-int32_t gralloc_alloc_solid_color_buf() {
+void gralloc_alloc_solid_color_buf() {
     MESON_ASSERT(0, "%s NO IMPLEMENT.", __func__);
-    return -EINVAL;
 }
 
-int32_t gralloc_free_solid_color_buf() {
+void gralloc_free_solid_color_buf() {
     MESON_ASSERT(0, "%s NO IMPLEMENT.", __func__);
-    return -EINVAL;
 }
 
 int32_t gralloc_get_solid_color_buf_fd(video_color_t color) {
