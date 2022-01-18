@@ -40,6 +40,7 @@ Hwc2Layer::Hwc2Layer(uint32_t dispId) : DrmFramebuffer(){
     mGameMode = false;
     mVideoDisplayStatus = VT_VIDEO_STATUS_SHOW;
     mAMVideoType = -1;
+    mEnableSolidColor = false;
     mQueueItems.clear();
 
     mPreUvmBufferFd = -1;
@@ -239,7 +240,6 @@ hwc2_error_t Hwc2Layer::setSidebandStream(const native_handle_t* stream) {
                 mQueuedFrames = 0;
                 mQueueItems.clear();
                 getSolidColorBuffer();
-                mVtUpdate = true;
             } else {
                 MESON_LOGE("%s [%" PRId64 "] register consumer for videotunnel %d failed, error %d",
                         __func__, mId, channel_id, ret);
@@ -465,6 +465,9 @@ void Hwc2Layer::freeSolidColorBuffer() {
 int32_t Hwc2Layer::getSolidColorBuffer() {
     /* will send a colorFrame to VC when get a null VT buffer
      * at the beginning */
+    if (!mEnableSolidColor)
+        return -1;
+
     if (mSolidColorBufferfd < 0) {
         int fd = gralloc_get_solid_color_buf_fd(SET_VIDEO_TO_BLACK);
 
@@ -472,7 +475,6 @@ int32_t Hwc2Layer::getSolidColorBuffer() {
             mSolidColorBufferfd = dup(fd);
     }
 
-    mVtUpdate = false;
     return mSolidColorBufferfd;
 }
 
@@ -543,6 +545,9 @@ int32_t Hwc2Layer::releaseVtBuffer() {
         MESON_LOGD("layer:%" PRId64 " is not videotunnel layer", getUniqueId());
         return -EINVAL;
     }
+
+    if (mEnableSolidColor)
+        mEnableSolidColor = false;
 
     dettachUvmBuffer();
 
@@ -912,10 +917,7 @@ void Hwc2Layer::setVtSourceCrop(drm_rect_t & rect) {
 }
 
 void Hwc2Layer::onNeedShowTempBuffer(int colorType __unused) {
-    /* TODO:
-     * need implements class VtSolidColorBuffer to get a solid color buffer
-     */
-    //mSolidColorBufferfd = VtSolidColorBuffer::getInstance().getFd(colorType);
+    mEnableSolidColor = true;
 }
 
 void Hwc2Layer::setVideoType(int videoType) {

@@ -42,7 +42,7 @@ int32_t gralloc_unref_dma_buf(native_handle_t * hnd, bool isSidebandBuffer=false
 int32_t gralloc_lock_dma_buf(native_handle_t * handle, void** vaddr);
 int32_t gralloc_unlock_dma_buf(native_handle_t * handle);
 
-int32_t gralloc_alloc_solid_color_buf();
-int32_t gralloc_free_solid_color_buf();
+void gralloc_alloc_solid_color_buf();
+void gralloc_free_solid_color_buf();
 int32_t gralloc_get_solid_color_buf_fd(video_color_t color);
 #endif/*MISC_H*/
