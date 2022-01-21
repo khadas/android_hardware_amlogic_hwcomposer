@@ -22,6 +22,7 @@ public:
         eBufferReady = 0x01,
         eCmdReady = 0x02,
         eNotReady = 0x03,
+        eInvalidStatus = 0x04,
     };
 
     int32_t connect(int tunnelId);

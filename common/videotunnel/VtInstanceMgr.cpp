@@ -61,9 +61,11 @@ int32_t VtInstanceMgr::connectInstance(int tunnelId,
         MESON_LOGD("%s, [%d] connect video composer successed",
             __func__, tunnelId);
 
-    if (!mVtHandleEventsThread) {
+    if (!mVtHandleEventsThread)
         mVtHandleEventsThread = std::make_shared<VtHandleEventsThread>();
-    }
+    else
+        mVtHandleEventsThread->startThread();
+
     return ret;
 }
 
@@ -71,7 +73,6 @@ int32_t VtInstanceMgr::connectInstance(int tunnelId,
 int32_t VtInstanceMgr::disconnectInstance(int tunnelId,
         std::shared_ptr<VtConsumer> & consumer) {
     int ret = -1;
-    bool need_distroy_thread = false;
     std::shared_ptr<VtInstance> ptrInstance;
 
     if (tunnelId < 0 || !consumer.get()) {
@@ -95,21 +96,7 @@ int32_t VtInstanceMgr::disconnectInstance(int tunnelId,
             if (ret < 0)
                 MESON_LOGE("%s, [%d] unregister consumer failed: %d",
                     __func__, tunnelId, ret);
-            if (ptrInstance->needDestroyThisInstance()) {
-                MESON_LOGD("%s, destory instance %d successed", __func__, tunnelId);
-                mInstances.erase(tunnelId);
-            }
         }
-
-        if (mInstances.empty() && mVtHandleEventsThread)
-            need_distroy_thread = true;
-    }
-
-    if (need_distroy_thread) {
-        MESON_LOGD("%s, all the instances are released,  stop handEventsThread", __func__);
-        mVtHandleEventsThread->stopThread();
-        mVtHandleEventsThread.reset();
-        mVtHandleEventsThread = nullptr;
     }
 
     return ret;
@@ -117,18 +104,26 @@ int32_t VtInstanceMgr::disconnectInstance(int tunnelId,
 
 void VtInstanceMgr::clearUpInstances() {
     std::lock_guard<std::mutex> lock(mMutex);
+    clearUpInstancesLocked();
+}
+
+void VtInstanceMgr::clearUpInstancesLocked() {
     bool bRemove = false;
     int id;
     std::shared_ptr<VtInstance> ptrInstance;
-    auto it = mInstances.begin();
 
+    if (mInstances.empty())
+        return;
+
+    auto it = mInstances.begin();
     for (; it != mInstances.end();) {
         id = it->first;
         ptrInstance = it->second;
         bRemove = ptrInstance->needDestroyThisInstance();
         if (bRemove) {
             it = mInstances.erase(it);
-            MESON_LOGD("%s, destroy instance %d successed", __func__, id);
+            MESON_LOGD("%s, destroy instance %d successed",
+                    __func__, id);
         } else {
             ++it;
         }
@@ -155,6 +150,13 @@ const char * VtInstanceMgr::vtPollStatusToString(VideoTunnelDev::VtPollStatus st
 
 VideoTunnelDev::VtPollStatus VtInstanceMgr::pollVtEvents() {
     VideoTunnelDev::VtPollStatus ret;
+    ret = VideoTunnelDev::VtPollStatus::eInvalidStatus;
+
+    clearUpInstances();
+    if (mInstances.empty()) {
+        /* will exit VtHandleEventsThread */
+        return ret;
+    }
 
     ret = VideoTunnelDev::getInstance().pollBufferAndCmds();
     MESON_LOGV("VtInstanceMgr::%s %s",
@@ -164,11 +166,16 @@ VideoTunnelDev::VtPollStatus VtInstanceMgr::pollVtEvents() {
 }
 
 int32_t VtInstanceMgr::handleBuffers() {
-    //std::lock_guard<std::mutex> lock(mMutex);
-    int32_t ret = 0;
+    int32_t ret = -1;
     std::shared_ptr<VtInstance> ptrInstance;
-    auto instanceIt = mInstances.begin();
 
+    clearUpInstances();
+    if (mInstances.empty()) {
+        /* will exit VtHandleEventsThread */
+        return ret;
+    }
+
+    auto instanceIt = mInstances.begin();
     for (; instanceIt != mInstances.end(); instanceIt++) {
         ptrInstance = instanceIt->second;
         ret = ptrInstance->acquireBuffer();
@@ -178,11 +185,16 @@ int32_t VtInstanceMgr::handleBuffers() {
 }
 
 int32_t VtInstanceMgr::handleCmds() {
-    //std::lock_guard<std::mutex> lock(mMutex);
-    int32_t ret = 0;
+    int32_t ret = -1;
     std::shared_ptr<VtInstance> ptrInstance;
-    auto instanceIt = mInstances.begin();
 
+    clearUpInstances();
+    if (mInstances.empty()) {
+        /* will exit VtHandleEventsThread */
+        return ret;
+    }
+
+    auto instanceIt = mInstances.begin();
     for (; instanceIt != mInstances.end(); instanceIt++) {
         ptrInstance = instanceIt->second;
         ret = ptrInstance->recieveCmds();

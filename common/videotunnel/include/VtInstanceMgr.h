@@ -27,6 +27,7 @@ public:
 
     int32_t connectInstance(int tunnelId, std::shared_ptr<VtConsumer> & consumer);
     int32_t disconnectInstance(int tunnelId, std::shared_ptr<VtConsumer> & consumer);
+    void clearUpInstancesLocked();
     void clearUpInstances();
 
     VideoTunnelDev::VtPollStatus pollVtEvents();

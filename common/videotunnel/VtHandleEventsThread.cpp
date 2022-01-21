@@ -20,13 +20,10 @@ VtHandleEventsThread::VtHandleEventsThread() {
 
 VtHandleEventsThread::~VtHandleEventsThread() {
     MESON_LOGD("%s, Destroy VtHandleEventsThread thread", __func__);
-    mExit = true;
-    pthread_join(mVtThread, NULL);
+    if (!mExit)
+        pthread_join(mVtThread, NULL);
 }
 
-bool VtHandleEventsThread::getThreadStatus() {
-    return mExit;
-}
 int VtHandleEventsThread::createThread() {
     int ret = -1;
 
@@ -44,14 +41,20 @@ int VtHandleEventsThread::createThread() {
 
 void VtHandleEventsThread::startThread() {
     std::unique_lock<std::mutex> stateLock(mVtMutex);
-    mExit = false;
-    createThread();
+    if (mExit) {
+        pthread_join(mVtThread, NULL);
+        mExit = false;
+        createThread();
+    }
     stateLock.unlock();
 }
 
 void VtHandleEventsThread::stopThread() {
     std::unique_lock<std::mutex> stateLock(mVtMutex);
-    mExit = true;
+    if (!mExit) {
+        mExit = true;
+        pthread_join(mVtThread, NULL);
+    }
     stateLock.unlock();
 }
 
@@ -75,7 +78,8 @@ void *VtHandleEventsThread::vtThreadMain(void * data) {
 
         ret = pThis->handleVideoTunnelEvents();
         if (ret != 0 && ret != -EAGAIN) {
-            MESON_LOGD("handle Video Tunnel Events ret:%d", ret);
+            MESON_LOGD("will exit handle Video Tunnel Events Thread ret:%d",
+                    ret);
             pThis->mExit = true;
         }
     }
