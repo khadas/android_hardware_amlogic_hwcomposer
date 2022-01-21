@@ -22,7 +22,6 @@ public:
     ~VtHandleEventsThread();
     void startThread();
     void stopThread();
-    bool getThreadStatus();
 
 protected:
     int createThread();

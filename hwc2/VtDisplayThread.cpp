@@ -48,7 +48,7 @@ void VtDisplayThread::onVtVsync(int64_t timestamp, uint32_t vsyncPeriodNanos) {
     ATRACE_CALL();
     //set vsync info to videotunnel driver
     if (VideoTunnelDev::getInstance().setDisplayVsyncInfo(timestamp, vsyncPeriodNanos) < 0)
-        MESON_LOGE("%s %s, failed set display vsync info to videotunnel", mName, __func__);
+        MESON_LOGV("%s %s, failed set display vsync info to videotunnel", mName, __func__);
 
     std::unique_lock<std::mutex> stateLock(mMutex);
     needRefresh = true;

@@ -45,6 +45,7 @@ Hwc2Layer::Hwc2Layer(uint32_t dispId) : DrmFramebuffer(){
     mPreUvmBufferFd = -1;
 
     mDisplayObserver = nullptr;
+    mContentListener = nullptr;
     mDisplayId = dispId;
 }
 
@@ -739,6 +740,7 @@ int32_t Hwc2Layer::unregisterConsumer() {
     ret = VtInstanceMgr::getInstance().disconnectInstance(mTunnelId, mVtConsumer);
     mVtConsumer.reset();
     mVtConsumer = nullptr;
+    mTunnelId = -1;
 
     return ret;
 }
@@ -767,6 +769,8 @@ int32_t Hwc2Layer::onVtFrameDisplayed(int bufferFd, int fenceFd) {
     ATRACE_CALL();
 
     int32_t ret = -1;
+    if (!mVtConsumer)
+        return ret;
     MESON_LOGV("[%s] [%d] [%" PRIu64 "] mTunelId %d, release vtBuffer(%d), fenceFd(%d)",
             __func__, mDisplayId, mId, mTunnelId, bufferFd, fenceFd);
     ret = mVtConsumer->onVtFrameDisplayed(bufferFd, fenceFd);
@@ -939,27 +943,56 @@ int Hwc2Layer::getVideoType() {
 /* ================ content change listener for videotunnel ================ */
 int32_t Hwc2Layer::VtContentChangeListener::onFrameAvailable(
         std::vector<std::shared_ptr<VtBufferItem>> & items) {
-    return mLayer->onVtFrameAvailable(items);
+    int32_t ret = -1;
+    if (mLayer)
+        ret = mLayer->onVtFrameAvailable(items);
+    else
+        MESON_LOGE("Hwc2Layer::VtContentChangeListener::%s mLayer is NULL",
+                __func__);
+    return ret;
 }
 
 void Hwc2Layer::VtContentChangeListener::onVideoHide() {
-    mLayer->onVtVideoHide();
+    if (mLayer)
+        mLayer->onVtVideoHide();
+    else
+        MESON_LOGE("Hwc2Layer::VtContentChangeListener::%s mLayer is NULL",
+                __func__);
 }
 
 void Hwc2Layer::VtContentChangeListener::onVideoBlank() {
-    mLayer->onVtVideoBlank();
+    if (mLayer)
+        mLayer->onVtVideoBlank();
+    else
+        MESON_LOGE("Hwc2Layer::VtContentChangeListener::%s mLayer is NULL",
+                __func__);
 }
 
 void Hwc2Layer::VtContentChangeListener::onVideoShow() {
-    mLayer->onVtVideoShow();
+    if (mLayer)
+        mLayer->onVtVideoShow();
+    else
+        MESON_LOGE("Hwc2Layer::VtContentChangeListener::%s mLayer is NULL",
+                __func__);
 }
 
 void Hwc2Layer::VtContentChangeListener::onVideoGameMode(int data) {
-    mLayer->onVtVideoGameMode(data);
+    if (mLayer)
+        mLayer->onVtVideoGameMode(data);
+    else
+        MESON_LOGE("Hwc2Layer::VtContentChangeListener::%s mLayer is NULL",
+                __func__);
 }
 
 int32_t Hwc2Layer::VtContentChangeListener::getVideoStatus() {
-    return mLayer->getVtVideoStatus();
+    int32_t ret = -1;
+    if (mLayer)
+        ret = mLayer->getVtVideoStatus();
+    else
+        MESON_LOGE("Hwc2Layer::VtContentChangeListener::%s mLayer is NULL",
+                __func__);
+
+    return ret;
 }
 
 void Hwc2Layer::VtContentChangeListener::onSourceCropChange(vt_rect & crop) {
@@ -969,14 +1002,26 @@ void Hwc2Layer::VtContentChangeListener::onSourceCropChange(vt_rect & crop) {
     rect.right  = crop.right;
     rect.bottom = crop.bottom;
 
-    mLayer->setVtSourceCrop(rect);
+    if (mLayer)
+        mLayer->setVtSourceCrop(rect);
+    else
+        MESON_LOGE("Hwc2Layer::VtContentChangeListener::%s mLayer is NULL",
+                __func__);
 }
 
 void Hwc2Layer::VtContentChangeListener::onNeedShowTempBuffer(int colorType) {
-    mLayer->onNeedShowTempBuffer(colorType);
+    if (mLayer)
+        mLayer->onNeedShowTempBuffer(colorType);
+    else
+        MESON_LOGE("Hwc2Layer::VtContentChangeListener::%s mLayer is NULL",
+                __func__);
 }
 
 void Hwc2Layer::VtContentChangeListener::setVideoType(int videoType) {
-    mLayer->setVideoType(videoType);
+    if (mLayer)
+        mLayer->setVideoType(videoType);
+    else
+        MESON_LOGE("Hwc2Layer::VtContentChangeListener::%s mLayer is NULL",
+                __func__);
 }
 /* ========================================================================= */

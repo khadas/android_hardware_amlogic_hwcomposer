@@ -57,7 +57,7 @@ int32_t VtConsumer::onVtCmds(vt_cmd_t & cmd, vt_cmd_data_t & cmdData) {
 
     switch (cmd) {
         case VT_CMD_SET_VIDEO_STATUS:
-            MESON_LOGV("[%s] [%s] received VT_CMD_SET_VIDEO_STATUS %d",
+            MESON_LOGD("[%s] [%s] received VT_CMD_SET_VIDEO_STATUS %d",
                     __func__, mName, cmdData.data);
             switch (cmdData.data) {
                 case 0:
@@ -76,27 +76,27 @@ int32_t VtConsumer::onVtCmds(vt_cmd_t & cmd, vt_cmd_data_t & cmdData) {
             }
             break;
         case VT_CMD_GET_VIDEO_STATUS:
-            MESON_LOGV("[%s] [%s] received cmd VT_CMD_GET_VIDEO_STATUS",
+            MESON_LOGD("[%s] [%s] received cmd VT_CMD_GET_VIDEO_STATUS",
                     __func__, mName);
             break;
         case VT_CMD_SET_GAME_MODE:
-            MESON_LOGV("[%s] [%s] received cmd VT_CMD_SET_GAME_MODE",
-                    __func__, mName);
+            MESON_LOGD("[%s] [%s] received cmd VT_CMD_SET_GAME_MODE %d",
+                    __func__, mName, cmdData.data);
             mContentListener->onVideoGameMode(cmdData.data);
             break;
         case VT_CMD_SET_SOURCE_CROP:
-            MESON_LOGV("[%s] [%s] received cmd VT_CMD_SET_VIDEO_STATUS(%d %d %d %d)",
+            MESON_LOGD("[%s] [%s] received cmd VT_CMD_SET_VIDEO_STATUS(%d %d %d %d)",
                     __func__, mName, cmdData.crop.left, cmdData.crop.top,
                     cmdData.crop.right, cmdData.crop.bottom);
             mContentListener->onSourceCropChange(cmdData.crop);
             break;
         case VT_CMD_SET_SOLID_COLOR_BUF:
-            MESON_LOGV("[%s] [%s] received cmd VT_CMD_SET_SOLID_COLOR_BUF %d",
+            MESON_LOGD("[%s] [%s] received cmd VT_CMD_SET_SOLID_COLOR_BUF %d",
                     __func__, mName, cmdData.data);
             mContentListener->onNeedShowTempBuffer(cmdData.data);
             break;
         case VT_CMD_SET_VIDEO_TYPE:
-            MESON_LOGV("[%s] [%s] received cmd VT_CMD_SET_VIDEO_TYPE",
+            MESON_LOGD("[%s] [%s] received cmd VT_CMD_SET_VIDEO_TYPE",
                     __func__, mName);
             mContentListener->setVideoType(cmdData.data);
             break;

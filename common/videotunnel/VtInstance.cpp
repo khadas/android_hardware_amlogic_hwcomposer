@@ -109,7 +109,7 @@ int32_t VtInstance::unregisterVtConsumer(
         }
     }
 
-    if (it == mConsumers.end())
+    if (ret)
         MESON_LOGW("[%s] [%s] cannot found VT consumer %p",
         __func__, mName, consumer.get());
 
