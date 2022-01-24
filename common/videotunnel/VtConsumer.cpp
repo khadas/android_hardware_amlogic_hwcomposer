@@ -14,6 +14,7 @@ VtConsumer::VtConsumer(int tunnelId, uint32_t dispId, uint32_t layerId) {
     mTunnelId = tunnelId;
     mReleaseListener = nullptr;
     mContentListener = nullptr;
+    mFlags = false;
     snprintf(mName, 64, "VtConsumer-%u-%d-%u",
             dispId, tunnelId, layerId);
 }
@@ -35,14 +36,15 @@ int32_t VtConsumer::setReleaseListener(VtReleaseListener *listener) {
 
 int32_t VtConsumer::setVtContentListener(
         std::shared_ptr<VtContentListener> &listener) {
-    if (!listener.get()) {
+    if (!listener || !listener.get()) {
         MESON_LOGE("[%s] [%s] set content listener is null",
                 __func__, mName);
         return -1;
     }
 
-    if (mContentListener.get())
+    if (mContentListener && mContentListener.get()) {
         mContentListener.reset();
+    }
 
     mContentListener = listener;
 
@@ -50,7 +52,7 @@ int32_t VtConsumer::setVtContentListener(
 }
 
 int32_t VtConsumer::onVtCmds(vt_cmd_t & cmd, vt_cmd_data_t & cmdData) {
-    if (!mContentListener.get()) {
+    if (!mContentListener || !mContentListener.get()) {
         MESON_LOGE("[%s] [%s] not found content listener", __func__, mName);
         return -1;
     }
@@ -123,9 +125,20 @@ int32_t VtConsumer::onFrameAvailable(
         std::vector<std::shared_ptr<VtBufferItem>> & items) {
     MESON_LOGV("[%s] [%s] items.size=%d",
             __func__, mName, items.size());
-    if (mContentListener.get()) {
+    if (mContentListener && mContentListener.get()) {
         return mContentListener->onFrameAvailable(items);
     } else {
         return -1;
     }
+}
+
+void VtConsumer::setDestroyFlag() {
+    std::lock_guard<std::mutex> lock(mMutex);
+    /* need destroy this consumer */
+    mFlags = true;
+}
+
+bool VtConsumer::getDestroyFlag() {
+    std::lock_guard<std::mutex> lock(mMutex);
+    return mFlags;
 }

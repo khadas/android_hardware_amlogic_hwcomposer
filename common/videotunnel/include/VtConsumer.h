@@ -94,13 +94,19 @@ public:
     int32_t onVtFrameDisplayed(int bufferFd, int fenceFd);
     int32_t onFrameAvailable(std::vector<std::shared_ptr<VtBufferItem>> & items);
 
+    void setDestroyFlag();
+    bool getDestroyFlag();
+
 private:
+    bool mFlags;
     int mTunnelId;
     /* VtInstance callback */
     VtReleaseListener* mReleaseListener;
     /* Hwc2Layer callback */
     std::shared_ptr<VtContentListener> mContentListener;
     char mName[64];
+
+    std::mutex mMutex;
 };
 
 #endif  /* MESON_VT_CONSUMER_H */

@@ -144,6 +144,7 @@ public:
 
 /* video tunnel api*/
 public:
+    virtual void updateVtBuffers();
     virtual hwc2_error_t presentVtVideo(int32_t* outPresentFence);
 
     virtual int32_t setVtVsync(std::shared_ptr<HwcVsync> vsync);

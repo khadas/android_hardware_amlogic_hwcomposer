@@ -79,7 +79,8 @@ public:
     bool isVtBuffer() override;
     bool isFbUpdated() override;
     int32_t getVtBuffer() override;
-    int32_t releaseVtBuffer() override;
+    void updateVtBuffer();
+    int32_t releaseVtBuffer();
     int32_t releaseVtResource();
     void setPresentTime(nsecs_t expectedPresentTime);
     bool shouldPresentNow(nsecs_t timestamp);
