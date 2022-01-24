@@ -76,5 +76,6 @@ protected:
 
 int createVideoComposerDev(int fd, int idx);
 std::shared_ptr<VideoComposerDev> getVideoComposerDev(int idx);
+std::map<int,std::shared_ptr<VideoComposerDev>> getVideoComposerDevByDisplayId(int displayId);
 
 #endif

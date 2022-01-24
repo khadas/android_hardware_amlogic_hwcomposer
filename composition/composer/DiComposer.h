@@ -17,7 +17,7 @@
 
 class DiComposer : public IComposer {
 public:
-    DiComposer();
+    DiComposer(int displayId);
     ~DiComposer();
 
     const char* getName() { return DI_COMPOSER_NAME; }
@@ -57,6 +57,7 @@ protected:
 
     std::vector<std::shared_ptr<ComposerImpl>> mComposerImpl;
     int mImplNum;
+    int mDisplayID;
 };
 
 #endif/*DUMMY_COMPOSER_H*/

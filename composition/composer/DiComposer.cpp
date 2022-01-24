@@ -17,18 +17,17 @@ struct DiComposerPair {
     std::vector<std::shared_ptr<DrmFramebuffer>> composefbs;
 };
 
-DiComposer::DiComposer()
+DiComposer::DiComposer(int displayId)
     : IComposer() {
-    int idx = 0;
-    do {
-         std::shared_ptr<VideoComposerDev> dev = getVideoComposerDev(idx);
-         if (!dev)
-            break;
+
+    mDisplayID = displayId;
+    std::map<int,std::shared_ptr<VideoComposerDev>> devs = getVideoComposerDevByDisplayId(mDisplayID);
+
+    for (auto it = devs.begin(); it != devs.end(); it++) {
         std::shared_ptr<ComposerImpl> impl = std::make_shared<ComposerImpl>();
-        impl->composeDev = dev;
+        impl->composeDev = it->second;
         mComposerImpl.push_back(std::move(impl));
-        idx ++;
-    } while(1);
+    }
 
     mImplNum = mComposerImpl.size();
     MESON_ASSERT(mImplNum > 0, "DiComposer init fail.");

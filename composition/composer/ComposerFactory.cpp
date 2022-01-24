@@ -15,7 +15,7 @@
 #include "DiComposer.h"
 
 int32_t ComposerFactory::create(meson_composer_t type,
-    std::shared_ptr<IComposer> & composer) {
+    std::shared_ptr<IComposer> & composer, int displayId) {
     int32_t ret = 0;
 
     switch (type) {
@@ -31,7 +31,7 @@ int32_t ComposerFactory::create(meson_composer_t type,
             break;
 #endif
 	case MESON_DI_COMPOSER:
-		composer = std::make_shared<DiComposer>();
+		composer = std::make_shared<DiComposer>(displayId);
 		break;
         default:
             MESON_LOGE("Can't create Uunkown composer (%d)\n", type);
