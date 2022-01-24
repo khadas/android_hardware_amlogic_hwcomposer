@@ -330,6 +330,7 @@ void Hwc2Display::onHotplug(bool connected) {
         if (connected) {
             if (mConnector && mConnector->getType() != DRM_MODE_CONNECTOR_HDMIA) {
                 mOutsideChanged = true;
+                mDisplayConnection = true;
                 mPowerMode->setConnectorStatus(true);
                 mObserver->refresh();
             }
