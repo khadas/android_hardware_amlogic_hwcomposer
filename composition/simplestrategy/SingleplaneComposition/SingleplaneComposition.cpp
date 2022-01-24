@@ -230,10 +230,10 @@ int SingleplaneComposition::processFbsOfExplicitComposition() {
                     } else {
                         if (fb->mFbType == DRM_FB_VIDEO_DMABUF) {
                             /*dma buf can be composed by gpu, handle it as a normal ui layer.*/
-                            MESON_LOGE("too many layers need HWC_VIDEO_PLANE, skip. ");
+                            MESON_LOGD("too many layers need HWC_VIDEO_PLANE, skip. ");
                             destComp = MESON_COMPOSITION_UNDETERMINED;
                         } else {
-                            MESON_LOGE("too many layers need HWC_VIDEO_PLANE, discard. ");
+                            MESON_LOGD("too many layers need HWC_VIDEO_PLANE, discard. ");
                             destComp = MESON_COMPOSITION_DUMMY;
                         }
                     }

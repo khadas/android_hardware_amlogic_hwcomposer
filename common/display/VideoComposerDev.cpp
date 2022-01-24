@@ -16,7 +16,8 @@
 #include <sys/ioctl.h>
 #include <misc.h>
 
-static std::map<int, std::shared_ptr<VideoComposerDev>> gComposerDev;
+static std::map<int,std::map<int,std::shared_ptr<VideoComposerDev>> > gComposerDevByDisplayId;
+
 
 VideoComposerDev::VideoComposerDev(int drvFd) {
     mDrvFd = drvFd;
@@ -161,12 +162,36 @@ int32_t VideoComposerDev::setFrames(
 }
 
 int createVideoComposerDev(int fd, int idx) {
+    int retValue;
+    int capacity;
+    if (ioctl(fd , VIDEO_COMPOSER_IOCTL_GET_PANEL_CAPABILITY, &retValue) != 0) {
+        MESON_LOGE("video plane get capibility ioctl (%d) return(%d)", retValue, errno);
+    }
+    capacity =(retValue >> (2 * idx + 18) & 0x3);
     std::shared_ptr<VideoComposerDev> dev = std::make_shared<VideoComposerDev>(fd);
-    gComposerDev.emplace(idx, std::move(dev));
+    std::map<int, std::shared_ptr<VideoComposerDev>> gComposerDevTemp;
+
+    if (gComposerDevByDisplayId.count(capacity) == 1 ) {
+        gComposerDevTemp = gComposerDevByDisplayId[capacity];
+    }
+    gComposerDevTemp.emplace(idx, std::move(dev));
+    gComposerDevByDisplayId[capacity] = gComposerDevTemp;
     return 0;
 }
 
 std::shared_ptr<VideoComposerDev> getVideoComposerDev(int idx) {
-    MESON_ASSERT(gComposerDev.size() > 0, "videocomposer no instance.");
-    return gComposerDev[idx];
+    MESON_ASSERT(gComposerDevByDisplayId.size() > 0, "videocomposer no instance.");
+    for (auto it = gComposerDevByDisplayId.begin(); it != gComposerDevByDisplayId.end(); it++) {
+        std::map<int, std::shared_ptr<VideoComposerDev>> gComposerDevTemp = it->second;
+        if (gComposerDevTemp.count(idx)  == 1 ) {
+            return gComposerDevTemp[idx];
+        }
+    }
+    MESON_LOGD("getVideoComposerDev not found ");
+    return nullptr;
+}
+
+std::map<int,std::shared_ptr<VideoComposerDev>>  getVideoComposerDevByDisplayId(int displayId){
+     MESON_ASSERT(gComposerDevByDisplayId.size() > 0, "videocomposer no instance.");
+     return gComposerDevByDisplayId[displayId];
 }

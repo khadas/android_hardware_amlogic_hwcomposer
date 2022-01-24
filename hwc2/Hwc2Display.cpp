@@ -109,12 +109,12 @@ int32_t Hwc2Display::initialize() {
 
     /*add valid composers*/
     std::shared_ptr<IComposer> composer;
-    ComposerFactory::create(MESON_CLIENT_COMPOSER, composer);
+    ComposerFactory::create(MESON_CLIENT_COMPOSER, composer, mDisplayId);
     mComposers.emplace(MESON_CLIENT_COMPOSER, std::move(composer));
-    ComposerFactory::create(MESON_DUMMY_COMPOSER, composer);
+    ComposerFactory::create(MESON_DUMMY_COMPOSER, composer, mDisplayId);
     mComposers.emplace(MESON_DUMMY_COMPOSER, std::move(composer));
     /*add yuv/video composer*/
-    ComposerFactory::create(MESON_DI_COMPOSER, composer);
+    ComposerFactory::create(MESON_DI_COMPOSER, composer, mDisplayId);
     mComposers.emplace(MESON_DI_COMPOSER, std::move(composer));
 
     initLayerIdGenerator();

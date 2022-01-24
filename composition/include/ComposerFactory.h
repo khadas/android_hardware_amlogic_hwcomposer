@@ -22,7 +22,7 @@ typedef enum {
 class ComposerFactory {
 public:
     /*get valid composers by flags.*/
-    static int32_t create(meson_composer_t type, std::shared_ptr<IComposer> & composer);
+    static int32_t create(meson_composer_t type, std::shared_ptr<IComposer> & composer, int displayId);
 };
 
 #endif/*COMPOSER_FACTORY_H*/
