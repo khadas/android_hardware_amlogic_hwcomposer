@@ -103,6 +103,7 @@ void VtDisplayThread::handleVtDisplay() {
         std::unique_lock<std::mutex> stateLock(mRefrashMutex);
         do {
             mDisplay->setVtLayersPresentTime();
+            mDisplay->updateVtBuffers();
             if (mDisplay->handleVtDisplayConnection()) {
                 mDisplay->presentVtVideo(&outPresentFence);
 

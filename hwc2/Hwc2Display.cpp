@@ -965,12 +965,12 @@ hwc2_error_t Hwc2Display::collectCompositionRequest(
 #if PLATFORM_SDK_VERSION == 30
     // for self-adaptive
     if (maxRegion != 0 && mVideoLayerRegion != maxRegion) {
-        //sc_frame_rate_display(true, maxRect);
+        sc_frame_rate_display(true, maxRect);
         mVideoLayerRegion = maxRegion;
     }
 
     if (maxRegion == 0 && mVideoLayerRegion != 0) {
-        //sc_frame_rate_display(false, maxRect);
+        sc_frame_rate_display(false, maxRect);
         mVideoLayerRegion = 0;
     }
 #endif
@@ -1688,6 +1688,16 @@ bool Hwc2Display::setFrameRateHint(std::string value) {
 }
 
 /*******************Video Tunnel API below*******************/
+void Hwc2Display::updateVtBuffers() {
+    ATRACE_CALL();
+    std::lock_guard<std::mutex> vtLock(mVtMutex);
+    std::shared_ptr<Hwc2Layer> layer;
+
+    for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
+        it->second->updateVtBuffer();
+    }
+}
+
 hwc2_error_t Hwc2Display::presentVtVideo(int32_t* outPresentFence) {
     ATRACE_CALL();
     std::lock_guard<std::mutex> vtLock(mVtMutex);
@@ -1774,10 +1784,8 @@ void Hwc2Display::setVtLayersPresentTime() {
     nsecs_t expectPresentedTime = mVsyncTimestamp + period;
 
     for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
-        if (it->second->isVtBuffer()) {
-            // expectPresent time is current vsync timestamp + 1 vsyncPeriod
-            it->second->setPresentTime(expectPresentedTime);
-        }
+        // expectPresent time is current vsync timestamp + 1 vsyncPeriod
+        it->second->setPresentTime(expectPresentedTime);
     }
 }
 

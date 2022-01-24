@@ -103,7 +103,7 @@ int32_t VtInstance::unregisterVtConsumer(
         if (item.get() == consumer.get()) {
             MESON_LOGV("[%s] [%s] remove consumer %p", __func__,
                     mName, consumer.get());
-            mConsumers.erase(it);
+            item->setDestroyFlag();
             ret = 0;
             break;
         }
@@ -181,9 +181,16 @@ int32_t VtInstance::acquireBuffer() {
                 (*item)->refHandle();
 
             ret = consumer->onFrameAvailable(items);
-            if (ret < 0)
+            if (ret < 0 && ret != -EAGAIN) {
                 MESON_LOGE("[%s] [%s] call consumer(%p) onFrameAvailable failed",
                     __func__, mName, consumer.get());
+                consumer->setDestroyFlag();
+                for (item = items.begin(); item != items.end(); item++)
+                    (*item)->unrefHandle();
+                ret = -EAGAIN;
+            } else
+                MESON_LOGV("[%s] [%s] acquire buffer %d timeStamp %lld",
+                        __func__, mName, bufFd, timeStamp);
         }
     }
 
@@ -236,6 +243,18 @@ int32_t VtInstance::recieveCmds() {
 }
 
 bool VtInstance::needDestroyThisInstance() {
+    auto it = mConsumers.begin();
+    for (; it != mConsumers.end(); ) {
+        if (!(*it).get()) {
+            it = mConsumers.erase(it);
+        } else {
+            if ((*it)->getDestroyFlag())
+                it = mConsumers.erase(it);
+            else
+                it++;
+        }
+    }
+
     if (mConsumers.empty())
         return true;
     else

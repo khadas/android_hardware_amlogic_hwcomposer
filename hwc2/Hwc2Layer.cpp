@@ -476,6 +476,66 @@ int32_t Hwc2Layer::getSolidColorBuffer() {
     return mSolidColorBufferfd;
 }
 
+void Hwc2Layer::updateVtBuffer() {
+    ATRACE_CALL();
+    std::lock_guard<std::mutex> lock(mMutex);
+    int expiredItemCount = 0;
+    int dropCount = 0;
+    nsecs_t diffAdded = 0;
+
+    if (!isVtBufferLocked())
+        return;
+
+     /*
+     * getVtBuffer might drop the some buffers at the head of the queue
+     * if there is a buffer behind them which is timely to be presented.
+     */
+    if (mQueueItems.empty())
+        return;
+
+    for (auto it = mQueueItems.begin(); it != mQueueItems.end(); it++) {
+        if (it->mTimeStamp > 0 &&  shouldPresentNow(it->mTimeStamp)) {
+            expiredItemCount++;
+        }
+    }
+
+    // drop expiredItemCount-1 buffers
+    dropCount = expiredItemCount - 1;
+    ATRACE_INT64("Hwc2Layer:DropCount", dropCount);
+
+    while (dropCount > 0) {
+        auto item = mQueueItems.front();
+
+        diffAdded = item.mTimeStamp - mPreviousTimestamp;
+        mPreviousTimestamp = item.mTimeStamp;
+
+        int releaseFence = -1;
+        collectUvmBuffer(dup(item.mVtBufferFd), releaseFence);
+        onVtFrameDisplayed(item.mVtBufferFd, releaseFence);
+        mQueuedFrames--;
+
+        MESON_LOGD("[%s] [%d] [%" PRIu64 "] vt buffer fd(%d) with timestamp(%" PRId64 ") expired "
+                "droped expectedPresent time(%" PRId64 ") diffAdded(%" PRId64 ") queuedFrames(%d)",
+                __func__, mDisplayId,mId, item.mVtBufferFd, item.mTimeStamp,
+                mExpectedPresentTime, diffAdded, mQueuedFrames);
+        mQueueItems.pop_front();
+        dropCount--;
+    }
+
+    // update current mVtBuffer
+    mVtUpdate = true;
+    mVtBufferFd = mQueueItems[0].mVtBufferFd;
+    mTimestamp = mQueueItems[0].mTimeStamp;
+
+    diffAdded = mTimestamp - mPreviousTimestamp;
+    mPreviousTimestamp = mTimestamp;
+
+    MESON_LOGV("[%s] [%d] [%" PRIu64 "] mVtBufferFd(%d) timestamp (%" PRId64 " us) expectedPresentTime(%"
+            PRId64 " us) diffAdded(%" PRId64 " us) shouldPresent:%d, queueFrameSize:%zu",
+            __func__, mDisplayId, mId, mVtBufferFd, mTimestamp, mExpectedPresentTime, diffAdded,
+            shouldPresentNow(mTimestamp), mQueueItems.size());
+}
+
 int32_t Hwc2Layer::releaseVtBuffer() {
     ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
@@ -609,8 +669,8 @@ void Hwc2Layer::handleDisplayDisconnet(bool connect) {
 
 void Hwc2Layer::setPresentTime(nsecs_t expectedPresentTime) {
     ATRACE_CALL();
-
-    if (mGameMode)
+    std::lock_guard<std::mutex> lock(mMutex);
+    if (!isVtBufferLocked())
         return;
 
     nsecs_t previousExpectedTime;
@@ -786,18 +846,16 @@ int32_t Hwc2Layer::onVtFrameAvailable(
         std::vector<std::shared_ptr<VtBufferItem>> & items) {
     ATRACE_CALL();
     mMutex.lock();
-    nsecs_t diffAdded = 0;
-    int expiredItemCount = 0;
-    int dropCount = 0;
-
 
     if (!isVtBufferLocked()) {
         MESON_LOGE("[%s] [%d] [%" PRIu64 "] not videotunnel type", __func__, mDisplayId, mId);
+        mMutex.unlock();
         return -EINVAL;
     }
 
     if (mTunnelId < 0) {
         MESON_LOGE("[%s] [%d] [%" PRIu64 "] mTunelId %d error", __func__, mDisplayId, mId, mTunnelId);
+        mMutex.unlock();
         return -EINVAL;
     }
 
@@ -811,56 +869,12 @@ int32_t Hwc2Layer::onVtFrameAvailable(
         attachUvmBuffer(item.mVtBufferFd);
     }
 
-    if (mQueueItems.empty())
+    if (mQueueItems.empty()) {
+        mMutex.unlock();
         return -EAGAIN;
+    }
 
     dettachUvmBuffer();
-
-    /*
-     * getVtBuffer might drop the some buffers at the head of the queue
-     * if there is a buffer behind them which is timely to be presented.
-     */
-    for (auto it = mQueueItems.begin(); it != mQueueItems.end(); it++) {
-        if (it->mTimeStamp > 0 &&  shouldPresentNow(it->mTimeStamp)) {
-            expiredItemCount++;
-        }
-    }
-
-    // drop expiredItemCount-1 buffers
-    dropCount = expiredItemCount - 1;
-    ATRACE_INT64("Hwc2Layer:DropCount", dropCount);
-
-    while (dropCount > 0) {
-        auto item = mQueueItems.front();
-
-        diffAdded = item.mTimeStamp - mPreviousTimestamp;
-        mPreviousTimestamp = item.mTimeStamp;
-
-        int releaseFence = -1;
-        collectUvmBuffer(dup(item.mVtBufferFd), releaseFence);
-        onVtFrameDisplayed(item.mVtBufferFd, releaseFence);
-        mQueuedFrames--;
-
-        MESON_LOGD("[%s] [%d] [%" PRIu64 "] vt buffer fd(%d) with timestamp(%" PRId64 ") expired "
-                "droped expectedPresent time(%" PRId64 ") diffAdded(%" PRId64 ") queuedFrames(%d)",
-                __func__, mDisplayId,mId, item.mVtBufferFd, item.mTimeStamp,
-                mExpectedPresentTime, diffAdded, mQueuedFrames);
-        mQueueItems.pop_front();
-        dropCount--;
-    }
-
-    // update current mVtBuffer
-    mVtUpdate = true;
-    mVtBufferFd = mQueueItems[0].mVtBufferFd;
-    mTimestamp = mQueueItems[0].mTimeStamp;
-
-    diffAdded = mTimestamp - mPreviousTimestamp;
-    mPreviousTimestamp = mTimestamp;
-
-    MESON_LOGV("[%s] [%d] [%" PRIu64 "] mVtBufferFd(%d) timestamp (%" PRId64 " us) expectedPresentTime(%"
-            PRId64 " us) diffAdded(%" PRId64 " us) shouldPresent:%d, queueFrameSize:%zu",
-            __func__, mDisplayId, mId, mVtBufferFd, mTimestamp, mExpectedPresentTime, diffAdded,
-            shouldPresentNow(mTimestamp), mQueueItems.size());
 
     mMutex.unlock();
     if (mGameMode)
