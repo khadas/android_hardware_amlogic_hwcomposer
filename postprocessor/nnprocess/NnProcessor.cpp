@@ -458,6 +458,11 @@ int32_t NnProcessor::teardown() {
     int buf_index;
     struct sr_buffer_t *sr_buf;
 
+    struct uvm_hook_data hook_data;
+    struct uvm_hf_info_t *uvm_hf_info;
+    struct uvm_ai_sr_info *ai_sr_info;
+    int ret;
+
     ALOGD("%s.\n", __FUNCTION__);
 
     if (mInited)
@@ -469,6 +474,24 @@ int32_t NnProcessor::teardown() {
         buf_index = mBuf_index_q.front();
         sr_buf = &mSrBuf[buf_index];
         shared_fd = sr_buf->shared_fd;
+
+        uvm_hf_info = (struct uvm_hf_info_t *)&hook_data;
+        ai_sr_info = &(uvm_hf_info->ai_sr_info);
+        uvm_hf_info->mode_type = PROCESS_NN;
+        uvm_hf_info->shared_fd = shared_fd;
+        ai_sr_info->shared_fd = shared_fd;
+        ai_sr_info->nn_out_fd = -1;
+        ai_sr_info->nn_status = NN_INVALID;
+        ai_sr_info->nn_index = -1;
+        ai_sr_info->nn_out_width = 0;
+        ai_sr_info->nn_out_height = 0;
+        ai_sr_info->nn_mode = -1;
+
+        ret = ioctl(mUvmHander, UVM_IOC_SET_INFO, &hook_data);
+        if (ret < 0) {
+            ALOGE("teardown: UVM_IOC_SET_HF_OUTPUT fail =%d.\n", ret);
+        }
+
         if (shared_fd != -1) {
             close(shared_fd);
             mCloseCount++;
