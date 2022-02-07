@@ -3,6 +3,8 @@ package hwc_mesondisplay
 import (
     "android/soong/android"
     "android/soong/cc"
+    "fmt"
+    "strconv"
 )
 
 func init() {
@@ -22,13 +24,20 @@ func hwc_mesondisplay_aml_Defaults(ctx android.LoadHookContext) {
     }
     p := &propsE{}
     PlatformVndkVersion := ctx.DeviceConfig().PlatformVndkVersion()
-    //fmt.Println("PlatformVndkVersion:", PlatformVndkVersion)
-    //fmt.Println("len(PlatformVndkVersion:", len(PlatformVndkVersion)
-    // After Andriod T, PlatformVndkVersion return string like "Tiramisu", not string number like "32"
-    if len(PlatformVndkVersion) > 2 {
+    fmt.Println("PlatformVndkVersion:", PlatformVndkVersion)
+    //For Andriod T, before freeze API PlatformVndkVersion return string like "Tiramisu", after freeze API it will be changed to be numbers like normal android release "32"
+    IntPlatformVndkVersion,err := strconv.Atoi(PlatformVndkVersion)
+    if err != nil {
+        fmt.Printf("%v fail to convert", PlatformVndkVersion)
         p.Whole_static_libs = append(p.Static_libs, "libjsoncpp")
     } else {
-        p.Static_libs = append(p.Static_libs, "libjsoncpp")
+        fmt.Println("IntPlatformVndkVersion:", IntPlatformVndkVersion)
+        if IntPlatformVndkVersion > 31 {
+            p.Whole_static_libs = append(p.Static_libs, "libjsoncpp")
+        } else {
+            p.Static_libs = append(p.Static_libs, "libjsoncpp")
+        }
     }
+
     ctx.AppendProperties(p)
 }
