@@ -16,13 +16,21 @@
 #include <string>
 #include <systemcontrol.h>
 #include <sys/utsname.h>
-
 #include "Dv.h"
 
 #define DV_SUPPORT_INFO_LEN_MAX (40)
 
 ConnectorPanel::ConnectorPanel(int32_t drvFd, uint32_t id)
     :   HwDisplayConnectorFbdev(drvFd, id) {
+    parseLcdInfo();
+    if (mTabletMode) {
+        snprintf(mName, 64, "Tablet-%d", id);
+    } else {
+        snprintf(mName, 64, "TV-%d", id);
+    }
+}
+ConnectorPanel2::ConnectorPanel2(int32_t drvFd, uint32_t id)
+    :   ConnectorPanel(drvFd, id){
     parseLcdInfo();
     if (mTabletMode) {
         snprintf(mName, 64, "Tablet-%d", id);
@@ -47,6 +55,80 @@ const char * ConnectorPanel::getName() {
 
 drm_connector_type_t ConnectorPanel::getType() {
     return DRM_MODE_CONNECTOR_LVDS;
+}
+drm_connector_type_t ConnectorPanel2::getType() {
+    return DRM_MODE_CONNECTOR_PANEL2;
+}
+int32_t ConnectorPanel2::parseLcdInfo() {
+    struct utsname buf;
+    int major = 0;
+    int minor = 0;
+    const char * lcdInfoPath;
+    if (uname(&buf) == 0) {
+        if (sscanf(buf.release, "%d.%d", &major, &minor) != 2) {
+            major = 0;
+        }
+    }
+    lcdInfoPath = "/sys/class/aml_lcd/lcd2/vinfo";
+    mModeName = "panel2";
+    MESON_LOGD("ConnectorPanel2::parseLcdInfo");
+
+    const int valLenMax = 64;
+    std::string lcdInfo;
+
+    if (read_sysfs(lcdInfoPath, lcdInfo) == 0 &&
+        lcdInfo.size() > 0) {
+       // MESON_LOGD("Lcdinfo:(%s)", lcdInfo.c_str());
+
+        std::size_t lineStart = 0;
+
+        /*parse lcd mode*/
+        const char * modeStr = " lcd_mode: ";
+        lineStart = lcdInfo.find(modeStr);
+        lineStart += strlen(modeStr);
+        std::string valStr = lcdInfo.substr(lineStart, valLenMax);
+        MESON_LOGD("lcd_mode: value [%s]", valStr.c_str());
+        if (valStr.find("tablet", 0) != std::string::npos) {
+            mTabletMode = true;
+        } else {
+            mTabletMode = false;
+        }
+
+        if (mTabletMode) {
+            /*parse display info mode*/
+            const char * infoPrefix[] = {
+                " width:",
+                " height:",
+                " sync_duration_num:",
+                " sync_duration_den:",
+                " screen_real_width:",
+                " screen_real_height:",
+            };
+            const int infoValueIdx[] = {
+                LCD_WIDTH,
+                LCD_HEIGHT,
+                LCD_SYNC_DURATION_NUM,
+                LCD_SYNC_DURATION_DEN,
+                LCD_SCREEN_REAL_WIDTH,
+                LCD_SCREEN_REAL_HEIGHT,
+            };
+            static int infoNum = sizeof(infoValueIdx) / sizeof(int);
+
+            MESON_LOGD("------------Lcdinfo parse start------------\n");
+            for (int i = 0; i < infoNum; i ++) {
+                lineStart = lcdInfo.find(infoPrefix[i], lineStart);
+                lineStart += strlen(infoPrefix[i]);
+                std::string valStr = lcdInfo.substr(lineStart, valLenMax);
+                mLcdValues[infoValueIdx[i]] = (uint32_t)std::stoul(valStr);
+                MESON_LOGD("[%s] : [%d]\n", infoPrefix[i], mLcdValues[infoValueIdx[i]]);
+            }
+            MESON_LOGD("------------Lcdinfo parse end------------\n");
+        }
+    } else {
+        MESON_LOGE("parseLcdInfo ERROR.");
+    }
+
+    return 0;
 }
 
 bool ConnectorPanel::isConnected(){
@@ -90,26 +172,31 @@ int32_t ConnectorPanel::parseLcdInfo() {
             major = 0;
         }
     }
-
-    if (major == 0)
-        MESON_LOGE("Can't determine kernel version!");
-
-    if (major >= 5) {
-        char val[PROP_VALUE_LEN_MAX];
-        std::string lcdPath;
+#if HWC_TWO_PANEL
+        lcdInfoPath = "/sys/class/aml_lcd/lcd0/vinfo";
         mModeName = "panel";
-        if (sys_get_string_prop("persist.vendor.hwc.lcdpath", val) > 0 && strcmp(val, "0") != 0) {
-            lcdPath = "/sys/class/aml_lcd/lcd";
-            lcdPath.append(val);
-            lcdPath.append("/vinfo");
-            mModeName.append(val);
+        MESON_LOGD("ConnectorPanel::parseLcdInfo");
+#else
+        if (major == 0)
+            MESON_LOGE("Can't determine kernel version!");
+
+        if (major >= 5) {
+            char val[PROP_VALUE_LEN_MAX];
+            std::string lcdPath;
+            mModeName = "panel";
+            if (sys_get_string_prop("persist.vendor.hwc.lcdpath", val) > 0 && strcmp(val, "0") != 0) {
+                lcdPath = "/sys/class/aml_lcd/lcd";
+                lcdPath.append(val);
+                lcdPath.append("/vinfo");
+                mModeName.append(val);
+            } else {
+                lcdPath = "/sys/class/aml_lcd/lcd0/vinfo";
+            }
+            lcdInfoPath = lcdPath.c_str();
         } else {
-            lcdPath = "/sys/class/aml_lcd/lcd0/vinfo";
+            lcdInfoPath = "/sys/class/lcd/vinfo";
         }
-        lcdInfoPath = lcdPath.c_str();
-    } else {
-        lcdInfoPath = "/sys/class/lcd/vinfo";
-    }
+#endif
 
     const int valLenMax = 64;
     std::string lcdInfo;
@@ -259,4 +346,3 @@ void ConnectorPanel:: dump(String8& dumpstr) {
     dumpstr.append("------------+------------------+-----------+------------+"
         "-----------+-----------\n");
 }
-

@@ -12,7 +12,7 @@
 #include "ConnectorCvbs.h"
 #include "ConnectorPanel.h"
 #include "ConnectorDummy.h"
-
+#include "MesonLog.h"
 std::shared_ptr<HwDisplayConnector> HwConnectorFactory::create(
     drm_connector_type_t connectorType,
     int32_t connectorDrv,
@@ -24,6 +24,9 @@ std::shared_ptr<HwDisplayConnector> HwConnectorFactory::create(
             break;
         case DRM_MODE_CONNECTOR_LVDS:
             connector =  std::make_shared<ConnectorPanel>(connectorDrv, connectorId);
+            break;
+        case DRM_MODE_CONNECTOR_PANEL2:
+            connector =  std::make_shared<ConnectorPanel2>(connectorDrv, connectorId);
             break;
         case DRM_MODE_CONNECTOR_VIRTUAL:
             connector =  std::make_shared<ConnectorDummy>(connectorDrv, connectorId);

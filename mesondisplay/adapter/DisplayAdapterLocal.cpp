@@ -95,6 +95,9 @@ void DisplayTypeConv(drm_connector_type_t& type, ConnectorType displayType) {
         case DisplayAdapter::CONN_TYPE_CVBS:
             type = DRM_MODE_CONNECTOR_TV;
             break;
+        case DisplayAdapter::CONN_TYPE_PANEL2:
+            type = DRM_MODE_CONNECTOR_PANEL2;
+            break;
     }
 }
 

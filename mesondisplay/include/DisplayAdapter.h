@@ -91,6 +91,7 @@ public:
         CONN_TYPE_HDMI = 1,
         CONN_TYPE_PANEL = 2,
         CONN_TYPE_CVBS = 3,
+        CONN_TYPE_PANEL2 = 4,
     } ConnectorType;
     virtual AdapterType type() = 0;
     virtual BackendType displayType() = 0;

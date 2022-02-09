@@ -20,7 +20,6 @@
 
 #include <log/log.h>
 #include <stdlib.h>
-
 #ifdef HWC_RELEASE
 #define MESON_DEBUG_LEVEL 0
 #else

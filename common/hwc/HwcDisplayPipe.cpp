@@ -128,6 +128,9 @@ drm_connector_type_t HwcDisplayPipe::getConnetorCfg(uint32_t hwcid) {
         case HWC_PANEL_ONLY:
             connector = DRM_MODE_CONNECTOR_LVDS;
             break;
+        case HWC_PANEL_2:
+            connector =DRM_MODE_CONNECTOR_PANEL2;
+            break;
         case HWC_HDMI_ONLY:
             connector = DRM_MODE_CONNECTOR_HDMIA;
             break;
@@ -163,7 +166,6 @@ int32_t HwcDisplayPipe::updatePipe(std::shared_ptr<PipeStat> & stat) {
             MESON_LOGD("Config is not updated.");
             return 0;
     }
-
     /*update pipestats*/
     bool resChanged = false;
     if (cfg.hwcPipeIdx != stat->cfg.hwcPipeIdx) {
@@ -385,6 +387,7 @@ int32_t HwcDisplayPipe::initDisplayMode(std::shared_ptr<PipeStat> & stat) {
             }
             break;
         case DRM_MODE_CONNECTOR_LVDS:
+        case DRM_MODE_CONNECTOR_PANEL2:
             {
                 /*TODO*/
             }

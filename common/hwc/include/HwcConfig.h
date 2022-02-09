@@ -21,6 +21,7 @@ typedef enum {
     HWC_PANEL_ONLY,
     HWC_HDMI_CVBS,
     HWC_CVBS_ONLY,
+    HWC_PANEL_2,
     HWC_CONNECTOR_NULL,
 } hwc_connector_t;
 
@@ -46,7 +47,7 @@ public:
     static bool cursorPlaneDisabled();
     static bool defaultHdrCapEnabled();
     static bool forceClientEnabled();
-
+    static bool twopanelmode();
     static bool alwaysVdinLoopback();
     static bool dynamicSwitchConnectorEnabled();
     static bool dynamicSwitchViuEnabled();

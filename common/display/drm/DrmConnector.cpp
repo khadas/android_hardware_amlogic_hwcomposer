@@ -13,7 +13,6 @@
 #include "DrmDevice.h"
 #include <inttypes.h>
 #include <limits>
-
 #include <xf86drm.h>
 #include <string.h>
 #include <misc.h>
@@ -195,6 +194,9 @@ const char * DrmConnector::getName() {
             break;
         case DRM_MODE_CONNECTOR_LVDS:
             name = "PANEL";
+            break;
+        case DRM_MODE_CONNECTOR_PANEL2:
+            name ="PANEL2";
             break;
         default:
             name = "UNKNOWN";

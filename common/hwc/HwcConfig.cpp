@@ -76,7 +76,9 @@ hwc_connector_t HwcConfig::getConnectorType(int disp) {
             connector_type = HWC_HDMI_CVBS;
         } else if (strcasecmp(connectorstr, "panel") == 0) {
             connector_type = HWC_PANEL_ONLY;
-        } else if (strcasecmp(connectorstr, "cvbs") == 0) {
+        } else if (strcasecmp(connectorstr, "panel2") == 0) {
+            connector_type = HWC_PANEL_2;
+        }else if (strcasecmp(connectorstr, "cvbs") == 0) {
             connector_type = HWC_CVBS_ONLY;
         } else if (strcasecmp(connectorstr, "hdmi-only") == 0) {
             connector_type = HWC_HDMI_ONLY;
@@ -213,6 +215,14 @@ bool HwcConfig::dynamicSwitchConnectorEnabled() {
 
 bool HwcConfig::dynamicSwitchViuEnabled() {
 #ifdef HWC_DYNAMIC_SWITCH_VIU
+    return true;
+#else
+    return false;
+#endif
+}
+
+bool HwcConfig::twopanelmode() {
+#if HWC_TWO_PANEL
     return true;
 #else
     return false;
