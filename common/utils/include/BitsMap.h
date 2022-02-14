@@ -19,6 +19,9 @@ public:
     int setBit(int idx);
     int clearBit(int idx);
 
+    // reset all bits
+    int reset();
+
 protected:
     char *mBits;
     int mLen;

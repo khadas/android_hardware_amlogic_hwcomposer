@@ -78,3 +78,7 @@ int BitsMap::clearBit(int idx) {
     return 0;
 }
 
+int BitsMap::reset() {
+    memset(mBits, 0, mLen);
+    return 0;
+}
