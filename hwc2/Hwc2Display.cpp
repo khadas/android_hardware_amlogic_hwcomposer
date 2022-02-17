@@ -1676,15 +1676,8 @@ bool Hwc2Display::isDisplayConnected() {
 bool Hwc2Display::setFrameRateHint(std::string value) {
     if (!value.compare("0")) {
         mFRPeriodNanos = 0;
-    } else if (!value.compare("6000")) {
-        mFRPeriodNanos = 1e9 / 60;
-    } else if (!value.compare("5994")) {
-        mFRPeriodNanos = 1e9 / 59.94;
-    } else if (!value.compare("5000")) {
-        mFRPeriodNanos = 1e9 / 50;
     } else {
-        MESON_LOGE("%s unsupport value:%s", __func__, value.c_str());
-        return false;
+        mFRPeriodNanos = 1e9 * 100 / std::stoi(value);
     }
 
     MESON_LOGD("%s value:%s", __func__, value.c_str());
