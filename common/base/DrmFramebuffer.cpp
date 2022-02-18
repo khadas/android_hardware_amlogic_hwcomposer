@@ -137,6 +137,11 @@ void DrmFramebuffer::setBufferInfo(
         mBufferHandle = gralloc_ref_dma_buf(bufferhnd, isSidebandBuffer);
         if (acquireFence >= 0)
             mAcquireFence = std::make_shared<DrmFence>(acquireFence);
+    } else {
+        /* must close acquireFence when buffer handle is null to
+         * avoid fence fd leak */
+        if (acquireFence >= 0)
+            close(acquireFence);
     }
 }
 
