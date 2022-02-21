@@ -234,6 +234,9 @@ int32_t Hwc2Display::blankDisplay(bool resetLayers) {
 
         mLayers.clear();
         mPresentLayers.clear();
+
+        // reset bitmap
+        mLayersBitmap->reset();
         handleVtThread();
     }
 
@@ -514,6 +517,7 @@ void Hwc2Display::initLayerIdGenerator() {
 hwc2_layer_t Hwc2Display::createLayerId() {
     hwc2_layer_t layerId = 0;
     int idx = mLayersBitmap->getZeroBit();
+    MESON_ASSERT(idx >= 0, "Bitmap getZeroBit failed");
     mLayersBitmap->setBit(idx);
 
     mLayerSeq++;
