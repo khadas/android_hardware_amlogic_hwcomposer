@@ -479,10 +479,18 @@ void Hwc2Display::onModeChanged(int stage) {
             /* begin change mode, need blank once */
             mDisplayConnection = false;
             mPowerMode->setConnectorStatus(false);
-            // only blank display and clear layers when we can send hotplug event
-            // as the framework display will recreate when it receive hotplug event
-            if (HwcConfig::primaryHotplugEnabled() && !mFirstPresent && mModeMgr->needCallHotPlug())
-                blankDisplay(true);
+            if (!mFirstPresent) {
+                // only clear layers when we can send hotplug event
+                // as the framework display will recreate when it receive hotplug event
+                if (HwcConfig::primaryHotplugEnabled() && mModeMgr->needCallHotPlug())
+                    blankDisplay(true);
+
+                //TODO: remove it when panel driver support leftship
+                if (mConnector->getType() == DRM_MODE_CONNECTOR_LVDS) {
+                    blankDisplay();
+                }
+            }
+
             mSkipComposition = true;
             return;
         }
