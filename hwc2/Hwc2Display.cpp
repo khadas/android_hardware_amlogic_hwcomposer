@@ -129,6 +129,8 @@ int32_t Hwc2Display::setDisplayResource(
     std::vector<std::shared_ptr<HwDisplayPlane>> & planes) {
     MESON_LOG_FUN_ENTER();
     std::lock_guard<std::mutex> lock(mMutex);
+    /* need hold vtmutex as it may update compositionStragegy */
+    std::lock_guard<std::mutex> vtLock(mVtMutex);
 
     mCrtc = crtc;
     mPlanes = planes;
@@ -224,8 +226,15 @@ int32_t Hwc2Display::blankDisplay(bool resetLayers) {
     if (resetLayers) {
         std::lock_guard<std::mutex> vtLock(mVtMutex);
         MESON_LOGD("%s displayId:%d, clear layers", __func__, mDisplayId);
+        for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
+            std::shared_ptr<Hwc2Layer> layer = it->second;
+            if (layer && layer->isVtBuffer())
+                layer->releaseVtResource();
+        }
+
         mLayers.clear();
         mPresentLayers.clear();
+        handleVtThread();
     }
 
     return 0;

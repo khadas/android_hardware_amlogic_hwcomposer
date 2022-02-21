@@ -1339,6 +1339,12 @@ int MultiplanesWithDiComposition::commit(bool sf) {
     ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
 
+    if (mCrtc == nullptr) {
+        MESON_LOGE("MultiplanesWithDiComposition::%s commit but no crtc!",
+                __func__);
+        return HWC2_ERROR_NO_RESOURCES;
+    }
+
     /* replace composer output with din0 Pair. */
     std::shared_ptr<DrmFramebuffer> composerOutput;
     bool setPlaneSuccess = true;
