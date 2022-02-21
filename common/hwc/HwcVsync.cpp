@@ -16,7 +16,7 @@
 #include <inttypes.h>
 
 #define SF_VSYNC_DFT_PERIOD 60
-#define VT_OFFSET_TIME 5000000
+#define VT_OFFSET_TIME 1000000
 #define DEFAULT_OFFSET_TIME 1000000
 
 HwcVsync::HwcVsync() {
@@ -257,7 +257,7 @@ int32_t HwcVsync::waitMixVsync(nsecs_t& vsync_timestamp) {
         if (!mCrtc.get())
             return -EFAULT;
         mCrtc->waitVBlank(mVsyncTime);
-        mVsyncTime += VT_OFFSET_TIME;
+        mVsyncTime += mMixOffset;
         mCurVsyncPeriod = mReqPeriod;
         mMixRebase = false;
     } else {
