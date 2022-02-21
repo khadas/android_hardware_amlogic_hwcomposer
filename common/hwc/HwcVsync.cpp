@@ -16,7 +16,7 @@
 #include <inttypes.h>
 
 #define SF_VSYNC_DFT_PERIOD 60
-#define VT_OFFSET_TIME 5000000
+#define VT_OFFSET_TIME 1000000
 
 HwcVsync::HwcVsync() {
     mSoftVsync = true;
