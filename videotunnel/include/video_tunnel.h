@@ -22,6 +22,7 @@ enum vt_cmd {
     VT_CMD_SET_GAME_MODE,
     VT_CMD_SET_SOURCE_CROP,
     VT_CMD_SET_SHOW_SOLID_COLOR,
+    VT_CMD_SET_VIDEO_TYPE,
 };
 
 struct vt_rect {
