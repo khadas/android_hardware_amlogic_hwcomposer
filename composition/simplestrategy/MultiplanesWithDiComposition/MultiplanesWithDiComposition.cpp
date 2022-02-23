@@ -338,17 +338,21 @@ int MultiplanesWithDiComposition::processVideoFbs() {
         };
     }
 
-    if (videoFbNum == 0) {
+    if (videoFbNum == 0 ||
+        videoFbNum - sidebandFbs.size() != 1 ||
+        mVsyncRefreshRate > 60) {
+        /* Video Processor: only support one video now,
+         * not support legacy sideband ,
+         * not support aipq&aisr when refresh rate is greater than 60,
+         */
         tearDownProcessor();
-        return 0;
-    }
 
-    // Video Processor: only support one video now, not support legacy sideband
-    if (videoFbNum - sidebandFbs.size() == 1) {
+        if (videoFbNum == 0)
+            return 0;
+    } else {
         setUpProcessor();
+        collectProcessor();
     }
-
-    collectProcessor();
 
     /*
     * Composition: only 1 + .. + N mode now
@@ -1216,7 +1220,8 @@ void MultiplanesWithDiComposition::setup(
     std::vector<std::shared_ptr<HwDisplayPlane>> & planes,
     std::shared_ptr<HwDisplayCrtc> & crtc,
     uint32_t reqFlag,
-    float scaleValue) {
+    float scaleValue,
+    hwc2_vsync_period_t vsyncPeriod) {
     ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
     init();
@@ -1293,6 +1298,10 @@ void MultiplanesWithDiComposition::setup(
 
     mVideoPlaneNum = mHwcVideoPlanes.size();
     mOsdPlaneNum = mOsdPlanes.size();
+    if (vsyncPeriod == 0)
+        mVsyncRefreshRate = 60;
+    else
+        mVsyncRefreshRate = 1e9 / vsyncPeriod;
 }
 
 //for present skip validate need update composition
