@@ -890,6 +890,13 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
     }
     /*do composition*/
     if (!mSkipComposition) {
+        /*get current refrash rate*/
+        hwc2_vsync_period_t period = 0;
+        if (mFRPeriodNanos == 0)
+            getDisplayVsyncPeriod(&period);
+        else
+            period = mFRPeriodNanos;
+
         mPowerMode->setScreenStatus((mPresentLayers.size() > 0 ? false : true) || mConfirmSkip);
         /*update calibrate info.*/
         loadCalibrateInfo();
@@ -898,7 +905,8 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
             adjustDisplayFrame();
         /*setup composition strategy.*/
         mPresentCompositionStg->setup(mPresentLayers,
-            mPresentComposers, mPresentPlanes, mCrtc, compositionFlags, mScaleValue);
+            mPresentComposers, mPresentPlanes, mCrtc, compositionFlags,
+            mScaleValue, period);
         if (mPresentCompositionStg->decideComposition() < 0)
             return HWC2_ERROR_NO_RESOURCES;
 

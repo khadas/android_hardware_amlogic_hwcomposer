@@ -826,7 +826,8 @@ void MultiplanesComposition::setup(
     std::vector<std::shared_ptr<HwDisplayPlane>> & planes,
     std::shared_ptr<HwDisplayCrtc> & crtc,
     uint32_t reqFlag,
-    float scaleValue __unused) {
+    float scaleValue __unused,
+    hwc2_vsync_period_t vsyncPeriod __unused) {
     init();
 
     mCompositionFlag = reqFlag;
