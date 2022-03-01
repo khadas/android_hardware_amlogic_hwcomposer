@@ -63,6 +63,14 @@
 static bool m3DMode = false;
 static bool mVdinPostMode = false;
 static bool mKeyStoneMode = false;
+
+#define DEFAULT_CROD(keystoneW, keystoneH)    \
+    std::string w = std::to_string(keystoneW);\
+    std::string h = std::to_string(keystoneH);\
+    std::string defaultCord = "0.0,0.0,"+ w +".0,0.0,"+ w +".0," + h + ".0,0.0,"+ h +".0";\
+    char keystoneProp[PROP_VALUE_LEN_MAX];\
+    strcpy(keystoneProp, defaultCord.c_str());\
+
 #endif
 
 ANDROID_SINGLETON_STATIC_INSTANCE(MesonHwc2)
@@ -729,8 +737,11 @@ uint32_t MesonHwc2::getDisplayRequest() {
             if (mVdinPostMode) {
                 /*get keystone status*/
                 bVal = false;
+                uint32_t width,height;
+                HwcConfig::getFramebufferSize(0, width, height);
+                DEFAULT_CROD(width, height);
                 if (sys_get_string_prop("persist.vendor.hwc.keystone", val) > 0 &&
-                    strcmp(val, "0") != 0) {
+                    strcmp(val, "0") != 0 && strcmp(val, keystoneProp) != 0) {
                     bVal = true;
                 }
                 if (mKeyStoneMode != bVal) {
