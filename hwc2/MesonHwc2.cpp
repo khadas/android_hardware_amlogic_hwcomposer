@@ -391,13 +391,7 @@ int32_t MesonHwc2::getReleaseFences(hwc2_display_t display,
 int32_t MesonHwc2::validateDisplay(hwc2_display_t display,
     uint32_t* outNumTypes, uint32_t* outNumRequests) {
     GET_HWC_DISPLAY(display);
-    /*handle display request*/
-    uint32_t request = getDisplayRequest();
     setCalibrateInfo(display);
-    if (request != 0) {
-        handleDisplayRequest(request);
-    }
-
     return hwcDisplay->validateDisplay(outNumTypes,
         outNumRequests);
 }
@@ -405,6 +399,12 @@ int32_t MesonHwc2::validateDisplay(hwc2_display_t display,
 int32_t MesonHwc2::presentDisplay(hwc2_display_t display,
     int32_t* outPresentFence) {
     GET_HWC_DISPLAY(display);
+    /*handle display request*/
+    uint32_t request = getDisplayRequest();
+    if (request != 0) {
+        handleDisplayRequest(request);
+        hwcDisplay->outsideChanged();
+    }
     return hwcDisplay->presentDisplay(outPresentFence);
 }
 
