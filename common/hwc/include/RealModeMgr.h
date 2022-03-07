@@ -39,6 +39,10 @@ public:
             int32_t* outValue, int32_t caller);
     int32_t getActiveConfig(uint32_t * outConfig, int32_t caller);
     int32_t setActiveConfig(uint32_t config);
+
+    // for seamless mode switch
+    bool isSeamlessSwitch(uint32_t config);
+
     void resetTags();
     void dump(String8 & dumpstr);
 
@@ -46,7 +50,9 @@ protected:
     int32_t updateActiveConfig(drm_mode_info_t activeMode);
     bool isSupportModeForCurrentDevice(drm_mode_info_t mode);
     void reset();
+    int32_t setModeLocked(drm_mode_info_t & mode);
 
+protected:
     std::shared_ptr<HwDisplayConnector> mConnector;
     std::shared_ptr<HwDisplayCrtc> mCrtc;
 

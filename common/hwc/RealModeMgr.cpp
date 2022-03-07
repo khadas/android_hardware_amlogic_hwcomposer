@@ -283,35 +283,8 @@ int32_t RealModeMgr::setActiveConfig(uint32_t config) {
             return HWC2_ERROR_NONE;
         }
 
-        mLatestRealMode = cfg;
-        updateActiveConfig(cfg);
-
-        std::string bestDolbyVision;
-        bool needRecoveryBestDV = false;
-        if (mDvEnabled) {
-            if (!sc_read_bootenv(UBOOTENV_BESTDOLBYVISION, bestDolbyVision)) {
-                if (bestDolbyVision.empty()|| bestDolbyVision == "true") {
-                    MESON_LOGD("RealModeMgr set BestDVPolicy: false");
-                    sc_set_bootenv(UBOOTENV_BESTDOLBYVISION, "false");
-                    needRecoveryBestDV = true;
-                }
-            }
-        }
-
-        mCallOnHotPlug = false;
-        mConnector->setMode(cfg);
-
-        // set the display mode through systemControl
-        // As it will need update the colorspace/colordepth too.
-        MESON_LOGD("RealModeMgr::setActiveConfig setMode: %s [%dx%d-%.2f]",
-                cfg.name, cfg.pixelW, cfg.pixelH, cfg.refreshRate);
-        std::string dispmode(cfg.name);
-        sc_set_display_mode(dispmode);
-
-        // If we need recovery best dobly vision policy, then recovery it.
-        if (mDvEnabled && needRecoveryBestDV) {
-            MESON_LOGD("RealModeMgr recovery BestDVPolicy: true");
-            sc_set_bootenv(UBOOTENV_BESTDOLBYVISION, "true");
+        if (setModeLocked(cfg) != 0) {
+            return HWC2_ERROR_SEAMLESS_NOT_ALLOWED;
         }
     } else {
         MESON_LOGE("set invalild active config (%d)", config);
@@ -319,6 +292,19 @@ int32_t RealModeMgr::setActiveConfig(uint32_t config) {
     }
 
     return HWC2_ERROR_NONE;
+}
+
+// The request config is the same group of the lastest active config
+bool RealModeMgr::isSeamlessSwitch(uint32_t config) {
+    std::map<uint32_t, drm_mode_info_t>::iterator it = mModes.find(config);
+
+    if (it != mModes.end()) {
+        drm_mode_info_t cfg = it->second;
+        if (cfg.groupId == mLatestRealMode.groupId)
+            return true;
+    }
+
+    return false;
 }
 
 bool RealModeMgr::isSupportModeForCurrentDevice(drm_mode_info_t mode) {
@@ -334,6 +320,46 @@ bool RealModeMgr::isSupportModeForCurrentDevice(drm_mode_info_t mode) {
     }
 
     return ret;
+}
+
+int32_t RealModeMgr::setModeLocked(drm_mode_info_t & mode) {
+    bool seamless = (mode.groupId == mLatestRealMode.groupId);
+
+    mCallOnHotPlug = false;
+    mLatestRealMode = mode;
+
+    updateActiveConfig(mode);
+    mConnector->setMode(mode);
+
+    if (seamless) {
+        // seamless mode switch, only vsync period change
+        mCrtc->setMode(mode);
+    }  else {
+        std::string bestDolbyVision;
+        bool needRecoveryBestDV = false;
+        if (mDvEnabled) {
+            if (!sc_read_bootenv(UBOOTENV_BESTDOLBYVISION, bestDolbyVision)) {
+                if (bestDolbyVision.empty()|| bestDolbyVision == "true") {
+                    MESON_LOGD("RealModeMgr set BestDVPolicy: false");
+                    sc_set_bootenv(UBOOTENV_BESTDOLBYVISION, "false");
+                    needRecoveryBestDV = true;
+                }
+            }
+        }
+
+        // set the display mode through systemControl
+        // As it will need update the colorspace/colordepth too.
+        MESON_LOGD("RealModeMgr::setActiveConfig setMode: %s", mode.name);
+        std::string dispmode(mode.name);
+        sc_set_display_mode(dispmode);
+
+        // If we need recovery best dobly vision policy, then recovery it.
+        if (mDvEnabled && needRecoveryBestDV) {
+            MESON_LOGD("RealModeMgr recovery BestDVPolicy: true");
+            sc_set_bootenv(UBOOTENV_BESTDOLBYVISION, "true");
+        }
+    }
+    return 0;
 }
 
 void RealModeMgr::dump(String8 & dumpstr) {

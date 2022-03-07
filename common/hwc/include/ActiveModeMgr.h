@@ -40,6 +40,7 @@ public:
         uint32_t config, int32_t attribute, int32_t* outValue, int32_t caller);
     int32_t getActiveConfig(uint32_t * outConfig, int32_t caller);
     int32_t setActiveConfig(uint32_t configId);
+    bool isSeamlessSwitch(uint32_t config);
     void resetTags();
     void dump(String8 & dumpstr);
 
@@ -51,6 +52,7 @@ protected:
     void reset();
     const drm_mode_info_t findMatchedMode(
         uint32_t width, uint32_t height, float refreshrate);
+    int32_t setModeLocked(uint32_t & configId, drm_mode_info_t & mode);
 
 protected:
     std::shared_ptr<HwDisplayConnector> mConnector;

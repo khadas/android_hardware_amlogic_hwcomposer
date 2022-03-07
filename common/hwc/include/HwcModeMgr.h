@@ -56,6 +56,9 @@ public:
     virtual int32_t getActiveConfig(uint32_t * outConfig,
         int32_t caller = CALL_FROM_HWC) = 0;
     virtual int32_t setActiveConfig(uint32_t config) = 0;
+    // for seamless mode switch
+    virtual bool isSeamlessSwitch(uint32_t config) = 0;
+
     virtual void resetTags() = 0;
     virtual void dump(String8 & dumpstr) = 0;
 };

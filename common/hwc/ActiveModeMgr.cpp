@@ -295,14 +295,49 @@ int32_t ActiveModeMgr::setActiveConfig(uint32_t configId) {
             MESON_LOGD("setActiveConfig fake mode not supported");
             return HWC2_ERROR_NONE;
         }
+        setModeLocked(configId, cfg);
+        return HWC2_ERROR_NONE;
+    } else {
+        MESON_LOGE("set invalild active config (%d)", configId);
+        return HWC2_ERROR_NOT_VALIDATED;
+    }
+}
 
-        // update real active config.
-        updateSfActiveConfig(configId, cfg);
-        updateHwcActiveConfig(cfg);
-        MESON_LOGD("ActiveModeMgr::setActiveConfig %d, name:%s", configId, cfg.name);
+// The request config is the same group of the lastest active config
+bool ActiveModeMgr::isSeamlessSwitch(uint32_t config) {
+    std::map<uint32_t, drm_mode_info_t>::iterator it = mSfActiveModes.find(config);
+    if (it != mSfActiveModes.end()) {
+        drm_mode_info_t cfg = it->second;
+        if (cfg.groupId == mLastActiveMode.groupId)
+            return true;
+    }
 
-        mCallOnHotPlug = false;
+    return false;
+}
 
+void ActiveModeMgr::reset() {
+    mHwcActiveModes.clear();
+    mSfActiveModes.clear();
+    mSfActiveConfigId = mHwcActiveConfigId = -1;
+}
+
+void ActiveModeMgr::resetTags() {
+    mCallOnHotPlug = true;
+};
+
+int32_t ActiveModeMgr::setModeLocked(uint32_t & configId, drm_mode_info_t & mode) {
+    bool seamless = (mode.groupId == mLastActiveMode.groupId);
+
+    mCallOnHotPlug = false;
+    // update real active config.
+    updateSfActiveConfig(configId, mode);
+    updateHwcActiveConfig(mode);
+    MESON_LOGD("ActiveModeMgr::setActiveConfig %d, name:%s", configId, mode.name);
+    mConnector->setMode(mode);
+
+    if (seamless) {
+        mCrtc->setMode(mode);
+    } else {
         // Disable auto best DolbyVision mode selection policy
         // So that when we update the display mode,
         // SystemContrl doesn't change to some other mode.
@@ -317,31 +352,20 @@ int32_t ActiveModeMgr::setActiveConfig(uint32_t configId) {
             }
         }
 
-        mConnector->setMode(cfg);
-        mCrtc->setMode(cfg);
+        // set the display mode through systemControl
+        // As it will need update the colorspace/colordepth too.
+        MESON_LOGD("RealModeMgr::setActiveConfig setMode: %s", mode.name);
+        std::string dispmode(mode.name);
+        sc_set_display_mode(dispmode);
 
         // If we need recovery best dobly vision policy, then recovery it.
         if (mDvEnabled && needRecoveryBestDV) {
             sc_set_bootenv(UBOOTENV_BESTDOLBYVISION, "true");
         }
-
-        return HWC2_ERROR_NONE;
-    } else {
-        MESON_LOGE("set invalild active config (%d)", configId);
-        return HWC2_ERROR_NOT_VALIDATED;
     }
-}
 
-void ActiveModeMgr::reset() {
-    mHwcActiveModes.clear();
-    mSfActiveModes.clear();
-    mSfActiveConfigId = mHwcActiveConfigId = -1;
-    mCallOnHotPlug = true;
+    return 0;
 }
-
-void ActiveModeMgr::resetTags() {
-    mCallOnHotPlug = true;
-};
 
 void ActiveModeMgr::dump(String8 & dumpstr) {
     dumpstr.appendFormat("ActiveModeMgr(hwc): %s\n", mLastActiveMode.name);
