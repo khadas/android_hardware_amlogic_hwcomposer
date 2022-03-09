@@ -92,8 +92,8 @@ int32_t VtConsumer::onVtCmds(vt_cmd_t & cmd, vt_cmd_data_t & cmdData) {
                     cmdData.crop.right, cmdData.crop.bottom);
             mContentListener->onSourceCropChange(cmdData.crop);
             break;
-        case VT_CMD_SET_SOLID_COLOR_BUF:
-            MESON_LOGD("[%s] [%s] received cmd VT_CMD_SET_SOLID_COLOR_BUF %d",
+        case VT_CMD_SET_SHOW_SOLID_COLOR:
+            MESON_LOGD("[%s] [%s] received cmd VT_CMD_SET_SHOW_SOLID_COLOR %d",
                     __func__, mName, cmdData.data);
             mContentListener->onNeedShowTempBuffer(cmdData.data);
             break;
