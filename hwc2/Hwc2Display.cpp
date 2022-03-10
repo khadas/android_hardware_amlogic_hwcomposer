@@ -595,10 +595,12 @@ hwc2_error_t Hwc2Display::setPowerMode(hwc2_power_mode_t mode) {
     switch(mode) {
         case HWC2_POWER_MODE_ON:
             MESON_LOG_EMPTY_FUN();
+            mDisplayConnection = true;
             return HWC2_ERROR_NONE;
         case HWC2_POWER_MODE_OFF:
             /* need blank display when power off */
             MESON_LOGD("%s OFF", __func__);
+            mDisplayConnection = false;
             blankDisplay();
             return HWC2_ERROR_NONE;
         case HWC2_POWER_MODE_DOZE:
