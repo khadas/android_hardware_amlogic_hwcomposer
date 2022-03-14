@@ -29,7 +29,7 @@ public:
     int32_t update();
 
     int32_t getMode(drm_mode_info_t & mode);
-    int32_t setMode(drm_mode_info_t & mode);
+    int32_t setMode(drm_mode_info_t & mode, bool seamless = false);
 
     int32_t waitVBlank(nsecs_t & timestamp);
 
@@ -58,7 +58,7 @@ public:
 
 protected:
     int32_t loadProperties();
-    int32_t setModeLocked(drm_mode_info_t & mode);
+    int32_t setModeLocked(drm_mode_info_t & mode, bool seamleass = false);
 
 protected:
 	int mDrmFd;
@@ -75,6 +75,7 @@ protected:
     std::shared_ptr<DrmProperty> mActive;
     std::shared_ptr<DrmProperty> mModeBlobId;
     std::shared_ptr<DrmProperty> mOutFencePtr;
+    std::shared_ptr<DrmProperty> mVrrEnabled;
 
     drmModeAtomicReqPtr mReq;
 

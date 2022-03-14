@@ -96,7 +96,7 @@ uint32_t HwDisplayCrtcFbdev::getPipe() {
     return mPipe;
 }
 
-int32_t HwDisplayCrtcFbdev::setMode(drm_mode_info_t & mode) {
+int32_t HwDisplayCrtcFbdev::setMode(drm_mode_info_t & mode, bool /*seamless*/) {
     /*DRM_DISPLAY_MODE_NULL is always allowed.*/
     MESON_LOGI("Crtc setMode: %s", mode.name);
     std::string dispmode(mode.name);

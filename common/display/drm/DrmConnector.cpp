@@ -52,6 +52,7 @@ int32_t DrmConnector::loadProperties(drmModeConnectorPtr p __unused) {
         {DRM_CONNECTOR_PROP_EDID, &mEdid},
         {DRM_CONNECTOR_PROP_UPDATE, &mUpdate},
         {DRM_CONNECTOR_PROP_MESON_TYPE, &mMesonConnectorType},
+        {DRM_CONNECTOR_PROP_VRRCAP, &mVrrCap},
  //       {DRM_HDMI_PROP_COLORSPACE, &mColorSpace},
 //        {DRM_HDMI_PROP_COLORDEPTH, &mColorDepth},
 //        {DRM_HDMI_PROP_HDRCAP, &mHdrCaps},
@@ -152,6 +153,67 @@ int32_t DrmConnector::loadDisplayModes(drmModeConnectorPtr p) {
     return 0;
 }
 
+bool DrmConnector::supportVrr() {
+    /* does the sink support vrr */
+    if (!mVrrCap || mVrrCap->getValue() == 0)
+        return false;
+
+    return true;
+}
+
+/*
+ * If the connector support seamless mode swith,
+ * Then the modes with the same resolution can switch seamless to each other
+ * and they have the same group Id.
+ */
+int32_t DrmConnector::groupDisplayModes() {
+    /* no need to regenerate groupId if without QMS/VRR support */
+    if (!(mSupportVrr = supportVrr()))
+        return 0;
+
+    /* clear the old goup modes */
+    mMesonGroupModes.clear();
+
+    for (auto & mode : mMesonModes) {
+        auto & itMode = mode.second;
+        bool needRegroup = true;
+        for (auto & groupModes : mMesonGroupModes) {
+            int groupId = groupModes.first;
+            auto& itGroupModes = groupModes.second;
+
+            // do not check interlace mode,
+            // interlace mode does not support vrr
+            if (strstr(itMode.name, "i") != NULL)
+                break;
+
+            // only support resulotion >= 720P
+            if (itMode.pixelW < 1280 || itMode.pixelH < 720)
+                break;
+
+            if (!itGroupModes.empty()) {
+                /* only need check the first item*/
+                drm_mode_info_t *gmodePtr = itGroupModes[0];
+                if (gmodePtr->pixelW == itMode.pixelW && gmodePtr->pixelH == itMode.pixelH) {
+                    itMode.groupId = groupId;
+                    itGroupModes.push_back(&itMode);
+                    needRegroup = false;
+                    break;
+                }
+            }
+        }
+
+        if (needRegroup) {
+            itMode.groupId = mMesonGroupModes.size();
+            auto iter = mMesonGroupModes.emplace(mMesonGroupModes.size(),
+                    std::vector<drm_mode_info_t *> ());
+            auto & modesWithSameGroup = iter.first->second;
+            modesWithSameGroup.push_back(&itMode);
+        }
+    }
+
+    return 0;
+}
+
 int32_t DrmConnector::loadConnectorInfo(drmModeConnectorPtr metadata) {
     std::lock_guard<std::mutex> lock(mMutex);
     /*update state*/
@@ -175,6 +237,7 @@ int32_t DrmConnector::loadConnectorInfo(drmModeConnectorPtr metadata) {
         }
 
         loadDisplayModes(metadata);
+        groupDisplayModes();
         parseHdmiHdrCapabilities(mHdrCapabilities);
     } else {
         MESON_LOGE("DrmConnector[%s] still DISCONNECTED.", getName());
@@ -329,27 +392,30 @@ int DrmConnector::DrmMode2Mode(drmModeModeInfo & drmmode, drm_mode_info_t & mode
 }
 
 void DrmConnector::dump(String8 & dumpstr) {
-    dumpstr.appendFormat("Connector (%s, %d, %d x %d, %s, %s) mId(%d) mCrtcId(%d) mFracMode(%d)\n",
+    dumpstr.appendFormat("Connector (%s, %d, %d x %d, %s, %s) mId(%d)"
+        " mCrtcId(%d) mFracMode(%d) vrrCap(%d)\n",
         getName(), getType(), mPhyWidth, mPhyHeight,
-        isSecure() ? "secure" : "unsecure", isConnected() ? "Connected" : "Removed",
-        mId, getCrtcId(), mFracMode);
+        isSecure() ? "secure" : "unsecure",
+        isConnected() ? "Connected" : "Removed",
+        mId, getCrtcId(), mFracMode, supportVrr());
 
     //dump display config.
     dumpstr.append("   CONFIG   |   VSYNC_PERIOD   |   WIDTH   |   HEIGHT   |"
-        "   DPI_X   |   DPI_Y   \n");
+        "   DPI_X   |   DPI_Y   | GroupId \n");
     dumpstr.append("------------+------------------+-----------+------------+"
         "-----------+-----------\n");
 
     for ( auto it = mMesonModes.begin(); it != mMesonModes.end(); ++it) {
         dumpstr.appendFormat(" %2d     |  %12s  |      %.3f      |   %5d   |   %5d    |"
-            "    %3d    |    %3d    \n",
+            "    %3d    |    %3d    |    %3d   \n",
                  it->first,
                  it->second.name,
                  it->second.refreshRate,
                  it->second.pixelW,
                  it->second.pixelH,
                  it->second.dpiX,
-                 it->second.dpiY);
+                 it->second.dpiY,
+                 it->second.groupId);
     }
 
 #if 0

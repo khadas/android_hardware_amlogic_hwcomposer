@@ -60,6 +60,7 @@ int32_t DrmCrtc::loadProperties() {
         {DRM_CRTC_PROP_ACTIVE, &mActive},
         {DRM_CRTC_PROP_MODEID, &mModeBlobId},
         {DRM_CRTC_PROP_OUTFENCEPTR, &mOutFencePtr},
+        {DRM_CRTC_PROP_VRR_ENABLED, &mVrrEnabled},
     };
     const int crtcPropsNum = sizeof(crtcProps)/sizeof(crtcProps[0]);
     int initedProps = 0;
@@ -147,13 +148,13 @@ int32_t DrmCrtc::getMode(drm_mode_info_t & mode) {
     return 0;
 }
 
-int32_t DrmCrtc::setMode(drm_mode_info_t & mode) {
+int32_t DrmCrtc::setMode(drm_mode_info_t & mode, bool seamless) {
     ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
-    return setModeLocked(mode);
+    return setModeLocked(mode, seamless);
 }
 
-int32_t DrmCrtc::setModeLocked(drm_mode_info_t & mode) {
+int32_t DrmCrtc::setModeLocked(drm_mode_info_t & mode, bool seamless) {
     ATRACE_CALL();
     int ret;
     std::shared_ptr<DrmProperty> crtcid;
@@ -184,13 +185,6 @@ int32_t DrmCrtc::setModeLocked(drm_mode_info_t & mode) {
         return -EINVAL;
     }
 
-    /* If in hotplug process, set mode to PendingModes */
-    if (getHotplugStatus() == HotplugStatus::InHotplugProcess) {
-        MESON_LOGD("connector (%s) setMode %s to pendingMode", connector->getName(), mode.name);
-        mPendingModes.push_back(mode);
-        return 0;
-    }
-
     drmModeAtomicReqPtr req = drmModeAtomicAlloc();
 
     /*TODO: update mModeBlobId        and compare id.*/
@@ -218,6 +212,15 @@ int32_t DrmCrtc::setModeLocked(drm_mode_info_t & mode) {
     mActive->apply(req);
     mModeBlobId->apply(req);
 
+    int enableVrr = 0;
+    if (seamless) {
+        /* check whether connector support vrr*/
+        if (connector->supportVrr())
+            enableVrr = 1;
+    }
+    mVrrEnabled->setValue(enableVrr);
+    mVrrEnabled->apply(req);
+
     ret = drmModeAtomicCommit(
         mDrmFd,
         req,
@@ -230,10 +233,13 @@ int32_t DrmCrtc::setModeLocked(drm_mode_info_t & mode) {
     drmModeAtomicFree(req);
 
     connector->DrmMode2Mode(mDrmMode, mMesonMode);
-    MESON_LOGD("setmode:crtc[%d], name [%s] -modeblob[%d] [%dx%d-%.2f]",
-        mId, mode.name, modeBlob,
-        mMesonMode.pixelW, mMesonMode.pixelH,
-        mMesonMode.refreshRate);
+    MESON_LOGD("setmode:crtc[%d], name [%s] -modeblob[%d]"
+            " [%dx%d-%.2f] seamless:%d enableVrr:%d",
+            mId, mode.name, modeBlob,
+            mMesonMode.pixelW, mMesonMode.pixelH,
+            mMesonMode.refreshRate,
+            seamless, enableVrr);
+
     return ret;
 }
 

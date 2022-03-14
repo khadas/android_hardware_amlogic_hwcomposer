@@ -333,7 +333,7 @@ int32_t RealModeMgr::setModeLocked(drm_mode_info_t & mode) {
 
     if (seamless) {
         // seamless mode switch, only vsync period change
-        mCrtc->setMode(mode);
+        mCrtc->setMode(mode, seamless);
     }  else {
         std::string bestDolbyVision;
         bool needRecoveryBestDV = false;

@@ -62,6 +62,7 @@ public:
     int getUpdateProp(std::shared_ptr<DrmProperty> & prop);
 
     int DrmMode2Mode(drmModeModeInfo & drmmode, drm_mode_info_t & mode);
+    bool supportVrr();
 
     std::mutex mMutex;
 
@@ -71,6 +72,7 @@ protected:
     int32_t loadProperties(drmModeConnectorPtr p);
 
     int32_t parseHdrCapabilities();
+    int32_t groupDisplayModes();
 
 protected:
     int mDrmFd;
@@ -83,6 +85,8 @@ protected:
     /*mode_id, modeinfo. mode_id is created by userspace, not from kernel.*/
     std::map<uint32_t, drmModeModeInfo> mDrmModes;
     std::map<uint32_t, drm_mode_info_t> mMesonModes;
+    /* for seamless group id */
+    std::map<uint32_t, std::vector<drm_mode_info_t *>> mMesonGroupModes;
     std::vector<float> mFracRefreshRates;
 
     /*HxW in millimeters*/
@@ -98,9 +102,14 @@ protected:
     std::shared_ptr<DrmProperty> mUpdate;
     /*for lcd now*/
     std::shared_ptr<DrmProperty> mMesonConnectorType;
+    /* for vrr */
+    std::shared_ptr<DrmProperty> mVrrCap;
 
     /*TODO:shuld convert to prop.*/
     drm_hdr_capabilities mHdrCapabilities;
+
+    /* support VRR or not */
+    bool mSupportVrr = false;
 };
 
 #endif/*DRM_CONNECTOR_H*/

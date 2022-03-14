@@ -36,7 +36,7 @@ public:
     /*get current display mode.*/
     int32_t getMode(drm_mode_info_t & mode);
     /*set current display mode.*/
-    int32_t setMode(drm_mode_info_t & mode);
+    int32_t setMode(drm_mode_info_t & mode, bool seamless = false);
 
     int32_t waitVBlank(nsecs_t & timestamp);
 
