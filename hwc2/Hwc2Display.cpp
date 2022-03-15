@@ -459,21 +459,10 @@ void Hwc2Display::onModeChanged(int stage) {
                     mPowerMode->setConnectorStatus(true);
                     mSkipComposition = false;
                     mOutsideChanged = true;
+                    bSendPlugIn = true;
                     if (mSignalHpd) {
-                        bSendPlugIn = true;
                         mSignalHpd = false;
                         bNotifySC = true;
-                    } else {
-                        /*Workaround: needed for NTS test.*/
-                        if (HwcConfig::primaryHotplugEnabled()
-                            && (mModeMgr->getPolicyType() == FIXED_SIZE_POLICY ||
-                                mModeMgr->getPolicyType() == REAL_MODE_POLICY)) {
-                            bSendPlugIn = true;
-                        } else if (mModeMgr->getPolicyType() == ACTIVE_MODE_POLICY) {
-                            bSendPlugIn = true;
-                        } else if (mModeMgr->getPolicyType() == REAL_MODE_POLICY) {
-                            bSendPlugIn = true;
-                        }
                     }
 
                     uint32_t fbW,fbH;
@@ -1353,10 +1342,13 @@ hwc2_error_t Hwc2Display::setActiveConfig(
                 return HWC2_ERROR_NONE;
         }
 
+        mSeamlessSwitch = mModeMgr->isSeamlessSwitch(config);
         int ret = mModeMgr->setActiveConfig(config);
         /* wait when the display start refresh at the new config */
-        std::unique_lock<std::mutex> stateLock(mStateLock);
-        mStateCondition.wait_for(stateLock, std::chrono::seconds(3));
+        if (!mSeamlessSwitch) {
+            std::unique_lock<std::mutex> stateLock(mStateLock);
+            mStateCondition.wait_for(stateLock, std::chrono::seconds(3));
+        }
 
         return (hwc2_error_t) ret;
     } else {
@@ -1418,7 +1410,6 @@ hwc2_error_t Hwc2Display::setActiveConfigWithConstraints(hwc2_config_t config,
     MESON_LOGV("%s config:%d", __func__, config);
     bool validConfig = false;
     uint32_t arraySize = 0;
-    hwc2_error_t ret = HWC2_ERROR_NONE;
 
     if (mModeMgr->getDisplayConfigs(&arraySize, nullptr) != HWC2_ERROR_NONE)
         return HWC2_ERROR_BAD_CONFIG;
@@ -1437,20 +1428,26 @@ hwc2_error_t Hwc2Display::setActiveConfigWithConstraints(hwc2_config_t config,
     if (!validConfig)
         return HWC2_ERROR_BAD_CONFIG;
 
-    if (vsyncPeriodChangeConstraints->seamlessRequired)
+    mSeamlessSwitch = mModeMgr->isSeamlessSwitch(config);
+    if (vsyncPeriodChangeConstraints->seamlessRequired && !mSeamlessSwitch) {
         return HWC2_ERROR_SEAMLESS_NOT_ALLOWED;
+    }
 
     int64_t desiredTimeNanos = vsyncPeriodChangeConstraints->desiredTimeNanos;
 
-    /* todo remove it when support vrr */
     outTimeline->refreshRequired = false;
     hwc2_config_t activeConfig;
     if (mModeMgr->getActiveConfig(&activeConfig) != HWC2_ERROR_NONE)
         return HWC2_ERROR_BAD_CONFIG;
 
-
     if (activeConfig != config) {
-        ret = setActiveConfig(config);
+        int ret = mModeMgr->setActiveConfig(config);
+
+        /* wait when the display start refresh at the new config */
+        if (!mSeamlessSwitch) {
+            std::unique_lock<std::mutex> stateLock(mStateLock);
+            mStateCondition.wait_for(stateLock, std::chrono::seconds(3));
+        }
 
         int32_t configPeriod;
         if (mModeMgr->getDisplayAttribute(config, HWC2_ATTRIBUTE_VSYNC_PERIOD, &configPeriod)
@@ -1483,7 +1480,7 @@ hwc2_error_t Hwc2Display::setActiveConfigWithConstraints(hwc2_config_t config,
         vsyncTimeline.refreshTimeNanos = vsyncTimestamp + vsyncPeriod;
         onVsyncPeriodTimingChanged(&vsyncTimeline);
 
-        return ret;
+        return (hwc2_error_t) ret;
     }
 
     return HWC2_ERROR_NONE;

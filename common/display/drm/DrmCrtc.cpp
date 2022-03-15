@@ -213,11 +213,12 @@ int32_t DrmCrtc::setModeLocked(drm_mode_info_t & mode, bool seamless) {
     mModeBlobId->apply(req);
 
     int enableVrr = 0;
-    if (seamless) {
-        /* check whether connector support vrr*/
-        if (connector->supportVrr())
-            enableVrr = 1;
-    }
+    // Currently always enable vrr, let drm has chance to
+    // select BRR mode if connector support it.
+    // TODO: support disable it when have UI switch
+    if (connector->supportVrr())
+        enableVrr = 1;
+
     mVrrEnabled->setValue(enableVrr);
     mVrrEnabled->apply(req);
 

@@ -298,6 +298,11 @@ int32_t RealModeMgr::setActiveConfig(uint32_t config) {
 bool RealModeMgr::isSeamlessSwitch(uint32_t config) {
     std::map<uint32_t, drm_mode_info_t>::iterator it = mModes.find(config);
 
+    // same as the current active config
+    if (config == mActiveConfigId) {
+        return false;
+    }
+
     if (it != mModes.end()) {
         drm_mode_info_t cfg = it->second;
         if (cfg.groupId == mLatestRealMode.groupId)
@@ -325,9 +330,10 @@ bool RealModeMgr::isSupportModeForCurrentDevice(drm_mode_info_t mode) {
 int32_t RealModeMgr::setModeLocked(drm_mode_info_t & mode) {
     bool seamless = (mode.groupId == mLatestRealMode.groupId);
 
-    mCallOnHotPlug = false;
     mLatestRealMode = mode;
 
+    MESON_LOGD("RealModeMgr::setActiveConfig setMode: %s, seamless:%d",
+            mode.name, seamless);
     updateActiveConfig(mode);
     mConnector->setMode(mode);
 
@@ -335,6 +341,7 @@ int32_t RealModeMgr::setModeLocked(drm_mode_info_t & mode) {
         // seamless mode switch, only vsync period change
         mCrtc->setMode(mode, seamless);
     }  else {
+        mCallOnHotPlug = false;
         std::string bestDolbyVision;
         bool needRecoveryBestDV = false;
         if (mDvEnabled) {
@@ -349,7 +356,6 @@ int32_t RealModeMgr::setModeLocked(drm_mode_info_t & mode) {
 
         // set the display mode through systemControl
         // As it will need update the colorspace/colordepth too.
-        MESON_LOGD("RealModeMgr::setActiveConfig setMode: %s", mode.name);
         std::string dispmode(mode.name);
         sc_set_display_mode(dispmode);
 

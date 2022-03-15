@@ -276,6 +276,9 @@ protected:
 
     uint32_t mDisplayId;
 
+    /* for seamless switch */
+    bool mSeamlessSwitch = false;
+
 #if PLATFORM_SDK_VERSION == 30
     // for self-adaptive
     int mVideoLayerRegion;
