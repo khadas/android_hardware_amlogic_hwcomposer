@@ -347,6 +347,7 @@ int32_t VdinPostProcessor::process() {
             }
             mReqFbProcessor.pop();
         } else if ( cmd & PRESENT_CAPSCREEN) {
+            mCapStatus = 1;
             mSCapProcessor->setup() ;
             mProcessMode = PROCESS_ONCE;
             capCnt = VDIN_CAP_CNT;
@@ -448,7 +449,7 @@ int32_t VdinPostProcessor::process() {
 
             infb = mVdinFbs[vdinIdx];
 
-            if (mSCapProcessor != NULL) {
+            if (mSCapProcessor != NULL && (mCapStatus == 1)) {
                 mCapStatus = mSCapProcessor->process(infb,scapfb);
                 mSCapProcessor->teardown();
                 mSCapProcessor.reset();
