@@ -160,6 +160,7 @@ public:
     bool setViewPort(const drm_rect_wh_t viewPort);
     void getViewPort(drm_rect_wh_t& viewPort);
     bool setFrameRateHint(std::string value);
+    std::shared_ptr<HwcDisplayPipe> mDisplayPipe;
 
 protected:
     int32_t initialize();
@@ -170,8 +171,6 @@ protected:
 
 protected:
     std::map<hwc2_display_t, std::shared_ptr<Hwc2Display>> mDisplays;
-
-    std::shared_ptr<HwcDisplayPipe> mDisplayPipe;
 
     HWC2_PFN_HOTPLUG mHotplugFn;
     hwc2_callback_data_t mHotplugData;

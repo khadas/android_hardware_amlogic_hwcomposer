@@ -71,7 +71,7 @@ int32_t DualDisplayPipe::init(
                 break;
             case DRM_MODE_CONNECTOR_HDMIA:
                 {
-                    if (mHdmi_connected == true) {
+                    //if (mHdmi_connected == true) {
                         /*get hdmi prefect display mode firstly for init default config*/
                         /*std::string prefdisplayMode;
                         if (sc_get_pref_display_mode(prefdisplayMode) == false) {
@@ -86,9 +86,9 @@ int32_t DualDisplayPipe::init(
                                 strcpy(displayMode.name, prefdisplayMode.c_str());
                             }
                         }*/
-                        strcpy(displayMode.name, DRM_DISPLAY_MODE_DEFAULT);
-                        stat.second->modeCrtc->setMode(displayMode);
-                    }
+                        //strcpy(displayMode.name, DRM_DISPLAY_MODE_DEFAULT);
+                        //stat.second->modeCrtc->setMode(displayMode);
+                    //}
                 }
                 break;
             case DRM_MODE_CONNECTOR_LVDS:
@@ -106,6 +106,39 @@ int32_t DualDisplayPipe::init(
         MESON_LOGI("init set mode (%s)",displayMode.name);
     }
     return 0;
+}
+
+void DualDisplayPipe::lateInit() {
+    drm_mode_info_t displayMode = {
+       DRM_DISPLAY_MODE_NULL,
+       0, 0,
+       0, 0,
+       60.0,
+       0
+    };
+    if (mHdmi_connected == true) {
+    /*update display mode*/
+        for (auto statIt : mPipeStats) {
+            MESON_LOGD("Update init display mode for HDMI");
+            if (statIt.second->modeConnector->getType() == DRM_MODE_CONNECTOR_HDMIA) {
+                std::string displayattr(DRM_DISPLAY_ATTR_DEFAULT);
+                std::string prefdisplayMode;
+                /*get hdmi prefect display mode*/
+                if (sc_get_pref_display_mode(prefdisplayMode) == false) {
+                    strcpy(displayMode.name, DRM_DISPLAY_MODE_DEFAULT);
+                    MESON_LOGD("init sc_get_pref_display_mode fail! use default mode");
+                } else {
+                    if (strcmp("null", prefdisplayMode.c_str()) == 0 ) {
+                        strcpy(displayMode.name, DRM_DISPLAY_MODE_DEFAULT);
+                    } else {
+                        strcpy(displayMode.name, prefdisplayMode.c_str());
+                    }
+                }
+                MESON_LOGD("HDMI INIT SET display mode %s.", displayMode.name);
+                statIt.second->modeCrtc->setMode(displayMode);
+            }
+        }
+    }
 }
 
 int32_t DualDisplayPipe::getPipeCfg(uint32_t hwcid, PipeCfg & cfg) {

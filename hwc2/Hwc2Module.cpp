@@ -609,6 +609,8 @@ static int hwc2_device_open(
     server = new meson::DisplayServer(adapter);
     UNUSED(server);
 
+    hwc->impl->mDisplayPipe->lateInit();
+
     sc_set_property(HWC_BOOTED_PROP, "true");
     return 0;
 }

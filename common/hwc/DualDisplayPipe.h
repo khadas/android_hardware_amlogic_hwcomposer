@@ -20,6 +20,7 @@ public:
     drm_connector_type_t mPrimaryConnectorType;
     drm_connector_type_t mExtendConnectorType;
     int32_t init(std::map<uint32_t, std::shared_ptr<HwcDisplay>> & hwcDisps);
+    void lateInit();
     int32_t getPipeCfg(uint32_t hwcid, PipeCfg & cfg);
     void handleEvent(drm_display_event event, int val);
 };
