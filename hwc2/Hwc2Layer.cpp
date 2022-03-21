@@ -516,7 +516,7 @@ int32_t Hwc2Layer::releaseVtBuffer() {
 
     if (mVtRefreshed && !mVtUpdate) {
         mVtRefreshed = false;
-        MESON_LOGV("[%s] [%llu] mVtRefreshed", __func__, mId);
+        MESON_LOGV("[%s] [%" PRIu64 "] mVtRefreshed", __func__, mId);
         /* set release fence */
         setVtPrevReleaseFence();
         return 0;
