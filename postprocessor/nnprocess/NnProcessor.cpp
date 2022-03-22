@@ -40,6 +40,8 @@
 #define UVM_IOC_SET_INFO _IOWR(UVM_IOC_MAGIC, 7, \
                 struct uvm_hook_data)
 
+#define REALLOC_COUNT 2
+
 int NnProcessor::mInstanceID = 0;
 int64_t NnProcessor::mTotalDupCount = 0;
 int64_t NnProcessor::mTotalCloseCount = 0;
@@ -57,11 +59,12 @@ NnProcessor::NnProcessor() {
 
     int i = 0;
     int interlaceCheckProp = 0;
-    mBuf_Alloced = false;
     mExitThread = true;
+    mAllocProcessDone = false;
     pthread_mutex_init(&m_waitMutex, NULL);
     pthread_cond_init(&m_waitCond, NULL);
     mIonFd = -1;
+    mCustomType = -1;
     while (i < SR_OUT_BUF_COUNT) {
         mSrBuf[i].index = i;
         mSrBuf[i].fd_ptr = NULL;
@@ -70,6 +73,7 @@ NnProcessor::NnProcessor() {
         mSrBuf[i].fence_fd = -1;
         mSrBuf[i].fence_fd_last = -1;
         mSrBuf[i].phy = 0;
+        mSrBuf[i].shared_fd = -1;
         i++;
     }
     mInited = false;
@@ -113,6 +117,7 @@ NnProcessor::NnProcessor() {
     mInstanceID++;
     mDupCount = 0;
     mCloseCount = 0;
+    mAllocThread = 0;
 }
 
 NnProcessor::~NnProcessor() {
@@ -194,6 +199,12 @@ int32_t NnProcessor::setup() {
     mNeed_fence = false;
     mFence_receive_count = 0;
     mFence_wait_count = 0;
+
+    int i = 0;
+    int realloc_count = PropGetInt("vendor.hwc.aisr.realloc_count", REALLOC_COUNT);
+    for (i = 0; i < realloc_count; i++) {
+        allocDmaBuffer(i);
+    }
 
     return 0;
 }
@@ -355,13 +366,17 @@ int32_t NnProcessor::asyncProcess(
         goto error;
     }
 
-    if (!mBuf_Alloced) {
-        ret = allocDmaBuffer();
-        if (ret) {
-            ALOGE("%s: alloc buffer fail", __FUNCTION__);
-            goto error;
-        }
-        mBuf_Alloced = true;
+
+    if (!mAllocProcessDone) {
+            mAllocProcessDone = true;
+            int ret = pthread_create(&mAllocThread,
+                                     NULL,
+                                     NnProcessor::allocthread,
+                                     (void *)this);
+            if (ret != 0) {
+                ALOGE("failed to start NnProcessor allocthread: %s",
+                      strerror(ret));
+            }
     }
 
     dup_fd = dup(input_fd);
@@ -465,8 +480,11 @@ int32_t NnProcessor::teardown() {
 
     ALOGD("%s.\n", __FUNCTION__);
 
-    if (mInited)
+    if (mInited) {
         pthread_join(mThread, NULL);
+        if (mAllocThread != 0)
+            pthread_join(mAllocThread, NULL);
+    }
 
     while (mBuf_index_q.size() > 0)
     {
@@ -518,7 +536,6 @@ int32_t NnProcessor::teardown() {
         }
     }
 
-    mBuf_Alloced = false;
     mInited = false;
     return 0;
 }
@@ -547,6 +564,11 @@ void NnProcessor::threadProcess() {
     {
         std::lock_guard<std::mutex> lock(mMutex);
         buf_index = mBuf_index_q.front();
+    }
+
+    if (mSrBuf[buf_index].fd == -1) {
+        nn_bypass = true;
+        ALOGE("ion buf is null, need bypass");
     }
 
     sr_buf = &mSrBuf[buf_index];
@@ -603,6 +625,39 @@ void * NnProcessor::threadMain(void * data) {
 
     ALOGD("%s exit.\n", __FUNCTION__);
     pthread_exit(0);
+    return NULL;
+}
+
+void NnProcessor::allocthreadProcess() {
+    int i;
+    int ret;
+
+    for (i = 0; i < SR_OUT_BUF_COUNT; i++) {
+        if (mSrBuf[i].fd == -1) {
+            ret = allocDmaBuffer(i);
+            if (ret) {
+                ALOGE("%s: alloc buffer fail, i=%d", __FUNCTION__, i);
+            }
+        }
+    }
+}
+
+void * NnProcessor::allocthread(void * data) {
+    NnProcessor * pThis = (NnProcessor *) data;
+    struct sched_param param = {0};
+
+    param.sched_priority = 2;
+    if (sched_setscheduler(0, SCHED_FIFO, &param) != 0) {
+        ALOGE("%s: Couldn't set SCHED_FIFO: %d.\n", __FUNCTION__, errno);
+    }
+
+    MESON_ASSERT(data, "NnProcessor data should not be NULL.\n");
+
+    pThis->allocthreadProcess();
+
+    ALOGD("%s exit.\n", __FUNCTION__);
+    pthread_exit(0);
+    pThis->mAllocThread = 0;
     return NULL;
 }
 
@@ -665,6 +720,16 @@ int32_t NnProcessor::ai_sr_process(
     ai_sr_info->shared_fd = input_fd;
 
     ai_sr_info->nn_out_fd = sr_buf->fd;
+
+    if (nn_bypass) {
+        ai_sr_info->nn_status = NN_INVALID;
+        ret = ioctl(mUvmHander, UVM_IOC_SET_INFO, &hook_data);
+        if (ret < 0) {
+            ALOGE("UVM_IOC_SET_HF_OUTPUT fail =%d.\n", ret);
+        }
+        return 0;
+    }
+
     ai_sr_info->nn_status = NN_WAIT_DOING;
     ai_sr_info->nn_index = mNn_Index++;
     ai_sr_info->nn_out_width = mVInfo_width;
@@ -867,64 +932,62 @@ void NnProcessor::triggerEvent(void) {
 
 #define ION_FLAG_EXTEND_MESON_HEAP (1 << 30)
 
-int NnProcessor::allocDmaBuffer() {
-    unsigned int ion_flags = ION_FLAG_CACHED | ION_FLAG_CACHED_NEEDS_SYNC;
-    int buffer_size = 3840 * 2160;
-    int i = 0;
-    int ret = 0;
-    int shared_fd = -1;
+int NnProcessor::allocDmaBuffer(int i) {
+        unsigned int ion_flags = ION_FLAG_CACHED | ION_FLAG_CACHED_NEEDS_SYNC;
+        int buffer_size = 3840 * 2160;
+        int ret = 0;
+        int shared_fd = -1;
+        ion_user_handle_t ion_hnd;
 
-    mIonFd = ion_open();
-    if (mIonFd < 0) {
-        ALOGE("ion open failed!\n");
-        return -1;
-    }
-
-    ion_user_handle_t ion_hnd;
-    int cnt;
-    bool query_custom_type = false;
-    uint32_t custom_type = ION_HEAP_TYPE_CUSTOM;
-    int err = ion_query_heap_cnt(mIonFd, &cnt);
-    if (err < 0) {
-        ALOGD("ion get heap cnt fail\n");
-    }
-    std::vector<ion_heap_data> heaps;
-    heaps.resize(cnt);
-    err = ion_query_get_heaps(mIonFd, cnt, &heaps[0]);
-    if (err < 0) {
-        ALOGE("ion get heap fail\n");
-    }
-    for (int i = 0; i < cnt; i ++) {
-        ALOGD("heap name:%s id:%d", heaps[i].name, heaps[i].heap_id);
-        if (strstr(heaps[i].name, "codec_mm_cma") != NULL) {
-            query_custom_type = true;
-            custom_type = heaps[i].heap_id;
-            break;
+        if (mIonFd == -1) {
+            mIonFd = ion_open();
+            if (mIonFd < 0) {
+                ALOGE("ion open failed!\n");
+                return -1;
+            }
         }
-    }
+        if (mCustomType == -1) {
+            int cnt;
+            int err = ion_query_heap_cnt(mIonFd, &cnt);
+            if (err < 0) {
+                ALOGD("ion get heap cnt fail\n");
+            }
+            std::vector<ion_heap_data> heaps;
+            heaps.resize(cnt);
+            err = ion_query_get_heaps(mIonFd, cnt, &heaps[0]);
+            if (err < 0) {
+                ALOGE("ion get heap fail\n");
+            }
+            for (int i = 0; i < cnt; i ++) {
+                ALOGD("heap name:%s id:%d", heaps[i].name, heaps[i].heap_id);
+                if (strstr(heaps[i].name, "codec_mm_cma") != NULL) {
+                    mCustomType = heaps[i].heap_id;
+                    break;
+                }
+            }
+        }
 
-    if (!query_custom_type) {
-        ALOGE("query_custom_type fail\n");
-        return -1;
-    }
+        if (mCustomType == -1) {
+            ALOGE("query_custom_type fail\n");
+            return -1;
+        }
 
-    while (i < SR_OUT_BUF_COUNT) {
-        ALOGD("ion_alloc_fd:0<<i=%d, mIonFd=%d, buffer_size=%d, custom_type=%d, ion_flags=%d, is_legacy=%d",
+        ALOGD("ion_alloc_fd:0<<i=%d, mIonFd=%d, buffer_size=%d, mCustomType=%d, ion_flags=%d, is_legacy=%d",
             i,
             mIonFd,
             buffer_size,
-            custom_type,
+            mCustomType,
             ion_flags,
             ion_is_legacy(mIonFd));
         if (ion_is_legacy(mIonFd)) {
             ret = ion_alloc(mIonFd, buffer_size,
                                0,
-                               1 << custom_type,
+                               1 << mCustomType,
                                ion_flags,
                                &ion_hnd);
             if (ret) {
                 ALOGE("ion alloc error, ret=%x\n", ret);
-                freeDmaBuffers();
+                freeDmaBuffer(i);
                 return -1;
             } else {
                 mSrBuf[i].ion_hnd = ion_hnd;
@@ -932,23 +995,18 @@ int NnProcessor::allocDmaBuffer() {
             ret = ion_share(mIonFd, ion_hnd, &shared_fd);
             if (ret) {
                 ALOGE("ion share error!\n");
-                freeDmaBuffers();
+                freeDmaBuffer(i);
                 return -1;
-            } else {
-                mSrBuf[i].fd = shared_fd;
             }
         } else {
             ret = ion_alloc_fd(mIonFd, buffer_size,
                                0,
-                               1 << custom_type,
+                               1 << mCustomType,
                                ION_FLAG_EXTEND_MESON_HEAP,
                                &shared_fd);
             if (ret) {
                 ALOGE("ion alloc error, ret=%x\n", ret);
-                freeDmaBuffers();
                 return -1;
-            } else {
-                mSrBuf[i].fd = shared_fd;
             }
         }
 
@@ -959,53 +1017,54 @@ int NnProcessor::allocDmaBuffer() {
                              0);
         if (MAP_FAILED == cpu_ptr) {
             ALOGE("ion mmap error!\n");
-            freeDmaBuffers();
+            freeDmaBuffer(i);
             return -1;
         } else {
             mSrBuf[i].fd_ptr = cpu_ptr;
         }
         mSrBuf[i].size = buffer_size;
-        mSrBuf[i].outFb = NULL;
-        mSrBuf[i].fence_fd = -1;
-        mSrBuf[i].fence_fd_last = -1;
-        mSrBuf[i].shared_fd = -1;
         mSrBuf[i].status = BUF_INVALID;
-        ALOGD("%s: shared_fd=%d, mIonFd=%d, fd_ptr=%p, fd=%d,cpu_ptr=%p\n",
+        mSrBuf[i].fd = shared_fd;
+        ALOGD("%s: out_fd=%d, mIonFd=%d, fd_ptr=%p, in_fd=%d\n",
             __FUNCTION__,
-            shared_fd,
+            mSrBuf[i].fd,
             mIonFd,
             cpu_ptr,
-            shared_fd,
-            cpu_ptr);
-        i++;
-    }
+            mSrBuf[i].shared_fd);
+
     return ret;
 };
 
-int NnProcessor::freeDmaBuffers() {
+void NnProcessor::freeDmaBuffer(int i) {
     int buffer_size = 3840 * 2160;
+
+    ALOGD("%s: i=%d, ion_hnd=%d, fd=%d, mIonFd=%d\n",
+        __FUNCTION__,
+        i,
+        mSrBuf[i].ion_hnd,
+        mSrBuf[i].fd,
+        mIonFd);
+    if (mSrBuf[i].fd_ptr) {
+        munmap(mSrBuf[i].fd_ptr, buffer_size);
+        mSrBuf[i].fd_ptr = NULL;
+    }
+    if (mSrBuf[i].fd != -1) {
+        close(mSrBuf[i].fd);
+        mSrBuf[i].fd = -1;
+    }
+    if (mSrBuf[i].ion_hnd != -1) {
+        ion_free(mIonFd, mSrBuf[i].ion_hnd);
+        mSrBuf[i].ion_hnd = NULL;
+    }
+}
+
+int NnProcessor::freeDmaBuffers() {
     int i = 0;
 
-        while (i < SR_OUT_BUF_COUNT) {
-            ALOGD("%s: ion_hnd=%d, fd=%d, mIonFd=%d\n",
-                __FUNCTION__,
-                mSrBuf[i].ion_hnd,
-                mSrBuf[i].fd,
-                mIonFd);
-            if (mSrBuf[i].fd_ptr) {
-                munmap(mSrBuf[i].fd_ptr, buffer_size);
-                mSrBuf[i].fd_ptr = NULL;
-            }
-            if (mSrBuf[i].fd != -1) {
-                close(mSrBuf[i].fd);
-                mSrBuf[i].fd = -1;
-            }
-            if (mSrBuf[i].ion_hnd != -1) {
-                ion_free(mIonFd, mSrBuf[i].ion_hnd);
-                mSrBuf[i].ion_hnd = NULL;
-            }
-            i++;
-        }
+    while (i < SR_OUT_BUF_COUNT) {
+        freeDmaBuffer(i);
+        i++;
+    }
 
     int ret = 0;
     if (mIonFd != -1) {

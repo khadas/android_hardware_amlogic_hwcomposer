@@ -121,10 +121,12 @@ public:
         std::shared_ptr<DrmFramebuffer> & outfb,
         int releaseFence);
     int32_t teardown();
-    int allocDmaBuffer();
+    int allocDmaBuffer(int i);
+    void freeDmaBuffer(int i);
     int freeDmaBuffers();
     void triggerEvent();
     void threadProcess();
+    void allocthreadProcess();
     int32_t waitEvent(int microseconds);
     static void *mNn_qcontext[NN_MODE_COUNT];
     static bool mModelLoaded;
@@ -134,6 +136,9 @@ public:
     int LoadNNModel();
     pthread_t mThread;
     bool mExitThread;
+    static void * allocthread(void * data);
+    pthread_t mAllocThread;
+    bool mAllocProcessDone;
     bool mInited;
     int32_t ai_sr_process(
     int input_fd,
@@ -157,7 +162,6 @@ public:
     static struct time_info_t mTime[NN_MODE_COUNT];
     static int mInstanceID;
     static int log_level;
-    bool mBuf_Alloced;
     bool mNeed_fence;
     int mNn_interlace_flag;
     bool mNeed_check_interlace;
@@ -170,6 +174,7 @@ public:
     static int64_t mTotalCloseCount;
     int mVInfo_width;
     int mVInfo_height;
+    int32_t mCustomType;
 };
 
 #endif
