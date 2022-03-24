@@ -230,8 +230,10 @@ int32_t DrmCrtc::setModeLocked(drm_mode_info_t & mode) {
     drmModeAtomicFree(req);
 
     connector->DrmMode2Mode(mDrmMode, mMesonMode);
-    MESON_LOGD("setmode:crtc[%d], name [%s] -modeblob[%d]",
-        mId, mode.name, modeBlob);
+    MESON_LOGD("setmode:crtc[%d], name [%s] -modeblob[%d] [%dx%d-%.2f]",
+        mId, mode.name, modeBlob,
+        mMesonMode.pixelW, mMesonMode.pixelH,
+        mMesonMode.refreshRate);
     return ret;
 }
 

@@ -163,11 +163,14 @@ int32_t RealModeMgr::update() {
         //todo: replace the displayid for dualDisplay
         sc_update_density(HWC_DISPLAY_PRIMARY, realMode.pixelW, realMode.pixelH);
     } else {
-        MESON_LOGD("RealModeMgr::update use previous mode (%dx%d)",
-                mLatestRealMode.pixelW, mLatestRealMode.pixelH);
         strncpy(mLatestRealMode.name, "FAKE_PREVIOUS_MODE", DRM_DISPLAY_MODE_LEN);
         mModes.emplace(mModes.size(), mLatestRealMode);
     }
+
+    MESON_LOGD("RealModeMgr::update use %s mode (%dx%d-%.2f)",
+                useFakeMode ? "previous" : "current",
+                mLatestRealMode.pixelW, mLatestRealMode.pixelH,
+                mLatestRealMode.refreshRate);
 
     updateActiveConfig(mLatestRealMode);
 
@@ -252,7 +255,7 @@ int32_t RealModeMgr::setActiveConfig(uint32_t config) {
     std::map<uint32_t, drm_mode_info_t>::iterator it =
         mModes.find(config);
 
-    MESON_LOGV("[%s] %d", __func__, config);
+    MESON_LOGD("[%s] %d", __func__, config);
     if (it != mModes.end()) {
         drm_mode_info_t cfg = it->second;
 
@@ -281,7 +284,8 @@ int32_t RealModeMgr::setActiveConfig(uint32_t config) {
 
         // set the display mode through systemControl
         // As it will need update the colorspace/colordepth too.
-        MESON_LOGD("RealModeMgr::setActiveConfig setMode: %s", cfg.name);
+        MESON_LOGD("RealModeMgr::setActiveConfig setMode: %s [%dx%d-%.2f]",
+                cfg.name, cfg.pixelW, cfg.pixelH, cfg.refreshRate);
         std::string dispmode(cfg.name);
         sc_set_display_mode(dispmode);
 
