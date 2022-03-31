@@ -105,7 +105,7 @@ int32_t RealModeMgr::updateActiveConfig(drm_mode_info_t activeMode) {
         }
     }
 
-    mActiveConfigId = mModes.size()-1;
+    mActiveConfigId = mModes.size() - 1;
     MESON_LOGD("%s failed to find [%s], default set activeConfigId to [%d]",
             __func__, activeMode.name, mActiveConfigId);
 
@@ -127,6 +127,23 @@ int32_t RealModeMgr::update() {
     drm_mode_info_t realMode;
     std::map<uint32_t, drm_mode_info_t> connecterModeList;
 
+    int largestUsedModeId = -1;
+    int smallestUsedModeId = mModes.size() ? mModes.begin()->first : 0;
+
+    for (auto it = mModes.begin(); it != mModes.end(); ++it) {
+        int configId = static_cast<int>(it->first);
+        if (configId > largestUsedModeId)
+            largestUsedModeId = configId;
+
+        if (configId < smallestUsedModeId)
+            smallestUsedModeId = configId;
+    }
+
+    // if mode changed by setActiveConfig then mode Id not changed
+    // otherwise change config Id sequentail
+    int nextModeId = mCallOnHotPlug ? (largestUsedModeId + 1) : smallestUsedModeId;
+    MESON_LOGD("RealModeMgr::update: nextModeId:%d", nextModeId);
+
     /* reset ModeList */
     reset();
     if (mConnector->isConnected()) {
@@ -143,10 +160,10 @@ int32_t RealModeMgr::update() {
                     // Do not report dummy_l to frameworks, report the previous active mode instead
                     // not filter the current mode except dummy_l
                     if (!strcmp(realMode.name, it->second.name) && strcmp(realMode.name, "dummy_l")) {
-                        mModes.emplace(mModes.size(), it->second);
+                        mModes.emplace(nextModeId++, it->second);
                         useFakeMode = false;
                     } else if (isSupportModeForCurrentDevice(it->second)) {
-                        mModes.emplace(mModes.size(), it->second);
+                        mModes.emplace(nextModeId++, it->second);
                     }
                 }
 
@@ -164,7 +181,7 @@ int32_t RealModeMgr::update() {
         sc_update_density(HWC_DISPLAY_PRIMARY, realMode.pixelW, realMode.pixelH);
     } else {
         strncpy(mLatestRealMode.name, "FAKE_PREVIOUS_MODE", DRM_DISPLAY_MODE_LEN);
-        mModes.emplace(mModes.size(), mLatestRealMode);
+        mModes.emplace(nextModeId++, mLatestRealMode);
     }
 
     MESON_LOGD("RealModeMgr::update use %s mode (%dx%d-%.2f)",
@@ -246,6 +263,8 @@ int32_t  RealModeMgr::getDisplayAttribute(
 int32_t RealModeMgr::getActiveConfig(uint32_t * outConfig, int32_t caller __unused) {
     std::lock_guard<std::mutex> lock(mMutex);
     *outConfig = mActiveConfigId;
+
+    MESON_LOGV("RealModeMgr:getActiveConfig:%d", *outConfig);
 
     return HWC2_ERROR_NONE;
 }
