@@ -135,7 +135,8 @@ void DualDisplayPipe::lateInit() {
                     }
                 }
                 MESON_LOGD("HDMI INIT SET display mode %s.", displayMode.name);
-                statIt.second->modeCrtc->setMode(displayMode);
+                std::string dispmode(displayMode.name);
+                sc_set_display_mode(dispmode);
             }
         }
     }
