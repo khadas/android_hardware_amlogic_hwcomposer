@@ -544,6 +544,8 @@ int32_t Hwc2Layer::releaseVtBuffer() {
         return -EINVAL;
     }
 
+    dettachUvmBuffer();
+
     if (!mVtUpdate) {
         MESON_LOGV("[%s] [%d] [%" PRIu64 "] vt buffer not update", __func__, mDisplayId, mId);
         return -EAGAIN;
@@ -873,10 +875,8 @@ int32_t Hwc2Layer::onVtFrameAvailable(
         mMutex.unlock();
         return -EAGAIN;
     }
-
-    dettachUvmBuffer();
-
     mMutex.unlock();
+
     if (mGameMode)
         mDisplayObserver->onFrameAvailable();
     return 0;

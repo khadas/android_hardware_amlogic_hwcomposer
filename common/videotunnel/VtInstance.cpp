@@ -188,9 +188,7 @@ int32_t VtInstance::acquireBuffer() {
                 for (item = items.begin(); item != items.end(); item++)
                     (*item)->unrefHandle();
                 ret = -EAGAIN;
-            } else
-                MESON_LOGV("[%s] [%s] acquire buffer %d timeStamp %lld",
-                        __func__, mName, bufFd, timeStamp);
+            }
         }
     }
 
