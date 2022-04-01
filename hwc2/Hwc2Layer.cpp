@@ -546,6 +546,8 @@ int32_t Hwc2Layer::releaseVtBuffer() {
         return -EINVAL;
     }
 
+    dettachUvmBuffer();
+
     if (mVtRefreshed && !mVtUpdate) {
         mVtRefreshed = false;
         MESON_LOGV("[%s] [%" PRIu64 "] mVtRefreshed", __func__, mId);
@@ -887,10 +889,8 @@ int32_t Hwc2Layer::onVtFrameAvailable(
         mMutex.unlock();
         return -EAGAIN;
     }
-
-    dettachUvmBuffer();
-
     mMutex.unlock();
+
     if (mGameMode)
         mDisplayObserver->onFrameAvailable();
     return 0;

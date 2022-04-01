@@ -74,8 +74,12 @@ int32_t UvmDettach::collectUvmBuffer(const int fd, const int fenceFd) {
         return -EINVAL;
     }
 
-    if (fenceFd < 0)
+    if (fenceFd < 0) {
         MESON_LOGV("%s: %s get an invalid fenceFd", __func__, mName);
+        UvmDev::getInstance().dettachBuffer(fd);
+        close(fd);
+        return 0;
+    }
 
     UvmBuffer item = {fd, std::move(std::make_shared<DrmFence>(fenceFd))};
     mUvmBufferQueue.push_back(item);
