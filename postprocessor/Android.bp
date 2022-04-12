@@ -34,6 +34,10 @@ meson_hwc_postprocessor_defaults {
     name: "hwcomposer_postprocessor_defaults",
     vendor: true,
 
+    cflags: [
+        "-Wno-format",
+    ],
+
     soong_config_variables: {
         enable_video_aisr: {
             srcs: [

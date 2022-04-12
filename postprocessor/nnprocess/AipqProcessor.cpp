@@ -392,7 +392,7 @@ AipqProcessor::~AipqProcessor() {
 
     if (mUvmHander) {
         close(mUvmHander);
-        mUvmHander = NULL;
+        mUvmHander = 0;
     }
 }
 
@@ -1103,7 +1103,7 @@ int AipqProcessor::freeDmaBuffers() {
     }
     if (mAipq_Buf.ion_hnd != -1) {
         ion_free(mIonFd, mAipq_Buf.ion_hnd);
-        mAipq_Buf.ion_hnd = NULL;
+        mAipq_Buf.ion_hnd = 0;
     }
 
 
