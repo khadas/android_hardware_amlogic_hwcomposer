@@ -152,7 +152,7 @@ NnProcessor::~NnProcessor() {
     }
     if (mUvmHander) {
         close(mUvmHander);
-        mUvmHander = NULL;
+        mUvmHander = 0;
     }
     ALOGD("%s: fence :r=%lld,wait=%lld, r-w=%lld",
           __FUNCTION__,
@@ -1080,7 +1080,7 @@ void NnProcessor::freeDmaBuffer(int i) {
         mIonFd);
     if (mSrBuf[i].fd_ptr) {
         munmap(mSrBuf[i].fd_ptr, buffer_size);
-        mSrBuf[i].fd_ptr = NULL;
+        mSrBuf[i].fd_ptr = 0;
     }
     if (mSrBuf[i].fd != -1) {
         close(mSrBuf[i].fd);
@@ -1088,7 +1088,7 @@ void NnProcessor::freeDmaBuffer(int i) {
     }
     if (mSrBuf[i].ion_hnd != -1) {
         ion_free(mIonFd, mSrBuf[i].ion_hnd);
-        mSrBuf[i].ion_hnd = NULL;
+        mSrBuf[i].ion_hnd = 0;
     }
 }
 

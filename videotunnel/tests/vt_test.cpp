@@ -20,7 +20,7 @@
 #include <fcntl.h>
 
 #include <video_tunnel.h>
-
+#include <inttypes.h>
 #include "unittests/sw_sync.h"
 
 #define VT_TIME_STAMP 37510560
@@ -238,7 +238,7 @@ static void usage(const char* pname) {
 static int do_write(int fd, char *content) {
     char time[128] = {};
     nsecs_t now = systemTime(CLOCK_MONOTONIC);
-    sprintf(time, "-%lld\n", now);
+    sprintf(time, "-%" PRIu64 "\n", now);
     strcat(content, time);
 
     return write(fd, content, strlen(content));
