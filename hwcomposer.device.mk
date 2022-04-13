@@ -100,13 +100,8 @@ ifndef HWC_UVM_DETTACH
 HWC_UVM_DETTACH := false
 endif
 
-# TODO remove it when android S sdk released
-#ifeq ($(PLATFORM_VERSION_CODENAME), S)
-#ifeq ($(filter S, $(PLATFORM_VERSION_CODENAME)), S)
-ifeq ($(shell test $(PLATFORM_SDK_VERSION) -ge 31 && echo OK),OK)
-HWC_ANDROID_S := true
-else
-HWC_ANDROID_S := false
+ifndef HWC_ENABLE_AIDL
+HWC_ENABLE_AIDL := false
 endif
 
 # Setup configuration in Soong namespace
@@ -137,11 +132,11 @@ $(call soong_config_set,meson_hwc,target_use_default_hdr_property,$(HWC_ENABLE_D
 $(call soong_config_set,meson_hwc,pipe_viu1vdinviu2_always_loopback,$(HWC_PIPE_VIU1VDINVIU2_ALWAYS_LOOPBACK))
 $(call soong_config_set,meson_hwc,dynamic_switch_connector,$(HWC_DYNAMIC_SWITCH_CONNECTOR))
 $(call soong_config_set,meson_hwc,dynamic_swich_viu,$(HWC_DYNAMIC_SWITCH_VIU))
-$(call soong_config_set,meson_hwc,android_version_s,$(HWC_ANDROID_S))
+$(call soong_config_set,meson_hwc,enable_aidl,$(HWC_ENABLE_AIDL))
 $(call soong_config_set,meson_hwc,enable_video_aisr,$(HWC_VIDEO_AISR))
 $(call soong_config_set,meson_hwc,enable_vt_hwVsync,$(HWC_VT_HW_VSYNC))
 $(call soong_config_set,meson_hwc,enable_video_aipq,$(HWC_VIDEO_AIPQ))
 $(call soong_config_set,meson_hwc,enable_uvm_dettach,$(HWC_UVM_DETTACH))
 
-#$(warning "the value of version_s: $(HWC_ANDROID_S)")
+#$(warning "the value of aidl: $(HWC_ENABLE_AIDL)")
 $(warning "the value of uvm_dettach: $(HWC_UVM_DETTACH)")

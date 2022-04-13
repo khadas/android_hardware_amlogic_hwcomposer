@@ -54,6 +54,7 @@ soong_config_module_type {
         "enable_keystone_correction",
         "enable_video_aisr",
         "enable_video_aipq",
+        "enable_aidl",
     ],
 
     properties: [
@@ -73,6 +74,10 @@ soong_config_bool_variable {
 
 soong_config_bool_variable {
     name: "enable_video_aisr",
+}
+
+soong_config_bool_variable {
+    name: "enable_aidl",
 }
 
 soong_config_bool_variable {

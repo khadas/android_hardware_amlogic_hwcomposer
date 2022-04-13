@@ -1,0 +1,82 @@
+//
+// Copyright 2022 The Android Open Source Project
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+
+cc_defaults {
+    name: "libmeson_hwc3_defaults",
+
+    cflags: [
+        "-Wall",
+        "-Werror",
+        "-Wextra",
+        "-Wformat",
+        "-Wthread-safety",
+        "-Wunused",
+        "-Wunreachable-code",
+        "-Wconversion",
+        "-DLOG_TAG=\"composer3\"",
+    ],
+
+    shared_libs: [
+        "android.hardware.graphics.composer@2.1-resources-vendor",
+        "android.hardware.graphics.composer@2.2-resources-vendor",
+        "android.hardware.graphics.composer3-V1-ndk",
+        "android.hardware.graphics.mapper@2.0",
+        "android.hardware.graphics.mapper@4.0",
+        "libbase",
+        "libbinder",
+        "libcutils",
+        "libbinder_ndk",
+        "libfmq",
+        "libhardware",
+        "libhidlbase",
+        "libhwc2on1adapter",
+        "libhwc2onfbadapter",
+        "liblog",
+        "libsync",
+        "libutils",
+        "libamgralloc_ext",
+        "libdrm",
+        "libjsoncpp",
+        "libui",
+    ],
+}
+
+filegroup {
+    name: "meson_hwc3_sources",
+    srcs: [
+        "Common.cpp",
+        "Composer.cpp",
+        "Main.cpp",
+//        "ComposerClient.cpp",
+    ],
+}
+
+cc_binary {
+    name: "android.hardware.graphics.composer@3.0-service.droidlogic",
+    defaults: [
+        "libmeson_hwc3_defaults",
+    ],
+
+    vendor: true,
+    relative_install_path: "hw",
+    srcs: [
+        ":meson_hwc3_sources",
+    ],
+
+    vintf_fragments: ["android.hardware.graphics.composer@3.0-service.droidlogic.xml"],
+    init_rc: ["android.hardware.graphics.composer@3.0-service.droidlogic.rc"],
+
+}
