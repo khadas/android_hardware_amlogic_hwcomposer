@@ -104,5 +104,5 @@ VideoTunnelDev::VtPollStatus VideoTunnelDev::pollBufferAndCmds() {
 
 int32_t VideoTunnelDev::setDisplayVsyncInfo(uint64_t timestamp, uint32_t vsyncPeriodNanos) {
     // ignored tunnel id now
-    return meson_vt_setDisplayVsyncAndPeroid(mDrvFd, -1, timestamp, vsyncPeriodNanos);
+    return meson_vt_setDisplayVsyncAndPeriod(mDrvFd, -1, timestamp, vsyncPeriodNanos);
 }
