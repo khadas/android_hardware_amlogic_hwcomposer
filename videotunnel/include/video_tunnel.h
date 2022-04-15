@@ -51,14 +51,14 @@ int meson_vt_queue_buffer(int fd, int tunnel_id, int buffer_fd,
 int meson_vt_dequeue_buffer(int fd, int tunnel_id, int *buffer_fd, int *fence_fd);
 int meson_vt_cancel_buffer(int fd, int tunnel_id);
 int meson_vt_set_sourceCrop(int fd, int tunnel_id, struct vt_rect rect);
-int meson_vt_getDisplayVsyncAndPeroid(int fd, int tunnel_id, uint64_t *timestamp, uint32_t *period);
+int meson_vt_getDisplayVsyncAndPeriod(int fd, int tunnel_id, uint64_t *timestamp, uint32_t *period);
 
 /* for consumer */
 int meson_vt_acquire_buffer(int fd, int tunnel_id, int *buffer_fd,
         int *fence_fd, int64_t *expected_present_time);
 int meson_vt_release_buffer(int fd, int tunnel_id, int buffer_fd, int fence_fd);
 int meson_vt_poll_cmd(int fd, int time_out);
-int meson_vt_setDisplayVsyncAndPeroid(int fd, int tunnel_id, uint64_t timestamp, uint32_t period);
+int meson_vt_setDisplayVsyncAndPeriod(int fd, int tunnel_id, uint64_t timestamp, uint32_t period);
 
 /* for video cmd */
 int meson_vt_set_mode(int fd, int block_mode);

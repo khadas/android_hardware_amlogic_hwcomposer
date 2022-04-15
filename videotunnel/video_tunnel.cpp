@@ -278,7 +278,7 @@ int meson_vt_set_sourceCrop(int fd, int tunnel_id, struct vt_rect rect) {
  * Return of 0 means the operation completed as normal.
  * Return of a negative value means an error has occurred:
  */
-int meson_vt_getDisplayVsyncAndPeroid(int fd, int tunnel_id, uint64_t *timestamp, uint32_t *period) {
+int meson_vt_getDisplayVsyncAndPeriod(int fd, int tunnel_id, uint64_t *timestamp, uint32_t *period) {
     int ret = -1;
     struct vt_display_vsync data = {
         .tunnel_id = tunnel_id,
@@ -393,7 +393,7 @@ int meson_vt_poll_cmd(int fd, int time_out) {
  * Return of 0 means the operation completed as normal.
  * Return of a negative value means an error has occurred:
  */
-int meson_vt_setDisplayVsyncAndPeroid(int fd, int tunnel_id, uint64_t timestamp, uint32_t period) {
+int meson_vt_setDisplayVsyncAndPeriod(int fd, int tunnel_id, uint64_t timestamp, uint32_t period) {
     struct vt_display_vsync data = {
         .tunnel_id = tunnel_id,
         .timestamp = timestamp,
