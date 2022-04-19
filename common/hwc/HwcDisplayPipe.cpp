@@ -19,8 +19,8 @@
 #define HWC_BOOTED_PROP "vendor.sys.hwc.booted"
 #define DEFAULT_REFRESH_RATE (60.0f)
 
-HwcDisplayPipe::PipeStat::PipeStat(uint32_t id) {
-    hwcId = id;
+HwcDisplayPipe::PipeStat::PipeStat(uint32_t hwc_id) {
+    hwcId = hwc_id;
     cfg.hwcPipeIdx = cfg.modePipeIdx = DRM_PIPE_INVALID;
     cfg.hwcConnectorType = cfg.modeConnectorType = DRM_MODE_CONNECTOR_Unknown;
     cfg.hwcPostprocessorType = INVALID_POST_PROCESSOR;
@@ -40,7 +40,57 @@ HwcDisplayPipe::PipeStat::~PipeStat() {
 
 HwcDisplayPipe::HwcDisplayPipe() {
     /*load display resources.*/
-    getHwDisplayManager()->getPlanes(mPlanes);
+    std::vector<std::shared_ptr<HwDisplayPlane>> planes;
+    getHwDisplayManager()->getPlanes(planes);
+
+    /*assign planes to pipe/crtc.
+     *1. assign plane with dedicate crtc mask.
+     *2. assign osd planes: N + 1 + 1
+     */
+    int pipeidx = 0;
+    std::shared_ptr<HwDisplayPlane> plane;
+
+    /*hwcvideo/osd/legacy video/osd/primary from fbdev have deciate crtc mask.*/
+    for (pipeidx = 0; pipeidx < HwcConfig::getDisplayNum(); pipeidx ++) {
+        for (auto planeIt = planes.begin(); planeIt != planes.end(); ) {
+            plane = *planeIt;
+            if (plane->getPossibleCrtcs() == (1 << pipeidx)) {
+                mPlanesForPipe.insert(std::make_pair(pipeidx, plane));
+                planeIt = planes.erase(planeIt);
+            } else
+                planeIt++;
+        }
+    }
+
+    /*assign osd plane： N + 1 + 1*/
+    if (planes.size() > 0) {
+        MESON_ASSERT(planes.size() >= HwcConfig::getDisplayNum(),
+            "osd planes-%zu < pipe-%d\n", planes.size(), HwcConfig::getDisplayNum());
+        pipeidx = HwcConfig::getDisplayNum() - 1;
+
+        for (auto planeIt = planes.rbegin(); planeIt != planes.rend(); planeIt ++) {
+            plane = *planeIt;
+            if (plane->getPossibleCrtcs() & (1 << pipeidx)) {
+                mPlanesForPipe.insert(std::make_pair(pipeidx, plane));
+                if (pipeidx >= 1)
+                    pipeidx --;
+            }
+        }
+    }
+
+    for (pipeidx = 0; pipeidx < HwcConfig::getDisplayNum(); pipeidx ++) {
+        int count = 0;
+        auto plane_range = mPlanesForPipe.equal_range(pipeidx);
+        for (auto it = plane_range.first; it != plane_range.second; ++it) {
+            if (it->second->getType() == OSD_PLANE ||
+                it->second->getType() == OSD_PLANE_PRIMARY) {
+                count ++;
+                MESON_LOGD("Pipe %d get plane %d", pipeidx, it->second->getType());
+            }
+        }
+        MESON_LOGD("Pipe %d: osd planes(%d)\n", pipeidx, count);
+    }
+
 }
 
 HwcDisplayPipe::~HwcDisplayPipe() {
@@ -85,16 +135,12 @@ int32_t HwcDisplayPipe::init(std::map<uint32_t, std::shared_ptr<HwcDisplay>> & h
 int32_t HwcDisplayPipe::getPlanes(
     uint32_t pipeidx, std::vector<std::shared_ptr<HwDisplayPlane>> & planes) {
     planes.clear();
-    for (auto planeIt = mPlanes.begin(); planeIt != mPlanes.end(); ++ planeIt) {
-        std::shared_ptr<HwDisplayPlane> plane = *planeIt;
-        if (plane->getPossibleCrtcs() & (1 << pipeidx)) {
-            if ((plane->getType() == CURSOR_PLANE) &&
-                HwcConfig::cursorPlaneDisabled()) {
-                continue;
-            }
-            planes.push_back(plane);
-        }
+
+    auto plane_rage = mPlanesForPipe.equal_range(pipeidx);
+    for (auto it = plane_rage.first; it != plane_rage.second; ++it) {
+        planes.push_back(it->second);
     }
+
     MESON_ASSERT(planes.size() > 0, "get planes for crtc %d failed.", pipeidx);
     return 0;
 }
@@ -124,37 +170,28 @@ int32_t HwcDisplayPipe::getPostProcessor(
 
 drm_connector_type_t HwcDisplayPipe::getConnetorCfg(uint32_t hwcid) {
     drm_connector_type_t  connector = DRM_MODE_CONNECTOR_Unknown;
-    switch (HwcConfig::getConnectorType(hwcid)) {
-        case HWC_PANEL_ONLY:
-            connector = DRM_MODE_CONNECTOR_LVDS;
-            break;
-        case HWC_HDMI_ONLY:
+    int type = HwcConfig::getConnectorType(hwcid);
+
+    if (type == HWC_HDMI_CVBS) {
+        std::shared_ptr<HwDisplayConnector> hwConnector;
+        getConnector(DRM_MODE_CONNECTOR_HDMIA, hwConnector);
+        if (hwConnector->isConnected()) {
             connector = DRM_MODE_CONNECTOR_HDMIA;
-            break;
-        case HWC_CVBS_ONLY:
+        } else {
             connector = DRM_MODE_CONNECTOR_TV;
-            break;
-        case HWC_HDMI_CVBS:
-            {
-                std::shared_ptr<HwDisplayConnector> hwConnector;
-                getConnector(DRM_MODE_CONNECTOR_HDMIA, hwConnector);
-                if (hwConnector->isConnected()) {
-                    connector = DRM_MODE_CONNECTOR_HDMIA;
-                } else {
-                    connector = DRM_MODE_CONNECTOR_TV;
-                }
-            }
-            break;
-        default:
-            MESON_ASSERT(0, "Unknow connector config");
-            break;
+        }
+    } else {
+        connector = type;
     }
+
+    MESON_LOGD("%s: get display %d, connector %d",
+        __func__, hwcid, connector);
 
     return connector;
 }
 
 int32_t HwcDisplayPipe::updatePipe(std::shared_ptr<PipeStat> & stat) {
-    MESON_LOGD("HwcDisplayPipe::updatePipe.");
+    MESON_LOGD("HwcDisplayPipe::updatePipe %d.", stat->hwcId);
 
     PipeCfg cfg;
     getPipeCfg(stat->hwcId, cfg);

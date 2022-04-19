@@ -25,8 +25,8 @@
 #define GET_CRTC_BY_CONNECTOR(type) \
         std::shared_ptr<HwDisplayConnector> connector; \
         std::shared_ptr<HwDisplayCrtc> crtc = NULL; \
-        getHwDisplayManager()->getConnector(connector, type); \
-        if (connector) { \
+        int32_t get_ret = getHwDisplayManager()->getConnector(connector, type); \
+        if (get_ret >= 0) { \
             uint32_t crtcid = numeric_limits<uint32_t>::max(); \
             int count = 0; \
             do { \
@@ -87,13 +87,19 @@ void DisplayTypeConv(drm_connector_type_t& type, ConnectorType displayType) {
             type = DRM_MODE_CONNECTOR_HDMIA;
             break;
         case DisplayAdapter::CONN_TYPE_PANEL:
-            type = DRM_MODE_CONNECTOR_LVDS;
+            type = LEGACY_NON_DRM_CONNECTOR_PANEL;
             break;
         case DisplayAdapter::CONN_TYPE_DUMMY:
             type = DRM_MODE_CONNECTOR_VIRTUAL;
             break;
         case DisplayAdapter::CONN_TYPE_CVBS:
             type = DRM_MODE_CONNECTOR_TV;
+            break;
+        case DisplayAdapter::CONN_TYPE_PANEL2:
+            type = DRM_MODE_CONNECTOR_PANEL2;
+            break;
+        default:
+            type = DRM_MODE_CONNECTOR_INVALID_TYPE;
             break;
     }
 }
@@ -191,6 +197,9 @@ bool DisplayAdapterLocal::getSupportDisplayModes(vector<DisplayModeInfo>& displa
     drm_connector_type_t type;
     map<uint32_t, drm_mode_info_t> modes;
     DisplayTypeConv(type, displayType);
+    if (DRM_MODE_CONNECTOR_INVALID_TYPE == type)
+        return false;
+
     GET_CRTC_BY_CONNECTOR(type);
     if (connector) {
         connector->getModes(modes);
@@ -207,6 +216,9 @@ bool DisplayAdapterLocal::getSupportDisplayModes(vector<DisplayModeInfo>& displa
 bool DisplayAdapterLocal::getDisplayMode(string& mode, ConnectorType displayType) {
     drm_connector_type_t type;
     DisplayTypeConv(type, displayType);
+    if (DRM_MODE_CONNECTOR_INVALID_TYPE == type)
+        return false;
+
     GET_CRTC_BY_CONNECTOR(type);
     if (crtc) {
         crtc->readCurDisplayMode(mode);
@@ -221,6 +233,8 @@ bool DisplayAdapterLocal::setDisplayMode(const string& mode, ConnectorType displ
     drm_mode_info_t mock;
     strncpy(mock.name, mode.c_str(), DRM_DISPLAY_MODE_LEN);
     DisplayTypeConv(type, displayType);
+    if (DRM_MODE_CONNECTOR_INVALID_TYPE == type)
+        return false;
 
     MESON_LOGD("SetDisplay[%s] Mode to \"%s\"", type == DRM_MODE_CONNECTOR_HDMIA ? "HDMI" :
             (type == DRM_MODE_CONNECTOR_LVDS ? "panel":"dummy"), mode.c_str());
@@ -269,6 +283,9 @@ bool DisplayAdapterLocal::setDisplayRect(const Rect rect, ConnectorType displayT
     bool ret = false;
     drm_connector_type_t type;
     DisplayTypeConv(type, displayType);
+    if (DRM_MODE_CONNECTOR_INVALID_TYPE == type)
+        return false;
+
     drm_rect_wh_t drm_rect;
 
     MESON_LOGV("SetDisplay[%s] DisplayRect to \"(%s)\"", type == DRM_MODE_CONNECTOR_HDMIA ? "HDMI" :
@@ -288,8 +305,10 @@ bool DisplayAdapterLocal::getDisplayRect(Rect& rect, ConnectorType displayType) 
     bool ret = false;
     drm_connector_type_t type;
     DisplayTypeConv(type, displayType);
-    drm_rect_wh_t drm_rect;
+    if (DRM_MODE_CONNECTOR_INVALID_TYPE == type)
+        return false;
 
+    drm_rect_wh_t drm_rect;
     GET_CRTC_BY_CONNECTOR(type);
     if (crtc) {
         MesonHwc2::getInstance().getViewPort(drm_rect);
@@ -309,6 +328,9 @@ bool DisplayAdapterLocal::dumpDisplayAttribute(Json::Value& json, ConnectorType 
     Json::Value ret;
     drm_connector_type_t type;
     DisplayTypeConv(type, displayType);
+    if (DRM_MODE_CONNECTOR_INVALID_TYPE == type)
+        return false;
+
     int i = 0;
     for (i = 0; i < DA_DISPLAY_ATTRIBUTE__COUNT; i++) {
         std::string value;
@@ -348,6 +370,9 @@ bool DisplayAdapterLocal::setDisplayAttribute(
     drm_connector_type_t type;
     string out;
     DisplayTypeConv(type, displayType);
+    if (DRM_MODE_CONNECTOR_INVALID_TYPE == type)
+        return false;
+
     DisplayAttributeInfo* info = getDisplayAttributeInfo(name, displayType);
     if (info && info->update_fun) {
         ret = info->update_fun(*info, value, out, UT_SET_VALUE);
@@ -368,6 +393,9 @@ bool DisplayAdapterLocal::getDisplayAttribute(
     string out = "";
     drm_connector_type_t type;
     DisplayTypeConv(type, displayType);
+    if (DRM_MODE_CONNECTOR_INVALID_TYPE == type)
+        return false;
+
     DisplayAttributeInfo* info = getDisplayAttributeInfo(name, displayType);
     if (info && info->update_fun) {
        if (info->update_fun(*info, "", out, UT_GET_VALUE)) {

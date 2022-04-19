@@ -36,7 +36,7 @@ void FixedDisplayPipe::handleEvent(drm_display_event event, int val) {
         std::shared_ptr<PipeStat> pipe;
         drm_connector_type_t targetConnector = DRM_MODE_CONNECTOR_Unknown;
         for (auto statIt : mPipeStats) {
-            hwc_connector_t connectorType = HwcConfig::getConnectorType((int)statIt.first);
+            uint32_t connectorType = HwcConfig::getConnectorType((int)statIt.first);
             pipe = statIt.second;
 
             /* let crct known we are in hotplug event process */
@@ -70,7 +70,7 @@ void FixedDisplayPipe::handleEvent(drm_display_event event, int val) {
                 /*update display mode, workaround now.*/
                 initDisplayMode(pipe);
                 statIt.second->hwcDisplay->onHotplug(connected);
-            } else if (connectorType == HWC_HDMI_ONLY) {
+            } else if (connectorType == DRM_MODE_CONNECTOR_HDMIA) {
                 pipe->modeCrtc->setHotplugStatus(HwDisplayCrtc::HotplugStatus::Default);
                 initDisplayMode(pipe);
                 statIt.second->hwcDisplay->onHotplug(connected);

@@ -12,6 +12,7 @@
 #include <cutils/properties.h>
 #include <systemcontrol.h>
 #include <misc.h>
+#include <DrmTypes.h>
 
 //#defined HWC_PRIMARY_FRAMEBUFFER_WIDTH 2160
 //#defined HWC_PRIMARY_FRAMEBUFFER_HEIGHT 3840
@@ -72,35 +73,47 @@ uint32_t HwcConfig::getDisplayNum() {
     return HWC_DISPLAY_NUM;
 }
 
-hwc_connector_t HwcConfig::getConnectorType(int disp) {
-    hwc_connector_t connector_type = HWC_CONNECTOR_NULL;
+uint32_t HwcConfig::getConnectorType(int disp) {
+    uint32_t connector_type = DRM_MODE_CONNECTOR_INVALID_TYPE;
+    char strval[PROP_VALUE_LEN_MAX];
     const char * connectorstr = NULL;
     if (disp == 0) {
         #ifdef HWC_PRIMARY_CONNECTOR_TYPE
-            connectorstr = HWC_PRIMARY_CONNECTOR_TYPE;
+            if (sys_get_string_prop("persist.vendor.hwc.connector-0", strval) > 0)
+                connectorstr = strval;
+            else
+                connectorstr = HWC_PRIMARY_CONNECTOR_TYPE;
         #else
             MESON_ASSERT(0, "HWC_PRIMARY_CONNECTOR_TYPE not set.");
         #endif
-    } else {
+    } else if (disp == 1) {
         #ifdef HWC_EXTEND_CONNECTOR_TYPE
-            connectorstr = HWC_EXTEND_CONNECTOR_TYPE;
+            if (sys_get_string_prop("persist.vendor.hwc.connector-1", strval) > 0)
+                connectorstr = strval;
+            else
+                connectorstr = HWC_EXTEND_CONNECTOR_TYPE;
         #else
             MESON_ASSERT(0, "HWC_EXTEND_CONNECTOR_TYPE not set.");
         #endif
+    } else {
+        if (sys_get_string_prop("persist.vendor.hwc.connector-2", strval) > 0)
+            connectorstr = strval;
     }
 
     if (connectorstr != NULL) {
+        /*hdmi str = hdmi + cvbs*/
         if (strcasecmp(connectorstr, "hdmi") == 0) {
             connector_type = HWC_HDMI_CVBS;
-        } else if (strcasecmp(connectorstr, "panel") == 0) {
-            connector_type = HWC_PANEL_ONLY;
-        } else if (strcasecmp(connectorstr, "cvbs") == 0) {
-            connector_type = HWC_CVBS_ONLY;
+        } else if (strcasecmp(connectorstr, "panel2") == 0) {
+            connector_type = DRM_MODE_CONNECTOR_PANEL2;
         } else if (strcasecmp(connectorstr, "hdmi-only") == 0) {
-            connector_type = HWC_HDMI_ONLY;
+            connector_type = DRM_MODE_CONNECTOR_HDMIA;
         } else {
-            MESON_LOGE("%s-%d get connector type failed.", __func__, disp);
+            connector_type = drmStringToConnType(connectorstr);
         }
+
+        MESON_ASSERT(connector_type != DRM_MODE_CONNECTOR_INVALID_TYPE,
+            "get invalid type %s", connectorstr);
     }
 
     MESON_LOGD("%s-%d get connector type %s-%d",

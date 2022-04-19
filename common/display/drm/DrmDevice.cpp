@@ -20,7 +20,6 @@
 #include "DrmPlane.h"
 
 #define MESON_DRM_DRIVER_NAME "meson"
-#define MAX_PLANE_LIMIT 2
 
 std::shared_ptr<DrmDevice> DrmDevice::mInstance = NULL;
 
@@ -62,9 +61,7 @@ int32_t DrmDevice::getPlanes(
         if (it.second->getType() == DRM_PLANE_TYPE_OVERLAY
             && !(it.second->getCapabilities() & PLANE_PRIMARY)) {
             cnt++;
-            if (cnt >= MAX_PLANE_LIMIT)
-                continue;
-        }
+       }
 
         planes.push_back(it.second);
     }
@@ -90,9 +87,10 @@ int32_t DrmDevice::getConnector(
         }
     }
 
-    MESON_ASSERT(0, "unsupported connector type %d", type);
+    MESON_LOGE("%s:unsupported connector type %d",
+        __func__, type);
 
-    return 0;
+    return -EINVAL;
 }
 
 std::shared_ptr<HwDisplayCrtc> DrmDevice::getCrtcById(uint32_t crtcid) {

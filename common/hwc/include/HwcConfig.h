@@ -16,21 +16,14 @@
 #include <HwcModeMgr.h>
 #include <HwcDisplayPipe.h>
 
-typedef enum {
-    HWC_HDMI_ONLY = 0,
-    HWC_PANEL_ONLY,
-    HWC_HDMI_CVBS,
-    HWC_CVBS_ONLY,
-    HWC_CONNECTOR_NULL,
-} hwc_connector_t;
-
+#define HWC_HDMI_CVBS 0xffff0000
 
 class HwcConfig {
 public:
     static uint32_t getDisplayNum();
     static int32_t getFramebufferSize(int disp, uint32_t & width, uint32_t & height);
 
-    static hwc_connector_t getConnectorType(int disp);
+    static uint32_t getConnectorType(int disp);
     static hwc_pipe_policy_t getPipeline();
 
     static hwc_modes_policy_t getModePolicy(int disp);

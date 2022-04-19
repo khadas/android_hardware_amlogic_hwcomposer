@@ -92,6 +92,14 @@ int32_t DualDisplayPipe::init(
                 }
                 break;
             case DRM_MODE_CONNECTOR_LVDS:
+            case DRM_MODE_CONNECTOR_PANEL2:
+            case DRM_MODE_CONNECTOR_MESON_LVDS_A:
+            case DRM_MODE_CONNECTOR_MESON_LVDS_B:
+            case DRM_MODE_CONNECTOR_MESON_VBYONE_A:
+            case DRM_MODE_CONNECTOR_MESON_VBYONE_B:
+            case DRM_MODE_CONNECTOR_MESON_MIPI_A:
+            case DRM_MODE_CONNECTOR_MESON_MIPI_B:
+            case LEGACY_NON_DRM_CONNECTOR_PANEL:
                 {
                     std::map<uint32_t, drm_mode_info_t> panelModes;
                     stat.second->modeConnector->getModes(panelModes);

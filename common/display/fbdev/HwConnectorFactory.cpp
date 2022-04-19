@@ -22,7 +22,7 @@ std::shared_ptr<HwDisplayConnector> HwConnectorFactory::create(
         case DRM_MODE_CONNECTOR_HDMIA:
             connector =  std::make_shared<ConnectorHdmi>(connectorDrv, connectorId);
             break;
-        case DRM_MODE_CONNECTOR_LVDS:
+        case LEGACY_NON_DRM_CONNECTOR_PANEL:
             connector =  std::make_shared<ConnectorPanel>(connectorDrv, connectorId);
             break;
         case DRM_MODE_CONNECTOR_VIRTUAL:

@@ -15,6 +15,10 @@
 #include <sys/ioctl.h>
 #include "UvmDev.h"
 
+#define CURSOR_PLANE_FIXED_ZORDER 256
+#define OSD_PLANE_FIXED_ZORDER 128
+#define VIDEO_PLANE_FIXED_ZORDER 0
+
 /*---------------------  SingleplaneComposition  ---------------------*/
 SingleplaneComposition::SingleplaneComposition() {
 }
@@ -399,7 +403,7 @@ int SingleplaneComposition::commit(bool sf) {
     if (sf && mComposer.get()) {
         mComposer->start();
         composeOutput = mComposer->getOutput();
-        if (composeOutput.get()) {
+        if (composeOutput.get() && mOsdPlane) {
             mDisplayPairs.push_back(DisplayPair{composeOutput, mOsdPlane});
             mOsdPlane.reset();
         }
@@ -421,6 +425,20 @@ int SingleplaneComposition::commit(bool sf) {
         * For osd, if the zorder is not fixed, set to default fixed osd plane.
         */
         uint32_t z  = plane->getFixedZorder();
+        if (z == INVALID_ZORDER) {
+            switch (plane->getType()) {
+                case OSD_PLANE:
+                    z = OSD_PLANE_FIXED_ZORDER;
+                    break;
+                case CURSOR_PLANE:
+                    z = CURSOR_PLANE_FIXED_ZORDER;
+                    break;
+                case LEGACY_VIDEO_PLANE:
+                case HWC_VIDEO_PLANE:
+                    z = VIDEO_PLANE_FIXED_ZORDER;
+                    break;
+            };
+        }
 
         if (composeOutput == fb) {
             /*dump composer info*/

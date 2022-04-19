@@ -52,6 +52,7 @@ int32_t DrmConnector::loadProperties(drmModeConnectorPtr p __unused) {
         {DRM_CONNECTOR_PROP_CRTCID, &mCrtcId},
         {DRM_CONNECTOR_PROP_EDID, &mEdid},
         {DRM_CONNECTOR_PROP_UPDATE, &mUpdate},
+        {DRM_CONNECTOR_PROP_MESON_TYPE, &mMesonConnectorType},
  //       {DRM_HDMI_PROP_COLORSPACE, &mColorSpace},
 //        {DRM_HDMI_PROP_COLORDEPTH, &mColorDepth},
 //        {DRM_HDMI_PROP_HDRCAP, &mHdrCaps},
@@ -69,6 +70,7 @@ int32_t DrmConnector::loadProperties(drmModeConnectorPtr p __unused) {
             continue;
         }
         for (int j = 0; j < connectorPropsNum; j++) {
+            MESON_LOGE("%s: load prop %s", __func__, prop->name);
             if (strcmp(prop->name, connectorProps[j].propname) == 0) {
                 *(connectorProps[j].drmprop) =
                     std::make_shared<DrmProperty>(prop, mId, props->prop_values[i]);
@@ -110,25 +112,28 @@ int32_t DrmConnector::loadDisplayModes(drmModeConnectorPtr p) {
         }
 
         bool bNonFractionMode = false;
-        // default add frac refresh rate config, like 23.976hz, 29.97hz...
-        if (modeInfo.refreshRate == REFRESH_24kHZ
-                || modeInfo.refreshRate == REFRESH_30kHZ
-                || modeInfo.refreshRate == REFRESH_60kHZ
-                || modeInfo.refreshRate == REFRESH_120kHZ
-                || modeInfo.refreshRate == REFRESH_240kHZ) {
-            if (mFracMode == MODE_ALL || mFracMode == MODE_FRACTION) {
-                drm_mode_info_t fracMode = modeInfo;
-                fracMode.refreshRate = (modeInfo.refreshRate * 1000) / (float)1001;
-                fracMode.groupId = mMesonModes.size();
-                mMesonModes.emplace(mMesonModes.size(), fracMode);
-                mFracRefreshRates.push_back(fracMode.refreshRate);
-                MESON_LOGD("add fraction display mode (%s)", fracMode.name);
+        if (mType == DRM_MODE_CONNECTOR_HDMIA) {
+            // default add frac refresh rate config, like 23.976hz, 29.97hz...
+            if (modeInfo.refreshRate == REFRESH_24kHZ
+                    || modeInfo.refreshRate == REFRESH_30kHZ
+                    || modeInfo.refreshRate == REFRESH_60kHZ
+                    || modeInfo.refreshRate == REFRESH_120kHZ
+                    || modeInfo.refreshRate == REFRESH_240kHZ) {
+                    if (mFracMode == MODE_ALL || mFracMode == MODE_FRACTION) {
+                        drm_mode_info_t fracMode = modeInfo;
+                        fracMode.refreshRate = (modeInfo.refreshRate * 1000) / (float)1001;
+                        fracMode.groupId = mMesonModes.size();
+                        mMesonModes.emplace(mMesonModes.size(), fracMode);
+                        mFracRefreshRates.push_back(fracMode.refreshRate);
+                        MESON_LOGD("add fraction display mode (%s)", fracMode.name);
+                    }
+            } else {
+                bNonFractionMode = true;
             }
-        } else {
-            bNonFractionMode = true;
         }
 
-        if (mFracMode == MODE_ALL || mFracMode == MODE_NON_FRACTION) {
+        if (mType != DRM_MODE_CONNECTOR_HDMIA ||
+            mFracMode == MODE_ALL || mFracMode == MODE_NON_FRACTION) {
             bNonFractionMode = true;
         }
 
@@ -185,26 +190,21 @@ uint32_t DrmConnector::getId() {
 }
 
 const char * DrmConnector::getName() {
-    const char * name;
-    switch(mType) {
-        case DRM_MODE_CONNECTOR_HDMIA:
-            name = "HDMI";
-            break;
-        case DRM_MODE_CONNECTOR_TV:
-            name = "CVBS";
-            break;
-        case DRM_MODE_CONNECTOR_LVDS:
-            name = "PANEL";
-            break;
-        default:
-            name = "UNKNOWN";
-            break;
-    };
+    const char *name = drmConnTypeToString(getType());
+    MESON_ASSERT(name, "%s: get name for %d fail.",
+        __func__, getType());
 
     return name;
 }
 
 drm_connector_type_t DrmConnector::getType() {
+    /*check extend type first*/
+    if (mMesonConnectorType.get()) {
+        int meson_type = mMesonConnectorType->getValue();
+        MESON_LOGD("%s get connector %x", __func__, meson_type);
+        return meson_type;
+    }
+
     return mType;
 }
 
@@ -234,7 +234,8 @@ int32_t DrmConnector::getModes(
 }
 
 int32_t DrmConnector::setMode(drm_mode_info_t & mode) {
-    if (mFracMode == MODE_NON_FRACTION)
+    if (mFracMode == MODE_NON_FRACTION ||
+        mType != DRM_MODE_CONNECTOR_HDMIA)
         return 0;
 
     /*update rate policy.*/
@@ -300,19 +301,21 @@ int DrmConnector::getDrmModeByBlobId(drmModeModeInfo & drmmode, uint32_t blobid)
 int DrmConnector::DrmMode2Mode(drmModeModeInfo & drmmode, drm_mode_info_t & mode) {
     for (const auto & it : mMesonModes) {
         if (strstr(drmmode.name, it.second.name)) {
-            if (mFracMode == MODE_ALL || mFracMode == MODE_FRACTION) {
-                /* frac mode refresh rate */
-                if (drmmode.vrefresh == REFRESH_24kHZ
-                        || drmmode.vrefresh == REFRESH_30kHZ
-                        || drmmode.vrefresh == REFRESH_60kHZ
-                        || drmmode.vrefresh == REFRESH_120kHZ
-                        || drmmode.vrefresh == REFRESH_240kHZ) {
-                    if (getFracModeStatus()) { // is enable
-                        if (it.second.refreshRate == drmmode.vrefresh)
-                            continue;
-                    } else { // is disable
-                        if (it.second.refreshRate == ((drmmode.vrefresh * 1000) / (float)1001))
-                            continue;
+            if (mType == DRM_MODE_CONNECTOR_HDMIA) {
+                if (mFracMode == MODE_ALL || mFracMode == MODE_FRACTION) {
+                    /* frac mode refresh rate */
+                    if (drmmode.vrefresh == REFRESH_24kHZ
+                            || drmmode.vrefresh == REFRESH_30kHZ
+                            || drmmode.vrefresh == REFRESH_60kHZ
+                            || drmmode.vrefresh == REFRESH_120kHZ
+                            || drmmode.vrefresh == REFRESH_240kHZ) {
+                        if (getFracModeStatus()) { // is enable
+                            if (it.second.refreshRate == drmmode.vrefresh)
+                                continue;
+                        } else { // is disable
+                            if (it.second.refreshRate == ((drmmode.vrefresh * 1000) / (float)1001))
+                                continue;
+                        }
                     }
                 }
             }
@@ -327,8 +330,8 @@ int DrmConnector::DrmMode2Mode(drmModeModeInfo & drmmode, drm_mode_info_t & mode
 }
 
 void DrmConnector::dump(String8 & dumpstr) {
-    dumpstr.appendFormat("Connector (%s, %d x %d, %s, %s) mId(%d) mCrtcId(%d) mFracMode(%d)\n",
-        getName(), mPhyWidth, mPhyHeight,
+    dumpstr.appendFormat("Connector (%s, %d, %d x %d, %s, %s) mId(%d) mCrtcId(%d) mFracMode(%d)\n",
+        getName(), getType(), mPhyWidth, mPhyHeight,
         isSecure() ? "secure" : "unsecure", isConnected() ? "Connected" : "Removed",
         mId, getCrtcId(), mFracMode);
 
@@ -350,6 +353,7 @@ void DrmConnector::dump(String8 & dumpstr) {
                  it->second.dpiY);
     }
 
+#if 0
     for ( auto it = mDrmModes.begin(); it != mDrmModes.end(); ++it) {
         dumpstr.appendFormat(" %2d     |  %12s  |  %2d    |   %5d   |   %5d    |\n",
                  it->first,
@@ -358,7 +362,7 @@ void DrmConnector::dump(String8 & dumpstr) {
                  it->second.hdisplay,
                  it->second.vdisplay);
     }
-
+#endif
     dumpstr.append("---------------------------------------------------------"
         "----------------------------------\n");
 }

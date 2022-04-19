@@ -20,6 +20,7 @@
 #include <HwcModeMgr.h>
 
 #include <MesonLog.h>
+#include <unordered_map>
 
 typedef enum {
     /*primary:
@@ -90,7 +91,7 @@ protected:
 
     class PipeStat {
     public:
-        PipeStat(uint32_t id);
+        PipeStat(uint32_t hwc_id);
         ~PipeStat();
 
         uint32_t hwcId;
@@ -127,7 +128,7 @@ protected:
         hwc_post_processor_t type, std::shared_ptr<HwcPostProcessor> & processor);
 
 protected:
-    std::vector<std::shared_ptr<HwDisplayPlane>> mPlanes;
+    std::unordered_multimap<uint32_t, std::shared_ptr<HwDisplayPlane>> mPlanesForPipe;
     std::map<drm_connector_type_t, std::shared_ptr<HwDisplayConnector>> mConnectors;
     std::map<uint32_t, std::shared_ptr<PipeStat>> mPipeStats;
     std::mutex mMutex;

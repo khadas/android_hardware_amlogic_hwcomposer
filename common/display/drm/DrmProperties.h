@@ -59,5 +59,6 @@
 
 /*meson prop*/
 #define DRM_CONNECTOR_PROP_UPDATE "UPDATE"
+#define DRM_CONNECTOR_PROP_MESON_TYPE "meson.connector_type"
 
 #endif

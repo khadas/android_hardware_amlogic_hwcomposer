@@ -298,7 +298,7 @@ int32_t DrmCrtc::pageFlip(int32_t & out_fence) {
         flag,
         NULL);
     if (ret) {
-        MESON_LOGE("pageFlip:atomic commit ret (%d)", ret);
+        MESON_LOGE("pageFlip-%d:atomic commit ret (%d)", getId(), ret);
     }
     ATRACE_END();
 

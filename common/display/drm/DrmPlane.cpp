@@ -153,12 +153,7 @@ uint32_t DrmPlane::getCapabilities() {
 }
 
 int32_t DrmPlane::getFixedZorder() {
-    MESON_LOG_EMPTY_FUN();
-    if (mZpos->isImmutable()) {
-        return (int32_t)mZpos->getValue();
-    }
-
-    return 0;
+    return INVALID_ZORDER;
 }
 
 uint32_t DrmPlane::getPossibleCrtcs() {
@@ -485,4 +480,8 @@ void DrmPlane::dump(String8 & dumpstr) {
         dumpstr.appendFormat("(%llx-%llx),", mModifiers[i].formats, mModifiers[i].modifier);
     }
     dumpstr.append("\n");
+
+    dumpstr.appendFormat("\t CRTC-mask [%x]:", getPossibleCrtcs());
+    dumpstr.append("\n");
+
 }

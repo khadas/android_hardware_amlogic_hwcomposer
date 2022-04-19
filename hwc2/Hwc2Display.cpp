@@ -148,6 +148,8 @@ int32_t Hwc2Display::setDisplayResource(
             strategyFlags |= MULTI_PLANES_WITH_DI;
         }
     }
+    MESON_ASSERT(osdPlanes > 0, "No Osd plane assigned to %d", mDisplayId);
+
     auto newCompositionStrategy =
         CompositionStrategyFactory::create(SIMPLE_STRATEGY, strategyFlags);
     if (newCompositionStrategy != mCompositionStrategy) {

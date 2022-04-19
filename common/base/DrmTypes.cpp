@@ -8,6 +8,7 @@
  */
 
 #include <DrmTypes.h>
+#include <strings.h>
 
 const char * drmFbTypeToString(drm_fb_type_t fbtype) {
     const char * typeStr;
@@ -93,3 +94,56 @@ bool drmHdrCapsDiffer(const drm_hdr_capabilities &hdr1, const drm_hdr_capabiliti
 
     return differ;
 }
+
+struct conn_type_name_list {
+    uint32_t type;
+    const char *name;
+};
+
+static struct conn_type_name_list drm_connector_enum_list[] = {
+    {DRM_MODE_CONNECTOR_HDMIA,          "HDMI-A"},
+    {DRM_MODE_CONNECTOR_TV,             "CVBS"},
+    {DRM_MODE_CONNECTOR_LVDS,           "LVDS"},
+    {DRM_MODE_CONNECTOR_MESON_LVDS_A,   "LVDS-A"},
+    {DRM_MODE_CONNECTOR_MESON_LVDS_B,   "LVDS-B"},
+    {DRM_MODE_CONNECTOR_MESON_VBYONE_A, "VBYONE-A"},
+    {DRM_MODE_CONNECTOR_MESON_VBYONE_B, "VBYONE-B"},
+    {DRM_MODE_CONNECTOR_MESON_MIPI_A,   "MIPI-A"},
+    {DRM_MODE_CONNECTOR_MESON_MIPI_B,   "MIPI-B"},
+
+    {LEGACY_NON_DRM_CONNECTOR_PANEL,    "panel"},
+    {DRM_MODE_CONNECTOR_Unknown,        "Unknown"}
+};
+
+const char * drmConnTypeToString(
+    drm_connector_type_t conn_type) {
+    const char*name = NULL;
+    int i = 0;
+    do {
+        if (drm_connector_enum_list[i].type == conn_type) {
+            name = drm_connector_enum_list[i].name;
+            break;
+        } else {
+            i++;
+        }
+    } while (drm_connector_enum_list[i].type != DRM_MODE_CONNECTOR_Unknown);
+
+    return name;
+}
+
+drm_connector_type_t drmStringToConnType(
+    const char *name) {
+    drm_connector_type_t type = DRM_MODE_CONNECTOR_INVALID_TYPE;
+    int i = 0;
+    do {
+        if (strcasecmp(name, drm_connector_enum_list[i].name) == 0) {
+            type = drm_connector_enum_list[i].type;
+            break;
+        } else {
+            i++;
+        }
+    } while (drm_connector_enum_list[i].type != DRM_MODE_CONNECTOR_Unknown);
+
+    return type;
+}
+
