@@ -25,6 +25,16 @@
 namespace aidl::android::hardware::graphics::composer3::impl {
 namespace meson {
 
+// do some init
+Composer::Composer() {
+    mHal = std::make_unique<HwcHal>();
+    mHal->init();
+}
+
+Composer::~Composer() {
+
+}
+
 ndk::ScopedAStatus Composer::createClient(
         std::shared_ptr<IComposerClient>* outClient) {
     DEBUG_LOG("%s", __FUNCTION__);
@@ -60,7 +70,7 @@ void Composer::onClientDestroyed() {
 binder_status_t Composer::dump(int fd, const char** /*args*/,
         uint32_t /*numArgs*/) {
     DEBUG_LOG("%s", __FUNCTION__);
-    std::string output("TODO");
+    std::string output = mHal->dump();
     write(fd, output.c_str(), output.size());
     return STATUS_OK;
 }
@@ -68,8 +78,20 @@ binder_status_t Composer::dump(int fd, const char** /*args*/,
 ndk::ScopedAStatus Composer::getCapabilities(std::vector<Capability>* caps) {
     DEBUG_LOG("%s", __FUNCTION__);
 
+    const std::array<Capability, 5> all_caps = {{
+        Capability::SIDEBAND_STREAM,
+        Capability::SKIP_CLIENT_COLOR_TRANSFORM,
+        Capability::PRESENT_FENCE_IS_NOT_RELIABLE,
+        Capability::SKIP_VALIDATE,
+        Capability::BOOT_DISPLAY_CONFIG,
+    }};
+
     caps->clear();
-    caps->emplace_back(Capability::PRESENT_FENCE_IS_NOT_RELIABLE);
+    for (auto cap : all_caps) {
+        if (mHal->hasCapability(static_cast<hwc2_capability_t>(cap))) {
+            caps->emplace_back(cap);
+        }
+    }
 
     return ndk::ScopedAStatus::ok();
 }

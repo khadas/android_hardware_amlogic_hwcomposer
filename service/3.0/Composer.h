@@ -22,6 +22,7 @@
 #include <memory>
 
 //#include "ComposerClient.h"
+#include "HwcHal.h"
 
 namespace aidl::android::hardware::graphics::composer3::impl {
 namespace meson {
@@ -29,7 +30,8 @@ namespace meson {
 // This class is basically just the interface to create a client.
 class Composer : public BnComposer {
 public:
-    Composer() = default;
+    Composer();
+    virtual ~Composer();
 
     binder_status_t dump(int fd, const char** args, uint32_t numArgs) override;
 
@@ -45,8 +47,9 @@ private:
     void onClientDestroyed();
 
     std::mutex mClientMutex;
-    //std::weak_ptr<ComposerClient> mClient GUARDED_BY(mClientMutex);
+//    std::weak_ptr<ComposerClient> mClient GUARDED_BY(mClientMutex);
     std::condition_variable mClientDestroyedCondition;
+    std::unique_ptr<ComposerHal> mHal;
 };
 
 }

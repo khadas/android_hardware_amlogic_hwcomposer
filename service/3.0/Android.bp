@@ -30,8 +30,8 @@ cc_defaults {
     ],
 
     shared_libs: [
-        "android.hardware.graphics.composer@2.1-resources-vendor",
-        "android.hardware.graphics.composer@2.2-resources-vendor",
+        "android.hardware.graphics.composer@2.1-resources",
+        "android.hardware.graphics.composer@2.2-resources",
         "android.hardware.graphics.composer3-V1-ndk",
         "android.hardware.graphics.mapper@2.0",
         "android.hardware.graphics.mapper@4.0",
@@ -52,6 +52,10 @@ cc_defaults {
         "libjsoncpp",
         "libui",
     ],
+
+    static_libs: [
+        "libaidlcommonsupport",
+    ],
 }
 
 filegroup {
@@ -59,8 +63,10 @@ filegroup {
     srcs: [
         "Common.cpp",
         "Composer.cpp",
-        "Main.cpp",
+        "ComposerResources.cpp",
 //        "ComposerClient.cpp",
+        "HwcHal.cpp",
+        "Main.cpp",
     ],
 }
 
