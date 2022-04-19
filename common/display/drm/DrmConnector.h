@@ -96,6 +96,8 @@ protected:
     std::shared_ptr<DrmProperty> mColorDepth;
     std::shared_ptr<DrmProperty> mHdrCaps;
     std::shared_ptr<DrmProperty> mUpdate;
+    /*for lcd now*/
+    std::shared_ptr<DrmProperty> mMesonConnectorType;
 
     /*TODO:shuld convert to prop.*/
     drm_hdr_capabilities mHdrCapabilities;

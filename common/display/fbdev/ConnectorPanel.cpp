@@ -54,7 +54,7 @@ const char * ConnectorPanel::getName() {
 }
 
 drm_connector_type_t ConnectorPanel::getType() {
-    return DRM_MODE_CONNECTOR_LVDS;
+    return LEGACY_NON_DRM_CONNECTOR_PANEL;
 }
 drm_connector_type_t ConnectorPanel2::getType() {
     return DRM_MODE_CONNECTOR_PANEL2;

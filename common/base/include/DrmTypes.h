@@ -140,6 +140,33 @@ typedef enum {
     DRM_EVENT_ALL = 0xFF
 } drm_display_event;
 
+/*From kernel/include/drm/amlogic/meson_connetor_dev.h*/
+/*amlogic extend connector type: for original type is not enough.
+ *start from: 0xff,
+ *extend connector: 0x100 ~ 0xfff,
+ *legacy panel type for non-drm: 0x1000 ~
+ */
+#define DRM_MODE_MESON_CONNECTOR_PANEL_START 0xff
+#define DRM_MODE_MESON_CONNECTOR_PANEL_END   0xfff
+
+enum {
+	DRM_MODE_CONNECTOR_MESON_LVDS_A = 0x100,
+	DRM_MODE_CONNECTOR_MESON_LVDS_B = 0x101,
+
+	DRM_MODE_CONNECTOR_MESON_VBYONE_A = 0x110,
+	DRM_MODE_CONNECTOR_MESON_VBYONE_B = 0x111,
+
+	DRM_MODE_CONNECTOR_MESON_MIPI_A = 0x120,
+	DRM_MODE_CONNECTOR_MESON_MIPI_B = 0x121,
+};
+
+#define LEGACY_NON_DRM_CONNECTOR_START 0x1000
+enum {
+    LEGACY_NON_DRM_CONNECTOR_PANEL = 0x1001,
+};
+
+#define DRM_MODE_CONNECTOR_INVALID_TYPE 0xffffffff
+
 typedef uint32_t drm_connector_type_t;
 
 typedef struct drm_hdr_capabilities {
@@ -206,5 +233,8 @@ typedef struct display_zoom_info {
 const char * drmFbTypeToString(drm_fb_type_t fbtype);
 const char * drmPlaneBlankToString(drm_plane_blank_t planetype);
 bool drmHdrCapsDiffer(const drm_hdr_capabilities &hdr1, const drm_hdr_capabilities &hdr2);
+
+const char * drmConnTypeToString(drm_connector_type_t conn_type);
+drm_connector_type_t drmStringToConnType(const char *name);
 
 #endif/*DRM_TYPES_H*/
