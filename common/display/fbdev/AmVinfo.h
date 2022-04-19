@@ -226,6 +226,11 @@ enum tvin_color_fmt_e {
 	TVIN_COLOR_FMT_MAX,
 };
 
+enum port_mode {
+	capure_osd_plus_video = 0,
+	capure_only_video,
+};
+
 enum tvin_color_fmt_range_e {
 	TVIN_FMT_RANGE_NULL = 0,  /* depend on vedio fromat */
 	TVIN_RGB_FULL,  /* 1 */

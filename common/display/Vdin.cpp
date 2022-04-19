@@ -66,6 +66,7 @@ int32_t Vdin::getStreamInfo(int & width, int & height, int & format) {
         mDefFormat = HAL_PIXEL_FORMAT_RGB_888;
     }
 
+    mCapParams.bitorder = 1;
     width = mCapParams.width;
     height = mCapParams.height;
     format = mDefFormat;

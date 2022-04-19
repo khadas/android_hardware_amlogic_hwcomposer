@@ -14,6 +14,7 @@
 #include <BasicTypes.h>
 #include <utils/threads.h>
 #include <DrmFramebuffer.h>
+#include <AmVinfo.h>
 
 #define VDIN_CANVAS_MAX_CNT	 9
 
@@ -21,6 +22,12 @@ struct vdin_v4l2_param_s {
     int width;
     int height;
     int fps;
+    enum tvin_color_fmt_e dst_fmt;
+    int dst_width; /* H scaling down */
+    int dst_height; /* V scaling down */
+    unsigned int bitorder; /* raw data bit order (0: none std, 1: std)*/
+    enum port_mode mode;   /* 0: osd+video 1: video only*/
+    int bit_dep;
 };
 
 struct vdin_set_canvas_s {

@@ -26,10 +26,38 @@
 #include <ion/ion.h>
 
 #define VDIN1_DEV "/dev/vdin1"
+enum tvin_color_fmt_e {
+	TVIN_RGB444 = 0,
+	TVIN_YUV422,		/* 1 */
+	TVIN_YUV444,		/* 2 */
+	TVIN_YUYV422,		/* 3 */
+	TVIN_YVYU422,		/* 4 */
+	TVIN_UYVY422,		/* 5 */
+	TVIN_VYUY422,		/* 6 */
+	TVIN_NV12,		/* 7 */
+	TVIN_NV21,		/* 8 */
+	TVIN_BGGR,		/* 9  raw data */
+	TVIN_RGGB,		/* 10 raw data */
+	TVIN_GBRG,		/* 11 raw data */
+	TVIN_GRBG,		/* 12 raw data */
+	TVIN_COLOR_FMT_MAX,
+};
+
+enum port_mode {
+	capure_osd_plus_video = 0,
+	capure_only_video,
+};
+
 struct vdin_v4l2_param_s {
 	int width;
 	int height;
 	int fps;
+	enum tvin_color_fmt_e dst_fmt;
+	int dst_width; /* H scaling down */
+	int dst_height; /* V scaling down */
+	unsigned int bitorder; /* raw data bit order (0: none std, 1: std)*/
+	enum port_mode mode;   /* 0: osd+video 1: video only*/
+	int bit_dep;
 };
 
 struct vdin_set_canvas_s {
