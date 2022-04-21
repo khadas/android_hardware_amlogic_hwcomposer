@@ -40,7 +40,6 @@ Hwc2Layer::Hwc2Layer(uint32_t dispId) : DrmFramebuffer(){
     mGameMode = false;
     mVideoDisplayStatus = VT_VIDEO_STATUS_SHOW;
     mAMVideoType = -1;
-    mEnableSolidColor = false;
     mQueueItems.clear();
 
     mPreUvmBufferFd = -1;
@@ -239,7 +238,6 @@ hwc2_error_t Hwc2Layer::setSidebandStream(const native_handle_t* stream) {
                         __func__, mId, channel_id);
                 mQueuedFrames = 0;
                 mQueueItems.clear();
-                getSolidColorBuffer();
             } else {
                 MESON_LOGE("%s [%" PRId64 "] register consumer for videotunnel %d failed, error %d",
                         __func__, mId, channel_id, ret);
@@ -463,18 +461,11 @@ void Hwc2Layer::freeSolidColorBuffer() {
 }
 
 int32_t Hwc2Layer::getSolidColorBuffer() {
-    /* will send a colorFrame to VC when get a null VT buffer
-     * at the beginning */
-    if (!mEnableSolidColor)
-        return -1;
+    std::lock_guard<std::mutex> lock(mMutex);
+    if (!isVtBufferLocked())
+        return -EINVAL;
 
-    if (mSolidColorBufferfd < 0) {
-        int fd = gralloc_get_solid_color_buf_fd(SET_VIDEO_TO_BLACK);
-
-        if (fd >= 0)
-            mSolidColorBufferfd = dup(fd);
-    }
-
+    mVtUpdate = false;
     return mSolidColorBufferfd;
 }
 
@@ -545,9 +536,6 @@ int32_t Hwc2Layer::releaseVtBuffer() {
         MESON_LOGD("layer:%" PRId64 " is not videotunnel layer", getUniqueId());
         return -EINVAL;
     }
-
-    if (mEnableSolidColor)
-        mEnableSolidColor = false;
 
     dettachUvmBuffer();
 
@@ -670,7 +658,8 @@ void Hwc2Layer::handleDisplayDisconnet(bool connect) {
     if (connect) {
         registerConsumer();
     } else {
-        releaseVtResource();
+        std::lock_guard<std::mutex> lock(mMutex);
+        releaseVtResourceLocked(false);
     }
 }
 
@@ -916,8 +905,14 @@ void Hwc2Layer::setVtSourceCrop(drm_rect_t & rect) {
     mVtSourceCrop.bottom = rect.bottom;
 }
 
-void Hwc2Layer::onNeedShowTempBuffer(int colorType __unused) {
-    mEnableSolidColor = true;
+void Hwc2Layer::onNeedShowTempBuffer(int colorType) {
+    // set default to black
+    colorType = SET_VIDEO_TO_BLACK;
+
+    mSolidColorBufferfd =
+        dup(gralloc_get_solid_color_buf_fd((video_color_t)colorType));
+    if (mSolidColorBufferfd >= 0)
+        mVtUpdate = true;
 }
 
 void Hwc2Layer::setVideoType(int videoType) {

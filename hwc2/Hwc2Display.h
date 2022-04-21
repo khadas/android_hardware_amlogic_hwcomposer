@@ -30,6 +30,12 @@
 #include "MesonHwc2Defs.h"
 #include "HwcModeMgr.h"
 
+#define MESON_DISPLAY_HOTPLUG_MASK    ((uint8_t)1 << 0)
+#define MESON_DISPLAY_MODE_MASK       ((uint8_t)1 << 1)
+#define MESON_DISPLAY_POWER_MODE_MASK ((uint8_t)1 << 2)
+#define MESON_DISPLAY_ALL_MASK \
+    ((uint8_t)1 << 0 | (uint8_t)1 << 1 | (uint8_t)1 << 2)
+
 class VtDisplayThread;
 
 /* IComposerClient@2.4::DisplayConnectionType */
@@ -266,8 +272,8 @@ protected:
     std::shared_ptr<VtDisplayThread> mVtDisplayThread;
     std::shared_ptr<HwcVsync> mVtVsync;
     int32_t mNumGameModeLayers;
+    uint8_t mDisplayState;
     bool mVtVsyncStatus;
-    bool mDisplayConnection;
     bool mOutsideChanged;
     std::mutex mVtMutex;
 

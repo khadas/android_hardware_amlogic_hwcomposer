@@ -157,7 +157,6 @@ protected:
     std::shared_ptr<VtConsumer> mVtConsumer;
     vt_video_status_t mVideoDisplayStatus;
     std::shared_ptr<VtDisplayObserver> mDisplayObserver;
-    bool mEnableSolidColor;
 
     std::shared_ptr<UvmDettach> mUvmDettach;
     int mPreUvmBufferFd;

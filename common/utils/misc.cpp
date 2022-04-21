@@ -237,6 +237,8 @@ void gralloc_alloc_solid_color_buf() {
         &solid_color_handle, &stride, 0, "MesonHwcSolidColorBuffer")) {
         MESON_LOGE("%s alloc buffer failed", __func__);
     }
+
+    gralloc_get_solid_color_buf_fd(SET_VIDEO_TO_BLACK);
 }
 
 void gralloc_free_solid_color_buf() {
