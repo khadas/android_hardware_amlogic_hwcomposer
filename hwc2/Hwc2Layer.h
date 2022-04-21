@@ -152,7 +152,6 @@ protected:
 protected:
     bool mUpdateZorder;
     bool mVtRefreshed;
-    bool mEnableSolidColor;
 
     bool mGameMode;
     bool mVtUpdate;
