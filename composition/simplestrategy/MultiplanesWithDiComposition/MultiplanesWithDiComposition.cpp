@@ -104,7 +104,6 @@ int MultiplanesWithDiComposition::allocateDiOutputFb(
     fb->mFbType = DRM_FB_DI_COMPOSE_OUTPUT;
     fb->mCompositionType = MESON_COMPOSITION_DI;
     fb->mZorder = z;
-    fb->mId = INVALID_ID;
     return 0;
 }
 
@@ -154,9 +153,8 @@ int MultiplanesWithDiComposition::chooseOneVideoFb(std::shared_ptr<DrmFramebuffe
      */
     drm_rect_t dispFrame, dispFrame1;
     bool is_overlap;
-    std::shared_ptr<DrmFramebuffer> fb, fb1, large_fb;
-    std::vector<std::shared_ptr<DrmFramebuffer>> no_overlap_fbs;
-    int region = 0, max_region = 0;
+    std::shared_ptr<DrmFramebuffer> fb, fb1, large_fb, no_overlap_fb;
+    int region = 0, max_region = 0, no_overlap_fb_region = 0;
     for (auto it = mDIComposerFbs.begin(); it != mDIComposerFbs.end(); it++) {
         fb = *it;
         is_overlap = false;
@@ -180,19 +178,30 @@ int MultiplanesWithDiComposition::chooseOneVideoFb(std::shared_ptr<DrmFramebuffe
             }
         }
 
-        if (!is_overlap)
-            no_overlap_fbs.push_back(fb);
+        region = (dispFrame.right - dispFrame.left) * (dispFrame.bottom - dispFrame.top);
+        if (!is_overlap) {
+            if (!no_overlap_fb || region > no_overlap_fb_region) {
+                no_overlap_fb = fb;
+                no_overlap_fb_region = region;
+            } else if ( region == no_overlap_fb_region) {
+                if (fb->mZorder >= no_overlap_fb->mZorder )
+                    no_overlap_fb = fb;
+            }
+        }
 
         /* find the largest the frame */
-        region = (dispFrame.right - dispFrame.left) * (dispFrame.bottom - dispFrame.top);
-        if ((dispFrame.right - dispFrame.left) * (dispFrame.bottom - dispFrame.top) > max_region) {
+        if (region > max_region) {
             large_fb = fb;
             max_region = region;
+        } else if (region == max_region) {
+            if (fb->mZorder > large_fb->mZorder)
+                large_fb = fb;
         }
     }
-    if (!no_overlap_fbs.empty())
-        videoFb = *(no_overlap_fbs.begin());
-    else if (large_fb)
+
+    if (no_overlap_fb) {
+        videoFb = no_overlap_fb;
+    } else if (large_fb)
         videoFb = large_fb;
 
     /*remove from list*/
@@ -298,7 +307,6 @@ bool MultiplanesWithDiComposition::runProcessor(
 int MultiplanesWithDiComposition::processVideoFbs() {
     std::vector<std::shared_ptr<DrmFramebuffer>> sidebandFbs;
     std::shared_ptr<DrmFramebuffer> fb;
-    std::shared_ptr<DrmFramebuffer> topFb, bottomFb;
 
     uint32_t minVideoZ = -1, maxVideoZ = -1;
     int videoFbNum = 0;
@@ -326,14 +334,11 @@ int MultiplanesWithDiComposition::processVideoFbs() {
                     mDIComposerFbs.push_back(fb);
                 }
                 videoFbNum++;
-                if (minVideoZ == INVALID_ZORDER || fb->mZorder < minVideoZ) {
+                if (minVideoZ == INVALID_ZORDER || fb->mZorder < minVideoZ)
                     minVideoZ = fb->mZorder;
-                    bottomFb = fb;
-                }
-                if (maxVideoZ == INVALID_ZORDER || fb->mZorder > maxVideoZ) {
+
+                if (maxVideoZ == INVALID_ZORDER || fb->mZorder > maxVideoZ)
                     maxVideoZ = fb->mZorder;
-                    topFb = fb;
-                }
                 break;
             default:
                 break;
@@ -1443,21 +1448,28 @@ int MultiplanesWithDiComposition::commit(bool sf) {
             dumpFbAndPlane(fb, plane, presentZorder, blankFlag);
         }
 
-        /*vt layer will send black frame or disable vc when buffer is invalid */
-        if (fb->isVtBuffer() && (fb->getVtBuffer() < 0)) {
-            if (fb->isVtNeedClearFrame())
-                blankFlag = BLANK_FOR_NO_CONTENT;
-            else
-                blankFlag = UNBLANK;
-            plane->setPlane(fb, presentZorder, blankFlag);
-            continue;
+        if (fb->isVtBuffer()) {
+            if (fb->isVtNeedClearFrame() ||
+                (fb->getVtBuffer() < 0 && fb->getSolidColorBuffer() < 0)) {
+                /* need blank video plane:
+                 * 1, receiced a clear last frame cmd
+                 * 2, buffer is invalid */
+                MESON_LOGV("%s, layerId(%" PRIu64 ") will blank plane", __func__, fb->mId);
+                plane->setPlane(fb, presentZorder, BLANK_FOR_NO_CONTENT);
+                continue;
+            }
+
+            if (fb->getVtBuffer() < 0 && fb->getSolidColorBuffer() >= 0) {
+                plane->setPlane(fb, presentZorder, blankFlag);
+                continue;
+            }
         }
 
-        /* make sure SF donot refresh VtLayer and VT only refresh VtLayer*/
-        if ((sf && !fb->isVtBuffer()) || (!sf && fb->isVtBuffer() && (fb->getVtBuffer() >= 0))) {
+        /* make sure SF donot refresh VtLayer
+         * and VT thread only refresh VtLayer when layer have a valid buffer
+         */
+        if ((sf && !fb->isVtBuffer()) || (!sf && fb->isVtBuffer())) {
             int ret = -1;
-            if (fb->isVtNeedClearFrame())
-                blankFlag = BLANK_FOR_NO_CONTENT;
 
             if (!runProcessor(*displayIt, blankFlag, ret))
                 ret = plane->setPlane(fb, presentZorder, blankFlag);
