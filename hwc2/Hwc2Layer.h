@@ -85,7 +85,7 @@ public:
     void setPresentTime(nsecs_t expectedPresentTime);
     bool shouldPresentNow(nsecs_t timestamp);
     bool newGameBuffer();
-    int32_t getSolidColorBuffer();
+    int32_t getSolidColorBuffer(bool used = false);
     void vtRefresh();
 
     int32_t registerConsumer();

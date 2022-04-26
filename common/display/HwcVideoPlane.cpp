@@ -34,7 +34,6 @@ HwcVideoPlane::HwcVideoPlane(int32_t drvFd, uint32_t id)
 
     snprintf(mName, 64, "HwcVideo-%d", id);
     mDisplayedVideoType = DRM_FB_UNDEFINED;
-    mPrevFbId = INVALID_ID;
     memset(mAmVideosPath, 0, sizeof(mAmVideosPath));
     getProperties();
     mBlank = true;
@@ -203,29 +202,17 @@ int32_t HwcVideoPlane::setPlane(
         MESON_ASSERT(fb.get() != NULL, "fb shoud not NULL");
 
         /*disable video*/
-        bool need_disable_video = false;
-        hwc2_layer_t id = fb->mId;
         drm_fb_type_t type = fb->mFbType;
 
         /* disable video if sideband video */
         if (mDisplayedVideoType != DRM_FB_UNDEFINED) {
             if (type != mDisplayedVideoType) {
                 if (isSidebandVideo(type) && isSidebandVideo(mDisplayedVideoType)) {
-                    need_disable_video = true;
+                    mVideoComposer->enable(false);
                 }
                 mDisplayedVideoType = DRM_FB_UNDEFINED;
             }
         }
-
-        /*disable video if fb id changed*/
-        if (!need_disable_video && mPrevFbId != INVALID_ID &&
-             id != INVALID_ID && mPrevFbId != id) {
-            need_disable_video = true;
-        }
-        mPrevFbId = id;
-
-        if (need_disable_video)
-            mVideoComposer->enable(false);
 
         mDisplayedVideoType = fb->mFbType;
         mVideoFb = fb;
@@ -268,7 +255,6 @@ int32_t HwcVideoPlane::setPlane(
     } else if (mBlank != bBlank) {
         mVideoComposer->enable(false);
         mDisplayedVideoType = DRM_FB_UNDEFINED;
-        mPrevFbId = INVALID_ID;
         mVideoFb.reset();
     }
 

@@ -54,7 +54,6 @@ protected:
     std::shared_ptr<VideoComposerDev> mVideoComposer;
     std::shared_ptr<DrmFramebuffer> mVideoFb;
     drm_fb_type_t mDisplayedVideoType;
-    hwc2_layer_t mPrevFbId;
     bool mBlank;
 };
 

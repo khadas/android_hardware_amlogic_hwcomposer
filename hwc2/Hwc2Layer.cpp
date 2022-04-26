@@ -464,12 +464,14 @@ void Hwc2Layer::freeSolidColorBuffer() {
     }
 }
 
-int32_t Hwc2Layer::getSolidColorBuffer() {
+int32_t Hwc2Layer::getSolidColorBuffer(bool used) {
     std::lock_guard<std::mutex> lock(mMutex);
     if (!isVtBufferLocked())
         return -EINVAL;
 
-    mVtUpdate = false;
+    if (used)
+        mVtUpdate = false;
+
     return mSolidColorBufferfd;
 }
 
@@ -943,6 +945,7 @@ void Hwc2Layer::onNeedShowTempBuffer(int colorType) {
 
     mSolidColorBufferfd =
         dup(gralloc_get_solid_color_buf_fd((video_color_t)colorType));
+
     if (mSolidColorBufferfd >= 0)
         mVtUpdate = true;
 }

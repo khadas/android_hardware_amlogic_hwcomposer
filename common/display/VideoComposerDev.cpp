@@ -92,7 +92,7 @@ int32_t VideoComposerDev::setFrames(
         } else if (fbType == DRM_FB_VIDEO_TUNNEL_SIDEBAND) {
             int fd = fb->getVtBuffer();
             if (fd < 0) {
-                vFrameInfo->fd = fb->getSolidColorBuffer();
+                vFrameInfo->fd = fb->getSolidColorBuffer(true);
                 vFrameInfo->type = 1;
                 isBlackBuffer = true;
                 vFrameInfo->source_type = HWC_CREAT_ION;
