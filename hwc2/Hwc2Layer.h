@@ -95,6 +95,7 @@ public:
 
     void setDisplayObserver(std::shared_ptr<VtDisplayObserver> observer);
     void handleDisplayDisconnet(bool connect);
+    int getVideoTunnelId();
 
 public:
     android_dataspace_t mDataSpace;

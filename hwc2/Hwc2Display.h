@@ -169,7 +169,7 @@ public:
     bool getDisplayVsyncAndPeriod(int64_t& timestamp, int32_t& vsyncPeriodNanos);
     bool setFrameRateHint(std::string value);
     bool isDisplayConnected();
-
+    std::unordered_map<hwc2_layer_t, std::shared_ptr<Hwc2Layer>> getAllLayers();
 protected:
     /* For compose. */
     hwc2_error_t collectLayersForPresent();

@@ -493,6 +493,14 @@ int32_t MesonHwc2::setLayerSidebandStream(hwc2_display_t display,
     GET_HWC_DISPLAY(display);
     GET_HWC_LAYER(hwcDisplay, layer);
     ret = hwcLayer->setSidebandStream(stream);
+    std::unordered_map<hwc2_layer_t, std::shared_ptr<Hwc2Layer>> bLayers = hwcDisplay->getAllLayers();
+    for (auto it = bLayers.begin(); it != bLayers.end(); it++) {
+        std::shared_ptr<Hwc2Layer> layer = it->second;
+        if (layer != hwcLayer && layer->getVideoTunnelId() == hwcLayer->getVideoTunnelId()) {
+            MESON_LOGE("layer id is %" PRIu64",tunnel ID %d exist",layer->getUniqueId() ,layer->getVideoTunnelId());
+            break;
+        }
+    }
     if (ret == HWC2_ERROR_NONE) {
         hwcLayer->setDisplayObserver(hwcDisplay);
         hwcDisplay->handleVtThread();

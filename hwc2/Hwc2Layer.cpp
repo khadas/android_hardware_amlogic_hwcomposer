@@ -665,6 +665,10 @@ void Hwc2Layer::handleDisplayDisconnet(bool connect) {
     }
 }
 
+int Hwc2Layer::getVideoTunnelId() {
+    return mTunnelId;
+}
+
 void Hwc2Layer::setPresentTime(nsecs_t expectedPresentTime) {
     ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);

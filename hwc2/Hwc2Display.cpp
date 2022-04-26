@@ -1561,18 +1561,18 @@ int32_t Hwc2Display::adjustVsyncMode() {
 }
 
 void Hwc2Display::dumpPresentLayers(String8 & dumpstr) {
-    dumpstr.append("----------------------------------------------------------"
-        "-----------------------------------\n");
+    dumpstr.append("-----------------------------------------------------------"
+        "-------------------------------------------\n");
     dumpstr.append("|  id  |  z  |    type    |blend| alpha  |t|"
-        "  AFBC  |    Source Crop    |    Display Frame  |\n");
+        "  AFBC  |    Source Crop    |    Display Frame  |tunnelId|\n");
     for (auto it = mPresentLayers.begin(); it != mPresentLayers.end(); it++) {
         Hwc2Layer *layer = (Hwc2Layer*)(it->get());
         drm_rect_t sourceCrop = layer->getSourceCrop();
 
         dumpstr.append("+------+-----+------------+-----+--------+-+--------+"
-            "-------------------+-------------------+\n");
+            "-------------------+-------------------+--------+\n");
         dumpstr.appendFormat("|%6" PRIu64 "|%5d|%12s|%5d|%8f|%1d|%8x|%4d %4d %4d %4d"
-            "|%4d %4d %4d %4d|\n",
+            "|%4d %4d %4d %4d|%8d|\n",
             layer->getUniqueId(),
             layer->mZorder,
             drmFbTypeToString(layer->mFbType),
@@ -1587,11 +1587,12 @@ void Hwc2Display::dumpPresentLayers(String8 & dumpstr) {
             layer->mDisplayFrame.left,
             layer->mDisplayFrame.top,
             layer->mDisplayFrame.right,
-            layer->mDisplayFrame.bottom
+            layer->mDisplayFrame.bottom,
+            layer->getVideoTunnelId()
             );
     }
     dumpstr.append("----------------------------------------------------------"
-        "-----------------------------------\n");
+        "--------------------------------------------\n");
 }
 
 void Hwc2Display::dumpHwDisplayPlane(String8 &dumpstr) {
@@ -1738,6 +1739,11 @@ bool Hwc2Display::getDisplayVsyncAndPeriod(int64_t& timestamp, int32_t& vsyncPer
 
 bool Hwc2Display::isDisplayConnected() {
     return (mConnector == nullptr)?false:mConnector->isConnected();
+}
+
+std::unordered_map<hwc2_layer_t, std::shared_ptr<Hwc2Layer>> Hwc2Display::getAllLayers() {
+    std::lock_guard<std::mutex> lock(mMutex);
+    return mLayers;
 }
 
 bool Hwc2Display::setFrameRateHint(std::string value) {
