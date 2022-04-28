@@ -82,6 +82,7 @@ public:
     bool newGameBuffer();
     int32_t getSolidColorBuffer(bool used = false);
     void vtRefresh();
+    int getVideoTunnelId();
 
     int32_t registerConsumer();
     int32_t unregisterConsumer();

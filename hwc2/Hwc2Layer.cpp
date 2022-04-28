@@ -749,6 +749,10 @@ void Hwc2Layer::vtRefresh() {
     mVtRefreshed = true;
 }
 
+int Hwc2Layer::getVideoTunnelId() {
+    return mTunnelId;
+}
+
 void Hwc2Layer::setVtPrevReleaseFence() {
     // CureRelease move to PrevRelase, it can be returned in next loop.
     if (mCurReleaseFence.get() && mCurReleaseFence != DrmFence::NO_FENCE)
