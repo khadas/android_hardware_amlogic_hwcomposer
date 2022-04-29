@@ -44,6 +44,7 @@ public:
     void resetTags(){};
     bool isFakeMode(){return false;};
     void dump(String8 & dumpstr);
+    bool is16_9Mode(drm_mode_info_t mode __unused) {return false;}
 
 protected:
     int32_t initDefaultDispResources();

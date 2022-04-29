@@ -46,6 +46,9 @@ public:
     void resetTags();
     void dump(String8 & dumpstr);
 
+    // for filter 16:9 mode
+    bool is16_9Mode(drm_mode_info_t mode);
+
 protected:
     int32_t updateActiveConfig(drm_mode_info_t activeMode);
     bool isSupportModeForCurrentDevice(drm_mode_info_t mode);
@@ -70,6 +73,8 @@ protected:
     bool mDvEnabled;
 
     bool mCallOnHotPlug;
+
+    bool mIscontain16_9Mode = false;
 };
 
 #endif // REAL_MODE_MGR_H

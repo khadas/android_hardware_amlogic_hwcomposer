@@ -137,6 +137,14 @@ hwc_modes_policy_t HwcConfig::getModePolicy(int disp) {
 #endif
 }
 
+bool HwcConfig::getModeCondition() {
+#ifdef HWC_FILTER_16_9_MODE
+    return true;
+#else
+    return false;
+#endif
+}
+
 bool HwcConfig::isHeadlessMode() {
 #ifdef HWC_ENABLE_HEADLESS_MODE
         return true;

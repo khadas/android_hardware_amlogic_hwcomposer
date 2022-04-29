@@ -1298,10 +1298,12 @@ hwc2_error_t Hwc2Display::setClientTarget(buffer_handle_t target,
     if (HwcConfig::getModePolicy(0) ==  REAL_MODE_POLICY) {
         drm_mode_info_t mode;
         mModeMgr->getDisplayMode(mode);
-        mClientTarget->mSourceCrop.right = ((int32_t)mode.pixelW < mClientTarget->mSourceCrop.right)
-            ? mode.pixelW : mClientTarget->mSourceCrop.right;
-        mClientTarget->mSourceCrop.bottom = ((int32_t)mode.pixelH < mClientTarget->mSourceCrop.bottom)
-            ? mode.pixelH : mClientTarget->mSourceCrop.bottom;
+        if (!HwcConfig::getModeCondition() || (HwcConfig::getModeCondition() && mModeMgr->is16_9Mode(mode))) {
+            mClientTarget->mSourceCrop.right = ((int32_t)mode.pixelW < mClientTarget->mSourceCrop.right)
+                ? mode.pixelW : mClientTarget->mSourceCrop.right;
+            mClientTarget->mSourceCrop.bottom = ((int32_t)mode.pixelH < mClientTarget->mSourceCrop.bottom)
+                ? mode.pixelH : mClientTarget->mSourceCrop.bottom;
+        }
     }
     /*clienttarget's displayframe which depends on output but not surfaceflinger,
      *moved to PresentDisplay().

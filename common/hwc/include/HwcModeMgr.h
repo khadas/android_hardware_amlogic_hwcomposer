@@ -61,6 +61,9 @@ public:
 
     virtual void resetTags() = 0;
     virtual void dump(String8 & dumpstr) = 0;
+
+    // for filter 16:9 mode
+    virtual bool is16_9Mode(drm_mode_info_t mode) = 0;
 };
 
 std::shared_ptr<HwcModeMgr> createModeMgr(hwc_modes_policy_t policy);

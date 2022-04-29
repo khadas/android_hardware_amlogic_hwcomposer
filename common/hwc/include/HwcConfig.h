@@ -27,6 +27,7 @@ public:
     static hwc_pipe_policy_t getPipeline();
 
     static hwc_modes_policy_t getModePolicy(int disp);
+    static bool getModeCondition();
 
     static bool isHeadlessMode();
     static int32_t headlessRefreshRate();

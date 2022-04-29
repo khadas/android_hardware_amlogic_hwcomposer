@@ -44,6 +44,7 @@ public:
     bool isSeamlessSwitch(uint32_t config __unused) {return false;};
     void resetTags(){};
     void dump(String8 & dumpstr);
+    bool is16_9Mode(drm_mode_info_t mode __unused) {return false;}
 
 protected:
     std::shared_ptr<HwDisplayConnector> mConnector;

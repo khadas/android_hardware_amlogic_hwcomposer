@@ -100,6 +100,10 @@ ifndef HWC_UVM_DETTACH
 HWC_UVM_DETTACH := false
 endif
 
+ifndef HWC_FILTER_16_9MODE
+HWC_FILTER_16_9MODE := false
+endif
+
 ifndef HWC_ENABLE_AIDL
 HWC_ENABLE_AIDL := false
 endif
@@ -137,6 +141,7 @@ $(call soong_config_set,meson_hwc,enable_video_aisr,$(HWC_VIDEO_AISR))
 $(call soong_config_set,meson_hwc,enable_vt_hwVsync,$(HWC_VT_HW_VSYNC))
 $(call soong_config_set,meson_hwc,enable_video_aipq,$(HWC_VIDEO_AIPQ))
 $(call soong_config_set,meson_hwc,enable_uvm_dettach,$(HWC_UVM_DETTACH))
+$(call soong_config_set,meson_hwc,filter_16_9mode,$(HWC_FILTER_16_9MODE))
 
 #$(warning "the value of aidl: $(HWC_ENABLE_AIDL)")
 $(warning "the value of uvm_dettach: $(HWC_UVM_DETTACH)")

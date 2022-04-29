@@ -115,6 +115,7 @@ int32_t RealModeMgr::updateActiveConfig(drm_mode_info_t activeMode) {
 void RealModeMgr::reset() {
     mModes.clear();
     mActiveConfigId = -1;
+    mIscontain16_9Mode = false;
 }
 
 void RealModeMgr::resetTags() {
@@ -130,6 +131,7 @@ int32_t RealModeMgr::update() {
     std::lock_guard<std::mutex> lock(mMutex);
     bool useFakeMode = true;
     drm_mode_info_t realMode;
+    drm_mode_info_t cvbsMode;
     std::map<uint32_t, drm_mode_info_t> connecterModeList;
 
     int largestUsedModeId = -1;
@@ -150,24 +152,70 @@ int32_t RealModeMgr::update() {
     if (mConnector->isConnected()) {
         mDvEnabled = sc_is_dolby_version_enable();
         MESON_LOGD("RealModeMgr::update mDvEnabled(%d)", mDvEnabled);
-
+        MESON_LOGD("RealModeMgr::filter 16:9 mode enable (%d)",HwcConfig::getModeCondition());
         mConnector->getModes(connecterModeList);
         int ret = mCrtc->getMode(realMode);
         if (ret == 0) {
             if (realMode.name[0] != 0) {
                 MESON_LOGD("RealModeMgr::update get current mode:%s", realMode.name);
                 for (auto it = connecterModeList.begin(); it != connecterModeList.end(); it++) {
-                    // if the current mode is dummy_l and connector has connected, we are in suspend process.
-                    // Do not report dummy_l to frameworks, report the previous active mode instead
-                    // not filter the current mode except dummy_l
-                    if (!strcmp(realMode.name, it->second.name) && strcmp(realMode.name, "dummy_l")) {
-                        mModes.emplace(nextModeId++, it->second);
-                        useFakeMode = false;
-                    } else if (isSupportModeForCurrentDevice(it->second)) {
-                        mModes.emplace(nextModeId++, it->second);
+                    // Most of the apps (including the launcher) don't work well in non 16:9 resolution
+                    // Currently only 16:9 mode is supported
+                    if (HwcConfig::getModeCondition()) {
+                        if (!strcmp(realMode.name, it->second.name) &&
+                                strcmp(realMode.name, "dummy_l") && is16_9Mode(realMode)) {
+                            mModes.emplace(nextModeId++, it->second);
+                            mIscontain16_9Mode = true;
+                            useFakeMode = false;
+                        } else if (isSupportModeForCurrentDevice(it->second) && is16_9Mode(it->second)) {
+                            mIscontain16_9Mode = true;
+                            mModes.emplace(nextModeId++, it->second);
+                        }
+                        if (strstr(realMode.name,"cvbs") && strcmp(realMode.name, it->second.name)) {
+                            cvbsMode = it->second;
+                        }
+                    } else {
+                        // All modes are supported
+                        // if the current mode is dummy_l and connector has connected, we are in suspend process.
+                        // Do not report dummy_l to frameworks, report the previous active mode instead
+                        // not filter the current mode except dummy_l
+                        if (!strcmp(realMode.name, it->second.name) && strcmp(realMode.name, "dummy_l")) {
+                            mModes.emplace(nextModeId++, it->second);
+                            useFakeMode = false;
+                        } else if (isSupportModeForCurrentDevice(it->second)) {
+                            mModes.emplace(nextModeId++, it->second);
+                        }
+
                     }
                 }
+                if (HwcConfig::getModeCondition() && !is16_9Mode(realMode)) {
+                    MESON_LOGD("RealModeMgr::filter 16:9 mode is enable, there isn't 16:9 mode");
+                    uint32_t fakePixelW = 0,fakePixelH = 0;
+                    HwcConfig::getFramebufferSize(0,fakePixelW,fakePixelH);
 
+                    realMode.dpiX = ((float)fakePixelW / realMode.pixelW) * realMode.dpiX;
+                    realMode.dpiY = ((float)fakePixelH / realMode.pixelH) * realMode.dpiY;
+                    realMode.pixelW = fakePixelW;
+                    realMode.pixelH = fakePixelH;
+                    if (strstr(realMode.name,"cvbs")) {
+                        cvbsMode.dpiX = ((float)fakePixelW / cvbsMode.pixelW) * cvbsMode.dpiX;
+                        cvbsMode.dpiY = ((float)fakePixelH / cvbsMode.pixelH) * cvbsMode.dpiY;
+                        cvbsMode.pixelW = fakePixelW;
+                        cvbsMode.pixelH = fakePixelH;
+                    }
+                    useFakeMode = false;
+
+                    if (!mIscontain16_9Mode) {
+                        mModes.clear();
+                        mModes.emplace(nextModeId++,realMode);
+                        if (strstr(realMode.name,"cvbs")) {
+                            mModes.emplace(nextModeId++,cvbsMode);
+                        }
+                    } else {
+                        mModes.emplace(nextModeId++,realMode);
+                    }
+
+               }
             }
         } else {
             MESON_LOGI("RealModeMgr::update could not get current mode:%d", ret);
@@ -193,6 +241,13 @@ int32_t RealModeMgr::update() {
     updateActiveConfig(mLatestRealMode);
 
     return HWC2_ERROR_NONE;
+}
+
+bool RealModeMgr::is16_9Mode(drm_mode_info_t mode) {
+     if (!(mode.pixelW % 16) && !(mode.pixelH % 9) && (mode.pixelW / 16 == mode.pixelH / 9)) {
+         return true;
+     }
+     return false;
 }
 
 int32_t RealModeMgr::getDisplayMode(drm_mode_info_t & mode) {

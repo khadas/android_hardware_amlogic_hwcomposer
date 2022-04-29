@@ -32,6 +32,7 @@ soong_config_module_type {
         "enable_headless_mode",
         "enable_active_mode",
         "enable_real_mode",
+        "filter_16_9mode",
         "enable_pre_display_calibrate",
         "enable_software_vsync",
         "enable_primary_hotplug",
@@ -62,6 +63,9 @@ soong_config_bool_variable {
     name: "enable_real_mode",
 }
 
+soong_config_bool_variable {
+    name: "filter_16_9mode"
+}
 soong_config_bool_variable {
     name: "enable_pre_display_calibrate",
 }
@@ -163,6 +167,10 @@ meson_hwc_hwc_cc_defaults {
 
         enable_real_mode: {
             cflags: ["-DHWC_ENABLE_REAL_MODE"],
+        },
+
+        filter_16_9mode: {
+            cflags: ["-DHWC_FILTER_16_9_MODE"],
         },
 
         enable_pre_display_calibrate: {

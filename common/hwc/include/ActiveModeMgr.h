@@ -44,6 +44,8 @@ public:
     void resetTags();
     void dump(String8 & dumpstr);
 
+    bool is16_9Mode(drm_mode_info_t mode __unused) {return false;}
+
 protected:
     int32_t updateSfDispConfigs();
     int32_t updateHwcActiveConfig(drm_mode_info_t activeMode);
