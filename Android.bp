@@ -60,10 +60,6 @@ meson_hwc_cc_defaults {
             cflags: [
                 "-DHWC_ENABLE_KEYSTONE_CORRECTION",
             ],
-
-            shared_libs: [
-                "libkeystonecorrection",
-            ],
         },
 
         enable_video_aisr: {

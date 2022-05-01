@@ -12,6 +12,33 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+soong_config_module_type {
+    name: "meson_hwc_keystone_defaults",
+    module_type: "cc_defaults",
+    config_namespace: "meson_hwc",
+
+    bool_variables: [
+        "enable_keystone_correction",
+    ],
+
+    properties: [
+        "shared_libs",
+    ],
+}
+
+meson_hwc_keystone_defaults {
+    name: "hwcomposer_keystone_defaults",
+    vendor: true,
+
+    soong_config_variables: {
+        enable_keystone_correction: {
+            shared_libs: [
+                "libkeystonecorrection",
+            ],
+        },
+    },
+}
+
 cc_library_static {
     name: "hwc.composer_static",
     defaults: ["hwcomposer_cc_defaults"],
@@ -43,7 +70,7 @@ cc_library_static {
 
 cc_library_shared {
     name: "hwcomposer.amlogic",
-    defaults: ["hwcomposer_cc_defaults"],
+    defaults: ["hwcomposer_cc_defaults", "hwcomposer_keystone_defaults"],
     vendor: true,
 
     relative_install_path: "hw",
