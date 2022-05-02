@@ -133,6 +133,8 @@ hwc_pipe_policy_t HwcConfig::getPipeline() {
         return HWC_PIPE_DUAL;
     } else if (strcasecmp(pipeStr, "VIU1VDINVIU2") == 0) {
         return HWC_PIPE_LOOPBACK;
+    } else if (strcasecmp(pipeStr, "multidisplay") == 0) {
+        return HWC_PIPE_MULTI;
     } else {
         MESON_ASSERT(0, "getPipeline %s failed.", pipeStr);
     }

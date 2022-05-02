@@ -20,6 +20,7 @@
 #include "DrmPlane.h"
 
 #define MESON_DRM_DRIVER_NAME "meson"
+#define MAX_PLANE_LIMIT 3
 
 std::shared_ptr<DrmDevice> DrmDevice::mInstance = NULL;
 
@@ -61,6 +62,8 @@ int32_t DrmDevice::getPlanes(
         if (it.second->getType() == DRM_PLANE_TYPE_OVERLAY
             && !(it.second->getCapabilities() & PLANE_PRIMARY)) {
             cnt++;
+            if (cnt >= MAX_PLANE_LIMIT)
+                continue;
        }
 
         planes.push_back(it.second);
@@ -331,5 +334,9 @@ int32_t DrmDevice::freeResources() {
     mConnectors.clear();
     mPlanes.clear();
     return 0;
+}
+
+void DrmDevice::dump(String8 & dumpstr) {
+    dumpstr.appendFormat("DisplayBackend: [DRM + VideoComposer]\n");
 }
 

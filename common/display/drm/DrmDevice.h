@@ -44,6 +44,8 @@ public:
         std::vector<std::shared_ptr<HwDisplayPlane>> & planes);
     int32_t unbind(std::shared_ptr<HwDisplayCrtc> & crtc);
 
+    void dump(String8 & dumpstr);
+
 /*api in display module*/
 public:
     int getDeviceFd() {return mDrmFd;}

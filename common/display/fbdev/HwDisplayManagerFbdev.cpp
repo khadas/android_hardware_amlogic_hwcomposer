@@ -243,4 +243,7 @@ int32_t HwDisplayManagerFbdev::loadPlanes() {
     return 0;
 }
 
+void HwDisplayManagerFbdev::dump(String8 & dumpstr) {
+    dumpstr.appendFormat("DisplayBackend: [Fbdev+Vout]\n");
+}
 

@@ -11,6 +11,7 @@
 #include "FixedDisplayPipe.h"
 #include "LoopbackDisplayPipe.h"
 #include "DualDisplayPipe.h"
+#include "MultiDisplayDrmPipe.h"
 #include <HwcConfig.h>
 #include <systemcontrol.h>
 #include <misc.h>
@@ -62,7 +63,7 @@ HwcDisplayPipe::HwcDisplayPipe() {
         }
     }
 
-    /*assign osd plane： N + 1 + 1*/
+    /*default policy: assign osd plane N + 1 + 1*/
     if (planes.size() > 0) {
         MESON_ASSERT(planes.size() >= HwcConfig::getDisplayNum(),
             "osd planes-%zu < pipe-%d\n", planes.size(), HwcConfig::getDisplayNum());
@@ -344,12 +345,15 @@ void HwcDisplayPipe::handleEvent(drm_display_event event, int val) {
         /*VIU1 mode changed.*/
         case DRM_EVENT_VOUT1_MODE_CHANGED:
         case DRM_EVENT_VOUT2_MODE_CHANGED:
+        case DRM_EVENT_VOUT3_MODE_CHANGED:
             {
+                int pipeIdx = DRM_PIPE_VOUT1;
+                if (event == DRM_EVENT_VOUT2_MODE_CHANGED)
+                    pipeIdx = DRM_PIPE_VOUT2;
+                else if (event == DRM_EVENT_VOUT3_MODE_CHANGED)
+                    pipeIdx = DRM_PIPE_VOUT3;
                 MESON_LOGD("ModeChange state: [%s]", val == 1 ? "Complete" : "Begin to change");
                 if (val == 1) {
-                    int pipeIdx = DRM_PIPE_VOUT1;
-                    if (event == DRM_EVENT_VOUT2_MODE_CHANGED)
-                        pipeIdx = DRM_PIPE_VOUT2;
                     for (auto statIt : mPipeStats) {
                         if (statIt.second->modeCrtc->getPipe() == pipeIdx) {
                             statIt.second->modeConnector->update();
@@ -383,9 +387,6 @@ void HwcDisplayPipe::handleEvent(drm_display_event event, int val) {
                         }
                     }
                 } else {
-                    int pipeIdx = DRM_PIPE_VOUT1;
-                    if (event == DRM_EVENT_VOUT2_MODE_CHANGED)
-                        pipeIdx = DRM_PIPE_VOUT2;
                     for (auto statIt : mPipeStats) {
                         if (statIt.second->modeCrtc->getPipe() == pipeIdx) {
                             statIt.second->hwcDisplay->onModeChanged(val);
@@ -435,6 +436,10 @@ int32_t HwcDisplayPipe::initDisplayMode(std::shared_ptr<PipeStat> & stat) {
     return 0;
 }
 
+void HwcDisplayPipe::dump(String8 & dumpstr) {
+    getHwDisplayManager()->dump(dumpstr);
+}
+
 std::shared_ptr<HwcDisplayPipe> createDisplayPipe(hwc_pipe_policy_t pipet) {
     switch (pipet) {
         case HWC_PIPE_DEFAULT:
@@ -443,11 +448,12 @@ std::shared_ptr<HwcDisplayPipe> createDisplayPipe(hwc_pipe_policy_t pipet) {
             return std::make_shared<DualDisplayPipe>();
         case HWC_PIPE_LOOPBACK:
             return std::make_shared<LoopbackDisplayPipe>();
+        case HWC_PIPE_MULTI:
+            return std::make_shared<MultiDisplayDrmPipe>();
         default:
             MESON_ASSERT(0, "unknown display pipe %d", pipet);
     };
 
     return NULL;
 }
-
 

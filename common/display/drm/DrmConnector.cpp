@@ -21,6 +21,27 @@
 
 #include "../fbdev/AmVinfo.h"
 
+#define EDID_MIN_LEN (128)
+
+static const u8 default_1080p_edid[EDID_MIN_LEN] = {
+0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00,
+0x31, 0xd8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+0x05, 0x16, 0x01, 0x03, 0x6d, 0x32, 0x1c, 0x78,
+0xea, 0x5e, 0xc0, 0xa4, 0x59, 0x4a, 0x98, 0x25,
+0x20, 0x50, 0x54, 0x00, 0x00, 0x00, 0xd1, 0xc0,
+0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01,
+0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x02, 0x3a,
+0x80, 0x18, 0x71, 0x38, 0x2d, 0x40, 0x58, 0x2c,
+0x45, 0x00, 0xf4, 0x19, 0x11, 0x00, 0x00, 0x1e,
+0x00, 0x00, 0x00, 0xff, 0x00, 0x4c, 0x69, 0x6e,
+0x75, 0x78, 0x20, 0x23, 0x30, 0x0a, 0x20, 0x20,
+0x20, 0x20, 0x00, 0x00, 0x00, 0xfd, 0x00, 0x3b,
+0x3d, 0x42, 0x44, 0x0f, 0x00, 0x0a, 0x20, 0x20,
+0x20, 0x20, 0x20, 0x20, 0x00, 0x00, 0x00, 0xfc,
+0x00, 0x4c, 0x69, 0x6e, 0x75, 0x78, 0x20, 0x46,
+0x48, 0x44, 0x0a, 0x20, 0x20, 0x20, 0x00, 0x05,
+};
+
 /*TODO: re-use legacy hdmi sysfs.*/
 extern int32_t parseHdmiHdrCapabilities(drm_hdr_capabilities & hdrCaps);
 extern bool loadHdmiCurrentHdrType(std::string & hdrType);
@@ -70,7 +91,6 @@ int32_t DrmConnector::loadProperties(drmModeConnectorPtr p __unused) {
             continue;
         }
         for (int j = 0; j < connectorPropsNum; j++) {
-            MESON_LOGE("%s: load prop %s", __func__, prop->name);
             if (strcmp(prop->name, connectorProps[j].propname) == 0) {
                 *(connectorProps[j].drmprop) =
                     std::make_shared<DrmProperty>(prop, mId, props->prop_values[i]);
@@ -165,18 +185,20 @@ int32_t DrmConnector::loadConnectorInfo(drmModeConnectorPtr metadata) {
         mEncoderId = metadata->encoder_id;
         mPhyWidth = metadata->mmWidth;
         mPhyHeight = metadata->mmHeight;
-        if (mPhyWidth == 0 || mPhyHeight == 0) {
-            struct vinfo_base_s vinfo;
-            if (read_vout_info(0, &vinfo) == 0) {
-                mPhyWidth = vinfo.screen_real_width;
-                mPhyHeight = vinfo.screen_real_height;
-                MESON_LOGE("read screen size %dx%d from vinfo",
-                    mPhyWidth,mPhyHeight);
-            }
-        }
-
         loadDisplayModes(metadata);
-        parseHdmiHdrCapabilities(mHdrCapabilities);
+
+        if (mType == DRM_MODE_CONNECTOR_HDMIA) {
+            if (mPhyWidth == 0 || mPhyHeight == 0) {
+                struct vinfo_base_s vinfo;
+                if (read_vout_info(0, &vinfo) == 0) {
+                    mPhyWidth = vinfo.screen_real_width;
+                    mPhyHeight = vinfo.screen_real_height;
+                    MESON_LOGE("read screen size %dx%d from vinfo",
+                        mPhyWidth,mPhyHeight);
+                }
+            }
+            parseHdmiHdrCapabilities(mHdrCapabilities);
+        }
     } else {
         MESON_LOGE("DrmConnector[%s] still DISCONNECTED.", getName());
         memset(&mHdrCapabilities, 0, sizeof(mHdrCapabilities));
@@ -260,12 +282,21 @@ bool DrmConnector::isConnected() {
 }
 
 int32_t DrmConnector::getIdentificationData(std::vector<uint8_t>& idOut) {
-    if (mEdid) {
-        return mEdid->getBlobData(idOut);
+    int32_t ret = 0;
+
+    if (mEdid)
+        ret = mEdid->getBlobData(idOut);
+
+    /*return default edid str for enable multidisplay feature in android.*/
+    if (ret != 0 || idOut.size() < EDID_MIN_LEN) {
+        idOut.clear();
+        MESON_LOGD("No edid for (%s),use default edid instead.", getName());
+        for (int i = 0; i < EDID_MIN_LEN; i++) {
+            idOut.push_back(default_1080p_edid[i]);
+        }
     }
 
-    MESON_LOGD("No edid for connector (%s)", getName());
-    return -EINVAL;
+    return 0;
 }
 
 int DrmConnector::getCrtcProp(std::shared_ptr<DrmProperty> & prop) {
@@ -336,6 +367,8 @@ void DrmConnector::dump(String8 & dumpstr) {
         mId, getCrtcId(), mFracMode);
 
     //dump display config.
+    if (mEdid)
+        mEdid->dump(dumpstr);
     dumpstr.append("   CONFIG   |   VSYNC_PERIOD   |   WIDTH   |   HEIGHT   |"
         "   DPI_X   |   DPI_Y   \n");
     dumpstr.append("------------+------------------+-----------+------------+"

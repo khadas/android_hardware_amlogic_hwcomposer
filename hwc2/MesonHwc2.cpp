@@ -85,6 +85,7 @@ void MesonHwc2::dump(uint32_t* outSize, char* outBuffer) {
 #endif
 
     if (DebugHelper::getInstance().dumpDetailInfo()) {
+        mDisplayPipe->dump(dumpstr);
         HwcConfig::dump(dumpstr);
     }
 
@@ -128,23 +129,23 @@ int32_t MesonHwc2::registerCallback(int32_t descriptor,
 
     switch (descriptor) {
         case HWC2_CALLBACK_HOTPLUG:
-        /* For android:
-        When primary display is hdmi, we should always return connected event
-        to surfaceflinger, or surfaceflinger will not boot and wait
-        connected event.
-        */
+            /* For android:
+            When primary display is hdmi, we should always return connected event
+            to surfaceflinger, or surfaceflinger will not boot and wait
+            connected event.
+            */
             mHotplugFn = reinterpret_cast<HWC2_PFN_HOTPLUG>(pointer);
             mHotplugData = callbackData;
 
             /*always to call hotplug for primary display,
-        * for android always think primary is always connected.
-        */
+            * for android always think primary is always connected.
+            */
             if (mHotplugFn) {
-                mHotplugFn(mHotplugData, HWC_DISPLAY_PRIMARY, true);
-                if (HwcConfig::getDisplayNum() > 1) {
-                    GET_HWC_DISPLAY(1);
+                mHotplugFn(mHotplugData, HWC_DISPLAY_PRIMARY, HWC2_CONNECTION_CONNECTED);
+                for (int i = 1; i < HwcConfig::getDisplayNum(); i ++) {
+                    GET_HWC_DISPLAY(i);
                     if (hwcDisplay->isDisplayConnected()) {
-                        mHotplugFn(mHotplugData, HWC_DISPLAY_EXTERNAL, true);
+                        mHotplugFn(mHotplugData, i, HWC2_CONNECTION_CONNECTED);
                     }
                 }
             }
@@ -195,11 +196,8 @@ int32_t  MesonHwc2::getDisplayType(hwc2_display_t display,
     int32_t* outType) {
     GET_HWC_DISPLAY(display);
 
-    if (display < HWC_NUM_PHYSICAL_DISPLAY_TYPES) {
-        *outType = HWC2_DISPLAY_TYPE_PHYSICAL;
-    } else {
-        *outType = HWC2_DISPLAY_TYPE_VIRTUAL;
-    }
+    /*only physical device supported.*/
+    *outType = HWC2_DISPLAY_TYPE_PHYSICAL;
 
     return HWC2_ERROR_NONE;
 }
