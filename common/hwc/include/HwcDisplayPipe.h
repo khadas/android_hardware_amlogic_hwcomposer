@@ -40,6 +40,8 @@ typedef enum {
         NONE*/
     HWC_PIPE_LOOPBACK,
 
+    HWC_PIPE_MULTI,
+
 } hwc_pipe_policy_t;
 
 /*requests*/
@@ -76,6 +78,7 @@ public:
     virtual int32_t init(std::map<uint32_t, std::shared_ptr<HwcDisplay>> & hwcDisps);
     virtual int32_t handleRequest(uint32_t flags);
     virtual void handleEvent(drm_display_event event, int val);
+    virtual void dump(String8 & dumpstr);
 
 protected:
     class PipeCfg {

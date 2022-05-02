@@ -51,6 +51,8 @@ public:
         std::shared_ptr<HwDisplayConnector>  & connector,
         std::vector<std::shared_ptr<HwDisplayPlane>> & planes) = 0;
     virtual int32_t unbind(std::shared_ptr<HwDisplayCrtc> & crtc) = 0;
+
+    virtual void dump(String8 & dumpstr) = 0;
 };
 
 std::shared_ptr<HwDisplayManager> getHwDisplayManager();
