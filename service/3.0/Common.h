@@ -25,6 +25,21 @@
 #define LOG_TAG "MesonComposer3"
 
 #include <aidl/android/hardware/graphics/composer3/IComposerClient.h>
+#include <aidl/android/hardware/graphics/composer3/ColorMode.h>
+#include <aidl/android/hardware/graphics/composer3/ContentType.h>
+#include <aidl/android/hardware/graphics/composer3/DisplayAttribute.h>
+#include <aidl/android/hardware/graphics/composer3/DisplayCapability.h>
+#include <aidl/android/hardware/graphics/composer3/DisplayConnectionType.h>
+#include <aidl/android/hardware/graphics/composer3/DisplayContentSample.h>
+#include <aidl/android/hardware/graphics/composer3/DisplayIdentification.h>
+#include <aidl/android/hardware/graphics/composer3/HdrCapabilities.h>
+#include <aidl/android/hardware/graphics/composer3/PerFrameMetadataKey.h>
+#include <aidl/android/hardware/graphics/composer3/PowerMode.h>
+#include <aidl/android/hardware/graphics/composer3/ReadbackBufferAttributes.h>
+#include <aidl/android/hardware/graphics/composer3/RenderIntent.h>
+#include <aidl/android/hardware/graphics/composer3/VsyncPeriodChangeConstraints.h>
+#include <aidl/android/hardware/graphics/composer3/VsyncPeriodChangeTimeline.h>
+
 #include <android-base/logging.h>
 #include <log/log.h>
 #include <utils/Trace.h>
@@ -52,6 +67,8 @@ enum class Error : int32_t {
     NotValidated = aidl::android::hardware::graphics::composer3::IComposerClient::EX_NOT_VALIDATED,
     Unsupported = aidl::android::hardware::graphics::composer3::IComposerClient::EX_UNSUPPORTED,
     SeamlessNotAllowed = aidl::android::hardware::graphics::composer3::IComposerClient::EX_SEAMLESS_NOT_ALLOWED,
+    SeamlessNotPossible = aidl::android::hardware::graphics::composer3::IComposerClient::EX_SEAMLESS_NOT_POSSIBLE,
+    // seamless not possible
 };
 }  // namespace HWC3
 

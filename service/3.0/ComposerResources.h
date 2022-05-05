@@ -28,35 +28,6 @@
 namespace aidl::android::hardware::graphics::composer3::impl {
 namespace meson {
 
-HWC3::Error toHwc3Error(::android::hardware::graphics::composer::V2_1::Error error) {
-    switch (error) {
-    case ::android::hardware::graphics::composer::V2_1::Error::NONE:
-        return HWC3::Error::None;
-    case ::android::hardware::graphics::composer::V2_1::Error::BAD_CONFIG:
-        return HWC3::Error::BadConfig;
-    case ::android::hardware::graphics::composer::V2_1::Error::BAD_DISPLAY:
-        return HWC3::Error::BadDisplay;
-    case ::android::hardware::graphics::composer::V2_1::Error::BAD_LAYER:
-        return HWC3::Error::BadLayer;
-    case ::android::hardware::graphics::composer::V2_1::Error::BAD_PARAMETER:
-        return HWC3::Error::BadParameter;
-    case ::android::hardware::graphics::composer::V2_1::Error::NO_RESOURCES:
-        return HWC3::Error::NoResources;
-    case ::android::hardware::graphics::composer::V2_1::Error::NOT_VALIDATED:
-        return HWC3::Error::NotValidated;
-    case ::android::hardware::graphics::composer::V2_1::Error::UNSUPPORTED:
-        return HWC3::Error::Unsupported;
-    }
-}
-
-::android::hardware::graphics::composer::V2_1::Display toHwc2Display(int64_t displayId) {
-    return static_cast<::android::hardware::graphics::composer::V2_1::Display>(displayId);
-}
-
-::android::hardware::graphics::composer::V2_1::Layer toHwc2Layer(int64_t layerId) {
-    return static_cast<::android::hardware::graphics::composer::V2_1::Layer>(layerId);
-}
-
 class ComposerResourceReleaser {
 public:
     ComposerResourceReleaser(bool isBuffer) : mReplacedHandle(isBuffer) {}

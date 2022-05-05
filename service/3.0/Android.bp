@@ -64,7 +64,7 @@ filegroup {
         "Common.cpp",
         "Composer.cpp",
         "ComposerResources.cpp",
-//        "ComposerClient.cpp",
+        "ComposerClient.cpp",
         "HwcHal.cpp",
         "Main.cpp",
     ],

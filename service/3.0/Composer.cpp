@@ -48,17 +48,47 @@ ndk::ScopedAStatus Composer::createClient(
         return ToBinderStatus(HWC3::Error::NoResources);
     }
 
-    //TODO
-    *outClient = nullptr;
+    auto client = ndk::SharedRefBase::make<ComposerClient>(mHal.get());
+    if (!client) {
+        ALOGE("%s: failed to init composer client", __FUNCTION__);
+        *outClient = nullptr;
+        return ToBinderStatus(HWC3::Error::NoResources);
+    }
+
+    auto error = client->init();
+    if (error != HWC3::Error::None) {
+        *outClient = nullptr;
+        return ToBinderStatus(error);
+    }
+
+    auto clientDestroyed = [this]() { onClientDestroyed(); };
+    client->setOnClientDestroyed(clientDestroyed);
+
+    mClient = client;
+    *outClient = client;
 
     return ndk::ScopedAStatus::ok();
 }
 
 bool Composer::waitForClientDestroyedLocked(
         std::unique_lock<std::mutex>& lock __unused) {
+    if (!mClient.expired()) {
+      // In surface flinger we delete a composer client on one thread and
+      // then create a new client on another thread. Although surface
+      // flinger ensures the calls are made in that sequence (destroy and
+      // then create), sometimes the calls land in the composer service
+      // inverted (create and then destroy). Wait for a brief period to
+      // see if the existing client is destroyed.
+      constexpr const auto kTimeout = std::chrono::seconds(5);
+      mClientDestroyedCondition.wait_for(
+          lock, kTimeout, [this]() -> bool { return mClient.expired(); });
+      if (!mClient.expired()) {
+        ALOGW("%s: previous client was not destroyed", __FUNCTION__);
+      }
+    }
 
-    //TODO
-    return true;
+    return mClient.expired();
+
 }
 
 void Composer::onClientDestroyed() {

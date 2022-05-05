@@ -610,7 +610,6 @@ HWC3::Error HwcHal::getDisplayIdentificationData(int64_t /* display */, uint8_t*
 
 HWC3::Error HwcHal::getPerFrameMetadataKeys(int64_t /* display */,
             std::vector<PerFrameMetadataKey>* /* outKeys */) {
-
     return HWC3::Error::None;
 }
 
@@ -626,7 +625,6 @@ HWC3::Error HwcHal::setLayerPerFrameMetadata(int64_t /* display */, int64_t /* l
 
 HWC3::Error HwcHal::getDisplayCapabilities(int64_t /* display */,
         std::vector<DisplayCapability>* /* outCapabilities */) {
-
     return HWC3::Error::None;
 }
 

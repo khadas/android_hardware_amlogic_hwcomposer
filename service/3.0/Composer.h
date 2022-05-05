@@ -21,7 +21,7 @@
 
 #include <memory>
 
-//#include "ComposerClient.h"
+#include "ComposerClient.h"
 #include "HwcHal.h"
 
 namespace aidl::android::hardware::graphics::composer3::impl {
@@ -47,7 +47,7 @@ private:
     void onClientDestroyed();
 
     std::mutex mClientMutex;
-//    std::weak_ptr<ComposerClient> mClient GUARDED_BY(mClientMutex);
+    std::weak_ptr<ComposerClient> mClient;// GUARDED_BY(mClientMutex);
     std::condition_variable mClientDestroyedCondition;
     std::unique_ptr<ComposerHal> mHal;
 };
