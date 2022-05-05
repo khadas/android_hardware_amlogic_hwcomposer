@@ -50,12 +50,5 @@ protected:
 private:
     drm_hdr_capabilities mHdrCapabilities;
 };
-class ConnectorPanel2 :public ConnectorPanel {
-protected:
-    int32_t parseLcdInfo();
-public:
-    ConnectorPanel2(int32_t drvFd, uint32_t id);
-    virtual drm_connector_type_t getType();
-    virtual ~ConnectorPanel2(){}
-};
+
 #endif

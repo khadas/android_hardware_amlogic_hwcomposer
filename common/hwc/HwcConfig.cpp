@@ -86,8 +86,8 @@ uint32_t HwcConfig::getConnectorType(int disp) {
         /*hdmi str = hdmi + cvbs*/
         if (strcasecmp(connectorstr, "hdmi") == 0) {
             connector_type = HWC_HDMI_CVBS;
-        } else if (strcasecmp(connectorstr, "panel2") == 0) {
-            connector_type = DRM_MODE_CONNECTOR_PANEL2;
+        } else if (strcasecmp(connectorstr, "panel") == 0) {
+            connector_type = DRM_MODE_CONNECTOR_LVDS;
         } else if (strcasecmp(connectorstr, "hdmi-only") == 0) {
             connector_type = DRM_MODE_CONNECTOR_HDMIA;
         } else {
@@ -228,14 +228,6 @@ bool HwcConfig::dynamicSwitchConnectorEnabled() {
 
 bool HwcConfig::dynamicSwitchViuEnabled() {
 #ifdef HWC_DYNAMIC_SWITCH_VIU
-    return true;
-#else
-    return false;
-#endif
-}
-
-bool HwcConfig::twopanelmode() {
-#if HWC_TWO_PANEL
     return true;
 #else
     return false;

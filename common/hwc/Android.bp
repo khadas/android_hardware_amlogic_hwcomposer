@@ -45,7 +45,6 @@ soong_config_module_type {
         "dynamic_swich_viu",
         "enable_vt_hwVsync",
         "enable_uvm_dettach",
-        "two_panel",
     ],
 
     properties: [
@@ -104,7 +103,6 @@ soong_config_bool_variable {
 soong_config_bool_variable {
     name: "dynamic_swich_viu",
 }
-
 
 soong_config_bool_variable {
     name: "enable_vt_hwVsync",
@@ -215,9 +213,6 @@ meson_hwc_hwc_cc_defaults {
 
         dynamic_swich_viu: {
             cflags: ["-DHWC_DYNAMIC_SWITCH_VIU"],
-        },
-        two_panel: {
-            cflags: ["-DHWC_TWO_PANEL"],
         },
         enable_vt_hwVsync: {
             cflags: ["-DHWC_VT_HW_VSYNC"],

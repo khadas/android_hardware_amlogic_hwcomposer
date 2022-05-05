@@ -95,9 +95,6 @@ void DisplayTypeConv(drm_connector_type_t& type, ConnectorType displayType) {
         case DisplayAdapter::CONN_TYPE_CVBS:
             type = DRM_MODE_CONNECTOR_TV;
             break;
-        case DisplayAdapter::CONN_TYPE_PANEL2:
-            type = DRM_MODE_CONNECTOR_PANEL2;
-            break;
         default:
             type = DRM_MODE_CONNECTOR_INVALID_TYPE;
             break;
@@ -112,7 +109,6 @@ void DisplayModeConv(DisplayModeInfo& mode, drm_mode_info_t& mode_in) {
     mode.pixelH = mode_in.pixelH;
     mode.refreshRate = mode_in.refreshRate;
 }
-
 
 DisplayAdapterLocal::DisplayAdapterLocal() {
     struct utsname buf;

@@ -19,9 +19,7 @@ soong_config_module_type {
     value_variables: [
     "hdmi_frac_mode",
     ],
-    bool_variables: [
-    "two_panel",
-    ],
+
     variables: [
         "hwc_backend",
     ],
@@ -44,11 +42,6 @@ meson_hwc_display_cc_defaults {
         hdmi_frac_mode: {
             cflags: [
                 "-DHWC_HDMI_FRAC_MODE=%s",
-            ],
-        },
-        two_panel: {
-            cflags: [
-                 "-DHWC_TWO_PANEL",
             ],
         },
 

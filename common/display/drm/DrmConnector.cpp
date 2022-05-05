@@ -13,6 +13,7 @@
 #include "DrmDevice.h"
 #include <inttypes.h>
 #include <limits>
+
 #include <xf86drm.h>
 #include <string.h>
 #include <misc.h>
@@ -277,7 +278,6 @@ const char * DrmConnector::getName() {
     const char *name = drmConnTypeToString(getType());
     MESON_ASSERT(name, "%s: get name for %d fail.",
         __func__, getType());
-
     return name;
 }
 

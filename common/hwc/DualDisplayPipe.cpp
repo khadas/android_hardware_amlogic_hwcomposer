@@ -92,7 +92,6 @@ int32_t DualDisplayPipe::init(
                 }
                 break;
             case DRM_MODE_CONNECTOR_LVDS:
-            case DRM_MODE_CONNECTOR_PANEL2:
             case DRM_MODE_CONNECTOR_MESON_LVDS_A:
             case DRM_MODE_CONNECTOR_MESON_LVDS_B:
             case DRM_MODE_CONNECTOR_MESON_LVDS_C:
@@ -123,29 +122,21 @@ int32_t DualDisplayPipe::getPipeCfg(uint32_t hwcid, PipeCfg & cfg) {
     /*get hdmi hpd state firstly for init default config*/
     drm_connector_type_t  connector = getConnetorCfg(hwcid);
     if (hwcid == 0) {
-        if (HwcConfig::twopanelmode()) {
+        if (HwcConfig::dynamicSwitchViuEnabled() == true &&
+            mHdmi_connected == true &&
+            connector == DRM_MODE_CONNECTOR_LVDS) {
+            cfg.hwcPipeIdx = DRM_PIPE_VOUT2;
+        } else {
             cfg.hwcPipeIdx = DRM_PIPE_VOUT1;
-        }else {
-            if (HwcConfig::dynamicSwitchViuEnabled() == true &&
-                mHdmi_connected == true &&
-                connector == DRM_MODE_CONNECTOR_LVDS) {
-                cfg.hwcPipeIdx = DRM_PIPE_VOUT2;
-            } else {
-                cfg.hwcPipeIdx = DRM_PIPE_VOUT1;
-            }
         }
         mPrimaryConnectorType = connector;
     } else if (hwcid == 1) {
-        if (HwcConfig::twopanelmode()) {
+        if (HwcConfig::dynamicSwitchViuEnabled() == true &&
+            mHdmi_connected == true &&
+            connector == DRM_MODE_CONNECTOR_HDMIA)
+            cfg.hwcPipeIdx = DRM_PIPE_VOUT1;
+        else
             cfg.hwcPipeIdx = DRM_PIPE_VOUT2;
-        }else {
-            if (HwcConfig::dynamicSwitchViuEnabled() == true &&
-                mHdmi_connected == true &&
-                connector == DRM_MODE_CONNECTOR_HDMIA)
-                cfg.hwcPipeIdx = DRM_PIPE_VOUT1;
-            else
-                cfg.hwcPipeIdx = DRM_PIPE_VOUT2;
-        }
         mExtendConnectorType = connector;
     }
     MESON_LOGD("dual pipe line getpipecfg hwcid=%d, pipeidx = %d, connector=%d.",
@@ -256,8 +247,7 @@ void DualDisplayPipe::handleEvent(drm_display_event event, int val) {
 
         for (auto statIt : mPipeStats) {
             MESON_LOGD("Update display mode for PANEL");
-            if (statIt.second->modeConnector->getType() == DRM_MODE_CONNECTOR_LVDS ||
-                        statIt.second->modeConnector->getType() == DRM_MODE_CONNECTOR_PANEL2) {
+            if (statIt.second->modeConnector->getType() == DRM_MODE_CONNECTOR_LVDS) {
                 std::string lcd_mute("8");
                 sc_write_sysfs(LCD_MUTE, lcd_mute);
                 strcpy(displayMode.name, DRM_DISPLAY_MODE_PANEL);

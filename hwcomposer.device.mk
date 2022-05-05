@@ -85,7 +85,6 @@ SOONG_CONFIG_meson_hwc += \
     pipe_viu1vdinviu2_always_loopback \
     dynamic_switch_connector \
     dynamic_swich_viu \
-    two_panel \
     enable_video_aisr \
     enable_video_aipq \
     enable_vt_hwVsync \
@@ -119,7 +118,6 @@ SOONG_CONFIG_meson_hwc_target_use_default_hdr_property := $(HWC_ENABLE_DEFAULT_H
 SOONG_CONFIG_meson_hwc_target_app_layer_use_continuous_buffer := $(TARGET_APP_LAYER_USE_CONTINUOUS_BUFFER)
 SOONG_CONFIG_meson_hwc_pipe_viu1vdinviu2_always_loopback := $(HWC_PIPE_VIU1VDINVIU2_ALWAYS_LOOPBACK)
 SOONG_CONFIG_meson_hwc_dynamic_switch_connector := $(HWC_DYNAMIC_SWITCH_CONNECTOR)
-SOONG_CONFIG_meson_hwc_two_panel := $(HWC_TWO_PANEL)
 SOONG_CONFIG_meson_hwc_dynamic_swich_viu := $(HWC_DYNAMIC_SWITCH_VIU)
 SOONG_CONFIG_meson_hwc_android_version_s := $(HWC_ANDROID_S)
 SOONG_CONFIG_meson_hwc_enable_video_aisr := $(HWC_VIDEO_AISR)

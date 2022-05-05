@@ -201,6 +201,7 @@ int32_t HwcDisplayPipe::updatePipe(std::shared_ptr<PipeStat> & stat) {
             MESON_LOGD("Config is not updated.");
             return 0;
     }
+
     /*update pipestats*/
     bool resChanged = false;
     if (cfg.hwcPipeIdx != stat->cfg.hwcPipeIdx) {
@@ -422,7 +423,6 @@ int32_t HwcDisplayPipe::initDisplayMode(std::shared_ptr<PipeStat> & stat) {
             }
             break;
         case DRM_MODE_CONNECTOR_LVDS:
-        case DRM_MODE_CONNECTOR_PANEL2:
             {
                 /*TODO*/
             }

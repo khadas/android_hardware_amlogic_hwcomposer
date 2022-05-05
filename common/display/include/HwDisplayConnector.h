@@ -19,7 +19,7 @@
 #include <BasicTypes.h>
 
 #define DEFAULT_DISPLAY_DPI 160
-#define DRM_MODE_CONNECTOR_PANEL2 25
+
 class HwDisplayCrtc;
 
 /* IComposerClient@2.4::ContentType */
