@@ -62,6 +62,7 @@ Hwc2Display::Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer, uint32_t
     mFirstPresent = true;
     mDisplayId = display;
     mFRPeriodNanos = 0;
+    mDisableSideband = false;
     memset(&mHdrCaps, 0, sizeof(mHdrCaps));
     memset(mColorMatrix, 0, sizeof(float) * 16);
     memset(&mCalibrateCoordinates, 0, sizeof(int) * 4);
@@ -1036,6 +1037,11 @@ void Hwc2Display::setWriteBoardMode(bool mode) {
     return;
 }
 
+void Hwc2Display::disableSideband(bool isDisable){
+    MESON_LOGD("set SideBand Disable %s", isDisable ? "true" : "false");
+    mDisableSideband = isDisable;
+}
+
 int32_t Hwc2Display::getDisplayIdentificationData(uint32_t &outPort,
         std::vector<uint8_t> &outData) {
     int32_t ret = mConnector->getIdentificationData(outData);
@@ -1175,6 +1181,10 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
         if (!mConnector->isSecure()) {
             compositionFlags |= COMPOSE_HIDE_SECURE_FB;
         }
+    }
+
+    if (mDisableSideband) {
+        compositionFlags |= COMPOSE_DISABLE_SIDEBAND;
     }
 
     /*check power mode*/

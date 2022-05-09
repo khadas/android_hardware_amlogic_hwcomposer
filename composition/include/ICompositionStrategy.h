@@ -27,6 +27,7 @@ typedef enum {
     COMPOSE_FORCE_CLIENT = 1 << 0,
     COMPOSE_HIDE_SECURE_FB = 1 << 1,
     COMPOSE_WITH_HDR_VIDEO = 1 << 2,
+    COMPOSE_DISABLE_SIDEBAND = 1 << 3,
 } COMPOSITION_REQUEST;
 
 /*Macros for composition info dump.*/

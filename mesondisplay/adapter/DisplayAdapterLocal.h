@@ -77,6 +77,7 @@ public:
     bool getWriteBoardMode(bool& mode) override;
     bool setWBDisplayFrame(int x, int y) override;
     bool hideVideoLayer(bool hide) override;
+    bool disableSidebandStream(bool isDisable) override;
 
     static std::shared_ptr<DisplayAdapter> create(DisplayAdapter::BackendType type);
     DisplayAdapterLocal();

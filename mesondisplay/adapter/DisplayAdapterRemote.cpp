@@ -249,6 +249,15 @@ bool DisplayAdapterRemote::dumpDisplayAttribute(Json::Value& json, ConnectorType
     return false;
 };
 
+bool DisplayAdapterRemote::disableSidebandStream(bool isDisable) {
+    Json::Value cmd;
+    IF_SERVER_NOT_READY_RETURN(false);
+    cmd["cmd"] = "disableSidebandStream";
+    cmd["value"] = isDisable?"true":"false";
+    ipc->send_request(cmd);
+    return true;
+}
+
 std::unique_ptr<DisplayAdapter> DisplayAdapterRemote::create() {
     return static_cast<std::unique_ptr<DisplayAdapter>>(std::make_unique<DisplayAdapterRemote>());
 }

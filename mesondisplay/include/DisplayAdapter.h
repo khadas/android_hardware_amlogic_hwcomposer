@@ -152,6 +152,7 @@ public:
         NOTIMPLEMENTED;
         return false;
     };
+    virtual bool disableSidebandStream(bool isDisable) = 0;
 
     virtual ~DisplayAdapter() = default;
     DisplayAdapter() = default;

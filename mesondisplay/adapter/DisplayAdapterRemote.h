@@ -40,7 +40,7 @@ public:
     bool hideVideoLayer(bool hide) override;
 
     bool dumpDisplayAttribute(Json::Value& json, ConnectorType displayType) override;
-
+    bool disableSidebandStream(bool isDisable) override;
     static std::unique_ptr<DisplayAdapter> create();
     DisplayAdapterRemote();
     ~DisplayAdapterRemote() = default;

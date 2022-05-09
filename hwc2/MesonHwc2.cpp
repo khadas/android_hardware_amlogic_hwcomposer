@@ -1032,6 +1032,11 @@ void MesonHwc2::getViewPort(drm_rect_wh_t & viewPort) {
     viewPort = mViewPort;
 }
 
+bool MesonHwc2::disableSideband(bool isDisable) {
+    GET_HWC_DISPLAY(0);
+    hwcDisplay->disableSideband(isDisable);
+    return true;
+}
 bool MesonHwc2::setFrameRateHint(std::string value) {
     GET_HWC_DISPLAY(0);
     return hwcDisplay->setFrameRateHint(value);

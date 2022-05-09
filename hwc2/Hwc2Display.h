@@ -112,6 +112,7 @@ public:
     virtual hwc2_error_t setActiveConfig(hwc2_config_t config);
     virtual hwc2_error_t setCalibrateInfo(int32_t caliX,int32_t caliY,int32_t caliW,int32_t caliH);
     virtual void outsideChanged();
+    virtual void disableSideband(bool isDisable);
     virtual int32_t getDisplayIdentificationData(uint32_t &outPort,
             std::vector<uint8_t> &outData);
     virtual hwc2_error_t getDisplayCapabilities(
@@ -319,6 +320,7 @@ protected:
     bool mModeChanged;
 
     bool mFirstPresent;
+    bool mDisableSideband;
 
     uint32_t mDisplayId;
 

@@ -65,6 +65,7 @@ void MultiplanesWithDiComposition::init() {
     mInsideVideoFbsFlag  = false;
     mSkipValidate = false;
     mSkipVideoTypeCheckInComp = false;
+    mIsSideBandDisable = false;
 
     /*crtc scale info.*/
     mDisplayRefFb.reset();
@@ -426,7 +427,17 @@ int MultiplanesWithDiComposition::processVideoFbs() {
             (*it)->mCompositionType = MESON_COMPOSITION_DUMMY;
         }
         sidebandFbs.clear();
-        fb->mCompositionType = MESON_COMPOSITION_PLANE_HWCVIDEO;
+        if (mIsSideBandDisable) {
+            fb->mCompositionType = MESON_COMPOSITION_DUMMY;
+            if (mDIComposerFbs.size() > 0) {
+                fb.reset();
+                chooseOneVideoFb(fb);
+                fb->mCompositionType = MESON_COMPOSITION_PLANE_HWCVIDEO;
+            }
+        } else {
+            fb->mCompositionType = MESON_COMPOSITION_PLANE_HWCVIDEO;
+        }
+
         mDisplayPairs.push_back(DisplayPair{
                 (uint32_t)mOsdPlaneNum, fb->mZorder, fb, mHwcVideoPlanes[0],
                 std::vector<std::shared_ptr<FbProcessor>>()});
@@ -1320,6 +1331,10 @@ void MultiplanesWithDiComposition::setup(
     }
     if (reqFlag & COMPOSE_FORCE_CLIENT) {
         mForceClientComposer = true;
+    }
+
+    if (reqFlag & COMPOSE_DISABLE_SIDEBAND) {
+        mIsSideBandDisable = true;
     }
 
     mCrtc = crtc;

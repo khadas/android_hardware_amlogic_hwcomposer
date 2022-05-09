@@ -36,6 +36,7 @@ static const struct option long_option[] = {
     {"b",no_argument,0,'b'},
     {"f",required_argument,0,'f'},
     {"h",required_argument,0,'h'},
+    {"disable-sideband",required_argument,0,'p'},
     {0, 0, 0, 0}
 };
 
@@ -57,6 +58,7 @@ static void print_usage(const char* name) {
             "       -b,--get-whiteboard  \t  get current white board mode\n "
             "       -f,--set-whiteboard display position \t  x and y is the position\n "
             "       -h,--hide the video layer \t  hide the video layer\n "
+            "       -p,--disable-sideband  \t  disable [false|true]side band \n "
             "       -r,--raw-cmd           \tsend raw cmd\n", name);
 }
 
@@ -178,6 +180,18 @@ int main(int argc, char* argv[]) {
                    printf("setFrameRate  %.2f ret:%d\n",framerate, ret);
                }
                break;
+            case 'p':
+                 if (optarg == NULL)
+                     break;
+                  {
+                      bool isDisable = false;
+                      if (0 == memcmp("true", optarg, sizeof("true"))) {
+                            isDisable =true;
+                      }
+                      client->disableSidebandStream(isDisable);
+                      printf("set disableSidebandStream to %s \n", isDisable?"true":"false");
+                  }
+                break;
             case 'd':
                 {
                     Json::Value json;

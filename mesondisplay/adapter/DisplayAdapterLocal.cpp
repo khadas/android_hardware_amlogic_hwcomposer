@@ -377,6 +377,12 @@ bool DisplayAdapterLocal::dumpDisplayAttribute(Json::Value& json, ConnectorType 
     return true;
 };
 
+bool DisplayAdapterLocal::disableSidebandStream(bool isDisable){
+    MesonHwc2::getInstance().disableSideband(isDisable);
+    MESON_LOGD("disableSidebandStream set value:%s", isDisable ? "true" : "false");
+    return true;
+
+}
 
 DisplayAttributeInfo* DisplayAdapterLocal::getDisplayAttributeInfo(const string& name, ConnectorType displayType) {
     UNUSED(displayType);

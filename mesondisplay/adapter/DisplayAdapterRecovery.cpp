@@ -398,6 +398,13 @@ bool DisplayAdapterLocal::getDisplayVsyncAndPeriod(int64_t& vsyncTimestamp, int3
     return false;
 }
 
+bool DisplayAdapterLocal::disableSidebandStream(bool isDisable){
+    bool ret = false;
+    UNUSED(isDisable);
+    NOTIMPLEMENTED;
+    return ret;
+}
+
 bool DisplayAdapterLocal::dumpDisplayAttribute(Json::Value& json, ConnectorType displayType) {
     Json::Value ret;
     UNUSED(displayType);

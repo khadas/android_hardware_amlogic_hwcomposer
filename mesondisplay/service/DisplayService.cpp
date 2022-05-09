@@ -230,6 +230,13 @@ void DisplayServer::message_handle(Json::Value& in, Json::Value& out) {
         if (in["value"].asString() == "true" )
             mode = true;
         mAdapter->hideVideoLayer(mode);
+    } else if (cmd == "disableSidebandStream") {
+        if (!in.isMember("value"))
+            goto OUT;
+        bool isDisable = false;
+        if (in["value"].asString() == "true" )
+            isDisable = true;
+        mAdapter->disableSidebandStream(isDisable);
     } else {
         MESON_LOGE("CMD not implement!");
     }

@@ -129,6 +129,7 @@ protected:
     bool mResetProcessorFlag;
     bool mSkipVideoTypeCheckInComp;
 
+    bool mIsSideBandDisable;
     /* for video processor */
     std::shared_ptr<FbProcessor> mSrProcessor;
     std::shared_ptr<FbProcessor> mPqProcessor;
