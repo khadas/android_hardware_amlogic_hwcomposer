@@ -213,6 +213,8 @@ int MultiplanesWithDiComposition::chooseOneVideoFb(std::shared_ptr<DrmFramebuffe
 }
 
 int MultiplanesWithDiComposition::setUpProcessor() {
+    if (DebugHelper::getInstance().disableAISRAIPQ())
+        return 0;
     if (HwcConfig::AiSrProcessorEnabled()) {
         // setup AiSrprocessor
         if (!mSrProcessor.get()) {
