@@ -287,7 +287,7 @@ bool DisplayAdapterLocal::setDvMode(
 
 bool DisplayAdapterLocal::captureDisplayScreen(const native_handle_t **outBufferHandle) {
     // get framebuffer width and height
-    uint32_t fbW = 1290;
+    uint32_t fbW = 1920;
     uint32_t fbH = 1080;
     HwcConfig::getFramebufferSize(0, fbW, fbH);
 
@@ -307,7 +307,6 @@ bool DisplayAdapterLocal::captureDisplayScreen(const native_handle_t **outBuffer
     *outBufferHandle = hnd;
 
     if (ret != 1) {
-        gralloc_unref_dma_buf(hnd);
         gralloc_free_dma_buf(hnd);
     }
 
