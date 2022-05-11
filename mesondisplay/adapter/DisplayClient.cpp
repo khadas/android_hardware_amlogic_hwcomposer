@@ -115,8 +115,7 @@ bool DisplayClient::captureDisplayScreen(const native_handle_t** outBufferHandle
     meson_ipc_client->captureDisplayScreen(0 /*displayId reserved*/, 0 /*layerId reserved*/,
             [&] (const auto& tmpError, const auto& tmpOutHandles){
                 error = tmpError;
-                dataHandles.setToExternal(const_cast<hidl_handle*>(tmpOutHandles.data()),
-                    tmpOutHandles.size());
+                dataHandles = tmpOutHandles;
             });
     if (error != Error::NONE) {
         MESON_LOGE("captureDislayScreen failed");

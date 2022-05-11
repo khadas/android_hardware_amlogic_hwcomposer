@@ -228,7 +228,6 @@ Return<void> DisplayServer::captureDisplayScreen(const int32_t displayId, const 
 
     // release native handle
     if (bufferHandle) {
-        gralloc_unref_dma_buf(const_cast<native_handle_t*> (bufferHandle));
         gralloc_free_dma_buf(const_cast<native_handle_t*> (bufferHandle));
     }
     return Void();
