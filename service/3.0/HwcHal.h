@@ -135,7 +135,12 @@ protected:
                             int32_t connected);
     static void refreshHook(hwc2_callback_data_t callbackData, hwc2_display_t display);
     static void vsyncHook(hwc2_callback_data_t callbackData, hwc2_display_t display,
-                          int64_t timestamp);
+                          int64_t timestamp, uint32_t vsyncPeriodNanos);
+    static void vsyncPeriodTimingChangedHook(hwc2_callback_data_t callbackData,
+                                             hwc2_display_t display,
+                                             hwc_vsync_period_change_timeline_t* updated_timeline);
+    static void seamlessPossibleHook(hwc2_callback_data_t callbackData, hwc2_display_t display);
+
     int32_t getChangedCompositionTypesInternal(int64_t display, uint32_t* outTypesCount,
                                                int64_t* outChangedLayers,
                                                HWC2::Composition* outCompositionTypes);

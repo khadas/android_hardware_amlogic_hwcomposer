@@ -101,8 +101,14 @@ void HwcHal::registerEventCallback(ComposerHal::EventCallback* callback) {
                                reinterpret_cast<hwc2_function_pointer_t>(hotplugHook));
     mDispatch.registerCallback(mDevice, HWC2_CALLBACK_REFRESH, this,
                                reinterpret_cast<hwc2_function_pointer_t>(refreshHook));
-    mDispatch.registerCallback(mDevice, HWC2_CALLBACK_VSYNC, this,
+    mDispatch.registerCallback(mDevice, HWC2_CALLBACK_VSYNC_2_4, this,
                                reinterpret_cast<hwc2_function_pointer_t>(vsyncHook));
+    mDispatch.registerCallback(
+            mDevice, HWC2_CALLBACK_VSYNC_PERIOD_TIMING_CHANGED, this,
+            reinterpret_cast<hwc2_function_pointer_t>(vsyncPeriodTimingChangedHook));
+    mDispatch.registerCallback(
+            mDevice, HWC2_CALLBACK_SEAMLESS_POSSIBLE, this,
+            reinterpret_cast<hwc2_function_pointer_t>(seamlessPossibleHook));
 }
 
 void HwcHal::unregisterEventCallback() {
@@ -115,7 +121,11 @@ void HwcHal::unregisterEventCallback() {
     // which is likely incorrect
     mDispatch.registerCallback(mDevice, HWC2_CALLBACK_HOTPLUG, this, nullptr);
     mDispatch.registerCallback(mDevice, HWC2_CALLBACK_REFRESH, this, nullptr);
-    mDispatch.registerCallback(mDevice, HWC2_CALLBACK_VSYNC, this, nullptr);
+    mDispatch.registerCallback(mDevice, HWC2_CALLBACK_VSYNC_2_4, this, nullptr);
+    mDispatch.registerCallback(mDevice, HWC2_CALLBACK_VSYNC_PERIOD_TIMING_CHANGED,
+                               this, nullptr);
+    mDispatch.registerCallback(mDevice, HWC2_CALLBACK_SEAMLESS_POSSIBLE, this,
+                               nullptr);
 
     mEventCallback = nullptr;
 }
@@ -812,9 +822,29 @@ void HwcHal::refreshHook(hwc2_callback_data_t callbackData, hwc2_display_t displ
 }
 
 void HwcHal::vsyncHook(hwc2_callback_data_t callbackData, hwc2_display_t display,
-                      int64_t timestamp) {
+                      int64_t timestamp, uint32_t vsyncPeriodNanos) {
     auto hal = static_cast<HwcHal*>(callbackData);
-    hal->mEventCallback->onVsync(static_cast<int64_t>(display), timestamp);
+    hal->mEventCallback->onVsync(static_cast<int64_t>(display),
+                                 timestamp, vsyncPeriodNanos);
+}
+
+void HwcHal::vsyncPeriodTimingChangedHook(
+        hwc2_callback_data_t callbackData,
+        hwc2_display_t display,
+        hwc_vsync_period_change_timeline_t* updated_timeline) {
+    auto hal = static_cast<HwcHal*>(callbackData);
+
+    VsyncPeriodChangeTimeline timeline;
+    timeline.newVsyncAppliedTimeNanos = updated_timeline->newVsyncAppliedTimeNanos;
+    timeline.refreshRequired = updated_timeline->refreshRequired;
+    timeline.refreshTimeNanos = updated_timeline->refreshTimeNanos;
+    hal->mEventCallback->onVsyncPeriodTimingChanged(static_cast<int64_t>(display),
+                                                    timeline);
+}
+
+void HwcHal::seamlessPossibleHook(hwc2_callback_data_t callbackData, hwc2_display_t display) {
+    auto hal = static_cast<HwcHal*>(callbackData);
+    hal->mEventCallback->onSeamlessPossible(static_cast<int64_t>(display));
 }
 
 int32_t HwcHal::getChangedCompositionTypesInternal(int64_t display, uint32_t* outTypesCount,

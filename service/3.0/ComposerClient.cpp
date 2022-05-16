@@ -64,17 +64,106 @@ public:
              : mHal(hal), mCallback(callback),
                mResources(resources), mClient(client) {}
 
-    void onHotplug(int64_t display __unused, HWC2::Connection connected __unused) {
+    void onHotplug(int64_t display, HWC2::Connection connected) {
+        bool bCon = true;
+        ALOGD("halEventcallback onHotplug client3.0");
+        if (connected == HWC2::Connection::Connected) {
+            if (mResources->hasDisplay(display)) {
+                // This is a subsequent hotplug "connected" for a display. This signals a
+                // display change and thus the framework may want to reallocate buffers. We
+                // need to free all cached handles, since they are holding a strong reference
+                // to the underlying buffers.
+                cleanDisplayResources(display);
+                mResources->removeDisplay(display);
+            }
+
+            mResources->addPhysicalDisplay(display);
+        } else if (connected == HWC2::Connection::Disconnected) {
+            mResources->removeDisplay(display);
+            bCon = false;
+        }
+
+        auto ret = mCallback->onHotplug(display, bCon);
+        ALOGE_IF(!ret.isOk(), "failed to send onHotplug");
     }
 
-    void onRefresh(int64_t display __unused) {
+    void onRefresh(int64_t display) {
+        mResources->setDisplayMustValidateState(display, true);
+        auto ret = mCallback->onRefresh(display);
+        ALOGE_IF(!ret.isOk(), "failed to send onRefresh");
     }
 
-    void onVsync(int64_t display __unused, int64_t timestamp __unused) {
+    void onVsync(int64_t display, int64_t timestamp, uint32_t vsyncPeriodNanos) {
+        auto ret = mCallback->onVsync(display, timestamp,
+                                      static_cast<int32_t>(vsyncPeriodNanos));
+        ALOGE_IF(!ret.isOk(), "failed to send onVsync");
+    }
+
+    void onVsyncPeriodTimingChanged(int64_t display,
+            const VsyncPeriodChangeTimeline& updatedTimeline) override {
+        auto ret = mCallback->onVsyncPeriodTimingChanged(display, updatedTimeline);
+        ALOGE_IF(!ret.isOk(), "failed to send onVsyncPeriodTimingChanged");
+    }
+
+    void onSeamlessPossible(int64_t display) override {
+        auto ret = mCallback->onSeamlessPossible(display);
+        ALOGE_IF(!ret.isOk(), "failed to send onSeamlessPossible");
     }
 
 protected:
     void cleanDisplayResources(int64_t display __unused) {
+        size_t cacheSize;
+        auto err = mResources->getDisplayClientTargetCacheSize(display, &cacheSize);
+        if (err == HWC3::Error::None) {
+            for (size_t slot = 0; slot < cacheSize; slot++) {
+                ::android::hardware::graphics::composer::V2_2::hal::ComposerResources::
+                    ReplacedHandle replacedBuffer(/*isBuffer*/ true);
+                //ComposerResources::ReplacedHandle replacedBuffer(/*isBuffer*/ true);
+                // Replace the buffer slots with NULLs. Keep the old handle until it is
+                // replaced in ComposerHal, otherwise we risk leaving a dangling pointer.
+                const native_handle_t* clientTarget = nullptr;
+                err = mResources->getDisplayClientTarget(display, slot, /*useCache*/ true,
+                        /*rawHandle*/ nullptr, &clientTarget,
+                        &replacedBuffer);
+                if (err != HWC3::Error::None) {
+                    continue;
+                }
+
+                const std::vector<common::Rect> damage;
+                err = mHal->setClientTarget(display, clientTarget, /*fence*/ -1, 0, damage);
+                ALOGE_IF(err != HWC3::Error::None,
+                        "Can't clean slot %d of the client target buffer"
+                        "cache for display %" PRIu64,
+                        slot, display);
+            }
+        } else {
+            ALOGE("Can't clean client target cache for display %" PRIu64, display);
+        }
+
+        err = mResources->getDisplayOutputBufferCacheSize(display, &cacheSize);
+        if (err == HWC3::Error::None) {
+            for (size_t slot = 0; slot < cacheSize; slot++) {
+                // Replace the buffer slots with NULLs. Keep the old handle until it is
+                // replaced in ComposerHal, otherwise we risk leaving a dangling pointer.
+                ::android::hardware::graphics::composer::V2_2::hal::ComposerResources::
+                    ReplacedHandle replacedBuffer(/*isBuffer*/ true);
+                const native_handle_t* outputBuffer = nullptr;
+                err = mResources->getDisplayOutputBuffer(display, slot, /*useCache*/ true,
+                        /*rawHandle*/ nullptr, &outputBuffer,
+                        &replacedBuffer);
+                if (err != HWC3::Error::None) {
+                    continue;
+                }
+
+                err = mHal->setOutputBuffer(display, outputBuffer, /*fence*/ -1);
+                ALOGE_IF(err != HWC3::Error::None,
+                        "Can't clean slot %d of the output buffer cache"
+                        "for display %" PRIu64,
+                        slot, display);
+            }
+        } else {
+            ALOGE("Can't clean output buffer cache for display %" PRIu64, display);
+        }
     }
 
     ComposerHal* const mHal;

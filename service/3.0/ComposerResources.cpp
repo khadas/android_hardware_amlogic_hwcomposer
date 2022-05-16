@@ -191,6 +191,19 @@ HWC3::Error ComposerResources::getDisplayClientTarget(
                 releaser->getReplacedHandle()));
 }
 
+HWC3::Error ComposerResources::getDisplayClientTarget(
+        int64_t displayId, uint32_t slot, bool fromCache,
+        const native_handle_t* rawHandle,
+        const native_handle_t** outBufferHandle,
+        ReplacedHandle* outReplacedBuffer) {
+    ::android::hardware::graphics::composer::V2_1::Display display =
+        toHwc2Display(displayId);
+
+    return toHwc3Error(mImpl->getDisplayClientTarget(
+                display, slot, fromCache, rawHandle,
+                outBufferHandle, outReplacedBuffer));
+}
+
 HWC3::Error ComposerResources::getDisplayOutputBuffer(
         int64_t displayId, const Buffer& buffer, buffer_handle_t* outHandle,
         ComposerResourceReleaser* releaser) {
@@ -207,6 +220,19 @@ HWC3::Error ComposerResources::getDisplayOutputBuffer(
     return toHwc3Error(mImpl->getDisplayOutputBuffer(
                 display, (uint32_t)buffer.slot, useCache, bufferHandle, outHandle,
                 releaser->getReplacedHandle()));
+}
+
+HWC3::Error ComposerResources::getDisplayOutputBuffer(
+        int64_t displayId, uint32_t slot, bool fromCache,
+        const native_handle_t* rawHandle,
+        const native_handle_t** outBufferHandle,
+        ReplacedHandle* outReplacedBuffer) {
+    ::android::hardware::graphics::composer::V2_1::Display display =
+        toHwc2Display(displayId);
+
+    return toHwc3Error(mImpl->getDisplayOutputBuffer(
+                display, slot, fromCache, rawHandle, outBufferHandle,
+                outReplacedBuffer));
 }
 
 HWC3::Error ComposerResources::getLayerBuffer(

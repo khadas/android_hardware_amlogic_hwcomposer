@@ -44,7 +44,11 @@ public:
         virtual ~EventCallback() = default;
         virtual void onHotplug(int64_t display, HWC2::Connection connected) = 0;
         virtual void onRefresh(int64_t display) = 0;
-        virtual void onVsync(int64_t display, int64_t timestamp) = 0;
+        virtual void onVsync(int64_t display, int64_t timestamp,
+                             uint32_t vsyncPeriodNanos) = 0;
+        virtual void onVsyncPeriodTimingChanged(int64_t display,
+                                                const VsyncPeriodChangeTimeline& timeline) = 0;
+        virtual void onSeamlessPossible(int64_t display) = 0;
     };
 
     // Register the event callback object.  The event callback object is valid

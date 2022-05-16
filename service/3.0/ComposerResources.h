@@ -25,6 +25,10 @@
 #include <memory>
 #include <optional>
 
+using ReplacedHandle =
+    ::android::hardware::graphics::composer::V2_2
+    ::hal::ComposerResources::ReplacedHandle;
+
 namespace aidl::android::hardware::graphics::composer3::impl {
 namespace meson {
 
@@ -33,14 +37,12 @@ public:
     ComposerResourceReleaser(bool isBuffer) : mReplacedHandle(isBuffer) {}
     virtual ~ComposerResourceReleaser() = default;
 
-    ::android::hardware::graphics::composer::V2_2::hal::ComposerResources::
-        ReplacedHandle* getReplacedHandle() {
-            return &mReplacedHandle;
+    ReplacedHandle* getReplacedHandle() {
+        return &mReplacedHandle;
     }
 
 private:
-    ::android::hardware::graphics::composer::V2_2::hal::ComposerResources::
-        ReplacedHandle mReplacedHandle;
+    ReplacedHandle mReplacedHandle;
 };
 
 class ComposerResources {
@@ -76,9 +78,21 @@ public:
             buffer_handle_t* outHandle, ComposerResourceReleaser* bufReleaser);
     HWC3::Error getDisplayClientTarget(int64_t displayId, const Buffer& buffer,
             buffer_handle_t* outHandle, ComposerResourceReleaser* bufReleaser);
+
+    HWC3::Error getDisplayClientTarget(int64_t display, uint32_t slot, bool fromCache,
+            const native_handle_t* rawHandle,
+            const native_handle_t** outBufferHandle,
+            ReplacedHandle* outReplacedBuffer);
+
     HWC3::Error getDisplayOutputBuffer(int64_t displayId, const Buffer& buffer,
             buffer_handle_t* outHandle,
             ComposerResourceReleaser* bufReleaser);
+
+    HWC3::Error getDisplayOutputBuffer(int64_t display, uint32_t slot, bool fromCache,
+            const native_handle_t* rawHandle,
+            const native_handle_t** outBufferHandle,
+            ReplacedHandle* outReplacedBuffer);
+
     HWC3::Error getLayerBuffer(int64_t displayId, int64_t layerId,
             const Buffer& buffer,
             buffer_handle_t* outBufferHandle,
