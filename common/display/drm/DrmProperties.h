@@ -58,9 +58,10 @@
 #define DRM_HDMI_PROP_COLORDEPTH    "Color Depth"
 #define DRM_HDMI_PROP_HDRCAP              "HDR DV Cap"
 
-
 /*meson prop*/
 #define DRM_CONNECTOR_PROP_UPDATE "UPDATE"
 #define DRM_CONNECTOR_PROP_MESON_TYPE "meson.connector_type"
+
+#define DRM_PLANE_PROP_OCCUPY "meson.plane.occupied"
 
 #endif

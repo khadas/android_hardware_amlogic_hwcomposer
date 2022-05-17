@@ -34,6 +34,7 @@ public:
     int32_t setCrtcId(uint32_t crtcid);
 
     bool isFbSupport(std::shared_ptr<DrmFramebuffer> & fb);
+    bool isAvailable();
 
     int32_t setPlane(std::shared_ptr<DrmFramebuffer> fb,
         uint32_t zorder, int blankOp);
@@ -82,6 +83,7 @@ protected:
     std::shared_ptr<DrmProperty> mAlpha;
 
     std::shared_ptr<DrmProperty> mInFormats;
+    std::shared_ptr<DrmProperty> mMesonOccupy;
 
     bool mBlank;
 

@@ -32,6 +32,7 @@ public:
     virtual int32_t getFixedZorder() = 0;
 
     virtual bool isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) = 0;
+    virtual bool isAvailable() {return true;}
 
     virtual int32_t setPlane(std::shared_ptr<DrmFramebuffer> fb,
         uint32_t zorder, int blankOp) = 0;

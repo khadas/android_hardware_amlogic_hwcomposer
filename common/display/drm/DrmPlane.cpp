@@ -73,6 +73,7 @@ void DrmPlane::loadProperties() {
         {DRM_PLANE_PROR_IN_FORMATS, &mInFormats},
         {DRM_PLANE_PROP_BLENDMODE, &mBlendMode},
         {DRM_PLANE_PROP_ALPHA, &mAlpha},
+        {DRM_PLANE_PROP_OCCUPY, &mMesonOccupy},
     };
     const int planePropsNum = sizeof(planeProps)/sizeof(planeProps[0]);
     int initedProps = 0;
@@ -123,10 +124,6 @@ uint32_t DrmPlane::getId() {
 }
 
 uint32_t DrmPlane::getType() {
-    if (mDbgFlag & 1) {
-        return INVALID_PLANE;
-    }
-
     switch (mType->getValue()) {
         case DRM_PLANE_TYPE_PRIMARY:
         case DRM_PLANE_TYPE_OVERLAY:
@@ -164,6 +161,20 @@ int32_t DrmPlane::setCrtcId(uint32_t crtcid) {
     mCrtc = getDrmDevice()->getCrtcById(crtcid);
     return 0;
 }
+
+bool DrmPlane::isAvailable() {
+    if (mDbgFlag & 1) {
+        return false;
+    }
+
+    /*plane occupied by non-drm moduels, cannot be used now.*/
+    if (mMesonOccupy && mMesonOccupy->getValue()) {
+        return false;
+    }
+
+    return true;
+}
+
 
 #define OSD_INPUT_MAX_WIDTH (1920)
 #define OSD_INPUT_MAX_HEIGHT (1080)
@@ -228,6 +239,11 @@ int32_t DrmPlane::setPlane(
     bool bBlank = blankOp == UNBLANK ? false : true;
     DrmCrtc * crtc = (DrmCrtc *)mCrtc.get();
     drmModeAtomicReqPtr req;
+
+    if (mMesonOccupy && mMesonOccupy->getValue()) {
+        MESON_LOGD("Plane %d occupied,skip setting.", mId);
+        return 0;
+    }
 
     if (bBlank) {
         if (!mBlank) {
