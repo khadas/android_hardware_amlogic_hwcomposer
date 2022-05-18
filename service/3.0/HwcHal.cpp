@@ -612,59 +612,253 @@ HWC3::Error HwcHal::setLayerZOrder(int64_t display, int64_t layer, uint32_t z) {
     return static_cast<HWC3::Error>(err);
 }
 
-// TODO: implement 2.2 ~ 2.4 mandatory interfaces
-HWC3::Error HwcHal::getDisplayIdentificationData(int64_t /* display */, uint8_t* /* outPort */,
-            std::vector<uint8_t>* /* outData */) {
+HWC3::Error HwcHal::getDisplayIdentificationData(int64_t display, uint8_t* outPort,
+                                                 std::vector<uint8_t>* outData) {
+    GET_DISPLAY_ID(display);
+    if (!mDispatch.getDisplayIdentificationData) {
+        return HWC3::Error::Unsupported;
+    }
+
+    uint32_t size = 0;
+    int32_t error =
+        mDispatch.getDisplayIdentificationData(mDevice, displayId, outPort, &size, nullptr);
+    if (error != HWC2_ERROR_NONE) {
+        return static_cast<HWC3::Error>(error);
+    }
+
+    std::vector<uint8_t> data(size);
+    error =
+        mDispatch.getDisplayIdentificationData(mDevice, displayId, outPort, &size, data.data());
+    if (error != HWC2_ERROR_NONE) {
+        return static_cast<HWC3::Error>(error);
+    }
+
+    data.resize(size);
+    *outData = std::move(data);
     return HWC3::Error::None;
 }
 
-HWC3::Error HwcHal::getPerFrameMetadataKeys(int64_t /* display */,
-            std::vector<PerFrameMetadataKey>* /* outKeys */) {
+HWC3::Error HwcHal::getPerFrameMetadataKeys(int64_t display,
+                                            std::vector<PerFrameMetadataKey>* outKeys) {
+    GET_DISPLAY_ID(display);
+    if (!mDispatch.getPerFrameMetadataKeys) {
+        return HWC3::Error::Unsupported;
+    }
+
+    uint32_t count = 0;
+    int32_t error = mDispatch.getPerFrameMetadataKeys(mDevice, displayId, &count, nullptr);
+    if (error != HWC2_ERROR_NONE) {
+        return static_cast<HWC3::Error>(error);
+    }
+
+    std::vector<PerFrameMetadataKey> keys(count);
+    error = mDispatch.getPerFrameMetadataKeys(
+            mDevice, displayId, &count,
+            reinterpret_cast<int32_t *>(keys.data()));
+
+    if (error != HWC2_ERROR_NONE) {
+        return static_cast<HWC3::Error>(error);
+    }
+
+    keys.resize(count);
+    *outKeys = std::move(keys);
     return HWC3::Error::None;
 }
 
-HWC3::Error HwcHal::getRenderIntents(int64_t /* display */, ColorMode /* mode */,
-            std::vector<RenderIntent>* /* outIntents */) {
+HWC3::Error HwcHal::getRenderIntents(int64_t display, ColorMode mode,
+                                     std::vector<RenderIntent>* outIntents) {
+    GET_DISPLAY_ID(display);
+    if (!mDispatch.getRenderIntents) {
+        HWC2::DisplayType type;
+        if (getDisplayType(display, &type) == HWC3::Error::BadDisplay) {
+            return HWC3::Error::BadDisplay;
+        }
+
+        if (mode < ColorMode::NATIVE || mode > ColorMode::DCI_P3) {
+            return HWC3::Error::BadParameter;
+        }
+
+        *outIntents = std::vector<RenderIntent>({RenderIntent::COLORIMETRIC});
+        return HWC3::Error::None;
+    }
+
+    uint32_t count = 0;
+    int32_t error =
+        mDispatch.getRenderIntents(mDevice, displayId, int32_t(mode), &count, nullptr);
+    if (error != HWC2_ERROR_NONE) {
+        return static_cast<HWC3::Error>(error);
+    }
+
+    std::vector<RenderIntent> intents(count);
+    error = mDispatch.getRenderIntents(
+            mDevice, displayId, int32_t(mode), &count,
+            reinterpret_cast<int32_t *>(intents.data()));
+    if (error != HWC2_ERROR_NONE) {
+        return static_cast<HWC3::Error>(error);
+    }
+
+    intents.resize(count);
+    *outIntents = std::move(intents);
     return HWC3::Error::None;
 }
 
-HWC3::Error HwcHal::setLayerPerFrameMetadata(int64_t /* display */, int64_t /* layer */,
-        const std::vector<std::optional<PerFrameMetadata>>& /* metadata */) {
+HWC3::Error HwcHal::setLayerPerFrameMetadata(
+        int64_t display, int64_t layer,
+        const std::vector<std::optional<PerFrameMetadata>>& metadata) {
+    GET_DISPLAY_ID(display);
+    GET_LAYER_ID(layer);
+    if (!mDispatch.setLayerPerFrameMetadata) {
+        return HWC3::Error::Unsupported;
+    }
+
+    std::vector<int32_t> keys;
+    std::vector<float> values;
+    keys.reserve(metadata.size());
+    values.reserve(metadata.size());
+    for (const auto& m : metadata) {
+        if (m.has_value()) {
+            keys.push_back(static_cast<int32_t>(m->key));
+            values.push_back(m->value);
+        }
+    }
+
+    int32_t error =
+        mDispatch.setLayerPerFrameMetadata(mDevice, displayId, layerId,
+                metadata.size(), keys.data(), values.data());
+    return static_cast<HWC3::Error>(error);
+}
+
+HWC3::Error HwcHal::getDisplayCapabilities(
+        int64_t display, std::vector<DisplayCapability>* outCapabilities) {
+    GET_DISPLAY_ID(display);
+    uint32_t count = 0;
+    int32_t error =
+        mDispatch.getDisplayCapabilities(mDevice, displayId, &count, nullptr);
+    if (error != HWC2_ERROR_NONE) {
+        return static_cast<HWC3::Error>(error);
+    }
+
+    outCapabilities->resize(count);
+    error = mDispatch.getDisplayCapabilities(
+            mDevice, displayId, &count,
+            reinterpret_cast<uint32_t *>(
+                outCapabilities->data()));
+    if (error != HWC2_ERROR_NONE) {
+        *outCapabilities = std::vector<DisplayCapability>();
+        return static_cast<HWC3::Error>(error);
+    }
+
     return HWC3::Error::None;
 }
 
-HWC3::Error HwcHal::getDisplayCapabilities(int64_t /* display */,
-        std::vector<DisplayCapability>* /* outCapabilities */) {
+HWC3::Error HwcHal::getDisplayConnectionType(
+        int64_t display, DisplayConnectionType* outType) {
+    GET_DISPLAY_ID(display);
+    if (!mDispatch.getDisplayConnectionType) {
+        return HWC3::Error::Unsupported;
+    }
+
+    uint32_t type = HWC2_DISPLAY_CONNECTION_TYPE_INTERNAL;
+    int32_t error = mDispatch.getDisplayConnectionType(mDevice, displayId, &type);
+    *outType = static_cast<DisplayConnectionType>(type);
+    return static_cast<HWC3::Error>(error);
+}
+
+HWC3::Error HwcHal::getDisplayVsyncPeriod(int64_t display, int32_t* outVsyncPeriod) {
+    GET_DISPLAY_ID(display);
+    if (!mDispatch.getDisplayVsyncPeriod) {
+        return HWC3::Error::Unsupported;
+    }
+
+    hwc2_vsync_period_t vsyncPeriod;
+    int32_t error = mDispatch.getDisplayVsyncPeriod(mDevice, displayId, &vsyncPeriod);
+    *outVsyncPeriod = static_cast<int32_t>(vsyncPeriod);
+
+    if (error != HWC2_ERROR_NONE) {
+        return static_cast<HWC3::Error>(error);
+    }
+
     return HWC3::Error::None;
 }
 
-HWC3::Error HwcHal::getDisplayConnectionType(int64_t /* display */,
-        DisplayConnectionType* /* outType */) {
+HWC3::Error HwcHal::getSupportedContentTypes(
+        int64_t display, std::vector<ContentType>* outSupportedContentTypes) {
+    GET_DISPLAY_ID(display);
+    if (!mDispatch.getSupportedContentTypes) {
+        return HWC3::Error::Unsupported;
+    }
+
+    uint32_t count = 0;
+    int32_t error = mDispatch.getSupportedContentTypes(mDevice, displayId, &count, nullptr);
+    if (error != HWC2_ERROR_NONE) {
+        return static_cast<HWC3::Error>(error);
+    }
+
+    outSupportedContentTypes->resize(count);
+
+    error = mDispatch.getSupportedContentTypes(
+            mDevice, displayId, &count,
+            reinterpret_cast<uint32_t *>(outSupportedContentTypes->data()));
+    if (error != HWC2_ERROR_NONE) {
+        *outSupportedContentTypes = std::vector<ContentType>();
+        return static_cast<HWC3::Error>(error);
+    }
     return HWC3::Error::None;
 }
 
-HWC3::Error HwcHal::getDisplayVsyncPeriod(int64_t /* display */,
-        int32_t* /* outVsyncPeriod */) {
+HWC3::Error HwcHal::setActiveConfigWithConstraints(int64_t display, int32_t config,
+        const VsyncPeriodChangeConstraints& vsyncPeriodChangeConstraints,
+        VsyncPeriodChangeTimeline* timeline) {
+    GET_DISPLAY_ID(display);
+    GET_CONFIG_ID(config);
+    if (!mDispatch.setActiveConfigWithConstraints) {
+        return HWC3::Error::Unsupported;
+    }
+
+    hwc_vsync_period_change_constraints_t vsync_period_change_constraints;
+    vsync_period_change_constraints.desiredTimeNanos =
+        vsyncPeriodChangeConstraints.desiredTimeNanos;
+    vsync_period_change_constraints.seamlessRequired =
+        vsyncPeriodChangeConstraints.seamlessRequired;
+
+    hwc_vsync_period_change_timeline_t out_timeline;
+    int32_t error = mDispatch.setActiveConfigWithConstraints(
+            mDevice, displayId, configId, &vsync_period_change_constraints, &out_timeline);
+    if (error != HWC2_ERROR_NONE) {
+        return static_cast<HWC3::Error>(error);
+    }
+
+    timeline->newVsyncAppliedTimeNanos = out_timeline.newVsyncAppliedTimeNanos;
+    timeline->refreshRequired = out_timeline.refreshRequired;
+    timeline->refreshTimeNanos = out_timeline.refreshTimeNanos;
     return HWC3::Error::None;
 }
 
-HWC3::Error HwcHal::getSupportedContentTypes(int64_t /* display */,
-            std::vector<ContentType>* /* outSupportedContentTypes */) {
+HWC3::Error HwcHal::setAutoLowLatencyMode(int64_t display, bool on) {
+    GET_DISPLAY_ID(display);
+    if (!mDispatch.setAutoLowLatencyMode) {
+        return HWC3::Error::Unsupported;
+    }
+
+    int32_t error = mDispatch.setAutoLowLatencyMode(mDevice, displayId, on);
+    if (error != HWC2_ERROR_NONE) {
+        return static_cast<HWC3::Error>(error);
+    }
+
     return HWC3::Error::None;
 }
 
-HWC3::Error HwcHal::setActiveConfigWithConstraints(int64_t /* display */, int32_t /* config */,
-        const VsyncPeriodChangeConstraints& /* vsyncPeriodChangeConstraints */,
-        VsyncPeriodChangeTimeline* /* timeline */) {
-    return HWC3::Error::None;
-}
+HWC3::Error HwcHal::setContentType(int64_t display, ContentType contentType) {
+    GET_DISPLAY_ID(display);
+    if (!mDispatch.setContentType) {
+        return HWC3::Error::Unsupported;
+    }
 
-HWC3::Error HwcHal::setAutoLowLatencyMode(int64_t /* display */, bool /* on */) {
-    return HWC3::Error::None;
-}
-
-HWC3::Error HwcHal::setContentType(int64_t /* display */,
-        ContentType /* contentType */) {
+    int32_t error =
+        mDispatch.setContentType(mDevice, displayId, static_cast<int32_t>(contentType));
+    if (error != HWC2_ERROR_NONE) {
+        return static_cast<HWC3::Error>(error);
+    }
     return HWC3::Error::None;
 }
 
