@@ -122,26 +122,27 @@ void RealModeMgr::resetTags() {
 };
 
 int32_t RealModeMgr::update() {
+    // if mode changed by setActiveConfig then mode Id not changed
+    // when setActiveConfig, no need reload display modes
+    if (!mCallOnHotPlug)
+        return HWC2_ERROR_NONE;
+
     std::lock_guard<std::mutex> lock(mMutex);
     bool useFakeMode = true;
     drm_mode_info_t realMode;
     std::map<uint32_t, drm_mode_info_t> connecterModeList;
 
     int largestUsedModeId = -1;
-    int smallestUsedModeId = mModes.size() ? mModes.begin()->first : 0;
 
     for (auto it = mModes.begin(); it != mModes.end(); ++it) {
         int configId = static_cast<int>(it->first);
         if (configId > largestUsedModeId)
             largestUsedModeId = configId;
-
-        if (configId < smallestUsedModeId)
-            smallestUsedModeId = configId;
     }
 
     // if mode changed by setActiveConfig then mode Id not changed
     // otherwise change config Id sequentail
-    int nextModeId = mCallOnHotPlug ? (largestUsedModeId + 1) : smallestUsedModeId;
+    int nextModeId = largestUsedModeId + 1;
     MESON_LOGD("RealModeMgr::update: nextModeId:%d", nextModeId);
 
     /* reset ModeList */

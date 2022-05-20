@@ -58,6 +58,7 @@ Hwc2Display::Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer, uint32_t
     mVideoLayerRegion = 0;
 #endif
     mHasVideoPresent = false;
+    mModeChanged = false;
 }
 
 Hwc2Display::~Hwc2Display() {
@@ -373,6 +374,9 @@ void Hwc2Display::onHotplug(bool connected) {
     }
 
     /* wake up the setActiveConfig, if hdmi plug out */
+    std::unique_lock<std::mutex> stateLock(mStateLock);
+    mModeChanged = false;
+    stateLock.unlock();
     mStateCondition.notify_all();
 }
 
@@ -474,6 +478,9 @@ void Hwc2Display::onModeChanged(int stage) {
             }
 
             /* wake up the setActiveConfig */
+            std::unique_lock<std::mutex> stateLock(mStateLock);
+            mModeChanged = false;
+            stateLock.unlock();
             mStateCondition.notify_all();
         } else {
             /* begin change mode, need blank once */
@@ -1343,10 +1350,11 @@ hwc2_error_t Hwc2Display::setActiveConfig(
         }
 
         mSeamlessSwitch = mModeMgr->isSeamlessSwitch(config);
+        std::unique_lock<std::mutex> stateLock(mStateLock);
+        mModeChanged = true;
         int ret = mModeMgr->setActiveConfig(config);
         /* wait when the display start refresh at the new config */
-        if (!mSeamlessSwitch) {
-            std::unique_lock<std::mutex> stateLock(mStateLock);
+        if (!mSeamlessSwitch && mModeChanged) {
             mStateCondition.wait_for(stateLock, std::chrono::seconds(3));
         }
 

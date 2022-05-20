@@ -272,6 +272,8 @@ protected:
     /* for activeConfig */
     std::condition_variable mStateCondition;
     std::mutex mStateLock;
+    bool mModeChanged;
+
     bool mFirstPresent;
 
     uint32_t mDisplayId;
