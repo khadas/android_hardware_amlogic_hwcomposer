@@ -22,12 +22,6 @@
 #define VT_CMD_GAME_MODE_ENABLE  0x02
 #define VT_CMD_GAME_MODE_DISABLE 0x04
 
-typedef enum {
-    VT_VIDEO_STATUS_HIDE,
-    VT_VIDEO_STATUS_CLEAR_LAST_FRAME,
-    VT_VIDEO_STATUS_SHOW,
-} vt_video_display_status;
-
 class VtDisplayObserver {
 public:
     VtDisplayObserver() {};
@@ -89,13 +83,10 @@ public:
 
     int32_t registerConsumer();
     int32_t unregisterConsumer();
-    bool isVtNeedClearLastFrame();
-    bool isVtNeedHideVideo();
+    bool isVtNeedClearFrame();
     int32_t onVtFrameAvailable(std::vector<std::shared_ptr<VtBufferItem>> & items);
     int32_t onVtFrameDisplayed(int bufferFd, int fenceFd);
-    void onVtVideoHide();
-    void onVtVideoBlank();
-    void onVtVideoShow();
+    void onVtVideoStatus(vt_video_status_t status);
     void onVtVideoGameMode(int data);
     int32_t getVtVideoStatus();
     void setVtSourceCrop(drm_rect_t & rect);
@@ -120,9 +111,7 @@ public:
         ~VtContentChangeListener() {};
 
         int32_t onFrameAvailable(std::vector<std::shared_ptr<VtBufferItem>> & items);
-        void onVideoHide();
-        void onVideoBlank();
-        void onVideoShow();
+        void onVideoStatus(vt_video_status_t status);
         void onVideoGameMode(int data);
         int32_t getVideoStatus();
         void onSourceCropChange(vt_rect_t & crop);
@@ -166,7 +155,7 @@ protected:
     std::deque<VtBufferItem> mQueueItems;
     std::shared_ptr<VtConsumer::VtContentListener> mContentListener;
     std::shared_ptr<VtConsumer> mVtConsumer;
-    vt_video_display_status mVideoDisplayStatus;
+    vt_video_status_t mVideoDisplayStatus;
     std::shared_ptr<VtDisplayObserver> mDisplayObserver;
 
     std::shared_ptr<UvmDettach> mUvmDettach;

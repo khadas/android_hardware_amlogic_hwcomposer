@@ -61,21 +61,7 @@ int32_t VtConsumer::onVtCmds(vt_cmd_t & cmd, vt_cmd_data_t & cmdData) {
         case VT_CMD_SET_VIDEO_STATUS:
             MESON_LOGD("[%s] [%s] received VT_CMD_SET_VIDEO_STATUS %d",
                     __func__, mName, cmdData.data);
-            switch (cmdData.data) {
-                case 0:
-                    mContentListener->onVideoHide();
-                    break;
-                case 1:
-                    mContentListener->onVideoBlank();
-                    break;
-                case 2:
-                    mContentListener->onVideoShow();
-                    break;
-                default:
-                    MESON_LOGW("[%s] [%s] get an invalid parameter(%d) for "
-                            "cmd VT_CMD_SET_VIDEO_STATUS",
-                            __func__, mName, cmdData.data);
-            }
+            mContentListener->onVideoStatus(cmdData.data);
             break;
         case VT_CMD_GET_VIDEO_STATUS:
             MESON_LOGD("[%s] [%s] received cmd VT_CMD_GET_VIDEO_STATUS",

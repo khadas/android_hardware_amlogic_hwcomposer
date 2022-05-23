@@ -616,7 +616,7 @@ int32_t Hwc2Layer::releaseVtResourceLocked(bool needDisconnect) {
             return 0;
 
         if (mPreVtBufferFd >= 0) {
-            onVtFrameDisplayed(mPreVtBufferFd, -1);
+            onVtFrameDisplayed(mPreVtBufferFd, getPrevReleaseFence());
             mQueuedFrames--;
             MESON_LOGV("[%s] [%d] [%" PRIu64 "] release(%d) queuedFrames(%d)",
                     __func__, mDisplayId, mId, mPreVtBufferFd, mQueuedFrames);
@@ -807,24 +807,23 @@ int32_t Hwc2Layer::unregisterConsumer() {
     return ret;
 }
 
-bool Hwc2Layer::isVtNeedClearLastFrame() {
-    if (mVideoDisplayStatus == VT_VIDEO_STATUS_CLEAR_LAST_FRAME) {
+bool Hwc2Layer::isVtNeedClearFrame() {
+    std::lock_guard<std::mutex> lock(mMutex);
+    bool ret = false;
+
+    if (mVideoDisplayStatus == VT_VIDEO_STATUS_BLANK) {
         /* need do disable video composer once */
         mVideoDisplayStatus = VT_VIDEO_STATUS_SHOW;
-        releaseVtResourceLocked(false);
-        return true;
-    }
-    return false;
-}
-
-bool Hwc2Layer::isVtNeedHideVideo() {
-    if (mVideoDisplayStatus == VT_VIDEO_STATUS_HIDE) {
+        ret = true;
+    } else if (mVideoDisplayStatus == VT_VIDEO_STATUS_HIDE) {
         setPrevReleaseFence(-1);
-        releaseVtResourceLocked(false);
-        return true;
+        ret = true;
     }
 
-    return false;
+    if (ret)
+        releaseVtResourceLocked(false);
+
+    return ret;
 }
 
 int32_t Hwc2Layer::onVtFrameDisplayed(int bufferFd, int fenceFd) {
@@ -882,25 +881,10 @@ int32_t Hwc2Layer::onVtFrameAvailable(
     return 0;
 }
 
-void Hwc2Layer::onVtVideoHide() {
-    /* clear lastframe and donot show this video layer
-     * until receive show video CMD
-     */
-    MESON_LOGD("[%s] [%d] [%" PRIu64 "]", __func__, mDisplayId, mId);
-    mVideoDisplayStatus = VT_VIDEO_STATUS_HIDE;
-}
-
-void Hwc2Layer::onVtVideoBlank() {
-    /* clear lastFrame and blank plane,
-     * will redisplay when receive new frame
-     */
-    MESON_LOGD("[%s] [%d] [%" PRIu64 "]", __func__, mDisplayId, mId);
-    mVideoDisplayStatus = VT_VIDEO_STATUS_CLEAR_LAST_FRAME;
-}
-
-void Hwc2Layer::onVtVideoShow() {
-    MESON_LOGD("[%s] [%d] [%" PRIu64 "]", __func__, mDisplayId, mId);
-    mVideoDisplayStatus = VT_VIDEO_STATUS_SHOW;
+void Hwc2Layer::onVtVideoStatus(vt_video_status_t status) {
+    std::lock_guard<std::mutex> lock(mMutex);
+    MESON_LOGD("[%s] [%d] [%" PRIu64 "] status: %d", __func__, mDisplayId, mId, status);
+    mVideoDisplayStatus = status;
 }
 
 void Hwc2Layer::onVtVideoGameMode(int data) {
@@ -966,25 +950,9 @@ int32_t Hwc2Layer::VtContentChangeListener::onFrameAvailable(
     return ret;
 }
 
-void Hwc2Layer::VtContentChangeListener::onVideoHide() {
+void Hwc2Layer::VtContentChangeListener::onVideoStatus(vt_video_status_t status) {
     if (mLayer)
-        mLayer->onVtVideoHide();
-    else
-        MESON_LOGE("Hwc2Layer::VtContentChangeListener::%s mLayer is NULL",
-                __func__);
-}
-
-void Hwc2Layer::VtContentChangeListener::onVideoBlank() {
-    if (mLayer)
-        mLayer->onVtVideoBlank();
-    else
-        MESON_LOGE("Hwc2Layer::VtContentChangeListener::%s mLayer is NULL",
-                __func__);
-}
-
-void Hwc2Layer::VtContentChangeListener::onVideoShow() {
-    if (mLayer)
-        mLayer->onVtVideoShow();
+        mLayer->onVtVideoStatus(status);
     else
         MESON_LOGE("Hwc2Layer::VtContentChangeListener::%s mLayer is NULL",
                 __func__);
