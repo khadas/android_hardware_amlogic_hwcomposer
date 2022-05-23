@@ -147,7 +147,7 @@ int32_t ConnectorHdmi::addDisplayMode(std::string& mode) {
         vinfo->height,
         (float)vinfo->sync_duration_num/vinfo->sync_duration_den,
         0};
-    strcpy(modeInfo.name, mode.c_str());
+    strncpy(modeInfo.name, mode.c_str(),DRM_DISPLAY_MODE_LEN);
 
     bool bFractionMode = false, bNonFractionMode = false;
     if (mFracMode == MODE_ALL || mFracMode == MODE_FRACTION) {
