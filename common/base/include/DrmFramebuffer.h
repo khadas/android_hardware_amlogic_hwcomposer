@@ -61,8 +61,7 @@ public:
     virtual int32_t getVtBuffer() { return -EINVAL; }
     virtual int32_t releaseVtBuffer() { return 0; }
     virtual bool isVtBuffer() { return false;}
-    virtual bool isVtNeedHideVideo() { return false; }
-    virtual bool isVtNeedClearLastFrame() { return false; }
+    virtual bool isVtNeedClearFrame() { return false; }
     virtual int32_t getSolidColorBuffer(bool used=false) { UNUSED(used); return -EINVAL; }
 
     // for video processor

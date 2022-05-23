@@ -29,7 +29,7 @@ int32_t VtInstance::onFrameDisplayed(int bufferFd, int fenceFd) {
     std::lock_guard<std::mutex> lock(mMutex);
     std::shared_ptr<VtBufferItem> ptrBufferItem;
     if (mBufferQueue.empty()) {
-        MESON_LOGE("[%s] [%s] buffer queue is empty (%d)",
+        MESON_LOGV("[%s] [%s] buffer queue is empty (%d)",
             __func__, mName, bufferFd);
         return -1;
     }

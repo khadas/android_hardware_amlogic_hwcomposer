@@ -16,6 +16,18 @@
 extern "C" {
 #endif
 
+typedef enum vt_video_status {
+    /* clear lastFrame and blank plane,
+     * will re-display when receive new frame
+     */
+    VT_VIDEO_STATUS_BLANK = 1,
+    /* clear lastframe and donot show this video layer
+     * until receive show video CMD
+     */
+    VT_VIDEO_STATUS_HIDE = 2,
+    VT_VIDEO_STATUS_SHOW = 3,
+} vt_video_status_t;
+
 typedef enum vt_cmd {
     VT_CMD_SET_VIDEO_STATUS,
     VT_CMD_GET_VIDEO_STATUS,
@@ -34,7 +46,7 @@ typedef struct vt_rect {
 
 typedef struct vt_cmd_data {
     struct vt_rect crop;
-    int data;
+    vt_video_status_t data;
     int client;
 } vt_cmd_data_t;
 

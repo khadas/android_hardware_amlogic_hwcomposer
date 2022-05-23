@@ -1419,7 +1419,7 @@ int MultiplanesWithDiComposition::commit(bool sf) {
         }
 
         if (fb->isVtBuffer()) {
-            if (fb->isVtNeedClearLastFrame() ||
+            if (fb->isVtNeedClearFrame() ||
                 (fb->getVtBuffer() < 0 && fb->getSolidColorBuffer() < 0)) {
                 /* need blank video plane:
                  * 1, receiced a clear last frame cmd

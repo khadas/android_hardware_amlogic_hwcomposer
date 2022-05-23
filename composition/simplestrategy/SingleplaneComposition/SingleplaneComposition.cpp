@@ -470,7 +470,7 @@ int SingleplaneComposition::commit(bool sf) {
 
         /*set display info*/
         if (!sf && fb->isVtBuffer()) {
-            if (fb->isVtNeedClearLastFrame() || fb->isVtNeedHideVideo())
+            if (fb->isVtNeedClearFrame())
                 blankFlag = BLANK_FOR_NO_CONTENT;
 
             plane->setPlane(fb, z, blankFlag);

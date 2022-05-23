@@ -481,7 +481,7 @@ int meson_vt_recv_cmd(int fd, int tunnel_id, enum vt_cmd *cmd, struct vt_cmd_dat
             .bottom = data.source_crop.bottom,
         };
     } else  {
-        cmd_data->data = data.video_cmd_data;
+        cmd_data->data = (vt_video_status_t)data.video_cmd_data;
     }
 
     cmd_data->client = data.client_id;

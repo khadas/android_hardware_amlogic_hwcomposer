@@ -74,9 +74,7 @@ public:
                 std::vector<std::shared_ptr<VtBufferItem>> & items __unused) {return 0;};
 
         // cmd interfaces
-        virtual void onVideoHide() {};
-        virtual void onVideoBlank() {};
-        virtual void onVideoShow() {};
+        virtual void onVideoStatus(vt_video_status_t status __unused) {};
         virtual void onVideoGameMode(int data __unused) {};
         virtual int32_t getVideoStatus() {return 0;};
         virtual void onSourceCropChange(vt_rect_t & crop __unused) {};
