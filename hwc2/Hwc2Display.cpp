@@ -1439,11 +1439,11 @@ hwc2_error_t Hwc2Display::setActiveConfigWithConstraints(hwc2_config_t config,
         return HWC2_ERROR_BAD_CONFIG;
 
     if (activeConfig != config) {
+        std::unique_lock<std::mutex> stateLock(mStateLock);
+        mModeChanged = true;
         int ret = mModeMgr->setActiveConfig(config);
-
         /* wait when the display start refresh at the new config */
-        if (!mSeamlessSwitch) {
-            std::unique_lock<std::mutex> stateLock(mStateLock);
+        if (!mSeamlessSwitch && mModeChanged) {
             mStateCondition.wait_for(stateLock, std::chrono::seconds(3));
         }
 
