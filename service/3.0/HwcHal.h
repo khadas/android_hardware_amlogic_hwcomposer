@@ -117,11 +117,24 @@ public:
     HWC3::Error setAutoLowLatencyMode(int64_t display, bool on) override;
     HWC3::Error setContentType(int64_t display, ContentType contentType) override;
 
+    /* hwc3 interface */
+    HWC3::Error setBootDisplayConfig(int64_t displayId, int32_t config) override;
+    HWC3::Error clearBootDisplayConfig(int64_t displayId) override;
+    HWC3::Error getPreferredBootDisplayConfig(int64_t displayId, int32_t* config) override;
+    HWC3::Error getDisplayPhysicalOrientation(int64_t display, common::Transform* orientation) override;
+    HWC3::Error setExpectedPresentTime(int64_t display, const int64_t expectedPresentTime) override;
+    HWC3::Error setLayerBrightness(int64_t display, int64_t layer, const LayerBrightness& brightness) override;
+
+    /* extern interface */
+    HWC3::Error setAidlClientPid(int32_t pid) override;
+
 protected:
     virtual void initCapabilities();
 
     template <typename T>
-    bool initDispatch(hwc2_function_descriptor_t desc, T* outPfn);
+        bool initDispatch(hwc2_function_descriptor_t desc, T* outPfn);
+    template <typename T>
+        bool initHwc3Dispatch(hwc3_function_descriptor_t desc, T* outPfn);
     virtual bool initDispatch();
     template <typename T>
         bool initOptionalDispatch(hwc2_function_descriptor_t desc, T* outPfn);
@@ -210,6 +223,16 @@ protected:
         HWC2_PFN_SET_AUTO_LOW_LATENCY_MODE setAutoLowLatencyMode;
         HWC2_PFN_SET_CONTENT_TYPE setContentType;
         HWC2_PFN_GET_CLIENT_TARGET_PROPERTY getClientTargetProperty;
+
+        /* hwc 3 */
+        HWC3_PFN_SET_BOOT_DISPLAY_CONFIG setBootDisplayConfig;
+        HWC3_PFN_CLEAR_BOOT_DISPLAY_CONFIG clearBootDisplayConfig;
+        HWC3_PFN_GET_PREFERRED_BOOT_DISPLAY_CONFIG getPreferredBootDisplayConfig;
+        HWC3_PFN_GET_DISPLAY_PHYSICAL_ORIENTATION getDisplayPhysicalOrientation;
+        HWC3_PFN_SET_EXPECTED_PRESENT_TIME setExpectedPresentTime;
+        HWC3_PFN_SET_LAYER_BRIGHTNESS setLayerBrightness;
+        /* extern */
+        HWC3_PFN_SET_AIDL_CLIENT_PID setAidlClientPid;
     } mDispatch = {};
 
     ComposerHal::EventCallback* mEventCallback = nullptr;

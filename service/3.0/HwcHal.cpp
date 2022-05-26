@@ -862,6 +862,114 @@ HWC3::Error HwcHal::setContentType(int64_t display, ContentType contentType) {
     return HWC3::Error::None;
 }
 
+/* hwc3 interfaces */
+HWC3::Error HwcHal::setBootDisplayConfig(int64_t display, int32_t config) {
+    GET_DISPLAY_ID(display);
+    if (!mDispatch.setBootDisplayConfig) {
+        return HWC3::Error::Unsupported;
+    }
+
+    int32_t error = mDispatch.setBootDisplayConfig(mDevice, displayId, config);
+    if (error != HWC2_ERROR_NONE) {
+        return static_cast<HWC3::Error>(error);
+    }
+    return HWC3::Error::None;
+}
+
+HWC3::Error HwcHal::clearBootDisplayConfig(int64_t display) {
+    GET_DISPLAY_ID(display);
+    if (!mDispatch.clearBootDisplayConfig) {
+        return HWC3::Error::Unsupported;
+    }
+
+    int32_t error = mDispatch.clearBootDisplayConfig(mDevice, displayId);
+    if (error != HWC2_ERROR_NONE) {
+        return static_cast<HWC3::Error>(error);
+    }
+    return HWC3::Error::None;
+}
+
+HWC3::Error HwcHal::getPreferredBootDisplayConfig(int64_t display, int32_t* config) {
+    GET_DISPLAY_ID(display);
+    if (!mDispatch.getPreferredBootDisplayConfig) {
+        return HWC3::Error::Unsupported;
+    }
+
+    int32_t error = mDispatch.getPreferredBootDisplayConfig(mDevice, displayId, config);
+    if (error != HWC2_ERROR_NONE) {
+        return static_cast<HWC3::Error>(error);
+    }
+    return HWC3::Error::None;
+}
+
+HWC3::Error HwcHal::getDisplayPhysicalOrientation(int64_t display,
+        common::Transform* orientation) {
+    GET_DISPLAY_ID(display);
+    if (!mDispatch.getDisplayPhysicalOrientation) {
+        return HWC3::Error::Unsupported;
+    }
+
+    int32_t outOrientation = 0;
+    int32_t error =
+        mDispatch.getDisplayPhysicalOrientation(mDevice, displayId, &outOrientation);
+    if (error != HWC2_ERROR_NONE) {
+        return static_cast<HWC3::Error>(error);
+    }
+    *orientation = static_cast<common::Transform>(outOrientation);
+
+    return HWC3::Error::None;
+}
+
+HWC3::Error HwcHal::setExpectedPresentTime(int64_t display,
+        const int64_t expectedPresentTime) {
+    GET_DISPLAY_ID(display);
+    if (!mDispatch.setExpectedPresentTime) {
+        return HWC3::Error::Unsupported;
+    }
+
+    int32_t error =
+        mDispatch.setExpectedPresentTime(mDevice, displayId, expectedPresentTime);
+    if (error != HWC2_ERROR_NONE) {
+        return static_cast<HWC3::Error>(error);
+    }
+
+    return HWC3::Error::None;
+}
+
+HWC3::Error HwcHal::setLayerBrightness(int64_t display, int64_t layer,
+        const LayerBrightness& brightness) {
+    GET_DISPLAY_ID(display);
+    GET_LAYER_ID(layer);
+    if (!mDispatch.setLayerBrightness) {
+        return HWC3::Error::Unsupported;
+    }
+
+    if (std::isnan(brightness.brightness)) {
+        return HWC3::Error::BadParameter;
+    }
+
+    int32_t error =
+        mDispatch.setLayerBrightness(mDevice, displayId, layerId, brightness.brightness);
+    if (error != HWC2_ERROR_NONE) {
+        return static_cast<HWC3::Error>(error);
+    }
+
+    return HWC3::Error::None;
+}
+
+HWC3::Error HwcHal::setAidlClientPid(int32_t pid) {
+    if (!mDispatch.setAidlClientPid) {
+        return HWC3::Error::Unsupported;
+    }
+
+    int32_t error = mDispatch.setAidlClientPid(mDevice, pid);
+    if (error != HWC2_ERROR_NONE) {
+        return static_cast<HWC3::Error>(error);
+    }
+
+    return HWC3::Error::None;
+}
+
 void HwcHal::initCapabilities() {
     uint32_t count = 0;
     mDevice->getCapabilities(mDevice, &count, nullptr);
@@ -884,6 +992,18 @@ bool HwcHal::initDispatch(hwc2_function_descriptor_t desc, T* outPfn) {
         return true;
     } else {
         ALOGE("failed to get hwcomposer2 function %d", desc);
+        return false;
+    }
+}
+
+template <typename T>
+bool HwcHal::initHwc3Dispatch(hwc3_function_descriptor_t desc, T* outPfn) {
+    auto pfn = mDevice->getFunction(mDevice, desc);
+    if (pfn) {
+        *outPfn = reinterpret_cast<T>(pfn);
+        return true;
+    } else {
+        ALOGE("failed to get hwcomposer3 function %d", desc);
         return false;
     }
 }
@@ -992,6 +1112,24 @@ bool HwcHal::initDispatch() {
     initOptionalDispatch(HWC2_FUNCTION_SET_CONTENT_TYPE, &mDispatch.setContentType);
     initOptionalDispatch(HWC2_FUNCTION_GET_CLIENT_TARGET_PROPERTY,
             &mDispatch.getClientTargetProperty);
+
+    /* hwc3 interfaces */
+    if (!initHwc3Dispatch(HWC3_FUNCTION_SET_BOOT_DISPLAY_CONFIG,
+                &mDispatch.setBootDisplayConfig) ||
+        !initHwc3Dispatch(HWC3_FUNCTION_CLEAR_BOOT_DISPLAY_CONFIG,
+                &mDispatch.clearBootDisplayConfig) ||
+        !initHwc3Dispatch(HWC3_FUNCTION_GET_PREFERRED_BOOT_DISPLAY_CONFIG,
+                &mDispatch.getPreferredBootDisplayConfig) ||
+        !initHwc3Dispatch(HWC3_FUNCTION_GET_DISPLAY_PHYSICAL_ORIENTATION,
+                &mDispatch.getDisplayPhysicalOrientation) ||
+        !initHwc3Dispatch(HWC3_FUNCTION_SET_EXPECTED_PRESENT_TIME,
+                &mDispatch.setExpectedPresentTime) ||
+        !initHwc3Dispatch(HWC3_FUNCTION_SET_LAYER_BRIGHTNESS,
+                &mDispatch.setLayerBrightness)  ||
+        !initHwc3Dispatch(HWC3_FUNCTION_SET_AIDL_CLIENT_PID,
+                &mDispatch.setAidlClientPid)) {
+        ALOGE("initDispatch hwc3 interface failed");
+    }
 
     return true;
 }

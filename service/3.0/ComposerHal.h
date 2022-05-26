@@ -25,6 +25,7 @@
 #include <hardware/hwcomposer2.h>
 #undef HWC2_INCLUDE_STRINGIFICATION
 #undef HWC2_USE_CPP11
+#include "hwcomposer3.h"
 
 #include <Common.h>
 namespace aidl::android::hardware::graphics::composer3::impl {
@@ -146,6 +147,17 @@ public:
             VsyncPeriodChangeTimeline* timeline) = 0;
     virtual HWC3::Error setAutoLowLatencyMode(int64_t display, bool on) = 0;
     virtual HWC3::Error setContentType(int64_t display, ContentType contentType) = 0;
+
+    /* hwc 3.0 interface */
+    virtual HWC3::Error setBootDisplayConfig(int64_t displayId, int32_t config) = 0;
+    virtual HWC3::Error clearBootDisplayConfig(int64_t displayId) = 0;
+    virtual HWC3::Error getPreferredBootDisplayConfig(int64_t displayId, int32_t* config) = 0;
+    virtual HWC3::Error getDisplayPhysicalOrientation(int64_t display, common::Transform* orientation) = 0;
+    virtual HWC3::Error setExpectedPresentTime(int64_t display, const int64_t expectedPresentTime) = 0;
+    virtual HWC3::Error setLayerBrightness(int64_t display, int64_t layer, const LayerBrightness& brightness) = 0;
+
+    /* extern interface */
+    virtual HWC3::Error setAidlClientPid(int32_t pid) = 0;
 };
 
 }

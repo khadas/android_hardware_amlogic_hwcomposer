@@ -519,10 +519,12 @@ ndk::ScopedAStatus ComposerClient::getDisplayedContentSamplingAttributes(
 }
 
 ndk::ScopedAStatus ComposerClient::getDisplayPhysicalOrientation(
-      int64_t displayId __unused, common::Transform* outOrientation __unused) {
+      int64_t displayId, common::Transform* outOrientation) {
     DEBUG_LOG("%s", __FUNCTION__);
+    std::unique_lock<std::mutex> lock(mStateMutex);
 
-    return ToBinderStatus(HWC3::Error::Unsupported);
+    auto err = mHal->getDisplayPhysicalOrientation(displayId, outOrientation);
+    return ToBinderStatus(err);
 }
 
 ndk::ScopedAStatus ComposerClient::getHdrCapabilities(
@@ -633,25 +635,31 @@ ndk::ScopedAStatus ComposerClient::setActiveConfigWithConstraints(
     return ToBinderStatus(error);
 }
 
-ndk::ScopedAStatus ComposerClient::setBootDisplayConfig(int64_t displayId __unused,
-                                                        int32_t configId __unused) {
+ndk::ScopedAStatus ComposerClient::setBootDisplayConfig(int64_t displayId,
+                                                        int32_t configId) {
     DEBUG_LOG("%s display:%" PRIu64 " config:%" PRIu32, __FUNCTION__, displayId,
               configId);
+    std::unique_lock<std::mutex> lock(mStateMutex);
 
-    return ToBinderStatus(HWC3::Error::None);
+    auto err = mHal->setBootDisplayConfig(displayId, configId);
+    return ToBinderStatus(err);
 }
 
-ndk::ScopedAStatus ComposerClient::clearBootDisplayConfig(int64_t displayId __unused) {
+ndk::ScopedAStatus ComposerClient::clearBootDisplayConfig(int64_t displayId) {
     DEBUG_LOG("%s display:%" PRIu64, __FUNCTION__, displayId);
+    std::unique_lock<std::mutex> lock(mStateMutex);
 
-    return ToBinderStatus(HWC3::Error::None);
+    auto err = mHal->clearBootDisplayConfig(displayId);
+    return ToBinderStatus(err);
 }
 
 ndk::ScopedAStatus ComposerClient::getPreferredBootDisplayConfig(
-      int64_t displayId __unused, int32_t* outConfigId __unused) {
+      int64_t displayId, int32_t* outConfigId) {
     DEBUG_LOG("%s display:%" PRIu64, __FUNCTION__, displayId);
+    std::unique_lock<std::mutex> lock(mStateMutex);
 
-    return ToBinderStatus(HWC3::Error::None);
+    auto err = mHal->getPreferredBootDisplayConfig(displayId, outConfigId);
+    return ToBinderStatus(err);
 }
 
 ndk::ScopedAStatus ComposerClient::setAutoLowLatencyMode(int64_t displayId,
@@ -1308,10 +1316,15 @@ void ComposerClient::executeLayerCommandSetLayerPerFrameMetadataBlobs(
 }
 
 void ComposerClient::executeLayerCommandSetLayerBrightness(
-      int64_t display __unused, int64_t layer __unused,
-      const LayerBrightness& brightness __unused) {
+      int64_t display, int64_t layer,
+      const LayerBrightness& brightness) {
     DEBUG_LOG("%s", __FUNCTION__);
-    mCommandResults->addError(HWC3::Error::Unsupported);
+
+    auto error = mHal->setLayerBrightness(display, layer, brightness);
+    if (error != HWC3::Error::None) {
+        LOG_LAYER_COMMAND_ERROR(display, layer, error);
+        mCommandResults->addError(error);
+    }
 }
 
 ::android::base::unique_fd ComposerClient::getUniqueFd(

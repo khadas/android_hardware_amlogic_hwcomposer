@@ -38,7 +38,6 @@ Composer::~Composer() {
 ndk::ScopedAStatus Composer::createClient(
         std::shared_ptr<IComposerClient>* outClient) {
     DEBUG_LOG("%s", __FUNCTION__);
-
     std::unique_lock<std::mutex> lock(mClientMutex);
 
     const bool previousClientDestroyed = waitForClientDestroyedLocked(lock);
@@ -66,6 +65,8 @@ ndk::ScopedAStatus Composer::createClient(
 
     mClient = client;
     *outClient = client;
+
+    mHal->setAidlClientPid(AIBinder_getCallingPid());
 
     return ndk::ScopedAStatus::ok();
 }

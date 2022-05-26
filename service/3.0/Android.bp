@@ -14,6 +14,18 @@
 // limitations under the License.
 //
 
+cc_library_headers {
+    name: "hwc3.interface",
+    vendor_available: true,
+    recovery_available: true,
+
+    shared_libs: [
+        "liblog",
+    ],
+
+    export_include_dirs: ["include"],
+}
+
 cc_defaults {
     name: "libmeson_hwc3_defaults",
 
@@ -55,6 +67,10 @@ cc_defaults {
 
     static_libs: [
         "libaidlcommonsupport",
+    ],
+
+    header_libs: [
+        "hwc3.interface",
     ],
 }
 
