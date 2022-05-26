@@ -83,6 +83,7 @@ cc_library_static {
     ],
 
     static_libs: [
+        "hwc.debug_static",
         "hwc.utils_static",
         "hwc.base_static",
         "hwc.display_static",

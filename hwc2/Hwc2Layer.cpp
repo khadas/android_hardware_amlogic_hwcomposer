@@ -560,7 +560,7 @@ int32_t Hwc2Layer::releaseVtBuffer() {
     if (mQueueItems.empty()) {
         MESON_LOGV("[%s] [%d] [%" PRIu64 "] Queued vtbuffer is empty!!",
                 __func__, mDisplayId, mId);
-        return -EINVAL;
+        return -EAGAIN;
     }
 
     // remove it from the queueItems

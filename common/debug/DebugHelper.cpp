@@ -8,10 +8,14 @@
  */
 #include <unistd.h>
 #include <getopt.h>
+#include <cutils/properties.h>
+#include <log/log.h>
 
-#include <misc.h>
 #include <DebugHelper.h>
-#include <MesonLog.h>
+
+#ifndef LOG_TAG
+#define LOG_TAG "MesonHwc"
+#endif
 
 ANDROID_SINGLETON_STATIC_INSTANCE(DebugHelper)
 
@@ -23,6 +27,7 @@ ANDROID_SINGLETON_STATIC_INSTANCE(DebugHelper)
 #define COMMAND_DUMP_DETAIL "--detail"
 #define COMMAND_ENABLE_VSYNC_DETAIL "--vsync-detail"
 #define COMMAND_LOG_COMPOSITION_DETAIL "--composition-detail"
+#define COMMAND_LOG_VERBOSE "--log-verbose"
 #define COMMAND_LOG_FPS "--fps"
 #define COMMAND_SAVE_LAYER "--save-layer"
 #define COMMAND_IN_FENCE "--infence"
@@ -49,7 +54,7 @@ ANDROID_SINGLETON_STATIC_INSTANCE(DebugHelper)
 
 #define CHECK_CMD_INT_PARAMETER() \
     if (i >= paramNum) { \
-        MESON_LOGE("param number is not correct.\n");   \
+        ALOGE("param number is not correct.\n");   \
         break;  \
     }
 
@@ -135,7 +140,7 @@ void DebugHelper::removePlaneDebugFlag(int id, int flag) {
         else
             mPlanesDebugFlag.erase(id);
     } else {
-        MESON_LOGE("remove plane (%d-%x) fail", id, flag);
+        ALOGE("remove plane (%d-%x) fail", id, flag);
     }
 }
 
@@ -144,11 +149,11 @@ void DebugHelper::resolveCmd() {
     return;
 #else
     clearOnePassCmd();
-    mEnabled = sys_get_bool_prop(DEBUG_HELPER_ENABLE_PROP, false);
+    mEnabled = property_get_bool(DEBUG_HELPER_ENABLE_PROP, false);
 
     if (mEnabled) {
         char debugCmd[128] = {0};
-        if (sys_get_string_prop(DEBUG_HELPER_COMMAND, debugCmd) > 0 && debugCmd[0]) {
+        if (property_get(DEBUG_HELPER_COMMAND, debugCmd, NULL) > 0 && debugCmd[0]) {
             mDumpUsage = false;
 
             int paramNum = 0;
@@ -157,7 +162,7 @@ void DebugHelper::resolveCmd() {
             char * param = strtok(debugCmd, delimit);
 
             while (param != NULL) {
-                MESON_LOGE("param [%s]\n", param);
+                ALOGE("param [%s]\n", param);
                 paramArray[paramNum] = param;
                 paramNum++;
                 if (paramNum >= MAX_DEBUG_COMMANDS)
@@ -166,7 +171,7 @@ void DebugHelper::resolveCmd() {
             }
 
             for (int i = 0; i < paramNum; i++) {
-                MESON_LOGE("Parse command [%s]", paramArray[i]);
+                ALOGE("Parse command [%s]", paramArray[i]);
                 if (strcmp(paramArray[i], COMMAND_CLEAR) == 0) {
                     clearPersistCmd();
                     clearOnePassCmd();
@@ -205,6 +210,13 @@ void DebugHelper::resolveCmd() {
                     i++;
                     CHECK_CMD_INT_PARAMETER();
                     mLogCompositionDetail = INT_PARAMERTER_TO_BOOL(paramArray[i]);
+                    continue;
+                }
+
+                if (strcmp(paramArray[i], COMMAND_LOG_VERBOSE) == 0) {
+                    i++;
+                    CHECK_CMD_INT_PARAMETER();
+                    mLogVerbose = INT_PARAMERTER_TO_BOOL(paramArray[i]);
                     continue;
                 }
 
@@ -248,7 +260,7 @@ void DebugHelper::resolveCmd() {
                     CHECK_CMD_INT_PARAMETER();
                     int layerId = atoi(paramArray[i]);
                     if (layerId < 0) {
-                        MESON_LOGE("Show invalid layer (%d)", layerId);
+                        ALOGE("Show invalid layer (%d)", layerId);
                     } else {
                         addHideLayer(layerId);
                         mDebugHideLayer = true;
@@ -261,7 +273,7 @@ void DebugHelper::resolveCmd() {
                     CHECK_CMD_INT_PARAMETER();
                     int layerId = atoi(paramArray[i]);
                     if (layerId < 0) {
-                        MESON_LOGE("Show invalid layer (%d)", layerId);
+                        ALOGE("Show invalid layer (%d)", layerId);
                     } else {
                         removeHideLayer(layerId);
                         mDebugHideLayer = true;
@@ -274,7 +286,7 @@ void DebugHelper::resolveCmd() {
                     CHECK_CMD_INT_PARAMETER();
                     int planeId = atoi(paramArray[i]);
                     if (planeId < 0) {
-                        MESON_LOGE("Show invalid plane (%d)", planeId);
+                        ALOGE("Show invalid plane (%d)", planeId);
                     } else {
                         addPlaneDebugFlag(planeId, PLANE_DBG_IDLE);
                     }
@@ -286,7 +298,7 @@ void DebugHelper::resolveCmd() {
                     CHECK_CMD_INT_PARAMETER();
                     int planeId = atoi(paramArray[i]);
                     if (planeId < 0) {
-                        MESON_LOGE("Show invalid plane (%d)", planeId);
+                        ALOGE("Show invalid plane (%d)", planeId);
                     } else {
                         removePlaneDebugFlag(planeId, PLANE_DBG_IDLE);
                     }
@@ -298,7 +310,7 @@ void DebugHelper::resolveCmd() {
                     CHECK_CMD_INT_PARAMETER();
                     int planeId = atoi(paramArray[i]);
                     if (planeId < 0) {
-                        MESON_LOGE("Show invalid plane (%d)", planeId);
+                        ALOGE("Show invalid plane (%d)", planeId);
                     } else {
                         addPlaneDebugFlag(planeId, PLANE_DBG_PATTERN);
                     }
@@ -310,7 +322,7 @@ void DebugHelper::resolveCmd() {
                     CHECK_CMD_INT_PARAMETER();
                     int planeId = atoi(paramArray[i]);
                     if (planeId < 0) {
-                        MESON_LOGE("Show invalid plane (%d)", planeId);
+                        ALOGE("Show invalid plane (%d)", planeId);
                     } else {
                         removePlaneDebugFlag(planeId, PLANE_DBG_PATTERN);
                     }
@@ -322,7 +334,7 @@ void DebugHelper::resolveCmd() {
                     CHECK_CMD_INT_PARAMETER();
                     int layerId = atoi(paramArray[i]);
                     if (layerId < 0) {
-                        MESON_LOGE("Save layer (%d)", layerId);
+                        ALOGE("Save layer (%d)", layerId);
                     } else {
                         mSaveLayers.push_back(layerId);
                     }
@@ -339,7 +351,7 @@ void DebugHelper::resolveCmd() {
             }
 
             /*Need permission to reset prop.*/
-            sys_set_prop(DEBUG_HELPER_COMMAND, "");
+            property_set(DEBUG_HELPER_COMMAND, "");
         } else {
             mDumpUsage = true;
         }
@@ -351,7 +363,7 @@ bool DebugHelper::isEnabled() {
 #ifdef HWC_RELEASE
     return false;
 #else
-    return sys_get_bool_prop(DEBUG_HELPER_ENABLE_PROP, false);
+    return property_get_bool(DEBUG_HELPER_ENABLE_PROP, false);
 #endif
 }
 
@@ -373,7 +385,7 @@ void DebugHelper::removeDebugLayer(int id __unused) {
 
 void DebugHelper::dump(String8 & dumpstr) {
 #ifdef HWC_RELEASE
-    UNUSED(dumpstr);
+    (void)dumpstr;
 #else
     if (!mEnabled)
         return;
@@ -389,6 +401,7 @@ void DebugHelper::dump(String8 & dumpstr) {
             "\t " COMMAND_OUT_FENCE " 0 | 1: return display out fence, or handle it in hwc.\n"
             "\t " COMMAND_ENABLE_VSYNC_DETAIL " 0 | 1: enable/disable hwcVsync thread detail log.\n"
             "\t " COMMAND_LOG_COMPOSITION_DETAIL " 0|1: enable/disable composition detail info.\n"
+            "\t " COMMAND_LOG_VERBOSE " 0|1: enable/disable log verbose info.\n"
             "\t " COMMAND_HIDE_LAYER "/" COMMAND_SHOW_LAYER " [layerId]: hide/unhide specific layers by zorder. \n"
             "\t " COMMAND_HIDE_PLANE "/" COMMAND_SHOW_PLANE " [planeId]: hide/unhide specific plane by plane id. \n"
             "\t " COMMAND_SHOW_PATTERN_ON_PLANE "/" COMMAND_HIDE_PATTERN_ON_PLANE " [planeId]: set/unset test pattern on plane id. \n"
@@ -409,6 +422,7 @@ void DebugHelper::dump(String8 & dumpstr) {
         dumpstr.appendFormat(COMMAND_IN_FENCE " (%d)\n", mDiscardInFence);
         dumpstr.appendFormat(COMMAND_OUT_FENCE " (%d)\n", mDiscardOutFence);
         dumpstr.appendFormat(COMMAND_LOG_COMPOSITION_DETAIL " (%d)\n", mLogCompositionDetail);
+        dumpstr.appendFormat(COMMAND_LOG_VERBOSE " (%d)\n", mLogVerbose);
         dumpstr.appendFormat(COMMAND_LOG_FPS " (%d)\n", mLogFps);
         dumpstr.appendFormat(COMMAND_MONITOR_DEVICE_COMPOSITION " (%d)\n", mMonitorDeviceComposition);
         dumpstr.appendFormat(COMMAND_DEVICE_COMPOSITION_THRESHOLD " (%d)\n", mDeviceCompositionThreshold);

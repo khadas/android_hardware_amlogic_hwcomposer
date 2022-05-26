@@ -20,6 +20,7 @@
 
 #include <log/log.h>
 #include <stdlib.h>
+#include <DebugHelper.h>
 
 #ifdef HWC_RELEASE
 #define MESON_DEBUG_LEVEL 0
@@ -28,7 +29,8 @@
 #endif
 
 #if MESON_DEBUG_LEVEL > 0
-#define MESON_LOGV(fmt,...)		ALOGV(fmt, ##__VA_ARGS__)
+#define MESON_LOGV(fmt,...) \
+    ALOGD_IF(DebugHelper::getInstance().enableLogVerboser(), fmt, ##__VA_ARGS__)
 #define MESON_LOGD(fmt,...)		ALOGD(fmt, ##__VA_ARGS__)
 #define MESON_LOGI(fmt,...)		ALOGI(fmt, ##__VA_ARGS__)
 #define MESON_LOGW(fmt,...)		ALOGW(fmt, ##__VA_ARGS__)
