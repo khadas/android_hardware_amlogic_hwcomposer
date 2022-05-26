@@ -10,7 +10,12 @@
 #ifndef DEBUG_HELPER_H
 #define DEBUG_HELPER_H
 
-#include <BasicTypes.h>
+#include <utils/Singleton.h>
+#include <utils/String8.h>
+using namespace android;
+
+#include <map>
+#include <vector>
 
 class DebugHelper : public Singleton<DebugHelper> {
 public:
@@ -30,6 +35,7 @@ public:
     inline bool monitorDeviceComposition() {return mMonitorDeviceComposition;}
     inline uint32_t deviceCompositionThreshold() {return mDeviceCompositionThreshold;}
     inline bool logFps() {return mLogFps;}
+    inline bool enableLogVerboser() {return mLogVerbose;}
 
     /*check if UI/osd hwcomposer disabled.*/
     bool disableUiHwc() {return mDisableUiHwc;}
@@ -76,6 +82,7 @@ protected:
 
     bool mLogCompositionDetail;
     bool mLogFps;
+    bool mLogVerbose;
 
     bool mMonitorDeviceComposition;
     uint32_t mDeviceCompositionThreshold;

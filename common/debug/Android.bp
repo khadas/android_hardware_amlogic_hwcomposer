@@ -18,7 +18,6 @@ cc_library_static {
     vendor: true,
 
     srcs: ["DebugHelper.cpp"],
-    static_libs: ["hwc.utils_static"],
 
     export_include_dirs: ["include"],
 }
