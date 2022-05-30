@@ -123,7 +123,7 @@ int32_t VtConsumer::onVtFrameDisplayed(int bufferFd, int fenceFd) {
 
 int32_t VtConsumer::onFrameAvailable(
         std::vector<std::shared_ptr<VtBufferItem>> & items) {
-    MESON_LOGV("[%s] [%s] items.size=%d",
+    MESON_LOGV("[%s] [%s] items.size=%zu",
             __func__, mName, items.size());
     if (mContentListener && mContentListener.get()) {
         return mContentListener->onFrameAvailable(items);

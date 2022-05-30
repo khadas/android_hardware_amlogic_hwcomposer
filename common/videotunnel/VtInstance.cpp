@@ -8,6 +8,7 @@
  */
 #define LOG_NDEBUG 1
 
+#include <cinttypes>
 #include "VtInstance.h"
 #include "VideoTunnelDev.h"
 
@@ -155,7 +156,7 @@ int32_t VtInstance::acquireBuffer() {
                                                               timeStamp);
 
             if (ret == 0) {
-                MESON_LOGV("[%s] [%s] acquire buffer %d timeStamp %lld",
+                MESON_LOGV("[%s] [%s] acquire buffer %d timeStamp %" PRId64 "",
                         __func__, mName, bufFd, timeStamp);
                 std::shared_ptr<VtBufferItem> item =
                     std::make_shared<VtBufferItem> (bufFd, timeStamp);
