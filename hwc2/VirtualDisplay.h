@@ -28,7 +28,7 @@ public:
 
     hwc2_error_t setColorTransform(const float* matrix,
         android_color_transform_t hint);
-    hwc2_error_t setPowerMode(hwc2_power_mode_t mode);
+    hwc2_error_t setPowerMode(int32_t mode);
 
     /*Compose flow*/
     hwc2_error_t validateDisplay(uint32_t* outNumTypes,

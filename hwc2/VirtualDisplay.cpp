@@ -55,7 +55,7 @@ hwc2_error_t VirtualDisplay::setColorTransform(const float* matrix,
     return HWC2_ERROR_NONE;
 }
 
-hwc2_error_t VirtualDisplay::setPowerMode(hwc2_power_mode_t mode) {
+hwc2_error_t VirtualDisplay::setPowerMode(int32_t mode) {
     UNUSED(mode);
     return HWC2_ERROR_NONE;
 }

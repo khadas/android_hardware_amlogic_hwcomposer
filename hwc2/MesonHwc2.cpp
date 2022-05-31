@@ -463,7 +463,7 @@ int32_t MesonHwc2::setLayerCompositionType(hwc2_display_t display,
     hwc2_layer_t layer, int32_t type) {
     GET_HWC_DISPLAY(display);
     GET_HWC_LAYER(hwcDisplay, layer);
-    return hwcLayer->setCompositionType((hwc2_composition_t)type);
+    return hwcLayer->setCompositionType(type);
 }
 
 int32_t MesonHwc2::setLayerDataspace(hwc2_display_t display,
@@ -646,6 +646,47 @@ int32_t MesonHwc2::getSupportedContentTypes (hwc2_display_t display, uint32_t* o
 int32_t MesonHwc2::setContentType(hwc2_display_t display, uint32_t contentType) {
     GET_HWC_DISPLAY(display);
     return hwcDisplay->setContentType(contentType);
+}
+
+/* hwc3 */
+int32_t MesonHwc2::setBootDisplayConfig(hwc2_display_t display, uint32_t config) {
+    GET_HWC_DISPLAY(display);
+    return hwcDisplay->setBootConfig(config);
+}
+
+int32_t MesonHwc2::clearBootDisplayConfig(hwc2_display_t display) {
+    GET_HWC_DISPLAY(display);
+    return hwcDisplay->clearBootConfig();
+}
+
+int32_t MesonHwc2::getPreferredBootDisplayConfig(hwc2_display_t display,
+        int32_t* config) {
+    GET_HWC_DISPLAY(display);
+    return hwcDisplay->getPreferredBootConfig(config);
+}
+
+int32_t MesonHwc2::getDisplayPhysicalOrientation(hwc2_display_t display,
+        int32_t* outOrientation) {
+    GET_HWC_DISPLAY(display);
+    return hwcDisplay->getPhysicalOrientation(outOrientation);
+}
+
+int32_t MesonHwc2::setExpectedPresentTime(hwc2_display_t display,
+        int64_t expectedPresentTime) {
+    GET_HWC_DISPLAY(display);
+    return hwcDisplay->setExpectedPresentTime(expectedPresentTime);
+}
+
+int32_t MesonHwc2::setLayerBrightness(hwc2_display_t display,
+        hwc2_layer_t layer, float brightness) {
+    GET_HWC_DISPLAY(display);
+    GET_HWC_LAYER(hwcDisplay, layer);
+    return  hwcLayer->setBrightness(brightness);
+}
+
+int32_t MesonHwc2::setAidlClientPid(int32_t pid) {
+    GET_HWC_DISPLAY(0);
+    return hwcDisplay->setAidlClientPid(pid);
 }
 
 /**********************Amlogic ext display interface*******************/

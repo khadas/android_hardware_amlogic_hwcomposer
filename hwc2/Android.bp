@@ -38,6 +38,10 @@ cc_library_static {
         "omxutil.static",
     ],
 
+    header_libs: [
+        "hwc3.interface",
+    ],
+
     export_include_dirs: ["."],
 }
 
@@ -69,5 +73,9 @@ cc_library_shared {
         "hwc.utils_static",
         "hwc.debug_static",
         "omxutil.static",
+    ],
+
+    header_libs: [
+        "hwc3.interface",
     ],
 }

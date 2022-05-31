@@ -16,6 +16,7 @@
 #include <time.h>
 #include <thread>
 
+#include "hwcomposer3.h"
 #include "Hwc2Display.h"
 #include "Hwc2Layer.h"
 #include "Hwc2Base.h"
@@ -35,6 +36,7 @@
 #include <am_gralloc_ext.h>
 #include <HwDisplayManager.h>
 #include <misc.h>
+#include <UvmDev.h>
 
 Hwc2Display::Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer, uint32_t display) {
     mObserver = observer;
@@ -594,7 +596,7 @@ hwc2_error_t Hwc2Display::setColorTransform(const float* matrix,
     return HWC2_ERROR_NONE;
 }
 
-hwc2_error_t Hwc2Display::setPowerMode(hwc2_power_mode_t mode) {
+hwc2_error_t Hwc2Display::setPowerMode(int32_t mode) {
     ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
     switch(mode) {
@@ -611,6 +613,10 @@ hwc2_error_t Hwc2Display::setPowerMode(hwc2_power_mode_t mode) {
         case HWC2_POWER_MODE_DOZE:
         case HWC2_POWER_MODE_DOZE_SUSPEND:
             return HWC2_ERROR_UNSUPPORTED;
+        case HWC3_POWER_MODE_SUSPEND:
+            if (mAidlService)
+                return HWC2_ERROR_UNSUPPORTED;
+            [[clang::fallthrough]];
         default:
             return HWC2_ERROR_BAD_PARAMETER;
     };
@@ -1167,7 +1173,7 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
 
         /*Start to compose, set up plane info.*/
         if (mPresentCompositionStg->commit(true) != 0) {
-            return HWC2_ERROR_NOT_VALIDATED;
+            return HWC2_ERROR_NONE;
         }
         #ifdef HWC_HDR_METADATA_SUPPORT
         /*set hdr metadata info.*/
@@ -1526,6 +1532,38 @@ hwc2_error_t Hwc2Display::setContentType(uint32_t contentType) {
     if (mConnector->setContentType(contentType))
         return HWC2_ERROR_UNSUPPORTED;
 
+    return HWC2_ERROR_NONE;
+}
+
+//TODO: implement hwc3 interfaces
+hwc2_error_t Hwc2Display::setBootConfig(uint32_t config __unused) {
+    return HWC2_ERROR_UNSUPPORTED;
+}
+
+hwc2_error_t Hwc2Display::clearBootConfig() {
+    return HWC2_ERROR_UNSUPPORTED;
+}
+
+hwc2_error_t Hwc2Display::getPreferredBootConfig(int32_t* outConfig __unused) {
+    return HWC2_ERROR_UNSUPPORTED;
+}
+
+hwc2_error_t Hwc2Display::getPhysicalOrientation(int32_t* outOrientation __unused) {
+    *outOrientation = HWC3_TRANSFORM_NONE;
+    return HWC2_ERROR_NONE;
+}
+
+//TODO: implement expectedPresent time logic
+hwc2_error_t Hwc2Display::setExpectedPresentTime(int64_t expectedPresentTime) {
+    std::lock_guard<std::mutex> lock(mMutex);
+    mExpectedPresentTime = expectedPresentTime;
+    return HWC2_ERROR_NONE;
+}
+
+hwc2_error_t Hwc2Display::setAidlClientPid(int32_t pid) {
+    /* we need tall uvm pid of surfaceflinger */
+    UvmDev::getInstance().setPid(pid);
+    mAidlService = true;
     return HWC2_ERROR_NONE;
 }
 

@@ -133,6 +133,15 @@ public:
     int32_t getSupportedContentTypes (hwc2_display_t display, uint32_t* outNum, uint32_t* outSupportedContentTypes);
     int32_t setContentType(hwc2_display_t display, uint32_t contentType);
 
+    /* hwc3 */
+    int32_t setBootDisplayConfig(hwc2_display_t display, uint32_t config);
+    int32_t clearBootDisplayConfig(hwc2_display_t display);
+    int32_t getPreferredBootDisplayConfig(hwc2_display_t display, int32_t* config);
+    int32_t getDisplayPhysicalOrientation(hwc2_display_t display, int32_t* outOrientation);
+    int32_t setExpectedPresentTime(hwc2_display_t display, int64_t expectedPresentTime);
+    int32_t setLayerBrightness(hwc2_display_t display, hwc2_layer_t layer, float brightness);
+    int32_t setAidlClientPid(int32_t pid);
+
     void dump(uint32_t* outSize, char* outBuffer);
 
 /*amlogic ext display interface*/

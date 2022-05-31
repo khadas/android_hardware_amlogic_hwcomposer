@@ -45,7 +45,7 @@ public:
     hwc2_error_t setTransform(hwc_transform_t transform);
     hwc2_error_t setVisibleRegion(hwc_region_t visible);
     hwc2_error_t setSurfaceDamage(hwc_region_t damage);
-    hwc2_error_t setCompositionType(hwc2_composition_t type);
+    hwc2_error_t setCompositionType(int32_t type);
     hwc2_error_t setDataspace(android_dataspace_t dataspace);
     hwc2_error_t setZorder(uint32_t z);
 #ifdef HWC_HDR_METADATA_SUPPORT
@@ -53,6 +53,7 @@ public:
             uint32_t numElements, const int32_t* /*hw2_per_frame_metadata_key_t*/ keys,
             const float* metadata);
 #endif
+    int32_t setBrightness(float brightness);
 
 /*Extend api.*/
 public:
@@ -99,7 +100,7 @@ public:
 
 public:
     android_dataspace_t mDataSpace;
-    hwc2_composition_t mHwcCompositionType;
+    int32_t mHwcCompositionType;
     hwc_region_t mVisibleRegion;
     hwc_region_t mDamageRegion;
     drm_rect_t mBackupDisplayFrame;
@@ -163,6 +164,8 @@ protected:
 
     std::shared_ptr<UvmDettach> mUvmDettach;
     int mPreUvmBufferFd;
+
+    float mBrightness;
 };
 
 #endif/*HWC2_LAYER_H*/

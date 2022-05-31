@@ -43,6 +43,8 @@ public:
     UvmDev();
     ~UvmDev();
 
+    // set SF fd to uvm
+    int setPid(int pid);
     // set UVM buffer fd to driver
     int commitDisplay(const int fd, const int commit);
     int dettachBuffer(const int fd);

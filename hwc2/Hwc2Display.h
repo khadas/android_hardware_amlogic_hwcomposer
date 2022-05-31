@@ -86,7 +86,7 @@ public:
 
     virtual hwc2_error_t setColorTransform(const float* matrix,
         android_color_transform_t hint);
-    virtual hwc2_error_t setPowerMode(hwc2_power_mode_t mode);
+    virtual hwc2_error_t setPowerMode(int32_t mode);
 
     /*Compose flow*/
     virtual hwc2_error_t validateDisplay(uint32_t* outNumTypes,
@@ -125,6 +125,14 @@ public:
     virtual hwc2_error_t setAutoLowLatencyMode(bool enabled);
     virtual hwc2_error_t getSupportedContentTypes(uint32_t* outNum, uint32_t* outSupportedContentTypes);
     virtual hwc2_error_t setContentType(uint32_t contentType);
+
+    /* hwc 3 interface*/
+    virtual hwc2_error_t setBootConfig(uint32_t config);
+    virtual hwc2_error_t clearBootConfig();
+    virtual hwc2_error_t getPreferredBootConfig(int32_t* outConfig);
+    virtual hwc2_error_t getPhysicalOrientation(int32_t* outOrientation);
+    virtual hwc2_error_t setExpectedPresentTime(int64_t expectedPresentTime);
+    virtual hwc2_error_t setAidlClientPid(int32_t pid);
 
 /*HwcDisplay interface*/
 public:
@@ -295,6 +303,8 @@ protected:
     // for self-adaptive
     int mVideoLayerRegion;
 #endif
+    int64_t mExpectedPresentTime;
+    bool mAidlService = false;
 };
 
 #endif/*HWC2_DISPLAY_H*/

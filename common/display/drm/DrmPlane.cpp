@@ -317,6 +317,7 @@ int32_t DrmPlane::setPlane(
                         blendModeStr = DRM_PLANE_PROP_BLENDMODE_COVERAGE;
                         break;
                 default:
+                        blendModeStr = DRM_PLANE_PROP_BLENDMODE_NONE;
                     MESON_LOGE("Unknown blend mode.");
                     break;
             };

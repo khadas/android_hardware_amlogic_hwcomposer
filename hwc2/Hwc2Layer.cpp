@@ -18,6 +18,7 @@
 #include <utils/Timers.h>
 #include <inttypes.h>
 #include <misc.h>
+#include <hwcomposer3.h>
 
 #include "VtInstanceMgr.h"
 #include "Hwc2Layer.h"
@@ -48,6 +49,7 @@ Hwc2Layer::Hwc2Layer(uint32_t dispId) : DrmFramebuffer(){
     mDisplayObserver = nullptr;
     mContentListener = nullptr;
     mDisplayId = dispId;
+    mBrightness = 0;
 }
 
 Hwc2Layer::~Hwc2Layer() {
@@ -329,9 +331,14 @@ hwc2_error_t Hwc2Layer::setSurfaceDamage(hwc_region_t damage) {
     return HWC2_ERROR_NONE;
 }
 
-hwc2_error_t Hwc2Layer::setCompositionType(hwc2_composition_t type){
+hwc2_error_t Hwc2Layer::setCompositionType(int32_t type){
     mHwcCompositionType = type;
     mUpdated = true;
+#if 0
+    if (type == HWC3_COMPOSITION_DECORATION)
+        mFbType = DRM_FB_DECORATION;
+#endif
+
     return HWC2_ERROR_NONE;
 }
 
@@ -360,6 +367,14 @@ int32_t Hwc2Layer::setPerFrameMetadata(
 }
 #endif
 
+//TODO: set bright to composition
+int32_t Hwc2Layer::setBrightness(float brightness) {
+    if (brightness < 0)
+        return HWC2_ERROR_BAD_PARAMETER;
+
+    mBrightness = brightness;
+    return HWC2_ERROR_NONE;
+}
 
 int32_t Hwc2Layer::commitCompType(
     hwc2_composition_t hwcComp) {

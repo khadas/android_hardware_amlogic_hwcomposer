@@ -16,6 +16,7 @@
 #define UVM_DEV_PATH "/dev/uvm"
 #define UVM_IOC_MAGIC 'U'
 
+#define UVM_IOC_SET_PID _IOWR(UVM_IOC_MAGIC, 2, struct uvm_pid_data)
 #define UVM_IOC_SET_FD _IOWR(UVM_IOC_MAGIC, 3, struct uvm_fd_data)
 #define UVM_IOC_SET_INFO _IOWR(UVM_IOC_MAGIC, 7, struct uvm_hook_data)
 #define UVM_IOC_DETATCH _IOWR(UVM_IOC_MAGIC, 8, struct uvm_hook_data)
@@ -30,6 +31,21 @@ UvmDev::UvmDev() {
 UvmDev::~UvmDev() {
     if (mDrvFd > 0)
         close(mDrvFd);
+}
+
+int UvmDev::setPid(int pid) {
+    struct uvm_pid_data {
+        int pid;
+    } pid_data;
+
+    pid_data.pid = pid;
+
+    MESON_LOGD("setUVM with pid %d", pid);
+    if (ioctl(mDrvFd, UVM_IOC_SET_PID, &pid_data) != 0) {
+        MESON_LOGE("setUVM pid %d ioctl error %s", pid, strerror(errno));
+        return -1;
+    }
+    return 0;
 }
 
 int UvmDev::commitDisplay(const int fd, const int commit) {

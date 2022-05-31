@@ -13,6 +13,7 @@
 
 #include <MesonLog.h>
 
+#include "hwcomposer3.h"
 #include "MesonHwc2.h"
 #include "DisplayAdapterLocal.h"
 #include "DisplayService.h"
@@ -430,6 +431,47 @@ int32_t setContentType (
     return mesonhwc->setContentType(display, contentType);
 }
 
+int32_t setBootDisplayConfig(hwc2_device_t* device,
+        hwc2_display_t display, uint32_t config) {
+    GET_MESON_HWC();
+    return mesonhwc->setBootDisplayConfig(display, config);
+}
+
+int32_t clearBootDisplayConfig(hwc2_device_t* device,
+        hwc2_display_t display) {
+    GET_MESON_HWC();
+    return mesonhwc->clearBootDisplayConfig(display);
+}
+
+int32_t getPreferredBootDisplayConfig(hwc2_device_t* device,
+        hwc2_display_t display, int32_t* config) {
+    GET_MESON_HWC();
+    return mesonhwc->getPreferredBootDisplayConfig(display, config);
+}
+
+int32_t getDisplayPhysicalOrientation(hwc2_device_t* device,
+        hwc2_display_t display, int32_t* outOrientation) {
+    GET_MESON_HWC();
+    return mesonhwc->getDisplayPhysicalOrientation(display, outOrientation);
+}
+
+int32_t setExpectedPresentTime(hwc2_device_t* device,
+        hwc2_display_t display, int64_t expectedPresentTime) {
+    GET_MESON_HWC();
+    return mesonhwc->setExpectedPresentTime(display, expectedPresentTime);
+}
+
+int32_t setLayerBrightness(hwc2_device_t* device,
+        hwc2_display_t display, hwc2_layer_t layer, float brightness) {
+    GET_MESON_HWC();
+    return mesonhwc->setLayerBrightness(display, layer, brightness);
+}
+
+int32_t setAidlClientPid(hwc2_device_t* device, int32_t pid) {
+    GET_MESON_HWC();
+    return mesonhwc->setAidlClientPid(pid);
+}
+
 hwc2_function_pointer_t hwc2_getFunction(struct hwc2_device* device __unused,
         int32_t descriptor) {
     switch (descriptor) {
@@ -550,7 +592,21 @@ hwc2_function_pointer_t hwc2_getFunction(struct hwc2_device* device __unused,
             return reinterpret_cast<hwc2_function_pointer_t>(getSupportedContentTypes);
         case HWC2_FUNCTION_SET_CONTENT_TYPE:
             return reinterpret_cast<hwc2_function_pointer_t>(setContentType);
-
+        /* hwc 3 */
+        case HWC3_FUNCTION_SET_BOOT_DISPLAY_CONFIG:
+            return reinterpret_cast<hwc2_function_pointer_t>(setBootDisplayConfig);
+        case HWC3_FUNCTION_CLEAR_BOOT_DISPLAY_CONFIG:
+            return reinterpret_cast<hwc2_function_pointer_t>(clearBootDisplayConfig);
+        case HWC3_FUNCTION_GET_PREFERRED_BOOT_DISPLAY_CONFIG:
+            return reinterpret_cast<hwc2_function_pointer_t>(getPreferredBootDisplayConfig);
+        case HWC3_FUNCTION_GET_DISPLAY_PHYSICAL_ORIENTATION:
+            return reinterpret_cast<hwc2_function_pointer_t>(getDisplayPhysicalOrientation);
+        case HWC3_FUNCTION_SET_EXPECTED_PRESENT_TIME:
+            return reinterpret_cast<hwc2_function_pointer_t>(setExpectedPresentTime);
+        case HWC3_FUNCTION_SET_LAYER_BRIGHTNESS:
+            return reinterpret_cast<hwc2_function_pointer_t>(setLayerBrightness);
+        case HWC3_FUNCTION_SET_AIDL_CLIENT_PID:
+            return reinterpret_cast<hwc2_function_pointer_t>(setAidlClientPid);
         default:
             MESON_LOGE("Unkown function description (%d)", descriptor);
             break;

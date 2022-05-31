@@ -78,6 +78,8 @@ typedef enum drm_fb_type {
     DRM_FB_VIDEO_TUNNEL_SIDEBAND,
     /*uvm dma buffer*/
     DRM_FB_VIDEO_UVM_DMA,
+    /* display decoration */
+    DRM_FB_DECORATION,
 } drm_fb_type_t;
 
 typedef struct drm_mode_info {
