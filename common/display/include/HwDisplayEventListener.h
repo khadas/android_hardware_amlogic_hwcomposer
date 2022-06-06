@@ -37,6 +37,9 @@ public:
     int32_t registerHandler(
         drm_display_event event, HwDisplayEventHandler * handler);
 
+    void setSuspendState(bool status);
+    bool getSuspendState(void);
+
 
 protected:
     std::multimap<drm_display_event, HwDisplayEventHandler* >
@@ -58,6 +61,8 @@ private:
     pthread_t hw_event_thread;
 
     pthread_mutex_t hw_event_mutex;
+
+    bool mSuspendState;
 };
 
 #endif/*HWDISPLAY_EVENT_LISTENER_H*/

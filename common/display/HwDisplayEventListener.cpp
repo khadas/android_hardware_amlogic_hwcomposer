@@ -42,8 +42,8 @@ ANDROID_SINGLETON_STATIC_INSTANCE(HwDisplayEventListener)
 #define VOUT3_EVENT_MODESWITCH_BEGIN "vout3_setmode=1"
 #define VOUT3_EVENT_MODESWITCH_COMPLETE "vout3_setmode=0"
 
-#define SUSPEND_STATE_DISABLE "hdmitx_hdcppwr=0"
-#define SUSPEND_STATE_ENABLE "hdmitx_hdcppwr=1"
+#define SUSPEND_EVENT_STATE "hdmitx_hdcppwr=0"
+#define RESUME_EVENT_STATE "hdmitx_hdcppwr=1"
 
 typedef struct drm_uevent_info {
     const char * head;
@@ -66,7 +66,7 @@ static drm_uevent_info_t mUeventParser[] = {
     {VOUT3_MODE_EVENT, DRM_EVENT_VOUT3_MODE_CHANGED,
         VOUT3_EVENT_MODESWITCH_COMPLETE, VOUT3_EVENT_MODESWITCH_BEGIN},
     {HDMITX_HOTPLUG_EVENT, DRM_EVENT_HDMITX_HOTPLUG,
-        SUSPEND_STATE_ENABLE, SUSPEND_STATE_DISABLE},
+        RESUME_EVENT_STATE, SUSPEND_EVENT_STATE},
 };
 #else
 static drm_uevent_info_t mUeventParser[] = {
@@ -79,7 +79,7 @@ static drm_uevent_info_t mUeventParser[] = {
     {VOUT2_MODE_EVENT, DRM_EVENT_VOUT2_MODE_CHANGED,
         OLD_EVENT_STATE_ENABLE, OLD_EVENT_STATE_DISABLE},
     {HDMITX_HOTPLUG_EVENT, DRM_EVENT_HDMITX_HOTPLUG,
-        SUSPEND_STATE_ENABLE, SUSPEND_STATE_DISABLE},
+        RESUME_EVENT_STATE, SUSPEND_EVENT_STATE},
 };
 #endif
 
@@ -141,18 +141,42 @@ void HwDisplayEventListener::createThread() {
     }
 }
 
+void HwDisplayEventListener::setSuspendState(bool status) {
+   mSuspendState = status;
+}
+
+bool HwDisplayEventListener::getSuspendState() {
+   return mSuspendState;
+}
+
 void HwDisplayEventListener::handleUevent() {
     for (drm_uevent_info_t uevent : mUeventParser) {
         if (strcmp(mUeventMsg, uevent.head) == 0) {
             char * msg = mUeventMsg;
             while (*msg) {
                 MESON_LOGD("received Uevent: %s", msg);
-                if (strstr(msg, uevent.stateEnable)) {
-                    handle(uevent.eventType, 1);
-                    return;
-                } else if (strstr(msg, uevent.stateDisable)) {
-                    handle(uevent.eventType, 0);
-                    return;
+                if (strstr(msg,SUSPEND_EVENT_STATE)) {
+                    setSuspendState(true);
+                } else if (strstr(msg,RESUME_EVENT_STATE)) {
+                    setSuspendState(false);
+                }
+
+                if (getSuspendState()) {
+                    if (strstr(msg, uevent.stateEnable) && (!strstr(msg,NEW_EVENT_STATE_ENABLE))) {
+                        handle(uevent.eventType, 1);
+                        return;
+                    } else if (strstr(msg, uevent.stateDisable) && (!strstr(msg,NEW_EVENT_STATE_DISABLE))) {
+                        handle(uevent.eventType, 0);
+                        return;
+                    }
+                } else {
+                    if (strstr(msg, uevent.stateEnable)) {
+                        handle(uevent.eventType, 1);
+                        return;
+                    } else if (strstr(msg, uevent.stateDisable)) {
+                        handle(uevent.eventType, 0);
+                        return;
+                    }
                 }
                 msg += strlen(msg) + 1;
             }
