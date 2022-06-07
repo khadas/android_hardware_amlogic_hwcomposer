@@ -1,18 +1,47 @@
-# which backend to use
-ifeq ($(HWC_ENABLE_DRM_BACKEND), true)
-HWC_BACKEND := drm
-else
-HWC_BACKEND := fbdev
-endif
+# the following configs need to be defined in BoardConfig.mk
+# HWC_DISPLY_NUM
+# HWC_PRIMARY_FRAMEBUFFER_WIDTH
+# HWC_PRIMARY_FRAMEBUFFER_HEIGHT
+# HWC_PRIMARY_CONNECTOR_TYPE
 
 ifeq ($(TARGET_BUILD_VARIANT), user)
 HWC_RELEASE := true
+else
+HWC_RELEASE := false
 endif
 
 ifeq ($(HWC_DISPLAY_NUM), 1)
 HWC_EXTEND_FRAMEBUFFER_WIDTH := 0
 HWC_EXTEND_FRAMEBUFFER_HEIGHT := 0
 HWC_EXTEND_CONNECTOR_TYPE := invalid
+endif
+
+ifndef HWC_ENABLE_HEADLESS_MODE
+HWC_ENABLE_HEADLESS_MODE := false
+endif
+
+ifndef HWC_ENABLE_SOFTWARE_VSYNC
+HWC_ENABLE_SOFTWARE_VSYNC := false
+endif
+
+ifndef HWC_ENABLE_PRIMARY_HOTPLUG
+HWC_ENABLE_PRIMARY_HOTPLUG := false
+endif
+
+ifndef HWC_ENABLE_SECURE_LAYER_PROCESS
+HWC_ENABLE_SECURE_LAYER_PROCESS := false
+endif
+
+ifndef HWC_DISABLE_CURSOR_PLANE
+HWC_DISABLE_CURSOR_PLANE := true
+endif
+
+ifndef HWC_ENABLE_KEYSTONE_CORRECTION
+HWC_ENABLE_KEYSTONE_CORRECTION := false
+endif
+
+ifndef HWC_ENABLE_GE2D_COMPOSITION
+HWC_ENABLE_GE2D_COMPOSITION := false
 endif
 
 ifndef HWC_PIPELINE
@@ -25,6 +54,34 @@ endif
 
 ifndef HWC_ENFORCES_MAX_REFRESH_RATE
 HWC_ENFORCES_MAX_REFRESH_RATE := 0
+endif
+
+ifndef HWC_ENABLE_ACTIVE_MODE
+HWC_ENABLE_ACTIVE_MODE := false
+endif
+
+ifndef HWC_ENABLE_REAL_MODE
+HWC_ENABLE_REAL_MODE := false
+endif
+
+ifndef HWC_ENABLE_PRE_DISPLAY_CALIBRATE
+HWC_ENABLE_PRE_DISPLAY_CALIBRATE := false
+endif
+
+ifndef HWC_ENABLE_DEFAULT_HDR_CAPABILITIES
+HWC_ENABLE_DEFAULT_HDR_CAPABILITIES := false
+endif
+
+ifndef HWC_PIPE_VIU1VDINVIU2_ALWAYS_LOOPBACK
+HWC_PIPE_VIU1VDINVIU2_ALWAYS_LOOPBACK := false
+endif
+
+ifndef HWC_DYNAMIC_SWITCH_CONNECTOR
+HWC_DYNAMIC_SWITCH_CONNECTOR := false
+endif
+
+ifndef HWC_DYNAMIC_SWITCH_VIU
+HWC_DYNAMIC_SWITCH_VIU := false
 endif
 
 ifndef HWC_VIDEO_AISR
@@ -55,7 +112,6 @@ endif
 # Setup configuration in Soong namespace
 #
 $(call soong_config_set,meson_hwc,hwc_release,$(HWC_RELEASE))
-$(call soong_config_set,meson_hwc,hwc_backend,$(HWC_BACKEND))
 $(call soong_config_set,meson_hwc,display_num,$(HWC_DISPLAY_NUM))
 $(call soong_config_set,meson_hwc,primary_fb_width,$(HWC_PRIMARY_FRAMEBUFFER_WIDTH))
 $(call soong_config_set,meson_hwc,primary_fb_height,$(HWC_PRIMARY_FRAMEBUFFER_HEIGHT))
@@ -74,12 +130,10 @@ $(call soong_config_set,meson_hwc,enable_ge2d_composition,$(HWC_ENABLE_GE2D_COMP
 $(call soong_config_set,meson_hwc,enable_display_mode_management,$(HWC_ENABLE_DISPLAY_MODE_MANAGEMENT))
 $(call soong_config_set,meson_hwc,hdmi_frac_mode,$(HWC_HDMI_FRAC_MODE))
 $(call soong_config_set,meson_hwc,hwc_pipeline,$(HWC_PIPELINE))
-$(call soong_config_set,meson_hwc,vdin_fbprocessor,$(HWC_VDIN_FBPROCESSOR))
 $(call soong_config_set,meson_hwc,enable_active_mode,$(HWC_ENABLE_ACTIVE_MODE))
 $(call soong_config_set,meson_hwc,enable_real_mode,$(HWC_ENABLE_REAL_MODE))
 $(call soong_config_set,meson_hwc,enable_pre_display_calibrate,$(HWC_ENABLE_PRE_DISPLAY_CALIBRATE))
 $(call soong_config_set,meson_hwc,target_use_default_hdr_property,$(HWC_ENABLE_DEFAULT_HDR_CAPABILITIES))
-$(call soong_config_set,meson_hwc,target_app_layer_use_continuous_buffer,$(TARGET_APP_LAYER_USE_CONTINUOUS_BUFFER))
 $(call soong_config_set,meson_hwc,pipe_viu1vdinviu2_always_loopback,$(HWC_PIPE_VIU1VDINVIU2_ALWAYS_LOOPBACK))
 $(call soong_config_set,meson_hwc,dynamic_switch_connector,$(HWC_DYNAMIC_SWITCH_CONNECTOR))
 $(call soong_config_set,meson_hwc,dynamic_swich_viu,$(HWC_DYNAMIC_SWITCH_VIU))

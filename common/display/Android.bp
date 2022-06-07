@@ -17,21 +17,13 @@ soong_config_module_type {
     module_type: "cc_defaults",
     config_namespace: "meson_hwc",
     value_variables: [
-    "hdmi_frac_mode",
+        "hdmi_frac_mode",
     ],
 
-    variables: [
-        "hwc_backend",
-    ],
     properties: [
         "cflags",
         "srcs",
     ],
-}
-
-soong_config_string_variable {
-    name: "hwc_backend",
-    values: ["fbdev", "drm"],
 }
 
 meson_hwc_display_cc_defaults {

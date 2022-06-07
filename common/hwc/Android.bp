@@ -20,7 +20,6 @@ soong_config_module_type {
     value_variables: [
         "display_num",
         "hwc_pipeline",
-        "vdin_fbprocessor",
         "primary_fb_width",
         "primary_fb_height",
         "extend_fb_width",
@@ -125,10 +124,6 @@ meson_hwc_hwc_cc_defaults {
 
         hwc_pipeline: {
             cflags: ["-DHWC_PIPELINE=\"%s\""],
-        },
-
-        vdin_fbprocessor: {
-            cflags: ["-DHWC_VDIN_FBPROCESSOR=\"%s\""],
         },
 
         primary_fb_width: {
