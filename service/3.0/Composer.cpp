@@ -72,7 +72,7 @@ ndk::ScopedAStatus Composer::createClient(
 }
 
 bool Composer::waitForClientDestroyedLocked(
-        std::unique_lock<std::mutex>& lock __unused) {
+        std::unique_lock<std::mutex>& lock) {
     if (!mClient.expired()) {
       // In surface flinger we delete a composer client on one thread and
       // then create a new client on another thread. Although surface
@@ -94,7 +94,6 @@ bool Composer::waitForClientDestroyedLocked(
 
 void Composer::onClientDestroyed() {
     std::lock_guard<std::mutex> lock(mClientMutex);
-
     mClientDestroyedCondition.notify_all();
 }
 

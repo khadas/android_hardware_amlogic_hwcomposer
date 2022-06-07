@@ -250,10 +250,14 @@ ComposerClient::~ComposerClient() {
     DEBUG_LOG("%s", __FUNCTION__);
 
     std::unique_lock<std::mutex> lock(mStateMutex);
+    ALOGD("destroying composer client");
+    mHal->unregisterEventCallback();
+    destroyResources();
 
     if (mOnClientDestroyed) {
         mOnClientDestroyed();
     }
+    ALOGD("removed composer client");
 }
 
 HWC3::Error ComposerClient::init() {
@@ -968,6 +972,10 @@ void ComposerClient::executeDisplayCommandValidateDisplay(
     ClientTargetProperty clientTargetProperty{common::PixelFormat::RGBA_8888,
         common::Dataspace::UNKNOWN};
 
+    if (expectedPresentTime.has_value()) {
+        mHal->setExpectedPresentTime(displayId, expectedPresentTime->timestampNanos);
+    }
+
     auto error = mHal->validateDisplay(displayId, &changedLayers, &compositionTypes,
             &displayRequestMask, &requestedLayers, &requestMasks,
             &clientTargetProperty);
@@ -1006,6 +1014,9 @@ void ComposerClient::executeDisplayCommandPresentOrValidateDisplay(
       int64_t displayId,
       const std::optional<ClockMonotonicTimestamp> expectedPresentTime __unused) {
     DEBUG_LOG("%s", __FUNCTION__);
+    if (expectedPresentTime.has_value()) {
+        mHal->setExpectedPresentTime(displayId, expectedPresentTime->timestampNanos);
+    }
 
     // First try to Present as is.
     if (mHal->hasCapability(HWC2_CAPABILITY_SKIP_VALIDATE)) {
@@ -1333,6 +1344,65 @@ void ComposerClient::executeLayerCommandSetLayerBrightness(
     ::android::base::unique_fd ret(sfd.get());
     *sfd.getR() = -1;
     return ret;
+}
+
+void ComposerClient::destroyResources() {
+    // We want to call hwc2_close here (and move hwc2_open to the
+    // constructor), with the assumption that hwc2_close would
+    //
+    //  - clean up all resources owned by the client
+    //  - make sure all displays are blank (since there is no layer)
+    //
+    // But since SF used to crash at this point, different hwcomposer2
+    // implementations behave differently on hwc2_close.  Our only portable
+    // choice really is to abort().  But that is not an option anymore
+    // because we might also have VTS or VR as clients that can come and go.
+    //
+    // Below we manually clean all resources (layers and virtual
+    // displays), and perform a presentDisplay afterwards.
+
+    mResources->clear([this](unsigned long long display, bool isVirtual, const std::vector<unsigned long long> layers) {
+        ALOGW("destroying client resources for display %" PRIu64, display);
+        int64_t displayId = static_cast<int64_t> (display);
+
+        for (auto layer : layers) {
+            mHal->destroyLayer(displayId, static_cast<int64_t>(layer));
+        }
+
+        if (isVirtual) {
+            mHal->destroyVirtualDisplay(displayId);
+        } else {
+            ALOGW("performing a final presentDisplay");
+
+            std::vector<int64_t> changedLayers;
+            std::vector<Composition> compositionTypes;
+            uint32_t displayRequestMask = 0;
+            std::vector<int64_t> requestedLayers;
+            std::vector<uint32_t> requestMasks;
+            ClientTargetProperty clientTargetProperty{common::PixelFormat::RGBA_8888,
+                common::Dataspace::UNKNOWN};
+            mHal->validateDisplay(displayId, &changedLayers, &compositionTypes,
+                                  &displayRequestMask, &requestedLayers, &requestMasks,
+                                  &clientTargetProperty);
+
+            mHal->acceptDisplayChanges(displayId);
+
+            int32_t presentFence = -1;
+            std::vector<int64_t> releasedLayers;
+            std::vector<int32_t> releaseFences;
+            mHal->presentDisplay(displayId, &presentFence, &releasedLayers, &releaseFences);
+            if (presentFence >= 0) {
+                close(presentFence);
+            }
+            for (auto fence : releaseFences) {
+                if (fence >= 0) {
+                    close(fence);
+                }
+            }
+        }
+    });
+
+    mResources.reset();
 }
 
 }

@@ -334,10 +334,8 @@ hwc2_error_t Hwc2Layer::setSurfaceDamage(hwc_region_t damage) {
 hwc2_error_t Hwc2Layer::setCompositionType(int32_t type){
     mHwcCompositionType = type;
     mUpdated = true;
-#if 0
     if (type == HWC3_COMPOSITION_DECORATION)
         mFbType = DRM_FB_DECORATION;
-#endif
 
     return HWC2_ERROR_NONE;
 }

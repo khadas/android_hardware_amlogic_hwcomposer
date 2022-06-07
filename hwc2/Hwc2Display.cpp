@@ -9,6 +9,7 @@
 
 #define LOG_NDEBUG 1
 #define ATRACE_TAG ATRACE_TAG_GRAPHICS
+#define MAX_FRAME_DELAY 10
 
 #include <utils/Trace.h>
 #include <hardware/hwcomposer2.h>
@@ -63,6 +64,7 @@ Hwc2Display::Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer, uint32_t
 #endif
     mHasVideoPresent = false;
     mModeChanged = false;
+    mExpectedPresentTime = 0;
 }
 
 Hwc2Display::~Hwc2Display() {
@@ -965,9 +967,14 @@ hwc2_error_t Hwc2Display::collectCompositionRequest(
     ISystemControl::Rect maxRect{0, 0, 0, 0};
 #endif
 
+    bool hasDecoration = false;
     /*collect display requested, and changed composition type.*/
     for (auto it = mPresentLayers.begin() ; it != mPresentLayers.end(); it++) {
         layer = (Hwc2Layer*)(it->get());
+        /* decoration type not support it now */
+        if (layer->mFbType == DRM_FB_DECORATION) {
+            hasDecoration = true;
+        }
         /*record composition changed layer.*/
         hwc2_composition_t expectedHwcComposition =
             mesonComp2Hwc2Comp(layer);
@@ -1029,6 +1036,9 @@ hwc2_error_t Hwc2Display::collectCompositionRequest(
 
     *outNumRequests = mOverlayLayers.size();
     *outNumTypes    = mChangedLayers.size();
+
+    if (hasDecoration)
+        return HWC2_ERROR_UNSUPPORTED;
 
     return ((*outNumTypes) > 0) ? HWC2_ERROR_HAS_CHANGES : HWC2_ERROR_NONE;
 }
@@ -1117,6 +1127,17 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
     if (mFirstPresent) {
         mFirstPresent = false;
         mCrtc->closeLogoDisplay();
+    }
+
+    if (mExpectedPresentTime > 0) {
+        nsecs_t now = systemTime();
+        hwc2_vsync_period_t period = 0;
+        getDisplayVsyncPeriod(&period);
+        /* not present until the expected time meet */
+        if ((mExpectedPresentTime > now + period) &&
+                (mExpectedPresentTime < now + MAX_FRAME_DELAY * period)) {
+            usleep(ns2us(mExpectedPresentTime - now - period));
+        }
     }
 
     if (mValidateDisplay == false) {

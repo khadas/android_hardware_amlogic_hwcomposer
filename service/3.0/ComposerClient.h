@@ -203,6 +203,9 @@ private:
 
     ::android::base::unique_fd getUniqueFd(const ndk::ScopedFileDescriptor& in);
 
+    // release resources
+    void destroyResources();
+
 private:
     std::mutex mStateMutex;
     // The onHotplug(), onVsync(), etc callbacks registered by SurfaceFlinger.
