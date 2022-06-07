@@ -40,7 +40,7 @@
 #define UVM_IOC_SET_INFO _IOWR(UVM_IOC_MAGIC, 7, \
                 struct uvm_hook_data)
 
-#define REALLOC_COUNT 2
+#define REALLOC_COUNT 0
 
 int NnProcessor::mInstanceID = 0;
 int64_t NnProcessor::mTotalDupCount = 0;
@@ -61,6 +61,7 @@ NnProcessor::NnProcessor() {
     int interlaceCheckProp = 0;
     mExitThread = true;
     mAllocProcessDone = false;
+    mBufferAllocDone = false;
     pthread_mutex_init(&m_waitMutex, NULL);
     pthread_cond_init(&m_waitCond, NULL);
     mIonFd = -1;
@@ -366,7 +367,6 @@ int32_t NnProcessor::asyncProcess(
         goto error;
     }
 
-
     if (!mAllocProcessDone) {
             mAllocProcessDone = true;
             int ret = pthread_create(&mAllocThread,
@@ -377,6 +377,11 @@ int32_t NnProcessor::asyncProcess(
                 ALOGE("failed to start NnProcessor allocthread: %s",
                       strerror(ret));
             }
+    }
+
+    if (!checkbufferalloced()) {
+        ALOGD("need do aisr, but buffer not ready, need bypass\n");
+        goto error;
     }
 
     dup_fd = dup(input_fd);
@@ -519,6 +524,8 @@ int32_t NnProcessor::teardown() {
         ALOGD("%s: close fd =%d, buf_index=%d\n", __FUNCTION__, shared_fd, buf_index);
     }
 
+    mBufferAllocDone = false;
+
     freeDmaBuffers();
 
     for (i = 0; i < SR_OUT_BUF_COUNT; i++) {
@@ -628,6 +635,24 @@ void * NnProcessor::threadMain(void * data) {
     return NULL;
 }
 
+bool NnProcessor::checkbufferalloced() {
+    int i;
+
+    if (mBufferAllocDone)
+        return true;
+
+    for (i = 0; i < SR_OUT_BUF_COUNT; i++) {
+        if (mSrBuf[i].fd == -1) {
+            break;
+        }
+    }
+    if (i == SR_OUT_BUF_COUNT) {
+        ALOGD("buffer alloc done");
+        mBufferAllocDone = true;
+        return true;
+    }
+    return false;
+}
 void NnProcessor::allocthreadProcess() {
     int i;
     int ret;
@@ -644,11 +669,15 @@ void NnProcessor::allocthreadProcess() {
 
 void * NnProcessor::allocthread(void * data) {
     NnProcessor * pThis = (NnProcessor *) data;
+    int rt_thread = pThis->PropGetInt("vendor.hwc.aisr_alloc_rt", 0);
     struct sched_param param = {0};
 
-    param.sched_priority = 2;
-    if (sched_setscheduler(0, SCHED_FIFO, &param) != 0) {
-        ALOGE("%s: Couldn't set SCHED_FIFO: %d.\n", __FUNCTION__, errno);
+    if (rt_thread) {
+        ALOGD("set alloc thread real time");
+        param.sched_priority = 2;
+        if (sched_setscheduler(0, SCHED_FIFO, &param) != 0) {
+            ALOGE("%s: Couldn't set SCHED_FIFO: %d.\n", __FUNCTION__, errno);
+        }
     }
 
     MESON_ASSERT(data, "NnProcessor data should not be NULL.\n");

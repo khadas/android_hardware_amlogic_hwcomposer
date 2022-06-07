@@ -127,6 +127,7 @@ public:
     void triggerEvent();
     void threadProcess();
     void allocthreadProcess();
+    bool checkbufferalloced();
     int32_t waitEvent(int microseconds);
     static void *mNn_qcontext[NN_MODE_COUNT];
     static bool mModelLoaded;
@@ -139,6 +140,7 @@ public:
     static void * allocthread(void * data);
     pthread_t mAllocThread;
     bool mAllocProcessDone;
+    bool mBufferAllocDone;
     bool mInited;
     int32_t ai_sr_process(
     int input_fd,
