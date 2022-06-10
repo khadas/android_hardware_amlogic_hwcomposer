@@ -338,6 +338,9 @@ int32_t RealModeMgr::setModeLocked(drm_mode_info_t & mode) {
     updateActiveConfig(mode);
     mConnector->setMode(mode);
 
+    //todo: replace the displayid for dualDisplay
+    sc_update_density(HWC_DISPLAY_PRIMARY, mLatestRealMode.pixelW, mLatestRealMode.pixelH);
+
     if (seamless) {
         // seamless mode switch, only vsync period change
         mCrtc->setMode(mode, seamless);
