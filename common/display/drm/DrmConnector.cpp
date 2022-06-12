@@ -165,9 +165,10 @@ int32_t DrmConnector::loadDisplayModes(drmModeConnectorPtr p) {
         }
 
         mDrmModes.emplace(blobid, drmModes[i]);
-        MESON_LOGI("add display mode (%s-%s-%d, %dx%d, %f)",
+        MESON_LOGI("add display mode (%s-%s-%d, %dx%d, %f) dpi(%d,%d)",
             drmModes[i].name, modeInfo.name, blobid,
-            modeInfo.pixelW, modeInfo.pixelH, modeInfo.refreshRate);
+            modeInfo.pixelW, modeInfo.pixelH, modeInfo.refreshRate,
+            modeInfo.dpiX, modeInfo.dpiY);
     }
 
     MESON_LOGI("loadDisplayModes (%" PRIuFAST16 ") end", mMesonModes.size());
@@ -247,8 +248,6 @@ int32_t DrmConnector::loadConnectorInfo(drmModeConnectorPtr metadata) {
         mEncoderId = metadata->encoder_id;
         mPhyWidth = metadata->mmWidth;
         mPhyHeight = metadata->mmHeight;
-        loadDisplayModes(metadata);
-        groupDisplayModes();
 
         if (mType == DRM_MODE_CONNECTOR_HDMIA) {
             if (mPhyWidth == 0 || mPhyHeight == 0) {
@@ -262,6 +261,9 @@ int32_t DrmConnector::loadConnectorInfo(drmModeConnectorPtr metadata) {
             }
             parseHdmiHdrCapabilities(mHdrCapabilities);
         }
+
+        loadDisplayModes(metadata);
+        groupDisplayModes();
     } else {
         MESON_LOGE("DrmConnector[%s] still DISCONNECTED.", getName());
         memset(&mHdrCapabilities, 0, sizeof(mHdrCapabilities));
