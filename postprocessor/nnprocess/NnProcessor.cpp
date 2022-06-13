@@ -259,8 +259,13 @@ int32_t NnProcessor::asyncProcess(
         goto bypass;
     }
 
-    w = am_gralloc_get_width(inputfb->mBufferHandle);
-    h = am_gralloc_get_height(inputfb->mBufferHandle);
+    if (!inputfb->mIsSidebandBuffer) {
+        w = am_gralloc_get_width(inputfb->mBufferHandle);
+        h = am_gralloc_get_height(inputfb->mBufferHandle);
+    } else {
+        w = -1;
+        h = -1;
+    }
     crop_right = inputfb->mSourceCrop.right;
     crop_bottom = inputfb->mSourceCrop.bottom;
 
