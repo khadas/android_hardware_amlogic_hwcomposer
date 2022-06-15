@@ -243,7 +243,7 @@ int32_t HwcVsync::waitSoftwareVsync(nsecs_t& vsync_timestamp) {
     int err;
     do {
         err = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &spec, NULL);
-    } while (err<0 && errno == EINTR);
+    } while (errno == EINTR);
     vsync_timestamp = vsync_time;
 
     return err;
@@ -271,7 +271,7 @@ int32_t HwcVsync::waitMixVsync(nsecs_t& vsync_timestamp) {
         int err;
         do {
             err = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &spec, NULL);
-        } while (err<0 && errno == EINTR);
+        } while (errno == EINTR);
     }
 
     vsync_timestamp = mVsyncTime;
