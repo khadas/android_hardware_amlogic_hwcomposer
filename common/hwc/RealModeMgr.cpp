@@ -288,14 +288,14 @@ int32_t RealModeMgr::setActiveConfig(uint32_t config) {
             return HWC2_ERROR_SEAMLESS_NOT_ALLOWED;
         }
     } else {
-        MESON_LOGE("set invalild active config (%d)", config);
+        MESON_LOGE("set invalid active config (%d)", config);
         return HWC2_ERROR_NOT_VALIDATED;
     }
 
     return HWC2_ERROR_NONE;
 }
 
-// The request config is the same group of the lastest active config
+// The request config is the same group of the latest active config
 bool RealModeMgr::isSeamlessSwitch(uint32_t config) {
     std::map<uint32_t, drm_mode_info_t>::iterator it = mModes.find(config);
 

@@ -298,12 +298,12 @@ int32_t ActiveModeMgr::setActiveConfig(uint32_t configId) {
         setModeLocked(configId, cfg);
         return HWC2_ERROR_NONE;
     } else {
-        MESON_LOGE("set invalild active config (%d)", configId);
+        MESON_LOGE("set invalid active config (%d)", configId);
         return HWC2_ERROR_NOT_VALIDATED;
     }
 }
 
-// The request config is the same group of the lastest active config
+// The request config is the same group of the latest active config
 bool ActiveModeMgr::isSeamlessSwitch(uint32_t config) {
     std::map<uint32_t, drm_mode_info_t>::iterator it = mSfActiveModes.find(config);
     if (it != mSfActiveModes.end()) {

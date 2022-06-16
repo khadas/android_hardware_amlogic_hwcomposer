@@ -330,7 +330,7 @@ int32_t VariableModeMgr::setActiveConfig(
             config, mExtModeSet);
         return HWC2_ERROR_NONE;
     } else {
-        MESON_LOGE("set invalild active config (%d)", config);
+        MESON_LOGE("set invalid active config (%d)", config);
         return HWC2_ERROR_NOT_VALIDATED;
     }
 }
