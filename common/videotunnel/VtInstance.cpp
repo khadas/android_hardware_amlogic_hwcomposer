@@ -67,7 +67,7 @@ int32_t VtInstance::onFrameDisplayed(int bufferFd, int fenceFd) {
         return 0;
     }
 
-    MESON_LOGE("[%s] [%s] cannot found %d in buffer queue",
+    MESON_LOGE("[%s] [%s] cannot find %d in buffer queue",
             __func__, mName, bufferFd);
     return -1;
 }
@@ -111,7 +111,7 @@ int32_t VtInstance::unregisterVtConsumer(
     }
 
     if (ret)
-        MESON_LOGW("[%s] [%s] cannot found VT consumer %p",
+        MESON_LOGW("[%s] [%s] cannot find VT consumer %p",
         __func__, mName, consumer.get());
 
     return ret;
@@ -122,7 +122,7 @@ int32_t VtInstance::connect() {
     if (mTunnelId >= 0) {
         ret = VideoTunnelDev::getInstance().connect(mTunnelId);
         if (ret >= 0) {
-            MESON_LOGD("[%s] [%s] connect to videotunnel successed",
+            MESON_LOGD("[%s] [%s] connect to videotunnel succeeded",
                     __func__, mName);
         } else {
                 MESON_LOGE("[%s] [%s] connect to videotunnel filed",

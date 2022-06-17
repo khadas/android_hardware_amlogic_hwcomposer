@@ -235,7 +235,7 @@ hwc2_error_t Hwc2Layer::setSidebandStream(const native_handle_t* stream) {
 
             int ret = registerConsumer();
             if (ret >= 0) {
-                MESON_LOGD("%s [%" PRId64 "] register consumer for videotunnel %d successed",
+                MESON_LOGD("%s [%" PRId64 "] register consumer for videotunnel %d succeeded",
                         __func__, mId, channel_id);
                 mQueuedFrames = 0;
                 mQueueItems.clear();
@@ -756,7 +756,7 @@ int32_t Hwc2Layer::registerConsumer() {
     int32_t ret = -1;
 
     if (mTunnelId < 0) {
-        MESON_LOGE("[%s] [%d] [%" PRIu64 "] tunneld is less then 0, cannot register consumer",
+        MESON_LOGE("[%s] [%d] [%" PRIu64 "] tunneld is less than 0, cannot register consumer",
             __func__, mDisplayId, mId);
         return ret;
     }
@@ -794,7 +794,7 @@ int32_t Hwc2Layer::unregisterConsumer() {
     int32_t ret = -1;
 
     if (mTunnelId < 0) {
-        MESON_LOGE("[%s] [%d] [%" PRIu64 "] tunneld is less then 0, cannot unregister consumer",
+        MESON_LOGE("[%s] [%d] [%" PRIu64 "] tunneld is less than 0, cannot unregister consumer",
             __func__, mDisplayId, mId);
         return ret;
     }

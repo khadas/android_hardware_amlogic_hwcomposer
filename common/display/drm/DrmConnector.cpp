@@ -193,7 +193,7 @@ int32_t DrmConnector::groupDisplayModes() {
     if (!(mSupportVrr = supportVrr()))
         return 0;
 
-    /* clear the old goup modes */
+    /* clear the old group modes */
     mMesonGroupModes.clear();
 
     for (auto & mode : mMesonModes) {
@@ -208,7 +208,7 @@ int32_t DrmConnector::groupDisplayModes() {
             if (strstr(itMode.name, "i") != NULL)
                 break;
 
-            // only support resulotion >= 720P
+            // only support resolution >= 720P
             if (itMode.pixelW < 1280 || itMode.pixelH < 720)
                 break;
 
