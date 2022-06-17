@@ -58,7 +58,7 @@ int32_t VtInstanceMgr::connectInstance(int tunnelId,
     }
 
     if (ret >= 0)
-        MESON_LOGD("%s, [%d] connect video composer successed",
+        MESON_LOGD("%s, [%d] connect video composer succeeded",
             __func__, tunnelId);
 
     if (!mVtHandleEventsThread)
@@ -122,7 +122,7 @@ void VtInstanceMgr::clearUpInstancesLocked() {
         bRemove = ptrInstance->needDestroyThisInstance();
         if (bRemove) {
             it = mInstances.erase(it);
-            MESON_LOGD("%s, destroy instance %d successed",
+            MESON_LOGD("%s, destroy instance %d succeeded",
                     __func__, id);
         } else {
             ++it;
