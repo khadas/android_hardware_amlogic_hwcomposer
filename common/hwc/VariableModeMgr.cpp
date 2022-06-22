@@ -346,6 +346,18 @@ int32_t VariableModeMgr::setActiveConfig(
     }
 }
 
+int32_t VariableModeMgr::getPreferredBootConfig(int32_t* outConfig __unused) {
+    return HWC2_ERROR_UNSUPPORTED;
+}
+
+int32_t VariableModeMgr::setBootConfig(int32_t config __unused) {
+    return HWC2_ERROR_UNSUPPORTED;
+}
+
+int32_t VariableModeMgr::clearBootConfig() {
+    return HWC2_ERROR_UNSUPPORTED;
+}
+
 void VariableModeMgr::reset() {
     mHwcActiveModes.clear();
     mSfActiveModes.clear();

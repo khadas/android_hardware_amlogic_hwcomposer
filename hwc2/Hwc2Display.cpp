@@ -1579,17 +1579,36 @@ hwc2_error_t Hwc2Display::setContentType(uint32_t contentType) {
     return HWC2_ERROR_NONE;
 }
 
-//TODO: implement hwc3 interfaces
-hwc2_error_t Hwc2Display::setBootConfig(uint32_t config __unused) {
-    return HWC2_ERROR_UNSUPPORTED;
+hwc2_error_t Hwc2Display::setBootConfig(uint32_t config) {
+    if (!mModeMgr.get())
+        return HWC2_ERROR_UNSUPPORTED;
+
+    int32_t ret = mModeMgr->setBootConfig(config);
+    return (hwc2_error_t) ret;
 }
 
 hwc2_error_t Hwc2Display::clearBootConfig() {
-    return HWC2_ERROR_UNSUPPORTED;
+    if (!mModeMgr.get())
+        return HWC2_ERROR_UNSUPPORTED;
+
+    int32_t ret = mModeMgr->clearBootConfig();
+    return (hwc2_error_t) ret;
 }
 
-hwc2_error_t Hwc2Display::getPreferredBootConfig(int32_t* outConfig __unused) {
-    return HWC2_ERROR_UNSUPPORTED;
+hwc2_error_t Hwc2Display::getPreferredBootConfig(int32_t* outConfig) {
+    if (!mModeMgr.get())
+        return HWC2_ERROR_UNSUPPORTED;
+
+    // If connector was  out, then we only report the previous active mode to framework
+    if (mPowerMode->getConnectorMode() == MESON_POWER_CONNECTOR_OUT) {
+        hwc2_config_t config = 0;
+        auto ret = getActiveConfig(&config);
+        *outConfig = (int32_t) config;
+        return ret;
+    }
+
+    int32_t ret = mModeMgr->getPreferredBootConfig(outConfig);
+    return (hwc2_error_t) ret;
 }
 
 hwc2_error_t Hwc2Display::getPhysicalOrientation(int32_t* outOrientation __unused) {

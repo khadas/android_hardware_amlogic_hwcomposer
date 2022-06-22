@@ -319,6 +319,18 @@ bool ActiveModeMgr::isSeamlessSwitch(uint32_t config) {
     return false;
 }
 
+int32_t ActiveModeMgr::getPreferredBootConfig(int32_t* outConfig __unused) {
+    return HWC2_ERROR_UNSUPPORTED;
+}
+
+int32_t ActiveModeMgr::setBootConfig(int32_t config __unused) {
+    return HWC2_ERROR_UNSUPPORTED;
+}
+
+int32_t ActiveModeMgr::clearBootConfig() {
+    return HWC2_ERROR_UNSUPPORTED;
+}
+
 void ActiveModeMgr::reset() {
     mHwcActiveModes.clear();
     mSfActiveModes.clear();

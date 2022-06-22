@@ -52,6 +52,7 @@ public:
     void dump(String8 & dumpstr);
 
     int32_t setMode(drm_mode_info_t & mode );
+    bool checkFracMode(const drm_mode_info_t & mode) override;
 
     /*drm package internal use.*/
 public:

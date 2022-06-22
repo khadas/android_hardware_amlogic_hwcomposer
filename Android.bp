@@ -110,6 +110,10 @@ meson_hwc_cc_defaults {
         enable_video_aipq: {
             cflags: ["-DENABLE_VIDEO_AIPQ"],
         },
+
+        enable_aidl: {
+            cflags: ["-DENABLE_AIDL"],
+        },
     },
 
     product_variables: {

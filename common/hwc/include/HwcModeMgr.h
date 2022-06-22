@@ -59,6 +59,12 @@ public:
     // for seamless mode switch
     virtual bool isSeamlessSwitch(uint32_t config) = 0;
 
+    /* for default mode */
+    virtual int32_t getPreferredBootConfig(
+        int32_t* outConfig) = 0;
+    virtual int32_t setBootConfig(int32_t config) = 0;
+    virtual int32_t clearBootConfig() = 0;
+
     virtual void resetTags() = 0;
     virtual void dump(String8 & dumpstr) = 0;
 

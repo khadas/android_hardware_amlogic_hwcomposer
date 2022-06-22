@@ -379,6 +379,59 @@ bool RealModeMgr::isSeamlessSwitch(uint32_t config) {
     return false;
 }
 
+// TODO: remove the sc related default boot config api when mesondisplay sdk is ready
+int32_t RealModeMgr::getPreferredBootConfig(int32_t* outConfig) {
+    std::lock_guard<std::mutex> lock(mMutex);
+    *outConfig = mActiveConfigId;
+
+    std::string prefMode;
+    if (!sc_getPreferredDisplayConfig(HWC_DISPLAY_PRIMARY, prefMode)) {
+        for (auto it = mModes.begin(); it != mModes.end(); ++it) {
+            if (strncmp(prefMode.c_str(), it->second.name, DRM_DISPLAY_MODE_LEN) == 0 &&
+                    mConnector->checkFracMode(it->second)) {
+                *outConfig = it->first;
+                drm_mode_info_t cfg = it->second;
+                MESON_LOGD("%s outConfig = %d (%dx%d@%f)", __func__, *outConfig,
+                        cfg.pixelW, cfg.pixelH, cfg.refreshRate);
+                break;
+            }
+        }
+    }
+
+    return HWC2_ERROR_NONE;
+}
+
+int32_t RealModeMgr::setBootConfig(int32_t config) {
+    std::lock_guard<std::mutex> lock(mMutex);
+    std::map<uint32_t, drm_mode_info_t>::iterator it =
+        mModes.find(config);
+
+    if (it != mModes.end()) {
+        drm_mode_info_t cfg = it->second;
+
+        if (strncmp(cfg.name, fakeInitialMode.name, DRM_DISPLAY_MODE_LEN) == 0) {
+            MESON_LOGD("set boot config not supported");
+            return HWC2_ERROR_BAD_PARAMETER;
+        }
+
+        MESON_LOGD("%s %dx%d@%.2f", __func__, cfg.pixelW, cfg.pixelH, cfg.refreshRate);
+        std::string dispmode(cfg.name);
+        sc_setBootDisplayConfig(HWC_DISPLAY_PRIMARY, dispmode);
+    } else {
+        MESON_LOGE("set invalid boot config (%d)", config);
+        return HWC2_ERROR_BAD_CONFIG;
+    }
+
+    return HWC2_ERROR_NONE;
+}
+
+int32_t RealModeMgr::clearBootConfig() {
+    std::lock_guard<std::mutex> lock(mMutex);
+    MESON_LOGD("%s", __func__);
+    sc_clearBootDisplayConfig(HWC_DISPLAY_PRIMARY);
+    return HWC2_ERROR_NONE;
+}
+
 bool RealModeMgr::isSupportModeForCurrentDevice(drm_mode_info_t mode) {
     // some hdmi output is not suitable for current device
     bool ret = false;

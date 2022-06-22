@@ -43,6 +43,10 @@ public:
     // for seamless mode switch
     bool isSeamlessSwitch(uint32_t config);
 
+    int32_t getPreferredBootConfig(int32_t* outConfig);
+    int32_t setBootConfig(int32_t config);
+    int32_t clearBootConfig();
+
     void resetTags();
     void dump(String8 & dumpstr);
 

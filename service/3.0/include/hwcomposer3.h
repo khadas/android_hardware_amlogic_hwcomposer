@@ -158,3 +158,7 @@ typedef enum {
     HWC3_TRANSFORM_ROT_180 = 3,
     HWC3_TRANSFORM_ROT_270 = 7,
 } hwc3_transform_t;
+
+typedef enum {
+    HWC3_CAPABILITY_BOOT_DISPLAY_CONFIG = 5,
+} hwc3_capability_t;

@@ -470,6 +470,53 @@ bool sc_update_density(int displayId, int width, int height) {
     return true;
 }
 
+int32_t sc_clearBootDisplayConfig(int /* displayId */) {
+    CHK_SC_PROXY();
+
+    auto ret = gSC->clearBootDisplayConfig("true");
+    if (ret.isOk()) {
+        return 0;
+    } else {
+        MESON_LOGE("sc %s FAIL.", __func__);
+        return -EFAULT;
+    }
+}
+
+int32_t sc_setBootDisplayConfig(int /* displayId */, std::string & dispmode) {
+    CHK_SC_PROXY();
+
+    auto ret = gSC->setBootDisplayConfig(dispmode);
+    if (ret.isOk()) {
+        return 0;
+    } else {
+        MESON_LOGE("sc %s FAIL.", __func__);
+        return -EFAULT;
+    }
+}
+
+int32_t sc_getPreferredDisplayConfig(int /* displayId */, std::string & dispmode) {
+    CHK_SC_PROXY();
+    auto rtn = gSC->getPreferredDisplayConfig([&dispmode](
+        const Result & ret, const hidl_string & supportDispModes) {
+        if (Result::OK == ret) {
+            dispmode = supportDispModes.c_str();
+        } else {
+            dispmode.clear();
+        }
+    });
+
+    if (!rtn.isOk()) {
+        MESON_LOGE("sc %s Fail", __func__);
+        return -EFAULT;
+    }
+
+    if (dispmode.empty()) {
+        MESON_LOGE("sc %s FAIL", __func__);
+        return false;
+    }
+    return 0;
+}
+
 #if PLATFORM_SDK_VERSION == 30
 // for self-adaptive
 int32_t sc_frame_rate_display(bool on, const ISystemControl::Rect& rect) {

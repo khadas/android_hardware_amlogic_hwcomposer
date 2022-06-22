@@ -42,6 +42,11 @@ public:
     int32_t getActiveConfig(uint32_t * outConfig, int32_t caller);
     int32_t setActiveConfig(uint32_t config);
     bool isSeamlessSwitch(uint32_t config __unused) {return false;};
+
+    int32_t getPreferredBootConfig(int32_t* outConfig);
+    int32_t setBootConfig(int32_t config);
+    int32_t clearBootConfig();
+
     void resetTags(){};
     void dump(String8 & dumpstr);
     bool is16_9Mode(drm_mode_info_t mode __unused) {return false;}

@@ -22,6 +22,7 @@
 #include "../fbdev/AmVinfo.h"
 
 #define EDID_MIN_LEN (128)
+#define HDMI_FRAC_RATE_POLICY "/sys/class/amhdmitx/amhdmitx0/frac_rate_policy"
 
 static const u8 default_1080p_edid[EDID_MIN_LEN] = {
 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00,
@@ -337,6 +338,29 @@ int32_t DrmConnector::setMode(drm_mode_info_t & mode) {
 
     switchRatePolicy(false);
     return 0;
+}
+
+bool DrmConnector::checkFracMode(const drm_mode_info_t & mode) {
+    if (mType != DRM_MODE_CONNECTOR_HDMIA)
+        return true;
+
+    if (mFracMode != MODE_ALL) {
+        return true;
+    }
+
+    // only check frac refresh rate
+    if (mode.refreshRate != REFRESH_25kHZ
+            && mode.refreshRate != REFRESH_50kHZ) {
+        bool currentIsFrac =
+            sysfs_get_int(HDMI_FRAC_RATE_POLICY, 1) == 1 ? true : false;
+        bool modeIsFrac =
+            std::find(mFracRefreshRates.begin(), mFracRefreshRates.end(),
+                    mode.refreshRate) != mFracRefreshRates.end();
+
+        return (currentIsFrac && modeIsFrac) || (!currentIsFrac && !modeIsFrac);
+    }
+
+    return true;
 }
 
 bool DrmConnector::isConnected() {
