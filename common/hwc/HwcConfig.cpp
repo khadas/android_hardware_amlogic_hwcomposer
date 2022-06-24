@@ -202,14 +202,6 @@ bool HwcConfig::defaultHdrCapEnabled() {
 #endif
 }
 
-bool HwcConfig::forceClientEnabled() {
-#ifdef HWC_DISABLE_FORCE_CLIENT_COMPOSITION
-    return false;
-#else
-    return true;
-#endif
-}
-
 bool HwcConfig::alwaysVdinLoopback() {
 #ifdef HWC_PIPE_VIU1VDINVIU2_ALWAYS_LOOPBACK
     return true;
@@ -291,8 +283,6 @@ void HwcConfig::dump(String8 & dumpstr) {
             dumpstr.append("\n");
             dumpstr.appendFormat("\t PreDisplayCalibrate: %s", preDisplayCalibrateEnabled() ? "Y" : "N");
             dumpstr.appendFormat("\t DefaultHdr: %s", defaultHdrCapEnabled() ? "Y" : "N");
-            dumpstr.append("\n");
-            dumpstr.appendFormat("\t ForceClient: %s", forceClientEnabled() ? "Y" : "N");
             dumpstr.append("\n");
             dumpstr.appendFormat("\t DynamicSwitchConnector: %s", dynamicSwitchConnectorEnabled() ? "Y" : "N");
             dumpstr.append("\n");

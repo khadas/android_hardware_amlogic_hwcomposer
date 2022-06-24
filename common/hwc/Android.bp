@@ -38,7 +38,6 @@ soong_config_module_type {
         "enable_secure_layer_process",
         "disable_cursor_plane",
         "target_use_default_hdr_property",
-        "target_app_layer_use_continuous_buffer",
         "pipe_viu1vdinviu2_always_loopback",
         "dynamic_switch_connector",
         "dynamic_swich_viu",
@@ -85,10 +84,6 @@ soong_config_bool_variable {
 
 soong_config_bool_variable {
     name: "target_use_default_hdr_property",
-}
-
-soong_config_bool_variable {
-    name: "target_app_layer_use_continuous_buffer",
 }
 
 soong_config_bool_variable {
@@ -192,10 +187,6 @@ meson_hwc_hwc_cc_defaults {
 
         target_use_default_hdr_property: {
             cflags: ["-DHWC_ENABLE_DEFAULT_HDR_CAPABILITIES"],
-        },
-
-        target_app_layer_use_continuous_buffer: {
-            cflags: ["-DHWC_DISABLE_FORCE_CLIENT_COMPOSITION"],
         },
 
         pipe_viu1vdinviu2_always_loopback: {

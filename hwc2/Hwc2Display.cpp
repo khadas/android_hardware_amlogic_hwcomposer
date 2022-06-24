@@ -868,8 +868,7 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
     /*collect composition flag*/
     uint32_t compositionFlags = 0;
     if (mForceClientComposer ||
-        DebugHelper::getInstance().disableUiHwc() ||
-        HwcConfig::forceClientEnabled()) {
+        DebugHelper::getInstance().disableUiHwc()) {
         compositionFlags |= COMPOSE_FORCE_CLIENT;
     }
 
