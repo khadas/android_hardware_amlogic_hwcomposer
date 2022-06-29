@@ -20,7 +20,7 @@
 #include "DrmPlane.h"
 
 #define MESON_DRM_DRIVER_NAME "meson"
-#define MAX_PLANE_LIMIT 3
+#define MAX_PLANE_LIMIT 4
 
 std::shared_ptr<DrmDevice> DrmDevice::mInstance = NULL;
 

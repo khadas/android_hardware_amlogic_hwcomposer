@@ -751,7 +751,8 @@ int32_t Hwc2Display::getDisplayIdentificationData(uint32_t &outPort,
         std::vector<uint8_t> &outData) {
     int32_t ret = mConnector->getIdentificationData(outData);
     if (ret == 0)
-        outPort = mConnector->getId();
+        outPort = mConnector->getType();
+    ALOGE("getPort %d",mConnector->getType());
     return ret;
 }
 
