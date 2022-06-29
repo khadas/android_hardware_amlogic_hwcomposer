@@ -65,10 +65,7 @@ HwcDisplayPipe::HwcDisplayPipe() {
 
     /*default policy: assign osd plane N + 1 + 1*/
     if (planes.size() > 0) {
-        MESON_ASSERT(planes.size() >= HwcConfig::getDisplayNum(),
-            "osd planes-%zu < pipe-%d\n", planes.size(), HwcConfig::getDisplayNum());
         pipeidx = HwcConfig::getDisplayNum() - 1;
-
         for (auto planeIt = planes.rbegin(); planeIt != planes.rend(); planeIt ++) {
             plane = *planeIt;
             if (plane->getPossibleCrtcs() & (1 << pipeidx)) {
@@ -77,6 +74,9 @@ HwcDisplayPipe::HwcDisplayPipe() {
                     pipeidx --;
             }
         }
+
+        MESON_ASSERT(mPlanesForPipe.size() >= HwcConfig::getDisplayNum(),
+            "planes-%zu < pipe-%d\n", mPlanesForPipe.size(), HwcConfig::getDisplayNum());
     }
 
     for (pipeidx = 0; pipeidx < HwcConfig::getDisplayNum(); pipeidx ++) {
