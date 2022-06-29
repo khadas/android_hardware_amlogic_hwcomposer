@@ -189,7 +189,7 @@ int32_t ConnectorPanel::loadDisplayModes() {
 
         addDisplayMode(dispmode);
         //for tv display mode.
-        const unsigned int pos = dispmode.find("60hz", 0);
+        std::size_t pos = dispmode.find("60hz", 0);
         if (pos != std::string::npos) {
             dispmode.replace(pos, 4, "50hz");
             addDisplayMode(dispmode);
