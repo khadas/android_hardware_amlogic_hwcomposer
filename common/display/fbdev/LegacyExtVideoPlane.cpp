@@ -85,8 +85,8 @@ int32_t LegacyExtVideoPlane::setPlane(
     std::shared_ptr<DrmFramebuffer> fb,
     uint32_t zorder, int blankOp) {
     if (fb) {
-        /*this is added to slove this situation:
-         *when source has the signal, then playing video in MoivePlayer.
+        /*this is added to solve this situation:
+         *when source has the signal, then playing video in MoviePlayer.
          *Then, back to home from MoviePlayer.Garbage appears.
          */
         if ((mLegacyExtVideoFb) && (fb)) {
@@ -183,13 +183,13 @@ int32_t LegacyExtVideoPlane::setPlane(
     return 0;
 }
 
-int32_t LegacyExtVideoPlane::getMute(bool & staus) {
+int32_t LegacyExtVideoPlane::getMute(bool & status) {
     uint32_t val = 1;
     if (ioctl(mDrvFd, AMSTREAM_IOC_GLOBAL_GET_VIDEOPIP_OUTPUT, &val) != 0) {
         MESON_LOGE("AMSTREAM_IOC_GLOBAL_GET_VIDEOPIP_OUTPUT ioctl fail(%d)", errno);
         return -EINVAL;
     }
-    staus = (val == 0) ? true : false;
+    status = (val == 0) ? true : false;
 
     return 0;
 }
@@ -249,7 +249,7 @@ int32_t LegacyExtVideoPlane::getOmxKeepLastFrame(unsigned int & keep) {
         MESON_LOGE("get omx info error, ret =%d", ret);
         keep = 0;
     } else {
-        keep = omx_info & 0x1; //omx_info bit0: keep last frmame
+        keep = omx_info & 0x1; //omx_info bit0: keep last frame
         ret = 0;
     }
     return ret;

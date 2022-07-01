@@ -48,7 +48,7 @@ public:
     void dump(String8 & dumpstr);
 
 protected:
-    void resloveInFormats();
+    void resolveInFormats();
     bool validateFormat(uint32_t format, uint64_t modifier);
     void loadProperties();
 

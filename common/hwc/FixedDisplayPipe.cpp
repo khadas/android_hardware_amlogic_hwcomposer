@@ -84,15 +84,15 @@ void FixedDisplayPipe::handleEvent(drm_display_event event, int val) {
 }
 
 int32_t FixedDisplayPipe::getPipeCfg(uint32_t hwcid, PipeCfg & cfg) {
-    drm_connector_type_t  connector = getConnetorCfg(hwcid);
+    drm_connector_type_t  connector = getConnectorCfg(hwcid);
     cfg.modePipeIdx = cfg.hwcPipeIdx = DRM_PIPE_VOUT1;
     cfg.hwcPostprocessorType = INVALID_POST_PROCESSOR;
     cfg.modeConnectorType = cfg.hwcConnectorType = connector;
     return 0;
 }
 
-drm_connector_type_t FixedDisplayPipe::getConnetorCfg(uint32_t hwcid) {
-    drm_connector_type_t  connector = HwcDisplayPipe::getConnetorCfg(hwcid);
+drm_connector_type_t FixedDisplayPipe::getConnectorCfg(uint32_t hwcid) {
+    drm_connector_type_t  connector = HwcDisplayPipe::getConnectorCfg(hwcid);
     if (connector == DRM_MODE_CONNECTOR_Unknown ||
             connector == DRM_MODE_CONNECTOR_TV) {
         std::shared_ptr<HwDisplayConnector> hwConnector;
@@ -104,7 +104,7 @@ drm_connector_type_t FixedDisplayPipe::getConnetorCfg(uint32_t hwcid) {
         }
     }
 
-    MESON_LOGE("FixedDisplayPipe::getConnetorCfg %d", connector);
+    MESON_LOGE("FixedDisplayPipe::getConnectorCfg %d", connector);
     return connector;
 }
 

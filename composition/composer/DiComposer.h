@@ -21,7 +21,7 @@ public:
     ~DiComposer();
 
     const char* getName() { return DI_COMPOSER_NAME; }
-    meson_compositon_t getType() { return MESON_COMPOSITION_DI; }
+    meson_composition_t getType() { return MESON_COMPOSITION_DI; }
 
     bool isFbsSupport(
         std::vector<std::shared_ptr<DrmFramebuffer>> & fbs,

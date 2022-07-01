@@ -53,7 +53,7 @@ int32_t Vdin::getStreamInfo(int & width, int & height, int & format) {
     drm_mode_info_t modeInfo;
     auto crtc = getHwDisplayManager()->getCrtcByPipe(DRM_PIPE_VOUT1);
     if (crtc->getMode(modeInfo) != 0) {
-        MESON_LOGE("getStreamInfo faild.");
+        MESON_LOGE("getStreamInfo failed.");
         mCapParams.width = 1920;
         mCapParams.height = 1080;
         mCapParams.fps = 60;

@@ -278,7 +278,7 @@ void HwcConfig::dump(String8 & dumpstr) {
             getFramebufferSize(i, w, h);
 
             dumpstr.appendFormat("Display (%d) %d x %d :\n", i, w, h);
-            dumpstr.appendFormat("\t ConntecorConfig: %d", getConnectorType(i));
+            dumpstr.appendFormat("\t ConnectorConfig: %d", getConnectorType(i));
             dumpstr.appendFormat("\t ModePolicy: %d", getModePolicy(i));
             dumpstr.append("\n");
             dumpstr.appendFormat("\t PipelineConfig: %d", getPipeline());

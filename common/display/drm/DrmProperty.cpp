@@ -17,7 +17,7 @@
 
 DrmProperty::DrmProperty(drmModePropertyPtr p, uint32_t objectId, uint64_t value)
     : mValue(value),
-    mComponetId(objectId) {
+    mComponentId(objectId) {
     memcpy(&mPropRes, p, sizeof(mPropRes));
     if (p->count_values > 0) {
         size_t contentLen = p->count_values * sizeof(uint64_t);
@@ -77,7 +77,7 @@ int DrmProperty::setValue(uint64_t val) {
 
     if (mType == DRM_MODE_PROP_RANGE) {
         if (val < mPropRes.values[0] || val > mPropRes.values[1]) {
-            MESON_LOGE("[%s] RAGNE ERROR (%" PRId64 ") -> (%" PRId64 ",%" PRId64 ")",
+            MESON_LOGE("[%s] RANGE ERROR (%" PRId64 ") -> (%" PRId64 ",%" PRId64 ")",
                 mPropRes.name, val, mPropRes.values[0], mPropRes.values[1]);
             return -EINVAL;
         }
@@ -163,7 +163,7 @@ int DrmProperty::getRangeValue(uint64_t &min, uint64_t &max) {
 }
 
 int DrmProperty::apply(drmModeAtomicReqPtr req) {
-    return drmModeAtomicAddProperty(req, mComponetId, mPropRes.prop_id, getValue());
+    return drmModeAtomicAddProperty(req, mComponentId, mPropRes.prop_id, getValue());
 }
 
 void DrmProperty::dump(String8 &dumpstr) {

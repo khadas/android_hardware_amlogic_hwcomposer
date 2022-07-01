@@ -354,7 +354,7 @@ int main(int argc, char **argv) {
     }
 
     int dev_fd = meson_vt_open();
-    fprintf(stderr, "open viduotunnel dev fd:%d\n", dev_fd);
+    fprintf(stderr, "open videotunnel dev fd:%d\n", dev_fd);
     ctx.dev_fd = dev_fd;
     ctx.is_exit = false;
 
@@ -363,7 +363,7 @@ int main(int argc, char **argv) {
     if (is_producer) {
         ctx.tunnel_id = -1;
         ret = meson_vt_alloc_id(ctx.dev_fd, &ctx.tunnel_id);
-        fprintf(stderr, "alloc viduotunnel id:%d\n", ctx.tunnel_id);
+        fprintf(stderr, "alloc videotunnel id:%d\n", ctx.tunnel_id);
         ctx.trans_fd = fd;
 
         pthread_create(&ctx.thread_id, NULL, vt_producer_thread, &ctx);

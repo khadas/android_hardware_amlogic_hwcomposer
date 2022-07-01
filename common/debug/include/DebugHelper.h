@@ -44,7 +44,7 @@ public:
     inline bool discardInFence() {return mDiscardInFence;}
     inline bool discardOutFence() {return mDiscardOutFence;}
 
-    /*for layer compostion debug*/
+    /*for layer composition debug*/
     inline void getHideLayers(std::vector<int> & layers) {layers = mHideLayers;}
     inline bool debugHideLayers() {return mDebugHideLayer;}
 

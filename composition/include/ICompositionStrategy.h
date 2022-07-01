@@ -18,10 +18,10 @@
 #include <HwDisplayCrtc.h>
 
 
-/*compositon request for special cases:
-    * FORCE_CLIENT: don't use device compostion, for debug.
+/*composition request for special cases:
+    * FORCE_CLIENT: don't use device composition, for debug.
     * SECURE_FB: hide secure fb for special usecases.
-    * HDR_VIDEO: information for vpu compostion, may be need conside it.
+    * HDR_VIDEO: information for vpu composition, may be need conside it.
     */
 typedef enum {
     COMPOSE_FORCE_CLIENT = 1 << 0,
@@ -49,7 +49,7 @@ typedef enum {
 
 #define HWC_PLANE_FAKE_ZORDER (1)
 
-/*Base compostion strategy class.*/
+/*Base composition strategy class.*/
 class ICompositionStrategy {
 public:
     ICompositionStrategy() { }

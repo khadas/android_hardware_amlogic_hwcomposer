@@ -79,7 +79,7 @@ int32_t MultiDisplayDrmPipe::getPipeCfg(uint32_t hwcid, PipeCfg & cfg) {
             return -EINVAL;
     };
     cfg.modePipeIdx = cfg.hwcPipeIdx;
-    cfg.modeConnectorType = cfg.hwcConnectorType = getConnetorCfg(hwcid);
+    cfg.modeConnectorType = cfg.hwcConnectorType = getConnectorCfg(hwcid);
     cfg.hwcPostprocessorType = INVALID_POST_PROCESSOR;
     return 0;
 }

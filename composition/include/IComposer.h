@@ -23,7 +23,7 @@ public:
     virtual ~IComposer() { }
 
     virtual const char* getName() = 0;
-    virtual meson_compositon_t getType() = 0;
+    virtual meson_composition_t getType() = 0;
 
     /*check if input framebuffer can be consumed */
     virtual bool isFbsSupport(

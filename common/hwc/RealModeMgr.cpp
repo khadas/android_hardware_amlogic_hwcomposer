@@ -17,7 +17,7 @@
 
 #include "RealModeMgr.h"
 
-#define DEFUALT_DPI (159)
+#define DEFAULT_DPI (159)
 #define DEFAULT_REFRESH_RATE (60.0f)
 
 #ifndef ARRAY_SIZE
@@ -58,8 +58,8 @@ static const char* DISPLAY_MODE_LIST[] = {
 
 static const drm_mode_info_t fakeInitialMode = {
     .name              = "FAKE_INITIAL_MODE",
-    .dpiX              = DEFUALT_DPI,
-    .dpiY              = DEFUALT_DPI,
+    .dpiX              = DEFAULT_DPI,
+    .dpiY              = DEFAULT_DPI,
     .pixelW            = 1920,
     .pixelH            = 1080,
     .refreshRate       = DEFAULT_REFRESH_RATE,
@@ -100,7 +100,7 @@ int32_t RealModeMgr::updateActiveConfig(drm_mode_info_t activeMode) {
         if (strncmp(activeMode.name, it->second.name, DRM_DISPLAY_MODE_LEN) == 0 &&
             fabs(activeMode.refreshRate - it->second.refreshRate) < 1e-2) {
             mActiveConfigId = it->first;
-            MESON_LOGV("%s aciveConfigId = %d", __func__, mActiveConfigId);
+            MESON_LOGV("%s activeConfigId = %d", __func__, mActiveConfigId);
             return HWC2_ERROR_NONE;
         }
     }

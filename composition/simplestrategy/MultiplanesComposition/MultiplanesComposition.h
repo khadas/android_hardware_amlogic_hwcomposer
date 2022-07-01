@@ -83,9 +83,9 @@ protected:
     void handleOverlayVideoZorder();
     int checkCommitZorder();
     void handleVPULimit(bool video);
-    void handleDispayLayerZorder();
+    void handleDisplayLayerZorder();
     int handleOsdComposition();
-    int handleOsdCompostionWithVideo();
+    int handleOsdCompositionWithVideo();
 
 
 protected:
@@ -114,7 +114,7 @@ protected:
     std::shared_ptr<IComposer> mClientComposer;
     std::vector<std::shared_ptr<IComposer>> mOtherComposers;
 
-    /* Get display planes from DispalyManager */
+    /* Get display planes from DisplayManager */
     std::vector<std::shared_ptr<HwDisplayPlane>> mOsdPlanes;
 
     std::shared_ptr<HwDisplayPlane> mHwcVideoPlane;             // Future  VIDEO support : 2 HwcVideoPlane

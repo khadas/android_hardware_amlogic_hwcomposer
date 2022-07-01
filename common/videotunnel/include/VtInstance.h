@@ -31,7 +31,7 @@ public:
     int32_t acquireBuffer();
     void releaseBufferLocked(std::shared_ptr<VtBufferItem> & item);
     void releaseInstanceBuffers();
-    int32_t recieveCmds();
+    int32_t receiveCmds();
     void setReleaseFence();
 
     int32_t onFrameDisplayed(int bufferFd, int fenceFd) override;

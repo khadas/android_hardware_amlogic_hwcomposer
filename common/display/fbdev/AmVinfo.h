@@ -244,7 +244,7 @@ struct vinfo_s {
 //	struct master_display_info_s
 //		master_display_info;
 //	const struct dv_info *dv_info;
-	/* update hdmitx hdr packet, if data is NULL, disalbe packet */
+	/* update hdmitx hdr packet, if data is NULL, disable packet */
 //	void (*fresh_tx_hdr_pkt)(struct master_display_info_s *data);
 	/* tunnel_mode: 1: tunneling mode, RGB 8bit  0: YCbCr422 12bit mode */
 //	void (*fresh_tx_vsif_pkt)(enum eotf_type type, uint8_t tunnel_mode);

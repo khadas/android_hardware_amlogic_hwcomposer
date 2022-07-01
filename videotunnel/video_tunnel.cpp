@@ -115,7 +115,7 @@ int meson_vt_alloc_id(int fd, int *tunnel_id) {
  * @param fd            [in] Videotunnel device fd
  * @param tunnel_id     [in] tunnel id to free
  *
- * Return of a value other than 0 means an eror has occurred:
+ * Return of a value other than 0 means an error has occurred:
  * -EINVAL - the videotunnel is has not found.
  */
 int meson_vt_free_id(int fd, int tunnel_id) {
@@ -127,7 +127,7 @@ int meson_vt_free_id(int fd, int tunnel_id) {
 }
 
 /*
- * Connect a consumer or a producer to the sepecific videotunnel.
+ * Connect a consumer or a producer to the specific videotunnel.
  * Only one consumer or one producer may be connected to a videotunnel.
  *
  * @param fd            [in] Videotunnel device fd
@@ -146,7 +146,7 @@ int meson_vt_connect(int fd, int tunnel_id, int role) {
 }
 
 /*
- * Disconnect a consumer or a producer from the sepecific videotunnel.
+ * Disconnect a consumer or a producer from the specific videotunnel.
  * All the videotunnel buffers of the disconnected side will be freed.
  *
  * @param fd            [in] Videotunnel device fd
@@ -154,7 +154,7 @@ int meson_vt_connect(int fd, int tunnel_id, int role) {
  * @param role          [in] 0 for producer, non 0 for consumer
  *
  * Return of a value other than 0 means an error has occurred:
- * -EINVAL - invalid parameter, the videotunnel may already has no conusmer/producer
+ * -EINVAL - invalid parameter, the videotunnel may already has no consumer/producer
  */
 int meson_vt_disconnect(int fd, int tunnel_id, int role) {
     vt_role_e role_e = (role == 0 ? VT_ROLE_PRODUCER : VT_ROLE_CONSUMER);
@@ -193,7 +193,7 @@ int meson_vt_queue_buffer(int fd, int tunnel_id, int buffer_fd,
  * DequeueBuffer requests a buffer from videotunnel to use. Ownership of the buffer is transfered
  * to the producer. The returned buffer is previous queued use meson_vt_queue_buffer to videotunnel.
  * If no buffer is pending then it returns -EAGAIN with a default 4ms timeout. If a buffer is
- * successfully dequeued, the infomation is returned in *buffer_fd.
+ * successfully dequeued, the information is returned in *buffer_fd.
  *
  * @param fd            [in] Videotunnel device fd
  * @param tunnel_id     [in] tunnel id to connect
@@ -298,7 +298,7 @@ int meson_vt_getDisplayVsyncAndPeriod(int fd, int tunnel_id, uint64_t *timestamp
 /*
  * Acquire buffer attemps to acquire ownership of the next pending buffer in the videotunnel.
  * If no buffer is pending then it returns -EAGAIN with a default 4ms timeout. If a buffer is
- * successfully acquired, the infomation is returned in *buffer_fd.
+ * successfully acquired, the information is returned in *buffer_fd.
  *
  * @param fd            [in] Videotunnel device fd
  * @param tunnel_id     [in] tunnel id to connect
@@ -360,7 +360,7 @@ int meson_vt_release_buffer(int fd, int tunnel_id, int buffer_fd, int fence_fd) 
 }
 
 /*
- * Wait for the vt session to become ready to recieve cmds
+ * Wait for the vt session to become ready to receive cmds
  *
  * @param fd            [in] Videotunnel device fd
  * @param time_out      [in] time out in ms

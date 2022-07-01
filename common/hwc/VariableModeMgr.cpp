@@ -18,7 +18,7 @@
 #include <inttypes.h>
 #include <math.h>
 
-#define DEFUALT_DPI (160)
+#define DEFAULT_DPI (160)
 #define DEFAULT_REFRESH_RATE_60 (60.0f)
 #define DEFAULT_REFRESH_RATE_50 (50.0f)
 
@@ -28,8 +28,8 @@
 static const drm_mode_info_t mode_info[] = {
     { /* VMODE_720P */
         .name              = "720p60hz",
-        .dpiX              = DEFUALT_DPI,
-        .dpiY              = DEFUALT_DPI,
+        .dpiX              = DEFAULT_DPI,
+        .dpiY              = DEFAULT_DPI,
         .pixelW            = 1280,
         .pixelH            = 720,
         .refreshRate       = DEFAULT_REFRESH_RATE_60,
@@ -37,8 +37,8 @@ static const drm_mode_info_t mode_info[] = {
     },
     { /* VMODE_1080P */
         .name              = "1080p60hz",
-        .dpiX              = DEFUALT_DPI,
-        .dpiY              = DEFUALT_DPI,
+        .dpiX              = DEFAULT_DPI,
+        .dpiY              = DEFAULT_DPI,
         .pixelW            = 1920,
         .pixelH            = 1080,
         .refreshRate       = DEFAULT_REFRESH_RATE_60,
@@ -46,8 +46,8 @@ static const drm_mode_info_t mode_info[] = {
     },
     { /* VMODE_720P_50hz */
         .name              = "720p50hz",
-        .dpiX              = DEFUALT_DPI,
-        .dpiY              = DEFUALT_DPI,
+        .dpiX              = DEFAULT_DPI,
+        .dpiY              = DEFAULT_DPI,
         .pixelW            = 1280,
         .pixelH            = 720,
         .refreshRate       = DEFAULT_REFRESH_RATE_50,
@@ -55,8 +55,8 @@ static const drm_mode_info_t mode_info[] = {
     },
     { /* VMODE_1080P_50HZ */
         .name              = "1080p50hz",
-        .dpiX              = DEFUALT_DPI,
-        .dpiY              = DEFUALT_DPI,
+        .dpiX              = DEFAULT_DPI,
+        .dpiY              = DEFAULT_DPI,
         .pixelW            = 1920,
         .pixelH            = 1080,
         .refreshRate       = DEFAULT_REFRESH_RATE_50,
@@ -64,8 +64,8 @@ static const drm_mode_info_t mode_info[] = {
     },
     { /* DefaultMode */
         .name              = "DefaultMode",
-        .dpiX              = DEFUALT_DPI,
-        .dpiY              = DEFUALT_DPI,
+        .dpiX              = DEFAULT_DPI,
+        .dpiY              = DEFAULT_DPI,
         .pixelW            = 1920,
         .pixelH            = 1080,
         .refreshRate       = DEFAULT_REFRESH_RATE_60,
@@ -244,7 +244,7 @@ int32_t  VariableModeMgr::getDisplayAttribute(
                 *outValue = curMode.groupId;
                 break;
             default:
-                MESON_LOGE("Unkown display attribute(%d)", attribute);
+                MESON_LOGE("Unknown display attribute(%d)", attribute);
                 break;
         }
 

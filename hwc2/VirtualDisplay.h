@@ -15,14 +15,14 @@
 class VirtualDisplay : public Hwc2Display {
 /*HWC2 interfaces.*/
 public:
-    /*Connector releated.*/
+    /*Connector related.*/
     const char * getName();
     const drm_hdr_capabilities_t * getHdrCapabilities();
 
     /*Vsync*/
     hwc2_error_t setVsyncEnable(hwc2_vsync_t enabled);
 
-    /*Layer releated.*/
+    /*Layer related.*/
     hwc2_error_t setCursorPosition(hwc2_layer_t layer,
         int32_t x, int32_t y);
 

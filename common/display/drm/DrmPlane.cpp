@@ -35,7 +35,7 @@ DrmPlane::DrmPlane(int drmFd, drmModePlanePtr p)
     mModifiers = NULL;
 
     loadProperties();
-    resloveInFormats();
+    resolveInFormats();
 
     mBlank = p->fb_id > 0 ? false : true;
     mDrmBo = std::make_shared<DrmBo>();
@@ -389,7 +389,7 @@ void DrmPlane::setDebugFlag(int dbgFlag) {
     mDbgFlag = dbgFlag;
 }
 
-void DrmPlane::resloveInFormats() {
+void DrmPlane::resolveInFormats() {
     if (!mInFormats) {
         MESON_LOGI("No inFormats prop. ");
         return;
@@ -492,7 +492,7 @@ void DrmPlane::dump(String8 & dumpstr) {
     }
     dumpstr.append("\n");
 
-    dumpstr.appendFormat("\t Modifer [%d]:", mModifierCnt);
+    dumpstr.appendFormat("\t Modifier [%d]:", mModifierCnt);
     for (int i = 0;i < mModifierCnt; i++) {
         dumpstr.appendFormat("(%llx-%llx),", mModifiers[i].formats, mModifiers[i].modifier);
     }

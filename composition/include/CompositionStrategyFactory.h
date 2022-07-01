@@ -17,7 +17,7 @@ enum {
 } COMPOSITION_TYPE;
 
 enum {
-    MUTLI_OSD_PLANES = 1 << 0, //vpu have multi layers
+    MULTI_OSD_PLANES = 1 << 0, //vpu have multi layers
     MULTI_PLANES_WITH_DI = 1 << 1, // use di to compose the multi video
 } COMPOSITION_FLAG;
 

@@ -34,7 +34,7 @@ int32_t ComposerFactory::create(meson_composer_t type,
 		composer = std::make_shared<DiComposer>(displayId);
 		break;
         default:
-            MESON_LOGE("Can't create Uunkown composer (%d)\n", type);
+            MESON_LOGE("Can't create unknown composer (%d)\n", type);
             composer = NULL;
             ret = -ENODEV;
             break;

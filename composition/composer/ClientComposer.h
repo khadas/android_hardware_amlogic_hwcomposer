@@ -23,7 +23,7 @@ public:
     ~ClientComposer();
 
     const char* getName() { return CLIENT_COMPOSER_NAME; }
-    meson_compositon_t getType() { return MESON_COMPOSITION_CLIENT; }
+    meson_composition_t getType() { return MESON_COMPOSITION_CLIENT; }
 
     bool isFbsSupport(
         std::vector<std::shared_ptr<DrmFramebuffer>> & fbs,

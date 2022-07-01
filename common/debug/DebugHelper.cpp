@@ -396,7 +396,7 @@ void DebugHelper::dump(String8 & dumpstr) {
             "Supported commands:\n"
             "\t " COMMAND_CLEAR ": clear all debug flags.\n"
             "\t " COMMAND_NOHWC " 0|1:  choose osd/UI hwcomposer.\n"
-            "\t " COMMAND_DUMP_DETAIL " 0|1: enable/dislabe dump detail internal info.\n"
+            "\t " COMMAND_DUMP_DETAIL " 0|1: enable/disable dump detail internal info.\n"
             "\t " COMMAND_IN_FENCE " 0 | 1: pass in fence to display, or handle it in hwc.\n"
             "\t " COMMAND_OUT_FENCE " 0 | 1: return display out fence, or handle it in hwc.\n"
             "\t " COMMAND_ENABLE_VSYNC_DETAIL " 0 | 1: enable/disable hwcVsync thread detail log.\n"
@@ -409,7 +409,7 @@ void DebugHelper::dump(String8 & dumpstr) {
             "\t " COMMAND_SAVE_LAYER " [layerId]: save specific layer's raw data by layer id. \n"
             "\t " COMMAND_MONITOR_DEVICE_COMPOSITION " 0|1: monitor non device composition. \n"
             "\t " COMMAND_SCALE_LIMIT " [float]: vpu scale limit factor. \n"
-            "\t " COMMAND_DRM_BLOCK_MODE " 0|1: enable/dislabe drm-block commit mode.\n";
+            "\t " COMMAND_DRM_BLOCK_MODE " 0|1: enable/disable drm-block commit mode. \n";
 
         dumpstr.append("\nMesonHwc debug helper:\n");
         dumpstr.append(usage);

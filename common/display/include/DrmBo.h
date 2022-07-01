@@ -14,7 +14,7 @@
 
 /*Drm buffer object.
  * TODO:
- * 1. will be default display buffer to replace DrmFraembuffer.
+ * 1. will be default display buffer to replace DrmFramebuffer.
  * 2. drm framebuffer will be a adaptive layer to convert android native handle to DrmBo.
  */
 

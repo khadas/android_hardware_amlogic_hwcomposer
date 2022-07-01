@@ -105,7 +105,7 @@ protected:
     /* for vrr */
     std::shared_ptr<DrmProperty> mVrrCap;
 
-    /*TODO:shuld convert to prop.*/
+    /*TODO:should convert to prop.*/
     drm_hdr_capabilities mHdrCapabilities;
 
     /* support VRR or not */

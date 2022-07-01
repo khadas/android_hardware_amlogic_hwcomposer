@@ -54,7 +54,7 @@ uint32_t HwcVideoPlane::getCapabilities() {
     int retValue;
     int capacity;
     if (ioctl(mDrvFd, VIDEO_COMPOSER_IOCTL_GET_PANEL_CAPABILITY, &retValue) != 0) {
-        MESON_LOGE("video plane get capibility ioctl (%d) return(%d)", retValue, errno);
+        MESON_LOGE("video plane get capability ioctl (%d) return(%d)", retValue, errno);
         return 0;
     }
     capacity =(retValue >> (2 * mIndex + 18) & 0x3);
@@ -109,7 +109,7 @@ int32_t HwcVideoPlane::getProperties() {
     int fd = open("/dev/amvideo",  O_RDWR, 0);
     if (fd > 0) {
         if (ioctl(fd, AMSTREAM_IOC_QUERY_LAYER, &capacity) != 0) {
-            MESON_LOGE("osd plane get capibility ioctl (%d) return(%d)", capacity, errno);
+            MESON_LOGE("osd plane get capability ioctl (%d) return(%d)", capacity, errno);
         }
     }
 

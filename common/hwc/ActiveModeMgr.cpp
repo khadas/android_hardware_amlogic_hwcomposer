@@ -16,13 +16,13 @@
 #include <string>
 #include <math.h>
 
-#define DEFUALT_DPI (160)
+#define DEFAULT_DPI (160)
 #define DEFAULT_REFRESH_RATE (60.0f)
 
 static const drm_mode_info_t fakeInitialMode = {
     .name              = "FAKE_INITIAL_MODE",
-    .dpiX              = DEFUALT_DPI,
-    .dpiY              = DEFUALT_DPI,
+    .dpiX              = DEFAULT_DPI,
+    .dpiY              = DEFAULT_DPI,
     .pixelW            = 1920,
     .pixelH            = 1080,
     .refreshRate       = DEFAULT_REFRESH_RATE,
@@ -60,7 +60,7 @@ void ActiveModeMgr::setDisplayResources(
 
 /*
  * when connected to a 4K TV
- * 1. No DV support or DV supported for all 2160P modes or supoort DV is disabled
+ * 1. No DV support or DV supported for all 2160P modes or support DV is disabled
  *    then reports to framework only 1080Ps which are mapped to 2160P modes
  * 2. DV support in 2160P <= 2160P30hz
  *    then reports to framework only 1080Ps which are mapped to 1080P modes
@@ -242,7 +242,7 @@ int32_t  ActiveModeMgr::getDisplayAttribute(
                 *outValue = curMode.groupId;
                 break;
             default:
-                MESON_LOGE("Unkown display attribute(%d)", attribute);
+                MESON_LOGE("Unknown display attribute(%d)", attribute);
                 break;
         }
         return HWC2_ERROR_NONE;

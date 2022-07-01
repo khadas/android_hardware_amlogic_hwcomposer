@@ -117,7 +117,7 @@ protected:
     /*load display pipe config*/
     virtual int32_t updatePipe(std::shared_ptr<PipeStat> & stat);
     virtual int32_t getPipeCfg(uint32_t hwcid, PipeCfg & cfg) = 0;
-    virtual drm_connector_type_t getConnetorCfg(uint32_t hwcid);
+    virtual drm_connector_type_t getConnectorCfg(uint32_t hwcid);
 
     virtual int32_t initDisplayMode(std::shared_ptr<PipeStat> & stat);
 

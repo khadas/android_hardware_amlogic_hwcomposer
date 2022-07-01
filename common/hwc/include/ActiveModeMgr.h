@@ -75,7 +75,7 @@ protected:
     uint32_t mSfActiveConfigId;
     std::map<uint32_t, drm_mode_info_t> mSfActiveModes;
 
-    // Dolby Vision enanbled or not
+    // Dolby Vision enabled or not
     bool mDvEnabled;
 };
 

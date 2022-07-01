@@ -89,7 +89,7 @@ int32_t VtConsumer::onVtCmds(vt_cmd_t & cmd, vt_cmd_data_t & cmdData) {
             mContentListener->setVideoType(cmdData.data);
             break;
         default:
-            MESON_LOGW("[%s] [%s] reveived an invalid CMD %d",
+            MESON_LOGW("[%s] [%s] received an invalid CMD %d",
                     __func__, mName, (int)cmd);
             return -1;
     }

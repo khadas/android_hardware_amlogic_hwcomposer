@@ -69,7 +69,7 @@ protected:
     // protect mMode and mActiveConfigId
     std::mutex mMutex;
 
-    // Dolby Vision enanbled or not
+    // Dolby Vision enabled or not
     bool mDvEnabled;
 
     bool mCallOnHotPlug;

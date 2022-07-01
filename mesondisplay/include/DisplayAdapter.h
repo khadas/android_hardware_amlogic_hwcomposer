@@ -161,7 +161,7 @@ bool String2JsonValue(const std::string& document, Json::Value& out);
 std::unique_ptr<DisplayAdapter> DisplayAdapterCreateLocal(DisplayAdapter::BackendType type);
 std::unique_ptr<DisplayAdapter> DisplayAdapterCreateRemote();
 
-typedef DisplayAdapter* create_DisplayAdatperRemote();
+typedef DisplayAdapter* create_DisplayAdapterRemote();
 typedef void destroy_DisplayAdapterRemote(DisplayAdapter *adapter);
 
 };

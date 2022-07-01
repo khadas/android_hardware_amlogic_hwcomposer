@@ -54,7 +54,7 @@ public:
     virtual void dump(String8 & dumpstr __unused) {}
     virtual void closeLogoDisplay();
 
-    /* for hotplut */
+    /* for hotplug */
     enum class HotplugStatus {
         Default,
         InHotplugProcess,

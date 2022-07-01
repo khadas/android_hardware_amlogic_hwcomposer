@@ -11,8 +11,8 @@
 
 #include "CursorPlane.h"
 
-#define DEFAULT_CUSOR_SIZE (256)
-#define CUSOR_BPP (4)
+#define DEFAULT_CURSOR_SIZE (256)
+#define CURSOR_BPP (4)
 
 CursorPlane::CursorPlane(int32_t drvFd, uint32_t id)
     : HwDisplayPlaneFbdev(drvFd, id),
@@ -22,7 +22,7 @@ CursorPlane::CursorPlane(int32_t drvFd, uint32_t id)
     snprintf(mName, 64, "CURSOR-%d", id);
 
     /*call mmap here to let osd alloc buffer from ion*/
-    updatePlaneInfo(DEFAULT_CUSOR_SIZE, DEFAULT_CUSOR_SIZE);
+    updatePlaneInfo(DEFAULT_CURSOR_SIZE, DEFAULT_CURSOR_SIZE);
     void *cbuffer =
         mmap(NULL, mPlaneInfo.fbSize, PROT_READ|PROT_WRITE, MAP_SHARED, mDrvFd, 0);
     if (cbuffer != MAP_FAILED) {
@@ -109,7 +109,7 @@ int32_t CursorPlane::setPlane(
 int32_t CursorPlane::updateCursorBuffer(
     std::shared_ptr<DrmFramebuffer> & fb) {
     int cbwidth =
-        HWC_ALIGN(CUSOR_BPP * mPlaneInfo.stride, CUSOR_BPP * 8) / CUSOR_BPP;
+        HWC_ALIGN(CURSOR_BPP * mPlaneInfo.stride, CURSOR_BPP * 8) / CURSOR_BPP;
 
     if (mPlaneInfo.info.xres != (uint32_t)cbwidth ||
         mPlaneInfo.info.yres != (uint32_t)mPlaneInfo.buf_h) {
@@ -125,9 +125,9 @@ int32_t CursorPlane::updateCursorBuffer(
                 char* cpyDst = (char*)cbuffer;
                 char* cpySrc = (char*)base;
                 for (int irow = 0; irow < mPlaneInfo.buf_h; irow++) {
-                    memcpy(cpyDst, cpySrc, CUSOR_BPP * mPlaneInfo.buf_w);
-                    cpyDst += CUSOR_BPP * cbwidth;
-                    cpySrc += CUSOR_BPP * mPlaneInfo.stride;
+                    memcpy(cpyDst, cpySrc, CURSOR_BPP * mPlaneInfo.buf_w);
+                    cpyDst += CURSOR_BPP * cbwidth;
+                    cpySrc += CURSOR_BPP * mPlaneInfo.stride;
                 }
                 gralloc_unlock_dma_buf(fb->mBufferHandle);
             }

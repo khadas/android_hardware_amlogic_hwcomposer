@@ -18,7 +18,7 @@ std::shared_ptr<ICompositionStrategy> CompositionStrategyFactory::create(
     std::shared_ptr<ICompositionStrategy> strategy = NULL;
 
     if (type == SIMPLE_STRATEGY) {
-        if (flags & MUTLI_OSD_PLANES) {
+        if (flags & MULTI_OSD_PLANES) {
             /*VPU have multi osd/video planes*/
             return std::make_shared<MultiplanesComposition>();
         }

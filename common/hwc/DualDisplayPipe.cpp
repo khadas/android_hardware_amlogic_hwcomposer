@@ -120,7 +120,7 @@ int32_t DualDisplayPipe::init(
 
 int32_t DualDisplayPipe::getPipeCfg(uint32_t hwcid, PipeCfg & cfg) {
     /*get hdmi hpd state firstly for init default config*/
-    drm_connector_type_t  connector = getConnetorCfg(hwcid);
+    drm_connector_type_t  connector = getConnectorCfg(hwcid);
     if (hwcid == 0) {
         if (HwcConfig::dynamicSwitchViuEnabled() == true &&
             mHdmi_connected == true &&

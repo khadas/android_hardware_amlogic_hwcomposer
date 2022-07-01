@@ -76,7 +76,7 @@ int32_t VtInstanceMgr::disconnectInstance(int tunnelId,
     std::shared_ptr<VtInstance> ptrInstance;
 
     if (tunnelId < 0 || !consumer.get()) {
-        MESON_LOGE("%s, [%d] paramaters invalid",
+        MESON_LOGE("%s, [%d] parameters invalid",
             __func__, tunnelId);
         return ret;
     }
@@ -197,7 +197,7 @@ int32_t VtInstanceMgr::handleCmds() {
     auto instanceIt = mInstances.begin();
     for (; instanceIt != mInstances.end(); instanceIt++) {
         ptrInstance = instanceIt->second;
-        ret = ptrInstance->recieveCmds();
+        ret = ptrInstance->receiveCmds();
     }
 
     return ret;

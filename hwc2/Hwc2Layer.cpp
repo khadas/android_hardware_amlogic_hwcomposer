@@ -140,7 +140,7 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
     drm_fb_type_t preType = mFbType;
 
     /*
-     * If video tunnel sideband recieve blank frame,
+     * If video tunnel sideband receive blank frame,
      * need release video tunnel resouce
      */
     if (isVtBufferLocked()) {
@@ -149,7 +149,7 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
     }
 
     /*
-    * SurfaceFlinger will call setCompostionType() first,then setBuffer().
+    * SurfaceFlinger will call setCompositionType() first,then setBuffer().
     * So it is safe to calc drm_fb_type_t mFbType here.
     */
     clearBufferInfo();
@@ -861,7 +861,7 @@ int32_t Hwc2Layer::onVtFrameDisplayed(int bufferFd, int fenceFd) {
     int32_t ret = -1;
     if (!mVtConsumer)
         return ret;
-    MESON_LOGV("[%s] [%d] [%" PRIu64 "] mTunelId %d, release vtBuffer(%d), fenceFd(%d)",
+    MESON_LOGV("[%s] [%d] [%" PRIu64 "] mTunnelId %d, release vtBuffer(%d), fenceFd(%d)",
             __func__, mDisplayId, mId, mTunnelId, bufferFd, fenceFd);
     ret = mVtConsumer->onVtFrameDisplayed(bufferFd, fenceFd);
     if (ret) {
@@ -884,14 +884,14 @@ int32_t Hwc2Layer::onVtFrameAvailable(
     }
 
     if (mTunnelId < 0) {
-        MESON_LOGE("[%s] [%d] [%" PRIu64 "] mTunelId %d error", __func__, mDisplayId, mId, mTunnelId);
+        MESON_LOGE("[%s] [%d] [%" PRIu64 "] mTunnelId %d error", __func__, mDisplayId, mId, mTunnelId);
         mMutex.unlock();
         return -EINVAL;
     }
 
     for (auto it=items.begin(); it != items.end(); it ++) {
         VtBufferItem item = {(*it)->mVtBufferFd, (*it)->mTimeStamp};
-        MESON_LOGV("[%s] [%d] [%" PRIu64 "] mTunelId %d, "
+        MESON_LOGV("[%s] [%d] [%" PRIu64 "] mTunnelId %d, "
                 "get vtBuffer(%d), timeStamp(%" PRId64 ")", __func__,
                 mDisplayId, mId, mTunnelId, (*it)->mVtBufferFd, (*it)->mTimeStamp);
         mQueueItems.push_back(item);

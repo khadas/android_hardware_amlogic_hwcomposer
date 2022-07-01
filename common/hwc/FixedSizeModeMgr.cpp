@@ -13,13 +13,13 @@
 #include <hardware/hwcomposer2.h>
 
 
-#define DEFUALT_DPI (159)
+#define DEFAULT_DPI (159)
 #define DEFAULT_REFRESH_RATE (60.0f)
 
 static drm_mode_info_t fakeInitialMode = {
     .name              = "FAKE_INITIAL_MODE",
-    .dpiX              = DEFUALT_DPI,
-    .dpiY              = DEFUALT_DPI,
+    .dpiX              = DEFAULT_DPI,
+    .dpiY              = DEFAULT_DPI,
     .pixelW            = 1920,
     .pixelH            = 1080,
     .refreshRate       = DEFAULT_REFRESH_RATE,
@@ -127,7 +127,7 @@ int32_t  FixedSizeModeMgr::getDisplayAttribute(
             *outValue = mCurMode.groupId;
             break;
         default:
-            MESON_LOGE("Unkown display attribute(%d)", attribute);
+            MESON_LOGE("Unknown display attribute(%d)", attribute);
             break;
     }
 

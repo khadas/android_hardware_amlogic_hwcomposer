@@ -52,13 +52,13 @@ bool ConnectorCvbs::isConnected() {
 }
 
 void ConnectorCvbs::getHdrCapabilities(drm_hdr_capabilities * caps) {
-    /* cvbs has no hdr capabilitites */
+    /* cvbs has no hdr capabilities */
     if (caps == nullptr) {
         MESON_LOGE("[%s] parameter caps is null, please check", __func__);
         return;
     }
 
-    MESON_LOGD("cvbs connector getHadrCapabilities none");
+    MESON_LOGD("cvbs connector getHdrCapabilities none");
     memset(caps, 0, sizeof(drm_hdr_capabilities));
 }
 

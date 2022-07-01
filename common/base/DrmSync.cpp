@@ -89,7 +89,7 @@ int32_t DrmFence::dup() const{
 
     int32_t dupFence = ::dup(mFenceFd);
     if (dupFence < 0) {
-        MESON_LOGE("fence %d dup failed: %s! please check it immeditely!",
+        MESON_LOGE("fence %d dup failed: %s! please check it immediately!",
                 mFenceFd, strerror(errno));
     }
 

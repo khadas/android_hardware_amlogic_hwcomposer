@@ -225,12 +225,12 @@ void VtInstance::releaseInstanceBuffers() {
     mBufferQueue.clear();
 }
 
-int32_t VtInstance::recieveCmds() {
+int32_t VtInstance::receiveCmds() {
     int32_t ret;
     enum vt_cmd cmd;
     struct vt_cmd_data cmdData;
 
-    ret = VideoTunnelDev::getInstance().recieveCmd(mTunnelId, cmd, cmdData);
+    ret = VideoTunnelDev::getInstance().receiveCmd(mTunnelId, cmd, cmdData);
     if (ret < 0)
         return ret;
 

@@ -66,7 +66,7 @@ public:
 
 /*HWC2 interfaces.*/
 public:
-    /*Connector releated.*/
+    /*Connector related.*/
     virtual const char * getName();
     virtual const drm_hdr_capabilities_t * getHdrCapabilities();
 #ifdef HWC_HDR_METADATA_SUPPORT
@@ -77,7 +77,7 @@ public:
     /*Vsync*/
     virtual hwc2_error_t setVsyncEnable(hwc2_vsync_t enabled);
 
-    /*Layer releated.*/
+    /*Layer related.*/
     virtual std::shared_ptr<Hwc2Layer> getLayerById(hwc2_layer_t id);
     virtual hwc2_error_t createLayer(hwc2_layer_t * outLayer);
     virtual hwc2_error_t destroyLayer(hwc2_layer_t  inLayer);
@@ -216,12 +216,12 @@ protected:
     std::shared_ptr<Hwc2DisplayObserver> mObserver;
     drm_hdr_capabilities_t mHdrCaps;
 
-    /*hw releated components*/
+    /*hw related components*/
     std::shared_ptr<HwDisplayCrtc> mCrtc;
     std::shared_ptr<HwDisplayConnector> mConnector;
     std::vector<std::shared_ptr<HwDisplayPlane>> mPlanes;
 
-    /*composition releated components*/
+    /*composition related components*/
     std::map<meson_composer_t, std::shared_ptr<IComposer>> mComposers;
     std::shared_ptr<ICompositionStrategy> mCompositionStrategy;
     bool mFailedDeviceComp;

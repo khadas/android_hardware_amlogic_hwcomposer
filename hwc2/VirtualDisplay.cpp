@@ -69,7 +69,7 @@ hwc2_error_t VirtualDisplay::setFormat(int32_t* format) {
 hwc2_error_t VirtualDisplay::setOutputBuffer(
     buffer_handle_t buffer, int32_t releaseFence) {
     /*
-    * For virutal diplay not support hwc, we don't save the
+    * For virtual display not support hwc, we don't save the
     * output buffer.
     */
     UNUSED(buffer);

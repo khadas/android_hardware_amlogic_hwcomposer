@@ -20,7 +20,7 @@ public:
     ~DummyComposer();
 
     const char* getName() { return DUMMY_COMPOSER_NAME; }
-    meson_compositon_t getType() { return MESON_COMPOSITION_DUMMY; }
+    meson_composition_t getType() { return MESON_COMPOSITION_DUMMY; }
 
     bool isFbsSupport(
         std::vector<std::shared_ptr<DrmFramebuffer>> & fbs,

@@ -43,7 +43,7 @@ protected:
 protected:
     uint64_t mValue;
     uint32_t mType;
-    uint32_t mComponetId;
+    uint32_t mComponentId;
 
     drmModePropertyRes mPropRes;
 };

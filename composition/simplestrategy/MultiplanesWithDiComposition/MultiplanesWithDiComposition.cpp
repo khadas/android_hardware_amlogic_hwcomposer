@@ -525,7 +525,7 @@ int MultiplanesWithDiComposition::processGfxFbs() {
     if (!mInsideVideoFbsFlag) {
         handleOsdComposition();
     } else {
-        handleOsdCompostionWithVideo();
+        handleOsdCompositionWithVideo();
     }
 
     /* record overlayFbs and start to compose */
@@ -867,7 +867,7 @@ int MultiplanesWithDiComposition::selectComposer() {
     return 0;
 }
 
-/* Find out which fb need to compse and push DisplayPair */
+/* Find out which fb need to compose and push DisplayPair */
 int MultiplanesWithDiComposition::fillComposerFbs() {
     std::shared_ptr<DrmFramebuffer> fb;
     if (mMaxComposerZorder != INVALID_ZORDER &&
@@ -1004,7 +1004,7 @@ void MultiplanesWithDiComposition::handleVPULimit(bool video) {
 
     /*select base fb and set base scale info.*/
     int32_t minXOffset = -1, minYOffset = -1;
-    int32_t compostionTargetW = 0, compostionTargetH = 0;
+    int32_t compositionTargetW = 0, compositionTargetH = 0;
     for (auto it = mFramebuffers.begin(); it != mFramebuffers.end(); it++) {
         std::shared_ptr<DrmFramebuffer> fb = it->second;
         if (minXOffset == -1 || minXOffset > fb->mDisplayFrame.left)
@@ -1012,19 +1012,19 @@ void MultiplanesWithDiComposition::handleVPULimit(bool video) {
         if (minYOffset == -1 || minYOffset > fb->mDisplayFrame.top)
             minYOffset = fb->mDisplayFrame.top;
 
-        if (fb->mDisplayFrame.right > compostionTargetW)
-            compostionTargetW = fb->mDisplayFrame.right;
-        if (fb->mDisplayFrame.bottom > compostionTargetH)
-            compostionTargetH = fb->mDisplayFrame.bottom;
+        if (fb->mDisplayFrame.right > compositionTargetW)
+            compositionTargetW = fb->mDisplayFrame.right;
+        if (fb->mDisplayFrame.bottom > compositionTargetH)
+            compositionTargetH = fb->mDisplayFrame.bottom;
     }
 
     /*choose base fb, the scale is smallest bigger.*/
-    compostionTargetW = compostionTargetW - minXOffset;
-    compostionTargetH = compostionTargetH - minYOffset;
+    compositionTargetW = compositionTargetW - minXOffset;
+    compositionTargetH = compositionTargetH - minYOffset;
 
     drm_rect_t scaleInput = {0, 0,
         OSD_SCALER_INPUT_MAX_WIDTH, OSD_SCALER_INPUT_MAX_HEIGH};
-    drm_rect_t scaleOutput = {0, 0, compostionTargetW, compostionTargetH};
+    drm_rect_t scaleOutput = {0, 0, compositionTargetW, compositionTargetH};
 
     /*choose the scale > targetW/MAX_INPUT*/
     for (auto it = mFramebuffers.begin(); it != mFramebuffers.end(); it++) {
@@ -1057,7 +1057,7 @@ void MultiplanesWithDiComposition::handleVPULimit(bool video) {
     }
 }
 
-void MultiplanesWithDiComposition::handleDispayLayerZorder() {
+void MultiplanesWithDiComposition::handleDisplayLayerZorder() {
     int topVideoNum = 0;
     uint32_t maxOsdZorder = INVALID_ZORDER;
     for (auto it = mDisplayPairs.begin(); it != mDisplayPairs.end(); ++it) {
@@ -1115,7 +1115,7 @@ int MultiplanesWithDiComposition::handleOsdComposition() {
     return 0;
 }
 
-int MultiplanesWithDiComposition::handleOsdCompostionWithVideo() {
+int MultiplanesWithDiComposition::handleOsdCompositionWithVideo() {
     std::shared_ptr<DrmFramebuffer> fb;
 
     /* STEP 1: handle two video fbs. */
@@ -1319,7 +1319,7 @@ void MultiplanesWithDiComposition::updateComposition() {
     mSkipValidate = true;
 }
 
-/* Decide to choose whcih Fbs and how to build OsdFbs2Plane pairs. */
+/* Decide to choose which Fbs and how to build OsdFbs2Plane pairs. */
 int MultiplanesWithDiComposition::decideComposition() {
     ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
@@ -1372,7 +1372,7 @@ int MultiplanesWithDiComposition::commit(bool sf) {
 
     if (!mSkipValidate && sf) {
         handleOverlayVideoZorder();
-        handleDispayLayerZorder();
+        handleDisplayLayerZorder();
     }
 
     for (auto displayIt = mDisplayPairs.begin(); displayIt != mDisplayPairs.end(); ++displayIt) {
@@ -1477,7 +1477,7 @@ int MultiplanesWithDiComposition::commit(bool sf) {
             if (composerOutput.get()) {
                 mDisplayRefFb = composerOutput;
             } else {
-                MESON_LOGE("Output of cient composer is NULL!");
+                MESON_LOGE("Output of client composer is NULL!");
             }
             mOsdDisplayFrame.crtc_display_x = mDisplayRefFb->mDisplayFrame.left;
             mOsdDisplayFrame.crtc_display_y = mDisplayRefFb->mDisplayFrame.top;

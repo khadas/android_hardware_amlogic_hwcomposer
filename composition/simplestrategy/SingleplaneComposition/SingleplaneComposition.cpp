@@ -184,12 +184,12 @@ int SingleplaneComposition::handleUVM() {
 
 int SingleplaneComposition::processFbsOfExplicitComposition() {
     std::shared_ptr<DrmFramebuffer> fb;
-    meson_compositon_t destComp;
+    meson_composition_t destComp;
 
     static struct planeComp {
         drm_fb_type_t srcFb;
         meson_plane_type_t destPlane;
-        meson_compositon_t destComp;
+        meson_composition_t destComp;
     } planeCompPairs [] = {
         {DRM_FB_VIDEO_OVERLAY, LEGACY_VIDEO_PLANE,
             MESON_COMPOSITION_PLANE_AMVIDEO},
@@ -333,7 +333,7 @@ int SingleplaneComposition::buildOsdComposition() {
                 }
                 break;
             default:
-                MESON_LOGE("Unkown compostition type(%d)", fb->mCompositionType);
+                MESON_LOGE("Unknown compostition type(%d)", fb->mCompositionType);
                 break;
         }
 

@@ -100,7 +100,7 @@ void VtDisplayThread::handleVtDisplay() {
     stateLock.unlock();
 
     {
-        std::unique_lock<std::mutex> stateLock(mRefrashMutex);
+        std::unique_lock<std::mutex> stateLock(mRefreshMutex);
         do {
             mDisplay->setVtLayersPresentTime();
             mDisplay->updateVtBuffers();

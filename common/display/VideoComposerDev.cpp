@@ -165,7 +165,7 @@ int createVideoComposerDev(int fd, int idx) {
     int retValue;
     int capacity;
     if (ioctl(fd , VIDEO_COMPOSER_IOCTL_GET_PANEL_CAPABILITY, &retValue) != 0) {
-        MESON_LOGE("video plane get capibility ioctl (%d) return(%d)", retValue, errno);
+        MESON_LOGE("video plane get capability ioctl (%d) return(%d)", retValue, errno);
     }
     capacity =(retValue >> (2 * idx + 18) & 0x3);
     std::shared_ptr<VideoComposerDev> dev = std::make_shared<VideoComposerDev>(fd);

@@ -29,7 +29,7 @@ OsdPlane::~OsdPlane() {
 int32_t OsdPlane::getProperties() {
     int capacity;
     if (ioctl(mDrvFd, FBIOGET_OSD_CAPBILITY, &capacity) != 0) {
-        MESON_LOGE("osd plane get capibility ioctl (%d) return(%d)", mCapability, errno);
+        MESON_LOGE("osd plane get capability ioctl (%d) return(%d)", mCapability, errno);
         return 0;
     }
 

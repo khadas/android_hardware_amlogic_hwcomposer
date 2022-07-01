@@ -145,7 +145,7 @@ int32_t HwDisplayCrtcFbdev::update() {
         if (displayMode.empty() || displayMode.compare("invalid") == 0) {
              MESON_LOGD("crtc(%d) displaymode is null or invalid when connected.", mId);
         } else if (mModes.empty()) {
-            MESON_LOGD("crtc(%d) could not get modes from conector", mId);
+            MESON_LOGD("crtc(%d) could not get modes from connector", mId);
         } else {
             for (auto it = mModes.begin(); it != mModes.end(); it ++) {
                 MESON_LOGD("update: (%s) mode (%s)", displayMode.c_str(), it->second.name);

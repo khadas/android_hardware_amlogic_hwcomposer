@@ -608,7 +608,7 @@ hwc2_function_pointer_t hwc2_getFunction(struct hwc2_device* device __unused,
         case HWC3_FUNCTION_SET_AIDL_CLIENT_PID:
             return reinterpret_cast<hwc2_function_pointer_t>(setAidlClientPid);
         default:
-            MESON_LOGE("Unkown function description (%d)", descriptor);
+            MESON_LOGE("Unknown function description (%d)", descriptor);
             break;
     };
     return NULL;

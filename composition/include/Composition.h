@@ -14,13 +14,13 @@
 
 typedef enum {
     MESON_COMPOSITION_UNDETERMINED = 0,
-    /*Compostion type of composer*/
+    /*Composition type of composer*/
     MESON_COMPOSITION_DUMMY = 1,
     MESON_COMPOSITION_CLIENT,
     MESON_COMPOSITION_GE2D,
     MESON_COMPOSITION_DI,
 
-    /*Compostion type of plane*/
+    /*Composition type of plane*/
     MESON_COMPOSITION_PLANE_CURSOR,
     MESON_COMPOSITION_PLANE_OSD,
     /*Video plane*/
@@ -28,7 +28,7 @@ typedef enum {
     MESON_COMPOSITION_PLANE_AMVIDEO_SIDEBAND,
     /*New video plane.*/
     MESON_COMPOSITION_PLANE_HWCVIDEO,
-} meson_compositon_t;
+} meson_composition_t;
 
 bool isVideoPlaneComposition(int meson_composition_type);
 bool isComposerComposition(int meson_composition_type);

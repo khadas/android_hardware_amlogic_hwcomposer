@@ -51,9 +51,9 @@ protected:
     int checkCommitZorder();
     void handleVPUScaleLimit();
     void handleVPULimit(bool video);
-    void handleDispayLayerZorder();
+    void handleDisplayLayerZorder();
     int handleOsdComposition();
-    int handleOsdCompostionWithVideo();
+    int handleOsdCompositionWithVideo();
     int32_t compareFbScale(drm_rect_t & aSrc, drm_rect_t & aDst, drm_rect_t & bSrc, drm_rect_t & bDst);
     int handleUVM();
     int allocateDiOutputFb(
@@ -94,7 +94,7 @@ protected:
     std::shared_ptr<IComposer> mDiComposer;
     std::vector<std::shared_ptr<IComposer>> mOtherComposers;
 
-    /* Get display planes from DispalyManager */
+    /* Get display planes from DisplayManager */
     std::vector<std::shared_ptr<HwDisplayPlane>> mOsdPlanes;
 
     std::vector<std::shared_ptr<HwDisplayPlane>> mHwcVideoPlanes;             // Future  VIDEO support : 2 HwcVideoPlane

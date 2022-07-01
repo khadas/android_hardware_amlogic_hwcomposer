@@ -60,7 +60,7 @@ protected:
         std::shared_ptr<HwDisplayPlane> plane;
     };
 
-    /*Compostion flags*/
+    /*Composition flags*/
     bool mForceClientComposer;
     bool mHideSecureLayer;
 

@@ -199,7 +199,7 @@ std::unique_ptr<DisplayAdapter> DisplayAdapterCreateRemote() {
 // who load C++ functions and classes dynamically using the dlopen API
 extern "C" {
 
-DisplayAdapter* createDisplayAdatperRemote() {
+DisplayAdapter* createDisplayAdapterRemote() {
     return new DisplayAdapterRemote;
 }
 

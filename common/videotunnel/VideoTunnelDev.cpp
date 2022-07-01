@@ -51,7 +51,7 @@ int32_t VideoTunnelDev::releaseBuffer(int tunnelId, int bufferFd, int fenceFd) {
     return meson_vt_release_buffer(mDrvFd, tunnelId, bufferFd, fenceFd);
 }
 
-int32_t VideoTunnelDev::recieveCmd(int tunnelId, enum vt_cmd& cmd, struct vt_cmd_data& cmdData) {
+int32_t VideoTunnelDev::receiveCmd(int tunnelId, enum vt_cmd& cmd, struct vt_cmd_data& cmdData) {
     return meson_vt_recv_cmd(mDrvFd, tunnelId, &cmd, &cmdData);
 }
 

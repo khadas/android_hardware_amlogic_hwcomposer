@@ -115,7 +115,7 @@ int32_t DrmBo::import(
     offsets[0] = 0;
     modifiers[0] = convertToDrmModifier(am_gralloc_get_vpu_afbc_mask(buf));
 
-    /*set other elemnts to invalid.*/
+    /*set other elements to invalid.*/
     for (int i = 1; i < BUF_PLANE_NUM; i++) {
         handles[i] = 0;
         pitches[i] = 0;

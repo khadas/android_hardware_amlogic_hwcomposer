@@ -122,7 +122,7 @@ int32_t HwcDisplayPipe::init(std::map<uint32_t, std::shared_ptr<HwcDisplay>> & h
         /*init display pipe.*/
         updatePipe(stat);
 
-        /* in case of composer servce restart */
+        /* in case of composer service restart */
         if (sys_get_bool_prop(HWC_BOOTED_PROP, false)) {
             MESON_LOGD("composer service has restarted, need blank display");
             stat->hwcDisplay->blankDisplay();
@@ -169,7 +169,7 @@ int32_t HwcDisplayPipe::getPostProcessor(
     return 0;
 }
 
-drm_connector_type_t HwcDisplayPipe::getConnetorCfg(uint32_t hwcid) {
+drm_connector_type_t HwcDisplayPipe::getConnectorCfg(uint32_t hwcid) {
     drm_connector_type_t  connector = DRM_MODE_CONNECTOR_Unknown;
     int type = HwcConfig::getConnectorType(hwcid);
 
