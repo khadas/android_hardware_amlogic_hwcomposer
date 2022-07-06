@@ -47,7 +47,6 @@ Hwc2Display::Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer, uint32_t
     mSignalHpd = false;
     mValidateDisplay = false;
     mVsyncState = false;
-    mDisplayState = MESON_DISPLAY_ALL_MASK;
     mNumGameModeLayers = 0;
     mScaleValue = 1;
     mPresentFence = -1;
@@ -335,7 +334,6 @@ void Hwc2Display::onHotplug(bool connected) {
     {
         std::lock_guard<std::mutex> lock(mMutex);
         if (connected) {
-            mDisplayState |= MESON_DISPLAY_HOTPLUG_MASK;
             if (mConnector && mConnector->getType() != DRM_MODE_CONNECTOR_HDMIA) {
                 mOutsideChanged = true;
                 mPowerMode->setConnectorStatus(true);
@@ -346,7 +344,6 @@ void Hwc2Display::onHotplug(bool connected) {
             return;
         }
 
-        mDisplayState &= ~MESON_DISPLAY_HOTPLUG_MASK;
         mPowerMode->setConnectorStatus(false);
         blankDisplay();
         mSkipComposition = true;
@@ -479,7 +476,6 @@ void Hwc2Display::onModeChanged(int stage) {
             mStateCondition.notify_all();
         } else {
             /* begin change mode, need blank once */
-            mDisplayState &= ~MESON_DISPLAY_MODE_MASK;
             mPowerMode->setConnectorStatus(false);
             if (!mFirstPresent) {
                 // only clear layers when we can send hotplug event
@@ -498,7 +494,6 @@ void Hwc2Display::onModeChanged(int stage) {
         }
     }
 
-    mDisplayState |= MESON_DISPLAY_MODE_MASK;
     /*call hotplug out of lock, SF may call some hwc function to cause deadlock.*/
     if (bSendPlugIn && (mModeMgr->needCallHotPlug() || hdrCapsChanged)) {
         MESON_LOGD("onModeChanged mObserver->onHotplug(true) hdrCapsChanged:%d", hdrCapsChanged);
@@ -624,27 +619,18 @@ hwc2_error_t Hwc2Display::setColorTransform(const float* matrix,
 hwc2_error_t Hwc2Display::setPowerMode(int32_t mode) {
     ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
-    switch(mode) {
-        case HWC2_POWER_MODE_ON:
-            MESON_LOG_EMPTY_FUN();
-            mDisplayState |= MESON_DISPLAY_POWER_MODE_MASK;
-            return HWC2_ERROR_NONE;
-        case HWC2_POWER_MODE_OFF:
-            /* need blank display when power off */
-            MESON_LOGD("%s OFF", __func__);
-            mDisplayState &= ~MESON_DISPLAY_POWER_MODE_MASK;
-            blankDisplay();
-            return HWC2_ERROR_NONE;
-        case HWC2_POWER_MODE_DOZE:
-        case HWC2_POWER_MODE_DOZE_SUSPEND:
-            return HWC2_ERROR_UNSUPPORTED;
-        case HWC3_POWER_MODE_SUSPEND:
-            if (mAidlService)
-                return HWC2_ERROR_UNSUPPORTED;
-            [[clang::fallthrough]];
-        default:
-            return HWC2_ERROR_BAD_PARAMETER;
-    };
+    MESON_LOGD("%s %d", __func__, mode);
+    if (mode == HWC3_POWER_MODE_SUSPEND && mAidlService) {
+        return HWC2_ERROR_UNSUPPORTED;
+    }
+
+    /* need blank display when power off */
+    if (mode == HWC2_POWER_MODE_OFF) {
+        blankDisplay();
+    }
+
+    int32_t ret = mPowerMode->setPowerMode(mode);
+    return (hwc2_error_t) ret;
 }
 
 std::shared_ptr<Hwc2Layer> Hwc2Display::getLayerById(hwc2_layer_t id) {
@@ -1727,7 +1713,7 @@ void Hwc2Display::dump(String8 & dumpstr) {
     dumpstr.appendFormat("Display (%s, %s) \n",
         getName(), mForceClientComposer ? "Client-Comp" : "HW-Comp");
     dumpstr.appendFormat("Power: (%d-%d) \n",
-        mPowerMode->getMode(), mPowerMode->getScreenStatus());
+        mPowerMode->getConnectorMode(), mPowerMode->getScreenStatus());
     /*calibration info*/
     dumpstr.appendFormat("Calibration: (%dx%d)->(%dx%d,%dx%d)\n",
         mCalibrateInfo.framebuffer_w, mCalibrateInfo.framebuffer_h,
@@ -1992,17 +1978,18 @@ void Hwc2Display::releaseVtLayers() {
 
 bool Hwc2Display::handleVtDisplayConnection() {
     std::lock_guard<std::mutex> vtLock(mVtMutex);
-    bool displayState = false;
+    bool displayState = true;
     std::shared_ptr<Hwc2Layer> layer;
 
-    if ((mDisplayState & MESON_DISPLAY_ALL_MASK) == MESON_DISPLAY_ALL_MASK)
-        displayState = true;
+    if (mPowerMode->needBlankScreen(mPresentLayers.size())) {
+        displayState = false;
+    }
 
     for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
         layer = it->second;
         if (layer->isVtBuffer()) {
-            MESON_LOGV("%s: displayId:%d layerId:%" PRIu64 " mDisplayState:%d",
-                    __func__, mDisplayId, layer->getUniqueId(), mDisplayState);
+            MESON_LOGV("%s: displayId:%d layerId:%" PRIu64 " displayState:%d",
+                    __func__, mDisplayId, layer->getUniqueId(), displayState);
             layer->handleDisplayDisconnet(displayState);
         }
     }

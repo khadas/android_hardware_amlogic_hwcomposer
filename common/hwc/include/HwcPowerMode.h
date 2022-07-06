@@ -26,15 +26,17 @@ public:
     bool getScreenStatus();
 
     int32_t setConnectorStatus(bool bConnected);
+    int32_t setPowerMode(int32_t mode);
 
     bool needBlankScreen(bool bLayerPresent);
 
-    meson_power_mode_t getMode();
+    meson_power_mode_t getConnectorMode();
 
 
 protected:
     bool mScreenBlank;
     bool mConnectorPresent;
-    meson_power_mode_t mPowerMode;
+    meson_power_mode_t mConnectorMode;
+    int32_t mPowerMode;
 };
 #endif
