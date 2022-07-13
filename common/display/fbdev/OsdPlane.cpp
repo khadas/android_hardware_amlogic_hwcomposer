@@ -11,7 +11,12 @@
 #include <MesonLog.h>
 #include <DebugHelper.h>
 
+#include <math.h>
+#include "AmVinfo.h"
+
 #define OSD_PATTERN_SIZE (128)
+#define VPU_FREQ (666*pow(10,6))
+#define kValue (1.5)
 
 OsdPlane::OsdPlane(int32_t drvFd, uint32_t id)
     : HwDisplayPlaneFbdev(drvFd, id),
@@ -151,12 +156,33 @@ bool OsdPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
         }
     }
 
-    uint32_t sourceWidth = fb->mSourceCrop.bottom - fb->mSourceCrop.top;
-    uint32_t sourceHeight = fb->mSourceCrop.right - fb->mSourceCrop.left;
-    if (sourceWidth > OSD_INPUT_MAX_HEIGHT ||sourceHeight > OSD_INPUT_MAX_WIDTH)
+    uint32_t sourceHeight = fb->mSourceCrop.bottom - fb->mSourceCrop.top;
+    uint32_t sourceWidth = fb->mSourceCrop.right - fb->mSourceCrop.left;
+    if (sourceHeight > OSD_INPUT_MAX_HEIGHT ||sourceWidth > OSD_INPUT_MAX_WIDTH)
         return false;
-    if (sourceWidth < OSD_INPUT_MIN_HEIGHT ||sourceHeight < OSD_INPUT_MIN_WIDTH)
+    if (sourceHeight < OSD_INPUT_MIN_HEIGHT ||sourceWidth < OSD_INPUT_MIN_WIDTH)
         return false;
+
+    /*
+     * osdPlane free scale limitation:
+     * SRC_W * SRC_H * (1/666M HZ) < EXP_H/DST_H * (1/RREQ HZ)
+     */
+    uint32_t dispHeight = fb->mDisplayFrame.bottom - fb->mDisplayFrame.top;
+    uint32_t desHeight = am_gralloc_get_height(fb->mBufferHandle);
+    float freq;
+    struct vinfo_base_s info;
+    int ret = read_vout_info(mPossibleCrtcs,&info);
+    if (ret == 0) {
+        desHeight = desHeight > info.height ? desHeight : info.height;
+        freq = (float)info.sync_duration_num/info.sync_duration_den;
+    } else {
+        freq = 60.0;
+        MESON_LOGE("read vout info failed return %d", ret);
+    }
+    float expHeight = (sourceHeight*sourceWidth/VPU_FREQ)*desHeight*freq*kValue;
+    if (dispHeight < expHeight)
+        return false;
+
     return true;
 }
 
