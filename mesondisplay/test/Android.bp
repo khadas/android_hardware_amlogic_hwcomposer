@@ -42,7 +42,6 @@ cc_binary {
         "libamgralloc_ext@2",
     ],
 
-    clang: true,
 }
 
 cc_binary {

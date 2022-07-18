@@ -32,7 +32,6 @@ cc_binary {
         "libsync",
     ],
 
-    clang: true,
 }
 
 subdirs = [
