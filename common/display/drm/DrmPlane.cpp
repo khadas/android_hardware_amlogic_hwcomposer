@@ -486,6 +486,11 @@ void DrmPlane::dump(String8 & dumpstr) {
     }
 
     dumpstr.appendFormat("Plane[%s-%d]\n", getName(), mId);
+
+    if (mMesonOccupy) {
+        dumpstr.appendFormat("\t Occupy[%s]\n", mMesonOccupy->getValue() ? "Y" : "N");
+    }
+
     dumpstr.appendFormat("\t Formats [%d]:", mFormatCnt);
     for (int i = 0;i < mFormatCnt; i++) {
         dumpstr.appendFormat("(%x),", mFormats[i]);

@@ -1286,6 +1286,10 @@ void MultiplanesWithDiComposition::setup(
     auto planeIt = planes.begin();
     for (; planeIt != planes.end(); ++planeIt) {
         std::shared_ptr<HwDisplayPlane> plane = *planeIt;
+
+        if (!plane->isAvailable())
+            continue;
+
         switch (plane->getType()) {
             case OSD_PLANE:
                 mOsdPlanes.push_back(plane);
