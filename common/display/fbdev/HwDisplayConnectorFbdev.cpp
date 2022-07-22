@@ -17,6 +17,8 @@ HwDisplayConnectorFbdev::HwDisplayConnectorFbdev(int32_t drvFd, uint32_t id)
     mDrvFd = drvFd;
     mId = id;
     mCrtcId = 0;
+    mPhyWidth = 0;
+    mPhyHeight = 0;
 }
 
 HwDisplayConnectorFbdev::~HwDisplayConnectorFbdev() {
@@ -137,7 +139,7 @@ int32_t HwDisplayConnectorFbdev::addDisplayMode(std::string& mode) {
         vinfo->height,
         (float)vinfo->sync_duration_num/vinfo->sync_duration_den,
         0};
-    strcpy(modeInfo.name, mode.c_str());
+    strncpy(modeInfo.name, mode.c_str(), DRM_DISPLAY_MODE_LEN - 1);
 
     mDisplayModes.emplace(mDisplayModes.size(), modeInfo);
 

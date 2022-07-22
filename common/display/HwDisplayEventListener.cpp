@@ -86,7 +86,9 @@ static drm_uevent_info_t mUeventParser[] = {
 HwDisplayEventListener::HwDisplayEventListener()
     :   mUeventMsg(NULL),
         mCtlInFd(-1),
-        mCtlOutFd(-1) {
+        mCtlOutFd(-1),
+        hw_event_thread(),
+        mSuspendState(false) {
     /*init uevent socket.*/
     mEventSocket = uevent_open_socket(64*1024, true);
     if (mEventSocket < 0) {
@@ -208,6 +210,7 @@ void * HwDisplayEventListener::ueventThread(void * data) {
                 pThis->handleUevent();
         } else if (fds[1].revents) {
             MESON_LOGE("exit display event thread.");
+            pthread_mutex_unlock(&pThis->hw_event_mutex);
             return NULL;
         }
 

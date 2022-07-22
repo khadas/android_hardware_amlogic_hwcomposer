@@ -24,6 +24,7 @@ OsdPlane::OsdPlane(int32_t drvFd, uint32_t id)
       mPossibleCrtcs(0),
       mDrmFb(NULL) {
     snprintf(mName, 64, "OSD-%d", id);
+    memset(&mPlaneInfo, 0, sizeof(mPlaneInfo));
     mPlaneInfo.out_fen_fd = -1;
     getProperties();
 }
@@ -257,7 +258,9 @@ int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> fb, uint32_t zorder, 
             mPlaneInfo.dim_layer = 0;
             mPlaneInfo.dim_color = 0;
 
-            mPlaneInfo.shared_fd     = ::dup(am_gralloc_get_buffer_fd(buf));
+            if (am_gralloc_get_buffer_fd(buf) >= 0) {
+                mPlaneInfo.shared_fd     = ::dup(am_gralloc_get_buffer_fd(buf));
+            }
             mPlaneInfo.format        = am_gralloc_get_format(buf);
             mPlaneInfo.byte_stride   = am_gralloc_get_stride_in_byte(buf);
             mPlaneInfo.pixel_stride  = am_gralloc_get_stride_in_pixel(buf);
@@ -338,12 +341,6 @@ void OsdPlane::createPatternFb() {
                 break;
             case 2:
                 g = 255;
-                break;
-             case 3:
-                b = 255;
-                break;
-            default:
-                r = g = b = 128;
                 break;
         };
         MESON_LOGD("Plane setpattern (%d-%d,%d,%d)", mId, r, g, b);

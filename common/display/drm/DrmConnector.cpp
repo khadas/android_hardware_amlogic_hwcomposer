@@ -117,14 +117,17 @@ int32_t DrmConnector::loadDisplayModes(drmModeConnectorPtr p) {
     /*add new display mode list.*/
     drmModeModeInfoPtr drmModes = p->modes;
     drm_mode_info_t modeInfo;
+    memset(&modeInfo, 0, sizeof(modeInfo));
     uint32_t blobid = 0;
     MESON_LOGD("Connector %s loadDisplayModes get %d modes", getName(), p->count_modes);
     for (int i = 0;i < p->count_modes; i ++) {
-        strncpy(modeInfo.name, drmModes[i].name, DRM_DISPLAY_MODE_LEN);
+        strncpy(modeInfo.name, drmModes[i].name, DRM_DISPLAY_MODE_LEN - 1);
         modeInfo.pixelW = drmModes[i].hdisplay;
         modeInfo.pixelH = drmModes[i].vdisplay;
-        modeInfo.dpiX = (modeInfo.pixelW * 25.4f) / mPhyWidth * 1000;
-        modeInfo.dpiY = (modeInfo.pixelH * 25.4f) / mPhyHeight * 1000;
+        if (mPhyWidth != 0 && mPhyHeight != 0) {
+            modeInfo.dpiX = (modeInfo.pixelW * 25.4f) / mPhyWidth * 1000;
+            modeInfo.dpiY = (modeInfo.pixelH * 25.4f) / mPhyHeight * 1000;
+        }
         modeInfo.refreshRate = drmModes[i].vrefresh;
 
         if (drmModeCreatePropertyBlob(mDrmFd, &drmModes[i], sizeof(drmModes[i]), &blobid) != 0) {

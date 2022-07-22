@@ -40,6 +40,9 @@ Vdin::Vdin() {
     MESON_ASSERT(mDev >= 0, "Vdin device open fail.");
     mStatus = STREAMING_STOP;
     mCanvasCnt = 0;
+    mDefFormat = 0;
+    memset(&mCapParams, 0, sizeof(mCapParams));
+    memset(&mCanvas, 0, sizeof(mCanvas));
 }
 
 Vdin::~Vdin() {
@@ -113,7 +116,10 @@ int32_t Vdin::queueBuffer(std::shared_ptr<DrmFramebuffer> & fb, int idx) {
     if (mStatus == STREAMING_STOP) {
         MESON_ASSERT(fb.get() != NULL, "init queue fb should not be null.");
         mCanvas[idx].index = idx;
-        mCanvas[idx].fd = ::dup(am_gralloc_get_buffer_fd(fb->mBufferHandle));
+        int bufFd = am_gralloc_get_buffer_fd(fb->mBufferHandle);
+        if ( bufFd >= 0) {
+            mCanvas[idx].fd = ::dup(bufFd);
+        }
         MESON_LOGD("Vdin::queue new Buffer %d - %d", idx, mCanvas[idx].fd);
     } else {
         /*TODO: cannot queue back specific buffer, just return the last buffer.*/
@@ -139,7 +145,8 @@ int32_t Vdin::dequeueBuffer(vdin_vf_info & crcinfo) {
 
     int pollrtn = poll(fds, 1, POLL_TIMEOUT_MS);
     if (pollrtn > 0 && fds[0].revents == POLLIN) {
-        if (read(mDev, &vInfo, sizeof(struct vdin_vf_info)) > 0) {
+        int ret = read(mDev, &vInfo, sizeof(struct vdin_vf_info));
+        if (ret  > 0) {
             crcinfo.index = vInfo.index;
             crcinfo.crc = vInfo.crc;
             //MESON_LOGD("vdin::dequeueBuffer idx(%d) crcval(0x%x) ",vInfo.index,vInfo.crc);

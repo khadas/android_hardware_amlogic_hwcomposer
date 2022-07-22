@@ -29,6 +29,7 @@ ConnectorPanel::ConnectorPanel(int32_t drvFd, uint32_t id)
     } else {
         snprintf(mName, 64, "TV-%d", id);
     }
+    memset(&mHdrCapabilities, 0, sizeof(mHdrCapabilities));
 }
 
 ConnectorPanel::~ConnectorPanel() {
@@ -94,9 +95,9 @@ int32_t ConnectorPanel::parseLcdInfo() {
     if (major == 0)
         MESON_LOGE("Can't determine kernel version!");
 
+    std::string lcdPath;
     if (major >= 5) {
         char val[PROP_VALUE_LEN_MAX];
-        std::string lcdPath;
         mModeName = "panel";
         if (sys_get_string_prop("persist.vendor.hwc.lcdpath", val) > 0 && strcmp(val, "0") != 0) {
             lcdPath = "/sys/class/aml_lcd/lcd";

@@ -21,6 +21,9 @@
 
 /*---------------------  SingleplaneComposition  ---------------------*/
 SingleplaneComposition::SingleplaneComposition() {
+    mForceClientComposer = false;
+    mHideSecureLayer = false;
+    mUVMFd = -1;
 }
 
 SingleplaneComposition::~SingleplaneComposition() {

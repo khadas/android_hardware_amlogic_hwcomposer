@@ -169,7 +169,9 @@ void set_omx_pts(char* data, int* handle) {
 
 int set_hdr_info(vframe_master_display_colour_s_t * vf_hdr) {
     if (amvideo_handle == -1) {
-        openamvideo();
+        int ret = openamvideo();
+        if (ret < 0)
+            return ret;
     }
     return ioctl(amvideo_handle, AMSTREAM_IOC_SET_HDR_INFO, (unsigned long)vf_hdr);
 }

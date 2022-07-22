@@ -211,6 +211,7 @@ bool DisplayAdapterLocal::getSupportDisplayModes(vector<DisplayModeInfo>& displa
         if (false == GetHDMIEDID(edid_buf, MAX_BUFFER_LEN_EDID)) {
             return false;
         }
+        edid_buf[MAX_BUFFER_LEN_EDID - 1] = '\0';
         ptr = strtok(edid_buf, delim);
         while (ptr != NULL) {
             int len = strlen(ptr);
@@ -251,6 +252,7 @@ bool DisplayAdapterLocal::getDisplayMode(string& mode, ConnectorType displayType
     }
 
     FS_READ(path, buf, READ_BUFFER_LEN);
+    buf[READ_BUFFER_LEN - 1] = '\0';
     ptr = strtok(buf, delim);
     if (ptr != NULL) {
         mode = ptr;

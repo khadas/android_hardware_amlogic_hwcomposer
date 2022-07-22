@@ -227,7 +227,7 @@ bool DisplayAdapterLocal::getDisplayMode(string& mode, ConnectorType displayType
 bool DisplayAdapterLocal::setDisplayMode(const string& mode, ConnectorType displayType) {
     drm_connector_type_t type;
     drm_mode_info_t mock;
-    strncpy(mock.name, mode.c_str(), DRM_DISPLAY_MODE_LEN);
+    strncpy(mock.name, mode.c_str(), DRM_DISPLAY_MODE_LEN - 1);
     DisplayTypeConv(type, displayType);
     if (DRM_MODE_CONNECTOR_INVALID_TYPE == type)
         return false;

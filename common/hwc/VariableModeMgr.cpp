@@ -75,6 +75,14 @@ static const drm_mode_info_t mode_info[] = {
 
 VariableModeMgr::VariableModeMgr()
     : mIsInit(true) {
+    mFbWidth = 0;
+    mFbHeight = 0;
+    mExtModeSet = false;
+    mDefaultModeSupport = false;
+    mFakeConfigId = 0;
+    mHwcActiveConfigId = 0;
+    mSfActiveConfigId = 0;
+    memset(&mDefaultMode, 0, sizeof(mDefaultMode));
 }
 
 VariableModeMgr::~VariableModeMgr() {
@@ -211,13 +219,16 @@ int32_t  VariableModeMgr::getDisplayAttribute(
         caller == CALL_FROM_SF ? "SF" : "HWC");
 
     std::map<uint32_t, drm_mode_info_t>::iterator it;
+    auto modeIt = caller == CALL_FROM_SF ? mSfActiveModes.begin() : mHwcActiveModes.begin();
     if (CALL_FROM_SF == caller) {
         it = mSfActiveModes.find(config);
+        modeIt = mSfActiveModes.end();
     } else if (CALL_FROM_HWC == caller) {
         it = mHwcActiveModes.find(config);
+        modeIt = mHwcActiveModes.end();
     }
 
-    if (it != mHwcActiveModes.end() || it != mSfActiveModes.end()) {
+    if (it != modeIt) {
         drm_mode_info_t curMode = it->second;
 
         switch (attribute) {

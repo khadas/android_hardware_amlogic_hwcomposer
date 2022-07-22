@@ -852,6 +852,7 @@ MesonHwc2::MesonHwc2() {
     mVsyncPeriodData = NULL;
     mDisplayRequests = 0;
     memset(&mViewPort, 0, sizeof(mViewPort));
+    mChangedViewPort = false;
     initialize();
 }
 

@@ -52,7 +52,9 @@ typedef enum {
 /*Base composition strategy class.*/
 class ICompositionStrategy {
 public:
-    ICompositionStrategy() { }
+    ICompositionStrategy() {
+        mCompositionFlag = 0;
+    }
     virtual ~ICompositionStrategy() { }
 
     virtual const char* getName() = 0;

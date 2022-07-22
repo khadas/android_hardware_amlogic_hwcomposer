@@ -235,7 +235,7 @@ class ComposerCommandEngine : protected CommandReaderBase {
                 closeFence = false;
             }
         }
-        if (closeFence) {
+        if (closeFence && fence >= 0) {
             close(fence);
         }
         if (err != Error::NONE) {
@@ -266,7 +266,7 @@ class ComposerCommandEngine : protected CommandReaderBase {
                 closeFence = false;
             }
         }
-        if (closeFence) {
+        if (closeFence && fence >= 0) {
             close(fence);
         }
         if (err != Error::NONE) {
@@ -381,7 +381,7 @@ class ComposerCommandEngine : protected CommandReaderBase {
                 closeFence = false;
             }
         }
-        if (closeFence) {
+        if (closeFence && fence >=0) {
             close(fence);
         }
         if (err != Error::NONE) {

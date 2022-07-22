@@ -33,6 +33,7 @@ LegacyExtVideoPlane::LegacyExtVideoPlane(int32_t drvFd, uint32_t id)
     mLegacyExtVideoFb.reset();
     memset(&mBackupDisplayFrame, 0, sizeof(drm_rect_t));
     getOmxKeepLastFrame(mOmxKeepLastFrame);
+    mBackupTransform = 0;
 }
 
 LegacyExtVideoPlane::~LegacyExtVideoPlane() {

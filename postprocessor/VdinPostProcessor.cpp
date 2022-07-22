@@ -30,6 +30,12 @@
 VdinPostProcessor::VdinPostProcessor() {
     mExitThread = true;
     mStat = PROCESSOR_STOP;
+    mVoutW = 0;
+    mVoutH = 0;
+    mVdinBufOnScreen = 0;
+    mProcessMode = 0;
+    mCapStatus = 0;
+    mThread = 0;
 }
 
 VdinPostProcessor::~VdinPostProcessor() {
@@ -446,7 +452,8 @@ int32_t VdinPostProcessor::process() {
             }
 #endif
 
-            infb = mVdinFbs[vdinIdx];
+            if (vdinIdx >= 0 && vdinIdx < mVdinFbs.size())
+                infb = mVdinFbs[vdinIdx];
 
             if (mSCapProcessor != NULL) {
                 mCapStatus = mSCapProcessor->process(infb,scapfb);

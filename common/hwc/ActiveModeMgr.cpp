@@ -33,6 +33,10 @@ ActiveModeMgr::ActiveModeMgr()
     : mCallOnHotPlug(true),
       mLastActiveMode(fakeInitialMode),
       mDvEnabled(false) {
+    mFbWidth =0;
+    mFbHeight = 0;
+    mHwcActiveConfigId = 0;
+    mSfActiveConfigId = 0;
 }
 
 ActiveModeMgr::~ActiveModeMgr() {

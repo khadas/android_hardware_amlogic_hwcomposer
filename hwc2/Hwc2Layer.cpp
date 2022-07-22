@@ -49,7 +49,10 @@ Hwc2Layer::Hwc2Layer(uint32_t dispId) : DrmFramebuffer(){
     mDisplayObserver = nullptr;
     mContentListener = nullptr;
     mDisplayId = dispId;
-    mBrightness = 0;
+    mHwcCompositionType = HWC2_COMPOSITION_INVALID;
+    memset(&mVisibleRegion, 0, sizeof(mVisibleRegion));
+    memset(&mDamageRegion, 0, sizeof(mDamageRegion));
+    memset(&mBackupDisplayFrame, 0, sizeof(mBackupDisplayFrame));
 }
 
 Hwc2Layer::~Hwc2Layer() {
@@ -160,8 +163,10 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
     * As the buffer will was update already
     */
     dettachUvmBuffer();
-    if (preType == DRM_FB_VIDEO_UVM_DMA && mPreUvmBufferFd >= 0)
+    if (preType == DRM_FB_VIDEO_UVM_DMA && mPreUvmBufferFd >= 0) {
         collectUvmBuffer(mPreUvmBufferFd, getPrevReleaseFence());
+        mPreUvmBufferFd = -1;
+    }
 
     if (buffer == NULL) {
         MESON_LOGE("Receive null buffer, it is impossible.");
@@ -174,8 +179,11 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
         mFbType = DRM_FB_CURSOR;
     } else if (am_gralloc_is_uvm_dma_buffer(buffer)) {
         mFbType = DRM_FB_VIDEO_UVM_DMA;
-        mPreUvmBufferFd = dup(am_gralloc_get_buffer_fd(buffer));
-        attachUvmBuffer(mPreUvmBufferFd);
+        int bufFd = am_gralloc_get_buffer_fd(buffer);
+        if (bufFd >= 0) {
+            mPreUvmBufferFd = dup(bufFd);
+            attachUvmBuffer(mPreUvmBufferFd);
+        }
     } else if (am_gralloc_is_omx_metadata_buffer(buffer)) {
         int tunnel = 0;
         int ret = am_gralloc_get_omx_metadata_tunnel(buffer, &tunnel);
@@ -602,7 +610,9 @@ int32_t Hwc2Layer::releaseVtBuffer() {
 
     // set fence to the previous vt buffer
     int releaseFence = getPrevReleaseFence();
-    collectUvmBuffer(dup(mPreVtBufferFd), dup(releaseFence));
+    if (releaseFence >= 0 && mPreVtBufferFd >= 0) {
+        collectUvmBuffer(dup(mPreVtBufferFd), dup(releaseFence));
+    }
 
     MESON_LOGV("[%s] [%d] [%" PRIu64 "] releaseFence:%d, mVtBufferfd:%d, mPreVtBufferFd(%d), queuedFrames(%d)",
             __func__, mDisplayId, mId, releaseFence, mVtBufferFd, mPreVtBufferFd, mQueuedFrames);
@@ -934,10 +944,10 @@ void Hwc2Layer::setVtSourceCrop(drm_rect_t & rect) {
 void Hwc2Layer::onNeedShowTempBuffer(int colorType) {
     // set default to black
     colorType = SET_VIDEO_TO_BLACK;
-
-    mSolidColorBufferfd =
-        dup(gralloc_get_solid_color_buf_fd((video_color_t)colorType));
-
+    int bufFd = gralloc_get_solid_color_buf_fd((video_color_t)colorType);
+    if (bufFd >= 0) {
+        mSolidColorBufferfd = dup(bufFd);
+    }
     if (mSolidColorBufferfd >= 0)
         mVtUpdate = true;
 }

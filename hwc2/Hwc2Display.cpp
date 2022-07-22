@@ -63,7 +63,15 @@ Hwc2Display::Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer, uint32_t
 #endif
     mHasVideoPresent = false;
     mModeChanged = false;
-    mExpectedPresentTime = 0;
+    mFailedDeviceComp = false;
+    mLayerSeq = 0;
+    mSkipComposition = false;
+    mConfirmSkip = false;
+    mProcessorFlags = 0;
+    mVtVsyncStatus = false;
+    mOutsideChanged = false;
+    memset(&mDisplayMode, 0, sizeof(mDisplayMode));
+    memset(&mCalibrateInfo, 0, sizeof(mCalibrateInfo));
 }
 
 Hwc2Display::~Hwc2Display() {
@@ -389,7 +397,7 @@ void Hwc2Display::cleanupBeforeDestroy() {
     std::shared_ptr<IComposer> clientComposer = mComposers.find(MESON_CLIENT_COMPOSER)->second;
     clientComposer->prepare();
     // TODO: workaround to clear CLIENT_COMPOSER's clientTarget
-    hwc_region_t damage;
+    hwc_region_t damage = {0, 0};
     std::shared_ptr<DrmFramebuffer> fb = nullptr;
     clientComposer->setOutput(fb, damage);
 
@@ -804,7 +812,6 @@ int32_t Hwc2Display::loadCalibrateInfo() {
 
     return 0;
 }
-
 // Scaled display frame to the framebuffer config if necessary
 // (i.e. not at the default resolution of 1080p)
 int32_t Hwc2Display::adjustDisplayFrame() {
@@ -826,16 +833,16 @@ int32_t Hwc2Display::adjustDisplayFrame() {
         if (bNoScale) {
             layer->mDisplayFrame = layer->mBackupDisplayFrame;
         } else {
-            layer->mDisplayFrame.left = (int32_t)ceilf(layer->mBackupDisplayFrame.left *
+            layer->mDisplayFrame.left = (int32_t)ceilf((float)layer->mBackupDisplayFrame.left *
                 mCalibrateInfo.crtc_display_w / mCalibrateInfo.framebuffer_w) +
                 mCalibrateInfo.crtc_display_x;
-            layer->mDisplayFrame.top = (int32_t)ceilf(layer->mBackupDisplayFrame.top *
+            layer->mDisplayFrame.top = (int32_t)ceilf((float)layer->mBackupDisplayFrame.top *
                 mCalibrateInfo.crtc_display_h / mCalibrateInfo.framebuffer_h) +
                 mCalibrateInfo.crtc_display_y;
-            layer->mDisplayFrame.right = (int32_t)ceilf(layer->mBackupDisplayFrame.right *
+            layer->mDisplayFrame.right = (int32_t)ceilf((float)layer->mBackupDisplayFrame.right *
                 mCalibrateInfo.crtc_display_w / mCalibrateInfo.framebuffer_w) +
                 mCalibrateInfo.crtc_display_x;
-            layer->mDisplayFrame.bottom = (int32_t)ceilf(layer->mBackupDisplayFrame.bottom *
+            layer->mDisplayFrame.bottom = (int32_t)ceilf((float)layer->mBackupDisplayFrame.bottom *
                 mCalibrateInfo.crtc_display_h / mCalibrateInfo.framebuffer_h) +
                 mCalibrateInfo.crtc_display_y;
         }
@@ -1306,12 +1313,13 @@ hwc2_error_t Hwc2Display::setClientTarget(buffer_handle_t target,
     /* real mode set real source crop */
     if (HwcConfig::getModePolicy(0) ==  REAL_MODE_POLICY) {
         drm_mode_info_t mode;
-        mModeMgr->getDisplayMode(mode);
-        if (!HwcConfig::getModeCondition() || (HwcConfig::getModeCondition() && mModeMgr->is16_9Mode(mode))) {
-            mClientTarget->mSourceCrop.right = ((int32_t)mode.pixelW < mClientTarget->mSourceCrop.right)
-                ? mode.pixelW : mClientTarget->mSourceCrop.right;
-            mClientTarget->mSourceCrop.bottom = ((int32_t)mode.pixelH < mClientTarget->mSourceCrop.bottom)
-                ? mode.pixelH : mClientTarget->mSourceCrop.bottom;
+        if (mModeMgr->getDisplayMode(mode) == 0) {
+            if (!HwcConfig::getModeCondition() || (HwcConfig::getModeCondition() && mModeMgr->is16_9Mode(mode))) {
+                mClientTarget->mSourceCrop.right = ((int32_t)mode.pixelW < mClientTarget->mSourceCrop.right)
+                    ? mode.pixelW : mClientTarget->mSourceCrop.right;
+                mClientTarget->mSourceCrop.bottom = ((int32_t)mode.pixelH < mClientTarget->mSourceCrop.bottom)
+                    ? mode.pixelH : mClientTarget->mSourceCrop.bottom;
+            }
         }
     }
     /*clienttarget's displayframe which depends on output but not surfaceflinger,

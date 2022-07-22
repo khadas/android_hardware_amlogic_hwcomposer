@@ -28,6 +28,9 @@ static drm_mode_info_t fakeInitialMode = {
 
 FixedSizeModeMgr::FixedSizeModeMgr() {
     mPreviousMode = fakeInitialMode;
+    memset(&mCurMode, 0, sizeof(mCurMode));
+    mFbWidth = 0;
+    mFbHeight = 0;
 }
 
 FixedSizeModeMgr::~FixedSizeModeMgr() {

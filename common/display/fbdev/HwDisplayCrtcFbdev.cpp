@@ -41,6 +41,9 @@ HwDisplayCrtcFbdev::HwDisplayCrtcFbdev(int drvFd, int32_t id)
     memset(&nullHdr, 0, sizeof(nullHdr));
 
     hdrVideoInfo = malloc(sizeof(vframe_master_display_colour_s_t));
+    mConnected = false;
+    memset(&mCurModeInfo, 0, sizeof(mCurModeInfo));
+    memset(&mScaleInfo, 0, sizeof(mScaleInfo));
 }
 
 HwDisplayCrtcFbdev::~HwDisplayCrtcFbdev() {
@@ -203,7 +206,10 @@ int32_t HwDisplayCrtcFbdev::pageFlip(int32_t &out_fence) {
     flipInfo.curPosition_h = mScaleInfo.crtc_display_h;
     flipInfo.hdr_mode = 1;/*force to 1, for video is not synced with osd.*/
 
-    ioctl(mDrvFd, FBIOPUT_OSD_DO_HWC, &flipInfo);
+    int ret = ioctl(mDrvFd, FBIOPUT_OSD_DO_HWC, &flipInfo);
+    if (ret < 0) {
+        MESON_LOGE("FBIOPUT_OSD_DO_HWC error, ret=%d", ret);
+    }
 
     if (DebugHelper::getInstance().discardOutFence()) {
         std::shared_ptr<DrmFence> outfence =

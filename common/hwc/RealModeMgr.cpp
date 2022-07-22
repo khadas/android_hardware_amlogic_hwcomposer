@@ -78,6 +78,9 @@ RealModeMgr::RealModeMgr() {
     mLatestRealMode = fakeInitialMode;
     mDvEnabled = false;
     mCallOnHotPlug = true;
+    mHwcFbWidth = 0;
+    mHwcFbHeight = 0;
+    mActiveConfigId = 0;
 }
 
 RealModeMgr::~RealModeMgr() {

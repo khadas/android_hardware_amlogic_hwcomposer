@@ -37,6 +37,7 @@ HwcVideoPlane::HwcVideoPlane(int32_t drvFd, uint32_t id)
     memset(mAmVideosPath, 0, sizeof(mAmVideosPath));
     getProperties();
     mBlank = true;
+    mIndex = 0;
 }
 
 HwcVideoPlane::~HwcVideoPlane() {
@@ -107,15 +108,12 @@ int32_t HwcVideoPlane::getProperties() {
     mCapability = 0;
     int capacity = 0;
     int fd = open("/dev/amvideo",  O_RDWR, 0);
-    if (fd > 0) {
+    if (fd >= 0) {
         if (ioctl(fd, AMSTREAM_IOC_QUERY_LAYER, &capacity) != 0) {
             MESON_LOGE("osd plane get capability ioctl (%d) return(%d)", capacity, errno);
         }
-    }
-
-    if (fd)
         close(fd);
-
+    }
     mCapability = PLANE_SUPPORT_ZORDER;
 
     if ((capacity & VIDEO_LAYER0_ALPHA) && (capacity & VIDEO_LAYER1_ALPHA)) {

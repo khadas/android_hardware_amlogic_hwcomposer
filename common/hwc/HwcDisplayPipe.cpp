@@ -152,10 +152,12 @@ int32_t HwcDisplayPipe::getConnector(
     if (it != mConnectors.end()) {
         connector = it->second;
     } else {
-        getHwDisplayManager()->getConnector(connector, type);
-        mConnectors.emplace(type, connector);
-        /*TODO: init current status, for we may need it later.*/
-        connector->update();
+        int32_t getRet = getHwDisplayManager()->getConnector(connector, type);
+        if (getRet == 0) {
+            mConnectors.emplace(type, connector);
+            /*TODO: init current status, for we may need it later.*/
+            connector->update();
+        }
     }
 
     return 0;

@@ -42,6 +42,10 @@ MultiplanesWithDiComposition::MultiplanesWithDiComposition() {
     init();
     mSrProcessor.reset();
     mPqProcessor.reset();
+    mOsdPlaneNum = 0;
+    mVideoPlaneNum = 0;
+    mVsyncRefreshRate = 0;
+    mScaleValue = 0;
 }
 
 /* Deconstructor function */
@@ -420,7 +424,7 @@ int MultiplanesWithDiComposition::processVideoFbs() {
                     mDiComposer->prepare();
                     mDiComposer->addInputs(mDIComposerFbs, nofbs, i);
                     /*TODO: workaround to pass zorder to composer.*/
-                    hwc_region_t damage;
+                    hwc_region_t damage = {0, 0};
                     allocateDiOutputFb(fb, (*mHwcVideoInputFbs.begin())->mZorder);
                     mDiComposer->setOutput(fb, damage, i);
                 } else {
@@ -722,7 +726,8 @@ int MultiplanesWithDiComposition::confirmComposerRange() {
                     minNeedComposedFbs -= belowClientNum;
                 }
                 /* confirm the minimum zorder value. */
-                mMinComposerZorder = fbIt->second->mZorder;
+                if (fbIt != mFramebuffers.end())
+                    mMinComposerZorder = fbIt->second->mZorder;
 
                 /* compose fb from maximum zorder. */
                 if (minNeedComposedFbs > 0) {
@@ -1331,7 +1336,7 @@ int MultiplanesWithDiComposition::decideComposition() {
     if (mFramebuffers.empty()) {
         MESON_LOGV("No layers to compose, exit.");
         if (mClientComposer != NULL) {
-            hwc_region_t damage;
+            hwc_region_t damage = {0, 0};
             std::shared_ptr<DrmFramebuffer> fb = nullptr;
 
             mClientComposer->prepare();

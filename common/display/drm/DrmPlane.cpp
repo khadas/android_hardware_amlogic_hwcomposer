@@ -318,7 +318,7 @@ int32_t DrmPlane::setPlane(
                         break;
                 default:
                         blendModeStr = DRM_PLANE_PROP_BLENDMODE_NONE;
-                    MESON_LOGE("Unknown blend mode.");
+                        MESON_LOGE("Unknown blend mode.");
                     break;
             };
             mBlendMode->getEnumValueWithName(blendModeStr, blendMode);

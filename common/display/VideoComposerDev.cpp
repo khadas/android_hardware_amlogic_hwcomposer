@@ -22,6 +22,7 @@ static std::map<int,std::map<int,std::shared_ptr<VideoComposerDev>> > gComposerD
 VideoComposerDev::VideoComposerDev(int drvFd) {
     mDrvFd = drvFd;
     mEnable = false;
+    memset(&mVideoFramesInfo, 0, sizeof(mVideoFramesInfo));
 }
 
 VideoComposerDev::~VideoComposerDev() {

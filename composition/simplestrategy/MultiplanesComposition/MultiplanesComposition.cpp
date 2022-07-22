@@ -33,7 +33,19 @@
 
 
 /* Constructor function */
-MultiplanesComposition::MultiplanesComposition() {}
+MultiplanesComposition::MultiplanesComposition() {
+    mHDRMode = false;
+    mHideSecureLayer = false;
+    mForceClientComposer = false;
+    mHaveClient = false;
+    mInsideVideoFbsFlag = false;
+    mMinComposerZorder = INVALID_ZORDER;
+    mMaxComposerZorder = INVALID_ZORDER;
+    mMinVideoZorder = INVALID_ZORDER;
+    mMaxVideoZorder = INVALID_ZORDER;
+    mSkipValidate = false;
+    memset(&mOsdDisplayFrame, 0, sizeof(mOsdDisplayFrame));
+}
 
 /* Deconstructor function */
 MultiplanesComposition::~MultiplanesComposition() {}
@@ -382,7 +394,8 @@ int MultiplanesComposition::confirmComposerRange() {
                     minNeedComposedFbs -= belowClientNum;
                 }
                 /* confirm the minimum zorder value. */
-                mMinComposerZorder = fbIt->second->mZorder;
+                if (fbIt != mFramebuffers.end())
+                    mMinComposerZorder = fbIt->second->mZorder;
 
                 /* compose fb from maximum zorder. */
                 if (minNeedComposedFbs > 0) {

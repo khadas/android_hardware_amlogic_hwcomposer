@@ -61,6 +61,8 @@ ANDROID_SINGLETON_STATIC_INSTANCE(DebugHelper)
 DebugHelper::DebugHelper() {
     clearPersistCmd();
     clearOnePassCmd();
+    mEnabled = false;
+    mLogVerbose = false;
 }
 
 DebugHelper::~DebugHelper() {

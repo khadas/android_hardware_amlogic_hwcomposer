@@ -62,6 +62,16 @@ uint64_t convertToDrmModifier(int afbcMask) {
 
 DrmBo::DrmBo() {
     fbId = 0;
+    width = 0;
+    height = 0;
+    format = 0;
+    alpha = 0;
+    blend = 0;
+    z = 0;
+    inFence = -1;
+    color = 0;
+    memset(&srcRect, 0, sizeof(srcRect));
+    memset(&crtcRect, 0, sizeof(crtcRect));
 }
 
 DrmBo::~DrmBo() {

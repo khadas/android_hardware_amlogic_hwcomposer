@@ -166,6 +166,7 @@ int32_t HwDisplayManagerFbdev::loadPlanes() {
             plane_idx = OSD_PLANE_IDX_MIN + idx;
             if (ioctl(fd, FBIOGET_OSD_CAPBILITY, &capability) != 0) {
                 MESON_LOGE("osd plane get capability ioctl (%d) return(%d)", capability, errno);
+                close(fd);
                 return -EINVAL;
             }
             if (capability & OSD_LAYER_ENABLE) {
