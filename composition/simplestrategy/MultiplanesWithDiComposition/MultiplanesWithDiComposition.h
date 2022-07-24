@@ -46,7 +46,6 @@ protected:
     int setOsdFbs2PlanePairs();
     int selectComposer();
     int fillComposerFbs();
-    void handleOverlayVideoZorder();
     int checkCommitZorder();
     void handleVPUScaleLimit();
     void handleVPULimit(bool video);

@@ -10,6 +10,7 @@
 #define LOG_NDEBUG 1
 #define ATRACE_TAG ATRACE_TAG_GRAPHICS
 
+#include <algorithm>
 #include <utils/Trace.h>
 #include <hardware/hwcomposer2.h>
 #include "MultiplanesWithDiComposition.h"
@@ -894,19 +895,6 @@ int MultiplanesWithDiComposition::fillComposerFbs() {
     return 0;
 }
 
-/* Update present zorder.
- * If videoZ ~ (mMinComposerZorder, mMaxComposerZorder), set maxVideoZ = maxVideoZ - 1
- */
-void MultiplanesWithDiComposition::handleOverlayVideoZorder() {
-    auto it = mDisplayPairs.begin();
-    it = mDisplayPairs.begin();
-    for (; it != mDisplayPairs.end(); ++it) {
-        if (IS_FB_COMPOSED(it->fb)) {
-            it->presentZorder = it->presentZorder - 1;
-        }
-    }
-}
-
 /*
  * Scale Limitation:
  * 1. VPU only support composed 2 non afbc osd layers
@@ -1051,29 +1039,60 @@ void MultiplanesWithDiComposition::handleVPULimit(bool video) {
 void MultiplanesWithDiComposition::handleDispayLayerZorder() {
     int topVideoNum = 0;
     uint32_t maxOsdZorder = INVALID_ZORDER;
-    for (auto it = mDisplayPairs.begin(); it != mDisplayPairs.end(); ++it) {
-        std::shared_ptr<DrmFramebuffer> fb = it->fb;
-        std::shared_ptr<HwDisplayPlane> plane = it->plane;
-        if (OSD_PLANE == plane->getType()) {
-            if (maxOsdZorder == INVALID_ZORDER) {
-                maxOsdZorder = it->presentZorder;
+    uint32_t normalized_osd_zorder = OSD_FB_BEGIN_ZORDER;
+
+    for (auto & it : mDisplayPairs) {
+        if (IS_FB_COMPOSED(it.fb)) {
+            if (OSD_PLANE == it.plane->getType()) {
+                /*Only 1 gfx composer, set presentZorder to mMaxComposerZorder.*/
+                it.presentZorder = mMaxComposerZorder;
+
+                /* get MaxOsdZorder for video zoder calculation.
+                * TODO: is it necessary?
+                */
+                if (maxOsdZorder == INVALID_ZORDER) {
+                    maxOsdZorder = it.presentZorder;
+                } else if (maxOsdZorder < it.presentZorder) {
+                        maxOsdZorder = it.presentZorder;
+                }
             } else {
-                if (maxOsdZorder < it->presentZorder)
-                    maxOsdZorder = it->presentZorder;
+                /* If videoZ ~ (mMinComposerZorder, mMaxComposerZorder),
+                *  means video move to under gfx, set its presentZorder - 1 to
+                *  make sure it is less than composed zorder even its the top composed layer.
+                */
+                it.presentZorder = it.presentZorder - 1;
             }
-            it->presentZorder = it->presentZorder + OSD_FB_BEGIN_ZORDER; // osd zorder: 65 - 128
         }
     }
 
-    for (auto it = mDisplayPairs.begin(); it != mDisplayPairs.end(); ++it) {
-        std::shared_ptr<DrmFramebuffer> fb = it->fb;
-        std::shared_ptr<HwDisplayPlane> plane = it->plane;
-        if (HWC_VIDEO_PLANE == plane->getType()) {
+    /* osd zorder: 65 - 128 and Drm will set default zorder 65 for osd1, 66 for osd2....
+     * When non-android modules occupied osd (rtos/whiteboard),
+     * we should normalize the zorder of osd.
+     */
+    if (mDisplayPairs.size() > 1) {
+        /* Sort Display pair by zorder. */
+        struct {
+            bool operator() (const struct DisplayPair &a,
+                const struct DisplayPair &b) {
+                return a.presentZorder < b.presentZorder;
+            }
+        } zorderCompare;
+        /*sort in ascending order.*/
+        mDisplayPairs.sort(zorderCompare);
+    }
+
+    for (auto & it : mDisplayPairs) {
+        std::shared_ptr<DrmFramebuffer> fb = it.fb;
+        std::shared_ptr<HwDisplayPlane> plane = it.plane;
+        if (OSD_PLANE == plane->getType()) {
+            it.presentZorder = normalized_osd_zorder;
+            normalized_osd_zorder ++;
+        } else if (HWC_VIDEO_PLANE == plane->getType()) {
             if (fb->mZorder > maxOsdZorder && topVideoNum != 1) {
-                it->presentZorder = it->presentZorder + TOP_VIDEO_FB_BEGIN_ZORDER; // top video zorder: 129 - 192
+                it.presentZorder = it.presentZorder + TOP_VIDEO_FB_BEGIN_ZORDER; // top video zorder: 129 - 192
                 topVideoNum++;
             } else {
-                it->presentZorder = it->presentZorder + BOTTOM_VIDEO_FB_BEGIN_ZORDER; // bottom video zorder: 1 - 64
+                it.presentZorder = it.presentZorder + BOTTOM_VIDEO_FB_BEGIN_ZORDER; // bottom video zorder: 1 - 64
             }
         }
     }
@@ -1358,7 +1377,6 @@ int MultiplanesWithDiComposition::commit(bool sf) {
     handleUVM();
 
     if (!mSkipValidate && sf) {
-        handleOverlayVideoZorder();
         handleDispayLayerZorder();
     }
 
@@ -1371,7 +1389,6 @@ int MultiplanesWithDiComposition::commit(bool sf) {
 
         if (composerOutput.get() &&
             fb->mCompositionType == mComposer->getType()) {
-            presentZorder = mMaxComposerZorder + OSD_FB_BEGIN_ZORDER;
             bool bDumpPlane = true;
             for (auto it = mComposerFbs.begin(); it != mComposerFbs.end(); ++it) {
                 if (bDumpPlane) {
