@@ -44,7 +44,7 @@ int32_t VtInstanceMgr::connectInstance(int tunnelId,
          ret = ptrInstance->connect();
          if (ret < 0) {
             ptrInstance.reset();
-            MESON_LOGE("%s, [%d] connect video composer failed: %d",
+            MESON_LOGE("%s, [%d] connect video tunnel failed: %d",
                 __func__, tunnelId, ret);
             return ret;
          }
@@ -58,7 +58,7 @@ int32_t VtInstanceMgr::connectInstance(int tunnelId,
     }
 
     if (ret >= 0)
-        MESON_LOGD("%s, [%d] connect video composer succeeded",
+        MESON_LOGD("%s, [%d] connect video tunnel succeeded",
             __func__, tunnelId);
 
     if (!mVtHandleEventsThread)

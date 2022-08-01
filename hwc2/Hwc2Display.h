@@ -163,7 +163,6 @@ public:
     virtual bool handleVtDisplayConnection();
     virtual bool newGameBuffer();
     virtual void onFrameAvailable();
-    virtual void onVtVideoGameMode(bool enable);
 
     virtual void refreshVtLayers();
 
@@ -275,7 +274,6 @@ protected:
     /* for video tunnel mode video*/
     std::shared_ptr<VtDisplayThread> mVtDisplayThread;
     std::shared_ptr<HwcVsync> mVtVsync;
-    int32_t mNumGameModeLayers;
     bool mVtVsyncStatus;
     bool mOutsideChanged;
     std::mutex mVtMutex;
