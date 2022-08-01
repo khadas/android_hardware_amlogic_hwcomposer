@@ -492,7 +492,7 @@ int32_t MesonHwc2::setLayerSidebandStream(hwc2_display_t display,
     int32_t ret;
     GET_HWC_DISPLAY(display);
     GET_HWC_LAYER(hwcDisplay, layer);
-    ret = hwcLayer->setSidebandStream(stream);
+    ret = hwcLayer->setSidebandStream(stream, hwcDisplay);
     std::unordered_map<hwc2_layer_t, std::shared_ptr<Hwc2Layer>> bLayers = hwcDisplay->getAllLayers();
     for (auto it = bLayers.begin(); it != bLayers.end(); it++) {
         std::shared_ptr<Hwc2Layer> layer = it->second;
@@ -501,10 +501,9 @@ int32_t MesonHwc2::setLayerSidebandStream(hwc2_display_t display,
             break;
         }
     }
-    if (ret == HWC2_ERROR_NONE) {
-        hwcLayer->setDisplayObserver(hwcDisplay);
+    if (ret == HWC2_ERROR_NONE)
         hwcDisplay->handleVtThread();
-    }
+
     return ret;
 }
 

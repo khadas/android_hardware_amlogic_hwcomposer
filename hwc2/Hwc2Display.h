@@ -161,7 +161,6 @@ public:
     virtual bool handleVtDisplayConnection();
     virtual bool newGameBuffer();
     virtual void onFrameAvailable();
-    virtual void onVtVideoGameMode(bool enable);
 
 /* meson display ddk */
 public:
@@ -271,7 +270,6 @@ protected:
     /* for video tunnel mode video*/
     std::shared_ptr<VtDisplayThread> mVtDisplayThread;
     std::shared_ptr<HwcVsync> mVtVsync;
-    int32_t mNumGameModeLayers;
     uint8_t mDisplayState;
     bool mVtVsyncStatus;
     bool mOutsideChanged;

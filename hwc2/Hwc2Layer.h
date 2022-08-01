@@ -27,7 +27,6 @@ public:
     VtDisplayObserver() {};
     virtual ~VtDisplayObserver() {};
     virtual void onFrameAvailable() = 0;
-    virtual void onVtVideoGameMode(bool enable) = 0;
 };
 
 class Hwc2Layer : public DrmFramebuffer {
@@ -35,7 +34,8 @@ class Hwc2Layer : public DrmFramebuffer {
 public:
     /*set layer data info, only one of tree functions called.*/
     hwc2_error_t setBuffer(buffer_handle_t buffer, int32_t acquireFence);
-    hwc2_error_t setSidebandStream(const native_handle_t* stream);
+    hwc2_error_t setSidebandStream(const native_handle_t* stream,
+            std::shared_ptr<VtDisplayObserver> observer);
     hwc2_error_t setColor(hwc_color_t color);
 
     hwc2_error_t setSourceCrop(hwc_frect_t crop);
@@ -93,7 +93,6 @@ public:
     void onNeedShowTempBuffer(int colorType);
     void setVideoType(int videoType);
 
-    void setDisplayObserver(std::shared_ptr<VtDisplayObserver> observer);
     void handleDisplayDisconnet(bool connect);
     int getVideoTunnelId();
 

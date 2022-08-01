@@ -208,7 +208,8 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
     return HWC2_ERROR_NONE;
 }
 
-hwc2_error_t Hwc2Layer::setSidebandStream(const native_handle_t* stream) {
+hwc2_error_t Hwc2Layer::setSidebandStream(const native_handle_t* stream,
+        std::shared_ptr<VtDisplayObserver> observer) {
     ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
     MESON_LOGV("[%s] [%" PRIu64 "]", __func__, mId);
@@ -231,6 +232,9 @@ hwc2_error_t Hwc2Layer::setSidebandStream(const native_handle_t* stream) {
                 releaseVtResourceLocked();
             }
             mTunnelId = channel_id;
+
+            if (!mDisplayObserver)
+                mDisplayObserver = observer;
 
             int ret = registerConsumer();
             if (ret >= 0) {
@@ -731,14 +735,6 @@ bool Hwc2Layer::newGameBuffer() {
     return ret;
 }
 
-void Hwc2Layer::setDisplayObserver(std::shared_ptr<VtDisplayObserver> observer) {
-    std::lock_guard<std::mutex> lock(mMutex);
-    if (!isVtBufferLocked() || mDisplayObserver.get())
-        return;
-
-    mDisplayObserver = observer;
-}
-
 int32_t Hwc2Layer::registerConsumer() {
     ATRACE_CALL();
     int32_t ret = -1;
@@ -792,10 +788,6 @@ int32_t Hwc2Layer::unregisterConsumer() {
             __func__, mDisplayId, mId, mTunnelId);
         return ret;
     }
-
-    if (mGameMode)
-        mDisplayObserver->onVtVideoGameMode(false);
-    //mGameMode = false;
 
     memset(&mVtSourceCrop, 0, sizeof(mVtSourceCrop));
 
@@ -895,7 +887,6 @@ void Hwc2Layer::onVtVideoGameMode(int data) {
         mGameMode = (data == 1 ? true : false);
         MESON_LOGD("[%s] [%d] [%" PRIu64 "] %s video game mode",
                 __func__, mDisplayId, mId, mGameMode ? "enable" : "disable");
-        mDisplayObserver->onVtVideoGameMode(mGameMode);
     }
 }
 int32_t Hwc2Layer::getVtVideoStatus() {

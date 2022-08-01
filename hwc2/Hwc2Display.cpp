@@ -44,7 +44,6 @@ Hwc2Display::Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer, uint32_t
     mValidateDisplay = false;
     mVsyncState = false;
     mDisplayState = MESON_DISPLAY_ALL_MASK;
-    mNumGameModeLayers = 0;
     mScaleValue = 1;
     mPresentFence = -1;
     mVtDisplayThread = nullptr;
@@ -1843,18 +1842,9 @@ int32_t Hwc2Display::setVtVsync(std::shared_ptr<HwcVsync> vsync) {
 
 void Hwc2Display::onFrameAvailable() {
     ATRACE_CALL();
-    if (mNumGameModeLayers > 0 && mVtDisplayThread) {
+    if (mVtDisplayThread)
         mVtDisplayThread->onFrameAvailableForGameMode();
-    }
 }
-
-void Hwc2Display::onVtVideoGameMode(bool enable) {
-    if (enable)
-        mNumGameModeLayers ++;
-    else
-        mNumGameModeLayers --;
-}
-
 
 void Hwc2Display::handleVtThread() {
     bool haveVtLayer = false;
@@ -1946,17 +1936,12 @@ bool Hwc2Display::handleVtDisplayConnection() {
  */
 bool Hwc2Display::newGameBuffer() {
     ATRACE_CALL();
-    bool ret = false;
 
-    if (mNumGameModeLayers > 0) {
-        for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
-            auto layer = it->second;
-            if (layer->newGameBuffer()) {
-                ret = true;
-                break;
-            }
-        }
+    for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
+        auto layer = it->second;
+        if (layer->newGameBuffer())
+            return true;
     }
 
-    return ret;
+    return false;
 }
