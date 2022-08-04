@@ -13,8 +13,20 @@
 #include <systemcontrol.h>
 #include <misc.h>
 
+//#defined HWC_PRIMARY_FRAMEBUFFER_WIDTH 2160
+//#defined HWC_PRIMARY_FRAMEBUFFER_HEIGHT 3840
+//int32_t HwcConfig::isLcdExist() {
+//
+//    char value[PROPERTY_VALUE_MAX];
+//    property_get("sys.lcd.exist", value, "0");
+//    int32_t exist = atoi(value);
+//    return exist;
+//}
+
 int32_t HwcConfig::getFramebufferSize(int disp, uint32_t & width, uint32_t & height) {
     char uiMode[PROPERTY_VALUE_MAX] = {0};
+	char value[PROPERTY_VALUE_MAX];
+
     if (disp == 0) {
         /*primary display*/
         if (sys_get_string_prop("vendor.ui_mode", uiMode) > 0) {
@@ -30,8 +42,14 @@ int32_t HwcConfig::getFramebufferSize(int disp, uint32_t & width, uint32_t & hei
             }
         } else {
         #ifdef HWC_PRIMARY_FRAMEBUFFER_WIDTH
-            width  = HWC_PRIMARY_FRAMEBUFFER_WIDTH;
-            height = HWC_PRIMARY_FRAMEBUFFER_HEIGHT;
+            property_get("sys.lcd.exist", value, "0");
+            if (atoi(value) == 1) {
+               width = HWC_PRIMARY_FRAMEBUFFER_HEIGHT;
+               height = HWC_PRIMARY_FRAMEBUFFER_WIDTH;
+            } else {
+               width  = HWC_PRIMARY_FRAMEBUFFER_WIDTH;
+               height = HWC_PRIMARY_FRAMEBUFFER_HEIGHT;
+            }
         #else
             MESON_ASSERT(0, "HWC_PRIMARY_FRAMEBUFFER_WIDTH not set.");
         #endif
