@@ -68,12 +68,16 @@ static struct vmode_match_s vmode_match_table[] = {
 	{"576p50hz",      VMODE_576P},
 	{"576p50hz_4x3",      VMODE_576P4X3},
 	{"576prpt",       VMODE_576P_RPT},
+	{"720p120hz",     VMODE_720P_120HZ},
+	{"720p100hz",     VMODE_720P_100HZ},
 	{"720p60hz",      VMODE_720P},
 	{"720p50hz",      VMODE_720P_50HZ},
 	{"768p60hz",      VMODE_768P},
 	{"768p50hz",      VMODE_768P_50HZ},
 	{"1080i60hz",     VMODE_1080I},
 	{"1080i50hz",     VMODE_1080I_50HZ},
+	{"1080p120hz",    VMODE_1080P_120HZ},
+	{"1080p100hz",    VMODE_1080P_100HZ},
 	{"1080p60hz",     VMODE_1080P},
 	{"1080p25hz",     VMODE_1080P_25HZ},
 	{"1080p30hz",     VMODE_1080P_30HZ},
@@ -89,8 +93,12 @@ static struct vmode_match_s vmode_match_table[] = {
 	{"smpte50hz",     VMODE_4K2K_SMPTE_50HZ},
 	{"smpte60hz420",  VMODE_4K2K_SMPTE_60HZ_Y420},
 	{"smpte60hz",     VMODE_4K2K_SMPTE_60HZ},
+	{"smpte100hz",    VMODE_4K2K_SMPTE_100HZ},
+	{"smpte120hz",    VMODE_4K2K_SMPTE_120HZ},
 	{"4k2k5g",        VMODE_4K2K_FAKE_5G},
 	{"2160p60hz420",  VMODE_4K2K_60HZ_Y420},
+	{"2160p120hz",    VMODE_4K2K_120HZ},
+	{"2160p100hz",    VMODE_4K2K_100HZ},
 	{"2160p60hz",     VMODE_4K2K_60HZ},
 	{"2160p50hz420",  VMODE_4K2K_50HZ_Y420},
 	{"2160p50hz",     VMODE_4K2K_50HZ},
@@ -337,6 +345,32 @@ static const struct vinfo_s tv_info[] = {
 		.video_clk         = 27000000,
 		.viu_color_fmt     = TVIN_YUV444,
 	},
+	{ /* VMODE_720P_120HZ */
+		.name              = "720p120hz",
+		.mode              = VMODE_720P_120HZ,
+		.width             = 1280,
+		.height            = 720,
+		.field_height      = 720,
+		.aspect_ratio_num  = 16,
+		.aspect_ratio_den  = 9,
+		.sync_duration_num = 120,
+		.sync_duration_den = 1,
+		.video_clk         = 74250000,
+		.viu_color_fmt     = TVIN_YUV444,
+	},
+	{ /* VMODE_720P_100HZ */
+		.name              = "720p100hz",
+		.mode              = VMODE_720P_100HZ,
+		.width             = 1280,
+		.height            = 720,
+		.field_height      = 720,
+		.aspect_ratio_num  = 16,
+		.aspect_ratio_den  = 9,
+		.sync_duration_num = 100,
+		.sync_duration_den = 1,
+		.video_clk         = 74250000,
+		.viu_color_fmt     = TVIN_YUV444,
+	},
 	{ /* VMODE_720P */
 		.name              = "720p60hz",
 		.mode              = VMODE_720P,
@@ -387,6 +421,32 @@ static const struct vinfo_s tv_info[] = {
 		.sync_duration_num = 60,
 		.sync_duration_den = 1,
 		.video_clk         = 74250000,
+		.viu_color_fmt     = TVIN_YUV444,
+	},
+	{ /* VMODE_1080P_120HZ */
+		.name              = "1080p120hz",
+		.mode              = VMODE_1080P_120HZ,
+		.width             = 1920,
+		.height            = 1080,
+		.field_height      = 1080,
+		.aspect_ratio_num  = 16,
+		.aspect_ratio_den  = 9,
+		.sync_duration_num = 120,
+		.sync_duration_den = 1,
+		.video_clk         = 297000000,
+		.viu_color_fmt     = TVIN_YUV444,
+	},
+	{ /* VMODE_1080P_100HZ */
+		.name              = "1080p100hz",
+		.mode              = VMODE_1080P_100HZ,
+		.width             = 1920,
+		.height            = 1080,
+		.field_height      = 1080,
+		.aspect_ratio_num  = 16,
+		.aspect_ratio_den  = 9,
+		.sync_duration_num = 100,
+		.sync_duration_den = 1,
+		.video_clk         = 297000000,
 		.viu_color_fmt     = TVIN_YUV444,
 	},
 	{ /* VMODE_1080P */
@@ -584,6 +644,32 @@ static const struct vinfo_s tv_info[] = {
 		.video_clk         = 297000000,
 		.viu_color_fmt     = TVIN_YUV444,
 	},
+	{ /* VMODE_4K2K_SMPTE_100HZ */
+		.name              = "smpte100hz",
+		.mode              = VMODE_4K2K_SMPTE_100HZ,
+		.width             = 4096,
+		.height            = 2160,
+		.field_height      = 2160,
+		.aspect_ratio_num  = 256,
+		.aspect_ratio_den  = 135,
+		.sync_duration_num = 100,
+		.sync_duration_den = 1,
+		.video_clk         = 297000000,
+		.viu_color_fmt     = TVIN_YUV444,
+	},
+	{ /* VMODE_4K2K_SMPTE_120HZ */
+		.name              = "smpte120hz",
+		.mode              = VMODE_4K2K_SMPTE_120HZ,
+		.width             = 4096,
+		.height            = 2160,
+		.field_height      = 2160,
+		.aspect_ratio_num  = 256,
+		.aspect_ratio_den  = 135,
+		.sync_duration_num = 120,
+		.sync_duration_den = 1,
+		.video_clk         = 297000000,
+		.viu_color_fmt     = TVIN_YUV444,
+	},
 #if 0
 	{ /* VMODE_4K2K_FAKE_5G */
 		.name              = "4k2k5g",
@@ -612,6 +698,32 @@ static const struct vinfo_s tv_info[] = {
 		.viu_color_fmt     = TVIN_YUV444,
 	},
 #endif
+	{ /* VMODE_4K2K_120HZ */
+		.name              = "2160p120hz",
+		.mode              = VMODE_4K2K_120HZ,
+		.width             = 3840,
+		.height            = 2160,
+		.field_height      = 2160,
+		.aspect_ratio_num  = 16,
+		.aspect_ratio_den  = 9,
+		.sync_duration_num = 120,
+		.sync_duration_den = 1,
+		.video_clk         = 594000000,
+		.viu_color_fmt     = TVIN_YUV444,
+	},
+	{ /* VMODE_4K2K_100HZ */
+		.name              = "2160p100hz",
+		.mode              = VMODE_4K2K_100HZ,
+		.width             = 3840,
+		.height            = 2160,
+		.field_height      = 2160,
+		.aspect_ratio_num  = 16,
+		.aspect_ratio_den  = 9,
+		.sync_duration_num = 100,
+		.sync_duration_den = 1,
+		.video_clk         = 594000000,
+		.viu_color_fmt     = TVIN_YUV444,
+	},
 	{ /* VMODE_4K2K_60HZ */
 		.name              = "2160p60hz",
 		.mode              = VMODE_4K2K_60HZ,
@@ -1055,10 +1167,14 @@ int want_hdmi_mode(enum vmode_e mode)
 	    || (mode == VMODE_576P)
 	    || (mode == VMODE_576P4X3)
 	    || (mode == VMODE_576P_RPT)
+	    || (mode == VMODE_720P_120HZ)
+	    || (mode == VMODE_720P_100HZ)
 	    || (mode == VMODE_720P)
 	    || (mode == VMODE_720P_50HZ)
 	    || (mode == VMODE_1080I)
 	    || (mode == VMODE_1080I_50HZ)
+	    || (mode == VMODE_1080P_120HZ)
+	    || (mode == VMODE_1080P_100HZ)
 	    || (mode == VMODE_1080P)
 	    || (mode == VMODE_1080P_50HZ)
 	    || (mode == VMODE_1080P_30HZ)
@@ -1072,6 +1188,8 @@ int want_hdmi_mode(enum vmode_e mode)
 	    || (mode == VMODE_4K2K_SMPTE_30HZ)
 	    || (mode == VMODE_4K2K_SMPTE_50HZ)
 	    || (mode == VMODE_4K2K_SMPTE_60HZ)
+	    || (mode == VMODE_4K2K_SMPTE_100HZ)
+	    || (mode == VMODE_4K2K_SMPTE_120HZ)
 	    || (mode == VMODE_4K2K_SMPTE_50HZ_Y420)
 	    || (mode == VMODE_4K2K_SMPTE_60HZ_Y420)
 	    || (mode == VMODE_4K2K_FAKE_5G)
@@ -1080,6 +1198,8 @@ int want_hdmi_mode(enum vmode_e mode)
 	    || (mode == VMODE_4K2K_50HZ_Y420)
 	    || (mode == VMODE_4K2K_60HZ)
 	    || (mode == VMODE_4K2K_60HZ_Y420)
+	    || (mode == VMODE_4K2K_100HZ)
+	    || (mode == VMODE_4K2K_120HZ)
 	   )
 		ret = 1;
 	return ret;

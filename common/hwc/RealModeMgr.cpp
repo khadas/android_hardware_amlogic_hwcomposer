@@ -35,21 +35,29 @@ static const char* DISPLAY_MODE_LIST[] = {
     "576cvbs",      // MODE_576CVBS
     "720p50hz",     // MODE_720P50HZ
     "720p60hz",     // MODE_720P
+    "720p100hz",    // MODE_720P100HZ
+    "720p120hz",    // MODE_720P120HZ
     "768p60hz",     // MODE_768P
     "1080p24hz",    // MODE_1080P24HZ
     "1080p25hz",    // MODE_1080P25HZ
     "1080p30hz",    // MODE_1080P30HZ
     "1080p50hz",    // MODE_1080P50HZ
     "1080p60hz",    // MODE_1080P
+    "1080p100hz",   // MODE_1080P_100HZ
+    "1080p120hz",   // MODE_1080P_120HZ
     "2160p24hz",    // MODE_4K2K24HZ
     "2160p25hz",    // MODE_4K2K25HZ
     "2160p30hz",    // MODE_4K2K30HZ
     "2160p50hz",    // MODE_4K2K50HZ
     "2160p60hz",    // MODE_4K2K60HZ
+    "2160p100hz",   // MODE_4K2K100HZ
+    "2160p120hz",   // MODE_4K2K120HZ
     "smpte24hz",    // MODE_4K2KSMPTE
     "smpte30hz",    // MODE_4K2KSMPTE30HZ
     "smpte50hz",    // MODE_4K2KSMPTE50HZ
     "smpte60hz",    // MODE_4K2KSMPTE60HZ
+    "smpte100hz",   // MODE_4K2KSMPTE100HZ
+    "smpte120hz",  // MODE_4K2KSMPTE120HZ
     "panel",        // MODE_PANEL
     "pal_m",        // MODE_PAL_M
     "pal_n",        // MODE_PAL_N
