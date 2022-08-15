@@ -70,7 +70,7 @@ static int meson_vt_ioctl(int fd, int req, void* arg) {
 }
 
 /*
- * videtotunnel control, set role etc.
+ * videotunnel control, set role etc.
  */
 static int meson_vt_control(int fd, int tunnel_id, enum vt_role_e role, enum vt_ctrl_cmd_e cmd) {
     struct vt_ctrl_data data = {
@@ -84,7 +84,7 @@ static int meson_vt_control(int fd, int tunnel_id, enum vt_role_e role, enum vt_
 
 /*
  * Allocate an unique videotunnel id.
- * If successfully, the tunnnel id returned by param *tunnel_id.
+ * If successfully, the tunnel id returned by param *tunnel_id.
  *
  * @param fd            [in] Videotunnel device fd
  * @param tunnel_id     [out] allocated tunnel id
@@ -331,7 +331,7 @@ int meson_vt_acquire_buffer(int fd, int tunnel_id, int *buffer_fd,
 }
 
 /*
- * Release buffer releases a buffer from the cosumer back to the videotunnel.
+ * Release buffer releases a buffer from the consumer back to the videotunnel.
  * The fence_fd will signal when the buffer is no longer in use by consumer.
  *
  * @param fd            [in] Videotunnel device fd
@@ -352,7 +352,7 @@ int meson_vt_release_buffer(int fd, int tunnel_id, int buffer_fd, int fence_fd) 
 
     ret = meson_vt_ioctl(fd, VT_IOC_RELEASE_BUFFER, &data);
 
-    /* fence fd has transfered to prodouce, now close it */
+    /* fence fd has transfered to produce, now close it */
     if (fence_fd >= 0)
         close(fence_fd);
 

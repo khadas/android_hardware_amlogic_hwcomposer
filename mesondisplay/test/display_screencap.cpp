@@ -164,7 +164,7 @@ int main(int argc, char **argv) {
             outBufferHandle->numFds, outBufferHandle->numInts);
 
     for (int i = 0; i < outBufferHandle->numFds; i++) {
-        fprintf(stderr, "Get naitve handle fd[%d]= %d\n", i, outBufferHandle->data[i]);
+        fprintf(stderr, "Get native handle fd[%d]= %d\n", i, outBufferHandle->data[i]);
     }
 
     native_handle_t *bufferHandle = const_cast<native_handle_t*> (outBufferHandle);

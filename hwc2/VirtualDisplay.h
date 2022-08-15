@@ -46,7 +46,7 @@ public:
     hwc2_error_t getReleaseFences(uint32_t* outNumElements,
         hwc2_layer_t* outLayers, int32_t* outFences);
 
-    /*display attrbuites*/
+    /*display attributes*/
     hwc2_error_t  getDisplayConfigs(
         uint32_t* outNumConfigs, hwc2_config_t* outConfigs);
     hwc2_error_t  getDisplayAttribute(

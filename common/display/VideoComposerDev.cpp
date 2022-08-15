@@ -103,7 +103,7 @@ int32_t VideoComposerDev::setFrames(
                 vFrameInfo->source_type = DTV_FIX_TUNNEL;
             }
         } else {
-            MESON_LOGE("unknow fb (%d) type %d !!", fb->mZorder, fbType);
+            MESON_LOGE("unknown fb (%d) type %d !!", fb->mZorder, fbType);
             return -EINVAL;
         }
 

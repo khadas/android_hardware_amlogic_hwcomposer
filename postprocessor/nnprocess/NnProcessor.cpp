@@ -33,7 +33,7 @@
 
 #define UVM_IOC_MAGIC 'U'
 
-#define UVM_IOC_ATTATCH _IOWR(UVM_IOC_MAGIC, 5, \
+#define UVM_IOC_ATTACH _IOWR(UVM_IOC_MAGIC, 5, \
                 struct uvm_hook_data)
 #define UVM_IOC_GET_INFO _IOWR(UVM_IOC_MAGIC, 6, \
                 struct uvm_hook_data)
@@ -209,7 +209,7 @@ int32_t NnProcessor::asyncProcess(
         std::shared_ptr<DrmFramebuffer> & outfb,
         int & processFence) {
     int ret;
-    int ret_attatch = 0;
+    int ret_attach = 0;
     int fence_fd = -1;
     buffer_handle_t buf = inputfb->mBufferHandle;
     int input_fd = -1;
@@ -316,9 +316,9 @@ int32_t NnProcessor::asyncProcess(
     ai_sr_info->nn_out_fd = -1;
     ai_sr_info->nn_status = NN_WAIT_DOING;
 
-    ret_attatch = ioctl(mUvmHander, UVM_IOC_ATTATCH, &hook_data);
-    if (ret_attatch != 0) {
-        ALOGE("attatch err: ret_attatch =%d", ret_attatch);
+    ret_attach = ioctl(mUvmHander, UVM_IOC_ATTACH, &hook_data);
+    if (ret_attach != 0) {
+        ALOGE("attach err: ret_attach =%d", ret_attach);
         goto bypass;
     }
 

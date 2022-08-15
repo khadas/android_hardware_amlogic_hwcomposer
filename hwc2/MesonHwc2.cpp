@@ -885,7 +885,7 @@ void MesonHwc2::onVsync(hwc2_display_t display, int64_t timestamp, uint32_t vsyn
 
 void MesonHwc2::onHotplug(hwc2_display_t display, bool connected) {
     if (display == HWC_DISPLAY_PRIMARY && !HwcConfig::primaryHotplugEnabled()) {
-        MESON_LOGD("Primary dont config to support hotplug.");
+        MESON_LOGD("Primary don't config to support hotplug.");
         return;
     }
 

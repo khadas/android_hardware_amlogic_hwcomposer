@@ -69,7 +69,7 @@ int32_t CursorPlane::setPlane(
     std::shared_ptr<DrmFramebuffer> fb,
     uint32_t zorder __unused, int blankOp) {
     if (mDrvFd < 0) {
-        MESON_LOGE("cursor plane fd is not valiable!");
+        MESON_LOGE("cursor plane fd is not available!");
         return -EBADF;
     }
 

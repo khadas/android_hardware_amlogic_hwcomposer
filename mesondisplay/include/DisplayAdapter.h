@@ -134,7 +134,7 @@ public:
 
     virtual bool setDisplayAttribute(const string& name, const string& value, ConnectorType displayType) = 0;
     virtual bool getDisplayAttribute(const string& name, string& value, ConnectorType displayType) = 0;
-    /* get  vsync timestamp and vsync peroid in nanos */
+    /* get  vsync timestamp and vsync period in nanos */
     virtual bool getDisplayVsyncAndPeriod(int64_t& timestamp, int32_t& vsyncPeriodNanos) = 0;
 
     virtual bool dumpDisplayAttribute(Json::Value& json, ConnectorType displayType) {

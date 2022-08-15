@@ -28,7 +28,7 @@
 
 #define UVM_IOC_MAGIC 'U'
 
-#define UVM_IOC_ATTATCH _IOWR(UVM_IOC_MAGIC, 5, \
+#define UVM_IOC_ATTACH _IOWR(UVM_IOC_MAGIC, 5, \
                 struct uvm_hook_data)
 #define UVM_IOC_GET_INFO _IOWR(UVM_IOC_MAGIC, 6, \
                 struct uvm_hook_data)
@@ -181,7 +181,7 @@ static int get_file_data(char *source_data)
 {
     char *src_data = source_data;
     char *token = NULL;
-    bool is_total = false, is_lenghth = false, is_description = false;
+    bool is_total = false, is_length = false, is_description = false;
     int total = 0, len = 0;
     int ret = -1;
     bool begin_get_scenes_data = false, is_scenes_data = false;
@@ -214,9 +214,9 @@ static int get_file_data(char *source_data)
             continue;
         }
 
-        if (is_lenghth) {
+        if (is_length) {
             len = atoi(token);
-            is_lenghth = false;
+            is_length = false;
             continue;
         }
 
@@ -236,7 +236,7 @@ static int get_file_data(char *source_data)
             continue;
         }
         if (!strcmp(token, "max_len")) {
-            is_lenghth = true;
+            is_length = true;
             continue;
         }
 
@@ -443,7 +443,7 @@ int32_t AipqProcessor::asyncProcess(
         std::shared_ptr<DrmFramebuffer> & outfb,
         int & processFence) {
     int ret;
-    int ret_attatch = 0;
+    int ret_attach = 0;
     buffer_handle_t buf = inputfb->mBufferHandle;
     struct uvm_hook_data hook_data;
     struct uvm_aipq_info_t *uvm_info;
@@ -497,14 +497,14 @@ int32_t AipqProcessor::asyncProcess(
         pq_value_index = mLastNnValue[AI_PQ_TOP - 1].maxprob;
     }
 
-    ret_attatch = ioctl(mUvmHander, UVM_IOC_ATTATCH, &hook_data);
-    if (ret_attatch != 0) {
-        ALOGE("attatch err: ret_attatch =%d", ret_attatch);
+    ret_attach = ioctl(mUvmHander, UVM_IOC_ATTACH, &hook_data);
+    if (ret_attach != 0) {
+        ALOGE("attach err: ret_attach =%d", ret_attach);
         goto bypass;
     }
 
     if (aipq_info->need_do_aipq == 0) {
-        ALOGD_IF(check_D(), "attatch: aipq bypass");
+        ALOGD_IF(check_D(), "attach: aipq bypass");
         goto error;
     }
 

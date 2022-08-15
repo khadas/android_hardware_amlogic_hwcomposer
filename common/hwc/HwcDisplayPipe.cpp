@@ -51,7 +51,7 @@ HwcDisplayPipe::HwcDisplayPipe() {
     int pipeidx = 0;
     std::shared_ptr<HwDisplayPlane> plane;
 
-    /*hwcvideo/osd/legacy video/osd/primary from fbdev have deciate crtc mask.*/
+    /*hwcvideo/osd/legacy video/osd/primary from fbdev have dedicate crtc mask.*/
     for (pipeidx = 0; pipeidx < HwcConfig::getDisplayNum(); pipeidx ++) {
         for (auto planeIt = planes.begin(); planeIt != planes.end(); ) {
             plane = *planeIt;

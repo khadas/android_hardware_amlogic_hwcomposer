@@ -206,7 +206,7 @@ Return<void> DisplayServer::captureDisplayScreen(const int32_t displayId, const 
     hidl_vec<hidl_handle> outHandles;
 
     if (!adapter) {
-        MESON_LOGD("DisplayServer display Adatprer not ready");
+        MESON_LOGD("DisplayServer display adapter not ready");
         outHandles.setToExternal(nullptr, 0);
         hidl_cb(Error::NO_RESOURCES, outHandles);
         return Void();

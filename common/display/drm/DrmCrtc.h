@@ -42,8 +42,8 @@ public:
 
     /*unused function only for FBDEV*/
     int32_t setDisplayFrame(display_zoom_info_t & info __unused) { return 0; }
-    int32_t getHdrMetadataKeys(std::vector<drm_hdr_meatadata_t> & keys __unused) { return 0; }
-    int32_t setHdrMetadata(std::map<drm_hdr_meatadata_t, float> & hdrmedata __unused) { return 0; }
+    int32_t getHdrMetadataKeys(std::vector<drm_hdr_metadata_t> & keys __unused) { return 0; }
+    int32_t setHdrMetadata(std::map<drm_hdr_metadata_t, float> & hdrmedata __unused) { return 0; }
 
     int32_t setPendingMode();
     void closeLogoDisplay();
@@ -58,7 +58,7 @@ public:
 
 protected:
     int32_t loadProperties();
-    int32_t setModeLocked(drm_mode_info_t & mode, bool seamleass = false);
+    int32_t setModeLocked(drm_mode_info_t & mode, bool seamless = false);
 
 protected:
 	int mDrmFd;

@@ -35,7 +35,7 @@ public:
     inline bool monitorDeviceComposition() {return mMonitorDeviceComposition;}
     inline uint32_t deviceCompositionThreshold() {return mDeviceCompositionThreshold;}
     inline bool logFps() {return mLogFps;}
-    inline bool enableLogVerboser() {return mLogVerbose;}
+    inline bool enableLogVerbose() {return mLogVerbose;}
 
     /*check if UI/osd hwcomposer disabled.*/
     bool disableUiHwc() {return mDisableUiHwc;}

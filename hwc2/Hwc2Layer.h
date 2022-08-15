@@ -95,8 +95,7 @@ public:
     void setVtSourceCrop(drm_rect_t & rect);
     void onNeedShowTempBuffer(int colorType);
     void setVideoType(int videoType);
-
-    void handleDisplayDisconnet(bool connect);
+    void handleDisplayDisconnect(bool connect);
 
 public:
     android_dataspace_t mDataSpace;

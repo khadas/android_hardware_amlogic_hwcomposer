@@ -67,7 +67,7 @@ enum {
 #define FBIOPUT_OSD_SYNC_BLANK       0x451c
 #define FBIOPUT_OSD_SYNC_RENDER_ADD  0x4519
 #define FBIOPUT_OSD_HWC_ENABLE       0x451a
-#define FBIOGET_OSD_CAPBILITY        0x451e
+#define FBIOGET_OSD_CAPABILITY        0x451e
 #define FBIOPUT_OSD_DO_HWC 0x451b
 
 /*AmVideo ioctl*/
@@ -113,7 +113,7 @@ enum {
 
 /*legacy logo switch*/
 #define DISPLAY_LOGO_INDEX              "/sys/module/fb/parameters/osd_logo_index"
-#define DISPLAY_FB0_FREESCALE_SWTICH    "/sys/class/graphics/fb0/free_scale_switch"
+#define DISPLAY_FB0_FREESCALE_SWITCH    "/sys/class/graphics/fb0/free_scale_switch"
 
 /* logo index on kernel 5.4 */
 #define DISPLAY_LOGO_INDEX54            "/sys/module/aml_media/parameters/osd_logo_index"

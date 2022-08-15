@@ -462,7 +462,7 @@ int32_t VdinPostProcessor::process() {
             }
 
             if (mFbProcessor != NULL) {
-                /*get ouput buf, and wait it ready.*/
+                /*get output buf, and wait it ready.*/
                 bool mKeystoneCoordUpdated = mFbProcessor->updateProcess();
                 if (crcvalStatus || mKeystoneCoordUpdated == true) {
                     outfb = mVoutQueue.front();
@@ -492,7 +492,7 @@ int32_t VdinPostProcessor::process() {
                 /*push back vdin buf.*/
                 mVdinQueue.push(vdinIdx);
             } else {
-                /*null procesor, post vdin buf to vout directlly.*/
+                /*null procesor, post vdin buf to vout directly.*/
                 postVout(infb);
                 /*push back last displayed buf*/
                 if (mVdinBufOnScreen >= 0) {

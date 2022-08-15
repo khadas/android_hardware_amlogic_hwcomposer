@@ -17,7 +17,7 @@
 #include <xf86drm.h>
 #include <xf86drmMode.h>
 
-/* blend mode for compoistion or display.
+/* blend mode for composition or display.
  * The define is same as hwc2_blend_mode.
  * For hwc1, we need do convert.
  */
@@ -58,7 +58,7 @@ typedef enum drm_fb_type {
     DRM_FB_SCANOUT,
     /*no image data, fill with color.*/
     DRM_FB_COLOR,
-    /*indicate curosr ioctl in plane.*/
+    /*indicate cursor ioctl in plane.*/
     DRM_FB_CURSOR,
     /*buffer with overlay flag, no image data*/
     DRM_FB_VIDEO_OVERLAY,
@@ -144,7 +144,7 @@ typedef enum {
     DRM_EVENT_ALL = 0xFF
 } drm_display_event;
 
-/*From kernel/include/drm/amlogic/meson_connetor_dev.h*/
+/*From kernel/include/drm/amlogic/meson_connector_dev.h*/
 /*amlogic extend connector type: for original type is not enough.
  *start from: 0xff,
  *extend connector: 0x100 ~ 0xfff,
@@ -213,7 +213,7 @@ typedef enum {
      */
     DRM_MAX_CONTENT_LIGHT_LEVEL = 10,
     DRM_MAX_FRAME_AVERAGE_LIGHT_LEVEL = 11,
-} drm_hdr_meatadata_t;
+} drm_hdr_metadata_t;
 
 /*
 display_zoom_info used to pass the calibrate display frame.

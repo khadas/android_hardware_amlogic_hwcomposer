@@ -24,9 +24,9 @@ interface IMesonDisplayIPC{
     /**
      * Capture screen of specific layer.
      * @param displayId is the hwc display id which now is reserved.
-     *                  only supoort the primary Display
+     *                  only support the primary Display
      * @param layerId is the hwc layer id which now is reserved
-     * @return error is NONE upon sucess. otherwise
+     * @return error is NONE upon success. otherwise
      *                  BAD_VALUE when the id is invalid (reserved)
      *                  NO_RESOURCE when capture failed
      * @return buffer is the return buffer handle and has the type

@@ -25,7 +25,7 @@
 
 
 #define OSD_SCALER_INPUT_MAX_WIDTH (1920)
-#define OSD_SCALER_INPUT_MAX_HEIGH (1080)
+#define OSD_SCALER_INPUT_MAX_HEIGHT (1080)
 
 
 #define IS_FB_COMPOSED(fb) \
@@ -247,7 +247,7 @@ int MultiplanesComposition::pickoutOsdFbs() {
                 break;
 
             default:
-                MESON_LOGE("Unknown compostition type(%d)", fb->mCompositionType);
+                MESON_LOGE("Unknown composition type(%d)", fb->mCompositionType);
                 bRemove = true;
                 break;
         }
@@ -445,14 +445,14 @@ int32_t compareFbScale(
     int32_t bSrcHeight = bSrc.bottom - bSrc.top;
 
     int widthCompare = aDisplayWidth*bSrcWidth - bDisplayWidth*aSrcWidth;
-    int heighCompare = aDisplayHeight *bSrcHeight - bDisplayHeight * aSrcHeight;
-    if (widthCompare == 0 && heighCompare == 0)
+    int heightCompare = aDisplayHeight *bSrcHeight - bDisplayHeight * aSrcHeight;
+    if (widthCompare == 0 && heightCompare == 0)
         return 0;
-    else if (widthCompare > 0 && heighCompare > 0)
+    else if (widthCompare > 0 && heightCompare > 0)
         return 1;
     else {
         MESON_LOGW("compareFbScale failed %d ,%d, %d, %d",
-            widthCompare, heighCompare,
+            widthCompare, heightCompare,
             bDisplayWidth, bDisplayHeight);
         return -1;
     }
@@ -637,7 +637,7 @@ void MultiplanesComposition::handleVPULimit(bool video) {
     compositionTargetH = compositionTargetH - minYOffset;
 
     drm_rect_t scaleInput = {0, 0,
-        OSD_SCALER_INPUT_MAX_WIDTH, OSD_SCALER_INPUT_MAX_HEIGH};
+        OSD_SCALER_INPUT_MAX_WIDTH, OSD_SCALER_INPUT_MAX_HEIGHT};
     drm_rect_t scaleOutput = {0, 0, compositionTargetW, compositionTargetH};
 
     /*choose the scale > targetW/MAX_INPUT*/

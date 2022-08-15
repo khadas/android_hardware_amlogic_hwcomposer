@@ -30,8 +30,8 @@ public:
     virtual int32_t update() = 0;
 
     /*for hdr metadata.*/
-    virtual int32_t getHdrMetadataKeys(std::vector<drm_hdr_meatadata_t> & keys) = 0;
-    virtual int32_t setHdrMetadata(std::map<drm_hdr_meatadata_t, float> & hdrmedata) = 0;
+    virtual int32_t getHdrMetadataKeys(std::vector<drm_hdr_metadata_t> & keys) = 0;
+    virtual int32_t setHdrMetadata(std::map<drm_hdr_metadata_t, float> & hdrmedata) = 0;
 
     /*get/set current display mode.*/
     virtual int32_t getMode(drm_mode_info_t & mode) = 0;

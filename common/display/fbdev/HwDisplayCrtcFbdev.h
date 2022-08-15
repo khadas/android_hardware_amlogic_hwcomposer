@@ -27,11 +27,11 @@ public:
     int32_t unbind();
 
     /*load informations: displaymode list, hdr cap, etc...*/
-    int32_t getHdrMetadataKeys(std::vector<drm_hdr_meatadata_t> & keys);
+    int32_t getHdrMetadataKeys(std::vector<drm_hdr_metadata_t> & keys);
 
     /*update the dynamic informations, current display mode now.*/
      int32_t update();
-    int32_t setHdrMetadata(std::map<drm_hdr_meatadata_t, float> & hdrmedata);
+    int32_t setHdrMetadata(std::map<drm_hdr_metadata_t, float> & hdrmedata);
 
     /*get current display mode.*/
     int32_t getMode(drm_mode_info_t & mode);
@@ -60,7 +60,7 @@ public:
 
 protected:
     int32_t writeCurDisplayMode(std::string & dispmode);
-    bool updateHdrMetadata(std::map<drm_hdr_meatadata_t, float> & hdrmedata);
+    bool updateHdrMetadata(std::map<drm_hdr_metadata_t, float> & hdrmedata);
     bool checkFracMode(const drm_mode_info_t & mode);
 
 protected:

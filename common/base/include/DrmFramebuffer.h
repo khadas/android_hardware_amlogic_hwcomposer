@@ -96,7 +96,7 @@ public:
     int32_t mCompositionType;
     hwc2_layer_t mId;
 
-    std::map<drm_hdr_meatadata_t, float> mHdrMetaData;
+    std::map<drm_hdr_metadata_t, float> mHdrMetaData;
 
     std::shared_ptr<DrmFence> mPrevReleaseFence;
     std::shared_ptr<DrmFence> mCurReleaseFence;

@@ -286,7 +286,7 @@ static void *vt_consumer_thread(void *arg) {
             ret = meson_vt_acquire_buffer(ctx->dev_fd, ctx->tunnel_id, &acquire_fd, &fence_fd, &time_stamp);
         } while (ret == -EAGAIN);
 
-        fprintf(stderr, "acqurie buffer fd:%d from tunnel:%d, ret:%d\n", acquire_fd, ctx->tunnel_id, ret);
+        fprintf(stderr, "acquire buffer fd:%d from tunnel:%d, ret:%d\n", acquire_fd, ctx->tunnel_id, ret);
         do_write(acquire_fd, buffer);
 
         sleep(1);

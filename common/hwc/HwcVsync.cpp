@@ -165,7 +165,7 @@ void * HwcVsync::vsyncThread(void * data) {
 
         if (DebugHelper::getInstance().enableVsyncDetail()) {
             if (pThis->mPreTimeStamp != 0)
-                MESON_LOGD("wait for vsync success, peroid: %" PRId64 ", timestamp (%" PRId64 ")",
+                MESON_LOGD("wait for vsync success, period: %" PRId64 ", timestamp (%" PRId64 ")",
                         period, timestamp);
         }
 

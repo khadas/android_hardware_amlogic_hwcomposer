@@ -25,7 +25,7 @@ func hwc_mesondisplay_aml_Defaults(ctx android.LoadHookContext) {
     p := &propsE{}
     PlatformVndkVersion := ctx.DeviceConfig().PlatformVndkVersion()
     fmt.Println("PlatformVndkVersion:", PlatformVndkVersion)
-    //For Andriod T, before freeze API PlatformVndkVersion return string like "Tiramisu", after freeze API it will be changed to be numbers like normal android release "32"
+    //For Android T, before freeze API PlatformVndkVersion return string like "Tiramisu", after freeze API it will be changed to be numbers like normal android release "32"
     IntPlatformVndkVersion,err := strconv.Atoi(PlatformVndkVersion)
     if err != nil {
         fmt.Printf("%v fail to convert", PlatformVndkVersion)

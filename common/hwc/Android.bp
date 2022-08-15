@@ -53,7 +53,7 @@ soong_config_module_type {
         "target_use_default_hdr_property",
         "pipe_viu1vdinviu2_always_loopback",
         "dynamic_switch_connector",
-        "dynamic_swich_viu",
+        "dynamic_switch_viu",
         "enable_vt_hwVsync",
         "enable_uvm_dettach",
     ],
@@ -111,7 +111,7 @@ soong_config_bool_variable {
 }
 
 soong_config_bool_variable {
-    name: "dynamic_swich_viu",
+    name: "dynamic_switch_viu",
 }
 
 soong_config_bool_variable {
@@ -217,7 +217,7 @@ meson_hwc_hwc_cc_defaults {
             cflags: ["-DHWC_DYNAMIC_SWITCH_CONNECTOR"],
         },
 
-        dynamic_swich_viu: {
+        dynamic_switch_viu: {
             cflags: ["-DHWC_DYNAMIC_SWITCH_VIU"],
         },
         enable_vt_hwVsync: {

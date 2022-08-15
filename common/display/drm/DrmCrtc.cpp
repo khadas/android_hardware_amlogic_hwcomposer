@@ -96,7 +96,7 @@ uint32_t DrmCrtc::getPipe() {
 }
 
 int32_t DrmCrtc::update() {
-    /*mode set from drmcrtc, we dont need update state.*/
+    /*mode set from drmcrtc, we don't need update state.*/
     MESON_LOG_EMPTY_FUN ();
     return 0;
 }

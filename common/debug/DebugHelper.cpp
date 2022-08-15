@@ -49,7 +49,7 @@ ANDROID_SINGLETON_STATIC_INSTANCE(DebugHelper)
 #define PLANE_DBG_PATTERN (1 << 1)
 
 
-#define INT_PARAMERTER_TO_BOOL(param)  \
+#define INT_PARAMETER_TO_BOOL(param)  \
         atoi(param) > 0 ? true : false
 
 #define CHECK_CMD_INT_PARAMETER() \
@@ -183,49 +183,49 @@ void DebugHelper::resolveCmd() {
                 if (strcmp(paramArray[i], COMMAND_NOHWC) == 0) {
                     i++;
                     CHECK_CMD_INT_PARAMETER();
-                    mDisableUiHwc = INT_PARAMERTER_TO_BOOL(paramArray[i]);
+                    mDisableUiHwc = INT_PARAMETER_TO_BOOL(paramArray[i]);
                     continue;
                 }
 
                 if (strcmp(paramArray[i], COMMAND_DUMP_DETAIL) == 0) {
                     i++;
                     CHECK_CMD_INT_PARAMETER();
-                    mDumpDetail = INT_PARAMERTER_TO_BOOL(paramArray[i]);
+                    mDumpDetail = INT_PARAMETER_TO_BOOL(paramArray[i]);
                     continue;
                 }
 
                 if (strcmp(paramArray[i], COMMAND_ENABLE_VSYNC_DETAIL) == 0) {
                     i++;
                     CHECK_CMD_INT_PARAMETER();
-                    mEnableVsyncDetail = INT_PARAMERTER_TO_BOOL(paramArray[i]);
+                    mEnableVsyncDetail = INT_PARAMETER_TO_BOOL(paramArray[i]);
                     continue;
                 }
 
                 if (strcmp(paramArray[i], COMMAND_LOG_FPS) == 0) {
                     i++;
                     CHECK_CMD_INT_PARAMETER();
-                    mLogFps = INT_PARAMERTER_TO_BOOL(paramArray[i]);
+                    mLogFps = INT_PARAMETER_TO_BOOL(paramArray[i]);
                     continue;
                 }
 
                 if (strcmp(paramArray[i], COMMAND_LOG_COMPOSITION_DETAIL) == 0) {
                     i++;
                     CHECK_CMD_INT_PARAMETER();
-                    mLogCompositionDetail = INT_PARAMERTER_TO_BOOL(paramArray[i]);
+                    mLogCompositionDetail = INT_PARAMETER_TO_BOOL(paramArray[i]);
                     continue;
                 }
 
                 if (strcmp(paramArray[i], COMMAND_LOG_VERBOSE) == 0) {
                     i++;
                     CHECK_CMD_INT_PARAMETER();
-                    mLogVerbose = INT_PARAMERTER_TO_BOOL(paramArray[i]);
+                    mLogVerbose = INT_PARAMETER_TO_BOOL(paramArray[i]);
                     continue;
                 }
 
                 if (strcmp(paramArray[i], COMMAND_MONITOR_DEVICE_COMPOSITION) == 0) {
                     i++;
                     CHECK_CMD_INT_PARAMETER();
-                    mMonitorDeviceComposition = INT_PARAMERTER_TO_BOOL(paramArray[i]);
+                    mMonitorDeviceComposition = INT_PARAMETER_TO_BOOL(paramArray[i]);
                     continue;
                 }
 
@@ -246,14 +246,14 @@ void DebugHelper::resolveCmd() {
                 if (strcmp(paramArray[i], COMMAND_IN_FENCE) == 0) {
                     i++;
                     CHECK_CMD_INT_PARAMETER();
-                    mDiscardInFence = INT_PARAMERTER_TO_BOOL(paramArray[i]);
+                    mDiscardInFence = INT_PARAMETER_TO_BOOL(paramArray[i]);
                     continue;
                 }
 
                 if (strcmp(paramArray[i], COMMAND_OUT_FENCE) == 0) {
                     i++;
                     CHECK_CMD_INT_PARAMETER();
-                    mDiscardOutFence = INT_PARAMERTER_TO_BOOL(paramArray[i]);
+                    mDiscardOutFence = INT_PARAMETER_TO_BOOL(paramArray[i]);
                     continue;
                 }
 
@@ -346,7 +346,7 @@ void DebugHelper::resolveCmd() {
                 if (strcmp(paramArray[i], COMMAND_DRM_BLOCK_MODE) == 0) {
                     i++;
                     CHECK_CMD_INT_PARAMETER();
-                    mDrmBlockMode = INT_PARAMERTER_TO_BOOL(paramArray[i]);
+                    mDrmBlockMode = INT_PARAMETER_TO_BOOL(paramArray[i]);
                     continue;
                 }
 

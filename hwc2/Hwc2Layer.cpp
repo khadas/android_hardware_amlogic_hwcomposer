@@ -144,7 +144,7 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
 
     /*
      * If video tunnel sideband receive blank frame,
-     * need release video tunnel resouce
+     * need release video tunnel resource
      */
     if (isVtBufferLocked()) {
         mNeedReleaseVtResource = true;
@@ -371,7 +371,7 @@ int32_t Hwc2Layer::setPerFrameMetadata(
     const float* metadata) {
     mHdrMetaData.clear();
     for (uint32_t i = 0; i < numElements; i++) {
-        mHdrMetaData.insert({static_cast<drm_hdr_meatadata_t>(keys[i]),metadata[i]});
+        mHdrMetaData.insert({static_cast<drm_hdr_metadata_t>(keys[i]),metadata[i]});
     }
     return HWC2_ERROR_NONE;
 }
@@ -654,7 +654,7 @@ int32_t Hwc2Layer::releaseVtResourceLocked(bool needDisconnect) {
         if (mVtBufferFd >= 0) {
             onVtFrameDisplayed(mVtBufferFd, -1);
             mQueuedFrames--;
-            MESON_LOGV("[%s] [%d] [%" PRIu64 "] release(%d) queudFrames(%d)",
+            MESON_LOGV("[%s] [%d] [%" PRIu64 "] release(%d) queuedFrames(%d)",
                     __func__, mDisplayId, mId, mVtBufferFd, mQueuedFrames);
             mQueueItems.pop_front();
         }
@@ -686,7 +686,7 @@ int32_t Hwc2Layer::releaseVtResourceLocked(bool needDisconnect) {
     return 0;
 }
 
-void Hwc2Layer::handleDisplayDisconnet(bool connect) {
+void Hwc2Layer::handleDisplayDisconnect(bool connect) {
     MESON_LOGV("[%s] [%d] [%" PRIu64 "] connect:%d", __func__, mDisplayId, mId, connect);
     if (connect) {
         registerConsumer();
@@ -768,7 +768,7 @@ int Hwc2Layer::getVideoTunnelId() {
 }
 
 void Hwc2Layer::setVtPrevReleaseFence() {
-    // CureRelease move to PrevRelase, it can be returned in next loop.
+    // CureRelease move to PrevRelease, it can be returned in next loop.
     if (mCurReleaseFence.get() && mCurReleaseFence != DrmFence::NO_FENCE)
         mPrevReleaseFence = mCurReleaseFence;
     mCurReleaseFence.reset();
@@ -779,7 +779,7 @@ int32_t Hwc2Layer::registerConsumer() {
     int32_t ret = -1;
 
     if (mTunnelId < 0) {
-        MESON_LOGE("[%s] [%d] [%" PRIu64 "] tunneld is less than 0, cannot register consumer",
+        MESON_LOGE("[%s] [%d] [%" PRIu64 "] tunnelId is less than 0, cannot register consumer",
             __func__, mDisplayId, mId);
         return ret;
     }
@@ -817,7 +817,7 @@ int32_t Hwc2Layer::unregisterConsumer() {
     int32_t ret = -1;
 
     if (mTunnelId < 0) {
-        MESON_LOGE("[%s] [%d] [%" PRIu64 "] tunneld is less than 0, cannot unregister consumer",
+        MESON_LOGE("[%s] [%d] [%" PRIu64 "] tunnelId is less than 0, cannot unregister consumer",
             __func__, mDisplayId, mId);
         return ret;
     }

@@ -71,7 +71,7 @@ void ActiveModeMgr::setDisplayResources(
  *
  * when connected to a 1080P TV, then reports only 1080Ps which are mapped to 1080P modes
  *
- * when conneted to a TV < 1080P TVs, then reports only 1080Ps which maps to the modes
+ * when connected to a TV < 1080P TVs, then reports only 1080Ps which maps to the modes
  * having the highest native resolution; for example 720Ps.
  */
 

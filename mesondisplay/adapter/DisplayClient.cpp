@@ -119,7 +119,7 @@ bool DisplayClient::captureDisplayScreen(const native_handle_t** outBufferHandle
                     tmpOutHandles.size());
             });
     if (error != Error::NONE) {
-        MESON_LOGE("captureDislayScreen failed");
+        MESON_LOGE("captureDisplayScreen failed");
         return false;
     }
 

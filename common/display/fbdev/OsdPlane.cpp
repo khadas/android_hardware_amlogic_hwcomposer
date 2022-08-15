@@ -34,7 +34,7 @@ OsdPlane::~OsdPlane() {
 
 int32_t OsdPlane::getProperties() {
     int capacity;
-    if (ioctl(mDrvFd, FBIOGET_OSD_CAPBILITY, &capacity) != 0) {
+    if (ioctl(mDrvFd, FBIOGET_OSD_CAPABILITY, &capacity) != 0) {
         MESON_LOGE("osd plane get capability ioctl (%d) return(%d)", mCapability, errno);
         return 0;
     }
@@ -166,7 +166,7 @@ bool OsdPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
 
     /*
      * osdPlane free scale limitation:
-     * SRC_W * SRC_H * (1/666M HZ) < EXP_H/DST_H * (1/RREQ HZ)
+     * SRC_W * SRC_H * (1/666M HZ) < EXP_H/DST_H * (1/FREQ HZ)
      */
     uint32_t dispHeight = fb->mDisplayFrame.bottom - fb->mDisplayFrame.top;
     uint32_t desHeight = am_gralloc_get_height(fb->mBufferHandle);
@@ -188,7 +188,7 @@ bool OsdPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
 }
 
 int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> fb, uint32_t zorder, int blankOp) {
-    MESON_ASSERT(mDrvFd >= 0, "osd plane fd is not valiable!");
+    MESON_ASSERT(mDrvFd >= 0, "osd plane fd is not available!");
     MESON_ASSERT(zorder > 0, "osd driver request zorder > 0");// driver request zorder > 0
 
     memset(&mPlaneInfo, 0, sizeof(mPlaneInfo));
@@ -244,7 +244,7 @@ int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> fb, uint32_t zorder, 
             mPlaneInfo.shared_fd = -1;
 
             mPlaneInfo.dim_layer = 1;
-              /*osd canot support plane alpha when ouput dim layer.
+              /*osd canot support plane alpha when output dim layer.
             *so we handle the plane on color here.
             */
             mPlaneInfo.dim_color = (((unsigned char)(fb->mColor.r * fb->mPlaneAlpha) << 24) |

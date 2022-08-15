@@ -196,11 +196,11 @@ int32_t HwcVideoPlane::setPlane(
     std::shared_ptr<DrmFramebuffer> fb,
     uint32_t zorder, int blankOp) {
     ATRACE_CALL();
-    MESON_ASSERT(mDrvFd >= 0, "osd plane fd is not valiable!");
+    MESON_ASSERT(mDrvFd >= 0, "osd plane fd is not available!");
 
     bool bBlank = blankOp == UNBLANK ? false : true;
     if (!bBlank) {
-        MESON_ASSERT(fb.get() != NULL, "fb shoud not NULL");
+        MESON_ASSERT(fb.get() != NULL, "fb should not NULL");
 
         /*disable video*/
         drm_fb_type_t type = fb->mFbType;
@@ -234,13 +234,13 @@ int32_t HwcVideoPlane::setPlane(
         }
 
         if (fb->mFbType == DRM_FB_DI_COMPOSE_OUTPUT) {
-            /*Nothing to do now, di composer will post directlly,
+            /*Nothing to do now, di composer will post directly,
         * fence will set by composer also.
         .*/
             MESON_LOGD("Nothing to do for COMPOSE OUTPUT.");
         } else {
             int composefd = -1;
-            /*Video post to display directlly.*/
+            /*Video post to display directly.*/
             mVideoComposer->enable(true);
             mVideoComposer->setFrame(fb, composefd, zorder);
 

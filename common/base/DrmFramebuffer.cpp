@@ -156,7 +156,7 @@ void DrmFramebuffer::clearBufferInfo() {
     /* clearBufferInfo() means buffer changed,
     * for release fence:
     * 1. reset PrevRelease which already used in last loop.
-    * 2. CureRelease move to PrevRelase, it can be returned in next loop.
+    * 2. CureRelease move to PrevRelease, it can be returned in next loop.
     */
     mAcquireFence.reset();
     mAcquireFence = DrmFence::NO_FENCE;

@@ -70,7 +70,7 @@ inline void call_stack_dump() {
 }
 #else
 #ifdef DEBUG_USE_CALLSTACK
-//On vendor the CallStack.h can't usable becaluse the libcallstacks can't link.
+//On vendor the CallStack.h can't usable because the libcallstacks can't link.
 #include <utils/CallStack.h>
 inline void call_stack_dump() {
     android::CallStack cs("meson_display");

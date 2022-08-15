@@ -328,7 +328,7 @@ hwc2_error_t Hwc2Display::setVsyncEnable(hwc2_vsync_t enabled) {
     return HWC2_ERROR_NONE;
 }
 
-// HWC uses SystemControl for HDMI query / control purpose. Bacuase both parties
+// HWC uses SystemControl for HDMI query / control purpose. Because both parties
 // respond to the same hot plug uevent additional means of synchronization
 // are required before former can talk to the latter. To accomplish that HWC
 // shall wait for SystemControl before it can update its state and notify FWK
@@ -413,7 +413,7 @@ void Hwc2Display::onUpdate(bool bHdcp) {
         if (mObserver != NULL) {
             mObserver->refresh();
         } else {
-            MESON_LOGE("No display oberserve register to display (%s)", getName());
+            MESON_LOGE("No display observe register to display (%s)", getName());
         }
     }
 }
@@ -444,7 +444,7 @@ void Hwc2Display::onModeChanged(int stage) {
         MESON_LOGD("On mode change state: [%s]", stage == 1 ? "Complete" : "Begin to change");
         if (stage == 1) {
             if (mObserver != NULL) {
-                /*plug in and set displaymode ok, update inforamtion.*/
+                /*plug in and set displaymode ok, update information.*/
                 if (mSignalHpd) {
                     const drm_hdr_capabilities_t oldCaps = mHdrCaps;
                     mConnector->getHdrCapabilities(&mHdrCaps);
@@ -473,7 +473,7 @@ void Hwc2Display::onModeChanged(int stage) {
                     mScaleValue = (float)fbW/(float)mDisplayMode.pixelW;
                 }
             } else {
-                MESON_LOGE("No display oberserve register to display (%s)", getName());
+                MESON_LOGE("No display observe register to display (%s)", getName());
             }
 
             /* wake up the setActiveConfig */
@@ -940,7 +940,7 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
         if (mPresentCompositionStg->decideComposition() < 0)
             return HWC2_ERROR_NO_RESOURCES;
 
-        /*collect changed dispplay, layer, compostiion.*/
+        /*collect changed dispplay, layer, composition.*/
         ret = collectCompositionRequest(outNumTypes, outNumRequests);
     } else {
         /* skip Composition */
@@ -1038,7 +1038,7 @@ hwc2_error_t Hwc2Display::collectCompositionRequest(
     }
 #endif
 
-    /*collcet client clear layer.*/
+    /*collect client clear layer.*/
     std::shared_ptr<IComposer> clientComposer =
         mComposers.find(MESON_CLIENT_COMPOSER)->second;
     std::vector<std::shared_ptr<DrmFramebuffer>> overlayLayers;
@@ -1262,11 +1262,11 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
     return HWC2_ERROR_NONE;
 }
 
-/*getRelaseFences is return the fence for previous frame, for DPU based
-compsition, it is reasonable, current frame's present fence is the release
+/*getReleaseFences is return the fence for previous frame, for DPU based
+composition, it is reasonable, current frame's present fence is the release
 fence for previous frame.
 But for m2m composer, there is no present fence, only release fence for
-current frame, need do speical process to return it in next present loop.*/
+current frame, need do special process to return it in next present loop.*/
 hwc2_error_t Hwc2Display::getReleaseFences(uint32_t* outNumElements,
     hwc2_layer_t* outLayers, int32_t* outFences) {
     ATRACE_CALL();
@@ -1989,7 +1989,7 @@ bool Hwc2Display::handleVtDisplayConnection() {
         if (layer->isVtBuffer()) {
             MESON_LOGV("%s: displayId:%d layerId:%" PRIu64 " displayState:%d",
                     __func__, mDisplayId, layer->getUniqueId(), displayState);
-            layer->handleDisplayDisconnet(displayState);
+            layer->handleDisplayDisconnect(displayState);
         }
     }
 

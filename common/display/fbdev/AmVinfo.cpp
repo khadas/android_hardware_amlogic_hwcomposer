@@ -17,8 +17,8 @@
 */
 
 /*
-* !!!ATTENTATION:
-* MOST COPY FROM KERNEL, DONT MODIFY.
+* !!!ATTENTION:
+* MOST COPY FROM KERNEL, DO NOT MODIFY.
 */
 
 #include "AmVinfo.h"

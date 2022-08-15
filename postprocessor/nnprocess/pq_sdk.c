@@ -28,7 +28,7 @@ static void *mSdkHandle;
 static int (*func_inputSet)(void *, nn_input *);
 static void* (*func_outputGet)(void* , aml_output_config_t);
 static void* (*func_create)(aml_config*);
-static int (*func_destory)(void*);
+static int (*func_destroy)(void*);
 
 static void *mDemoHandle;
 static void (*func_processTop)(float *, unsigned int, img_classify_out_t*);
@@ -108,8 +108,8 @@ void* init(const char *path, int model_type) {
 
 void* uninit(void* context) {
     int ret = 0;
-    if (func_destory != NULL)
-        ret = func_destory(context);
+    if (func_destroy != NULL)
+        ret = func_destroy(context);
     else
         ALOGE("%s:interface don't implement.\n", __FUNCTION__);
 
@@ -149,9 +149,9 @@ int isPqInterfaceImplement() {
         if (func_create == NULL)
             ALOGD("func_create don't implement.\n");
 
-        func_destory = (int(*)(void*))dlsym(mSdkHandle, "aml_module_destroy");
-        if (func_destory == NULL)
-            ALOGD("func_destory don't implement.\n");
+        func_destroy = (int(*)(void*))dlsym(mSdkHandle, "aml_module_destroy");
+        if (func_destroy == NULL)
+            ALOGD("func_destroy don't implement.\n");
 
         func_inputSet = (int(*)(void*, nn_input *))
                 dlsym(mSdkHandle, "aml_module_input_set");
@@ -167,7 +167,7 @@ int isPqInterfaceImplement() {
             || (func_inputSet == NULL)
             || (func_outputGet == NULL)
             || (func_processTop == NULL)
-            || (func_destory == NULL)) {
+            || (func_destroy == NULL)) {
             ALOGE("NN interface don't implement.\n");
         } else {
             ALOGD("NN interface is implement in.\n");

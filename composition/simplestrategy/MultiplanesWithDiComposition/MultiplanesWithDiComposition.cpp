@@ -30,7 +30,7 @@
 #define BOTTOM_VIDEO_FB_BEGIN_ZORDER   1    // bottom video zorder: 1 - 64
 
 #define OSD_SCALER_INPUT_MAX_WIDTH (1920)
-#define OSD_SCALER_INPUT_MAX_HEIGH (1080)
+#define OSD_SCALER_INPUT_MAX_HEIGHT (1080)
 #define OSD_SCALER_INPUT_FACTOR (3.0)
 #define OSD_SCALER_INPUT_MARGIN (1.1)
 
@@ -591,7 +591,7 @@ int MultiplanesWithDiComposition::pickoutOsdFbs() {
                 break;
 
             default:
-                MESON_LOGE("Unknown compostition type(%d)", fb->mCompositionType);
+                MESON_LOGE("Unknown composition type(%d)", fb->mCompositionType);
                 bRemove = true;
                 break;
         }
@@ -777,14 +777,14 @@ int32_t MultiplanesWithDiComposition::compareFbScale(
     int32_t bSrcHeight = bSrc.bottom - bSrc.top;
 
     int widthCompare = aDisplayWidth*bSrcWidth - bDisplayWidth*aSrcWidth;
-    int heighCompare = aDisplayHeight *bSrcHeight - bDisplayHeight * aSrcHeight;
-    if (widthCompare == 0 && heighCompare == 0)
+    int heightCompare = aDisplayHeight *bSrcHeight - bDisplayHeight * aSrcHeight;
+    if (widthCompare == 0 && heightCompare == 0)
         return 0;
-    else if (widthCompare > 0 && heighCompare > 0)
+    else if (widthCompare > 0 && heightCompare > 0)
         return 1;
     else {
         //MESON_LOGW("compareFbScale failed %d ,%d, %d, %d",
-            //widthCompare, heighCompare,
+            //widthCompare, heightCompare,
             //bDisplayWidth, bDisplayHeight);
         return -1;
     }
@@ -1028,7 +1028,7 @@ void MultiplanesWithDiComposition::handleVPULimit(bool video) {
     compositionTargetH = compositionTargetH - minYOffset;
 
     drm_rect_t scaleInput = {0, 0,
-        OSD_SCALER_INPUT_MAX_WIDTH, OSD_SCALER_INPUT_MAX_HEIGH};
+        OSD_SCALER_INPUT_MAX_WIDTH, OSD_SCALER_INPUT_MAX_HEIGHT};
     drm_rect_t scaleOutput = {0, 0, compositionTargetW, compositionTargetH};
 
     /*choose the scale > targetW/MAX_INPUT*/
@@ -1431,7 +1431,7 @@ int MultiplanesWithDiComposition::commit(bool sf) {
             if (fb->isVtNeedClearFrame() ||
                 (fb->getVtBuffer() < 0 && fb->getSolidColorBuffer() < 0)) {
                 /* need blank video plane:
-                 * 1, receiced a clear last frame cmd
+                 * 1, received a clear last frame cmd
                  * 2, buffer is invalid */
                 MESON_LOGV("%s, layerId(%" PRIu64 ") will blank plane", __func__, fb->mId);
                 plane->setPlane(fb, presentZorder, BLANK_FOR_NO_CONTENT);

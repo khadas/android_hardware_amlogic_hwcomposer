@@ -98,7 +98,7 @@ public:
     virtual hwc2_error_t getReleaseFences(uint32_t* outNumElements,
         hwc2_layer_t* outLayers, int32_t* outFences);
 
-    /*display attrbuites*/
+    /*display attributes*/
     virtual hwc2_error_t  getDisplayConfigs(
         uint32_t* outNumConfigs, hwc2_config_t* outConfigs);
     virtual hwc2_error_t  getDisplayAttribute(
@@ -258,7 +258,7 @@ protected:
     std::vector<uint32_t> mSupportedContentTypes;
 
 #ifdef HWC_HDR_METADATA_SUPPORT
-    std::vector<drm_hdr_meatadata_t> mHdrKeys;
+    std::vector<drm_hdr_metadata_t> mHdrKeys;
 #endif
     std::mutex mMutex;
 

@@ -34,8 +34,8 @@ typedef enum {
     HWC_PIPE_DUAL,
 
     /*primary:
-        when postprocessor disable: viu1 -> conntector
-        when postprocessor enable: viu1->vdin->viu2->conntector
+        when postprocessor disable: viu1 -> connector
+        when postprocessor enable: viu1->vdin->viu2->connector
     extend:
         NONE*/
     HWC_PIPE_LOOPBACK,

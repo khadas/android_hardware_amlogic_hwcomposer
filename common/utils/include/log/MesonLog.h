@@ -31,7 +31,7 @@
 #if MESON_DEBUG_LEVEL > 0
 #define MESON_LOGV(fmt,...) \
     { \
-        if (DebugHelper::getInstance().enableLogVerboser()) \
+        if (DebugHelper::getInstance().enableLogVerbose()) \
             ALOGD(fmt, ##__VA_ARGS__); \
         else \
             ALOGV(fmt, ##__VA_ARGS__); \

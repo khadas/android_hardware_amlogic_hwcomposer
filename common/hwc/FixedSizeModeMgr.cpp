@@ -146,7 +146,7 @@ int32_t FixedSizeModeMgr::getActiveConfig(
 int32_t FixedSizeModeMgr::setActiveConfig(
     uint32_t config) {
     if (config > 0) {
-        MESON_LOGE("FixedSizeModeMgr dont support config (%d)", config);
+        MESON_LOGE("FixedSizeModeMgr don't support config (%d)", config);
     }
     return HWC2_ERROR_NONE;
 }

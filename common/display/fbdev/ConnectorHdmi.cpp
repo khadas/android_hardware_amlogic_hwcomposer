@@ -377,12 +377,12 @@ int32_t parseHdmiHdrCapabilities(drm_hdr_capabilities & hdrCaps) {
         } else {
             bool devSupportDv = getDvSupportStatus();
             if (((NULL != strstr(pos, "2160p30hz")) || (NULL != strstr(pos, "2160p60hz"))) && devSupportDv)
-                /* This information is coming / prasing from the VSVDB in Rx EDID.
-                 * And there is a bit field that indicates the dv max resolution capbility with 4k.
+                /* This information is coming / parsing from the VSVDB in Rx EDID.
+                 * And there is a bit field that indicates the dv max resolution capability with 4k.
                  * If supports_2160p60hz is true, then this Rx can support the DV with 2160p60hz,
                  * otherwise it only supports to 2160p30hz.
-                 * Acutally, DV can also work under the 1080p60...
-                 * That is to say, not every DV TV can supports up to 2160p60hz udner DV, maybe 2160p30hz.
+                 * Actually, DV can also work under the 1080p60...
+                 * That is to say, not every DV TV can supports up to 2160p60hz under DV, maybe 2160p30hz.
                  */
                 hdrCaps.DolbyVisionSupported = true;
         }

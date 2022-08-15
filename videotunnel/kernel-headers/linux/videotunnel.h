@@ -147,7 +147,7 @@ struct vt_display_vsync {
 
 /**
  * VT_IOC_ACQUIRE_BUFFER - consumer dequeue the vframe info
- * takes an vt_buffer_data and returns it with buffer_tiem field
+ * takes an vt_buffer_data and returns it with buffer_item field
  * populated
  */
 #define VT_IOC_ACQUIRE_BUFFER	_IOWR(VT_IOC_MAGIC, 6, \

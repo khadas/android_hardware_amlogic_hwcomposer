@@ -224,8 +224,8 @@ int32_t HwDisplayCrtcFbdev::pageFlip(int32_t &out_fence) {
 }
 
 int32_t HwDisplayCrtcFbdev::getHdrMetadataKeys(
-    std::vector<drm_hdr_meatadata_t> & keys) {
-    static drm_hdr_meatadata_t supportedKeys[] = {
+    std::vector<drm_hdr_metadata_t> & keys) {
+    static drm_hdr_metadata_t supportedKeys[] = {
         DRM_DISPLAY_RED_PRIMARY_X,
         DRM_DISPLAY_RED_PRIMARY_Y,
         DRM_DISPLAY_GREEN_PRIMARY_X,
@@ -240,7 +240,7 @@ int32_t HwDisplayCrtcFbdev::getHdrMetadataKeys(
         DRM_MAX_FRAME_AVERAGE_LIGHT_LEVEL,
     };
 
-    for (uint32_t i = 0;i < sizeof(supportedKeys)/sizeof(drm_hdr_meatadata_t); i++) {
+    for (uint32_t i = 0;i < sizeof(supportedKeys)/sizeof(drm_hdr_metadata_t); i++) {
         keys.push_back(supportedKeys[i]);
     }
 
@@ -248,7 +248,7 @@ int32_t HwDisplayCrtcFbdev::getHdrMetadataKeys(
 }
 
 int32_t HwDisplayCrtcFbdev::setHdrMetadata(
-    std::map<drm_hdr_meatadata_t, float> & hdrmedata) {
+    std::map<drm_hdr_metadata_t, float> & hdrmedata) {
     if (updateHdrMetadata(hdrmedata) == true)
         return set_hdr_info((vframe_master_display_colour_s_t*)hdrVideoInfo);
 
@@ -256,7 +256,7 @@ int32_t HwDisplayCrtcFbdev::setHdrMetadata(
 }
 
 bool HwDisplayCrtcFbdev::updateHdrMetadata(
-    std::map<drm_hdr_meatadata_t, float> & hdrmedata) {
+    std::map<drm_hdr_metadata_t, float> & hdrmedata) {
     vframe_master_display_colour_s_t newHdr;
     memset(&newHdr,0,sizeof(vframe_master_display_colour_s_t));
     if (!hdrmedata.empty()) {
@@ -301,7 +301,7 @@ bool HwDisplayCrtcFbdev::updateHdrMetadata(
                     newHdr.content_light_level.present_flag = 1;
                     break;
                 default:
-                    MESON_LOGE("unkown key %d",iter->first);
+                    MESON_LOGE("unknown key %d",iter->first);
                     break;
             }
         }
@@ -342,7 +342,7 @@ void HwDisplayCrtcFbdev::closeLogoDisplay() {
         sysfs_set_string(DISPLAY_LOGO_INDEX, "-1");
     }
 
-    sysfs_set_string(DISPLAY_FB0_FREESCALE_SWTICH, "0x10001");
+    sysfs_set_string(DISPLAY_FB0_FREESCALE_SWITCH, "0x10001");
     sysfs_set_string(DISPLAY_FB0_FREE_FB_MEM, "1");
 }
 

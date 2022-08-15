@@ -336,7 +336,7 @@ int SingleplaneComposition::buildOsdComposition() {
                 }
                 break;
             default:
-                MESON_LOGE("Unknown compostition type(%d)", fb->mCompositionType);
+                MESON_LOGE("Unknown composition type(%d)", fb->mCompositionType);
                 break;
         }
 
@@ -424,7 +424,7 @@ int SingleplaneComposition::commit(bool sf) {
         bool blankFlag = (mHideSecureLayer && fb->mSecure) ?
                 BLANK_FOR_SECURE_CONTENT : UNBLANK;
         /*
-        * SingleplaneCompositon handle fixed-zorder planes.
+        * SingleplaneComposition handle fixed-zorder planes.
         * Video plane, cursor plane always have fixed zorder.
         * For osd, if the zorder is not fixed, set to default fixed osd plane.
         */

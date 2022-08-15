@@ -19,7 +19,7 @@
 #define UVM_IOC_SET_PID _IOWR(UVM_IOC_MAGIC, 2, struct uvm_pid_data)
 #define UVM_IOC_SET_FD _IOWR(UVM_IOC_MAGIC, 3, struct uvm_fd_data)
 #define UVM_IOC_SET_INFO _IOWR(UVM_IOC_MAGIC, 7, struct uvm_hook_data)
-#define UVM_IOC_DETATCH _IOWR(UVM_IOC_MAGIC, 8, struct uvm_hook_data)
+#define UVM_IOC_DETACH _IOWR(UVM_IOC_MAGIC, 8, struct uvm_hook_data)
 
 ANDROID_SINGLETON_STATIC_INSTANCE(UvmDev)
 
@@ -68,7 +68,7 @@ int UvmDev::dettachBuffer(int fd) {
         "dettach",
     };
 
-    if (ioctl(mDrvFd, UVM_IOC_DETATCH, &hook_data) != 0)
+    if (ioctl(mDrvFd, UVM_IOC_DETACH, &hook_data) != 0)
         return -1;
 
     return 0;

@@ -154,7 +154,7 @@ int32_t RealModeMgr::update() {
     }
 
     // if mode changed by setActiveConfig then mode Id not changed
-    // otherwise change config Id sequentail
+    // otherwise change config Id sequential
     int nextModeId = largestUsedModeId + 1;
     MESON_LOGD("RealModeMgr::update: nextModeId:%d", nextModeId);
 

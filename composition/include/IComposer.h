@@ -31,7 +31,7 @@ public:
         std::vector<std::shared_ptr<DrmFramebuffer>> & overlayfbs,
         int composeIdx = 0) = 0;
 
-    /* preapre for new composition pass.*/
+    /* prepare for new composition pass.*/
     virtual int32_t prepare() = 0;
 
     /* add input framebuffers to this composer.*/
@@ -46,7 +46,7 @@ public:
         int composeIdx = 0) = 0;
 
     /* Start composition. When this function exit, input
-   * should be able to get its relese fence.*/
+   * should be able to get its release fence.*/
     virtual int32_t start(int composeIdx = 0) = 0;
 
     /*test if inputs can handle by composer.*/
