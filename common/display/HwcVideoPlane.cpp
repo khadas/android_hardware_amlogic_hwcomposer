@@ -87,8 +87,11 @@ uint32_t HwcVideoPlane::getPossibleCrtcs() {
     if (mCapability & PLANE_SUPPORT_1) {
         ret |=( 1 << DRM_PIPE_VOUT1 );
     }
-    if (mCapability & PLANE_SUPPORT_2)  {
+    if (mCapability & PLANE_SUPPORT_2) {
         ret |=( 1 << DRM_PIPE_VOUT2 );
+    }
+    if (mCapability & PLANE_SUPPORT_3) {
+        ret |=( 1 << DRM_PIPE_VOUT3 );
     }
 
     if (ret != 0) {
