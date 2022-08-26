@@ -80,6 +80,13 @@ int32_t VideoComposerDev::setFrames(
 
         vFrameInfo->sideband_type = 0;
         drm_fb_type_t fbType = fb->getFbType();
+        if (fbType == DRM_FB_VIDEO_UVM_DMA ) {
+            if (am_gralloc_get_format(buf) == HAL_PIXEL_FORMAT_YCBCR_444_888) {
+                vFrameInfo->bufferFormat = YUV444;
+            } else {
+                vFrameInfo->bufferFormat = NV21;
+            }
+        }
         if (fbType == DRM_FB_VIDEO_DMABUF ||
             fbType == DRM_FB_VIDEO_UVM_DMA) {
             vFrameInfo->fd = am_gralloc_get_buffer_fd(buf);
@@ -127,8 +134,8 @@ int32_t VideoComposerDev::setFrames(
         vFrameInfo->zorder = fb->mZorder;
         vFrameInfo->transform = fb->mTransform;
         /*pass aligned buffer width and height to video composer*/
-        vFrameInfo->reserved[0] = isSidebandBuffer ? 0 : am_gralloc_get_stride_in_pixel(buf);
-        vFrameInfo->reserved[1] = isSidebandBuffer ? 0 : am_gralloc_get_aligned_height(buf);
+        vFrameInfo->stride_in_pixel = isSidebandBuffer ? 0 : am_gralloc_get_stride_in_pixel(buf);
+        vFrameInfo->aligned_height = isSidebandBuffer ? 0 : am_gralloc_get_aligned_height(buf);
         if (isSidebandBuffer) {
             vFrameInfo->buffer_w = isBlackBuffer ? VIDEO_BUFFER_W : 0;
             vFrameInfo->buffer_h = isBlackBuffer ? VIDEO_BUFFER_H : 0;
@@ -138,10 +145,10 @@ int32_t VideoComposerDev::setFrames(
         }
 
         MESON_LOGV("VideoComposerDev(%d) layerId(%" PRIu64 ") setframe zorder(%d) "
-                "Fbtype(%s) bufferFd(%d) (%dx%d) aligned wxh (%dx%d))",
+                "Fbtype(%s) bufferFd(%d) (%dx%d) aligned wxh (%dx%d)) bufferFormat(%d)",
                 mDrvFd, fb->mId, fb->mZorder, drmFbTypeToString(fbType), vFrameInfo->fd,
                 vFrameInfo->buffer_w, vFrameInfo->buffer_h,
-                vFrameInfo->reserved[0], vFrameInfo->reserved[1]);
+                vFrameInfo->stride_in_pixel, vFrameInfo->aligned_height, vFrameInfo->bufferFormat);
     }
 
     if (mVideoFramesInfo.frame_count == 0) {

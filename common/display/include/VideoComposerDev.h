@@ -29,6 +29,11 @@ enum source_type_t {
     HWC_CREAT_ION = 2,
 };
 
+enum buffer_format_t {
+    NV21 = 0,
+    YUV444 = 1,
+};
+
 typedef struct video_frame_info {
     int32_t fd;
     int32_t composer_fen_fd;
@@ -47,8 +52,11 @@ typedef struct video_frame_info {
     u32 transform;
     u32 type;
     u32 sideband_type;
-    u32 reserved[2];
+    u32 stride_in_pixel;
+    u32 aligned_height;
     u32 source_type;
+    u32 bufferFormat;
+    u32 reserved[5];
 } video_frame_info_t;
 
 typedef struct video_frames_info {
