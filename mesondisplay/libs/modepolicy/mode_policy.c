@@ -1,0 +1,920 @@
+/*
+ * Copyright (c) 2022 Amlogic, Inc. All rights reserved.
+ *
+ * This source code is subject to the terms and conditions defined in the
+ * file 'LICENSE' which is part of this source code package.
+ *
+ * Description:
+ */
+
+#include "mode_policy.h"
+#include "mode_private.h"
+
+struct meson_policy {
+    struct meson_policy_in input;
+    struct meson_policy_out output;
+    enum meson_mode_policy policy;
+};
+
+static struct meson_policy g_in[MESON_MODE_CON_MAX];
+
+#define GET_CURRENT_POLICY(connector) \
+    struct meson_policy *mp = NULL; \
+    if (connector < 0 || connector >= MESON_MODE_CON_MAX) \
+        return -EINVAL; \
+    mp = &g_in[connector];
+
+static bool is_dv_prefer(struct meson_policy_in *input) {
+    if (input == NULL)
+        return false;
+
+    struct meson_hdr_info *hdr_ptr = &input->hdr_info;
+
+    /* not dv priority */
+    if (hdr_ptr->hdr_priority != MESON_DOLBY_VISION_PRIORITY)
+        return false;
+
+    /* dv is enable and tv also support it */
+    if (hdr_ptr->is_enable_dv && hdr_ptr->is_tv_supportDv)
+        return true;
+
+    return false;
+}
+
+static int32_t is_hdr_prefer(struct meson_policy_in *input) {
+    if (input == NULL)
+        return -EINVAL;
+
+    struct meson_hdr_info *hdr_ptr = &(input->hdr_info);
+
+    /* not dv priority */
+    if (hdr_ptr->is_hdr_resolution_priority != 1)
+        return 0;
+
+    /* hdr is enable and policy is also hdr */
+    if (hdr_ptr->is_tv_supportHDR &&
+            ((hdr_ptr->hdr_priority == MESON_DOLBY_VISION_PRIORITY) ||
+             (hdr_ptr->hdr_priority == MESON_HDR10_PRIORITY)))
+        return 1;
+
+    return 0;
+}
+
+static int32_t update_dv_type(struct meson_hdr_info *info) {
+    char type[MESON_MODE_LEN];
+    char dv_deepcolor[MESON_DV_MODE_LEN];
+
+    /*
+     * 1. update input amdolby vision info
+     * 1.1 update current amdolby vision mode
+     */
+    strcpy(type, info->ubootenv_dv_type);
+    /*
+     * 1.2 update tv support amdolby vision deep color
+     */
+    strcpy(dv_deepcolor, info->dv_deepcolor);
+    SYS_LOGI("ubootenv_dv_type %s dv_deepcolor:%s\n", type, dv_deepcolor);
+
+    /*
+     * 2. check tv support or not
+     */
+    if ((strstr(type, "1") != NULL) && strstr(dv_deepcolor, "DV_RGB_444_8BIT") != NULL) {
+        return DOLBY_VISION_STD_ENABLE;
+    } else if ((strstr(type, "2") != NULL) && strstr(dv_deepcolor, "LL_YCbCr_422_12BIT") != NULL) {
+        return DOLBY_VISION_LL_YUV;
+    } else if ((strstr(type, "3") != NULL) &&
+            ((strstr(dv_deepcolor, "LL_RGB_444_12BIT") != NULL) ||
+             (strstr(dv_deepcolor, "LL_RGB_444_10BIT") != NULL))) {
+        return DOLBY_VISION_LL_RGB;
+    } else if (strstr(type, "0") != NULL) {
+        return DOLBY_VISION_DISABLE;
+    }
+
+    /*
+     * 3. amdolby vision best policy:STD->LL_YUV->LL_RGB for netflix request
+     * amdolby vision best policy:LL_YUV->STD->LL_RGB for amdolby vision request
+     */
+    if ((strstr(dv_deepcolor, "DV_RGB_444_8BIT") != NULL) ||
+            (strstr(dv_deepcolor, "LL_YCbCr_422_12BIT") != NULL)) {
+        if (strstr(dv_deepcolor, "DV_RGB_444_8BIT") != NULL) {
+            return DOLBY_VISION_STD_ENABLE;
+        } else if (strstr(dv_deepcolor, "LL_YCbCr_422_12BIT") != NULL) {
+            return DOLBY_VISION_LL_YUV;
+        }
+    } else if ((strstr(dv_deepcolor, "LL_RGB_444_12BIT") != NULL) ||
+            (strstr(dv_deepcolor, "LL_RGB_444_10BIT") != NULL)) {
+        return DOLBY_VISION_LL_RGB;
+    }
+
+    return DOLBY_VISION_DISABLE;
+}
+
+/* amdolby vision mode to color format */
+static void update_dv_attr(const char *deepcolor, int dolbyvision_type, char * dv_attr) {
+    int dv_type = dolbyvision_type;
+
+    switch (dv_type) {
+        case DOLBY_VISION_STD_ENABLE:
+            strcpy(dv_attr, "444,8bit");
+            break;
+        case DOLBY_VISION_LL_YUV:
+            strcpy(dv_attr, "422,12bit");
+            break;
+        case DOLBY_VISION_LL_RGB:
+            if (strstr(deepcolor, "LL_RGB_444_12BIT") != NULL) {
+                strcpy(dv_attr, "444,12bit");
+            } else if (strstr(deepcolor, "LL_RGB_444_10BIT") != NULL) {
+                strcpy(dv_attr, "444,10bit");
+            }
+            break;
+        default:
+            strcpy(dv_attr, "444,8bit");
+            break;
+    }
+
+    SYS_LOGI("dv_type :%d dv_attr:%s", dv_type, dv_attr);
+}
+
+/*
+ * find the index of mode base the hdmi resolution priority table
+ * TODO: refactor
+ */
+static int32_t find_resolution_index(const char *mode, int flag) {
+    int32_t validMode = 0;
+    if (strlen(mode) > 0) {
+        for (int i = 0; i < ARRAY_SIZE(DISPLAY_MODE_LIST); i++) {
+            if (strcmp(mode, DISPLAY_MODE_LIST[i]) == 0) {
+                validMode = 1;
+                break;
+            }
+        }
+    }
+    if (!validMode) {
+        SYS_LOGI("the resolveResolution mode [%s] is not valid\n", mode);
+        return -1;
+    }
+
+    /*
+     * frame rate priority than resolution
+     * ex:1080p60hz prefer to 2160p30hz
+     */
+    if (flag == MESON_POLICY_FRAMERATE) {
+        for (int64_t index = 0; index < sizeof(MODE_FRAMERATE_FIRST)/sizeof(char *); index++) {
+            if (strcmp(mode, MODE_FRAMERATE_FIRST[index]) == 0) {
+                return index;
+            }
+        }
+    } else {
+        /*
+         * resolution priority than frame rate
+         * ex:2160p30hz prefer to 1080p60hz
+         */
+        for (int64_t index = 0; index < sizeof(MODE_RESOLUTION_FIRST)/sizeof(char *); index++) {
+            if (strcmp(mode, MODE_RESOLUTION_FIRST[index]) == 0) {
+                return index;
+            }
+        }
+    }
+    return -1;
+}
+
+
+static void update_dv_mode(char *dv_maxmode,
+                    char *cur_outputmode,
+                    int dv_type,
+                    char *final_displaymode,
+                    enum meson_mode_policy policy) {
+    char dv_displaymode[MESON_MODE_LEN] = {0};
+
+    /*
+     * 1. update tv support amdolby vision resolution
+     */
+    for (int i = DV_MODE_LIST_SIZE - 1; i >= 0; i--) {
+        if (strstr(dv_maxmode, DV_MODE_LIST[i]) != NULL) {
+            strcpy(dv_displaymode, DV_MODE_LIST[i]);
+            break;
+        }
+    }
+
+    /*
+     * 2. find prefer amdolby vision resolution
+     */
+    if (policy == MESON_POLICY_BEST) {
+        /* 2.1 best policy enable case */
+        if (!strcmp(dv_displaymode, DV_MODE_4K2K60HZ)) {
+            /* TV support amdolby vision 2160p60hz case */
+            if (dv_type == DOLBY_VISION_LL_RGB) {
+                /* amdolby vision LL RGB(rgb 10/12bit) only support 1080p60hz */
+                strcpy(final_displaymode, DV_MODE_1080P);
+            } else {
+                /* other amdolby visin mode,use 2160p60hz */
+                strcpy(final_displaymode, DV_MODE_4K2K60HZ);
+            }
+        } else {
+            /* TV support amdolby vision non 2160p60hz case */
+            if (!strcmp(dv_displaymode, DV_MODE_4K2K30HZ) ||
+                    !strcmp(dv_displaymode, DV_MODE_4K2K25HZ) ||
+                    !strcmp(dv_displaymode, DV_MODE_4K2K24HZ)) {
+                /*
+                 * TV support amdolby vision support 2160p30hz or 2160p25hz or 2160p24hz
+                 * 1080p60hz prefer to 2160p30hz 2160p25hz 2160p24hz
+                 */
+                strcpy(final_displaymode, DV_MODE_1080P);
+            } else {
+                /*
+                 * TV support amdolby vision non 2160p30hz 2160p25hz 2160p24hz
+                 * use tv support amdolby vision resolution
+                 */
+                strcpy(final_displaymode, dv_displaymode);
+            }
+        }
+    } else {
+        /*
+         * 2.1 best policy disable case
+         * smpte(3840x2160@XXhz) and i timing not support amdolby vision
+         * hdmi output resolution need small than amdolby vision resolution
+         * x:amdolby vision support 1080p60hz,only can output small 1080p60hz resolution
+         */
+        if ((find_resolution_index(cur_outputmode, MESON_POLICY_RESOLUTION) >
+                    find_resolution_index(dv_displaymode, MESON_POLICY_RESOLUTION)) ||
+                (strstr(cur_outputmode, "smpte") != NULL) || (strstr(cur_outputmode, "i") != NULL) ||
+                (strstr(cur_outputmode, "480p") != NULL) || (strstr(cur_outputmode, "576p") != NULL)) {
+            strcpy(final_displaymode, dv_displaymode);
+        } else {
+            strcpy(final_displaymode, cur_outputmode);
+        }
+    }
+
+    SYS_LOGI("final_displaymode:%s, cur_outputmode:%s, dv_displaymode:%s", final_displaymode, cur_outputmode, dv_displaymode);
+}
+
+static int32_t dv_scene_process(struct meson_policy_in *input,
+                                struct meson_policy_out *output,
+                                enum meson_mode_policy policy) {
+    /*
+     * 1. update amdolby vision output type
+     */
+    int dv_type = update_dv_type(&input->hdr_info);
+
+    output->dv_type = dv_type;
+    SYS_LOGI("dv type:%d", output->dv_type);
+
+    /*
+     * 2. update amdolby vision output output mode to color format
+     * 2.1 update amdolby vision deepcolor
+     */
+    char dv_attr[MESON_MODE_LEN] = {0};
+    update_dv_attr(input->hdr_info.dv_deepcolor, dv_type, dv_attr);
+    strcpy(output->deepcolor, dv_attr);
+    SYS_LOGI("dv final_deepcolor:%s", output->deepcolor);
+
+    /*
+     * 2.2 update amdolby vision output resolution
+     */
+    char final_displaymode[MESON_MODE_LEN] = {0};
+    char cur_displaymode[MESON_MODE_LEN] = {0};
+    strcpy(cur_displaymode, input->cur_displaymode);
+
+    update_dv_mode(input->hdr_info.dv_max_mode,
+                   cur_displaymode,
+                   dv_type,
+                   final_displaymode,
+                   policy);
+    strcpy(output->displaymode, final_displaymode);
+    SYS_LOGI("dv final_displaymode:%s", output->displaymode);
+
+    return 0;
+}
+
+/* check resolution and color format support or not */
+static bool mode_support_check(const char *mode, const char * color) {
+    char value[MESON_MODE_LEN] = {0};
+    char outputmode[MESON_MODE_LEN] = {0};
+
+    strcpy(outputmode, mode);
+    strcat(outputmode, color);
+
+    /* try support or not */
+    meson_mode_write_sys(DISPLAY_HDMI_VALID_MODE, outputmode);
+    meson_mode_read_sys(DISPLAY_HDMI_VALID_MODE, value, false);
+
+    return atoi(value) ? true : false;
+}
+
+
+/*
+ * check 4k50/4k60 hdr support or not base driver edid
+ */
+static bool is_support_4kHDR(struct meson_policy_in *input,
+                             struct meson_policy_out *output_info) {
+    if (!output_info) {
+        SYS_LOGE("output_info is NULL\n");
+        return false;
+    }
+
+    const char **colorList = NULL;
+    int colorList_length   = 0;
+
+    /* use 4k hdr color format table */
+    colorList = HDR_4K_COLOR_ATTRIBUTE_LIST;
+    colorList_length = ARRAY_SIZE(HDR_4K_COLOR_ATTRIBUTE_LIST);
+
+    /*
+     * choose prefer color format and resolution for 4k hdr
+     * disp_cap:the list of TV support resolution from driver parse edid
+     * dc_cap:the list of TV support color format from driver parse edid
+     */
+    for (int i = 0; i < colorList_length; i++) {
+        if (strstr(input->con_info.dc_cap, colorList[i]) != NULL) {
+            const char **resolutionList = NULL;
+            int resolutionList_length   = 0;
+            /* use 4k hdr resolution table */
+            resolutionList = MODE_4K_LIST;
+            resolutionList_length = ARRAY_SIZE(MODE_4K_LIST);
+            for (int j = 0; j < resolutionList_length; j++) {
+                if (strstr(input->con_info.disp_cap, resolutionList[j]) != NULL) {
+                    if (mode_support_check(resolutionList[j], colorList[i])) {
+                       SYS_LOGI("%s mode:[%s], deep color:[%s]\n", __FUNCTION__, resolutionList[j], colorList[i]);
+                       strcpy(output_info->deepcolor, colorList[i]);
+                       strcpy(output_info->displaymode, resolutionList[j]);
+                       return true;
+                    }
+               }
+           }
+        }
+    }
+
+    SYS_LOGI("%s 4k hdr not support\n", __FUNCTION__);
+    return false;
+}
+
+/* check non 4k hdr support or not */
+static bool is_support_non4kHDR(struct meson_policy_in *input,
+                                struct meson_policy_out *output_info) {
+    if (!output_info) {
+        SYS_LOGE("output_info is NULL\n");
+        return false;
+    }
+
+    const char **colorList = NULL;
+    int colorList_length = 0;
+
+    /* use non 4k hdr color format table */
+    colorList = HDR_NON4K_COLOR_ATTRIBUTE_LIST;
+    colorList_length = ARRAY_SIZE(HDR_NON4K_COLOR_ATTRIBUTE_LIST);
+
+    /*
+     * choose prefer color format and resolution for non 4k hdr
+     * disp_cap:the list of TV support resolution from driver parse edid
+     * dc_cap:the list of TV support color format from driver parse edid
+     */
+    for (int i = 0; i < colorList_length; i++) {
+        if (strstr(input->con_info.dc_cap, colorList[i]) != NULL) {
+            const char **resolutionList = NULL;
+            int resolutionList_length = 0;
+            /* use non 4k hdr resolution table */
+            resolutionList = MODE_NON4K_LIST;
+            resolutionList_length = ARRAY_SIZE(MODE_NON4K_LIST);
+            for (int j = 0; j < resolutionList_length; j++) {
+                if (strstr(input->con_info.disp_cap, resolutionList[j]) != NULL) {
+                    if (mode_support_check(resolutionList[j], colorList[i])) {
+                       SYS_LOGI("%s mode:[%s], deep color:[%s]\n", __FUNCTION__, resolutionList[j], colorList[i]);
+                       strcpy(output_info->deepcolor, colorList[i]);
+                       strcpy(output_info->displaymode, resolutionList[j]);
+                       return true;
+                    }
+               }
+           }
+        }
+    }
+
+    SYS_LOGI("%s non 4k hdr not support\n", __FUNCTION__);
+    return false;
+}
+
+static bool find_hdr_prefer_mode(struct meson_policy_in *input,
+                                 struct meson_policy_out *output_info) {
+    bool find = false;
+    if (!output_info) {
+        SYS_LOGE("output_info is NULL\n");
+    } else {
+        /*
+         * box can support 4k case
+         * find prefer 4k hdr resolution and color format base driver edid
+         */
+        if (input->con_info.is_support4k == true) {
+            find = is_support_4kHDR(input, output_info);
+        }
+
+        /*
+         * not find 4k hdr mode and find non 4k case
+         * find prefer non 4k hdr resolution and color format base driver edid
+         */
+        if (find == false) {
+            find = is_support_non4kHDR(input, output_info);
+        }
+    }
+
+    return find;
+}
+
+
+/* TODO: need refactor */
+/* check if the edid support current hdmi mode */
+static bool is_support_HdmiMode(struct meson_policy_in *input, char* mode) {
+    if (!mode) {
+        SYS_LOGE("mode is NULL\n");
+        return false;
+    } else {
+        /* check current resolution support or not base driver edid */
+        char *pCmp = input->con_info.disp_cap;
+        while ((pCmp - input->con_info.disp_cap) < (int)strlen(input->con_info.disp_cap)) {
+            char *pos = strchr(pCmp, 0x0a);
+            if (NULL == pos)
+                break;
+
+            int step = 1;
+            if (*(pos - 1) == '*') {
+                pos -= 1;
+                step += 1;
+            }
+            if (!strncmp(pCmp, mode, pos - pCmp)) {
+                strncpy(mode, pCmp, pos - pCmp);
+                SYS_LOGI("mode: %s\n", mode);
+                return true;
+            }
+            pCmp = pos + step;
+        }
+
+        SYS_LOGI("mode: %s not support\n", mode);
+
+        return false;
+    }
+}
+
+static void get_best_deepcolor(struct meson_policy_in *input,
+                               const char *outputmode, char* colorAttribute) {
+    char *pos = NULL;
+    int length = 0;
+    const char **colorList = NULL;
+    char supportedColorList[MESON_MAX_STR_LEN];
+    strcpy(supportedColorList, input->con_info.dc_cap);
+
+    /*
+     * if read /sys/class/amhdmitx/amhdmitx0/dc_cap is NULL
+     * return and use default color format(444 8bit)
+     */
+    if (!strlen(supportedColorList)) {
+        if (!strcmp(outputmode, MODE_4K2K60HZ) || !strcmp(outputmode, MODE_4K2K50HZ)
+            || !strcmp(outputmode, MODE_4K2KSMPTE60HZ) || !strcmp(outputmode, MODE_4K2KSMPTE50HZ)) {
+            strcpy(colorAttribute, MESON_DEFAULT_COLOR_FORMAT_4K);
+        } else {
+            strcpy(colorAttribute, MESON_DEFAULT_COLOR_FORMAT);
+        }
+
+        SYS_LOGE("dc_cap is NULL\n");
+        return;
+    }
+
+    /*
+     * 1. select the color format table for different resolution or scene.
+     */
+    if (!strcmp(outputmode, MODE_4K2K60HZ) || !strcmp(outputmode, MODE_4K2K50HZ)
+        || !strcmp(outputmode, MODE_4K2KSMPTE60HZ) || !strcmp(outputmode, MODE_4K2KSMPTE50HZ)) {
+        /* 2160p50hz 2160p60hz 3840x2160p60hz 3840x2160p50hz case */
+        if (input->hdr_info.is_lowpower_mode) {
+            colorList = COLOR_ATTRIBUTE_LIST3;
+            length = ARRAY_SIZE(COLOR_ATTRIBUTE_LIST3);
+        } else {
+            colorList = COLOR_ATTRIBUTE_LIST1;
+            length = ARRAY_SIZE(COLOR_ATTRIBUTE_LIST1);
+        }
+    } else {
+        /* except 2160p60hz 2160p50hz 3840x2160p60hz 3840x2160p60hz case */
+        if (input->hdr_info.is_lowpower_mode) {
+            //8bit prefer to 10bit for low power mode
+            //detail priority as table
+            colorList = COLOR_ATTRIBUTE_LIST4;
+            length = ARRAY_SIZE(COLOR_ATTRIBUTE_LIST4);
+        } else if (is_hdr_prefer(input)) {
+            /*
+             * hdr non 4k color format priority table
+             * for user change resolution case
+             * exp:connector 2160p60 420 8bit TV,when switch to 1080p60,
+             * 10bit first for hdr,switch 2160p60,only 420 8bit.
+             */
+            colorList = COLOR_ATTRIBUTE_LIST2;
+            length = ARRAY_SIZE(COLOR_ATTRIBUTE_LIST2);
+        } else {
+            //sdr non 4k color format priority table
+            colorList = SDR_NON4K_COLOR_ATTRIBUTE_LIST;
+            length = ARRAY_SIZE(SDR_NON4K_COLOR_ATTRIBUTE_LIST);
+        }
+    }
+
+    /*
+     * 2. select the preferred color format base resolution
+     */
+    for (int i = 0; i < length; i++) {
+        if ((pos = strstr(supportedColorList, colorList[i])) != NULL) {
+            //check resolution+color format support or not base driver edid
+            if (mode_support_check(outputmode, colorList[i])) {
+                SYS_LOGI("support current mode:[%s], deep color:[%s]\n", outputmode, colorList[i]);
+                strcpy(colorAttribute, colorList[i]);
+                break;
+            }
+        }
+    }
+
+    /*
+     * TODO: what about not find
+     */
+}
+
+static void hdr_scene_process(struct meson_policy_in *input,
+                              struct meson_policy_out *output_info,
+                              enum meson_mode_policy policy) {
+    bool find = false;
+    if (policy == MESON_POLICY_BEST &&
+            ((input->state == MESON_SCENE_STATE_INIT) || (input->state == MESON_SCENE_STATE_POWER))) {
+         /*
+          * best policy enable case
+          * and except from third apk or framework set mode.
+          */
+
+         find = find_hdr_prefer_mode(input, output_info);
+#if 0
+         if (find) {
+             strcpy(mScene_output_info.final_deepcolor, Scene_output_info.final_deepcolor);
+             strcpy(mScene_output_info.final_displaymode, Scene_output_info.final_displaymode);
+         } else {
+             SYS_LOGE("%s not find hdr support mode\n", __FUNCTION__);
+         }
+#endif
+     } else {
+         /*
+          * best policy disable case
+          * 1.check cur_displaymode + ubootenv.var.colorattribute support or not
+          *   and except from third apk or framework set mode.
+          */
+         if (mode_support_check(input->cur_displaymode, input->con_info.ubootenv_colorattr) &&
+                 !((input->state == MESON_SCENE_STATE_SWITCH) && policy == MESON_POLICY_BEST)) {
+             SYS_LOGI("support current mode:[%s], deep color:[%s]\n",
+                     input->cur_displaymode, input->con_info.ubootenv_colorattr);
+             strcpy(output_info->deepcolor, input->con_info.ubootenv_colorattr);
+             strcpy(output_info->displaymode, input->cur_displaymode);
+             find = true;
+         } else if (is_support_HdmiMode(input, input->cur_displaymode)) {
+             /*
+              * 2.check cur_displaymode support or not
+              * if displaymode support ,and find best color format base mode.
+              */
+             char color_attribute[MESON_MODE_LEN] = {0};
+             get_best_deepcolor(input, input->cur_displaymode, color_attribute);
+             strcpy(output_info->deepcolor, color_attribute);
+             strcpy(output_info->displaymode, input->cur_displaymode);
+             find = true;
+         } else {
+             /*
+              * 3.find best hdr prefer mode
+              */
+             find = find_hdr_prefer_mode(input, output_info);
+#if 0
+             if (find) {
+                 strcpy(output_info->deepcolor, Scene_output_info.final_deepcolor);
+                 strcpy(output_info->displaymode, Scene_output_info.final_displaymode);
+             } else {
+                 SYS_LOGE("%s not find hdr support mode\n", __FUNCTION__);
+             }
+#endif
+         }
+    }
+
+    /* TODO: not find */
+}
+
+
+/* get the highest hdmi mode by edid */
+static void get_highest_mode(struct meson_policy_in *input, char* mode) {
+    char value[MESON_MODE_LEN] = {0};
+    char tempMode[MESON_MODE_LEN] = {0};
+
+    char* startpos;
+    char* destpos;
+
+    /* disp_cap:the list of TV support resolution from driver parse edid */
+    startpos = input->con_info.disp_cap;
+    /* use the 480p as base mode for choosing 480p when edid only support 480p */
+    strcpy(value, "480p60hz");
+
+    /* select the preferred resolution */
+    while (strlen(startpos) > 0) {
+        /* get edid resolution to tempMode in order. */
+        destpos = strstr(startpos, "\n");
+        if (NULL == destpos)
+            break;
+        memset(tempMode, 0, MESON_MODE_LEN);
+        strncpy(tempMode, startpos, destpos - startpos);
+        startpos = destpos + 1;
+
+        /* filter 4k when soc not support 4K */
+        if (input->con_info.is_support4k == false &&
+                (strstr(tempMode, "2160") || strstr(tempMode, "smpte"))) {
+            SYS_LOGE("This platform not support : %s\n", tempMode);
+            continue;
+        }
+
+        if (tempMode[strlen(tempMode) - 1] == '*') {
+            tempMode[strlen(tempMode) - 1] = '\0';
+        }
+
+        /*
+         * find the index of mode base the hdmi resolution priority table
+         * and find the best prefer resolution
+         */
+        if (find_resolution_index(tempMode, MESON_POLICY_FRAMERATE) >
+                find_resolution_index(value, MESON_POLICY_FRAMERATE)) {
+            memset(value, 0, MESON_MODE_LEN);
+            strcpy(value, tempMode);
+        }
+    }
+
+    strcpy(mode, value);
+    SYS_LOGI("set HDMI to highest edid mode: %s\n", mode);
+}
+
+
+/* check if the edid support current hdmi mode */
+static void filter_hdmi_mode(struct meson_policy_in *input, char* mode) {
+    /* check current resolution support or not base driver edid */
+    char *pCmp = input->con_info.disp_cap;
+    while ((pCmp - input->con_info.disp_cap) < (int)strlen(input->con_info.disp_cap)) {
+        char *pos = strchr(pCmp, 0x0a);
+        if (NULL == pos)
+            break;
+
+        int step = 1;
+        if (*(pos - 1) == '*') {
+            pos -= 1;
+            step += 1;
+        }
+        if (!strncmp(pCmp, input->cur_displaymode, pos - pCmp)) {
+            strncpy(mode, pCmp, pos - pCmp);
+            return;
+        }
+        pCmp = pos + step;
+    }
+
+    /* current resolution is not support in this TV, so switch to best mode. */
+    get_highest_mode(input, mode);
+}
+
+static void get_hdmi_outputmode(struct meson_policy_in *input,
+                                char *mode, enum meson_mode_policy policy) {
+    /* Fall back to 480p if EDID can't be parsed */
+    if (strcmp(input->con_info.edid_parsing, "ok")) {
+        strcpy(mode, MESON_DEFAULT_HDMI_MODE);
+        SYS_LOGE("EDID parsing error detected\n");
+        return;
+    }
+
+    if (policy == MESON_POLICY_BEST) {
+        /*
+         * best policy enable case
+         * find best prefer resolution base driver edid
+         */
+        get_highest_mode(input, mode);
+    } else {
+        /*
+         * best policy disable case
+         * if current mode support,use current mode
+         * if current mode not support,find best prefer resolution base driver edid
+         */
+        filter_hdmi_mode(input, mode);
+    }
+    SYS_LOGI("set HDMI mode to %s\n", mode);
+}
+
+static void get_hdmi_color_attr(struct meson_policy_in *input,
+                                const char *outputmode,
+                                char *color_attr,
+                                enum meson_mode_policy policy) {
+    char supportedColorList[MESON_MAX_STR_LEN];
+    strcpy(supportedColorList, input->con_info.dc_cap);
+
+    /*
+     * if read /sys/class/amhdmitx/amhdmitx0/dc_cap is NULL.
+     * use default color format
+     */
+    if (!strlen(supportedColorList)) {
+        if (!strcmp(outputmode, MODE_4K2K60HZ) || !strcmp(outputmode, MODE_4K2K50HZ)
+            || !strcmp(outputmode, MODE_4K2KSMPTE60HZ) || !strcmp(outputmode, MODE_4K2KSMPTE50HZ)) {
+            strcpy(color_attr, MESON_DEFAULT_COLOR_FORMAT_4K);
+        } else {
+            strcpy(color_attr, MESON_DEFAULT_COLOR_FORMAT);
+        }
+
+        SYS_LOGE("Error!!! Do not find sink color list, use default color attribute:%s\n", color_attr);
+        return;
+    }
+
+    /*
+     * if bestpolicy is disable use ubootenv.var.colorattribute
+     * will check resolution + color format be support TV EDID
+     */
+    if (policy != MESON_POLICY_BEST) {
+        char colorTemp[MESON_MODE_LEN] = {0};
+        strcpy(colorTemp, input->con_info.ubootenv_colorattr);
+        if (mode_support_check(outputmode, colorTemp)) {
+            strcpy(color_attr, input->con_info.ubootenv_colorattr);
+        } else {
+            get_best_deepcolor(input, outputmode, color_attr);
+        }
+    } else {
+        /*
+         * best policy enable case
+         * select the preferred color format base outputmode(resolution)
+         */
+        get_best_deepcolor(input, outputmode, color_attr);
+    }
+
+    //1.if colorAttr is NULL above steps, will defines a initial value to it
+    //2.edid_parsing ng,will defines a initial value to it
+    if (!strstr(color_attr, "bit")
+        || strcmp(input->con_info.edid_parsing, "ok")) {
+        strcpy(color_attr, MESON_DEFAULT_COLOR_FORMAT);
+    }
+
+    SYS_LOGI("get hdmi color attribute : [%s], outputmode is: [%s] , and support color list is: [%s]\n",
+        color_attr, outputmode, supportedColorList);
+}
+
+
+static void update_deepcolor(struct meson_policy_in *input,
+                             const char* outputmode,
+                             char* color,
+                             enum meson_mode_policy policy) {
+    if (input->con_info.is_deepcolor == true) {
+        /* deep color(10/12bit) enable case */
+        get_hdmi_color_attr(input, outputmode, color, policy);
+    } else {
+        /* deep color disable case */
+        strcpy(color, "default");
+    }
+
+    SYS_LOGI("colorAttribute = %s\n", color);
+}
+
+static void sdr_scene_process(struct meson_policy_in *input,
+                              struct meson_policy_out *output_info,
+                              enum meson_mode_policy policy) {
+    /*
+     * 1. choose resolution and frame rate
+     */
+    if ((input->state == MESON_SCENE_STATE_INIT) || (input->state == MESON_SCENE_STATE_POWER)) {
+        /*
+         * boot/hot plug/suspend/resmue case
+         * choose resolution, frame rate base driver edid
+         */
+        char outputmode[MESON_MODE_LEN] = {0};
+
+        if (MESON_SINK_TYPE_NONE != input->con_info.sink_type) {
+            /* hdmi connect */
+            get_hdmi_outputmode(input, outputmode, policy);
+        } else {
+            /* hdmi not connect */
+            strcpy(outputmode, input->con_info.ubootenv_cvbsmode);
+        }
+        /* not find prefer resolution,use default resolution */
+        if (strlen(outputmode) == 0) {
+            strcpy(outputmode, MESON_DEFAULT_HDMI_MODE);
+        }
+
+        strcpy(output_info->displaymode, outputmode);
+        SYS_LOGI("final_displaymode:%s\n", output_info->displaymode);
+    } else if (input->state == MESON_SCENE_STATE_SWITCH) {
+        /*
+         * user/framework change scene
+         * doesn't read hdmi info for ui switch scene
+         * use user want to set resolution and frame rate
+         */
+        strcpy(output_info->displaymode, input->cur_displaymode);
+        SYS_LOGI("final_displaymode:%s\n", output_info->displaymode);
+    }
+
+    /*
+     * 2. choose color format, bit-depth
+     */
+    char color_attribute[MESON_MODE_LEN] = {0};
+    update_deepcolor(input, output_info->displaymode, color_attribute, policy);
+    strcpy(output_info->deepcolor, color_attribute);
+    SYS_LOGI("final_deepcolor = %s\n", output_info->deepcolor);
+}
+
+/*
+ * Set the mode policy
+ *
+ * @param connector         [in] connector type info
+ * @param policy            [in] meson policy
+ *
+ * Return of a value other than 0 means an error has occurred:
+ * -EINVAL - invalid connector type
+ */
+int32_t meson_mode_set_policy(int32_t connector, const meson_mode_policy_e policy) {
+    GET_CURRENT_POLICY(connector);
+    mp->policy = policy;
+    return 0;
+}
+
+/*
+ * set mode policy input
+ *
+ * @param connector         [in] connector type info
+ * @param input             [in] meson policy input, like hdr info, connector info
+ *
+ * Return of a value other than 0 means an error has occurred:
+ * -EINVAL - invalid connector type or input
+ */
+int32_t meson_mode_set_policy_input(int32_t connector, const struct meson_policy_in *input) {
+    GET_CURRENT_POLICY(connector);
+
+    if (input == NULL)
+        return -EINVAL;
+
+    mp->input = *input;
+    return 0;
+}
+
+/*
+ * get mode policy output
+ * @param connector         [in] connector type info
+ * @param output            [out] meson policy output: mode info, colorspace
+ *
+ * Return of a value other than 0 means an error has occurred:
+ * -EINVAL - invalid connector type or input
+ */
+int32_t meson_mode_get_policy_output(int32_t connector, struct meson_policy_out *output) {
+    GET_CURRENT_POLICY(connector);
+    struct meson_policy_in *input = &mp->input;
+    enum meson_mode_policy policy = mp->policy;
+
+    /* no output */
+    if (output ==  NULL)
+        return -EINVAL;
+
+    struct meson_policy_out  scene_output_info;
+    memset(&scene_output_info, 0, sizeof(scene_output_info));
+
+    /*
+     * 1. amdolby vision scene process
+     *    only for tv support dv and box enable dv
+     */
+    if (is_dv_prefer(input) == true) {
+        dv_scene_process(input, &scene_output_info, policy);
+    } else if (input->hdr_info.is_enable_dv) {
+        /* for enable amdolby vision core when first boot connecting non dv tv */
+        output->dv_type = DOLBY_VISION_STD_ENABLE;
+    } else {
+        /* for UI disable amdolby vision core and boot keep the status */
+        output->dv_type = DOLBY_VISION_DISABLE;
+    }
+
+    /*
+     * 2. hdr/sdr scene process
+     *    and decide final display mode and deepcolor
+     */
+    if (is_dv_prefer(input) == true) {
+        strcpy(output->displaymode, scene_output_info.displaymode);
+        strcpy(output->deepcolor, scene_output_info.deepcolor);
+        output->dv_type = scene_output_info.dv_type;
+    } else if (is_hdr_prefer(input) == 1) {
+        hdr_scene_process(input, &scene_output_info, policy);
+        strcpy(output->displaymode, scene_output_info.displaymode);
+        strcpy(output->deepcolor, scene_output_info.deepcolor);
+    } else {
+        sdr_scene_process(input, &scene_output_info, policy);
+        strcpy(output->displaymode, scene_output_info.displaymode);
+        strcpy(output->deepcolor, scene_output_info.deepcolor);
+    }
+
+    /*
+     * 3. not find outputmode and use default mode
+     */
+    if (strlen(output->displaymode) == 0) {
+        strcpy(output->displaymode, MESON_DEFAULT_HDMI_MODE);
+    }
+
+    /*
+     * 4. not find color space and use default mode
+     */
+    if (!strstr(output->deepcolor, "bit")) {
+        strcpy(output->deepcolor, MESON_DEFAULT_COLOR_FORMAT);
+    }
+
+    mp->output = *output;
+
+    SYS_LOGI("final_displaymode:%s, final_deepcolor:%s, dv_type:%d\n",
+        output->displaymode, output->deepcolor, output->dv_type);
+
+    return 0;
+}
