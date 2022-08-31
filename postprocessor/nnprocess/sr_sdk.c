@@ -35,7 +35,7 @@ int nn_process_network(void *qcontext,
         aml_output_config_t outconfig;
         outconfig.mdType = CUSTOM_NETWORK;
         outconfig.format = AML_OUTDATA_DMA;
-        outconfig.perfMode = AML_PERF_INFERRENCE;
+        outconfig.perfMode = AML_PERF_INFERENCE;
 
         ret = func_switchInputBuffer(qcontext, (void*)in_addr, 0);
         if (ret != 0) {
