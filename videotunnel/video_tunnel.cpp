@@ -352,6 +352,10 @@ int meson_vt_release_buffer(int fd, int tunnel_id, int buffer_fd, int fence_fd) 
 
     ret = meson_vt_ioctl(fd, VT_IOC_RELEASE_BUFFER, &data);
 
+    if (buffer_fd >= 0) {
+        close(buffer_fd);
+    }
+
     /* fence fd has transfered to prodouce, now close it */
     if (fence_fd >= 0)
         close(fence_fd);
