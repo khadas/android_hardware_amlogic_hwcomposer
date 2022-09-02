@@ -498,7 +498,7 @@ static void load_sc_proxy() {
 int32_t sc_get_hdmitx_mode_list(std::vector<std::string>& edidlist) {
     CHK_SC_PROXY();
 
-    auto ret = gSC->getSupportDispModeList(&edidlist)
+    auto ret = gSC->getSupportDispModeList(&edidlist);
     if (ret.isOk()) {
         return 0;
     } else {
