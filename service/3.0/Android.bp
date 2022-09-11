@@ -42,8 +42,8 @@ cc_defaults {
     ],
 
     shared_libs: [
-        "android.hardware.graphics.composer@2.1-resources",
-        "android.hardware.graphics.composer@2.2-resources",
+        "android.hardware.graphics.composer@2.1-resources-aidl",
+        "android.hardware.graphics.composer@2.2-resources-aidl",
         "android.hardware.graphics.composer3-V1-ndk",
         "android.hardware.graphics.mapper@2.0",
         "android.hardware.graphics.mapper@4.0",
