@@ -18,6 +18,15 @@
 #include <HwDisplayCrtc.h>
 #include "DrmProperty.h"
 
+typedef enum _ENUM_DRM_HDR_TYPE {
+    DRM_HDR10PLUS      = 0,
+    DRM_DOLBYVISION_STD,
+    DRM_DOLBYVISION_LL,
+    DRM_HDR10_ST2084,
+    DRM_HDR10_TRADITIONAL,
+    DRM_HDR_HLG,
+    DRM_SDR
+} ENUM_DRM_HDR_TYPE;
 
 class DrmConnector : public HwDisplayConnector {
 public:
@@ -68,6 +77,7 @@ public:
     bool supportVrr();
 
     std::mutex mMutex;
+    bool getHdrType(std::string & hdrType);
 
 protected:
     int32_t loadConnectorInfo(drmModeConnectorPtr metadata);
@@ -103,6 +113,7 @@ protected:
     std::shared_ptr<DrmProperty> mColorDepth;
     std::shared_ptr<DrmProperty> mHdrCaps;
     std::shared_ptr<DrmProperty> mUpdate;
+    std::shared_ptr<DrmProperty> mHdrStatus;
     /*for lcd now*/
     std::shared_ptr<DrmProperty> mMesonConnectorType;
     /* for vrr */

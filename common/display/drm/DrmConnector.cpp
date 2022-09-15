@@ -81,6 +81,7 @@ int32_t DrmConnector::loadProperties(drmModeConnectorPtr p __unused) {
  //       {DRM_HDMI_PROP_COLORSPACE, &mColorSpace},
 //        {DRM_HDMI_PROP_COLORDEPTH, &mColorDepth},
 //        {DRM_HDMI_PROP_HDRCAP, &mHdrCaps},
+        {DRM_HDMI_PROP_HDR_STATUS, &mHdrStatus},
     };
     const int connectorPropsNum = sizeof(connectorProps)/sizeof(connectorProps[0]);
 
@@ -511,7 +512,7 @@ std::string DrmConnector::getCurrentHdrType() {
         return "sdr";
 
     std::string hdrType;
-    loadHdmiCurrentHdrType(hdrType);
+    getHdrType(hdrType);
     return hdrType;
 }
 
@@ -553,4 +554,44 @@ void DrmConnector::getHdrCapabilities(drm_hdr_capabilities * caps) {
         *caps = mHdrCapabilities;
     }
 }
+bool DrmConnector::getHdrType(std::string & hdrType)
+{
+    bool ret = true;
+    ENUM_DRM_HDR_TYPE hdr_type_enum = DRM_SDR;
+    if (mHdrStatus) {
+        hdr_type_enum = (ENUM_DRM_HDR_TYPE)mHdrStatus->getValue();
+    } else {
+        hdrType = "SDR";
+        ret = false;
+        return ret;
+    }
+    switch (hdr_type_enum) {
+        case DRM_HDR10PLUS:
+            hdrType = "HDR10Plus-VSIF";
+            break;
+        case DRM_DOLBYVISION_STD:
+            hdrType = "DolbyVision-Std";
+            break;
+        case DRM_DOLBYVISION_LL:
+            hdrType = "DolbyVision-Lowlatency";
+            break;
+        case DRM_HDR10_ST2084:
+            hdrType = "HDR10-GAMMA_ST2084";
+            break;
+        case DRM_HDR10_TRADITIONAL:
+            hdrType = "HDR10-others";
+            break;
+        case DRM_HDR_HLG:
+            hdrType = "HDR10-GAMMA_HLG";
+            break;
+        case DRM_SDR:
+            hdrType = "SDR";
+            break;
+        default:
+            hdrType = "SDR";
+            break;
+    }
+    return ret;
+}
+
 
