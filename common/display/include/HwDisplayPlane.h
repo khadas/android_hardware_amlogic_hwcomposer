@@ -40,6 +40,8 @@ public:
     /* release caches */
     virtual void clearPlaneResources() = 0;
 
+    virtual void setDisplayMode(drm_mode_info_t & mode) = 0;
+
     /*For debug, plane return a invalid type.*/
     enum {
         PLANE_DBG_IDLE = 1 << 0,

@@ -43,6 +43,8 @@ public:
 
     void clearPlaneResources();
 
+    void setDisplayMode(drm_mode_info_t & mode) {mDispMode = mode;}
+
     void setDebugFlag(int dbgFlag);
 
     void dump(String8 & dumpstr);
@@ -95,6 +97,8 @@ protected:
     std::queue<std::shared_ptr<DrmBo>> mBoCache;
 
     int mDbgFlag;
+
+    drm_mode_info_t mDispMode;
 
     std::mutex mMutex;
 };

@@ -36,6 +36,9 @@ public:
         uint32_t zorder, int blankOp) = 0;
 
     void clearPlaneResources() {};
+
+    void setDisplayMode(drm_mode_info_t & mode) {mDispMode = mode;}
+
     /*For debug, plane return a invalid type.*/
     enum {
         PLANE_DBG_IDLE = 1 << 0,
@@ -54,6 +57,7 @@ protected:
     int32_t mCapability;
     bool mDebugIdle;
     bool mDebugPattern;
+    drm_mode_info_t mDispMode;
 };
 
  #endif/*HW_DISPLAY_PLANE_FBDEV_H*/

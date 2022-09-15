@@ -17,6 +17,7 @@ HwDisplayPlaneFbdev::HwDisplayPlaneFbdev(int32_t drvFd, uint32_t id)
     mDebugIdle = false;
     mDebugPattern = false;
     mCapability = 0;
+    memset(&mDispMode, 0, sizeof(mDispMode));
 }
 
 HwDisplayPlaneFbdev::~HwDisplayPlaneFbdev() {

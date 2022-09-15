@@ -160,6 +160,8 @@ int32_t Hwc2Display::setDisplayResource(
         if (osdPlanes > 1 && (it == mPlanes.end() - 1 )) {
             strategyFlags |= MULTI_PLANES_WITH_DI;
         }
+
+        (*it)->setDisplayMode(mDisplayMode);
     }
     MESON_ASSERT(osdPlanes > 0, "No Osd plane assigned to %d", mDisplayId);
 
@@ -471,6 +473,9 @@ void Hwc2Display::onModeChanged(int stage) {
                     uint32_t fbW,fbH;
                     HwcConfig::getFramebufferSize(0, fbW, fbH);
                     mScaleValue = (float)fbW/(float)mDisplayMode.pixelW;
+
+                    for (auto it = mPlanes.begin(); it != mPlanes.end(); ++ it)
+                        (*it)->setDisplayMode(mDisplayMode);
                 }
             } else {
                 MESON_LOGE("No display observe register to display (%s)", getName());

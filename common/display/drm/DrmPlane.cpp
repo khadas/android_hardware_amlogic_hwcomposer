@@ -10,10 +10,14 @@
 #include <inttypes.h>
 #include <MesonLog.h>
 #include <DebugHelper.h>
+#include <math.h>
 
 #include "DrmDevice.h"
 #include "DrmPlane.h"
 #include <drm_fourcc.h>
+
+#define VPU_FREQ (666*pow(10,6))
+#define kValue (1.5)
 
 DrmPlane::DrmPlane(int drmFd, drmModePlanePtr p)
     : HwDisplayPlane(),
@@ -40,6 +44,8 @@ DrmPlane::DrmPlane(int drmFd, drmModePlanePtr p)
     mBlank = p->fb_id > 0 ? false : true;
     mDrmBo = std::make_shared<DrmBo>();
     mDbgFlag = 0;
+
+    memset(&mDispMode, 0, sizeof(mDispMode));
 }
 
 DrmPlane::~DrmPlane() {
@@ -228,6 +234,25 @@ bool DrmPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
         return false;
     if (sourceWidth < OSD_INPUT_MIN_HEIGHT ||sourceHeight < OSD_INPUT_MIN_WIDTH)
         return false;
+
+    /*
+     * osdPlane free scale limitation:
+     * SRC_W * SRC_H * (1/666M HZ) < EXP_H/DST_H * (1/RREQ HZ)
+     */
+    uint32_t dispHeight = fb->mDisplayFrame.bottom - fb->mDisplayFrame.top;
+    uint32_t desHeight = am_gralloc_get_height(fb->mBufferHandle);
+    float freq;
+    if (mDispMode.pixelH != 0) {
+        desHeight = desHeight > mDispMode.pixelH ? desHeight : mDispMode.pixelH;
+        freq = mDispMode.refreshRate;
+    } else {
+        freq = 60.0;
+        MESON_LOGE("DrmPlane::%s, display mode not set", __func__);
+    }
+    float expHeight = (sourceHeight*sourceWidth/VPU_FREQ)*desHeight*freq*kValue;
+    if (dispHeight < expHeight)
+        return false;
+
     return true;
 }
 

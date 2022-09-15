@@ -33,6 +33,8 @@ public:
     int32_t setPlane(std::shared_ptr<DrmFramebuffer> fb, uint32_t zorder, int blankOp);
     void clearPlaneResources() {};
 
+    void setDisplayMode(drm_mode_info_t & mode __unused) {};
+
     void setDebugFlag(int dbgFlag);
     uint32_t getId();
 

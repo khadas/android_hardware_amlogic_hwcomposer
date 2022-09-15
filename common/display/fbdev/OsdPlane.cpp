@@ -171,14 +171,12 @@ bool OsdPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
     uint32_t dispHeight = fb->mDisplayFrame.bottom - fb->mDisplayFrame.top;
     uint32_t desHeight = am_gralloc_get_height(fb->mBufferHandle);
     float freq;
-    struct vinfo_base_s info;
-    int ret = read_vout_info(mPossibleCrtcs,&info);
-    if (ret == 0) {
-        desHeight = desHeight > info.height ? desHeight : info.height;
-        freq = (float)info.sync_duration_num/info.sync_duration_den;
+    if (mDispMode.pixelH != 0) {
+        desHeight = desHeight > mDispMode.pixelH ? desHeight : mDispMode.pixelH;
+        freq = mDispMode.refreshRate;
     } else {
         freq = 60.0;
-        MESON_LOGE("read vout info failed return %d", ret);
+        MESON_LOGE("OsdPlane::%s, display mode not set", __func__);
     }
     float expHeight = (sourceHeight*sourceWidth/VPU_FREQ)*desHeight*freq*kValue;
     if (dispHeight < expHeight)
