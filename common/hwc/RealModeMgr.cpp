@@ -390,7 +390,7 @@ int32_t RealModeMgr::getPreferredBootConfig(int32_t* outConfig) {
             if (strncmp(prefMode.c_str(), it->second.name, DRM_DISPLAY_MODE_LEN) == 0 &&
                     mConnector->checkFracMode(it->second)) {
                 *outConfig = it->first;
-                drm_mode_info_t cfg = it->second;
+                [[maybe_unused]] drm_mode_info_t cfg = it->second;
                 MESON_LOGD("%s outConfig = %d (%dx%d@%f)", __func__, *outConfig,
                         cfg.pixelW, cfg.pixelH, cfg.refreshRate);
                 break;
