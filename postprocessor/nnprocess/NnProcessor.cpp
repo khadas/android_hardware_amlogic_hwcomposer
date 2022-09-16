@@ -146,7 +146,7 @@ NnProcessor::~NnProcessor() {
     }
     if (mUvmHander) {
         close(mUvmHander);
-        mUvmHander = 0;
+        mUvmHander = NULL;
     }
     ALOGD("%s: fence :r=%lld,wait=%lld, r-w=%lld",
           __FUNCTION__,
@@ -1002,7 +1002,7 @@ int NnProcessor::freeDmaBuffers() {
             }
             if (mSrBuf[i].ion_hnd != -1) {
                 ion_free(mIonFd, mSrBuf[i].ion_hnd);
-                mSrBuf[i].ion_hnd = 0;
+                mSrBuf[i].ion_hnd = NULL;
             }
             i++;
         }
