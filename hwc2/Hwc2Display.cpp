@@ -1186,6 +1186,7 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
             MESON_LOGE("%s", layersDump.string());
         }
     }
+    mValidateDisplay = false;
 
     if (mSkipComposition) {
         *outPresentFence = -1;
@@ -1262,7 +1263,7 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
         mPresentCompositionStg->dump(compDump);
         MESON_LOGE("%s", compDump.string());
     }
-    mValidateDisplay = false;
+
 
     return HWC2_ERROR_NONE;
 }
