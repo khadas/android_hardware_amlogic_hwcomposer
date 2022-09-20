@@ -30,8 +30,8 @@
 struct aipq_buffer_t {
     int fd;
     void *fd_ptr; //only for non-nativebuffer!
-    ion_user_handle_t ion_hnd; //only for non-nativebuffer!
     int size;
+    buffer_handle_t buffer_handle;
 };
 
 enum aipq_get_info_type_e {
@@ -124,7 +124,6 @@ public:
     int check_D();
     pthread_mutex_t m_waitMutex;
     pthread_cond_t m_waitCond;
-    int mIonFd;
     int mUvmHander;
     int mNn_Index;
     static struct aipq_time_info_t mTime;

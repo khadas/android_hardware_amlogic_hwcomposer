@@ -31,7 +31,6 @@ struct sr_buffer_t {
     int index;
     int fd;
     void *fd_ptr; //only for non-nativebuffer!
-    ion_user_handle_t ion_hnd; //only for non-nativebuffer!
     int fence_fd;
     int fence_fd_last;
     int64_t phy;
@@ -39,6 +38,7 @@ struct sr_buffer_t {
     std::shared_ptr<DrmFramebuffer> outFb;
     int shared_fd;
     int status;
+    buffer_handle_t buffer_handle;
 };
 
 enum nn_status_e {
@@ -145,7 +145,6 @@ public:
     pthread_mutex_t m_waitMutex;
     pthread_cond_t m_waitCond;
     struct sr_buffer_t mSrBuf[SR_OUT_BUF_COUNT];
-    int mIonFd;
     int32_t mBuf_index;
     int32_t mBuf_index_cur;
     int32_t mBuf_index_last;

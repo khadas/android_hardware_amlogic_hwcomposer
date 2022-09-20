@@ -19,8 +19,8 @@
 #include <sched.h>
 #include "pq_sdk.h"
 #include <cutils/properties.h>
-#include <ion/ion.h>
-#include <linux/ion_4.12.h>
+#include <ui/GraphicBufferAllocator.h>
+#include <hardware/gralloc1.h>
 
 #define BUFFER_SIZE 224 * 224 * 3
 
@@ -319,12 +319,11 @@ AipqProcessor::AipqProcessor() {
     mExitThread = true;
     pthread_mutex_init(&m_waitMutex, NULL);
     pthread_cond_init(&m_waitCond, NULL);
-    mIonFd = -1;
 
     mAipq_Buf.fd = -1;
     mAipq_Buf.fd_ptr = NULL;
-    mAipq_Buf.ion_hnd = -1;
     mAipq_Buf.size = -1;
+    mAipq_Buf.buffer_handle = NULL;
 
     mInited = false;
     mUvmHander = -1;
@@ -979,139 +978,64 @@ void AipqProcessor::triggerEvent(void) {
 #define ION_FLAG_EXTEND_MESON_HEAP (1 << 30)
 
 int AipqProcessor::allocDmaBuffer() {
-    unsigned int ion_flags = ION_FLAG_CACHED | ION_FLAG_CACHED_NEEDS_SYNC;
     int buffer_size = BUFFER_SIZE;
+    uint32_t stride;
+    int format = 17;
+    int gralloc_fd = -1;
+    void * cpu_ptr = NULL;
+    uint64_t usage = GRALLOC1_PRODUCER_USAGE_CAMERA;
+    GraphicBufferAllocator & allocService = GraphicBufferAllocator::get();
 
-    int ret = 0;
-    int shared_fd = -1;
-
-    mIonFd = ion_open();
-    if (mIonFd < 0) {
-        ALOGE("ion open failed!\n");
-        return -1;
+    if (NO_ERROR != allocService.allocate(
+        224, 448, format, 1, usage,
+        &mAipq_Buf.buffer_handle, &stride, 0, "aipq")) {
+        ALOGE("alloc buffer failed");
     }
 
-    ion_user_handle_t ion_hnd;
-    int cnt;
-    bool query_custom_type = false;
-    uint32_t custom_type = ION_HEAP_TYPE_CUSTOM;
-    int err = ion_query_heap_cnt(mIonFd, &cnt);
-    if (err < 0) {
-        ALOGD("ion get heap cnt fail\n");
-    }
-    std::vector<ion_heap_data> heaps;
-    heaps.resize(cnt);
-    err = ion_query_get_heaps(mIonFd, cnt, &heaps[0]);
-    if (err < 0) {
-        ALOGE("ion get heap fail\n");
-    }
-    for (int i = 0; i < cnt; i ++) {
-        ALOGD("heap name:%s id:%d", heaps[i].name, heaps[i].heap_id);
-        if (strstr(heaps[i].name, "codec_mm_cma") != NULL) {
-            query_custom_type = true;
-            custom_type = heaps[i].heap_id;
-            break;
+    if (mAipq_Buf.buffer_handle) {
+        gralloc_fd = am_gralloc_get_buffer_fd((native_handle_t *)mAipq_Buf.buffer_handle);
+        if (gralloc_fd < 0) {
+            allocService.free(mAipq_Buf.buffer_handle);
+            ALOGE("get fd fail");
+            return -1;
         }
-    }
 
-    if (!query_custom_type) {
-        ALOGE("query_custom_type fail\n");
-        return -1;
-    }
+        cpu_ptr = (unsigned char *)mmap(NULL, buffer_size,
+            PROT_READ | PROT_WRITE, MAP_SHARED, gralloc_fd, 0);
 
-    ALOGD("ion_alloc_fd: mIonFd=%d, buffer_size=%d, custom_type=%d, ion_flags=%d, is_legacy=%d",
-        mIonFd,
-        buffer_size,
-        custom_type,
-        ion_flags,
-        ion_is_legacy(mIonFd));
-
-    if (ion_is_legacy(mIonFd)) {
-        ret = ion_alloc(mIonFd, buffer_size,
-                           0,
-                           1 << custom_type,
-                           ion_flags,
-                           &ion_hnd);
-        if (ret) {
-            ALOGE("ion alloc error, ret=%x\n", ret);
+        if (MAP_FAILED == cpu_ptr) {
+            ALOGE("mmap error!");
             freeDmaBuffers();
             return -1;
         } else {
-            mAipq_Buf.ion_hnd = ion_hnd;
-        }
-        ret = ion_share(mIonFd, ion_hnd, &shared_fd);
-        if (ret) {
-            ALOGE("ion share error!\n");
-            freeDmaBuffers();
-            return -1;
-        } else {
-            mAipq_Buf.fd = shared_fd;
+            mAipq_Buf.fd_ptr = cpu_ptr;
         }
     } else {
-        ret = ion_alloc_fd(mIonFd, buffer_size,
-                           0,
-                           1 << custom_type,
-                           ION_FLAG_EXTEND_MESON_HEAP | ion_flags,
-                           &shared_fd);
-        if (ret) {
-            ALOGE("ion alloc error, ret=%x\n", ret);
-            freeDmaBuffers();
-            return -1;
-        } else {
-            mAipq_Buf.fd = shared_fd;
-        }
+        return -1;
     }
 
-    void *cpu_ptr = mmap(NULL,
-                         buffer_size,
-                         PROT_READ | PROT_WRITE, MAP_SHARED,
-                         shared_fd,
-                         0);
-    if (MAP_FAILED == cpu_ptr) {
-        ALOGE("ion mmap error!\n");
-        freeDmaBuffers();
-        return -1;
-    } else {
-        mAipq_Buf.fd_ptr = cpu_ptr;
-    }
     mAipq_Buf.size = buffer_size;
-    ALOGD("%s: shared_fd=%d, mIonFd=%d, fd_ptr=%p, fd=%d\n",
-        __FUNCTION__,
-        shared_fd,
-        mIonFd,
-        cpu_ptr,
-        shared_fd);
+    mAipq_Buf.fd = gralloc_fd;
+    ALOGD("%s: fd=%d, fd_ptr=%p buffer_size=%d", __FUNCTION__, gralloc_fd, cpu_ptr, buffer_size);
 
-    return ret;
+    return 0;
 };
 
 int AipqProcessor::freeDmaBuffers() {
-    int buffer_size = BUFFER_SIZE;
+    GraphicBufferAllocator & allocService = GraphicBufferAllocator::get();
 
-    ALOGD("%s: ion_hnd=%d, fd=%d, mIonFd=%d\n",
-        __FUNCTION__,
-        mAipq_Buf.ion_hnd,
-        mAipq_Buf.fd,
-        mIonFd);
     if (mAipq_Buf.fd_ptr) {
-        munmap(mAipq_Buf.fd_ptr, buffer_size);
+        munmap(mAipq_Buf.fd_ptr, mAipq_Buf.size);
         mAipq_Buf.fd_ptr = NULL;
     }
-    if (mAipq_Buf.fd != -1) {
-        close(mAipq_Buf.fd);
+    if (mAipq_Buf.fd != -1)
         mAipq_Buf.fd = -1;
-    }
-    if (mAipq_Buf.ion_hnd != -1) {
-        ion_free(mIonFd, mAipq_Buf.ion_hnd);
-        mAipq_Buf.ion_hnd = NULL;
+
+    if (mAipq_Buf.buffer_handle) {
+        allocService.free(mAipq_Buf.buffer_handle);
+        mAipq_Buf.buffer_handle = NULL;
     }
 
-
-    int ret = 0;
-    if (mIonFd != -1) {
-        ret = ion_close(mIonFd);
-        mIonFd = -1;
-    }
-    return ret;
+    return 0;
 }
 
