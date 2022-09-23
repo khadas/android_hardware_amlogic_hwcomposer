@@ -610,8 +610,12 @@ int32_t Hwc2Layer::releaseVtBuffer() {
 
     // set fence to the previous vt buffer
     int releaseFence = getPrevReleaseFence();
-    if (releaseFence >= 0 && mPreVtBufferFd >= 0) {
-        collectUvmBuffer(dup(mPreVtBufferFd), dup(releaseFence));
+    if (mPreVtBufferFd >= 0) {
+        if (releaseFence >= 0) {
+            collectUvmBuffer(dup(mPreVtBufferFd), dup(releaseFence));
+        } else {
+            collectUvmBuffer(dup(mPreVtBufferFd), releaseFence);
+        }
     }
 
     MESON_LOGV("[%s] [%d] [%" PRIu64 "] releaseFence:%d, mVtBufferfd:%d, mPreVtBufferFd(%d), queuedFrames(%d)",
