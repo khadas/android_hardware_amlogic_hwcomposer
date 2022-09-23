@@ -1,6 +1,3 @@
-// *** THIS PACKAGE HAS SPECIAL LICENSING CONDITIONS.  PLEASE
-//     CONSULT THE OWNERS AND opensource-licensing@google.com BEFORE
-//     DEPENDING ON IT IN YOUR PROJECT. ***
 package {
     // See: http://go/android-license-faq
     // A large-scale-change added 'default_applicable_licenses' to import
@@ -13,34 +10,22 @@ package {
     default_applicable_licenses: ["hardware_amlogic_hwcomposer_license"],
 }
 
-cc_library_shared {
-    name: "libmeson_mode_policy",
-    vendor_available: true,
-
+cc_test {
+    name: "ubootEnvTest",
+    vendor: true,
     srcs: [
-        "mode_util.c",
-        "mode_policy.c",
-        "mode_ubootenv.c",
+        "ubootEnvTest.cpp",
     ],
 
     shared_libs: [
         "liblog",
-        "libutils",
         "libcutils",
-        "libz"
+        "libutils",
+        "libmeson_mode_policy",
     ],
 
-    local_include_dirs: [
-        "include",
-    ],
-    export_include_dirs: [
-        "include",
-    ],
-    cflags: [
-        "-DLOG_TAG=\"MesonDisplay\"",
-        "-Werror",
-        "-Wall",
+    static_libs: [
+        "libgmock",
+        "libgtest",
     ],
 }
-
-subdirs = ["tests"]

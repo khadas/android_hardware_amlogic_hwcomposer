@@ -6,17 +6,24 @@
  *
  * Description:
  */
-
 #ifndef MESON_MODE_POLICY_UBOOT_ENV_H
 #define MESON_MODE_POLICY_UBOOT_ENV_H
 
-/* define struct */
+#ifdef __cplusplus
+extern "C" {
+#endif
 
+int meson_mode_init_ubootenv();
 
 const char *meson_mode_get_ubootenv(const char * key);
 
 int32_t meson_mode_set_ubootenv(const char* name, const char* value);
 
 void meson_mode_ubootenv_dump(int fd);
+
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  /* MESON_MODE_POLICY_UBOOT_ENV_H */
