@@ -13,6 +13,7 @@
 #include "DrmDevice.h"
 #include <inttypes.h>
 #include <limits>
+#include <hardware/hwcomposer2.h>
 
 #include <xf86drm.h>
 #include <string.h>
@@ -23,6 +24,7 @@
 
 #define EDID_MIN_LEN (128)
 #define HDMI_FRAC_RATE_POLICY "/sys/class/amhdmitx/amhdmitx0/frac_rate_policy"
+#define HDMI_TX_ALLM_MODE   "/sys/class/amhdmitx/amhdmitx0/allm_cap"
 
 static const u8 default_1080p_edid[EDID_MIN_LEN] = {
 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00,
@@ -372,6 +374,10 @@ bool DrmConnector::isConnected() {
     return false;
 }
 
+bool DrmConnector:: isTvSupportALLM() {
+    return sysfs_get_int(HDMI_TX_ALLM_MODE, 0) == 1 ? true : false;
+}
+
 int32_t DrmConnector::getIdentificationData(std::vector<uint8_t>& idOut) {
     int32_t ret = 0;
 
@@ -525,10 +531,14 @@ int32_t DrmConnector::setContentType(uint32_t contentType) {
 }
 
 int32_t DrmConnector::setAutoLowLatencyMode(bool on) {
-    if (mType != DRM_MODE_CONNECTOR_HDMIA)
-        return -ENOENT;
-
-    return sc_set_hdmi_allm(on);
+    if (mType != DRM_MODE_CONNECTOR_HDMIA) {
+        return HWC2_ERROR_UNSUPPORTED;
+    }
+    if (isTvSupportALLM()) {
+        return sc_set_hdmi_allm(on);
+    } else {
+        return HWC2_ERROR_UNSUPPORTED;
+    }
 }
 
 void DrmConnector::updateHdrCaps() {

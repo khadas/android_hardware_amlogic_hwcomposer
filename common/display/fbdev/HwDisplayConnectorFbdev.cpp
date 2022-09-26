@@ -11,6 +11,7 @@
 #include "AmVinfo.h"
 #include "HwDisplayConnectorFbdev.h"
 #include "AmFramebuffer.h"
+#include <systemcontrol.h>
 
 HwDisplayConnectorFbdev::HwDisplayConnectorFbdev(int32_t drvFd, uint32_t id)
     : HwDisplayConnector() {
@@ -47,16 +48,19 @@ int32_t HwDisplayConnectorFbdev::getIdentificationData(std::vector<uint8_t>& idO
     return -ENOSYS;
 }
 
+bool HwDisplayConnectorFbdev::isTvSupportALLM() {
+    return false;
+}
+
 void HwDisplayConnectorFbdev::getSupportedContentTypes(std::vector<uint32_t>& supportedContentTypesOut) {
     supportedContentTypesOut = mSupportedContentTypes;
 }
 
 int32_t HwDisplayConnectorFbdev::setAutoLowLatencyMode(bool on) {
-    if (on) {
-        return -ENOENT;
-    } else {
-        return 0;
-    }
+    if (isTvSupportALLM())
+        return sc_set_hdmi_allm(on);
+    else
+        return HWC2_ERROR_UNSUPPORTED;
 }
 
 int32_t HwDisplayConnectorFbdev::setContentType(uint32_t contentType) {

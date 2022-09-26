@@ -12,6 +12,7 @@
 #include <misc.h>
 #include <systemcontrol.h>
 #include <inttypes.h>
+#include <hardware/hwcomposer2.h>
 
 #include "AmVinfo.h"
 #include "ConnectorHdmi.h"
@@ -43,6 +44,7 @@ static const std::vector<std::string> CONTENT_TYPES = {
 #define HDMI_TX_HPD_STATE   "/sys/class/amhdmitx/amhdmitx0/hpd_state"
 #define HDMI_TX_CONTENT_TYPE_CAP  "/sys/class/amhdmitx/amhdmitx0/contenttype_cap"
 #define HDMI_TX_CONTENT_TYPE  "/sys/class/amhdmitx/amhdmitx0/contenttype_mode"
+#define HDMI_TX_ALLM_MODE   "/sys/class/amhdmitx/amhdmitx0/allm_cap"
 
 ConnectorHdmi::ConnectorHdmi(int32_t drvFd, uint32_t id)
     :   HwDisplayConnectorFbdev(drvFd, id) {
@@ -97,12 +99,15 @@ bool ConnectorHdmi::checkConnectState() {
     return sysfs_get_int(HDMI_TX_HPD_STATE, 0) == 1 ? true : false;
 }
 
+bool ConnectorHdmi::isTvSupportALLM() {
+    return sysfs_get_int(HDMI_TX_ALLM_MODE, 0) == 1 ? true : false;
+}
+
 int32_t ConnectorHdmi::loadDisplayModes() {
     std::vector<std::string> supportDispModes;
     std::string::size_type pos;
     mFracRefreshRates.clear();
     mDisplayModes.clear();
-
     if (get_hdmitx_mode_list(supportDispModes) < 0) {
         MESON_LOGE("SupportDispModeList null!!!");
         return -ENOENT;
@@ -256,7 +261,10 @@ bool ConnectorHdmi::checkFracMode(const drm_mode_info_t & mode) {
 }
 
 int32_t ConnectorHdmi::setAutoLowLatencyMode(bool on) {
-    return sc_set_hdmi_allm(on);
+    if (isTvSupportALLM())
+        return sc_set_hdmi_allm(on);
+    else
+        return HWC2_ERROR_UNSUPPORTED;
 }
 
 std::string ConnectorHdmi::getCurrentHdrType() {

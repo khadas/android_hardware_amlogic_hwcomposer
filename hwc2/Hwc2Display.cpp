@@ -1424,16 +1424,19 @@ bool Hwc2Display::isLayerHideForDebug(hwc2_layer_t id) {
 hwc2_error_t Hwc2Display::getDisplayCapabilities(
             uint32_t* outNumCapabilities, uint32_t* outCapabilities) {
     if (outCapabilities == nullptr) {
-        if (mConnector->isConnected() == false)
-            *outNumCapabilities = 1;
-        else
+        if (mConnector->isConnected() && mConnector->isTvSupportALLM())
             *outNumCapabilities = 2;
+        else
+            *outNumCapabilities = 1;
     } else {
-        if (mConnector->isConnected() == false) {
-            outCapabilities[0] = HWC2_DISPLAY_CAPABILITY_INVALID;
-        } else {
+        if ((mConnector->isConnected() && mConnector->isTvSupportALLM())) {
             outCapabilities[0] = HWC2_DISPLAY_CAPABILITY_SKIP_CLIENT_COLOR_TRANSFORM;
             outCapabilities[1] = HWC2_DISPLAY_CAPABILITY_AUTO_LOW_LATENCY_MODE;
+        } else if (!mConnector->isConnected()) {
+            outCapabilities[0] = HWC2_DISPLAY_CAPABILITY_INVALID;
+        }
+        else {
+            outCapabilities[0] = HWC2_DISPLAY_CAPABILITY_SKIP_CLIENT_COLOR_TRANSFORM;
         }
     }
     return HWC2_ERROR_NONE;
@@ -1543,10 +1546,9 @@ hwc2_error_t Hwc2Display::setAutoLowLatencyMode(bool enabled) {
     if (mConnector->isConnected() == false) {
         return HWC2_ERROR_UNSUPPORTED;
     } else {
-        mConnector->setAutoLowLatencyMode(enabled);
+        return (hwc2_error_t)mConnector->setAutoLowLatencyMode(enabled);
     }
 
-    return HWC2_ERROR_NONE;
 }
 
 hwc2_error_t Hwc2Display::getSupportedContentTypes(uint32_t* outNum, uint32_t* outSupportedContentTypes) {

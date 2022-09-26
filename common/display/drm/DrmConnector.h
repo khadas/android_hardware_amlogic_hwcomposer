@@ -54,6 +54,8 @@ public:
     int32_t setMode(drm_mode_info_t & mode );
     bool checkFracMode(const drm_mode_info_t & mode) override;
 
+    bool isTvSupportALLM();
+
     /*drm package internal use.*/
 public:
     uint32_t getEncoderId() {return mEncoderId;}

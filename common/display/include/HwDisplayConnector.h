@@ -81,6 +81,9 @@ public:
 
     virtual void dump(String8 & dumpstr) = 0;
 
+    virtual bool isTvSupportALLM() = 0;
+
+
 };
 
 #endif/*HW_DISPLAY_CONNECTOR_H*/
