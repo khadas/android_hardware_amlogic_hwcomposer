@@ -245,12 +245,12 @@ int32_t HwcVideoPlane::setPlane(
             mVideoComposer->setFrame(fb, composefd, zorder);
 
             /*update last frame release fence*/
+            fb->setCurReleaseFence(composefd);
             if (DebugHelper::getInstance().discardOutFence()) {
-                fb->setCurReleaseFence(-1);
-                if (composefd >= 0)
-                    close(composefd);
-            } else {
-                fb->setCurReleaseFence(composefd);
+                ATRACE_NAME("VideoOutFence");
+                std::shared_ptr<DrmFence> outfence =
+                    std::make_shared<DrmFence>(fb->getPrevReleaseFence());
+                outfence->waitForever("VideoOutFence");
             }
         }
     } else if (mBlank != bBlank) {
