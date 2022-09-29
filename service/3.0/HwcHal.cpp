@@ -724,7 +724,7 @@ HWC3::Error HwcHal::setLayerPerFrameMetadata(
 
     int32_t error =
         mDispatch.setLayerPerFrameMetadata(mDevice, displayId, layerId,
-                metadata.size(), keys.data(), values.data());
+                (uint32_t)metadata.size(), keys.data(), values.data());
     return static_cast<HWC3::Error>(error);
 }
 

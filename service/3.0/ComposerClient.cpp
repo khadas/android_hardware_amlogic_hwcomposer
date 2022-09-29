@@ -115,7 +115,7 @@ protected:
         size_t cacheSize;
         auto err = mResources->getDisplayClientTargetCacheSize(display, &cacheSize);
         if (err == HWC3::Error::None) {
-            for (size_t slot = 0; slot < cacheSize; slot++) {
+            for (uint32_t slot = 0; slot < cacheSize; slot++) {
                 ::android::hardware::graphics::composer::V2_2::hal::ComposerResources::
                     ReplacedHandle replacedBuffer(/*isBuffer*/ true);
                 //ComposerResources::ReplacedHandle replacedBuffer(/*isBuffer*/ true);
@@ -142,7 +142,7 @@ protected:
 
         err = mResources->getDisplayOutputBufferCacheSize(display, &cacheSize);
         if (err == HWC3::Error::None) {
-            for (size_t slot = 0; slot < cacheSize; slot++) {
+            for (uint32_t slot = 0; slot < cacheSize; slot++) {
                 // Replace the buffer slots with NULLs. Keep the old handle until it is
                 // replaced in ComposerHal, otherwise we risk leaving a dangling pointer.
                 ::android::hardware::graphics::composer::V2_2::hal::ComposerResources::
@@ -1361,7 +1361,7 @@ void ComposerClient::destroyResources() {
     // Below we manually clean all resources (layers and virtual
     // displays), and perform a presentDisplay afterwards.
 
-    mResources->clear([this](unsigned long long display, bool isVirtual, const std::vector<unsigned long long> layers) {
+    mResources->clear([this](uint64_t display, bool isVirtual, const std::vector<uint64_t> layers) {
         ALOGW("destroying client resources for display %" PRIu64, display);
         int64_t displayId = static_cast<int64_t> (display);
 
