@@ -1,0 +1,2096 @@
+/*
+ * Copyright (c) 2022 Amlogic, Inc. All rights reserved.
+ *
+ * This source code is subject to the terms and conditions defined in the
+ * file 'LICENSE' which is part of this source code package.
+ *
+ * Description:
+ */
+#include <cutils/properties.h>
+#include <MesonLog.h>
+
+#include "ModePolicy.h"
+#include "mode_ubootenv.h"
+#include "misc.h"
+//#include <systemcontrol.h>
+#include "HwcConfig.h"
+
+#define DISPLAY_HDMI_VALID_MODE         "/sys/class/amhdmitx/amhdmitx0/valid_mode"//testing if tv support this displaymode and  deepcolor combination, then if cat result is 1: support, 0: not
+#define PROP_DEFAULT_COLOR              "ro.vendor.platform.default_color"
+#define LOW_POWER_DEFAULT_COLOR         "ro.vendor.low_power_default_color"  /* Set default deep color is 8bit for Low Power Mode */
+#define UBOOTENV_COLORATTRIBUTE         "ubootenv.var.colorattribute"
+
+#define EDID_MAX_SIZE                   2049
+
+#define COLOR_YCBCR444_12BIT             "444,12bit"
+#define COLOR_YCBCR444_10BIT             "444,10bit"
+#define COLOR_YCBCR444_8BIT              "444,8bit"
+#define COLOR_YCBCR422_12BIT             "422,12bit"
+#define COLOR_YCBCR422_10BIT             "422,10bit"
+#define COLOR_YCBCR422_8BIT              "422,8bit"
+#define COLOR_YCBCR420_12BIT             "420,12bit"
+#define COLOR_YCBCR420_10BIT             "420,10bit"
+#define COLOR_YCBCR420_8BIT              "420,8bit"
+#define COLOR_RGB_12BIT                  "rgb,12bit"
+#define COLOR_RGB_10BIT                  "rgb,10bit"
+#define COLOR_RGB_8BIT                   "rgb,8bit"
+
+
+enum {
+    DISPLAY_TYPE_NONE                   = 0,
+    DISPLAY_TYPE_TABLET                 = 1,
+    DISPLAY_TYPE_MBOX                   = 2,
+    DISPLAY_TYPE_TV                     = 3,
+    DISPLAY_TYPE_REPEATER               = 4
+};
+
+/* filter the interlace mode */
+static const char* DISPLAY_MODE_LIST[] = {
+    MODE_480P,
+    MODE_480CVBS,
+    MODE_576P,
+    MODE_576CVBS,
+    MODE_720P,
+    MODE_720P50HZ,
+    MODE_720P100HZ,
+    MODE_720P120HZ,
+    MODE_1080P24HZ,
+    MODE_1080P25HZ,
+    MODE_1080P30HZ,
+    MODE_1080P50HZ,
+    MODE_1080P,
+    MODE_1080P_100HZ,
+    MODE_1080P_120HZ,
+    MODE_4K2K24HZ,
+    MODE_4K2K25HZ,
+    MODE_4K2K30HZ,
+    MODE_4K2K50HZ,
+    MODE_4K2K60HZ,
+    MODE_4K2K100HZ,
+    MODE_4K2K120HZ,
+    MODE_4K2KSMPTE,
+    MODE_4K2KSMPTE30HZ,
+    MODE_4K2KSMPTE50HZ,
+    MODE_4K2KSMPTE60HZ,
+    MODE_4K2KSMPTE100HZ,
+    MODE_4K2KSMPTE120HZ,
+    MODE_768P,
+    MODE_PANEL,
+    MODE_PAL_M,
+    MODE_PAL_N,
+    MODE_NTSC_M,
+};
+
+static const char* DV_MODE_TYPE[] = {
+    "DV_RGB_444_8BIT",
+    "DV_YCbCr_422_12BIT",
+    "LL_YCbCr_422_12BIT",
+    "LL_RGB_444_12BIT",
+    "LL_RGB_444_10BIT"
+};
+
+static const char* ALLM_MODE_CAP[] = {
+    "0",
+    "1",
+};
+
+static const char* ALLM_MODE[] = {
+    "-1",
+    "0",
+    "1",
+};
+
+static const char* CONTENT_TYPE_CAP[] = {
+    "graphics",
+    "photo",
+    "cinema",
+    "game",
+};
+
+/*****************************************/
+/*  deepcolor */
+
+//this is check hdmi mode(4K60/4k50) list
+static const char* COLOR_ATTRIBUTE_LIST[] = {
+    COLOR_RGB_8BIT,
+    COLOR_YCBCR444_8BIT,
+    COLOR_YCBCR420_8BIT,
+    COLOR_YCBCR422_8BIT,
+};
+
+//this is check hdmi mode list
+static const char* COLOR_ATTRIBUTE_LIST_8BIT[] = {
+    COLOR_RGB_8BIT,
+    COLOR_YCBCR444_8BIT,
+    COLOR_YCBCR422_8BIT,
+};
+
+ModePolicy::ModePolicy() {
+    mDisplayType = DISPLAY_TYPE_MBOX;
+    mPolicy = MESON_POLICY_INVALID;
+    mReason = OUTPUT_CHANGE_BY_INIT;
+    mDisplayId = 0;
+}
+
+ModePolicy::ModePolicy(std::shared_ptr<meson::DisplayAdapter> adapter, const uint32_t displayId) {
+    mAdapter = adapter;
+    mDisplayType = DISPLAY_TYPE_MBOX;
+    mPolicy = MESON_POLICY_INVALID;
+    mReason = OUTPUT_CHANGE_BY_INIT;
+    mDisplayId = displayId;
+}
+
+ModePolicy::~ModePolicy() {
+
+}
+
+bool ModePolicy::getBootEnv(const char *key, char *value) {
+    const char* p_value =  meson_mode_get_ubootenv(key);
+    MESON_LOGD("key:%s value:%s", key, p_value);
+
+    if (p_value) {
+        strcpy(value, p_value);
+        return true;
+    }
+
+    return false;
+}
+
+int ModePolicy::getBootenvInt(const char* key, int defaultVal) {
+    int value = defaultVal;
+    const char* p_value =  meson_mode_get_ubootenv(key);
+    if (p_value) {
+        value = atoi(p_value);
+    }
+    return value;
+}
+
+void ModePolicy::setBootEnv(const char* key, const char* value) {
+    MESON_LOGD("key:%s value:%s", key, value);
+
+    meson_mode_set_ubootenv(key, value);
+}
+
+
+// TODO: need refactor
+void ModePolicy::getDvCap(struct meson_hdr_info *data) {
+    if (!data) {
+        MESON_LOGE("%s data is NULL\n", __FUNCTION__);
+        return;
+    }
+
+    std::string dv_cap;
+    getDisplayAttribute(DISPLAY_DOLBY_VISION_CAP2, dv_cap);
+    strcpy(data->dv_cap, dv_cap.c_str());
+
+    if (strstr(data->dv_cap, "DolbyVision RX support list") != NULL) {
+        for (int i = ARRAY_SIZE(DISPLAY_MODE_LIST) - 1; i >= 0; i--) {
+            if (strstr(data->dv_cap, DISPLAY_MODE_LIST[i]) != NULL) {
+                if ((strlen(data->dv_max_mode) + strlen(DISPLAY_MODE_LIST[i]) + 1) < sizeof(data->dv_max_mode)) {
+                    strcat(data->dv_max_mode, DISPLAY_MODE_LIST[i]);
+                    strcat(data->dv_max_mode, ",");
+                } else {
+                    MESON_LOGE("DisplayMode strcat overflow: src=%s, dst=%s\n", DISPLAY_MODE_LIST[i], data->dv_max_mode);
+                }
+                break;
+            }
+        }
+
+        for (int i = 0; i < sizeof(DV_MODE_TYPE)/sizeof(DV_MODE_TYPE[0]); i++) {
+            if (strstr(data->dv_cap, DV_MODE_TYPE[i])) {
+                if ((strlen(data->dv_deepcolor) + strlen(DV_MODE_TYPE[i]) + 1) < sizeof(data->dv_deepcolor)) {
+                    strcat(data->dv_deepcolor, DV_MODE_TYPE[i]);
+                    strcat(data->dv_deepcolor, ",");
+                } else {
+                    MESON_LOGE("DisplayMode strcat overflow: src=%s, dst=%s\n", DV_MODE_TYPE[i], data->dv_deepcolor);
+                    break;
+                }
+            }
+        }
+        MESON_LOGI("TV dv info: mode:%s deepcolor: %s\n", data->dv_max_mode, data->dv_deepcolor);
+    } else {
+        MESON_LOGE("TV isn't support dv: %s\n", data->dv_cap);
+    }
+}
+
+//TODO: refactor
+void ModePolicy::getHdmiDispCap(char* disp_cap, int32_t len) {
+    if (!disp_cap) {
+        MESON_LOGE("%s disp_cap is NULL\n", __FUNCTION__);
+        return;
+    }
+
+    int count = 0;
+    while (true) {
+        sysfs_get_string_original(DISPLAY_HDMI_DISP_CAP, disp_cap, len);
+        if (strlen(disp_cap) > 0)
+            break;
+
+        if (count >= 5) {
+            strcpy(disp_cap, "null edid");
+            break;
+        }
+        count++;
+        usleep(500000);
+    }
+}
+
+void ModePolicy::getHdmiDcCap(char* dc_cap, int32_t len) {
+    if (!dc_cap) {
+        MESON_LOGE("%s dc_cap is NULL\n", __FUNCTION__);
+        return;
+    }
+
+    int count = 0;
+    while (true) {
+        sysfs_get_string_original(DISPLAY_HDMI_DEEP_COLOR, dc_cap, len);
+        if (strlen(dc_cap) > 0)
+            break;
+
+        if (count >= 5) {
+            MESON_LOGE("read dc_cap fail\n");
+            break;
+        }
+        count++;
+        usleep(500000);
+    }
+}
+
+int ModePolicy::getHdmiSinkType() {
+    char sinkType[MESON_MODE_LEN] = {0};
+    sysfs_get_string_ex(DISPLAY_HDMI_SINK_TYPE, sinkType, MESON_MODE_LEN, false);
+
+    if (NULL != strstr(sinkType, "sink")) {
+        return HDMI_SINK_TYPE_SINK;
+    } else if (NULL != strstr(sinkType, "repeater")) {
+        return HDMI_SINK_TYPE_REPEATER;
+    } else {
+        return HDMI_SINK_TYPE_NONE;
+    }
+}
+
+void ModePolicy::getHdmiEdidStatus(char* edidstatus, int32_t len) {
+    if (!edidstatus) {
+        MESON_LOGE("%s edidstatus is NULL\n", __FUNCTION__);
+        return;
+    }
+
+    sysfs_get_string(DISPLAY_EDID_STATUS, edidstatus, len);
+}
+
+void ModePolicy::getHdrStrategy(char* value) {
+    char hdr_policy[MESON_MODE_LEN] = {0};
+
+    memset(hdr_policy, 0, MESON_MODE_LEN);
+    getBootEnv(UBOOTENV_HDR_POLICY, hdr_policy);
+
+    if (strstr(hdr_policy, HDR_POLICY_SOURCE)) {
+        strcpy(value, HDR_POLICY_SOURCE);
+    } else {
+        strcpy(value, HDR_POLICY_SINK);
+    }
+    MESON_LOGI("getHdrStrategy is [%s]", value);
+}
+
+int32_t ModePolicy::getHdrPriority() {
+    char hdr_priority[MESON_MODE_LEN] = {0};
+    meson_hdr_priority_e value = MESON_DOLBY_VISION_PRIORITY;
+
+    memset(hdr_priority, 0, MESON_MODE_LEN);
+    getBootEnv(UBOOTENV_HDR_PRIORITY, hdr_priority);
+
+    if (strstr(hdr_priority, "2")) {
+        value = MESON_SDR_PRIORITY;
+    } else if (strstr(hdr_priority, "1")) {
+        value = MESON_HDR10_PRIORITY;
+    } else {
+        value = MESON_DOLBY_VISION_PRIORITY;
+    }
+
+    MESON_LOGI("getHdrPriority is [%d]", value);
+    return (int32_t)value;
+}
+
+bool ModePolicy::isTvDolbyVisionEnable() {
+    bool ret = false;
+    char dv_enable[MESON_MODE_LEN];
+    ret = getBootEnv(UBOOTENV_DV_ENABLE, dv_enable);
+    if (!ret) {
+        if (isMboxSupportDolbyVision()) {
+            strcpy(dv_enable, "1");
+        } else {
+            strcpy(dv_enable, "0");
+        }
+    }
+    MESON_LOGI("dv_enable:%s\n", dv_enable);
+
+    if (!strcmp(dv_enable, "0")) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
+bool ModePolicy::isDolbyVisionEnable() {
+    if (isMboxSupportDolbyVision()) {
+        if (!strcmp(mDvInfo.dv_enable, "0") ) {
+            return false;
+        } else {
+            return true;
+        }
+    } else {
+        return false;
+    }
+}
+
+/* *
+ * @Description: Detect Whether TV support dv
+ * @return: if TV support return true, or false
+ * if true, mode is the Highest resolution Tv dv supported
+ * else mode is ""
+ */
+bool ModePolicy::isTvSupportDolbyVision(char *mode) {
+    strcpy(mode, "");
+    if (DISPLAY_TYPE_TV == mDisplayType) {
+        MESON_LOGI("Current Device is TV, no dv_cap\n");
+        return false;
+    }
+
+    if (strstr(mConData.hdr_info.dv_cap, "DolbyVision RX support list") == NULL) {
+        return false;
+    }
+
+    strcat(mode, mConData.hdr_info.dv_max_mode);
+    strcat(mode, mConData.hdr_info.dv_deepcolor);
+
+    MESON_LOGD("Current Tv Support DV type [%s]", mode);
+
+    return true;
+}
+
+bool ModePolicy::isTvSupportHDR() {
+    if (DISPLAY_TYPE_TV == mDisplayType) {
+        MESON_LOGI("Current Device is TV, no hdr_cap\n");
+        return false;
+    }
+
+    drm_hdr_capabilities hdrCaps;
+    mConnector->getHdrCapabilities(&hdrCaps);
+
+    if (hdrCaps.HLGSupported ||
+            hdrCaps.HDR10Supported ||
+            hdrCaps.HDR10PlusSupported) {
+        return true;
+    }
+
+    return false;
+}
+
+bool ModePolicy::isHdrResolutionPriority() {
+    return sys_get_bool_prop(PROP_HDR_RESOLUTION_PRIORITY, true);
+}
+
+bool ModePolicy::isFrameratePriority() {
+    return sys_get_bool_prop(PROP_HDMI_FRAMERATE_PRIORITY, true);
+}
+
+bool ModePolicy::isSupport4K() {
+    return sys_get_bool_prop(PROP_SUPPORT_4K, true);
+}
+
+bool ModePolicy::isSupport4K30Hz() {
+    return sys_get_bool_prop(PROP_SUPPORT_OVER_4K30, true);
+}
+
+bool ModePolicy::isSupportDeepColor() {
+    return sys_get_bool_prop(PROP_DEEPCOLOR, true);
+}
+
+bool ModePolicy::isLowPowerMode() {
+    return sys_get_bool_prop(LOW_POWER_DEFAULT_COLOR, false);
+}
+
+
+bool ModePolicy::isMboxSupportDolbyVision() {
+    return sys_get_bool_prop(PROP_SUPPORT_DOLBY_VISION, false);
+}
+
+void ModePolicy::getHdrInfo(meson_hdr_info_t *data) {
+    char tvmode[MESON_MODE_LEN] = {0};
+    if (!data) {
+        MESON_LOGE("%s data is NULL\n", __FUNCTION__);
+        return;
+    }
+
+    char hdr_policy[MESON_MODE_LEN] = {0};
+    getHdrStrategy(hdr_policy);
+    data->hdr_policy = (meson_hdr_policy_e)atoi(hdr_policy);
+
+    data->hdr_priority = (meson_hdr_priority_e)getHdrPriority();
+
+    MESON_LOGI("hdr_policy:%d, hdr_priority :%d\n",
+            data->hdr_policy,
+            data->hdr_priority);
+
+    data->is_enable_dv = isDolbyVisionEnable();
+    data->is_tv_supportDv = isTvSupportDolbyVision(tvmode);
+    data->is_tv_supportHDR = isTvSupportHDR();
+    data->is_hdr_resolution_priority = isHdrResolutionPriority();
+    data->is_lowpower_mode = isLowPowerMode();
+
+    char ubootenv_dv_type[MESON_MODE_LEN];
+    bool ret = getBootEnv(UBOOTENV_DV_TYPE, ubootenv_dv_type);
+    if (ret) {
+        strcpy(data->ubootenv_dv_type, ubootenv_dv_type);
+    } else if (isMboxSupportDolbyVision()) {
+        strcpy(data->ubootenv_dv_type, "1");
+    } else {
+        strcpy(data->ubootenv_dv_type, "0");
+    }
+    MESON_LOGI("ubootenv_dv_type:%s\n", data->ubootenv_dv_type);
+
+}
+
+bool ModePolicy::initColorAttribute(char* supportedColorList, int len) {
+    int count = 0;
+    bool result = false;
+
+    if (supportedColorList != NULL) {
+        memset(supportedColorList, 0, len);
+    } else {
+        MESON_LOGE("supportedColorList is NULL\n");
+        return false;
+    }
+
+    while (true) {
+        sysfs_get_string(DISPLAY_HDMI_DEEP_COLOR, supportedColorList, len);
+        if (strlen(supportedColorList) > 0) {
+            result = true;
+            break;
+        }
+
+        if (count++ >= 5) {
+            break;
+        }
+        usleep(500000);
+    }
+
+    return result;
+}
+
+void ModePolicy::setFilterEdidList(std::map<int, std::string> filterEdidList) {
+     MESON_LOGI("FormatColorDepth setFilterEdidList size = %" PRIuFAST16 "", filterEdidList.size());
+     mFilterEdid = filterEdidList;
+}
+
+bool ModePolicy::isFilterEdid() {
+    if (mFilterEdid.empty())
+        return false;
+
+    char disPlayEdid[EDID_MAX_SIZE] = {0};
+    sysfs_get_string(DISPLAY_EDID_RAW, disPlayEdid, EDID_MAX_SIZE);
+
+    for (int i = 0; i < (int)mFilterEdid.size(); i++) {
+        if (!strncmp(mFilterEdid[i].c_str(), disPlayEdid, strlen(mFilterEdid[i].c_str()))) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
+bool ModePolicy::isModeSupportDeepColorAttr(const char *mode, const char * color) {
+    char valueStr[10] = {0};
+    char outputmode[MESON_MODE_LEN] = {0};
+
+    strcpy(outputmode, mode);
+    strcat(outputmode, color);
+
+    if (isFilterEdid() && !strstr(color,"8bit")) {
+        MESON_LOGI("this mode has been filtered");
+        return false;
+    }
+
+    //try support or not
+    sysfs_set_string(DISPLAY_HDMI_VALID_MODE, outputmode);
+    sysfs_get_string(DISPLAY_HDMI_VALID_MODE, valueStr, 10);
+
+    return atoi(valueStr) ? true : false;
+}
+
+
+bool ModePolicy::isSupportHdmiMode(const char *hdmi_mode, const char *supportedColorList) {
+    int length = 0;
+    const char **colorList = NULL;
+
+    if (strstr(hdmi_mode, "2160p60hz")  != NULL
+        || strstr(hdmi_mode,"2160p50hz") != NULL
+        || strstr(hdmi_mode,"smpte50hz") != NULL
+        || strstr(hdmi_mode,"smpte60hz") != NULL) {
+
+        colorList = COLOR_ATTRIBUTE_LIST;
+        length    = ARRAY_SIZE(COLOR_ATTRIBUTE_LIST);
+
+        for (int i = 0; i < length; i++) {
+            if (strstr(supportedColorList, colorList[i]) != NULL) {
+                if (isModeSupportDeepColorAttr(hdmi_mode, colorList[i])) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    } else {
+        colorList = COLOR_ATTRIBUTE_LIST_8BIT;
+        length    = ARRAY_SIZE(COLOR_ATTRIBUTE_LIST_8BIT);
+
+        for (int j = 0; j < length; j++) {
+            if (strstr(supportedColorList, colorList[j]) != NULL) {
+                if (isModeSupportDeepColorAttr(hdmi_mode, colorList[j])) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+}
+
+
+void ModePolicy::filterHdmiDispcap(meson_connector_info* data) {
+    const char *delim = "\n";
+    char filter_dispcap[MESON_MAX_STR_LEN] = {0};
+    char supportedColorList[MESON_MAX_STR_LEN];
+    char *save_ptr = NULL;
+
+    if (!(initColorAttribute(supportedColorList, MESON_MAX_STR_LEN))) {
+        MESON_LOGE("initColorAttribute fail\n");
+        return;
+    }
+
+    MESON_LOGI("before filtered HdmiDispcap: %s\n", data->disp_cap);
+
+    char *hdmi_mode = strtok_r(data->disp_cap, delim, &save_ptr);
+    while (hdmi_mode != NULL) {
+        //recommend mode or not
+        bool recomMode = false;
+        int len = strlen(hdmi_mode);
+        if (hdmi_mode[len - 1] == '*') {
+            hdmi_mode[len - 1] = '\0';
+            recomMode = true;
+        }
+
+        if (isSupportHdmiMode(hdmi_mode, supportedColorList)) {
+            if ((strlen(filter_dispcap) + strlen(hdmi_mode)) < (MESON_MAX_STR_LEN-1)) {
+                strcat(filter_dispcap, hdmi_mode);
+                if (recomMode)
+                    strcat(filter_dispcap, "*");
+                strcat(filter_dispcap, delim);
+            } else {
+                MESON_LOGE("DisplayMode strcat overflow: src=%s, dst=%s\n", hdmi_mode, filter_dispcap);
+                break;
+            }
+        }
+
+        hdmi_mode = strtok_r(NULL, delim, &save_ptr);
+    }
+
+    strcpy(data->disp_cap, filter_dispcap);
+
+    MESON_LOGI("after filtered HdmiDispcap: %s\n", data->disp_cap);
+}
+
+int32_t ModePolicy::getConnectorData(struct meson_policy_in* data, hdmi_dv_info_t *dinfo) {
+    if (!data) {
+        MESON_LOGE("%s data is NULL\n", __FUNCTION__);
+        return -EINVAL;
+    }
+
+    getCommonData(data, dinfo);
+
+    //get hdmi dv_info
+    getDvCap(&data->hdr_info);
+
+    // get Hdr info
+    getHdrInfo(&data->hdr_info);
+
+    //hdmi info
+    getHdmiEdidStatus(data->con_info.edid_parsing, MESON_MODE_LEN);
+
+    //three sink types: sink, repeater, none
+    data->con_info.sink_type = (meson_sink_type_e)getHdmiSinkType();
+    MESON_LOGI("display sink type:%d [0:none, 1:sink, 2:repeater]\n", data->con_info.sink_type);
+
+    if (HDMI_SINK_TYPE_NONE != data->con_info.sink_type) {
+        //read hdmi disp_cap
+        char disp_cap[MESON_MAX_STR_LEN];
+        getHdmiDispCap(disp_cap, MESON_MAX_STR_LEN);
+        strcpy(data->con_info.disp_cap, disp_cap);
+        getSupportedModes();
+
+        //read hdmi dc_cap
+        char dc_cap[MESON_MAX_STR_LEN];
+        getHdmiDcCap(dc_cap, MESON_MAX_STR_LEN);
+        strcpy(data->con_info.dc_cap, dc_cap);
+
+        //getBootEnv(UBOOTENV_HDMIMODE, data->con_info.ubootenv_hdmimode);
+        getBootEnv(UBOOTENV_CVBSMODE, data->con_info.ubootenv_cvbsmode);
+        MESON_LOGI("ubootenv  cvbsmode:%s\n",
+                data->con_info.ubootenv_cvbsmode);
+
+        std::string curColorAttribute;
+        //getDisplayAttribute(DISPLAY_HDMI_COLOR_ATTR, curColorAttribute);
+        getBootEnv(UBOOTENV_COLORATTRIBUTE, data->con_info.ubootenv_colorattr);
+        MESON_LOGI("ubootenv_colorattribute:%s\n", data->con_info.ubootenv_colorattr);
+    }
+
+    getDisplayMode(data->cur_displaymode);
+
+    //filter hdmi disp_cap mode for compatibility
+    filterHdmiDispcap(&data->con_info);
+
+    data->con_info.is_support4k = isSupport4K();
+    data->con_info.is_support4k30HZ = isSupport4K30Hz();
+    data->con_info.is_deepcolor = isSupportDeepColor();
+
+    return 0;
+}
+
+bool ModePolicy::setPolicy(int32_t policy) {
+    MESON_LOGD("setPolicy to %d", policy);
+    //mPolicy = policy;
+    return true;
+}
+
+//TODO::  refactor to a thread to handle hotplug
+void ModePolicy::onHotplug(bool connected) {
+    MESON_LOGD("ModePolicy handle hotplug:%d", connected);
+    //plugout or suspend,set dummy_l
+    if (!connected) {
+        std::string displayMode("dummy_l");
+        if (isVMXCertification()) {
+            displayMode = "576cvbs";
+        }
+
+        setDisplayMode(displayMode);
+        return;
+    }
+
+    //hdmi edid parse error and hpd = 1
+    //set default reolsution and color format
+    if (isHdmiEdidParseOK() == false) {
+        sysfs_set_string(DISPLAY_HDMI_AVMUTE_SYSFS, "1");
+        setDisplayAttribute(DISPLAY_HDMI_COLOR_ATTR, MESON_DEFAULT_COLOR_FORMAT);
+        //set hdmi default mode
+        setDisplayMode(MESON_DEFAULT_HDMI_MODE);
+
+        //update display position
+        int position[4] = { 0, 0, 0, 0 };//x,y,w,h
+        getPosition(MESON_DEFAULT_HDMI_MODE, position);
+        setPosition(MESON_DEFAULT_HDMI_MODE, position[0], position[1],position[2], position[3]);
+        sysfs_set_string(DISPLAY_HDMI_AVMUTE_SYSFS, "-1");
+        return;
+    }
+
+    //hdmi edid parse ok
+    setSourceDisplay(OUTPUT_MODE_STATE_POWER);
+}
+
+void ModePolicy::dump(std::string &dumpstr __unused) {
+
+}
+
+int32_t ModePolicy::bindConnector(std::shared_ptr<HwDisplayConnector> & connector) {
+    MESON_ASSERT(connector.get(), "ModePolicy bindConnector get null connector!!");
+
+    mConnector = connector;
+    switch (mConnector->getType()) {
+        case DRM_MODE_CONNECTOR_HDMIA:
+            mDisplayType = DISPLAY_TYPE_MBOX;
+            mConnectorType = ConnectorType::CONN_TYPE_HDMI;
+            mModeConType = MESON_MODE_HDMI;
+            break;
+        case LEGACY_NON_DRM_CONNECTOR_PANEL:
+        case DRM_MODE_CONNECTOR_LVDS:
+        case DRM_MODE_CONNECTOR_MESON_LVDS_A:
+        case DRM_MODE_CONNECTOR_MESON_LVDS_B:
+        case DRM_MODE_CONNECTOR_MESON_LVDS_C:
+        case DRM_MODE_CONNECTOR_MESON_VBYONE_A:
+        case DRM_MODE_CONNECTOR_MESON_VBYONE_B:
+        case DRM_MODE_CONNECTOR_MESON_MIPI_A:
+        case DRM_MODE_CONNECTOR_MESON_MIPI_B:
+        case DRM_MODE_CONNECTOR_MESON_EDP_A:
+        case DRM_MODE_CONNECTOR_MESON_EDP_B:
+            mDisplayType = DISPLAY_TYPE_TV;
+            mConnectorType = ConnectorType::CONN_TYPE_PANEL;
+            mModeConType = MESON_MODE_PANEL;
+            break;
+        case DRM_MODE_CONNECTOR_TV:
+            mDisplayType = DISPLAY_TYPE_MBOX;
+            mConnectorType = ConnectorType::CONN_TYPE_CVBS;
+            mModeConType = MESON_MODE_HDMI;
+            break;
+        default:
+            MESON_LOGE("bindConnector unknown connector type:%d", mConnector->getType());
+            mDisplayType = DISPLAY_TYPE_MBOX;
+            mConnectorType = ConnectorType::CONN_TYPE_HDMI;
+            mModeConType = MESON_MODE_HDMI;
+            break;
+    }
+
+    return 0;
+}
+
+/* *
+ * @Description: init amdolby vision graphics priority when bootup.
+ * */
+void ModePolicy::initGraphicsPriority() {
+    char mode[MESON_MODE_LEN] = {0};
+    char defVal[MESON_MODE_LEN] = {"1"};
+
+    sys_get_string_prop_default(PROP_DOLBY_VISION_PRIORITY, mode, defVal);
+    setDisplayAttribute(DISPLAY_DOLBY_VISION_GRAPHICS_PRIORITY, mode);
+    sys_set_prop(PROP_DOLBY_VISION_PRIORITY, mode);
+}
+
+
+/* *
+ * @Description: set hdr mode
+ * @params: mode "0":off "1":on "2":auto
+ * */
+void ModePolicy::setHdrMode(const char* mode) {
+    if ((atoi(mode) >= 0) && (atoi(mode) <= 2)) {
+        MESON_LOGI("setHdrMode state: %s\n", mode);
+        setDisplayAttribute(DISPLAY_HDR_MODE, mode);
+        sys_set_prop(PROP_HDR_MODE_STATE, mode);
+    }
+}
+
+/* *
+ * @Description: set sdr mode
+ * @params: mode "0":off "2":auto
+ * */
+void ModePolicy::setSdrMode(const char* mode) {
+    if ((atoi(mode) == 0) || atoi(mode) == 2) {
+        MESON_LOGI("setSdrMode state: %s\n", mode);
+        setDisplayAttribute(DISPLAY_SDR_MODE, mode);
+        sys_set_prop(PROP_SDR_MODE_STATE, mode);
+        setBootEnv(UBOOTENV_SDR2HDR, (char *)mode);
+    }
+}
+
+
+void ModePolicy::initHdrSdrMode() {
+    char mode[MESON_MODE_LEN] = {0};
+    char defVal[MESON_MODE_LEN] = {HDR_MODE_AUTO};
+    sys_get_string_prop_default(PROP_HDR_MODE_STATE, mode, defVal);
+    setHdrMode(mode);
+    memset(mode, 0, sizeof(mode));
+    bool flag = sys_get_bool_prop(PROP_ENABLE_SDR2HDR, false);
+    if (flag & isDolbyVisionEnable()) {
+        strcpy(mode, SDR_MODE_OFF);
+    } else {
+        strcpy(defVal, flag ? SDR_MODE_AUTO : SDR_MODE_OFF);
+        sys_get_string_prop_default(PROP_SDR_MODE_STATE, mode, defVal);
+    }
+    setSdrMode(mode);
+}
+
+bool ModePolicy::checkDolbyVisionStatusChanged(int state) {
+    std::string curDvEnable = "";
+    std::string curDvLLPolicy = "";
+    int curDvMode = -1;
+
+    getDisplayAttribute(DISPLAY_DOLBY_VISION_ENABLE, curDvEnable);
+    getDisplayAttribute(DISPLAY_DOLBY_VISION_LL_POLICY, curDvLLPolicy);
+
+    if (!strcmp(curDvEnable.c_str(), DV_DISABLE) ||
+        !strcmp(curDvEnable.c_str(), "0"))
+        curDvMode = DOLBY_VISION_SET_DISABLE;
+    else if (!strcmp(curDvLLPolicy.c_str(), "0"))
+        curDvMode = DOLBY_VISION_SET_ENABLE;
+    else if (!strcmp(curDvLLPolicy.c_str(), "1"))
+        curDvMode = DOLBY_VISION_SET_ENABLE_LL_YUV;
+    else if (!strcmp(curDvLLPolicy.c_str(), "2"))
+        curDvMode = DOLBY_VISION_SET_ENABLE_LL_RGB;
+
+    MESON_LOGI("curDvMode %d, want DvMode %d\n", curDvMode, state);
+
+    if (curDvMode != state) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+//get edid crc value to check edid change
+bool ModePolicy::isEdidChange() {
+    char edid[MESON_MAX_STR_LEN] = {0};
+    char crcvalue[MESON_MAX_STR_LEN] = {0};
+    unsigned int crcheadlength = strlen(DEFAULT_EDID_CRCHEAD);
+    sysfs_get_string(DISPLAY_EDID_VALUE, edid, MESON_MAX_STR_LEN);
+    char *p = strstr(edid, DEFAULT_EDID_CRCHEAD);
+    if (p != NULL && strlen(p) > crcheadlength) {
+        p += crcheadlength;
+        if (!getBootEnv(UBOOTENV_EDIDCRCVALUE, crcvalue) || strncmp(p, crcvalue, strlen(p))) {
+            MESON_LOGI("update edidcrc: %s->%s\n", crcvalue, p);
+            setBootEnv(UBOOTENV_EDIDCRCVALUE, p);
+            return true;
+        }
+    }
+    return false;
+}
+
+void ModePolicy::saveDeepColorAttr(const char* mode, const char* dcValue) {
+    char ubootvar[100] = {0};
+    sprintf(ubootvar, "ubootenv.var.%s_deepcolor", mode);
+    setBootEnv(ubootvar, (char *)dcValue);
+}
+
+void ModePolicy::saveHdmiParamToEnv() {
+    char outputMode[MESON_MODE_LEN] = {0};
+
+    getDisplayMode(outputMode);
+
+    // 1. check whether the TV changed or not, if changed save crc
+    if (isEdidChange()) {
+        MESON_LOGD("tv sink changed\n");
+    }
+
+    // 2. save coloattr/hdmimode to bootenv if mode is not null or dummy_l
+    if (strstr(outputMode, "cvbs") != NULL) {
+        setBootEnv(UBOOTENV_CVBSMODE, (char *)outputMode);
+    } else if (strcmp(outputMode, "null") && strcmp(outputMode, "dummy_l")) {
+        std::string colorAttr;
+        char colorDepth[MESON_MODE_LEN] = {0};
+        char colorSpace[MESON_MODE_LEN] = {0};
+        char dvstatus[MESON_MODE_LEN]   = {0};
+        char dv_type[MESON_MODE_LEN]    = {0};
+        char hdr_policy[MESON_MODE_LEN] = {0};
+        // 2.1 save color attr
+        getDisplayAttribute(DISPLAY_HDMI_COLOR_ATTR, colorAttr);
+        saveDeepColorAttr(outputMode, colorAttr.c_str());
+        setBootEnv(UBOOTENV_COLORATTRIBUTE, colorAttr.c_str());
+        //colorDepth&&colorSpace is used for uboot hdmi to find
+        //best color attributes for the selected hdmi mode when TV changed
+        char defVal[MESON_MODE_LEN] = {"8"};
+        sys_get_string_prop_default(PROP_DEEPCOLOR_CTL, colorDepth, defVal);
+        strcpy(defVal, "auto");
+        sys_get_string_prop_default(PROP_PIXFMT, colorSpace, defVal);
+        setBootEnv(UBOOTENV_HDMICOLORDEPTH, colorDepth);
+        setBootEnv(UBOOTENV_HDMICOLORSPACE, colorSpace);
+
+        // 2.2 save output mode
+        if (DISPLAY_TYPE_TABLET != mDisplayType) {
+            setBootEnv(UBOOTENV_OUTPUTMODE, (char *)outputMode);
+        }
+
+        if (strstr(outputMode, "hz") != NULL) {
+            setBootEnv(UBOOTENV_HDMIMODE, (char *)outputMode);
+        }
+
+        // 2.3 save amdolby status/dv_type
+        // In follow sink mode: 0:disable 1:STD(or enable dv) 2:LL YUV 3: LL RGB
+        // In follow source mode: dv is disable  in uboot.
+        if (isMboxSupportDolbyVision()) {
+            getHdrStrategy(hdr_policy);
+            if (!strcmp(hdr_policy, HDR_POLICY_SOURCE)) {
+                sprintf(dvstatus, "%d", 0);
+            } else {
+                sprintf(dvstatus, "%d", mSceneOutInfo.dv_type);
+            }
+            setBootEnv(UBOOTENV_DOLBYSTATUS, dvstatus);
+
+            sprintf(dv_type, "%d", mSceneOutInfo.dv_type);
+            setBootEnv(UBOOTENV_DV_TYPE, dv_type);
+
+            setBootEnv(UBOOTENV_DV_ENABLE, mDvInfo.dv_enable);
+
+            MESON_LOGI("dvstatus %s dv_type %s dv_enable %s\n",
+                dvstatus, dv_type, mDvInfo.dv_enable);
+
+        } else {
+            MESON_LOGI("MBOX is not support dv, dvstatus %s dv_type %d dv_enable %s\n",
+                dvstatus, mSceneOutInfo.dv_type, mDvInfo.dv_enable);
+        }
+
+        MESON_LOGI("colorattr: %s, outputMode %s, cd %s, cs %s\n",
+            colorAttr.c_str(), outputMode, colorDepth, colorSpace);
+    }
+}
+
+
+void ModePolicy::enableDolbyVision(int DvMode) {
+    char tvmode[MESON_MAX_STR_LEN] = {0};
+
+    if (isMboxSupportDolbyVision() == false) {
+        MESON_LOGI("This platform is not support dv or has no dv ko");
+        return;
+    }
+    MESON_LOGI("DvMode %d", DvMode);
+
+    strcpy(mDvInfo.dv_enable, "1");
+
+    //if TV
+    if (DISPLAY_TYPE_TV == mDisplayType) {
+        setHdrMode(HDR_MODE_OFF);
+        setDisplayAttribute(DISPLAY_DOLBY_VISION_POLICY, DV_POLICY_FOLLOW_SINK);
+    }
+
+    //if OTT
+    if ((DISPLAY_TYPE_MBOX == mDisplayType) || (DISPLAY_TYPE_REPEATER == mDisplayType)) {
+        if (isTvSupportDolbyVision(tvmode) && (mConData.hdr_info.hdr_priority == MESON_DOLBY_VISION_PRIORITY)) {
+            MESON_LOGI("Tv is Support dv, tvmode is [%s]", tvmode);
+
+            switch (DvMode) {
+                case DOLBY_VISION_SET_ENABLE:
+                    MESON_LOGI("Dv set Mode [DV_RGB_444_8BIT]\n");
+                    setDisplayAttribute(DISPLAY_DOLBY_VISION_LL_POLICY, "0");
+                    break;
+                case DOLBY_VISION_SET_ENABLE_LL_YUV:
+                    MESON_LOGI("Dv set Mode [LL_YCbCr_422_12BIT]\n");
+                    setDisplayAttribute(DISPLAY_DOLBY_VISION_LL_POLICY, "0");
+                    setDisplayAttribute(DISPLAY_DOLBY_VISION_LL_POLICY, "1");
+                    break;
+                case DOLBY_VISION_SET_ENABLE_LL_RGB:
+                    setDisplayAttribute(DISPLAY_DOLBY_VISION_LL_POLICY, "0");
+                    setDisplayAttribute(DISPLAY_DOLBY_VISION_LL_POLICY, "2");
+                    break;
+                default:
+                    setDisplayAttribute(DISPLAY_DOLBY_VISION_LL_POLICY, "0");
+            }
+        }
+
+        char hdr_policy[MESON_MODE_LEN] = {0};
+        getHdrStrategy(hdr_policy);
+        if (strstr(hdr_policy, HDR_POLICY_SINK)) {
+            setDisplayAttribute(DISPLAY_HDR_POLICY, HDR_POLICY_SINK);
+            if (isDolbyVisionEnable()) {
+                setDisplayAttribute(DISPLAY_DOLBY_VISION_POLICY, HDR_POLICY_SINK);
+            }
+        } else if (strstr(hdr_policy, HDR_POLICY_SOURCE)) {
+            setDisplayAttribute(DISPLAY_HDR_POLICY, HDR_POLICY_SOURCE);
+            if (isDolbyVisionEnable()) {
+                setDisplayAttribute(DISPLAY_DOLBY_VISION_POLICY, HDR_POLICY_SOURCE);
+            }
+        }
+
+        setDisplayAttribute(DISPLAY_DOLBY_VISION_HDR_10_POLICY, DV_HDR_SINK_PROCESS);
+    }
+
+    usleep(100000);//100ms
+    setDisplayAttribute(DISPLAY_DOLBY_VISION_ENABLE, DV_ENABLE);
+    setDisplayAttribute(DISPLAY_DOLBY_VISION_MODE, DV_MODE_IPT_TUNNEL);
+    usleep(100000);//100ms
+
+    if (DISPLAY_TYPE_TV == mDisplayType) {
+        setHdrMode(HDR_MODE_AUTO);
+    }
+
+    initGraphicsPriority();
+}
+
+void ModePolicy::disableDolbyVision(int DvMode) {
+    //char tvmode[MESON_MODE_LEN]   = {0};
+    int  check_status_count = 0;
+    int  dv_type            = DvMode;
+
+    MESON_LOGI("dv_type %d", dv_type);
+    strcpy(mDvInfo.dv_enable, "0");
+
+    //2. update sysfs
+    char hdr_policy[MESON_MODE_LEN] = {0};
+    getHdrStrategy(hdr_policy);
+
+    if (strstr(hdr_policy, HDR_POLICY_SINK)) {
+        setDisplayAttribute(DISPLAY_HDR_POLICY, HDR_POLICY_SINK);
+    } else if (strstr(hdr_policy, HDR_POLICY_SOURCE)) {
+        setDisplayAttribute(DISPLAY_HDR_POLICY, HDR_POLICY_SOURCE);
+    }
+
+    setDisplayAttribute(DISPLAY_DOLBY_VISION_POLICY, DV_POLICY_FORCE_MODE);
+    setDisplayAttribute(DISPLAY_DOLBY_VISION_MODE, DV_MODE_BYPASS);
+    usleep(100000);//100ms
+    std::string dvstatus = "";
+    getDisplayAttribute(DISPLAY_DOLBY_VISION_STATUS, dvstatus);
+
+    if (strcmp(dvstatus.c_str(), BYPASS_PROCESS)) {
+        while (++check_status_count <30) {
+            usleep(20000);//20ms
+            getDisplayAttribute(DISPLAY_DOLBY_VISION_STATUS, dvstatus);
+            if (!strcmp(dvstatus.c_str(), BYPASS_PROCESS)) {
+                break;
+            }
+        }
+    }
+
+    MESON_LOGI("dvstatus %s, check_status_count [%d]", dvstatus.c_str(), check_status_count);
+    setDisplayAttribute(DISPLAY_DOLBY_VISION_ENABLE, DV_DISABLE);
+
+    if (DISPLAY_TYPE_TV == mDisplayType) {
+        setHdrMode(HDR_MODE_AUTO);
+    }
+
+    setSdrMode(SDR_MODE_AUTO);
+}
+
+void ModePolicy::getPosition(const char* curMode, int *position) {
+    char keyValue[20] = {0};
+    char ubootvar[100] = {0};
+    int defaultWidth = 0;
+    int defaultHeight = 0;
+    if (strstr(curMode, MODE_480CVBS)) {
+        strcpy(keyValue, MODE_480CVBS);
+        defaultWidth = FULL_WIDTH_480;
+        defaultHeight = FULL_HEIGHT_480;
+    } else if (strstr(curMode, "480")) {
+        strcpy(keyValue, strstr(curMode, MODE_480P_PREFIX) ? MODE_480P_PREFIX : MODE_480I_PREFIX);
+        defaultWidth = FULL_WIDTH_480;
+        defaultHeight = FULL_HEIGHT_480;
+    } else if (strstr(curMode, MODE_576CVBS)) {
+        strcpy(keyValue, MODE_576CVBS);
+        defaultWidth = FULL_WIDTH_576;
+        defaultHeight = FULL_HEIGHT_576;
+    } else if (strstr(curMode, "576")) {
+        strcpy(keyValue, strstr(curMode, MODE_576P_PREFIX) ? MODE_576P_PREFIX : MODE_576I_PREFIX);
+        defaultWidth = FULL_WIDTH_576;
+        defaultHeight = FULL_HEIGHT_576;
+    } else if (strstr(curMode, MODE_PAL_M)) {
+        strcpy(keyValue, MODE_PAL_M);
+        defaultWidth = FULL_WIDTH_480;
+        defaultHeight = FULL_HEIGHT_480;
+    } else if (strstr(curMode, MODE_PAL_N)) {
+        strcpy(keyValue, MODE_PAL_N);
+        defaultWidth = FULL_WIDTH_576;
+        defaultHeight = FULL_HEIGHT_576;
+    } else if (strstr(curMode, MODE_NTSC_M)) {
+        strcpy(keyValue, MODE_NTSC_M);
+        defaultWidth = FULL_WIDTH_480;
+        defaultHeight = FULL_HEIGHT_480;
+    } else if (strstr(curMode, MODE_720P_PREFIX)) {
+        strcpy(keyValue, MODE_720P_PREFIX);
+        defaultWidth = FULL_WIDTH_720;
+        defaultHeight = FULL_HEIGHT_720;
+    } else if (strstr(curMode, MODE_768P_PREFIX)) {
+        strcpy(keyValue, MODE_768P_PREFIX);
+        defaultWidth = FULL_WIDTH_768;
+        defaultHeight = FULL_HEIGHT_768;
+    } else if (strstr(curMode, MODE_1080I_PREFIX)) {
+        strcpy(keyValue, MODE_1080I_PREFIX);
+        defaultWidth = FULL_WIDTH_1080;
+        defaultHeight = FULL_HEIGHT_1080;
+    } else if (strstr(curMode, MODE_1080P_PREFIX)) {
+        strcpy(keyValue, MODE_1080P_PREFIX);
+        defaultWidth = FULL_WIDTH_1080;
+        defaultHeight = FULL_HEIGHT_1080;
+    } else if (strstr(curMode, MODE_4K2K_PREFIX)) {
+        strcpy(keyValue, MODE_4K2K_PREFIX);
+        defaultWidth = FULL_WIDTH_4K2K;
+        defaultHeight = FULL_HEIGHT_4K2K;
+    } else if (strstr(curMode, MODE_4K2KSMPTE_PREFIX)) {
+        strcpy(keyValue, "4k2ksmpte");
+        defaultWidth = FULL_WIDTH_4K2KSMPTE;
+        defaultHeight = FULL_HEIGHT_4K2KSMPTE;
+    } else if (strstr(curMode, MODE_PANEL)) {
+        strcpy(keyValue, MODE_PANEL);
+        defaultWidth = FULL_WIDTH_PANEL;
+        defaultHeight = FULL_HEIGHT_PANEL;
+    } else {
+        strcpy(keyValue, MODE_1080P_PREFIX);
+        defaultWidth = FULL_WIDTH_1080;
+        defaultHeight = FULL_HEIGHT_1080;
+    }
+
+    pthread_mutex_lock(&mEnvLock);
+    sprintf(ubootvar, "ubootenv.var.%s_x", keyValue);
+    position[0] = getBootenvInt(ubootvar, 0);
+    sprintf(ubootvar, "ubootenv.var.%s_y", keyValue);
+    position[1] = getBootenvInt(ubootvar, 0);
+    sprintf(ubootvar, "ubootenv.var.%s_w", keyValue);
+    position[2] = getBootenvInt(ubootvar, defaultWidth);
+    sprintf(ubootvar, "ubootenv.var.%s_h", keyValue);
+    position[3] = getBootenvInt(ubootvar, defaultHeight);
+
+    MESON_LOGI("%s curMode:%s position[0]:%d position[1]:%d position[2]:%d position[3]:%d\n", __FUNCTION__, curMode, position[0], position[1], position[2], position[3]);
+
+    pthread_mutex_unlock(&mEnvLock);
+
+}
+
+void ModePolicy::setPosition(const char* curMode, int left, int top, int width, int height) {
+    char x[512] = {0};
+    char y[512] = {0};
+    char w[512] = {0};
+    char h[512] = {0};
+    sprintf(x, "%d", left);
+    sprintf(y, "%d", top);
+    sprintf(w, "%d", width);
+    sprintf(h, "%d", height);
+
+    MESON_LOGI("%s curMode:%s left:%d top:%d width:%d height:%d\n", __FUNCTION__, curMode, left, top, width, height);
+
+    char keyValue[20] = {0};
+    char ubootvar[100] = {0};
+    if (strstr(curMode, MODE_480CVBS)) {
+        strcpy(keyValue, MODE_480CVBS);
+    } else if (strstr(curMode, "480")) {
+        strcpy(keyValue, strstr(curMode, MODE_480P_PREFIX) ? MODE_480P_PREFIX : MODE_480I_PREFIX);
+    } else if (strstr(curMode, MODE_576CVBS)) {
+        strcpy(keyValue, MODE_576CVBS);
+    } else if (strstr(curMode, "576")) {
+        strcpy(keyValue, strstr(curMode, MODE_576P_PREFIX) ? MODE_576P_PREFIX : MODE_576I_PREFIX);
+    } else if (strstr(curMode, MODE_PAL_M)) {
+        strcpy(keyValue, MODE_PAL_M);
+    } else if (strstr(curMode, MODE_PAL_N)) {
+        strcpy(keyValue, MODE_PAL_N);
+    } else if (strstr(curMode, MODE_NTSC_M)) {
+        strcpy(keyValue, MODE_NTSC_M);
+    } else if (strstr(curMode, MODE_720P_PREFIX)) {
+        strcpy(keyValue, MODE_720P_PREFIX);
+    } else if (strstr(curMode, MODE_768P_PREFIX)) {
+        strcpy(keyValue, MODE_768P_PREFIX);
+    } else if (strstr(curMode, MODE_1080I_PREFIX)) {
+        strcpy(keyValue, MODE_1080I_PREFIX);
+    } else if (strstr(curMode, MODE_1080P_PREFIX)) {
+        strcpy(keyValue, MODE_1080P_PREFIX);
+    } else if (strstr(curMode, MODE_4K2K_PREFIX)) {
+        strcpy(keyValue, MODE_4K2K_PREFIX);
+    } else if (strstr(curMode, MODE_4K2KSMPTE_PREFIX)) {
+        strcpy(keyValue, "4k2ksmpte");
+    } else if (strstr(curMode, MODE_PANEL)) {
+        strcpy(keyValue, MODE_PANEL);
+    }
+
+    pthread_mutex_lock(&mEnvLock);
+    if (mReason != OUPTUT_CHANGE_BY_HWC) {
+        sprintf(ubootvar, "ubootenv.var.%s_x", keyValue);
+        setBootEnv(ubootvar, x);
+        sprintf(ubootvar, "ubootenv.var.%s_y", keyValue);
+        setBootEnv(ubootvar, y);
+        sprintf(ubootvar, "ubootenv.var.%s_w", keyValue);
+        setBootEnv(ubootvar, w);
+        sprintf(ubootvar, "ubootenv.var.%s_h", keyValue);
+        setBootEnv(ubootvar, h);
+    }
+    pthread_mutex_unlock(&mEnvLock);
+    mAdapter->setDisplayRect({left, top, width , height}, mConnectorType);
+
+}
+
+void ModePolicy::setDigitalMode(const char* mode) {
+    if (mode == NULL) return;
+
+    if (!strcmp("PCM", mode)) {
+        sysfs_set_string(AUDIO_DSP_DIGITAL_RAW, "0");
+        sysfs_set_string(AV_HDMI_CONFIG, "audio_on");
+    } else if (!strcmp("SPDIF passthrough", mode))  {
+        sysfs_set_string(AUDIO_DSP_DIGITAL_RAW, "1");
+        sysfs_set_string(AV_HDMI_CONFIG, "audio_on");
+    } else if (!strcmp("HDMI passthrough", mode)) {
+        sysfs_set_string(AUDIO_DSP_DIGITAL_RAW, "2");
+        sysfs_set_string(AV_HDMI_CONFIG, "audio_on");
+    }
+}
+
+bool ModePolicy::getDisplayMode(char* mode) {
+    bool ret = false;
+
+    if (mode != NULL) {
+        MESON_ASSERT(mAdapter.get(), "modePolicy has no display adapter");
+        std::string curMode = "null";
+        ret = mAdapter->getDisplayMode(curMode, mConnectorType);
+        strcpy(mode, curMode.c_str());
+        MESON_LOGI("%s mode:%s\n", __FUNCTION__, mode);
+    } else {
+        MESON_LOGE("%s mode is NULL\n", __FUNCTION__);
+    }
+
+    return ret;
+}
+
+//set hdmi output mode
+int32_t ModePolicy::setDisplayMode(std::string &mode) {
+    MESON_LOGI("%s mode:%s\n", __FUNCTION__, mode.c_str());
+    mAdapter->setDisplayMode(mode, mConnectorType);
+    return 0;
+}
+
+int32_t ModePolicy::setDisplayMode(const char *mode) {
+    if (!mode) {
+        MESON_LOGE("ModePolicy::setDisplayMode null mode");
+        return -EINVAL;
+    }
+    std::string displayMode(mode);
+    return setDisplayMode(displayMode);
+}
+
+bool ModePolicy::setDisplayAttribute(const std::string cmd, const std::string attribute) {
+    return mAdapter->setDisplayAttribute(cmd, attribute, mConnectorType);
+}
+bool ModePolicy::getDisplayAttribute(const std::string cmd, std::string& attribute) {
+    return mAdapter->getDisplayAttribute(cmd, attribute, mConnectorType);
+}
+
+bool ModePolicy::isMatchMode(char* curmode, const char* outputmode) {
+    bool ret = false;
+    char tmpMode[MESON_MODE_LEN] = {0};
+
+    char *pCmp = curmode;
+    //check line feed key
+    char *pos = strchr(pCmp, 0x0a);
+    if (NULL == pos) {
+        //check return key
+        char *pos = strchr(pCmp, 0x0d);
+        if (NULL == pos) {
+            strcpy(tmpMode, pCmp);
+        } else {
+            strncpy(tmpMode, pCmp, pos - pCmp);
+        }
+    } else {
+        strncpy(tmpMode, pCmp, pos - pCmp);
+    }
+
+    MESON_LOGI("curmode:%s, tmpMode:%s, outputmode:%s\n", curmode, tmpMode, outputmode);
+
+    if (!strcmp(tmpMode, outputmode)) {
+        ret = true;
+    }
+
+    return ret;
+}
+
+bool ModePolicy::isTvSupportALLM() {
+    char allm_mode_cap[PROP_VALUE_MAX];
+    memset(allm_mode_cap, 0, PROP_VALUE_MAX);
+    int ret = 0;
+
+    sysfs_get_string(AUTO_LOW_LATENCY_MODE_CAP, allm_mode_cap, PROP_VALUE_MAX);
+
+    for (int i = 0; i < ARRAY_SIZE(ALLM_MODE_CAP); i++) {
+        if (!strncmp(allm_mode_cap, ALLM_MODE_CAP[i], strlen(ALLM_MODE_CAP[i]))) {
+            ret = i;
+        }
+    }
+
+    return (ret == 1) ? true : false;
+}
+
+bool ModePolicy::getContentTypeSupport(const char* type) {
+    char content_type_cap[MESON_MAX_STR_LEN] = {0};
+    sysfs_get_string(HDMI_CONTENT_TYPE_CAP, content_type_cap, MESON_MAX_STR_LEN);
+    if (strstr(content_type_cap, type)) {
+        MESON_LOGI("getContentTypeSupport: %s is true", type);
+        return true;
+    }
+
+    MESON_LOGI("getContentTypeSupport: %s is false", type);
+    return false;
+}
+
+bool ModePolicy::getGameContentTypeSupport() {
+    return getContentTypeSupport(CONTENT_TYPE_CAP[3]);
+}
+
+bool ModePolicy::getSupportALLMContentTypeList(std::vector<std::string> *supportModes) {
+    if (isTvSupportALLM()) {
+        (*supportModes).push_back(std::string("allm"));
+    }
+
+    for (int i = 0; i < ARRAY_SIZE(CONTENT_TYPE_CAP); i++) {
+        if (getContentTypeSupport(CONTENT_TYPE_CAP[i])) {
+            (*supportModes).push_back(std::string(CONTENT_TYPE_CAP[i]));
+        }
+    }
+
+    return true;
+}
+
+
+void ModePolicy::setTvDolbyVisionEnable() {
+    //if TV
+    setHdrMode(HDR_MODE_OFF);
+    setDisplayAttribute(DISPLAY_DOLBY_VISION_POLICY, DV_POLICY_FOLLOW_SINK);
+
+    usleep(100000);//100ms
+    setDisplayAttribute(DISPLAY_DOLBY_VISION_ENABLE, DV_ENABLE);
+    setDisplayAttribute(DISPLAY_DOLBY_VISION_MODE, DV_MODE_IPT_TUNNEL);
+    usleep(100000);//100ms
+
+    setHdrMode(HDR_MODE_AUTO);
+
+    initGraphicsPriority();
+}
+
+void ModePolicy::setTvDolbyVisionDisable() {
+    int  check_status_count = 0;
+
+    //2. update sysfs
+    setDisplayAttribute(DISPLAY_HDR_POLICY, HDR_POLICY_SINK);
+
+    setDisplayAttribute(DISPLAY_DOLBY_VISION_POLICY, DV_POLICY_FORCE_MODE);
+    setDisplayAttribute(DISPLAY_DOLBY_VISION_MODE, DV_MODE_BYPASS);
+    usleep(100000);//100ms
+    std::string dvstatus = "";
+    getDisplayAttribute(DISPLAY_DOLBY_VISION_STATUS, dvstatus);
+
+    if (strcmp(dvstatus.c_str(), BYPASS_PROCESS)) {
+        while (++check_status_count <30) {
+            usleep(20000);//20ms
+            getDisplayAttribute(DISPLAY_DOLBY_VISION_STATUS, dvstatus);
+            if (!strcmp(dvstatus.c_str(), BYPASS_PROCESS)) {
+                break;
+            }
+        }
+    }
+
+    MESON_LOGI("dvstatus %s, check_status_count [%d]", dvstatus.c_str(), check_status_count);
+    setDisplayAttribute(DISPLAY_DOLBY_VISION_ENABLE, DV_DISABLE);
+
+    setHdrMode(HDR_MODE_AUTO);
+    setSdrMode(SDR_MODE_AUTO);
+}
+
+
+void ModePolicy::setDolbyVisionEnable(int state,  output_mode_state mode_state __unused) {
+    MESON_LOGI("%s dv mode:%d", __FUNCTION__, state);
+
+    if (DISPLAY_TYPE_TV == mDisplayType) {
+        //1. update prop
+        char tmp[10];
+        sprintf(tmp, "%d", state);
+        strcpy(mConData.hdr_info.ubootenv_dv_type, tmp);
+
+        if (state == DOLBY_VISION_SET_DISABLE) {
+            strcpy(mDvInfo.dv_enable, "0");
+        } else {
+            strcpy(mDvInfo.dv_enable, "1");
+        }
+
+        if (state == DOLBY_VISION_SET_DISABLE) {
+            setTvDolbyVisionDisable();
+        } else {
+            setTvDolbyVisionEnable();
+        }
+
+        //save env
+        setBootEnv(UBOOTENV_DV_ENABLE, mDvInfo.dv_enable);
+    } else {
+        //1. update uboot env
+        char tmp[10];
+        sprintf(tmp, "%d", state);
+        strcpy(mConData.hdr_info.ubootenv_dv_type, tmp);
+
+        if (state == DOLBY_VISION_SET_DISABLE) {
+            strcpy(mDvInfo.dv_enable, "0");
+        } else {
+            strcpy(mDvInfo.dv_enable, "1");
+        }
+
+        setBootEnv(UBOOTENV_DV_TYPE, mConData.hdr_info.ubootenv_dv_type);
+        setBootEnv(UBOOTENV_DV_ENABLE, mDvInfo.dv_enable);
+    }
+}
+
+
+/* *
+ * @Description: this is a temporary solution, should be revert when android.hardware.graphics.composer@2.4 finished
+ *               set the ALLM_Mode
+ * @params: "0": ALLM disable (VSIF still contain allm info)
+ *          "1": ALLM enable
+ *          "-1":really disable ALLM (VSIF don't contain allm info)
+ * */
+void ModePolicy::setALLMMode(int state) {
+    /***************************************************************
+     *         Comment for special solution in this func           *
+     ***************************************************************
+     *                                                             *
+     * In HDMI Standard only 0 to disable ALLM and 1 to enable ALLM*
+     * but ALLM and amDolby Vision share the same bit in VSIF        *
+     * it cause conflict                                           *
+     *                                                             *
+     * So in amlogic special solution:                             *
+     * we add -1 to                                                *
+     *     1: disable ALLM                                         *
+     *     2: clean ALLM info in VSIF conflict bit                 *
+     * when user set 0 to ALLM                                     *
+     * we will force change 0 into -1 here                         *
+     *                                                             *
+     ***************************************************************/
+
+    char buf[PROPERTY_VALUE_MAX] = {0};
+    char defVal[PROPERTY_VALUE_MAX] = "";
+    int len =sys_get_string_prop_default("persist.vendor.sys.display.allm", buf, defVal);
+    int perState = -1;
+    char* end;
+
+    if (len > 0) {
+        perState = strtol(buf, &end, 0);
+        if (end == buf) {
+            perState = -1;
+        }
+    }
+
+
+    if (perState == state) {
+        MESON_LOGI("setALLMMode: the ALLM_Mode is not changed");
+        return;
+    }
+
+    char dv_mode[MESON_MAX_STR_LEN];
+    bool isTVSupportDV = isTvSupportDolbyVision(dv_mode);
+
+    switch (state) {
+        case -1:
+            [[fallthrough]];
+        case 0:
+            sysfs_set_string(AUTO_LOW_LATENCY_MODE, ALLM_MODE[0]);
+            sys_set_prop("persist.vendor.sys.display.allm", ALLM_MODE[0]);
+            MESON_LOGI("setALLMMode: ALLM_Mode: %s", ALLM_MODE[0]);
+
+            if (isTVSupportDV) {
+                // reset doblyvision when set -1/0 to ALLM
+                //setBootEnv(UBOOTENV_BESTDOLBYVISION, "true");
+                //initDolbyVision(OUTPUT_MODE_STATE_SWITCH);
+                setDolbyVisionEnable(DOLBY_VISION_SET_ENABLE,OUTPUT_MODE_STATE_SWITCH);
+            }
+            break;
+        case 1:
+            sysfs_set_string(AUTO_LOW_LATENCY_MODE, ALLM_MODE[2]);
+            sys_set_prop("persist.vendor.sys.display.allm", ALLM_MODE[2]);
+            MESON_LOGI("setALLMMode: ALLM_Mode: %s", ALLM_MODE[2]);
+
+            if (isTVSupportDV && isDolbyVisionEnable()) {
+                // disable the doblyvision when ALLM enable
+               // setBootEnv(UBOOTENV_BESTDOLBYVISION, "false");
+                setDolbyVisionEnable(DOLBY_VISION_SET_DISABLE,OUTPUT_MODE_STATE_SWITCH);
+            }
+            break;
+        default:
+            MESON_LOGE("setALLMMode: ALLM_Mode: error state[%d]", state);
+            break;
+    }
+}
+
+/* *
+ * @Description: get Current State DolbyVision State
+ *
+ * @result: if disable amDolby Vision return DOLBY_VISION_SET_DISABLE.
+ *          if Current TV support the state saved in Mbox. return that state. like value of saved is 2, and TV support LL_YUV
+ *          if Current TV not support the state saved in Mbox. but isDolbyVisionEnable() is enable.
+ *             return state in priority queue. like value of saved is 2, But TV only Support LL_RGB, so system will return LL_RGB
+ */
+int ModePolicy::getDolbyVisionType() {
+    int dv_type;
+    char dv_mode[MESON_MAX_STR_LEN];
+
+    if (isTvSupportDolbyVision(dv_mode) && (mConData.hdr_info.hdr_priority == MESON_DOLBY_VISION_PRIORITY)) {
+        //1. read dv mode from prop(maybe need to env)
+        dv_type = mSceneOutInfo.dv_type;
+        MESON_LOGI("dv_type %d tv dv mode:%s\n", dv_type, dv_mode);
+
+        //2. check tv support or not
+        if ((dv_type == 1) && strstr(dv_mode, "DV_RGB_444_8BIT") != NULL) {
+            return DOLBY_VISION_SET_ENABLE;
+        } else if ((dv_type == 2) && strstr(dv_mode, "LL_YCbCr_422_12BIT") != NULL) {
+            return DOLBY_VISION_SET_ENABLE_LL_YUV;
+        } else if ((dv_type == 3)
+                && ((strstr(dv_mode, "LL_RGB_444_12BIT") != NULL) || (strstr(dv_mode, "LL_RGB_444_10BIT") != NULL))) {
+            return DOLBY_VISION_SET_ENABLE_LL_RGB;
+        } else if (dv_type == 0) {
+            return DOLBY_VISION_SET_DISABLE;
+        }
+
+        //3. amdolby vision best policy:STD->LL_YUV->LL_RGB for netflix request
+        //   amdolby vision best policy:LL_YUV->STD->LL_RGB for amdolby vision request
+        if ((strstr(dv_mode, "DV_RGB_444_8BIT") != NULL) || (strstr(dv_mode, "LL_YCbCr_422_12BIT") != NULL)) {
+            if (sys_get_bool_prop(PROP_ALWAYS_DOLBY_VISION, false)) {
+                if (strstr(dv_mode, "DV_RGB_444_8BIT") != NULL) {
+                    return DOLBY_VISION_SET_ENABLE;
+                } else if (strstr(dv_mode, "LL_YCbCr_422_12BIT") != NULL) {
+                    return DOLBY_VISION_SET_ENABLE_LL_YUV;
+                }
+            } else {
+                if (strstr(dv_mode, "LL_YCbCr_422_12BIT") != NULL) {
+                    return DOLBY_VISION_SET_ENABLE_LL_YUV;
+                } else if (strstr(dv_mode, "DV_RGB_444_8BIT") != NULL) {
+                    return DOLBY_VISION_SET_ENABLE;
+                }
+            }
+        } else if ((strstr(dv_mode, "LL_RGB_444_12BIT") != NULL) || (strstr(dv_mode, "LL_RGB_444_10BIT") != NULL)) {
+            return DOLBY_VISION_SET_ENABLE_LL_RGB;
+        }
+    } else {
+        // enable amdolby vision core
+        if (isDolbyVisionEnable()) {
+            return DOLBY_VISION_SET_ENABLE;
+        }
+    }
+
+    return DOLBY_VISION_SET_DISABLE;
+}
+
+
+/*
+* apply setting
+*/
+void ModePolicy::applyDisplaySetting() {
+
+    //quiescent boot need not output
+    bool quiescent = sys_get_bool_prop("ro.boot.quiescent", false);
+
+    MESON_LOGI("quiescent_mode is %d\n", quiescent);
+    if (quiescent  && (mState == OUTPUT_MODE_STATE_INIT)) {
+        MESON_LOGI("don't need to setting hdmi when quiescent mode\n");
+        return;
+    }
+
+    //check cvbs mode
+    bool cvbsMode = false;
+
+    if (!strcmp(mSceneOutInfo.displaymode, MODE_480CVBS) || !strcmp(mSceneOutInfo.displaymode, MODE_576CVBS)
+        || !strcmp(mSceneOutInfo.displaymode, MODE_PAL_M) || !strcmp(mSceneOutInfo.displaymode, MODE_PAL_N)
+        || !strcmp(mSceneOutInfo.displaymode, MODE_NTSC_M)
+        || !strcmp(mSceneOutInfo.displaymode, "null") || !strcmp(mSceneOutInfo.displaymode, "dummy_l")
+        || !strcmp(mSceneOutInfo.displaymode, MODE_PANEL)) {
+        cvbsMode = true;
+    }
+
+    /* not enable phy in systemcontrol by default
+     * as phy will be enabled in driver when set mode
+     * only enable phy if phy is disabled but not enabled
+     */
+    //bool phy_enabled_already = true;
+
+    // 1. update hdmi frac_rate_policy
+    char frac_rate_policy[MESON_MODE_LEN]     = {0};
+    char cur_frac_rate_policy[MESON_MODE_LEN] = {0};
+    bool frac_rate_policy_change        = false;
+
+    if (mReason != OUPTUT_CHANGE_BY_HWC) {
+        sysfs_get_string(HDMI_TX_FRAMERATE_POLICY, cur_frac_rate_policy, MESON_MODE_LEN);
+        getBootEnv(UBOOTENV_FRAC_RATE_POLICY, frac_rate_policy);
+        if (strstr(frac_rate_policy, cur_frac_rate_policy) == NULL) {
+            sysfs_set_string(HDMI_TX_FRAMERATE_POLICY, frac_rate_policy);
+            frac_rate_policy_change = true;
+        }  else {
+            MESON_LOGI("cur frac_rate_policy is equals\n");
+        }
+    } else {
+         sysfs_get_string(HDMI_TX_FRAMERATE_POLICY, cur_frac_rate_policy, MESON_MODE_LEN);
+         char defVal[] = "2";
+         sys_get_string_prop_default(HDMI_FRC_POLICY_PROP,frac_rate_policy, defVal);
+         if (strstr(frac_rate_policy,"2")) {
+             getBootEnv(UBOOTENV_FRAC_RATE_POLICY, frac_rate_policy);
+         }
+         MESON_LOGD("get frc policy from hwc is %s and save value is %s",cur_frac_rate_policy,frac_rate_policy);
+          if (strstr(frac_rate_policy, cur_frac_rate_policy) == NULL) {
+               frac_rate_policy_change = true;
+         }
+    }
+
+    // 2. set hdmi final color space
+    char curColorAttribute[MESON_MODE_LEN] = {0};
+    char final_deepcolor[MESON_MODE_LEN]   = {0};
+    bool attr_change                 = false;
+
+    std::string cur_ColorAttribute;
+    getDisplayAttribute(DISPLAY_HDMI_COLOR_ATTR, cur_ColorAttribute);
+    strcpy(curColorAttribute, cur_ColorAttribute.c_str());
+    strcpy(final_deepcolor, mSceneOutInfo.deepcolor);
+    MESON_LOGI("curDeepcolor[%s] final_deepcolor[%s]\n", curColorAttribute, final_deepcolor);
+
+    if (strstr(curColorAttribute, final_deepcolor) == NULL) {
+        MESON_LOGI("set color space from:%s to %s\n", curColorAttribute, final_deepcolor);
+        setDisplayAttribute(DISPLAY_HDMI_COLOR_ATTR, final_deepcolor);
+        attr_change = true;
+    } else {
+        MESON_LOGI("cur deepcolor is equals\n");
+    }
+
+    // 3. update sdr/hdr strategy
+    char hdr_policy[MESON_MODE_LEN] = {0};
+    getHdrStrategy(hdr_policy);
+    if (!cvbsMode && (isMboxSupportDolbyVision() == false)) {
+        if (sys_get_bool_prop(PROP_DOLBY_VISION_FEATURE, false)) {
+            if (strstr(hdr_policy, HDR_POLICY_SINK)) {
+                setDisplayAttribute(DISPLAY_HDR_POLICY, HDR_POLICY_SINK);
+            } else if (strstr(hdr_policy, HDR_POLICY_SOURCE)) {
+                setDisplayAttribute(DISPLAY_HDR_POLICY, HDR_POLICY_SOURCE);
+            }
+        } else {
+            initHdrSdrMode();
+        }
+    }
+
+    // 4. check amdolby vision
+    int  dv_type  = DOLBY_VISION_SET_DISABLE;
+    bool dv_change  = false;
+
+    dv_type   = mSceneOutInfo.dv_type;
+    dv_change = checkDolbyVisionStatusChanged(dv_type);
+    if (isMboxSupportDolbyVision() && dv_change) {
+        //4.1 set avmute when signal change at boot
+        if ((OUTPUT_MODE_STATE_INIT == mState)
+            && (strstr(hdr_policy, HDR_POLICY_SINK))) {
+            sysfs_set_string(DISPLAY_HDMI_AVMUTE_SYSFS, "1");
+        }
+        //4.2 set dummy_l mode when dv change at UI switch
+        if ((OUTPUT_MODE_STATE_SWITCH == mState) && dv_change) {
+            setDisplayMode("dummy_l");
+        }
+        //4.3 enable or disable amdolby vision core
+        if (DOLBY_VISION_SET_DISABLE != dv_type) {
+            enableDolbyVision(dv_type);
+        } else {
+            disableDolbyVision(dv_type);
+        }
+
+        MESON_LOGI("isDolbyVisionEnable [%d] dv type:%d", isDolbyVisionEnable(), getDolbyVisionType());
+    } else {
+        MESON_LOGI("cur DvMode is equals\n");
+    }
+
+    // 5. check hdmi output mode
+    char final_displaymode[MESON_MODE_LEN] = {0};
+    char curDisplayMode[MESON_MODE_LEN]    = {0};
+    bool modeChange                  = false;
+
+    getDisplayMode(curDisplayMode);
+    strcpy(final_displaymode, mSceneOutInfo.displaymode);
+    MESON_LOGI("curMode:[%s] ,final_displaymode[%s]\n", curDisplayMode, final_displaymode);
+
+    if (!isMatchMode(curDisplayMode, final_displaymode)) {
+        modeChange = true;
+    } else {
+        MESON_LOGI("cur mode is equals\n");
+    }
+
+    //6. check any change
+    bool isNeedChange = false;
+
+    if (modeChange || attr_change || frac_rate_policy_change) {
+        isNeedChange = true;
+    } else {
+        MESON_LOGI("nothing need to be changed\n");
+    }
+
+    // 7. stop hdcp
+    // TODO: no need for drm backend
+
+    // 8. set hdmi final output mode
+    if (isNeedChange) {
+        //set hdmi mode
+        setDisplayMode(final_displaymode);
+        /* phy already turned on after write display/mode node */
+        //phy_enabled_already     = true;
+    } else {
+        MESON_LOGI("curDisplayMode is equal  final_displaymode, Do not need set it\n");
+    }
+
+    // graphic
+    char final_Mode[MESON_MODE_LEN] = {0};
+    getDisplayMode(final_Mode);
+    char defVal[] = "0x0";
+    if (sys_get_bool_prop(PROP_DISPLAY_SIZE_CHECK, true)) {
+        char resolution[MESON_MODE_LEN] = {0};
+        char defaultResolution[MESON_MODE_LEN] = {0};
+        char finalResolution[MESON_MODE_LEN] = {0};
+        int w = 0, h = 0, w1 =0, h1 = 0;
+        sysfs_get_string(SYS_DISPLAY_RESOLUTION, resolution, MESON_MODE_LEN);
+        sys_get_string_prop_default(PROP_DISPLAY_SIZE, defaultResolution, defVal);
+        sscanf(resolution, "%dx%d", &w, &h);
+        sscanf(defaultResolution, "%dx%d", &w1, &h1);
+        if ((w != w1) || (h != h1)) {
+            if (strstr(final_displaymode, "null") && w1 != 0) {
+                sprintf(finalResolution, "%dx%d", w1, h1);
+            } else {
+                sprintf(finalResolution, "%dx%d", w, h);
+            }
+            sys_set_prop(PROP_DISPLAY_SIZE, finalResolution);
+        }
+    }
+    sys_set_prop(PROP_DISPLAY_ALLM, isTvSupportALLM() ? "1" : "0");
+    sys_set_prop(PROP_DISPLAY_GAME, getGameContentTypeSupport() ? "1" : "0");
+
+    char defaultResolution[MESON_MODE_LEN] = {0};
+    sys_get_string_prop_default(PROP_DISPLAY_SIZE, defaultResolution, defVal);
+    MESON_LOGI("set display-size:%s\n", defaultResolution);
+
+    int position[4] = { 0, 0, 0, 0 };//x,y,w,h
+    getPosition(final_displaymode, position);
+    setPosition(final_displaymode, position[0], position[1],position[2], position[3]);
+
+    // 9. turn on phy and clear avmute
+    if (isNeedChange) {
+        /*if (!phy_enabled_already) {
+            sysfs_set_string(DISPLAY_HDMI_PHY, "1"); // Turn on TMDS PHY
+        }*/
+        usleep(20000);
+        sysfs_set_string(DISPLAY_HDMI_AUDIO_MUTE, "1");
+        sysfs_set_string(DISPLAY_HDMI_AUDIO_MUTE, "0");
+        if (isDolbyVisionEnable()) {
+            usleep(20000);
+        }
+    }
+
+    //must clear avmute for new policy(driver maybe set mute)
+    sysfs_set_string(DISPLAY_HDMI_AVMUTE_SYSFS, "-1");
+
+    //audio
+    char value[MESON_MAX_STR_LEN] = {0};
+    memset(value, 0, sizeof(0));
+    getBootEnv(UBOOTENV_DIGITAUDIO, value);
+    setDigitalMode(value);
+
+    sysfs_get_string(HDMI_TX_FRAMERATE_POLICY, cur_frac_rate_policy, MESON_MODE_LEN);
+    sys_set_prop(HDMI_FRC_POLICY_PROP,cur_frac_rate_policy);
+
+    if ((mState == OUTPUT_MODE_STATE_INIT) ||
+         (mState == OUTPUT_MODE_STATE_POWER)) {
+        saveHdmiParamToEnv();
+    }
+}
+
+int32_t ModePolicy::initialize() {
+    uint32_t width = 1280;
+    uint32_t height = 1080;
+    HwcConfig::getFramebufferSize(mDisplayId, width, height);
+    mDefaultUI = to_string(height);
+
+    if (DISPLAY_TYPE_MBOX == mDisplayType) {
+        setSourceDisplay(OUTPUT_MODE_STATE_INIT);
+    } else if (DISPLAY_TYPE_TV == mDisplayType) {
+        setSinkDisplay(true);
+    }
+#if 0
+    } else if (DISPLAY_TYPE_TABLET == mDisplayType) {
+
+    } else if (DISPLAY_TYPE_REPEATER == mDisplayType) {
+        setSourceDisplay(OUTPUT_MODE_STATE_INIT);
+    }
+#endif
+
+    return 0;
+}
+
+void ModePolicy::setSinkDisplay(bool initState) {
+    char current_mode[MESON_MODE_LEN] = {0};
+    char outputmode[MESON_MODE_LEN] = {0};
+
+    getDisplayMode(current_mode);
+    getBootEnv(UBOOTENV_OUTPUTMODE, outputmode);
+    MESON_LOGD("init tv display old outputmode:%s, outputmode:%s\n", current_mode, outputmode);
+
+    if (strlen(outputmode) == 0)
+        strncpy(outputmode, mDefaultUI.c_str(), MESON_MODE_LEN);
+
+    setSinkOutputMode(outputmode, initState);
+}
+
+void ModePolicy::setSinkOutputMode(const char* outputmode, bool initState) {
+    MESON_LOGI("set sink output mode:%s, init state:%d\n", outputmode, initState?1:0);
+
+    //set output mode
+    char curMode[MESON_MODE_LEN] = {0};
+    getDisplayMode(curMode);
+
+    MESON_LOGI("curMode = %s outputmode = %s", curMode, outputmode);
+    if (strstr(curMode, outputmode) == NULL) {
+        setDisplayMode(outputmode);
+    }
+
+    char defVal[PROPERTY_VALUE_MAX] = "0x0";
+    if (sys_get_bool_prop(PROP_DISPLAY_SIZE_CHECK, true)) {
+        char resolution[MESON_MODE_LEN] = {0};
+        char defaultResolution[MESON_MODE_LEN] = {0};
+        char finalResolution[MESON_MODE_LEN] = {0};
+        int w = 0, h = 0, w1 =0, h1 = 0;
+        sysfs_get_string(SYS_DISPLAY_RESOLUTION, resolution, MESON_MODE_LEN);
+
+        sys_get_string_prop_default(PROP_DISPLAY_SIZE, defaultResolution, defVal);
+        sscanf(resolution, "%dx%d", &w, &h);
+        sscanf(defaultResolution, "%dx%d", &w1, &h1);
+        if ((w != w1) || (h != h1)) {
+            if (strstr(outputmode, "null") && w1 != 0) {
+                sprintf(finalResolution, "%dx%d", w1, h1);
+            } else {
+                sprintf(finalResolution, "%dx%d", w, h);
+            }
+            sys_set_prop(PROP_DOLBY_VISION_PRIORITY, finalResolution);
+        }
+    }
+
+    char defaultResolution[MESON_MODE_LEN] = {0};
+    sys_get_string_prop_default(PROP_DISPLAY_SIZE, defaultResolution, defVal);
+    MESON_LOGI("set display-size:%s\n", defaultResolution);
+
+    //update hwc windows size
+    int position[4] = { 0, 0, 0, 0 };//x,y,w,h
+    getPosition(outputmode, position);
+    setPosition(outputmode, position[0], position[1],position[2], position[3]);
+
+    //update hdr policy
+    if ((isMboxSupportDolbyVision() == false)) {
+        if (sys_get_bool_prop(PROP_DOLBY_VISION_FEATURE, false)) {
+            char hdr_policy[MESON_MODE_LEN] = {0};
+            getHdrStrategy(hdr_policy);
+            if (strstr(hdr_policy, HDR_POLICY_SINK)) {
+                setDisplayAttribute(DISPLAY_HDR_POLICY, HDR_POLICY_SINK);
+            } else if (strstr(hdr_policy, HDR_POLICY_SOURCE)) {
+                setDisplayAttribute(DISPLAY_HDR_POLICY, HDR_POLICY_SOURCE);
+            }
+        } else {
+            initHdrSdrMode();
+        }
+    }
+
+    if (isMboxSupportDolbyVision()) {
+        if (isTvDolbyVisionEnable()) {
+            setTvDolbyVisionEnable();
+        } else {
+            setTvDolbyVisionDisable();
+        }
+    }
+
+    //audio
+    char value[MESON_MAX_STR_LEN] = {0};
+    memset(value, 0, sizeof(0));
+    getBootEnv(UBOOTENV_DIGITAUDIO, value);
+    setDigitalMode(value);
+
+    //save output mode
+    char finalMode[MESON_MODE_LEN] = {0};
+    getDisplayMode(finalMode);
+    if (DISPLAY_TYPE_TABLET != mDisplayType) {
+        setBootEnv(UBOOTENV_OUTPUTMODE, (char *)finalMode);
+    }
+    if (strstr(finalMode, "cvbs") != NULL) {
+        setBootEnv(UBOOTENV_CVBSMODE, (char *)finalMode);
+    } else if (strstr(finalMode, "hz") != NULL) {
+        setBootEnv(UBOOTENV_HDMIMODE, (char *)finalMode);
+    }
+
+    MESON_LOGI("set output mode:%s done\n", finalMode);
+}
+
+bool ModePolicy::isHdmiUsed() {
+    bool ret = true;
+    char hdmi_state[MESON_MODE_LEN] = {0};
+    sysfs_get_string(DISPLAY_HDMI_USED, hdmi_state, MESON_MODE_LEN);
+
+    if (strstr(hdmi_state, "1") == NULL) {
+        ret = false;
+    }
+
+    return ret;
+}
+
+bool ModePolicy::isConnected() {
+    return mConnector->isConnected();
+}
+
+bool ModePolicy::isVMXCertification() {
+    return sys_get_bool_prop(PROP_VMX, false);
+}
+
+bool ModePolicy::isHdmiEdidParseOK() {
+    bool ret = true;
+
+    char edidParsing[MESON_MODE_LEN] = {0};
+    sysfs_get_string(DISPLAY_EDID_STATUS, edidParsing, MESON_MODE_LEN);
+
+    if (strcmp(edidParsing, "ok")) {
+        ret = false;
+    }
+
+    return ret;
+}
+
+bool ModePolicy::isBestPolicy() {
+    char isBestMode[MESON_MODE_LEN] = {0};
+    if (DISPLAY_TYPE_TV == mDisplayType) {
+        return false;
+    }
+
+    return !getBootEnv(UBOOTENV_ISBESTMODE, isBestMode) || strcmp(isBestMode, "true") == 0;
+}
+
+/*
+ * OUTPUT_MODE_STATE_INIT for boot
+ * OUTPUT_MODE_STATE_POWER for hdmi plug and suspend/resume
+ */
+void ModePolicy::setSourceDisplay(output_mode_state state) {
+    std::lock_guard<std::mutex> lock(mMutex);
+
+    //1. hdmi used and hpd = 0
+    //set dummy_l mode
+    if ((isHdmiUsed() == true) &&
+        (isConnected() == false)) {
+        MESON_LOGD("hdmi usd, set dummy_l");
+        if (isVMXCertification()) {
+            setDisplayMode("576cvbs");
+        } else {
+            setDisplayMode("dummy_l");
+        }
+
+        MESON_LOGI("hdmi used but plugout when boot\n");
+        return;
+    }
+
+    //2. hdmi edid parse error and hpd = 1
+    //set default reolsution and color format
+    if ((isHdmiEdidParseOK() == false) &&
+        (isConnected() == true)) {
+        //set avmute
+        sysfs_set_string(DISPLAY_HDMI_AVMUTE_SYSFS, "1");
+        //set default color format
+        setDisplayAttribute(DISPLAY_HDMI_COLOR_ATTR, MESON_DEFAULT_COLOR_FORMAT);
+
+        //set default resolution
+        setDisplayMode(MESON_DEFAULT_HDMI_MODE);
+
+        //update display position
+        int position[4] = { 0, 0, 0, 0 };//x,y,w,h
+        getPosition(MESON_DEFAULT_HDMI_MODE, position);
+        setPosition(MESON_DEFAULT_HDMI_MODE, position[0], position[1],position[2], position[3]);
+
+        //clear avmute
+        sysfs_set_string(DISPLAY_HDMI_AVMUTE_SYSFS, "-1");
+        MESON_LOGE("EDID parsing error detected\n");
+        return;
+    }
+
+    //3. update hdmi info when boot and hdmi plug/suspend/resume
+    if ((state == OUTPUT_MODE_STATE_INIT) ||
+        (state == OUTPUT_MODE_STATE_POWER)) {
+        memset(&mConData, 0, sizeof(meson_policy_in));
+        memset(&mDvInfo, 0, sizeof(hdmi_dv_info_t));
+        mState = state;
+        getConnectorData(&mConData, &mDvInfo);
+     }
+
+    // TOD sceneProcess
+    if (isBestPolicy()) {
+        mPolicy = MESON_POLICY_BEST;
+    }
+
+    meson_mode_set_policy(mModeConType, mPolicy);
+    meson_mode_set_policy_input(mModeConType, &mConData);
+    meson_mode_get_policy_output(mModeConType, &mSceneOutInfo);
+
+    //5. apply settings to driver
+    applyDisplaySetting();
+}
+
+void ModePolicy::getCommonData(struct meson_policy_in* data, hdmi_dv_info_t *dinfo) {
+    if (!data || !dinfo) {
+        MESON_LOGE("%s data is NULL\n", __FUNCTION__);
+        return;
+    }
+
+    char hdr_policy[MESON_MODE_LEN] = {0};
+    getHdrStrategy(hdr_policy);
+    data->hdr_info.hdr_policy = (meson_hdr_policy_e)atoi(hdr_policy);
+
+    data->hdr_info.hdr_priority = (meson_hdr_priority_e)getHdrPriority();
+
+    MESON_LOGI("hdr_policy:%d, hdr_priority :%d\n",
+            data->hdr_info.hdr_policy,
+            data->hdr_info.hdr_priority);
+
+    getDisplayMode(mCurrentMode);
+    getBootEnv(UBOOTENV_HDMIMODE, data->con_info.ubootenv_hdmimode);
+    getBootEnv(UBOOTENV_CVBSMODE, data->con_info.ubootenv_cvbsmode);
+    MESON_LOGI("hdmi_current_mode:%s, ubootenv hdmimode:%s cvbsmode:%s\n",
+            mCurrentMode,
+            data->con_info.ubootenv_hdmimode,
+            data->con_info.ubootenv_cvbsmode);
+
+    getBootEnv(UBOOTENV_COLORATTRIBUTE, data->con_info.ubootenv_colorattr);
+    MESON_LOGI("ubootenv_colorattribute:%s\n",
+            data->con_info.ubootenv_colorattr);
+
+    //if no dolby_status env set to std for enable amdolby vision
+    //if box support amdolby vision
+    bool ret;
+    char dv_enable[MESON_MODE_LEN];
+    ret = getBootEnv(UBOOTENV_DV_ENABLE, dv_enable);
+    if (ret) {
+        strcpy(dinfo->dv_enable, dv_enable);
+    } else if (isMboxSupportDolbyVision()) {
+        strcpy(dinfo->dv_enable, "1");
+    } else {
+        strcpy(dinfo->dv_enable, "0");
+    }
+    MESON_LOGI("dv_enable:%s\n", dinfo->dv_enable);
+
+    char ubootenv_dv_type[MESON_MODE_LEN];
+    ret = getBootEnv(UBOOTENV_DV_TYPE, ubootenv_dv_type);
+    if (ret) {
+        strcpy(dinfo->ubootenv_dv_type, ubootenv_dv_type);
+    } else if (isMboxSupportDolbyVision()) {
+        strcpy(dinfo->ubootenv_dv_type, "1");
+    } else {
+        strcpy(dinfo->ubootenv_dv_type, "0");
+    }
+    MESON_LOGI("ubootenv_dv_type:%s\n", dinfo->ubootenv_dv_type);
+
+}
+
+void ModePolicy::drmMode2MesonMode(meson_mode_info_t &mesonMode, drm_mode_info_t &drmMode) {
+    strncpy(mesonMode.name, drmMode.name, MESON_MODE_LEN);
+    mesonMode.dpi_x = drmMode.dpiX;
+    mesonMode.dpi_y = drmMode.dpiY;
+    mesonMode.pixel_w = drmMode.pixelW;
+    mesonMode.pixel_h = drmMode.pixelH;
+    mesonMode.refresh_rate = drmMode.refreshRate;
+    mesonMode.group_id = drmMode.groupId;
+}
+
+void ModePolicy::getSupportedModes() {
+    //pthread_mutex_lock(&mEnvLock);
+    std::map<uint32_t, drm_mode_info_t> connecterModeList;
+
+    /* reset ModeList */
+    mModes.clear();
+    if (mConnector->isConnected()) {
+        mConnector->getModes(connecterModeList);
+
+        for (auto it = connecterModeList.begin(); it != connecterModeList.end(); it++) {
+            // All modes are supported
+            if (isModeSupported(it->second)) {
+                mModes.emplace(mModes.size(), it->second);
+            }
+        }
+    }
+
+    /* transfer to meson_mode_info_t */
+    auto conPtr = &mConData.con_info;
+    conPtr->modes_size = mModes.size();
+    if (conPtr->modes_size > conPtr->modes_capacity) {
+        // realloc memory
+        void * buff = realloc(conPtr->modes, conPtr->modes_size * sizeof(meson_mode_info_t));
+        MESON_ASSERT(buff, "modePolicy realloc but has no memory");
+        conPtr->modes = (meson_mode_info_t *) buff;
+        conPtr->modes_capacity = conPtr->modes_size;
+    }
+
+    int i = 0;
+    for (auto it = mModes.begin(); it != mModes.end(); it++) {
+        drmMode2MesonMode(conPtr->modes[i], it->second);
+        i++;
+    }
+}
+
+bool ModePolicy::isModeSupported(drm_mode_info_t mode) {
+    bool ret = false;
+    uint32_t i;
+
+    for (i = 0; i < ARRAY_SIZE(DISPLAY_MODE_LIST); i++) {
+        if (!strcmp(DISPLAY_MODE_LIST[i], mode.name)) {
+            ret = true;
+            break;
+        }
+    }
+
+    return ret;
+}
+

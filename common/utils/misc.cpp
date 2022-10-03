@@ -37,6 +37,10 @@ int32_t sys_get_string_prop(const char *prop, char *val) {
     return property_get(prop, val, NULL);
 }
 
+int32_t sys_get_string_prop_default(const char* prop, char * val, char *defVal) {
+    return property_get(prop, val, defVal);
+}
+
 int32_t sys_set_prop(const char *prop, const char *val) {
     return property_set(prop, val);
 }
