@@ -165,9 +165,7 @@ int32_t DualDisplayPipe::getPipeCfg(uint32_t hwcid, PipeCfg & cfg) {
 }
 
 void DualDisplayPipe::handleEvent(drm_display_event event, int val) {
-    if (event == DRM_EVENT_HDMITX_HOTPLUG &&
-        (HwcConfig::dynamicSwitchViuEnabled() == true ||
-        HwcConfig::dynamicSwitchConnectorEnabled() == true)) {
+    if (event == DRM_EVENT_HDMITX_HOTPLUG) {
         std::lock_guard<std::mutex> lock(mMutex);
         MESON_LOGD("Hotplug handle value %d.",val);
         bool connected = (val == 0) ? false : true;
@@ -232,16 +230,14 @@ void DualDisplayPipe::handleEvent(drm_display_event event, int val) {
                             strcpy(displayMode.name, prefdisplayMode.c_str());
                         }
                     }
+                    statIt.second->modeConnector->update();
+                    statIt.second->hwcDisplay->onHotplug(true);
                 }
 
                 MESON_LOGD("HDMI SET display mode %s.", displayMode.name);
                 //strcpy(displayModeTemp.name, prefdisplayMode.c_str());
                 statIt.second->modeCrtc->setMode(displayMode);
 
-                if (connected) {
-                    statIt.second->modeConnector->update();
-                    statIt.second->hwcDisplay->onHotplug(true);
-                }
             }
         }
 
