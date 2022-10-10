@@ -240,6 +240,22 @@ int MultiplanesWithDiComposition::chooseOneVideoFb(std::shared_ptr<DrmFramebuffe
     return 0;
 }
 
+void MultiplanesWithDiComposition::checkLayerValidate(std::shared_ptr<DrmFramebuffer> & fb) {
+    /* check the layer without bufferhandle */
+    if (fb->mBufferHandle == NULL && fb->mFbType != DRM_FB_COLOR ) {
+        MESON_LOGE("%s fb:%" PRIu64 " has no buffer", __func__, fb->mId);
+        fb->mCompositionType = MESON_COMPOSITION_DUMMY;
+        return;
+    }
+
+    /* for the invalid display frame */
+    if ((fb->mDisplayFrame.right - fb->mDisplayFrame.left < 0) ||
+            (fb->mDisplayFrame.bottom - fb->mDisplayFrame.top < 0)) {
+        MESON_LOGE("%s fb:%" PRIu64 " has invalid display frame", __func__, fb->mId);
+        fb->mCompositionType = MESON_COMPOSITION_DUMMY;
+    }
+}
+
 int MultiplanesWithDiComposition::setUpProcessor() {
     if (DebugHelper::getInstance().disableAISRAIPQ())
         return 0;
@@ -642,6 +658,9 @@ int MultiplanesWithDiComposition::pickoutOsdFbs() {
             mWhiteBoardData = fb;
         }
 #endif
+
+        checkLayerValidate(fb);
+
         switch (fb->mCompositionType) {
             case MESON_COMPOSITION_DUMMY:
                 dummyFbs.push_back(fb);

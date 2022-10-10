@@ -1429,6 +1429,14 @@ hwc2_error_t Hwc2Display::presentSkipValidateCheck() {
     return HWC2_ERROR_NONE;
 }
 
+bool Hwc2Display::isLayerValidate(std::shared_ptr<DrmFramebuffer> & fb) {
+    /* check the layer without bufferhandle */
+    if (fb->mBufferHandle == NULL && fb->mFbType != DRM_FB_COLOR ) {
+        return false;
+    }
+    return true;
+}
+
 hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
     ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
@@ -1587,6 +1595,8 @@ hwc2_error_t Hwc2Display::getReleaseFences(uint32_t* outNumElements,
     {
         std::lock_guard<std::mutex> lock(mMutex);
         for (auto it = mPresentLayers.begin(); it != mPresentLayers.end(); it++) {
+            if (isLayerValidate(*it) == false)
+                continue;
             Hwc2Layer *layer = (Hwc2Layer*)(it->get());
             if (layer->isVirtualLayer()) {
                 continue;

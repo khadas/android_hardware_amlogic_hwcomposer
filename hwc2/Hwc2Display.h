@@ -223,6 +223,7 @@ protected:
     hwc2_error_t collectCompositionRequest(
             uint32_t* outNumTypes, uint32_t* outNumRequests);
     hwc2_error_t presentSkipValidateCheck();
+    bool isLayerValidate(std::shared_ptr<DrmFramebuffer> & fb);
 
     /*for calibrate display frame.*/
     int32_t loadCalibrateInfo();

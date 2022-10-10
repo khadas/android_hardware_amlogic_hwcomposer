@@ -311,6 +311,11 @@ int32_t DrmPlane::setPlane(
         if (mFb == fb && !fb->isFbUpdated())
             return 0;
 
+        if (fb->mBufferHandle == NULL) {
+            MESON_LOGE("setPlane but fb:%" PRIu64 " has no buffer", fb->mId);
+            return 0;
+        }
+
         bool bUpdate = false;
         int32_t ret = 0;
         req = crtc->getAtomicReq();
