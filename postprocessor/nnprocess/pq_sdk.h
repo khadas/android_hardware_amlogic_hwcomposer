@@ -16,6 +16,11 @@ extern "C" {
 #endif
 
 void* init(const char *path, int model_type);
+typedef struct __nn_image_classify
+{
+    float   score[5];
+    unsigned int  topClass[5];
+}img_classify_out_t;
 void* process_network(void *context, unsigned char *rawdata);
 void* uninit(void* context);
 int isPqInterfaceImplement();

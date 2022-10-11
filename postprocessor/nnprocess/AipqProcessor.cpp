@@ -17,7 +17,6 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sched.h>
-#include "pq_sdk.h"
 #include <cutils/properties.h>
 #include <ion/ion.h>
 #include <linux/ion_4.12.h>

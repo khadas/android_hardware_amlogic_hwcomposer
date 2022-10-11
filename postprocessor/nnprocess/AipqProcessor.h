@@ -14,8 +14,8 @@
 #include <queue>
 #include <linux/ion.h>
 #include <ion/ion.h>
-#include <nn_demo.h>
 #include <UvmDev.h>
+#include "pq_sdk.h"
 
 #define META_DATA_SIZE      (256)
 

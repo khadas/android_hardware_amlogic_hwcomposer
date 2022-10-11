@@ -64,9 +64,6 @@ meson_hwc_postprocessor_defaults {
                 "libion",
                 "libui",
             ],
-            header_libs: [
-                "libnnsdk_headers",
-            ],
             export_include_dirs: [
                 "nnprocess",
             ]

@@ -16,7 +16,6 @@
 #include <time.h>
 #include <nn_util.h>
 #include <nn_sdk.h>
-#include <nn_demo.h>
 #include <dlfcn.h>
 #include <utils/Log.h>
 #include "pq_sdk.h"
@@ -30,8 +29,45 @@ static void* (*func_outputGet)(void* , aml_output_config_t);
 static void* (*func_create)(aml_config*);
 static int (*func_destory)(void*);
 
-static void *mDemoHandle;
-static void (*func_processTop)(float *, unsigned int, img_classify_out_t*);
+void process_top5(float *buf, unsigned int num, img_classify_out_t* clsout)
+{
+    int j = 0;
+    unsigned int MaxClass[5]={0};
+    float fMaxProb[5]={0.0};
+
+    float *pfMaxProb = fMaxProb;
+    unsigned int  *pMaxClass = MaxClass,i = 0;
+
+    for (j = 0; j < 5; j++)
+    {
+        for (i = 0; i < num; i++)
+        {
+            if ((i == *(pMaxClass+0)) || (i == *(pMaxClass+1)) || (i == *(pMaxClass+2)) ||
+                (i == *(pMaxClass+3)) || (i == *(pMaxClass+4)))
+            {
+                continue;
+            }
+
+            if (buf[i] > *(pfMaxProb+j))
+            {
+                *(pfMaxProb+j) = buf[i];
+                *(pMaxClass+j) = i;
+            }
+        }
+    }
+    for (i = 0; i < 5; i++)
+    {
+        if (clsout == NULL)
+        {
+            ALOGD("%3d: %8.6f\n", MaxClass[i], fMaxProb[i]);
+        }
+        else
+        {
+            clsout->score[i] = fMaxProb[i];
+            clsout->topClass[i] = MaxClass[i];
+        }
+    }
+}
 
 void* process_network(void *qcontext,unsigned char *qrawdata) {
     int ret = 0;
@@ -45,8 +81,7 @@ void* process_network(void *qcontext,unsigned char *qrawdata) {
     inData.input = qrawdata;
 
     if ((func_inputSet != NULL)
-        && (func_outputGet != NULL)
-        && (func_processTop != NULL)) {
+        && (func_outputGet != NULL)) {
         ret = func_inputSet(qcontext, &inData);
         if (ret != 0) {
             ALOGE("aml_module_input_set error\n");
@@ -57,7 +92,7 @@ void* process_network(void *qcontext,unsigned char *qrawdata) {
             ALOGE("aml_module_output_get error\n");
             return NULL;
         }
-        func_processTop((float*)outdata->out[0].buf,
+        process_top5((float*)outdata->out[0].buf,
                         outdata->out[0].size/sizeof(float),
                         &cls_out);
         return (void*)(&cls_out);
@@ -88,6 +123,7 @@ void* init(const char *path, int model_type) {
         }
 
         config.modelType = TENSORFLOW;
+        config.nbgType = NN_NBG_FILE;
         qcontext = func_create(&config);
 
         if (qcontext == NULL) {
@@ -118,11 +154,6 @@ void* uninit(void* context) {
         mSdkHandle = NULL;
     }
 
-    if (mDemoHandle != NULL) {
-        dlclose(mDemoHandle);
-        mDemoHandle = NULL;
-    }
-
     return NULL;
 }
 
@@ -133,11 +164,8 @@ int isPqInterfaceImplement() {
     if (mSdkHandle == NULL)
         mSdkHandle = dlopen("libnnsdk.so", RTLD_NOW);
 
-    if (mDemoHandle == NULL)
-        mDemoHandle = dlopen("libnndemo.so", RTLD_NOW);
-
-    if ((mSdkHandle == NULL) || (mDemoHandle == NULL)) {
-        ALOGE("open libnnsdk.so or libnndemo.so fail: %s.\n", dlerror());
+    if (mSdkHandle == NULL) {
+        ALOGE("open libnnsdk.so fail: %s.\n", dlerror());
     } else {
         func_outputGet = (void *(*)(void *, aml_output_config_t))
             dlsym(mSdkHandle, "aml_module_output_get");
@@ -158,15 +186,9 @@ int isPqInterfaceImplement() {
         if (func_inputSet == NULL)
             ALOGD("func_inputSet don't implement.\n");
 
-        func_processTop = (void(*)(float *, unsigned int, img_classify_out_t*))
-                dlsym(mDemoHandle, "process_top5");
-        if (func_processTop == NULL)
-            ALOGD("func_processTop don't implement.\n");
-
         if ((func_create == NULL)
             || (func_inputSet == NULL)
             || (func_outputGet == NULL)
-            || (func_processTop == NULL)
             || (func_destory == NULL)) {
             ALOGE("NN interface don't implement.\n");
         } else {
