@@ -482,8 +482,10 @@ void Hwc2Display::onModeChanged(int stage) {
             if (!mFirstPresent) {
                 // only clear layers when we can send hotplug event
                 // as the framework display will recreate when it receive hotplug event
-                if (HwcConfig::primaryHotplugEnabled() && mModeMgr->needCallHotPlug())
+                if ((HwcConfig::primaryHotplugEnabled() && mModeMgr->needCallHotPlug()) ||
+                        (mDisplayId != HWC_DISPLAY_PRIMARY && mConnector->getType() == DRM_MODE_CONNECTOR_HDMIA)) {
                     blankDisplay(true);
+                }
 
                 //TODO: remove it when panel driver support leftship
                 if (mConnector->getType() == DRM_MODE_CONNECTOR_LVDS) {
@@ -528,7 +530,7 @@ void Hwc2Display::initLayerIdGenerator() {
 hwc2_layer_t Hwc2Display::createLayerId() {
     hwc2_layer_t layerId = 0;
     int idx = mLayersBitmap->getZeroBit();
-    MESON_ASSERT(idx >= 0, "Bitmap getZeroBit failed");
+    MESON_ASSERT(idx >= 0, "Bitmap getZeroBit failed, displayId:%d ", mDisplayId);
     mLayersBitmap->setBit(idx);
 
     mLayerSeq++;
