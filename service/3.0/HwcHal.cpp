@@ -470,6 +470,10 @@ HWC3::Error HwcHal::presentDisplay(int64_t display,
 
     std::vector<hwc2_layer_t> layers(count);
     outReleaseFences->resize(count);
+    for (auto it = outReleaseFences->begin(); it != outReleaseFences->end(); it++) {
+        *it = -1;
+    }
+
     err = mDispatch.getReleaseFences(mDevice, displayId, &count, layers.data(),
                                      outReleaseFences->data());
     if (err != HWC2_ERROR_NONE) {
