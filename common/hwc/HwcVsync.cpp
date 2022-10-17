@@ -14,9 +14,11 @@
 #include <HwDisplayCrtc.h>
 #include <DebugHelper.h>
 #include <inttypes.h>
+#include <cmath>
 
 #define SF_VSYNC_DFT_PERIOD 60
-#define VT_OFFSET_TIME 1000000
+#define VT_OFFSET_HIGH_RFRESHRATE 1000000
+#define VT_OFFSET_LOW_RFRESHRATE  5000000
 
 HwcVsync::HwcVsync() {
     mSoftVsync = true;
@@ -86,7 +88,7 @@ int32_t HwcVsync::setHwMode(std::shared_ptr<HwDisplayCrtc> & crtc) {
 }
 
 int32_t HwcVsync::setVtMode(std::shared_ptr<HwDisplayCrtc> & crtc) {
-    mMixOffset = VT_OFFSET_TIME;
+    mMixOffset = VT_OFFSET_LOW_RFRESHRATE;
 #ifdef HWC_VT_HW_VSYNC
     return setHwMode(crtc);
 #else
@@ -257,6 +259,14 @@ int32_t HwcVsync::waitMixVsync(nsecs_t& vsync_timestamp) {
         if (!mCrtc.get())
             return -EFAULT;
         mCrtc->waitVBlank(mVsyncTime);
+        // videotunnel vsync offset
+        if (mVTEnabled) {
+            if (std::floor(1e9/mReqPeriod) > SF_VSYNC_DFT_PERIOD)
+                mMixOffset = VT_OFFSET_HIGH_RFRESHRATE;
+            else
+                mMixOffset = VT_OFFSET_LOW_RFRESHRATE;
+        }
+
         mVsyncTime += mMixOffset;
         mCurVsyncPeriod = mReqPeriod;
         mMixRebase = false;
