@@ -20,6 +20,10 @@
 #define DEFAULT_DPI (159)
 #define DEFAULT_REFRESH_RATE (60.0f)
 
+#define UBOOTENV_FRAC_RATE_POLICY  "ubootenv.var.frac_rate_policy"
+#define FRC_POLICY_PROP            "vendor.sys.frc_policy"
+
+
 #ifndef ARRAY_SIZE
 #define ARRAY_SIZE(x) (sizeof(x) / sizeof((x)[0]))
 #endif
@@ -417,6 +421,13 @@ int32_t RealModeMgr::setBootConfig(int32_t config) {
         MESON_LOGD("%s %dx%d@%.2f", __func__, cfg.pixelW, cfg.pixelH, cfg.refreshRate);
         std::string dispmode(cfg.name);
         sc_setBootDisplayConfig(HWC_DISPLAY_PRIMARY, dispmode);
+
+        //TODO: remove it when ModePolicy move to hwc
+        if (fabs(cfg.refreshRate - std::floor(cfg.refreshRate)) > 1e-2) {
+            sc_set_bootenv(UBOOTENV_FRAC_RATE_POLICY, "1");
+        } else {
+            sc_set_bootenv(UBOOTENV_FRAC_RATE_POLICY, "0");
+        }
     } else {
         MESON_LOGE("set invalid boot config (%d)", config);
         return HWC2_ERROR_BAD_CONFIG;
@@ -455,7 +466,16 @@ int32_t RealModeMgr::setModeLocked(drm_mode_info_t & mode) {
     MESON_LOGD("RealModeMgr::setActiveConfig setMode: %s, seamless:%d",
             mode.name, seamless);
     updateActiveConfig(mode);
+
+#ifndef ENABLE_AIDL
     mConnector->setMode(mode);
+#else
+    if (fabs(mode.refreshRate - std::floor(mode.refreshRate)) > 1e-2) {
+        sc_set_property(FRC_POLICY_PROP, "1");
+    } else {
+        sc_set_property(FRC_POLICY_PROP, "0");
+    }
+#endif
 
     //todo: replace the displayid for dualDisplay
     sc_update_density(HWC_DISPLAY_PRIMARY, mLatestRealMode.pixelW, mLatestRealMode.pixelH);
