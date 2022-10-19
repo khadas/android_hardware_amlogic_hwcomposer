@@ -347,6 +347,9 @@ int MultiplanesWithDiComposition::processVideoFbs() {
         };
     }
 
+    if ((videoFbNum <= mVideoPlaneNum) && (mDiComposer != NULL))
+        mDiComposer->prepare();
+
     if (videoFbNum == 0 ||
         videoFbNum - sidebandFbs.size() != 1 ||
         mVsyncRefreshRate > 60) {
