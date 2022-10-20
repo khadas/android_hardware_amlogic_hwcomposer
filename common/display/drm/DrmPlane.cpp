@@ -17,7 +17,7 @@
 #include <drm_fourcc.h>
 
 #define VPU_FREQ (666*pow(10,6))
-#define kValue (1.5)
+#define kValue (1.1)
 
 DrmPlane::DrmPlane(int drmFd, drmModePlanePtr p)
     : HwDisplayPlane(),

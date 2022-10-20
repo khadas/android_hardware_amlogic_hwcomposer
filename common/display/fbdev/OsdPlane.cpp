@@ -16,7 +16,7 @@
 
 #define OSD_PATTERN_SIZE (128)
 #define VPU_FREQ (666*pow(10,6))
-#define kValue (1.5)
+#define kValue (1.1)
 
 OsdPlane::OsdPlane(int32_t drvFd, uint32_t id)
     : HwDisplayPlaneFbdev(drvFd, id),
