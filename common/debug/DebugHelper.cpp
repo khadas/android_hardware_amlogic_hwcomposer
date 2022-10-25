@@ -24,6 +24,7 @@ ANDROID_SINGLETON_STATIC_INSTANCE(DebugHelper)
 
 #define COMMAND_CLEAR "--clear"
 #define COMMAND_NOHWC "--nohwc"
+#define COMMAND_NOREFRESH "--norefresh"
 #define COMMAND_DUMP_DETAIL "--detail"
 #define COMMAND_ENABLE_VSYNC_DETAIL "--vsync-detail"
 #define COMMAND_LOG_COMPOSITION_DETAIL "--composition-detail"
@@ -76,6 +77,7 @@ void DebugHelper::clearPersistCmd() {
     mDisableUiHwc = false;
     mDumpDetail = false;
     mEnableVsyncDetail = false;
+    mDisableRefresh = false;
 
     mLogFps = false;
     mLogCompositionDetail = false;
@@ -184,6 +186,13 @@ void DebugHelper::resolveCmd() {
                     i++;
                     CHECK_CMD_INT_PARAMETER();
                     mDisableUiHwc = INT_PARAMETER_TO_BOOL(paramArray[i]);
+                    continue;
+                }
+
+                if (strcmp(paramArray[i], COMMAND_NOREFRESH) == 0) {
+                    i++;
+                    CHECK_CMD_INT_PARAMETER();
+                    mDisableRefresh = INT_PARAMETER_TO_BOOL(paramArray[i]);
                     continue;
                 }
 
@@ -398,6 +407,7 @@ void DebugHelper::dump(String8 & dumpstr) {
             "Supported commands:\n"
             "\t " COMMAND_CLEAR ": clear all debug flags.\n"
             "\t " COMMAND_NOHWC " 0|1:  choose osd/UI hwcomposer.\n"
+            "\t " COMMAND_NOREFRESH " 0|1:  set all layer composition type dummy.\n"
             "\t " COMMAND_DUMP_DETAIL " 0|1: enable/disable dump detail internal info.\n"
             "\t " COMMAND_IN_FENCE " 0 | 1: pass in fence to display, or handle it in hwc.\n"
             "\t " COMMAND_OUT_FENCE " 0 | 1: return display out fence, or handle it in hwc.\n"
@@ -419,6 +429,7 @@ void DebugHelper::dump(String8 & dumpstr) {
     } else {
         dumpstr.append("Debug Command:\n");
         dumpstr.appendFormat(COMMAND_NOHWC " (%d)\n", mDisableUiHwc);
+        dumpstr.appendFormat(COMMAND_NOREFRESH " (%d)\n", mDisableRefresh);
         dumpstr.appendFormat(COMMAND_DUMP_DETAIL " (%d)\n", mDumpDetail);
         dumpstr.appendFormat(COMMAND_ENABLE_VSYNC_DETAIL " (%d)\n", mEnableVsyncDetail);
         dumpstr.appendFormat(COMMAND_IN_FENCE " (%d)\n", mDiscardInFence);

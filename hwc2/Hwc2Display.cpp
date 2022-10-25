@@ -1408,6 +1408,9 @@ hwc2_error_t Hwc2Display::setActiveConfig(
 }
 
 bool Hwc2Display::isLayerHideForDebug(hwc2_layer_t id) {
+    if (DebugHelper::getInstance().disableRefresh())
+        return true;
+
     std::vector<int> hideLayers;
     DebugHelper::getInstance().getHideLayers(hideLayers);
     if (hideLayers.empty())

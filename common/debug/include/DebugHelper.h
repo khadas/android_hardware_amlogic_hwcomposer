@@ -40,6 +40,8 @@ public:
     /*check if UI/osd hwcomposer disabled.*/
     bool disableUiHwc() {return mDisableUiHwc;}
 
+    /*set all layer composition type dummy*/
+    bool disableRefresh() {return mDisableRefresh;}
     /*for fence debug*/
     inline bool discardInFence() {return mDiscardInFence;}
     inline bool discardOutFence() {return mDiscardOutFence;}
@@ -79,6 +81,7 @@ protected:
     bool mDisableUiHwc;
     bool mDumpDetail;
     bool mEnableVsyncDetail;
+    bool mDisableRefresh;
 
     bool mLogCompositionDetail;
     bool mLogFps;
