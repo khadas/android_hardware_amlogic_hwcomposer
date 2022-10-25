@@ -34,8 +34,8 @@ public:
     bool needCallHotPlug() { return mCallOnHotPlug; };
     int32_t getDisplayMode(drm_mode_info_t & mode);
 
-    int32_t  getDisplayConfigs(uint32_t * outNumConfigs, uint32_t * outConfigs);
-    int32_t  getDisplayAttribute(uint32_t config, int32_t attribute,
+    int32_t getDisplayConfigs(uint32_t * outNumConfigs, uint32_t * outConfigs);
+    int32_t getDisplayAttribute(uint32_t config, int32_t attribute,
             int32_t* outValue, int32_t caller);
     int32_t getActiveConfig(uint32_t * outConfig, int32_t caller);
     int32_t setActiveConfig(uint32_t config);
@@ -52,6 +52,8 @@ public:
 
     // for filter 16:9 mode
     bool is16_9Mode(drm_mode_info_t mode);
+    void processModeList(std::map<uint32_t, drm_mode_info_t> & modeList,
+            drm_mode_info_t & currentMode);
 
 protected:
     int32_t updateActiveConfig(drm_mode_info_t activeMode);
@@ -77,8 +79,6 @@ protected:
     bool mDvEnabled;
 
     bool mCallOnHotPlug;
-
-    bool mIscontain16_9Mode = false;
 };
 
 #endif // REAL_MODE_MGR_H
