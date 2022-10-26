@@ -189,9 +189,10 @@ int32_t DrmDevice::unbind(std::shared_ptr<HwDisplayCrtc> & crtc) {
     return 0;
 }
 
-HwDisplayPlane *DrmDevice::getPrimaryPlane(int pipeId __unused) {
+HwDisplayPlane *DrmDevice::getPrimaryPlane(int pipeId) {
     for (const auto & it : mPlanes) {
-        if (it.second->getCapabilities() & PLANE_PRIMARY) {
+        if (it.second->getCapabilities() & PLANE_PRIMARY
+                && (it.second->getPossibleCrtcs() == (1 << pipeId))) {
             return it.second.get();
         }
     }

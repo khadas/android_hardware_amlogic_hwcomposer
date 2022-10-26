@@ -478,7 +478,7 @@ bool DrmPlane::validateFormat(uint32_t format, uint64_t modifier) {
 }
 
 int32_t DrmPlane::setCrtcProps(drmModeAtomicReqPtr &req, drmModeModeInfo &mode) {
-    MESON_LOGD("%s (%dx%d)", __func__, mode.hdisplay, mode.vdisplay);
+    MESON_LOGD("%s plane Id [%d] (%dx%d)", __func__, mId, mode.hdisplay, mode.vdisplay);
     mCrtcX->setValue(0);
     mCrtcY->setValue(0);
     mCrtcW->setValue(mode.hdisplay);
