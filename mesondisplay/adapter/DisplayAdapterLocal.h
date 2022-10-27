@@ -78,7 +78,7 @@ public:
     bool setWBDisplayFrame(int x, int y) override;
     bool hideVideoLayer(bool hide) override;
 
-    static std::unique_ptr<DisplayAdapter> create(DisplayAdapter::BackendType type);
+    static std::shared_ptr<DisplayAdapter> create(DisplayAdapter::BackendType type);
     DisplayAdapterLocal();
     ~DisplayAdapterLocal() = default;
 private:

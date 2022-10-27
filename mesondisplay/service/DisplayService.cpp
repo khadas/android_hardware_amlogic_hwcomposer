@@ -119,11 +119,11 @@ Return<void> MesonIpcServer::getWhiteBoardHanle(const int32_t displayId, const i
     return Void();
 }
 
-DisplayServer::DisplayServer(std::unique_ptr<DisplayAdapter>& adapter) {
+DisplayServer::DisplayServer(std::shared_ptr<DisplayAdapter>& adapter) {
     if (!adapter) {
         MESON_LOGE("Server create with null adapter!");
     }
-    this->adapter = std::move(adapter);
+    mAdapter = adapter;
 #if 1
     if (registerAsService() != android::OK) {
         MESON_LOGE("Server RegisterAsServer failed(%d)!", registerAsService());
@@ -136,19 +136,19 @@ DisplayServer::DisplayServer(std::unique_ptr<DisplayAdapter>& adapter) {
 void DisplayServer::message_handle(Json::Value& in, Json::Value& out) {
     std::string cmd,tmp1;
     Json::Value ret;
-    if (!adapter || !in.isMember("cmd")) {
-        MESON_LOGE("Server: Display Adapter not ready or cmd formate issue!");
+    if (!mAdapter || !in.isMember("cmd")) {
+        MESON_LOGE("Server: Display adapter not ready or cmd formate issue!");
         return;
     }
     cmd = in["cmd"].asString();
     if (cmd == "displayType") {
-        ret = adapter->displayType();
+        ret = mAdapter->displayType();
     } else if (cmd == "getSupportDisplayModes") {
         vector<DisplayModeInfo> displayModeList;
         Json::Value list;
         if (!in.isMember("p_displayType"))
             goto OUT;
-        adapter->getSupportDisplayModes(displayModeList, (ConnectorType)in["p_displayType"].asUInt());
+        mAdapter->getSupportDisplayModes(displayModeList, (ConnectorType)in["p_displayType"].asUInt());
         int index = 0;
         for (auto i : displayModeList) {
             Json::Value mode;
@@ -161,48 +161,48 @@ void DisplayServer::message_handle(Json::Value& in, Json::Value& out) {
         std::string mode;
         if (!in.isMember("p_displayType"))
             goto OUT;
-        adapter->getDisplayMode(mode, (ConnectorType)in["p_displayType"].asUInt());
+        mAdapter->getDisplayMode(mode, (ConnectorType)in["p_displayType"].asUInt());
         ret["mode"] = mode;
     } else if (cmd == "setDisplayMode") {
         if (!in.isMember("p_displayType") || !in.isMember("p_mode"))
             goto OUT;
-        adapter->setDisplayMode(in["p_mode"].asString(), (ConnectorType)in["p_displayType"].asUInt());
+        mAdapter->setDisplayMode(in["p_mode"].asString(), (ConnectorType)in["p_displayType"].asUInt());
     } else if (cmd == "setDisplayViewPort") {
         if (!in.isMember("p_displayType") || !in.isMember("rect"))
             goto OUT;
-        adapter->setDisplayRect(in["rect"].asString().c_str(), (ConnectorType)in["p_displayType"].asUInt());
+        mAdapter->setDisplayRect(in["rect"].asString().c_str(), (ConnectorType)in["p_displayType"].asUInt());
     } else if (cmd == "getDisplayViewPort") {
         Rect rect;
         if (!in.isMember("p_displayType"))
             goto OUT;
-        adapter->getDisplayRect(rect, (ConnectorType)in["p_displayType"].asUInt());
+        mAdapter->getDisplayRect(rect, (ConnectorType)in["p_displayType"].asUInt());
         ret["rect"] = rect.toString();
     } else if (cmd == "setDisplayAttribute") {
         if (!in.isMember("name") || !in.isMember("value") || !in.isMember("p_displayType"))
             goto OUT;
-        adapter->setDisplayAttribute(in["name"].asString(), in["value"].asString(),
+        mAdapter->setDisplayAttribute(in["name"].asString(), in["value"].asString(),
                 (ConnectorType) in["p_displayType"].asUInt());
     } else if (cmd == "getDisplayAttribute") {
         if (!in.isMember("name") || !in.isMember("p_displayType"))
             goto OUT;
         string value;
-        adapter->getDisplayAttribute(in["name"].asString(), value,
+        mAdapter->getDisplayAttribute(in["name"].asString(), value,
                 (ConnectorType) in["p_displayType"].asUInt());
         ret["value"] = value;
     } else if (cmd == "getDisplayVsyncAndPeriod") {
         int64_t vsyncTimestamp;
         int32_t vsyncPeriod;
-        adapter->getDisplayVsyncAndPeriod(vsyncTimestamp, vsyncPeriod);
+        mAdapter->getDisplayVsyncAndPeriod(vsyncTimestamp, vsyncPeriod);
         std::string value = std::to_string(vsyncTimestamp) + "," + std::to_string(vsyncPeriod);
         ret["value"] = value;
     } else if (cmd == "dumpDisplayAttribute") {
         if (!in.isMember("p_displayType"))
             goto OUT;
-        adapter->dumpDisplayAttribute(ret, (ConnectorType)in["p_displayType"].asUInt());
+        mAdapter->dumpDisplayAttribute(ret, (ConnectorType)in["p_displayType"].asUInt());
     } else if (cmd == "setFrameRate") {
         if (!in.isMember("frameRate_value"))
             goto OUT;
-        int value = adapter->setFrameRate(in["frameRate_value"].asFloat());
+        int value = mAdapter->setFrameRate(in["frameRate_value"].asFloat());
         ret["value"] = value;
    } else if (cmd == "setWriteBoardMode") {
         if (!in.isMember("value"))
@@ -210,10 +210,10 @@ void DisplayServer::message_handle(Json::Value& in, Json::Value& out) {
         bool mode = false;
         if (in["value"].asString() == "true" )
             mode = true;
-        adapter->setWriteBoardMode(mode);
+        mAdapter->setWriteBoardMode(mode);
     } else if (cmd == "getWriteBoardMode") {
         bool mode = false;;
-        adapter->getWriteBoardMode(mode);
+        mAdapter->getWriteBoardMode(mode);
         if (mode ==  true) {
             ret["mode"] = "true";
         } else {
@@ -222,14 +222,14 @@ void DisplayServer::message_handle(Json::Value& in, Json::Value& out) {
     } else if (cmd == "setWBDisplayFrame") {
         if (!in.isMember("posX") || !in.isMember("posY"))
             goto OUT;
-        adapter->setWBDisplayFrame(in["posX"].asUInt(), in["posY"].asUInt());
+        mAdapter->setWBDisplayFrame(in["posX"].asUInt(), in["posY"].asUInt());
     } else if (cmd == "hideVideoLayer") {
         if (!in.isMember("value"))
             goto OUT;
         bool mode = false;
         if (in["value"].asString() == "true" )
             mode = true;
-        adapter->hideVideoLayer(mode);
+        mAdapter->hideVideoLayer(mode);
     } else {
         MESON_LOGE("CMD not implement!");
     }
@@ -245,7 +245,7 @@ Return<void> DisplayServer::captureDisplayScreen(const int32_t displayId, const 
     MESON_LOGD("DisplayServer captureDisplayScreen");
     hidl_vec<hidl_handle> outHandles;
 
-    if (!adapter) {
+    if (!mAdapter) {
         MESON_LOGD("DisplayServer display adapter not ready");
         outHandles.setToExternal(nullptr, 0);
         hidl_cb(Error::NO_RESOURCES, outHandles);
@@ -253,7 +253,7 @@ Return<void> DisplayServer::captureDisplayScreen(const int32_t displayId, const 
     }
 
     const native_handle_t* bufferHandle = nullptr;
-    bool ret = adapter->captureDisplayScreen(&bufferHandle);
+    bool ret = mAdapter->captureDisplayScreen(&bufferHandle);
     if (!ret) {
         outHandles.setToExternal(nullptr, 0);
         hidl_cb(Error::NO_RESOURCES, outHandles);
@@ -281,7 +281,7 @@ Return<void> DisplayServer::getWhiteBoardHanle(const int32_t displayId, const in
 
     hidl_vec<hidl_handle> outHandles;
 
-    if (!adapter) {
+    if (!mAdapter) {
         MESON_LOGD("DisplayServer display adaptor not ready");
         outHandles.setToExternal(nullptr, 0);
         hidl_cb(Error::NO_RESOURCES, outHandles);
@@ -290,7 +290,7 @@ Return<void> DisplayServer::getWhiteBoardHanle(const int32_t displayId, const in
 
     const native_handle_t* bufferHandle = nullptr;
     int fd;
-    bool ret = adapter->getWhiteBoardHanle(&bufferHandle,fd);
+    bool ret = mAdapter->getWhiteBoardHanle(&bufferHandle,fd);
     if (!ret) {
         outHandles.setToExternal(nullptr, 0);
         hidl_cb(Error::NO_RESOURCES, outHandles);

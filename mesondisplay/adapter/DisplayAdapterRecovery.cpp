@@ -418,18 +418,18 @@ bool DisplayAdapterLocal::dumpDisplayAttribute(Json::Value& json, ConnectorType 
     return true;
 };
 
-std::unique_ptr<DisplayAdapter> DisplayAdapterLocal::create(DisplayAdapter::BackendType type) {
+std::shared_ptr<DisplayAdapter> DisplayAdapterLocal::create(DisplayAdapter::BackendType type) {
     switch (type) {
         case BackendType::DISPLAY_TYPE_DRM:
             return {nullptr};
         case BackendType::DISPLAY_TYPE_FBDEV:
-            return static_cast<std::unique_ptr<DisplayAdapter>>(std::make_unique<DisplayAdapterLocal>());
+            return static_cast<std::shared_ptr<DisplayAdapter>>(std::make_shared<DisplayAdapterLocal>());
         default:
-            return static_cast<std::unique_ptr<DisplayAdapter>>(std::make_unique<DisplayAdapterLocal>());
+            return static_cast<std::shared_ptr<DisplayAdapter>>(std::make_shared<DisplayAdapterLocal>());
     }
 }
 
-std::unique_ptr<DisplayAdapter> DisplayAdapterCreateLocal(DisplayAdapter::BackendType type) {
+std::shared_ptr<DisplayAdapter> DisplayAdapterCreateLocal(DisplayAdapter::BackendType type) {
     return DisplayAdapterLocal::create(type);
 };
 

@@ -102,7 +102,7 @@ private:
 class DisplayServer: public MesonIpcServer {
 public:
     void message_handle(Json::Value& in, Json::Value& out) override;
-    DisplayServer(std::unique_ptr<DisplayAdapter>& adapter);
+    DisplayServer(std::shared_ptr<DisplayAdapter>& adapter);
     DisplayServer() = default;
     Return<void> debug(const hidl_handle &fd, const hidl_vec<hidl_string> &args) override;
     Return<void> captureDisplayScreen(const int32_t displayId,
@@ -111,7 +111,7 @@ public:
             const int32_t layerId, getWhiteBoardHanle_cb hidl_cb) override;
 
 private:
-    std::unique_ptr<DisplayAdapter> adapter;
+    std::shared_ptr<DisplayAdapter> mAdapter;
     DISALLOW_COPY_AND_ASSIGN(DisplayServer);
 };
 

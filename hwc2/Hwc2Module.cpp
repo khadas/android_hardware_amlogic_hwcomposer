@@ -656,7 +656,7 @@ static int hwc2_device_open(
     *device = reinterpret_cast<hw_device_t*>(hwc);
 
     static meson::DisplayServer* server;
-    std::unique_ptr<meson::DisplayAdapter> adapter =
+    std::shared_ptr<meson::DisplayAdapter> adapter =
         meson::DisplayAdapterLocal::create(meson::DisplayAdapter::BackendType::DISPLAY_TYPE_FBDEV);
     server = new meson::DisplayServer(adapter);
     UNUSED(server);
