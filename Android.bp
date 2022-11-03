@@ -153,6 +153,7 @@ meson_hwc_cc_defaults {
         "libGLESv1_CM",
         "libGLESv2",
         "libamgralloc_ext",
+        "libmeson_mode_policy",
         "vendor.amlogic.hardware.systemcontrol@1.0",
         "vendor.amlogic.hardware.systemcontrol@1.1",
         "libpng",

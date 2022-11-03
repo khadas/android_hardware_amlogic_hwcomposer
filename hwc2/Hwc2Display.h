@@ -30,6 +30,7 @@
 #include "MesonHwc2Defs.h"
 #include "HwcModeMgr.h"
 #include "RealModeMgr.h"
+#include "IModePolicy.h"
 
 class VtDisplayThread;
 class WBDisplayThread;
@@ -199,6 +200,7 @@ public:
     int32_t getBootConfig(int32_t & config);
     int32_t getFrameRateConfigId(int32_t &config, const float frameRate);
     int32_t setFrameRate(float value);
+    int32_t setModePolicy(std::shared_ptr<IModePolicy> policy);
 
 protected:
     /* For compose. */
@@ -321,6 +323,8 @@ protected:
 
     std::mutex mConfigMutex;
     int32_t mBootConfig = -1;
+    // for mode  policy
+    std::shared_ptr<IModePolicy> mModePolicy;
 };
 
 #endif/*HWC2_DISPLAY_H*/

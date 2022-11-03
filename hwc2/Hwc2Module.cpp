@@ -18,8 +18,11 @@
 #include "DisplayAdapterLocal.h"
 #include "DisplayService.h"
 #include "systemcontrol.h"
+#include "ModePolicy.h"
+#include "misc.h"
 
 #define HWC_BOOTED_PROP "vendor.sys.hwc.booted"
+#define HWC_BOOT_CONFIG_PROP "ro.vendor.hwc.default.config"
 
 typedef struct hwc2_impl {
     hwc2_device_t base;
@@ -662,6 +665,17 @@ static int hwc2_device_open(
     UNUSED(server);
 
     hwc->impl->mDisplayPipe->lateInit();
+
+    // TODO: refactor it
+    if (sys_get_bool_prop(HWC_BOOT_CONFIG_PROP, false)) {
+        std::map<hwc2_display_t, std::shared_ptr<Hwc2Display>> displays;
+        MesonHwc2::getInstance().getDisplays(displays);
+        for (const auto & [id, display] : displays) {
+            std::shared_ptr<IModePolicy> policy = std::make_shared<ModePolicy>(adapter, id);
+            display->setModePolicy(policy);
+            policy->initialize();
+        }
+    }
 
     sc_set_property(HWC_BOOTED_PROP, "true");
     return 0;

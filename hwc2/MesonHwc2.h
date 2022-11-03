@@ -14,6 +14,7 @@
 #include "HwcDisplayPipe.h"
 
 #include "Hwc2Display.h"
+#include "IModePolicy.h"
 
 class MesonHwc2 : public android::Singleton<MesonHwc2> {
 /*hwc2 interface*/
@@ -172,6 +173,7 @@ public:
     bool setViewPort(const drm_rect_wh_t viewPort);
     void getViewPort(drm_rect_wh_t& viewPort);
     bool setFrameRateHint(std::string value);
+    int32_t getDisplays(std::map<hwc2_display_t, shared_ptr<Hwc2Display>> & displays);
     int32_t setFrameRate(float value);
     std::shared_ptr<HwcDisplayPipe> mDisplayPipe;
 
@@ -202,6 +204,8 @@ protected:
     /* meson display */
     drm_rect_wh_t mViewPort;
     bool mChangedViewPort;
+
+    std::shared_ptr<IModePolicy> mModePolicy;
 };
 
 #endif/*MESON_HWC2_H*/

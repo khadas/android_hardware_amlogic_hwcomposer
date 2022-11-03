@@ -203,6 +203,8 @@ int32_t Hwc2Display::setDisplayResource(
     mConnector->getSupportedContentTypes(mSupportedContentTypes);
     mCrtc->getHdrMetadataKeys(mHdrKeys);
 
+    if (mModePolicy.get())
+        mModePolicy->bindConnector(mConnector);
     MESON_LOG_FUN_LEAVE();
     return 0;
 }
@@ -396,6 +398,9 @@ void Hwc2Display::onHotplug(bool connected) {
     bool bSendPlugOut = false;
     MESON_LOGD("displayID:%d, On hot plug: [%s]",
             mDisplayId, connected == true ? "Plug in" : "Plug out");
+
+    if (mModePolicy.get())
+        mModePolicy->onHotplug(connected);
 
     {
         std::lock_guard<std::mutex> lock(mMutex);
@@ -2175,6 +2180,12 @@ bool Hwc2Display::isDisplayConnected() {
 std::unordered_map<hwc2_layer_t, std::shared_ptr<Hwc2Layer>> Hwc2Display::getAllLayers() {
     std::lock_guard<std::mutex> lock(mMutex);
     return mLayers;
+}
+
+int32_t Hwc2Display::setModePolicy(std::shared_ptr<IModePolicy> policy) {
+    mModePolicy = policy;
+    mModePolicy->bindConnector(mConnector);
+    return 0;
 }
 
 bool Hwc2Display::setFrameRateHint(std::string value) {
