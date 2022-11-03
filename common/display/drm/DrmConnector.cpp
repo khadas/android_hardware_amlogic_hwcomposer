@@ -78,8 +78,8 @@ int32_t DrmConnector::loadProperties(drmModeConnectorPtr p __unused) {
         {DRM_CONNECTOR_PROP_UPDATE, &mUpdate},
         {DRM_CONNECTOR_PROP_MESON_TYPE, &mMesonConnectorType},
         {DRM_CONNECTOR_PROP_VRRCAP, &mVrrCap},
- //       {DRM_HDMI_PROP_COLORSPACE, &mColorSpace},
-//        {DRM_HDMI_PROP_COLORDEPTH, &mColorDepth},
+        {DRM_HDMI_PROP_COLORSPACE, &mColorSpace},
+        {DRM_HDMI_PROP_COLORDEPTH, &mColorDepth},
 //        {DRM_HDMI_PROP_HDRCAP, &mHdrCaps},
         {DRM_HDMI_PROP_HDR_STATUS, &mHdrStatus},
     };
@@ -599,5 +599,19 @@ bool DrmConnector::getHdrType(std::string & hdrType)
     }
     return ret;
 }
-
+int32_t DrmConnector:: getColorDepth(uint32_t & colorDepth )
+{
+    if (mColorDepth)
+        colorDepth = mColorDepth->getValue();
+    else
+        return -ENOENT;
+    return 0;
+}
+ENUM_HDMI_COLOR_SPACE DrmConnector::getColorSpace()
+{
+    ENUM_HDMI_COLOR_SPACE color_space = HDMI_COLORSPACE_RESERVED;
+    if (mColorSpace)
+        color_space = (ENUM_HDMI_COLOR_SPACE)mColorSpace->getValue();
+    return color_space;
+}
 

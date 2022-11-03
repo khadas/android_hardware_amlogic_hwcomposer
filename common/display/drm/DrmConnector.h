@@ -28,6 +28,14 @@ typedef enum _ENUM_DRM_HDR_TYPE {
     DRM_SDR
 } ENUM_DRM_HDR_TYPE;
 
+typedef enum _ENUM_HDMI_COLOR_SPACE {
+   HDMI_COLOR_SPACE_RGB      = 0,
+   HDMI_COLOR_SPACE_422,
+   HDMI_COLOR_SPACE_444,
+   HDMI_COLOR_SPACE_420,
+   HDMI_COLORSPACE_RESERVED,
+} ENUM_HDMI_COLOR_SPACE;
+
 class DrmConnector : public HwDisplayConnector {
 public:
     DrmConnector(int drmFd, drmModeConnectorPtr p);
@@ -62,6 +70,8 @@ public:
 
     int32_t setMode(drm_mode_info_t & mode );
     bool checkFracMode(const drm_mode_info_t & mode) override;
+    int32_t getColorDepth(uint32_t & colorDepth );
+    ENUM_HDMI_COLOR_SPACE getColorSpace();
 
     bool isTvSupportALLM();
 

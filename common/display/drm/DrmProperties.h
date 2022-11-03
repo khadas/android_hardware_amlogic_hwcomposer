@@ -54,8 +54,8 @@
 #define DRM_CONNECTOR_PROP_EDID "EDID"
 #define DRM_CONNECTOR_PROP_VRRCAP  "vrr_capable"
 
-#define DRM_HDMI_PROP_COLORSPACE    "Color Space"
-#define DRM_HDMI_PROP_COLORDEPTH    "Color Depth"
+#define DRM_HDMI_PROP_COLORSPACE    "color_space"
+#define DRM_HDMI_PROP_COLORDEPTH    "color_depth"
 #define DRM_HDMI_PROP_HDRCAP              "HDR DV Cap"
 #define DRM_HDMI_PROP_HDR_STATUS     "hdmi_hdr_status"
 
