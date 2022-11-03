@@ -97,8 +97,6 @@ Hwc2Display::~Hwc2Display() {
     if (mPostProcessor != NULL)
         mPostProcessor->stop();
     mPostProcessor.reset();
-
-    gralloc_free_solid_color_buf();
 }
 
 int32_t Hwc2Display::setModeMgr(std::shared_ptr<HwcModeMgr> & mgr) {
@@ -1953,7 +1951,6 @@ void Hwc2Display::handleVtThread() {
 
     if (haveVtLayer) {
         if (!mVtDisplayThread) {
-            gralloc_alloc_solid_color_buf();
             mVtDisplayThread = std::make_shared<VtDisplayThread>(this);
         }
         if (!mVtVsyncStatus) {

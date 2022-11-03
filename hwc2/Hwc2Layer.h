@@ -17,6 +17,7 @@
 #include <DrmFramebuffer.h>
 #include <UvmDettach.h>
 #include <VtConsumer.h>
+#include <VtAllocSolidColorBuffer.h>
 
 #define VT_CMD_DISABLE_VIDEO     0x01
 #define VT_CMD_GAME_MODE_ENABLE  0x02
@@ -80,20 +81,23 @@ public:
     void setPresentTime(nsecs_t expectedPresentTime);
     bool shouldPresentNow(nsecs_t timestamp);
     bool newGameBuffer();
-    int32_t getSolidColorBuffer(bool used = false);
+    int32_t getSolidColorBuffer();
+    virtual bool haveSolidColorBuffer();
     void vtRefresh();
     int getVideoTunnelId();
 
     int32_t registerConsumer();
     int32_t unregisterConsumer();
-    bool isVtNeedClearFrame();
+    bool isVtNeedClearFrameOrShowColorBuffer();
     int32_t onVtFrameAvailable(std::vector<std::shared_ptr<VtBufferItem>> & items);
     int32_t onVtFrameDisplayed(int bufferFd, int fenceFd);
     void onVtVideoStatus(vt_video_status_t status);
     void onVtVideoGameMode(int data);
     int32_t getVtVideoStatus();
     void setVtSourceCrop(drm_rect_t & rect);
-    void onNeedShowTempBuffer(int colorType);
+    void onNeedShowTempBuffer(vt_video_color_t colorType);
+    void onNeedShowTempBufferWithStatus(
+            vt_video_color_t colorType, vt_video_status_t status);
     void setVideoType(int videoType);
     void handleDisplayDisconnect(bool connect);
 
@@ -116,7 +120,9 @@ public:
         void onVideoGameMode(int data);
         int32_t getVideoStatus();
         void onSourceCropChange(vt_rect_t & crop);
-        void onNeedShowTempBuffer(int colorType);
+        void onNeedShowTempBuffer(vt_video_color_t colorType);
+        void onNeedShowTempBufferWithStatus(
+                vt_video_color_t colorType, vt_video_status_t status);
         void setVideoType(int videoType);
     private:
         Hwc2Layer* mLayer;
@@ -160,6 +166,7 @@ protected:
     std::shared_ptr<VtConsumer> mVtConsumer;
     vt_video_status_t mVideoDisplayStatus;
     std::shared_ptr<VtDisplayObserver> mDisplayObserver;
+    std::shared_ptr<VtAllocSolidColorBuffer> mAllocSolidColorBufferHandle;
 
     std::shared_ptr<UvmDettach> mUvmDettach;
     int mPreUvmBufferFd;

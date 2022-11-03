@@ -1431,8 +1431,8 @@ int MultiplanesWithDiComposition::commit(bool sf) {
         }
 
         if (fb->isVtBuffer()) {
-            if (fb->isVtNeedClearFrame() ||
-                (fb->getVtBuffer() < 0 && fb->getSolidColorBuffer() < 0)) {
+            if (fb->isVtNeedClearFrameOrShowColorBuffer() ||
+                (fb->getVtBuffer() < 0 && !fb->haveSolidColorBuffer())) {
                 /* need blank video plane:
                  * 1, received a clear last frame cmd
                  * 2, buffer is invalid */
@@ -1441,8 +1441,9 @@ int MultiplanesWithDiComposition::commit(bool sf) {
                 continue;
             }
 
-            if (fb->getVtBuffer() < 0 && fb->getSolidColorBuffer() >= 0) {
+            if (fb->getVtBuffer() < 0 && fb->haveSolidColorBuffer()) {
                 plane->setPlane(fb, presentZorder, blankFlag);
+                fb->freeSolidColorBuffer();
                 continue;
             }
         }

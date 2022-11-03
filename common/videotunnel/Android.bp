@@ -37,6 +37,7 @@ cc_library_static {
         "VtInstance.cpp",
         "VtInstanceMgr.cpp",
         "VtHandleEventsThread.cpp",
+        "VtAllocSolidColorBuffer.cpp",
     ],
 
     static_libs: [

@@ -493,7 +493,7 @@ int meson_vt_recv_cmd(int fd, int tunnel_id, enum vt_cmd *cmd, struct vt_cmd_dat
     return ret;
 }
 
-/* for blue/black color frame cmd
+/* for blue/black/green color frame cmd
  *
  * @param fd            [in] Videotunnel device fd
  * @param tunnel_id     [in] tunnel id to set color frame
@@ -505,8 +505,20 @@ int meson_vt_recv_cmd(int fd, int tunnel_id, enum vt_cmd *cmd, struct vt_cmd_dat
  * -ENOTCONN - no videotunnel of this tunnel id, producer need resend cmd
  */
 int meson_vt_set_solid_color(int fd, int tunnel_id, enum vt_color_cmd cmd, enum vt_color_data cmd_data) {
-    enum vt_video_cmd_e vcmd =
-        (cmd == VT_CMD_COLOR_BLACK ? VT_VIDEO_SET_COLOR_BLACK : VT_VIDEO_SET_COLOR_BLUE);
+    enum vt_video_cmd_e vcmd;
+    switch (cmd) {
+        case VT_CMD_COLOR_BLACK:
+            vcmd = VT_VIDEO_SET_COLOR_BLACK;
+            break;
+        case VT_CMD_COLOR_BLUE:
+            vcmd = VT_VIDEO_SET_COLOR_BLUE;
+            break;
+        case VT_CMD_COLOR_GREEN:
+            vcmd = VT_VIDEO_SET_COLOR_GREEN;
+            break;
+        default:
+            return -EINVAL;
+    }
 
     if (fd < 0 || tunnel_id < 0)
         return -EINVAL;

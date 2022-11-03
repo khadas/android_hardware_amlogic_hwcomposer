@@ -78,9 +78,11 @@ public:
         virtual void onVideoGameMode(int data __unused) {};
         virtual int32_t getVideoStatus() {return 0;};
         virtual void onSourceCropChange(vt_rect_t & crop __unused) {};
-        // need show black or blue frame when video starts playing
-        virtual void onNeedShowTempBuffer(int colorType __unused) {};
-        virtual void setVideoType(int videoType __unused) {}; // AM_VIDEO_TYPE
+        // need show solid color frame when video starts playing
+        virtual void onNeedShowTempBuffer(vt_video_color_t colorType __unused) {};
+        virtual void onNeedShowTempBufferWithStatus(
+                vt_video_color_t colorType, vt_video_status_t status);
+	virtual void setVideoType(int videoType __unused) {}; // AM_VIDEO_TYPE
     };
 
     /*register VtInstance callback */
@@ -95,6 +97,8 @@ public:
     void setDestroyFlag();
     bool getDestroyFlag();
 
+    const char * VtSolidColorToString(vt_video_color_t type);
+    const char * VtVideoStausToString(vt_video_status_t type);
 private:
     bool mFlags;
     int mTunnelId;

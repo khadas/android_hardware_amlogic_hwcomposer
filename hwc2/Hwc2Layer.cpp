@@ -48,6 +48,7 @@ Hwc2Layer::Hwc2Layer(uint32_t dispId) : DrmFramebuffer(){
 
     mDisplayObserver = nullptr;
     mContentListener = nullptr;
+    mAllocSolidColorBufferHandle = nullptr;
     mDisplayId = dispId;
     mHwcCompositionType = HWC2_COMPOSITION_INVALID;
     memset(&mVisibleRegion, 0, sizeof(mVisibleRegion));
@@ -59,6 +60,7 @@ Hwc2Layer::~Hwc2Layer() {
     // release last video tunnel buffer
     releaseVtResource();
     releaseUvmResource();
+    freeSolidColorBuffer();
 }
 
 hwc2_error_t Hwc2Layer::handleDimLayer(buffer_handle_t buffer) {
@@ -457,6 +459,8 @@ bool Hwc2Layer::isVtBufferLocked() {
 
 bool Hwc2Layer::isFbUpdated() {
     std::lock_guard<std::mutex> lock(mMutex);
+    if (mSolidColorBufferfd >= 0)
+        return true;
     if (isVtBufferLocked()) {
         return (shouldPresentNow(mTimestamp) && mVtUpdate) || mVtRefreshed;
     } else {
@@ -480,24 +484,6 @@ int32_t Hwc2Layer::getVtBuffer() {
     MESON_LOGV("[%s] [%d] [%" PRIu64 "] vtBufferfd(%d)", __func__, mDisplayId, mId, ret);
 
     return ret;
-}
-
-void Hwc2Layer::freeSolidColorBuffer() {
-    if (mSolidColorBufferfd >= 0) {
-        close(mSolidColorBufferfd);
-        mSolidColorBufferfd = -1;
-    }
-}
-
-int32_t Hwc2Layer::getSolidColorBuffer(bool used) {
-    std::lock_guard<std::mutex> lock(mMutex);
-    if (!isVtBufferLocked())
-        return -EINVAL;
-
-    if (used)
-        mVtUpdate = false;
-
-    return mSolidColorBufferfd;
 }
 
 void Hwc2Layer::updateVtBuffer() {
@@ -676,7 +662,6 @@ int32_t Hwc2Layer::releaseVtResourceLocked(bool needDisconnect) {
         mPreVtBufferFd = -1;
         mVtUpdate = false;
         mTimestamp = -1;
-        freeSolidColorBuffer();
 
         if (mTunnelId >= 0 && needDisconnect) {
             MESON_LOGD("[%s] [%d] [%" PRIu64 "] Hwc2Layer release disconnect(%d) queuedFrames(%d)",
@@ -842,17 +827,33 @@ int32_t Hwc2Layer::unregisterConsumer() {
     return ret;
 }
 
-bool Hwc2Layer::isVtNeedClearFrame() {
+bool Hwc2Layer::isVtNeedClearFrameOrShowColorBuffer() {
     std::lock_guard<std::mutex> lock(mMutex);
     bool ret = false;
 
-    if (mVideoDisplayStatus == VT_VIDEO_STATUS_BLANK) {
-        /* need do disable video composer once */
-        mVideoDisplayStatus = VT_VIDEO_STATUS_SHOW;
-        ret = true;
-    } else if (mVideoDisplayStatus == VT_VIDEO_STATUS_HIDE) {
-        setPrevReleaseFence(-1);
-        ret = true;
+    switch (mVideoDisplayStatus) {
+        case VT_VIDEO_STATUS_BLANK:
+            mVideoDisplayStatus = VT_VIDEO_STATUS_SHOW;
+            /* need do disable video composer once */
+            ret = true;
+            break;
+        case VT_VIDEO_STATUS_HIDE:
+            setPrevReleaseFence(-1);
+            ret = true;
+            break;
+        case VT_VIDEO_STATUS_COLOR_ONCE:
+            mVideoDisplayStatus = VT_VIDEO_STATUS_SHOW;
+            [[fallthrough]];
+        case VT_VIDEO_STATUS_COLOR_ALWAYS:
+            releaseVtResourceLocked(false);
+            break;
+        case VT_VIDEO_STATUS_COLOR_DISABLE:
+            mVideoDisplayStatus = VT_VIDEO_STATUS_SHOW;
+            freeSolidColorBuffer();
+            break;
+        default:
+            // nothing to do;
+            break;
     }
 
     if (ret)
@@ -945,15 +946,52 @@ void Hwc2Layer::setVtSourceCrop(drm_rect_t & rect) {
     mVtSourceCrop.bottom = rect.bottom;
 }
 
-void Hwc2Layer::onNeedShowTempBuffer(int colorType) {
-    // set default to black
-    colorType = SET_VIDEO_TO_BLACK;
-    int bufFd = gralloc_get_solid_color_buf_fd((video_color_t)colorType);
+void Hwc2Layer::freeSolidColorBuffer() {
+    std::lock_guard<std::mutex> lock(mMutex);
+    if (mSolidColorBufferfd >= 0) {
+        close(mSolidColorBufferfd);
+        mSolidColorBufferfd = -1;
+        mVtUpdate = false;
+    }
+}
+
+int32_t Hwc2Layer::getSolidColorBuffer() {
+    std::lock_guard<std::mutex> lock(mMutex);
+    if (!isVtBufferLocked())
+        return -EINVAL;
+
+    return mSolidColorBufferfd;
+}
+
+bool Hwc2Layer::haveSolidColorBuffer() {
+    std::lock_guard<std::mutex> lock(mMutex);
+    if (!mAllocSolidColorBufferHandle)
+        return false;
+
+    return true;
+}
+
+void Hwc2Layer::onNeedShowTempBuffer(vt_video_color_t colorType) {
+    std::lock_guard<std::mutex> lock(mMutex);
+    if (!mAllocSolidColorBufferHandle)
+        mAllocSolidColorBufferHandle = std::make_shared<VtAllocSolidColorBuffer>();
+
+    int bufFd = mAllocSolidColorBufferHandle->allocBuffer(colorType);
     if (bufFd >= 0) {
+        if (mSolidColorBufferfd >= 0)
+            close(mSolidColorBufferfd);
+
         mSolidColorBufferfd = dup(bufFd);
     }
+
     if (mSolidColorBufferfd >= 0)
         mVtUpdate = true;
+}
+
+void Hwc2Layer::onNeedShowTempBufferWithStatus(
+        vt_video_color_t colorType, vt_video_status_t status) {
+    onNeedShowTempBuffer(colorType);
+    onVtVideoStatus(status);
 }
 
 void Hwc2Layer::setVideoType(int videoType) {
@@ -1029,12 +1067,21 @@ void Hwc2Layer::VtContentChangeListener::onSourceCropChange(vt_rect & crop) {
                 __func__);
 }
 
-void Hwc2Layer::VtContentChangeListener::onNeedShowTempBuffer(int colorType) {
+void Hwc2Layer::VtContentChangeListener::onNeedShowTempBuffer(vt_video_color_t colorType) {
     if (mLayer)
         mLayer->onNeedShowTempBuffer(colorType);
     else
         MESON_LOGE("Hwc2Layer::VtContentChangeListener::%s mLayer is NULL",
                 __func__);
+}
+
+void Hwc2Layer::VtContentChangeListener::onNeedShowTempBufferWithStatus(
+        vt_video_color_t colorType, vt_video_status_t status) {
+    if (mLayer)
+        mLayer->onNeedShowTempBufferWithStatus(colorType, status);
+    else
+         MESON_LOGE("Hwc2Layer::VtContentChangeListener::%s mLayer is NULL",
+                 __func__);
 }
 
 void Hwc2Layer::VtContentChangeListener::setVideoType(int videoType) {

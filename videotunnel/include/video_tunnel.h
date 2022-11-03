@@ -16,6 +16,14 @@
 extern "C" {
 #endif
 
+/*for VT_CMD_SET_SHOW_SOLID_COLOR */
+typedef enum {
+    SOLID_COLOR_FOR_BLACK = 0,
+    SOLID_COLOR_FOR_BLUE,
+    SOLID_COLOR_FOR_GREEN,
+    SOLID_COLOR_FOR_INVALID,
+} vt_video_color_t;
+
 typedef enum vt_video_status {
     /* clear lastFrame and blank plane,
      * will re-display when receive new frame
@@ -51,6 +59,7 @@ typedef enum vt_cmd {
     VT_CMD_SET_SHOW_SOLID_COLOR,
     VT_CMD_SET_COLOR_BLACK,
     VT_CMD_SET_COLOR_BLUE,
+    VT_CMD_SET_COLOR_GREEN,
     VT_CMD_SET_VIDEO_TYPE,
 } vt_cmd_t;
 
@@ -70,6 +79,7 @@ typedef struct vt_cmd_data {
 typedef enum vt_color_cmd {
     VT_CMD_COLOR_BLACK,
     VT_CMD_COLOR_BLUE,
+    VT_CMD_COLOR_GREEN,
 } vt_color_cmd_t;
 
 typedef enum vt_color_data {

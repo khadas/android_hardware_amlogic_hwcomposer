@@ -15,7 +15,7 @@
 //#include <BitsMap.h>
 #include <DrmSync.h>
 
-#include "video_tunnel.h"
+#include <video_tunnel.h>
 #include "VtConsumer.h"
 
 class VtInstance : public VtConsumer::VtReleaseListener {

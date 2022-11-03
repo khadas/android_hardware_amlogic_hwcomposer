@@ -59,9 +59,12 @@ int32_t VtConsumer::onVtCmds(vt_cmd_t & cmd, vt_cmd_data_t & cmdData) {
 
     switch (cmd) {
         case VT_CMD_SET_VIDEO_STATUS:
-            MESON_LOGD("[%s] [%s] received VT_CMD_SET_VIDEO_STATUS %d",
-                    __func__, mName, cmdData.data);
-            mContentListener->onVideoStatus(cmdData.data);
+            {
+                vt_video_status_t statusType = (vt_video_status_t)cmdData.data;
+                MESON_LOGD("[%s] [%s] received cmd VT_CMD_SET_VIDEO_STATUS %s",
+                        __func__, mName, VtVideoStausToString(statusType));
+                mContentListener->onVideoStatus(statusType);
+            }
             break;
         case VT_CMD_GET_VIDEO_STATUS:
             MESON_LOGD("[%s] [%s] received cmd VT_CMD_GET_VIDEO_STATUS",
@@ -79,9 +82,39 @@ int32_t VtConsumer::onVtCmds(vt_cmd_t & cmd, vt_cmd_data_t & cmdData) {
             mContentListener->onSourceCropChange(cmdData.crop);
             break;
         case VT_CMD_SET_SHOW_SOLID_COLOR:
-            MESON_LOGD("[%s] [%s] received cmd VT_CMD_SET_SHOW_SOLID_COLOR %d",
-                    __func__, mName, cmdData.data);
-            mContentListener->onNeedShowTempBuffer(cmdData.data);
+            {
+                vt_video_color_t colorType = (vt_video_color_t)cmdData.data;
+                MESON_LOGD("[%s] [%s] received cmd VT_CMD_SET_SHOW_SOLID_COLOR %s",
+                        __func__, mName, VtSolidColorToString(colorType));
+                mContentListener->onNeedShowTempBuffer(colorType);
+            }
+            break;
+        case VT_CMD_SET_COLOR_BLACK:
+            {
+                vt_video_status_t status = (vt_video_status_t)cmdData.data;
+                MESON_LOGD("[%s] [%s] received cmd VT_CMD_SET_COLOR_BLACK %s",
+                        __func__, mName, VtVideoStausToString(status));
+                mContentListener->onNeedShowTempBufferWithStatus(
+                        SOLID_COLOR_FOR_BLACK, status);
+            }
+            break;
+        case VT_CMD_SET_COLOR_BLUE:
+            {
+                vt_video_status_t status = (vt_video_status_t)cmdData.data;
+                MESON_LOGD("[%s] [%s] received cmd VT_CMD_SET_COLOR_BLUE %s",
+                        __func__, mName, VtVideoStausToString(status));
+                mContentListener->onNeedShowTempBufferWithStatus(
+                        SOLID_COLOR_FOR_BLUE, status);
+            }
+            break;
+        case VT_CMD_SET_COLOR_GREEN:
+            {
+                vt_video_status_t status = (vt_video_status_t)cmdData.data;
+                MESON_LOGD("[%s] [%s] received cmd VT_CMD_SET_COLOR_BLUE %s",
+                        __func__, mName, VtVideoStausToString(status));
+                mContentListener->onNeedShowTempBufferWithStatus(
+                        SOLID_COLOR_FOR_GREEN, status);
+            }
             break;
         case VT_CMD_SET_VIDEO_TYPE:
             MESON_LOGD("[%s] [%s] received cmd VT_CMD_SET_VIDEO_TYPE",
@@ -128,3 +161,53 @@ bool VtConsumer::getDestroyFlag() {
     std::lock_guard<std::mutex> lock(mMutex);
     return mFlags;
 }
+
+const char * VtConsumer::VtSolidColorToString(vt_video_color_t type) {
+    const char * typeStr;
+    switch (type) {
+        case SOLID_COLOR_FOR_BLACK :
+            typeStr = "black";
+            break;
+        case SOLID_COLOR_FOR_GREEN:
+            typeStr = "green";
+            break;
+        case SOLID_COLOR_FOR_BLUE:
+            typeStr = "blue";
+            break;
+        default:
+            typeStr = "unknown";
+            break;
+    }
+
+    return typeStr;
+}
+
+const char * VtConsumer::VtVideoStausToString(vt_video_status_t type) {
+    const char * typeStr;
+    switch (type) {
+        case VT_VIDEO_STATUS_BLANK:
+            typeStr = "blank";
+            break;
+        case VT_VIDEO_STATUS_HIDE:
+            typeStr = "hide";
+            break;
+        case VT_VIDEO_STATUS_SHOW:
+            typeStr = "show";
+            break;
+        case VT_VIDEO_STATUS_COLOR_ONCE:
+            typeStr = "once";
+            break;
+        case VT_VIDEO_STATUS_COLOR_ALWAYS:
+            typeStr = "always";
+            break;
+        case VT_VIDEO_STATUS_COLOR_DISABLE:
+            typeStr = "disable";
+            break;
+        default:
+            typeStr = "unknown";
+            break;
+    }
+
+    return typeStr;
+}
+

@@ -473,10 +473,11 @@ int SingleplaneComposition::commit(bool sf) {
 
         /*set display info*/
         if (!sf && fb->isVtBuffer()) {
-            if (fb->isVtNeedClearFrame())
+            if (fb->isVtNeedClearFrameOrShowColorBuffer())
                 blankFlag = BLANK_FOR_NO_CONTENT;
 
             plane->setPlane(fb, z, blankFlag);
+            fb->freeSolidColorBuffer();
         } else if (sf && !fb->isVtBuffer()) {
             plane->setPlane(fb, z, blankFlag);
         }

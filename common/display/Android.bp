@@ -96,6 +96,7 @@ cc_library_static {
         "hwc.base_static",
         "hwc.debug_static",
         "omxutil.static",
+        "hwc.vt_static",
     ],
 
     export_include_dirs: [
