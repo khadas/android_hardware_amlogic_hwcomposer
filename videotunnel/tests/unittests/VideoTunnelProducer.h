@@ -26,6 +26,7 @@ public:
     int dequeueBuffer(VTBufferItem &item, bool block = true);
     int cancelBuffer();
     int sendCmd(vt_cmd cmd, int data);
+    int setSolidColor(vt_color_cmd cmd, vt_color_data data);
 
     int getVideoTunnelId() const { return mTunnelId; };
     int allocVideoTunnelId();

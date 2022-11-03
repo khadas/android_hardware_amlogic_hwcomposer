@@ -301,3 +301,24 @@ TEST_F(VideoTunnelTest, dequeueBuffer_releaseBuffer_releaseFence)
     queueItem.releaseBuffer(true);
 }
 
+TEST_F(VideoTunnelTest, color_cmd)
+{
+    vt_cmd cmdRecv;
+    struct vt_cmd_data dataRecv;
+
+    vt_color_cmd cmdSend = VT_CMD_COLOR_BLACK;
+    vt_color_data dataSend = VT_CMD_COLOR_DATA_ONCE;
+
+    // not connect, if there is no consumer
+    EXPECT_EQ(-ENOTCONN, mProducer->setSolidColor(cmdSend, dataSend));
+
+    EXPECT_EQ(OK, mConsumer->consumerConnect());
+    EXPECT_EQ(OK, mProducer->setSolidColor(cmdSend, dataSend));
+
+    EXPECT_EQ(OK, mConsumer->recvCmd(cmdRecv, dataRecv, false));
+
+    EXPECT_EQ(VT_CMD_SET_COLOR_BLACK, cmdRecv);
+    EXPECT_EQ(dataSend, dataRecv.data);
+    EXPECT_EQ(getpid(), dataRecv.client);
+    EXPECT_EQ(OK, mConsumer->consumerDisconnect());
+}

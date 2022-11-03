@@ -64,6 +64,10 @@ int VideoTunnelProducer::sendCmd(vt_cmd cmd, int data) {
     return meson_vt_send_cmd(mDevFd, mTunnelId, cmd, data);
 }
 
+int VideoTunnelProducer::setSolidColor(vt_color_cmd cmd, vt_color_data data) {
+    return meson_vt_set_solid_color(mDevFd, mTunnelId, cmd, data);
+}
+
 int VideoTunnelProducer::allocVideoTunnelId() {
     if (mDevFd < 0) {
         return -1;

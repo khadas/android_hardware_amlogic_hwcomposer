@@ -26,6 +26,21 @@ typedef enum vt_video_status {
      */
     VT_VIDEO_STATUS_HIDE = 2,
     VT_VIDEO_STATUS_SHOW = 3,
+
+    /*
+     * only show one frame of solid color,
+     * will recovery when receive new frame
+     */
+    VT_VIDEO_STATUS_COLOR_ONCE = 4,
+    /*
+     * Always show the solid color frame
+     * until receive disable cmd or surface disconnect
+     */
+    VT_VIDEO_STATUS_COLOR_ALWAYS = 5,
+    /*
+     * disable color frame
+     */
+    VT_VIDEO_STATUS_COLOR_DISABLE = 6,
 } vt_video_status_t;
 
 typedef enum vt_cmd {
@@ -34,6 +49,8 @@ typedef enum vt_cmd {
     VT_CMD_SET_GAME_MODE,
     VT_CMD_SET_SOURCE_CROP,
     VT_CMD_SET_SHOW_SOLID_COLOR,
+    VT_CMD_SET_COLOR_BLACK,
+    VT_CMD_SET_COLOR_BLUE,
     VT_CMD_SET_VIDEO_TYPE,
 } vt_cmd_t;
 
@@ -49,6 +66,28 @@ typedef struct vt_cmd_data {
     vt_video_status_t data;
     int client;
 } vt_cmd_data_t;
+
+typedef enum vt_color_cmd {
+    VT_CMD_COLOR_BLACK,
+    VT_CMD_COLOR_BLUE,
+} vt_color_cmd_t;
+
+typedef enum vt_color_data {
+    /*
+     * only show one frame of solid color,
+     * will recovery when receive new frame
+     */
+    VT_CMD_COLOR_DATA_ONCE = 4,
+    /*
+     * Always show the solid color frame
+     * until receive disable cmd or surface disconnect
+     */
+    VT_CMD_COLOR_DATA_ALWAYS = 5,
+    /*
+     * disable color frame
+     */
+    VT_CMD_COLOR_DATA_DISABLE = 6,
+} vt_color_data_t;
 
 int meson_vt_open();
 int meson_vt_close(int fd);
@@ -76,6 +115,9 @@ int meson_vt_setDisplayVsyncAndPeriod(int fd, int tunnel_id, uint64_t timestamp,
 int meson_vt_set_mode(int fd, int block_mode);
 int meson_vt_send_cmd(int fd, int tunnel_id, enum vt_cmd cmd, int cmd_data);
 int meson_vt_recv_cmd(int fd, int tunnel_id, enum vt_cmd *cmd, struct vt_cmd_data *cmd_data);
+
+/* for blue/black color frame cmd */
+int meson_vt_set_solid_color(int fd, int tunnel_id, enum vt_color_cmd cmd, enum vt_color_data cmd_data);
 
 //int meson_vt_reply_cmd(int fd, enum vt_cmd cmd, int cmd_data, int client_id);
 
