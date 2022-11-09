@@ -141,6 +141,7 @@ protected:
     int32_t releaseUvmResourceLock();
 
     /* solid color buffer for video tunnel layer */
+    void freeSolidColorBufferLocked();
     void freeSolidColorBuffer();
     void setVtPrevReleaseFence();
 

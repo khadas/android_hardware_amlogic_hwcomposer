@@ -849,7 +849,7 @@ bool Hwc2Layer::isVtNeedClearFrameOrShowColorBuffer() {
             break;
         case VT_VIDEO_STATUS_COLOR_DISABLE:
             mVideoDisplayStatus = VT_VIDEO_STATUS_SHOW;
-            freeSolidColorBuffer();
+            freeSolidColorBufferLocked();
             break;
         default:
             // nothing to do;
@@ -946,13 +946,17 @@ void Hwc2Layer::setVtSourceCrop(drm_rect_t & rect) {
     mVtSourceCrop.bottom = rect.bottom;
 }
 
-void Hwc2Layer::freeSolidColorBuffer() {
-    std::lock_guard<std::mutex> lock(mMutex);
+void Hwc2Layer::freeSolidColorBufferLocked() {
     if (mSolidColorBufferfd >= 0) {
         close(mSolidColorBufferfd);
         mSolidColorBufferfd = -1;
         mVtUpdate = false;
     }
+}
+
+void Hwc2Layer::freeSolidColorBuffer() {
+    std::lock_guard<std::mutex> lock(mMutex);
+    freeSolidColorBufferLocked();
 }
 
 int32_t Hwc2Layer::getSolidColorBuffer() {
