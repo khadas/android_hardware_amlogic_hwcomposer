@@ -152,6 +152,9 @@ void RealModeMgr::processModeList(std::map<uint32_t, drm_mode_info_t> & modeList
                 mode.dpiY = ((float)fakePixelH / mode.pixelH) * mode.dpiY;
                 mode.pixelW = fakePixelW;
                 mode.pixelH = fakePixelH;
+
+                if (!strcmp(mode.name, currentMode.name))
+                     currentMode = mode;
             } else {
                 bRemove = true;
             }
@@ -167,6 +170,9 @@ void RealModeMgr::processModeList(std::map<uint32_t, drm_mode_info_t> & modeList
                         mode.dpiY = ((float)fakePixelH / mode.pixelH) * mode.dpiY;
                         mode.pixelW = fakePixelW;
                         mode.pixelH = fakePixelH;
+
+                        if (!strcmp(mode.name, currentMode.name))
+                            currentMode = mode;
                     }
                 } else {
                     bRemove = true;
