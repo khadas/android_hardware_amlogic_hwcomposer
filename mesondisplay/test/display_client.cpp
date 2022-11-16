@@ -29,6 +29,7 @@ static const struct option long_option[] = {
     {"raw-cmd", required_argument, 0, 'r'},
     {"G", required_argument, 0, 'G'},
     {"S", required_argument, 0, 'S'},
+    {"F", required_argument, 0, 'F'},
     {"dump-display-attribute", no_argument, 0, 'd'},
     {"vsync-timestamp", no_argument, 0, 'v'},
     {0, 0, 0, 0}
@@ -47,6 +48,7 @@ static void print_usage(const char* name) {
             "       -S \"[ui-rect]\"\tset [logic ui rect]\n"
             "                               \t eg: \"Content Protection\" 1\n"
             "       -v, --get-vsyn-timestamp and period \t get primary display vsync timestamp and vsync period\n"
+            "       -F, [framerate] \tset framerate for AFR\n"
             "       -r,--raw-cmd           \tsend raw cmd\n", name);
 }
 
@@ -158,6 +160,16 @@ int main(int argc, char* argv[]) {
                 printf("vsyncTimestamp:%" PRId64 " ns Period:%d ns\n",
                         vsyncTimestamp, vsyncPeriod);
                 break;
+            case 'F':
+               {
+                   if (optarg == NULL)
+                       break;
+
+                   float framerate = atof(optarg);
+                   printf("setFrameRate  %.2f ",framerate);
+                   client->setFrameRate(framerate);
+               }
+               break;
             case 'd':
                 {
                     Json::Value json;

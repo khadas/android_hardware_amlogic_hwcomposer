@@ -382,6 +382,12 @@ bool DisplayAdapterLocal::setDisplayAttribute(
     return ret;
 };
 
+int32_t DisplayAdapterLocal::setFrameRate(float frameRate) {
+    MESON_LOGD("%s frameRate %.2f",__func__,frameRate);
+
+    return 0;
+}
+
 bool DisplayAdapterLocal::getDisplayAttribute(
         const string& name, string& value,
         ConnectorType displayType) {

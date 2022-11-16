@@ -114,6 +114,15 @@ bool DisplayAdapterRemote::getDisplayRect(Rect& rect, ConnectorType displayType)
         return false;
 }
 
+int32_t DisplayAdapterRemote::setFrameRate(float frameRate) {
+    Json::Value cmd;
+    IF_SERVER_NOT_READY_RETURN(false);
+    cmd["cmd"] = "setFrameRate";
+    cmd["frameRate_value"] = frameRate;
+    ipc->send_request(cmd);
+    return 0;
+}
+
 bool DisplayAdapterRemote::setDisplayAttribute(
         const string& name, const string& value,
         ConnectorType displayType) {

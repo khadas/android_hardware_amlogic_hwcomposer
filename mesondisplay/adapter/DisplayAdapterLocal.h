@@ -66,6 +66,7 @@ public:
     bool setDisplayRect(const Rect rect, ConnectorType displayType);
     bool getDisplayRect(Rect& rect, ConnectorType displayType);
     bool captureDisplayScreen(const native_handle_t **outBufferHandle) override;
+    int32_t setFrameRate(float frameRate) override;
     bool setDisplayAttribute(const string& name, const string& value, ConnectorType displayType) override;
     bool getDisplayAttribute(const string& name, string& value, ConnectorType displayType) override;
     bool getDisplayVsyncAndPeriod(int64_t& timestamp, int32_t& vsyncPeriodNanos) override;

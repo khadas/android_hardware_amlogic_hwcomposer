@@ -307,6 +307,12 @@ bool DisplayAdapterLocal::getDisplayRect(Rect& rect, ConnectorType displayType) 
     return ret;
 }
 
+int32_t DisplayAdapterLocal::setFrameRate(float frameRate) {
+    UNUSED(frameRate);
+    NOTIMPLEMENTED;
+    return 0;
+}
+
 DisplayAttributeInfo* DisplayAdapterLocal::getDisplayAttributeInfo(const string& name, ConnectorType displayType) {
     UNUSED(displayType);
     int i = 0;

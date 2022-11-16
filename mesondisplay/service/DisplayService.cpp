@@ -190,6 +190,10 @@ void DisplayServer::message_handle(Json::Value& in, Json::Value& out) {
         if (!in.isMember("p_displayType"))
             goto OUT;
         adapter->dumpDisplayAttribute(ret, (ConnectorType)in["p_displayType"].asUInt());
+    } else if (cmd == "setFrameRate") {
+        if (!in.isMember("frameRate_value"))
+            goto OUT;
+        adapter->setFrameRate(in["frameRate_value"].asFloat());
     } else {
         MESON_LOGE("CMD not implement!");
     }
