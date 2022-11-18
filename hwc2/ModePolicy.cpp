@@ -656,7 +656,18 @@ int32_t ModePolicy::getConnectorData(struct meson_policy_in* data, hdmi_dv_info_
 
 bool ModePolicy::setPolicy(int32_t policy) {
     MESON_LOGD("setPolicy to %d", policy);
-    //mPolicy = policy;
+    switch (policy) {
+        case static_cast<int>(MESON_POLICY_BEST):
+        case static_cast<int>(MESON_POLICY_RESOLUTION):
+        case static_cast<int>(MESON_POLICY_FRAMERATE):
+        case static_cast<int>(MESON_POLICY_DOLBY_VISION):
+            mPolicy = static_cast<meson_mode_policy>(policy);
+            break;
+        default:
+            MESON_LOGE("Set invalid policy:%d", policy);
+            return false;
+    }
+
     return true;
 }
 
@@ -694,8 +705,28 @@ void ModePolicy::onHotplug(bool connected) {
     setSourceDisplay(OUTPUT_MODE_STATE_POWER);
 }
 
-void ModePolicy::dump(std::string &dumpstr __unused) {
+void ModePolicy::dump(String8 &dumpstr) {
+    dumpstr.append("ModePolicy support modes:\n");
+    dumpstr.append("-----------------------------------------------------------"
+        "------------------\n");
+    dumpstr.append("|  CONFIG   |   VSYNC_PERIOD   |   WIDTH   |   HEIGHT   |"
+        "   NAME      |\n");
+    dumpstr.append("+-----------+------------------+-----------+------------+"
+        "----------------+\n");
 
+    auto conPtr = &mConData.con_info;
+    for (int i = 0; i < conPtr->modes_size; i++) {
+        auto config = conPtr->modes[i];
+        dumpstr.appendFormat(" %2d     |      %.3f      |   %5d   |   %5d    |"
+            " %14s |\n",
+            i,
+            config.refresh_rate,
+            config.pixel_w,
+            config.pixel_h,
+            config.name);
+    }
+    dumpstr.append("-----------------------------------------------------------"
+        "---------------\n");
 }
 
 int32_t ModePolicy::bindConnector(std::shared_ptr<HwDisplayConnector> & connector) {
@@ -991,7 +1022,7 @@ void ModePolicy::enableDolbyVision(int DvMode) {
 void ModePolicy::disableDolbyVision(int DvMode) {
     //char tvmode[MESON_MODE_LEN]   = {0};
     int  check_status_count = 0;
-    int  dv_type            = DvMode;
+    [[maybe_unused]] int dv_type = DvMode;
 
     MESON_LOGI("dv_type %d", dv_type);
     strcpy(mDvInfo.dv_enable, "0");
@@ -1786,7 +1817,8 @@ void ModePolicy::setSinkDisplay(bool initState) {
 }
 
 void ModePolicy::setSinkOutputMode(const char* outputmode, bool initState) {
-    MESON_LOGI("set sink output mode:%s, init state:%d\n", outputmode, initState?1:0);
+    [[maybe_unused]] bool sinkInitState = initState;
+    MESON_LOGI("set sink output mode:%s, init state:%d\n", outputmode, sinkInitState);
 
     //set output mode
     char curMode[MESON_MODE_LEN] = {0};

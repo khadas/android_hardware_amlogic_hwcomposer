@@ -273,7 +273,7 @@ public:
     int32_t initialize() override;
     void onHotplug(bool connected) override;
 
-    void dump(std::string &dumpstr) override;
+    void dump(String8 &dumpstr) override;
 
 protected:
     int32_t setDisplayMode(std::string &dispmode);

@@ -26,6 +26,6 @@ public:
 
     virtual void onHotplug(bool connected) = 0;
 
-    virtual void dump(std::string &dumpstr) = 0;
+    virtual void dump(String8 &dumpstr) = 0;
 
 };

@@ -594,79 +594,50 @@ static void hdr_scene_process(struct meson_policy_in *input,
 }
 
 
-/* get the highest hdmi mode by edid */
-static void get_highest_mode(struct meson_policy_in *input, char* mode) {
-    char value[MESON_MODE_LEN] = {0};
-    char tempMode[MESON_MODE_LEN] = {0};
+static void get_highest_mode_by_policy(struct meson_policy_in *input,
+        char *mode, enum meson_mode_policy policy) {
+    meson_mode_info_t *modes_ptr = input->con_info.modes;
+    meson_mode_info_t *config_ptr = NULL;
 
-    char* startpos;
-    char* destpos;
+    for (int i = 0; i < input->con_info.modes_size; i ++) {
+        meson_mode_info_t *it = &modes_ptr[i];
 
-    /* disp_cap:the list of TV support resolution from driver parse edid */
-    startpos = input->con_info.disp_cap;
-    /* use the 480p as base mode for choosing 480p when edid only support 480p */
-    strcpy(value, "480p60hz");
+        /* not select smpte and interlace mode */
+        if ((strstr(it->name, "smpte") != NULL) || (strstr(it->name, "i") != NULL))
+            continue;
 
-    /* select the preferred resolution */
-    while (strlen(startpos) > 0) {
-        /* get edid resolution to tempMode in order. */
-        destpos = strstr(startpos, "\n");
-        if (NULL == destpos)
-            break;
-        memset(tempMode, 0, MESON_MODE_LEN);
-        strncpy(tempMode, startpos, destpos - startpos);
-        startpos = destpos + 1;
-
-        /* filter 4k when soc not support 4K */
-        if (input->con_info.is_support4k == false &&
-                (strstr(tempMode, "2160") || strstr(tempMode, "smpte"))) {
-            SYS_LOGE("This platform not support : %s\n", tempMode);
+        if (!config_ptr) {
+            config_ptr = it;
             continue;
         }
 
-        if (tempMode[strlen(tempMode) - 1] == '*') {
-            tempMode[strlen(tempMode) - 1] = '\0';
-        }
-
-        /*
-         * find the index of mode base the hdmi resolution priority table
-         * and find the best prefer resolution
-         */
-        if (find_resolution_index(tempMode, MESON_POLICY_FRAMERATE) >
-                find_resolution_index(value, MESON_POLICY_FRAMERATE)) {
-            memset(value, 0, MESON_MODE_LEN);
-            strcpy(value, tempMode);
+        if (policy == MESON_POLICY_BEST || policy == MESON_POLICY_FRAMERATE)  {
+            /*
+             * frame rate policy: choose the mode which has the highest refresh rate
+             * If the refresh rate is same, then find the hightest resolution
+             */
+            if (config_ptr->refresh_rate < it->refresh_rate) {
+                config_ptr = it;
+            } else if (config_ptr->refresh_rate == it->refresh_rate) {
+                if (config_ptr->pixel_w < it->pixel_w && config_ptr->pixel_h < it->pixel_h)
+                    config_ptr = it;
+            }
+        } else if (policy == MESON_POLICY_RESOLUTION) {
+            if (config_ptr->pixel_h < it->pixel_h) {
+                config_ptr = it;
+            } else if (config_ptr->pixel_h == it->pixel_h) {
+                if (config_ptr->pixel_w < it->pixel_w) {
+                    config_ptr = it;
+                } else if (config_ptr->refresh_rate < it->refresh_rate) {
+                    config_ptr = it;
+                }
+            }
         }
     }
 
-    strcpy(mode, value);
-    SYS_LOGI("set HDMI to highest edid mode: %s\n", mode);
-}
-
-
-/* check if the edid support current hdmi mode */
-static void filter_hdmi_mode(struct meson_policy_in *input, char* mode) {
-    /* check current resolution support or not base driver edid */
-    char *pCmp = input->con_info.disp_cap;
-    while ((pCmp - input->con_info.disp_cap) < (int)strlen(input->con_info.disp_cap)) {
-        char *pos = strchr(pCmp, 0x0a);
-        if (NULL == pos)
-            break;
-
-        int step = 1;
-        if (*(pos - 1) == '*') {
-            pos -= 1;
-            step += 1;
-        }
-        if (!strncmp(pCmp, input->cur_displaymode, pos - pCmp)) {
-            strncpy(mode, pCmp, pos - pCmp);
-            return;
-        }
-        pCmp = pos + step;
+    if (config_ptr) {
+        strcpy(mode, config_ptr->name);
     }
-
-    /* current resolution is not support in this TV, so switch to best mode. */
-    get_highest_mode(input, mode);
 }
 
 static void get_hdmi_outputmode(struct meson_policy_in *input,
@@ -678,20 +649,8 @@ static void get_hdmi_outputmode(struct meson_policy_in *input,
         return;
     }
 
-    if (policy == MESON_POLICY_BEST) {
-        /*
-         * best policy enable case
-         * find best prefer resolution base driver edid
-         */
-        get_highest_mode(input, mode);
-    } else {
-        /*
-         * best policy disable case
-         * if current mode support,use current mode
-         * if current mode not support,find best prefer resolution base driver edid
-         */
-        filter_hdmi_mode(input, mode);
-    }
+    get_highest_mode_by_policy(input, mode, policy);
+
     SYS_LOGI("set HDMI mode to %s\n", mode);
 }
 
