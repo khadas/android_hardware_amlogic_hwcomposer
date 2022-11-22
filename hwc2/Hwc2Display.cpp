@@ -453,14 +453,9 @@ void Hwc2Display::onModeChanged(int stage) {
                         mSignalHpd = false;
                         bNotifySC = true;
                     } else {
-                        /*Workaround: needed for NTS test.*/
-                        if (HwcConfig::primaryHotplugEnabled()
-                            && (mModeMgr->getPolicyType() == FIXED_SIZE_POLICY ||
-                                mModeMgr->getPolicyType() == REAL_MODE_POLICY)) {
+                        if (HwcConfig::primaryHotplugEnabled() && (mDisplayId == HWC_DISPLAY_PRIMARY)) {
                             bSendPlugIn = true;
-                        } else if (mModeMgr->getPolicyType() == ACTIVE_MODE_POLICY) {
-                            bSendPlugIn = true;
-                        } else if (mModeMgr->getPolicyType() == REAL_MODE_POLICY) {
+                        } else if (mDisplayId != HWC_DISPLAY_PRIMARY && mConnector->getType() == DRM_MODE_CONNECTOR_HDMIA) {
                             bSendPlugIn = true;
                         }
                     }
