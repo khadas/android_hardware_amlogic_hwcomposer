@@ -166,8 +166,8 @@ int main(int argc, char* argv[]) {
                        break;
 
                    float framerate = atof(optarg);
-                   printf("setFrameRate  %.2f ",framerate);
-                   client->setFrameRate(framerate);
+                   int ret = client->setFrameRate(framerate);
+                   printf("setFrameRate  %.2f ret:%d\n",framerate, ret);
                }
                break;
             case 'd':

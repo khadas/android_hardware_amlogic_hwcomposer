@@ -87,7 +87,8 @@ void DisplayTypeConv(drm_connector_type_t& type, ConnectorType displayType) {
             type = DRM_MODE_CONNECTOR_HDMIA;
             break;
         case DisplayAdapter::CONN_TYPE_PANEL:
-            type = LEGACY_NON_DRM_CONNECTOR_PANEL;
+            // for drm backend we need load it from hwc config
+            type = HwcConfig::getConnectorType(0);
             break;
         case DisplayAdapter::CONN_TYPE_DUMMY:
             type = DRM_MODE_CONNECTOR_VIRTUAL;
@@ -232,8 +233,8 @@ bool DisplayAdapterLocal::setDisplayMode(const string& mode, ConnectorType displ
     if (DRM_MODE_CONNECTOR_INVALID_TYPE == type)
         return false;
 
-    MESON_LOGD("SetDisplay[%s] Mode to \"%s\"", type == DRM_MODE_CONNECTOR_HDMIA ? "HDMI" :
-            (type == DRM_MODE_CONNECTOR_LVDS ? "panel":"dummy"), mode.c_str());
+    MESON_LOGD("SetDisplay[%s] Mode to \"%s\"", displayType == DisplayAdapter::CONN_TYPE_HDMI ? "HDMI" :
+            (displayType == DisplayAdapter::CONN_TYPE_PANEL ? "TV":"CVBS"), mode.c_str());
 
     GET_CRTC_BY_CONNECTOR(type);
     if (crtc) {
@@ -384,8 +385,7 @@ bool DisplayAdapterLocal::setDisplayAttribute(
 
 int32_t DisplayAdapterLocal::setFrameRate(float frameRate) {
     MESON_LOGD("%s frameRate %.2f",__func__,frameRate);
-
-    return 0;
+    return MesonHwc2::getInstance().setFrameRate(frameRate);
 }
 
 bool DisplayAdapterLocal::getDisplayAttribute(

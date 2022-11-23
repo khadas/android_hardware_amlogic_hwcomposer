@@ -956,6 +956,11 @@ bool MesonHwc2::setFrameRateHint(std::string value) {
     return hwcDisplay->setFrameRateHint(value);
 }
 
+int32_t MesonHwc2::setFrameRate(float value) {
+    GET_HWC_DISPLAY(0);
+    return hwcDisplay->setFrameRate(value);
+}
+
 int32_t MesonHwc2::initialize() {
     std::map<uint32_t, std::shared_ptr<HwcDisplay>> mhwcDisps;
     mDisplayPipe = createDisplayPipe(HwcConfig::getPipeline());

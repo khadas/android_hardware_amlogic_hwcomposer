@@ -517,7 +517,6 @@ int32_t sc_getPreferredDisplayConfig(int /* displayId */, std::string & dispmode
     return 0;
 }
 
-#if PLATFORM_SDK_VERSION == 30
 // for self-adaptive
 int32_t sc_frame_rate_display(bool on, const ISystemControl::Rect& rect) {
     CHK_SC_PROXY();
@@ -530,7 +529,6 @@ int32_t sc_frame_rate_display(bool on, const ISystemControl::Rect& rect) {
         return -EFAULT;
     }
 }
-#endif
 
 #else
 

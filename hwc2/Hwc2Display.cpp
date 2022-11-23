@@ -57,10 +57,8 @@ Hwc2Display::Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer, uint32_t
     memset(&mHdrCaps, 0, sizeof(mHdrCaps));
     memset(mColorMatrix, 0, sizeof(float) * 16);
     memset(&mCalibrateCoordinates, 0, sizeof(int) * 4);
-#if PLATFORM_SDK_VERSION == 30
     // for self-adaptive
     mVideoLayerRegion = 0;
-#endif
     mHasVideoPresent = false;
     mModeChanged = false;
     mFailedDeviceComp = false;
@@ -70,6 +68,7 @@ Hwc2Display::Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer, uint32_t
     mProcessorFlags = 0;
     mVtVsyncStatus = false;
     mOutsideChanged = false;
+    mBootConfig = -1;
     memset(&mDisplayMode, 0, sizeof(mDisplayMode));
     memset(&mCalibrateInfo, 0, sizeof(mCalibrateInfo));
 }
@@ -977,11 +976,9 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
 hwc2_error_t Hwc2Display::collectCompositionRequest(
     uint32_t* outNumTypes, uint32_t* outNumRequests) {
     Hwc2Layer *layer;
-#if PLATFORM_SDK_VERSION == 30
     // for self-adaptive
     int maxRegion = 0, region = 0;
     ISystemControl::Rect maxRect{0, 0, 0, 0};
-#endif
 
     bool hasDecoration = false;
     /*collect display requested, and changed composition type.*/
@@ -1006,7 +1003,6 @@ hwc2_error_t Hwc2Display::collectCompositionRequest(
         if (expectedHwcComposition == HWC2_COMPOSITION_SIDEBAND || layer->mCompositionType == MESON_COMPOSITION_PLANE_AMVIDEO)
             mProcessorFlags |= PRESENT_SIDEBAND;
 
-#if PLATFORM_SDK_VERSION == 30
         // for self-adaptive
         if (isVideoPlaneComposition(layer->mCompositionType)) {
             /* For hdmi self-adaptive in systemcontrol.
@@ -1022,10 +1018,8 @@ hwc2_error_t Hwc2Display::collectCompositionRequest(
                 maxRect.bottom = layer->mDisplayFrame.bottom;
             }
         }
-#endif
     }
 
-#if PLATFORM_SDK_VERSION == 30
     // for self-adaptive
     if (maxRegion != 0 && mVideoLayerRegion != maxRegion) {
         sc_frame_rate_display(true, maxRect);
@@ -1036,7 +1030,6 @@ hwc2_error_t Hwc2Display::collectCompositionRequest(
         sc_frame_rate_display(false, maxRect);
         mVideoLayerRegion = 0;
     }
-#endif
 
     /*collect client clear layer.*/
     std::shared_ptr<IComposer> clientComposer =
@@ -1373,8 +1366,8 @@ hwc2_error_t Hwc2Display::getActiveConfig(
     }
 }
 
-hwc2_error_t Hwc2Display::setActiveConfig(
-    hwc2_config_t config) {
+hwc2_error_t Hwc2Display::setActiveConfig(hwc2_config_t config) {
+    std::lock_guard<std::mutex> lock(mConfigMutex);
     if (mModeMgr != NULL) {
         /* set to the same activeConfig */
         hwc2_config_t activeCurr;
@@ -1459,6 +1452,7 @@ hwc2_error_t Hwc2Display::getDisplayVsyncPeriod(hwc2_vsync_period_t* outVsyncPer
 hwc2_error_t Hwc2Display::setActiveConfigWithConstraints(hwc2_config_t config,
         hwc_vsync_period_change_constraints_t* vsyncPeriodChangeConstraints,
         hwc_vsync_period_change_timeline_t* outTimeline) {
+    std::lock_guard<std::mutex> lock(mConfigMutex);
     MESON_LOGV("%s config:%d", __func__, config);
     bool validConfig = false;
     uint32_t arraySize = 0;
@@ -1588,6 +1582,9 @@ hwc2_error_t Hwc2Display::setBootConfig(uint32_t config) {
         return HWC2_ERROR_UNSUPPORTED;
 
     int32_t ret = mModeMgr->setBootConfig(config);
+    if (ret == HWC2_ERROR_NONE)
+        mBootConfig = config;
+
     return (hwc2_error_t) ret;
 }
 
@@ -1879,12 +1876,157 @@ bool Hwc2Display::setFrameRateHint(std::string value) {
         period = mFRPeriodNanos == 0 ? period : mFRPeriodNanos;
         MESON_LOGD("%s setPeriod to %d", __func__, period);
         mVtVsync->setPeriod(period);
-    } else {
-        MESON_LOGE("%s no videotunnel vsync thread", __func__);
-        return false;
     }
 
     return true;
+}
+
+int32_t Hwc2Display::getBootConfig(int32_t & config) {
+    std::lock_guard<std::mutex> lock(mConfigMutex);
+    if (mBootConfig != -1) {
+        config = mBootConfig;
+        return HWC2_ERROR_NONE;
+    }
+
+    if (!mConnector)
+        return HWC2_ERROR_BAD_PARAMETER;
+
+    const char *defaultMode = UBOOTENV_OUTPUTMODE;
+    if (mConnector->getType() == DRM_MODE_CONNECTOR_HDMIA) {
+        defaultMode = UBOOTENV_HDMIMODE;
+    }
+
+    std::string modeName;
+    if (sc_read_bootenv(defaultMode, modeName) != 0) {
+        return HWC2_ERROR_BAD_PARAMETER;
+    }
+
+    /* find the mode info from connector */
+    std::map<uint32_t, drm_mode_info_t> modes;
+    drm_mode_info_t mode;
+    bool validMode = false;
+    mConnector->getModes(modes);
+    for (auto it = modes.begin(); it != modes.end(); ++it) {
+        if (modeName.compare(it->second.name) == 0) {
+            mode = it->second;
+            validMode = true;
+            break;
+        }
+    }
+
+    if (!validMode) {
+        return HWC2_ERROR_BAD_PARAMETER;
+    }
+
+    /* find the configId of the boot display mode */
+    uint32_t arraySize = 0;
+    if (getDisplayConfigs(&arraySize, nullptr) != HWC2_ERROR_NONE)
+        return HWC2_ERROR_BAD_CONFIG;
+
+    std::vector<hwc2_config_t> outConfigs;
+    outConfigs.resize(arraySize);
+    if (getDisplayConfigs(&arraySize, outConfigs.data()) != HWC2_ERROR_NONE)
+        return HWC2_ERROR_BAD_CONFIG;
+    for (auto it = outConfigs.begin(); it != outConfigs.end(); ++it) {
+        /* get the display mode info */
+        int32_t width = -1;
+        int32_t height = -1;
+        int32_t vsyncPeriod = -1;
+        int32_t groupId = -1;
+        if (getDisplayAttribute(*it, HWC2_ATTRIBUTE_WIDTH, &width) != HWC2_ERROR_NONE)
+            return HWC2_ERROR_BAD_CONFIG;
+        if (getDisplayAttribute(*it, HWC2_ATTRIBUTE_HEIGHT, &height) != HWC2_ERROR_NONE)
+            return HWC2_ERROR_BAD_CONFIG;
+        if (getDisplayAttribute(*it, HWC2_ATTRIBUTE_VSYNC_PERIOD, &vsyncPeriod) != HWC2_ERROR_NONE)
+            return HWC2_ERROR_BAD_CONFIG;
+        if (getDisplayAttribute(*it, HWC2_ATTRIBUTE_CONFIG_GROUP, &groupId)
+                != HWC2_ERROR_NONE)
+            return HWC2_ERROR_BAD_CONFIG;
+
+        if (mode.pixelW == width && mode.pixelH == height && mode.groupId == groupId) {
+            /* compare refresh rate */
+            if (vsyncPeriod == static_cast<int32_t> (1e9/mode.refreshRate)) {
+                config = *it;
+                return HWC2_ERROR_NONE;
+            }
+        }
+    }
+
+    return HWC2_ERROR_BAD_PARAMETER;
+}
+
+int32_t Hwc2Display::getFrameRateConfigId(int32_t &config, const float frameRate) {
+    if (frameRate < 0 || frameRate > 120)
+        return HWC2_ERROR_BAD_PARAMETER;
+
+    // recovery find the default mode
+    if (frameRate == 0)
+        return getBootConfig(config);
+
+    std::lock_guard<std::mutex> lock(mConfigMutex);
+    /* get the current config and group id */
+    hwc2_config_t currentConfig;
+    if (mModeMgr->getActiveConfig(&currentConfig) != HWC2_ERROR_NONE) {
+        return HWC2_ERROR_BAD_CONFIG;
+    }
+
+    int32_t configGroupId;
+    if (mModeMgr->getDisplayAttribute(currentConfig, HWC2_ATTRIBUTE_CONFIG_GROUP, &configGroupId)
+            != HWC2_ERROR_NONE)
+        return HWC2_ERROR_BAD_CONFIG;
+
+    /* get display configs */
+    uint32_t arraySize = 0;
+    if (getDisplayConfigs(&arraySize, nullptr) != HWC2_ERROR_NONE)
+        return HWC2_ERROR_BAD_CONFIG;
+    std::vector<hwc2_config_t> outConfigs;
+    outConfigs.resize(arraySize);
+    if (getDisplayConfigs(&arraySize, outConfigs.data()) != HWC2_ERROR_NONE)
+        return HWC2_ERROR_BAD_CONFIG;
+    for (auto it = outConfigs.begin(); it != outConfigs.end(); ++it) {
+        /* get the display mode info */
+        int32_t vsyncPeriod = -1;
+        int32_t groupId = -1;
+        if (getDisplayAttribute(*it, HWC2_ATTRIBUTE_VSYNC_PERIOD, &vsyncPeriod) != HWC2_ERROR_NONE)
+            return HWC2_ERROR_BAD_CONFIG;
+        if (getDisplayAttribute(*it, HWC2_ATTRIBUTE_CONFIG_GROUP, &groupId)
+                != HWC2_ERROR_NONE)
+            return HWC2_ERROR_BAD_CONFIG;
+
+        /* find the mode */
+        if (vsyncPeriod == static_cast<int32_t>(1e9/frameRate) && groupId == configGroupId) {
+            config = *it;
+            return HWC2_ERROR_NONE;
+        }
+    }
+
+    return HWC2_ERROR_BAD_CONFIG;
+}
+
+// setFrameRate for MesonDisplay
+// value: 0 means to recovery to default boot Config
+int32_t Hwc2Display::setFrameRate(float value) {
+    int32_t config;
+    int32_t ret = getFrameRateConfigId(config, value);
+    if (ret != HWC2_ERROR_NONE) {
+        MESON_LOGD("%s could not find config of frameRate :%f", __func__, value);
+        return ret;
+    }
+
+    MESON_LOGD("%s value:%f", __func__, value);
+    setActiveConfig(config);
+    mFRPeriodNanos = 1e9 / value;
+    if (mVtVsync.get()) {
+        // set vt vsync period
+        hwc2_vsync_period_t period = 1e9 / 60;
+        getDisplayVsyncPeriod(&period);
+        period = mFRPeriodNanos == 0 ? period : mFRPeriodNanos;
+        MESON_LOGD("%s set vt Period to %d", __func__, period);
+        mVtVsync->setPeriod(period);
+    }
+
+
+    return HWC2_ERROR_NONE;
 }
 
 /*******************Video Tunnel API below*******************/

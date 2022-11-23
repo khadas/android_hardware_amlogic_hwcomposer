@@ -167,6 +167,7 @@ public:
     bool setViewPort(const drm_rect_wh_t viewPort);
     void getViewPort(drm_rect_wh_t& viewPort);
     bool setFrameRateHint(std::string value);
+    int32_t setFrameRate(float value);
 
 protected:
     int32_t initialize();

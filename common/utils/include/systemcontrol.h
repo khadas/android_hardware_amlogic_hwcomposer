@@ -53,8 +53,6 @@ int32_t sc_clearBootDisplayConfig(int displayId);
 int32_t sc_setBootDisplayConfig(int displayId, std::string & dispmode);
 int32_t sc_getPreferredDisplayConfig(int displayId, std::string & dispmode);
 
-#if PLATFORM_SDK_VERSION == 30
 // for self-adaptive
 int32_t sc_frame_rate_display(bool on,  const ISystemControl::Rect& rect);
-#endif
 #endif/*SYSTEM_CONTROL_H*/

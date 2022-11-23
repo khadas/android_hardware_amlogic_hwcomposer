@@ -171,6 +171,10 @@ public:
     bool setFrameRateHint(std::string value);
     bool isDisplayConnected();
     std::unordered_map<hwc2_layer_t, std::shared_ptr<Hwc2Layer>> getAllLayers();
+    int32_t getBootConfig(int32_t & config);
+    int32_t getFrameRateConfigId(int32_t &config, const float frameRate);
+    int32_t setFrameRate(float value);
+
 protected:
     /* For compose. */
     hwc2_error_t collectLayersForPresent();
@@ -286,12 +290,13 @@ protected:
     /* for seamless switch */
     bool mSeamlessSwitch = false;
 
-#if PLATFORM_SDK_VERSION == 30
     // for self-adaptive
     int mVideoLayerRegion;
-#endif
     int64_t mExpectedPresentTime;
     bool mAidlService = false;
+
+    std::mutex mConfigMutex;
+    int32_t mBootConfig = -1;
 };
 
 #endif/*HWC2_DISPLAY_H*/

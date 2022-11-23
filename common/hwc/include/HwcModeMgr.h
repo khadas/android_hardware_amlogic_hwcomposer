@@ -14,7 +14,9 @@
 #include <HwDisplayConnector.h>
 #include <HwDisplayCrtc.h>
 
-#define UBOOTENV_BESTDOLBYVISION "ubootenv.var.bestdolbyvision"
+#define UBOOTENV_BESTDOLBYVISION        "ubootenv.var.bestdolbyvision"
+#define UBOOTENV_HDMIMODE               "ubootenv.var.hdmimode"
+#define UBOOTENV_OUTPUTMODE             "ubootenv.var.outputmode"
 
 typedef enum {
     FIXED_SIZE_POLICY = 0,

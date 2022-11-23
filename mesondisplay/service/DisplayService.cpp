@@ -193,7 +193,8 @@ void DisplayServer::message_handle(Json::Value& in, Json::Value& out) {
     } else if (cmd == "setFrameRate") {
         if (!in.isMember("frameRate_value"))
             goto OUT;
-        adapter->setFrameRate(in["frameRate_value"].asFloat());
+        int value = adapter->setFrameRate(in["frameRate_value"].asFloat());
+        ret["value"] = value;
     } else {
         MESON_LOGE("CMD not implement!");
     }
