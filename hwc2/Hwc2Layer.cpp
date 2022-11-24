@@ -367,7 +367,6 @@ hwc2_error_t Hwc2Layer::setZorder(uint32_t z) {
     return HWC2_ERROR_NONE;
 }
 
-#ifdef HWC_HDR_METADATA_SUPPORT
 int32_t Hwc2Layer::setPerFrameMetadata(
     uint32_t numElements, const int32_t* /*hw2_per_frame_metadata_key_t*/ keys,
     const float* metadata) {
@@ -377,7 +376,6 @@ int32_t Hwc2Layer::setPerFrameMetadata(
     }
     return HWC2_ERROR_NONE;
 }
-#endif
 
 //TODO: set bright to composition
 int32_t Hwc2Layer::setBrightness(float brightness) {

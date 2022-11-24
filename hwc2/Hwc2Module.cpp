@@ -325,7 +325,6 @@ int32_t  hwc2_set_layer_z_order(
     return mesonhwc->setLayerZorder(display, layer, z);
 }
 
-#ifdef HWC_HDR_METADATA_SUPPORT
 int32_t setLayerPerFrameMetadata(
         hwc2_device_t* device, hwc2_display_t display, hwc2_layer_t layer,
         uint32_t numElements, const int32_t* /*hw2_per_frame_metadata_key_t*/ keys,
@@ -340,7 +339,6 @@ int32_t getPerFrameMetadataKeys(
     GET_MESON_HWC();
     return mesonhwc->getPerFrameMetadataKeys(display, outNumKeys, outKeys);
 }
-#endif
 
 int32_t getRenderIntents(
         hwc2_device_t* device, hwc2_display_t display, int32_t mode,
@@ -561,12 +559,10 @@ hwc2_function_pointer_t hwc2_getFunction(struct hwc2_device* device __unused,
             return reinterpret_cast<hwc2_function_pointer_t>(hwc2_set_vsync_enabled);
         case HWC2_FUNCTION_VALIDATE_DISPLAY:
             return reinterpret_cast<hwc2_function_pointer_t>(hwc2_validate_display);
-#ifdef HWC_HDR_METADATA_SUPPORT
         case HWC2_FUNCTION_SET_LAYER_PER_FRAME_METADATA:
             return reinterpret_cast<hwc2_function_pointer_t>(setLayerPerFrameMetadata);
         case HWC2_FUNCTION_GET_PER_FRAME_METADATA_KEYS:
             return reinterpret_cast<hwc2_function_pointer_t>(getPerFrameMetadataKeys);
-#endif
         case HWC2_FUNCTION_GET_RENDER_INTENTS:
             return reinterpret_cast<hwc2_function_pointer_t>(getRenderIntents);
         case HWC2_FUNCTION_SET_COLOR_MODE_WITH_RENDER_INTENT:

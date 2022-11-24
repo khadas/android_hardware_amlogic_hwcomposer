@@ -63,10 +63,8 @@ public:
     /*Connector related.*/
     virtual const char * getName();
     virtual const drm_hdr_capabilities_t * getHdrCapabilities();
-#ifdef HWC_HDR_METADATA_SUPPORT
     virtual hwc2_error_t getFrameMetadataKeys (
         uint32_t* outNumKeys, int32_t* outKeys);
-#endif
 
     /*Vsync*/
     virtual hwc2_error_t setVsyncEnable(hwc2_vsync_t enabled);
@@ -257,9 +255,7 @@ protected:
     int32_t mProcessorFlags;
     std::vector<uint32_t> mSupportedContentTypes;
 
-#ifdef HWC_HDR_METADATA_SUPPORT
     std::vector<drm_hdr_metadata_t> mHdrKeys;
-#endif
     std::mutex mMutex;
 
     bool mVsyncState;

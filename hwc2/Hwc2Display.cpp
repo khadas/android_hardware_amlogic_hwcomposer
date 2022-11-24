@@ -174,9 +174,7 @@ int32_t Hwc2Display::setDisplayResource(
 
     mConnector->getHdrCapabilities(&mHdrCaps);
     mConnector->getSupportedContentTypes(mSupportedContentTypes);
-#ifdef HWC_HDR_METADATA_SUPPORT
     mCrtc->getHdrMetadataKeys(mHdrKeys);
-#endif
 
     MESON_LOG_FUN_LEAVE();
     return 0;
@@ -289,7 +287,6 @@ void Hwc2Display::getDispMode(drm_mode_info_t & dispMode){
     dispMode = mDisplayMode;
 }
 
-#ifdef HWC_HDR_METADATA_SUPPORT
 hwc2_error_t Hwc2Display::getFrameMetadataKeys(
     uint32_t* outNumKeys, int32_t* outKeys) {
     *outNumKeys = mHdrKeys.size();
@@ -300,7 +297,6 @@ hwc2_error_t Hwc2Display::getFrameMetadataKeys(
 
     return HWC2_ERROR_NONE;
 }
-#endif
 
 hwc2_error_t Hwc2Display::setVsyncEnable(hwc2_vsync_t enabled) {
     ATRACE_CALL();
@@ -451,9 +447,7 @@ void Hwc2Display::onModeChanged(int stage) {
                     /* check whether hdr cap changed */
                     hdrCapsChanged = drmHdrCapsDiffer(oldCaps, mHdrCaps);
                     mConnector->getSupportedContentTypes(mSupportedContentTypes);
-#ifdef HWC_HDR_METADATA_SUPPORT
                     mCrtc->getHdrMetadataKeys(mHdrKeys);
-#endif
                 }
 
                 /*update mode success.*/
@@ -1216,7 +1210,6 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
         if (mPresentCompositionStg->commit(true) != 0) {
             return HWC2_ERROR_NONE;
         }
-        #ifdef HWC_HDR_METADATA_SUPPORT
         /*set hdr metadata info.*/
         for (auto it = mPresentLayers.begin() ; it != mPresentLayers.end(); it++) {
             if ((*it)->mHdrMetaData.empty() == false) {
@@ -1224,7 +1217,6 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
                 break;
             }
         }
-        #endif
 
         /* reset layer flag to false */
         for (auto it = mLayers.begin(); it != mLayers.end(); it++) {

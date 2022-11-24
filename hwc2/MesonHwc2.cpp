@@ -574,7 +574,6 @@ int32_t MesonHwc2::setColorModeWithRenderIntent(
     return HWC2_ERROR_NONE;
 }
 
-#ifdef HWC_HDR_METADATA_SUPPORT
 int32_t MesonHwc2::setLayerPerFrameMetadata(
         hwc2_display_t display, hwc2_layer_t layer,
         uint32_t numElements, const int32_t* /*hw2_per_frame_metadata_key_t*/ keys,
@@ -591,7 +590,6 @@ int32_t MesonHwc2::getPerFrameMetadataKeys(
     GET_HWC_DISPLAY(display);
     return hwcDisplay->getFrameMetadataKeys(outNumKeys, outKeys);
 }
-#endif
 
 int32_t MesonHwc2::getDisplayIdentificationData(hwc2_display_t display, uint8_t* outPort,
             uint32_t* outDataSize, uint8_t* outData) {
