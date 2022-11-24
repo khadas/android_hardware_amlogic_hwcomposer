@@ -396,6 +396,20 @@ void Hwc2Display::onHotplug(bool connected) {
             mSignalHpd = true;
             handleVtThread();
             return;
+        } else {
+             drm_mode_info_t tmpDisplayMode = {
+                "null",
+                0, 0,
+                0, 0,
+                60.0,
+                0
+            };
+            if (sc_get_property_boolean("persist.vendor.sys.vmx", false)) {
+                strcpy(tmpDisplayMode.name, "576cvbs");
+            } else {
+                strcpy(tmpDisplayMode.name, "dummy_l");
+            }
+            mCrtc->setMode(tmpDisplayMode);
         }
 
         mPowerMode->setConnectorStatus(false);
@@ -696,6 +710,16 @@ hwc2_error_t Hwc2Display::setPowerMode(int32_t mode) {
     /* need blank display when power off */
     if (mode == HWC2_POWER_MODE_OFF) {
         blankDisplay();
+        if (mConnector && (mConnector->getType() == DRM_MODE_CONNECTOR_HDMIA )) {
+            drm_mode_info_t dummyDisplayMode = {
+                "dummy_l",
+                0, 0,
+                0, 0,
+                60.0,
+                0
+            };
+            mCrtc->setMode(dummyDisplayMode);
+        }
     }
     return (hwc2_error_t) ret;
 }
