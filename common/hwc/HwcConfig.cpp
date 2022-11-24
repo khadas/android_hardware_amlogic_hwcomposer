@@ -43,10 +43,13 @@ int32_t HwcConfig::getFramebufferSize(int disp, uint32_t & width, uint32_t & hei
             }
         } else {
         #ifdef HWC_PRIMARY_FRAMEBUFFER_WIDTH
-            property_get("sys.lcd.exist", value, "0");
+            property_get("sys.lcd.reverse", value, "0");
             if (atoi(value) == 1) {
                width = HWC_PRIMARY_FRAMEBUFFER_HEIGHT;
                height = HWC_PRIMARY_FRAMEBUFFER_WIDTH;
+            } else if(atoi(value) == 2) {
+               width = 1920*2;
+               height = 1200*2;
             } else {
                width  = HWC_PRIMARY_FRAMEBUFFER_WIDTH;
                height = HWC_PRIMARY_FRAMEBUFFER_HEIGHT;
