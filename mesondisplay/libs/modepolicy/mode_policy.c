@@ -18,6 +18,8 @@ struct meson_policy {
 
 static struct meson_policy g_in[MESON_MODE_CON_MAX];
 
+static bool test_mode = false;
+
 #define GET_CURRENT_POLICY(connector) \
     struct meson_policy *mp = NULL; \
     if (connector < 0 || connector >= MESON_MODE_CON_MAX) \
@@ -298,9 +300,11 @@ static bool mode_support_check(const char *mode, const char * color) {
     meson_mode_write_sys(DISPLAY_HDMI_VALID_MODE, outputmode);
     meson_mode_read_sys(DISPLAY_HDMI_VALID_MODE, value, false);
 
-    return atoi(value) ? true : false;
+    if (test_mode)
+        return true;
+    else
+        return atoi(value) ? true : false;
 }
-
 
 /*
  * check 4k50/4k60 hdr support or not base driver edid
@@ -727,6 +731,7 @@ static void update_deepcolor(struct meson_policy_in *input,
 static void sdr_scene_process(struct meson_policy_in *input,
                               struct meson_policy_out *output_info,
                               enum meson_mode_policy policy) {
+    SYS_LOGI("%s", __func__);
     /*
      * 1. choose resolution and frame rate
      */
@@ -876,4 +881,12 @@ int32_t meson_mode_get_policy_output(int32_t connector, struct meson_policy_out 
         output->displaymode, output->deepcolor, output->dv_type);
 
     return 0;
+}
+
+/*
+ * @param enable         [in] enable test mode or not
+ *
+ */
+void meson_mode_set_test_mode(const bool enable) {
+    test_mode = enable;
 }

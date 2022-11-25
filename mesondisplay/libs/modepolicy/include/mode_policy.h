@@ -139,6 +139,10 @@ int32_t meson_mode_set_policy_input(int32_t connector, const struct meson_policy
  */
 int32_t meson_mode_get_policy_output(int32_t connector, struct meson_policy_out *out);
 
+/*
+ * for uinit test mode
+ */
+void meson_mode_set_test_mode(const bool enable);
 
 #ifdef __cplusplus
 }
