@@ -397,22 +397,20 @@ int SingleplaneComposition::buildOsdComposition() {
 }
 
 /*--------------------- commit to display ---------------------*/
-int SingleplaneComposition::commit(bool sf) {
+int SingleplaneComposition::commit() {
     std::lock_guard<std::mutex> lock(mMutex);
     /*start compose, and add composer output.*/
     /* handle uvm */
     handleUVM();
 
     std::shared_ptr<DrmFramebuffer> composeOutput;
-    if (sf && mComposer.get()) {
+    if (mComposer.get()) {
         mComposer->start();
         composeOutput = mComposer->getOutput();
         if (composeOutput.get() && mOsdPlane) {
             mDisplayPairs.push_back(DisplayPair{composeOutput, mOsdPlane});
             mOsdPlane.reset();
         }
-    } else if (!sf && mComposer.get()) {
-        composeOutput = mComposer->getOutput();
     }
 
     display_zoom_info_t osdDisplayFrame;
@@ -472,37 +470,72 @@ int SingleplaneComposition::commit(bool sf) {
         }
 
         /*set display info*/
-        if (!sf && fb->isVtBuffer()) {
+        if (fb->isVtBuffer()) {
             if (fb->isVtNeedClearFrameOrShowColorBuffer())
                 blankFlag = BLANK_FOR_NO_CONTENT;
+            else
+                continue;
 
             plane->setPlane(fb, z, blankFlag);
             fb->freeSolidColorBuffer();
-        } else if (sf && !fb->isVtBuffer()) {
+        } else {
             plane->setPlane(fb, z, blankFlag);
         }
     }
 
     /*blank useless plane.*/
-    if (sf) {
-        if (mCursorPlane.get())
-            mUnusedPlanes.push_back(mCursorPlane);
-        if (mLegacyVideoPlane.get())
-            mUnusedPlanes.push_back(mLegacyVideoPlane);
-        if (mOsdPlane.get())
-            mUnusedPlanes.push_back(mOsdPlane);
-        if (mHwcVideoPlane.get())
-            mUnusedPlanes.push_back(mHwcVideoPlane);
+    if (mCursorPlane.get())
+        mUnusedPlanes.push_back(mCursorPlane);
+    if (mLegacyVideoPlane.get())
+        mUnusedPlanes.push_back(mLegacyVideoPlane);
+    if (mOsdPlane.get())
+        mUnusedPlanes.push_back(mOsdPlane);
+    if (mHwcVideoPlane.get())
+        mUnusedPlanes.push_back(mHwcVideoPlane);
 
-        auto planeit = mUnusedPlanes.begin();
-        for (;planeit != mUnusedPlanes.end(); ++planeit) {
-            (*planeit)->setPlane(NULL, HWC_PLANE_FAKE_ZORDER, BLANK_FOR_NO_CONTENT);
-            dumpUnusedPlane(*planeit, BLANK_FOR_NO_CONTENT);
-        }
-
-        /*set crtc info.*/
-        mCrtc->setDisplayFrame(osdDisplayFrame);
+    auto planeit = mUnusedPlanes.begin();
+    for (;planeit != mUnusedPlanes.end(); ++planeit) {
+        (*planeit)->setPlane(NULL, HWC_PLANE_FAKE_ZORDER, BLANK_FOR_NO_CONTENT);
+        dumpUnusedPlane(*planeit, BLANK_FOR_NO_CONTENT);
     }
+
+    /*set crtc info.*/
+    mCrtc->setDisplayFrame(osdDisplayFrame);
+
+    return 0;
+}
+
+int SingleplaneComposition::commitTunnelVideo() {
+    std::lock_guard<std::mutex> lock(mMutex);
+
+    /*commit display path.*/
+    auto displayIt = mDisplayPairs.begin();
+    for (; displayIt != mDisplayPairs.end(); ++displayIt) {
+        std::shared_ptr<DrmFramebuffer> fb = (*displayIt).fb;
+        std::shared_ptr<HwDisplayPlane> plane = (*displayIt).plane;
+
+        if (!fb->isVtBuffer())
+            continue;
+
+        bool blankFlag = (mHideSecureLayer && fb->mSecure) ?
+                BLANK_FOR_SECURE_CONTENT : UNBLANK;
+        /*
+        * SingleplaneCompositon handle fixed-zorder planes.
+        * Video plane always have fixed zorder.
+        */
+        uint32_t z = plane->getFixedZorder();
+        if (z == INVALID_ZORDER) z = VIDEO_PLANE_FIXED_ZORDER;
+
+
+        if (fb->isVtNeedClearFrameOrShowColorBuffer()) {
+            blankFlag = BLANK_FOR_NO_CONTENT;
+            plane->setPlane(fb, z, blankFlag);
+            fb->freeSolidColorBuffer();
+        } else {
+            plane->setPlane(fb, z, blankFlag);
+        }
+    }
+
     return 0;
 }
 

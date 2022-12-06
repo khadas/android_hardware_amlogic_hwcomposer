@@ -1361,9 +1361,11 @@ int MultiplanesWithDiComposition::decideComposition() {
 }
 
 /* Commit DisplayPair to display. */
-int MultiplanesWithDiComposition::commit(bool sf) {
+int MultiplanesWithDiComposition::commit() {
     ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
+     bool setPlaneSuccess = true;
+     int ret = -1;
 
     if (mCrtc == nullptr) {
         MESON_LOGE("commit but no crtc!");
@@ -1372,7 +1374,6 @@ int MultiplanesWithDiComposition::commit(bool sf) {
 
     /* replace composer output with din0 Pair. */
     std::shared_ptr<DrmFramebuffer> composerOutput;
-    bool setPlaneSuccess = true;
 
     if (mComposer.get()) {
         mComposer->start();
@@ -1382,7 +1383,7 @@ int MultiplanesWithDiComposition::commit(bool sf) {
     /* handle uvm */
     handleUVM();
 
-    if (!mSkipValidate && sf) {
+    if (!mSkipValidate) {
         handleOverlayVideoZorder();
         handleDisplayLayerZorder();
     }
@@ -1424,7 +1425,7 @@ int MultiplanesWithDiComposition::commit(bool sf) {
                 }
             }
             /* make sure SF donot refresh VtLayer and VT only refresh VtLayer*/
-            if ((sf && !hasVtBuffer) || (!sf && hasVtBuffer))
+            if (!hasVtBuffer)
                 mDiComposer->start(mVideoPlaneNum - 1);
         } else {
             dumpFbAndPlane(fb, plane, presentZorder, blankFlag);
@@ -1450,13 +1451,7 @@ int MultiplanesWithDiComposition::commit(bool sf) {
                 fb->freeSolidColorBuffer();
                 continue;
             }
-        }
-
-        /* make sure SF donot refresh VtLayer
-         * and VT thread only refresh VtLayer when layer have a valid buffer
-         * */
-        if ((sf && !fb->isVtBuffer()) || (!sf && fb->isVtBuffer())) {
-            int ret = -1;
+        } else {
             if (!runProcessor(*displayIt, blankFlag, ret))
                 ret = plane->setPlane(fb, presentZorder, blankFlag);
 
@@ -1480,9 +1475,7 @@ int MultiplanesWithDiComposition::commit(bool sf) {
 
     planeIt = mOtherPlanes.begin();
     for (; planeIt != mOtherPlanes.end(); ++planeIt) {
-        if (sf) {
-            (*planeIt)->setPlane(NULL, HWC_PLANE_FAKE_ZORDER, BLANK_FOR_NO_CONTENT);
-        }
+        (*planeIt)->setPlane(NULL, HWC_PLANE_FAKE_ZORDER, BLANK_FOR_NO_CONTENT);
         dumpUnusedPlane(*planeIt, BLANK_FOR_NO_CONTENT);
     }
 
@@ -1511,6 +1504,61 @@ int MultiplanesWithDiComposition::commit(bool sf) {
     }
 
     mCrtc->setDisplayFrame(mOsdDisplayFrame);
+    return 0;
+}
+
+int MultiplanesWithDiComposition::commitTunnelVideo() {
+    ATRACE_CALL();
+    std::lock_guard<std::mutex> lock(mMutex);
+
+    if (mCrtc == nullptr) {
+        MESON_LOGE("MultiplanesWithDiComposition::%s commit but no crtc!",
+                __func__);
+        return HWC2_ERROR_NO_RESOURCES;
+    }
+
+    for (auto displayIt = mDisplayPairs.begin(); displayIt != mDisplayPairs.end(); ++displayIt) {
+        uint32_t presentZorder = displayIt->presentZorder;
+        std::shared_ptr<DrmFramebuffer> fb = displayIt->fb;
+        std::shared_ptr<HwDisplayPlane> plane = displayIt->plane;
+        int blankFlag = (mHideSecureLayer && fb->mSecure) ?
+            BLANK_FOR_SECURE_CONTENT : UNBLANK;
+
+        if (!fb->isVtBuffer() && fb->mCompositionType != MESON_COMPOSITION_DI)
+            continue;
+
+        if (fb->mCompositionType == MESON_COMPOSITION_DI) {
+            mDiComposer->start(mVideoPlaneNum - 1);
+            continue;
+        }
+
+        if (fb->isVtNeedClearFrameOrShowColorBuffer() ||
+            (fb->getVtBuffer() < 0 && !fb->haveSolidColorBuffer())) {
+            /* need blank video plane:
+             * 1, received a clear last frame cmd
+             * 2, buffer is invalid */
+            MESON_LOGV("%s, layerId(%" PRIu64 ") will blank plane", __func__, fb->mId);
+            plane->setPlane(fb, presentZorder, BLANK_FOR_NO_CONTENT);
+            continue;
+        }
+
+        if (fb->getVtBuffer() < 0 && fb->haveSolidColorBuffer()) {
+            plane->setPlane(fb, presentZorder, blankFlag);
+            fb->freeSolidColorBuffer();
+            continue;
+        }
+
+        int ret = -1;
+        if (!runProcessor(*displayIt, blankFlag, ret)) {
+            ret = plane->setPlane(fb, presentZorder, blankFlag);
+            fb->clearFbHandleFlag();
+            if (ret != 0) {
+                MESON_LOGE("%s setPlane failed", plane->getName());
+                return ret;
+            }
+        }
+    }
+
     return 0;
 }
 

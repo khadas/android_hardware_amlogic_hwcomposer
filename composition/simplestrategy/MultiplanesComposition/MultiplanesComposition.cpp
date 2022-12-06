@@ -981,7 +981,7 @@ int MultiplanesComposition::decideComposition() {
 }
 
 /* Commit DisplayPair to display. */
-int MultiplanesComposition::commit(bool sf  __unused) {
+int MultiplanesComposition::commit() {
     /* replace composer output with din0 Pair. */
     std::shared_ptr<DrmFramebuffer> composerOutput;
     if (mComposer.get()) {

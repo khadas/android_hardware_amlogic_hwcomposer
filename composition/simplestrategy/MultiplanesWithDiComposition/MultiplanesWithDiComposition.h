@@ -32,7 +32,8 @@ public:
 	void updateComposition();
 
     int decideComposition();
-    int commit(bool sf);
+    int commit();
+    int commitTunnelVideo();
     void dump(String8 & dumpstr);
 
 protected:

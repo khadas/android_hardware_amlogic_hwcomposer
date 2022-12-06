@@ -1207,7 +1207,7 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
         }
 
         /*Start to compose, set up plane info.*/
-        if (mPresentCompositionStg->commit(true) != 0) {
+        if (mPresentCompositionStg->commit() != 0) {
             return HWC2_ERROR_NONE;
         }
         /*set hdr metadata info.*/
@@ -1901,11 +1901,22 @@ hwc2_error_t Hwc2Display::presentVtVideo(int32_t* outPresentFence) {
     /* videotunnel thread presentDisplay */
     *outPresentFence = -1;
     if (!mSkipComposition) {
-        if (mValidateDisplay == false)
-            mCompositionStrategy->updateComposition();
+         mCompositionStrategy->commitTunnelVideo();
 
-        mCompositionStrategy->commit(false);
-        //TODO: mCompositionStrategy->commitVtVideo();
+        /*dump debug informations.*/
+        bool dumpComposition = false;
+        if (DebugHelper::getInstance().logCompositionDetail()) {
+            MESON_LOGE("***CompositionFlow (%s):\n", __func__);
+            dumpComposition = true;
+        } else if (mFailedDeviceComp) {
+            MESON_LOGE("***MonitorFailedDeviceComposition: \n");
+            dumpComposition = true;
+        }
+        if (dumpComposition) {
+            String8 compDump;
+            mPresentCompositionStg->dump(compDump);
+            MESON_LOGE("%s", compDump.string());
+        }
     }
     return HWC2_ERROR_NONE;
 }

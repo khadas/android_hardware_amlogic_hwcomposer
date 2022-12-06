@@ -67,7 +67,8 @@ public:
         hwc2_vsync_period_t vsyncPeriod);
     void updateComposition();
     int decideComposition();
-    int commit(bool sf = true);
+    int commit();
+    int commitTunnelVideo() { return 0; };
     void dump(String8 & dumpstr);
 
 protected:
