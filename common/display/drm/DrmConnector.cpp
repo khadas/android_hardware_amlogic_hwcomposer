@@ -256,16 +256,18 @@ int32_t DrmConnector::loadConnectorInfo(drmModeConnectorPtr metadata) {
         mPhyWidth = metadata->mmWidth;
         mPhyHeight = metadata->mmHeight;
 
-        if (mType == DRM_MODE_CONNECTOR_HDMIA) {
-            if (mPhyWidth == 0 || mPhyHeight == 0) {
-                struct vinfo_base_s vinfo;
-                if (read_vout_info(0, &vinfo) == 0) {
-                    mPhyWidth = vinfo.screen_real_width;
-                    mPhyHeight = vinfo.screen_real_height;
-                    MESON_LOGE("read screen size %dx%d from vinfo",
-                        mPhyWidth,mPhyHeight);
-                }
+
+        if (mPhyWidth == 0 || mPhyHeight == 0) {
+            struct vinfo_base_s vinfo;
+            if (read_vout_info(0, &vinfo) == 0) {
+                mPhyWidth = vinfo.screen_real_width;
+                mPhyHeight = vinfo.screen_real_height;
+                MESON_LOGE("read screen size %dx%d from vinfo",
+                    mPhyWidth,mPhyHeight);
             }
+        }
+
+        if (mType == DRM_MODE_CONNECTOR_HDMIA) {
             parseHdmiHdrCapabilities(mHdrCapabilities);
         }
 
