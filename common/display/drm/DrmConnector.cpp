@@ -531,9 +531,14 @@ void DrmConnector::getSupportedContentTypes(
 }
 
 int32_t DrmConnector::setContentType(uint32_t contentType) {
-    if (mType != DRM_MODE_CONNECTOR_HDMIA)
-        return -ENOENT;
-
+    if (mType != DRM_MODE_CONNECTOR_HDMIA) {
+        /* while mType not HDMI but contentType is 0, return*/
+        if (contentType == CONTENT_TYPE_NONE) {
+            return 0;
+        } else {
+            return -ENOENT;
+        }
+    }
     return setHdmiContentType(contentType);
 }
 
