@@ -48,6 +48,32 @@ typedef struct drm_color {
     uint8_t b;
     uint8_t a;
 } drm_color_t;
+typedef enum _ENUM_DRM_HDR_TYPE {
+    DRM_HDR10PLUS      = 0,
+    DRM_DOLBYVISION_STD,
+    DRM_DOLBYVISION_LL,
+    DRM_HDR10_ST2084,
+    DRM_HDR10_TRADITIONAL,
+    DRM_HDR_HLG,
+    DRM_SDR
+} ENUM_DRM_HDR_TYPE;
+
+typedef enum _ENUM_HDMI_COLOR_SPACE {
+   HDMI_COLOR_SPACE_RGB      = 0,
+   HDMI_COLOR_SPACE_422,
+   HDMI_COLOR_SPACE_444,
+   HDMI_COLOR_SPACE_420,
+   HDMI_COLOR_SPACE_RESERVED,
+} ENUM_HDMI_COLOR_SPACE;
+
+typedef enum _ENUM_HDMI_CONTENT_TYPE {
+   HDMI_CONTENT_TYPE_NO_DATA,
+   HDMI_CONTENT_TYPE_GRAPHIC,
+   HDMI_CONTENT_TYPE_PHOTO,
+   HDMI_CONTENT_TYPE_CINEMA,
+   HDMI_CONTENT_TYPE_GAME,
+   HDMI_CONTENT_TYPE_MAX
+} ENUM_HDMI_CONTENT_TYPE;
 
 typedef enum drm_fb_type {
     /*scattered buffer, can be used for rendering.*/

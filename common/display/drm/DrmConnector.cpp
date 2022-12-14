@@ -10,6 +10,7 @@
 #include <utils/Trace.h>
 #include <MesonLog.h>
 #include "DrmConnector.h"
+#include "DrmCrtc.h"
 #include "DrmDevice.h"
 #include <inttypes.h>
 #include <limits>
@@ -82,6 +83,7 @@ int32_t DrmConnector::loadProperties(drmModeConnectorPtr p __unused) {
         {DRM_HDMI_PROP_COLORDEPTH, &mColorDepth},
 //        {DRM_HDMI_PROP_HDRCAP, &mHdrCaps},
         {DRM_HDMI_PROP_HDR_STATUS, &mHdrStatus},
+        {DRM_HDMI_PROP_CONTENT_TYPE, &mContentType},
     };
     const int connectorPropsNum = sizeof(connectorProps)/sizeof(connectorProps[0]);
 
@@ -541,7 +543,7 @@ int32_t DrmConnector::setContentType(uint32_t contentType) {
             return -ENOENT;
         }
     }
-    return setHdmiContentType(contentType);
+    return setHDMIContentType(contentType);
 }
 
 int32_t DrmConnector::setAutoLowLatencyMode(bool on) {
@@ -567,6 +569,30 @@ void DrmConnector::getHdrCapabilities(drm_hdr_capabilities * caps) {
         *caps = mHdrCapabilities;
     }
 }
+int32_t DrmConnector::setHDMIContentType(uint32_t contentType)
+{
+    if ( contentType >= HDMI_CONTENT_TYPE_MAX || (!mContentType))
+        return -EINVAL;
+    int ret = -1;
+    ret = mContentType->setValue(contentType);
+    if (ret == 0 && mCrtcId) {
+        std::shared_ptr<HwDisplayCrtc> displayCrtc;
+        displayCrtc = getDrmDevice()->getCrtcById(mCrtcId->getValue());
+        if (displayCrtc) {
+           DrmCrtc * crtc = (DrmCrtc *)displayCrtc.get();
+           drmModeAtomicReqPtr req = crtc->getAtomicReq();
+           mContentType->apply(req);
+           return 0;
+        }
+        else {
+            return -EINVAL;
+        }
+    }
+    else {
+        return -EINVAL;
+    }
+}
+
 bool DrmConnector::getHdrType(std::string & hdrType)
 {
     bool ret = true;
@@ -616,7 +642,7 @@ int32_t DrmConnector:: getColorDepth(uint32_t & colorDepth )
 }
 ENUM_HDMI_COLOR_SPACE DrmConnector::getColorSpace()
 {
-    ENUM_HDMI_COLOR_SPACE color_space = HDMI_COLORSPACE_RESERVED;
+    ENUM_HDMI_COLOR_SPACE color_space = HDMI_COLOR_SPACE_RESERVED;
     if (mColorSpace)
         color_space = (ENUM_HDMI_COLOR_SPACE)mColorSpace->getValue();
     return color_space;

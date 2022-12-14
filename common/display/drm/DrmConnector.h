@@ -18,23 +18,6 @@
 #include <HwDisplayCrtc.h>
 #include "DrmProperty.h"
 
-typedef enum _ENUM_DRM_HDR_TYPE {
-    DRM_HDR10PLUS      = 0,
-    DRM_DOLBYVISION_STD,
-    DRM_DOLBYVISION_LL,
-    DRM_HDR10_ST2084,
-    DRM_HDR10_TRADITIONAL,
-    DRM_HDR_HLG,
-    DRM_SDR
-} ENUM_DRM_HDR_TYPE;
-
-typedef enum _ENUM_HDMI_COLOR_SPACE {
-   HDMI_COLOR_SPACE_RGB      = 0,
-   HDMI_COLOR_SPACE_422,
-   HDMI_COLOR_SPACE_444,
-   HDMI_COLOR_SPACE_420,
-   HDMI_COLORSPACE_RESERVED,
-} ENUM_HDMI_COLOR_SPACE;
 
 class DrmConnector : public HwDisplayConnector {
 public:
@@ -72,6 +55,7 @@ public:
     bool checkFracMode(const drm_mode_info_t & mode) override;
     int32_t getColorDepth(uint32_t & colorDepth );
     ENUM_HDMI_COLOR_SPACE getColorSpace();
+    int32_t setHDMIContentType(uint32_t contentType);
 
     bool isTvSupportALLM();
 
@@ -124,6 +108,7 @@ protected:
     std::shared_ptr<DrmProperty> mHdrCaps;
     std::shared_ptr<DrmProperty> mUpdate;
     std::shared_ptr<DrmProperty> mHdrStatus;
+    std::shared_ptr<DrmProperty> mContentType;
     /*for lcd now*/
     std::shared_ptr<DrmProperty> mMesonConnectorType;
     /* for vrr */
