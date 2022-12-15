@@ -58,7 +58,7 @@ public:
     int32_t setHDMIContentType(uint32_t contentType);
 
     bool isTvSupportALLM();
-
+    int32_t setAVMute(uint32_t mute);
     /*drm package internal use.*/
 public:
     uint32_t getEncoderId() {return mEncoderId;}
@@ -109,6 +109,7 @@ protected:
     std::shared_ptr<DrmProperty> mUpdate;
     std::shared_ptr<DrmProperty> mHdrStatus;
     std::shared_ptr<DrmProperty> mContentType;
+    std::shared_ptr<DrmProperty> mAVMute;
     /*for lcd now*/
     std::shared_ptr<DrmProperty> mMesonConnectorType;
     /* for vrr */

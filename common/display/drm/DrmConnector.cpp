@@ -84,6 +84,7 @@ int32_t DrmConnector::loadProperties(drmModeConnectorPtr p __unused) {
 //        {DRM_HDMI_PROP_HDRCAP, &mHdrCaps},
         {DRM_HDMI_PROP_HDR_STATUS, &mHdrStatus},
         {DRM_HDMI_PROP_CONTENT_TYPE, &mContentType},
+        {DRM_HDMI_PROP_HDMI_AV_MUTE, &mAVMute},
     };
     const int connectorPropsNum = sizeof(connectorProps)/sizeof(connectorProps[0]);
 
@@ -592,7 +593,30 @@ int32_t DrmConnector::setHDMIContentType(uint32_t contentType)
         return -EINVAL;
     }
 }
-
+int32_t DrmConnector::setAVMute(uint32_t mute)
+{
+    MESON_LOGI("setAVMute (%d)", mute);
+    if (!mAVMute)
+        return -EINVAL;
+    int ret = -1;
+    ret = mAVMute->setValue(mute);
+    if (ret == 0 && mCrtcId) {
+        std::shared_ptr<HwDisplayCrtc> displayCrtc;
+        displayCrtc = getDrmDevice()->getCrtcById(mCrtcId->getValue());
+        if (displayCrtc) {
+           DrmCrtc * crtc = (DrmCrtc *)displayCrtc.get();
+           drmModeAtomicReqPtr req = crtc->getAtomicReq();
+           mAVMute->apply(req);
+           return 0;
+        }
+        else {
+            return -EINVAL;
+        }
+    }
+    else {
+        return -EINVAL;
+    }
+}
 bool DrmConnector::getHdrType(std::string & hdrType)
 {
     bool ret = true;
