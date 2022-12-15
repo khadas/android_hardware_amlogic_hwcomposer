@@ -841,6 +841,7 @@ void MultiplanesComposition::setup(
     uint32_t reqFlag,
     float scaleValue __unused,
     hwc2_vsync_period_t vsyncPeriod __unused) {
+    std::lock_guard<std::mutex> lock(mMutex);
     init();
 
     mCompositionFlag = reqFlag;
@@ -937,6 +938,7 @@ void MultiplanesComposition::setup(
 }
 
 void MultiplanesComposition::updateComposition() {
+    std::lock_guard<std::mutex> lock(mMutex);
     mOtherPlanes.clear();
     mDumpStr.clear();
     mSkipValidate = true;
@@ -944,6 +946,7 @@ void MultiplanesComposition::updateComposition() {
 
 /* Decide to choose which Fbs and how to build OsdFbs2Plane pairs. */
 int MultiplanesComposition::decideComposition() {
+    std::lock_guard<std::mutex> lock(mMutex);
     int ret = 0;
     if (mFramebuffers.empty()) {
         MESON_LOGV("No layers to compose, exit.");
@@ -982,6 +985,7 @@ int MultiplanesComposition::decideComposition() {
 
 /* Commit DisplayPair to display. */
 int MultiplanesComposition::commit() {
+    std::lock_guard<std::mutex> lock(mMutex);
     /* replace composer output with din0 Pair. */
     std::shared_ptr<DrmFramebuffer> composerOutput;
     if (mComposer.get()) {
@@ -1072,6 +1076,7 @@ int MultiplanesComposition::commit() {
 }
 
 void MultiplanesComposition::dump(String8 & dumpstr) {
+    std::lock_guard<std::mutex> lock(mMutex);
     ICompositionStrategy::dump(dumpstr);
     dumpstr.appendFormat("BaseScaleInfo (%dx%d->%dx%d, %dx%d) \n",
         mOsdDisplayFrame.framebuffer_w, mOsdDisplayFrame.framebuffer_h,

@@ -91,7 +91,6 @@ protected:
 
     /* Use for UVM */
     int mUVMFd;
-    std::mutex mMutex;
 };
 
 #endif/*SINGLEPLANE_COMPOSITION_H*/

@@ -119,6 +119,7 @@ protected:
 protected:
     String8 mDumpStr;
     uint32_t mCompositionFlag;
+    std::mutex mMutex;
 };
 
 #endif/*ICOMPOSITION_STRATEGY_H*/

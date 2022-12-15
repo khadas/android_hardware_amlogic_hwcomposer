@@ -121,8 +121,6 @@ protected:
     int mVideoPlaneNum;
     uint32_t mVsyncRefreshRate;
 
-    std::mutex mMutex;
-
     float mScaleValue;
     bool mSkipValidate;
 

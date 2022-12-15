@@ -247,6 +247,9 @@ int32_t Hwc2Display::blankDisplay(bool resetLayers) {
 
         mLayers.clear();
         mPresentLayers.clear();
+        mCompositionStrategy->updateComposition();
+        mPresentCompositionStg->setup(mPresentLayers,
+            mPresentComposers, mPresentPlanes, mCrtc, 0, 0, 60);
 
         // reset bitmap
         mLayersBitmap->reset();
