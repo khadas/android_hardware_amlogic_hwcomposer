@@ -1433,6 +1433,8 @@ int MultiplanesWithDiComposition::commit(bool sf) {
         if (fb->isVtBuffer()) {
             if (fb->isVtNeedClearFrameOrShowColorBuffer() ||
                 (fb->getVtBuffer() < 0 && !fb->haveSolidColorBuffer())) {
+                tearDownProcessor();
+
                 /* need blank video plane:
                  * 1, received a clear last frame cmd
                  * 2, buffer is invalid */
@@ -1442,6 +1444,8 @@ int MultiplanesWithDiComposition::commit(bool sf) {
             }
 
             if (fb->getVtBuffer() < 0 && fb->haveSolidColorBuffer()) {
+                tearDownProcessor();
+
                 plane->setPlane(fb, presentZorder, blankFlag);
                 fb->freeSolidColorBuffer();
                 continue;
