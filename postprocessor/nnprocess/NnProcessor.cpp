@@ -9,6 +9,9 @@
 
 #define LOG_NDEBUG 0
 #define LOG_TAG "hwc_nn"
+#define ATRACE_TAG ATRACE_TAG_GRAPHICS
+#include <utils/Trace.h>
+#include <inttypes.h>
 
 #include "NnProcessor.h"
 #include <MesonLog.h>
@@ -40,6 +43,8 @@
 #define UVM_IOC_SET_INFO _IOWR(UVM_IOC_MAGIC, 7, \
                 struct uvm_hook_data)
 
+#define REALLOC_COUNT 0
+
 #define AISR_BUF_WIDTH 3840
 #define AISR_BUF_HEIGHT 2160
 
@@ -47,21 +52,80 @@ int NnProcessor::mInstanceID = 0;
 int64_t NnProcessor::mTotalDupCount = 0;
 int64_t NnProcessor::mTotalCloseCount = 0;
 struct time_info_t NnProcessor::mTime[NN_MODE_COUNT];
-void* NnProcessor::mNn_qcontext[NN_MODE_COUNT];
 int NnProcessor::log_level = 0;
-bool NnProcessor::mModelLoaded;
+
+static bool mModelLoaded = false;
+static void *mNn_qcontext[NN_MODE_COUNT] = {NULL, NULL, NULL, NULL, NULL, NULL};
+
+void * LoadNNModel(void * data) {
+    ATRACE_CALL();
+    struct timespec time1, time2;
+    bool *check = (bool *) data;
+    bool check_interlace = *check;
+    struct sched_param param = {0};
+
+    param.sched_priority = 2;
+    if (sched_setscheduler(0, SCHED_FIFO, &param) != 0) {
+        ALOGE("%s: Couldn't set SCHED_FIFO: %d.\n", __FUNCTION__, errno);
+    }
+
+    ALOGD("%s: start check_interlace =%d\n", __FUNCTION__, check_interlace);
+
+    clock_gettime(CLOCK_MONOTONIC, &time1);
+    mNn_qcontext[0] = nn_init(NN_PB_4);
+    mNn_qcontext[1] = nn_init(NN_PB_3);
+    mNn_qcontext[2] = nn_init(NN_PB_2);
+
+    if (check_interlace) {
+        mNn_qcontext[3] = nn_init(NN_PB_4_I);
+        mNn_qcontext[4] = nn_init(NN_PB_3_I);
+        mNn_qcontext[5] = nn_init(NN_PB_2_I);
+    }
+    clock_gettime(CLOCK_MONOTONIC, &time2);
+    uint64_t totalTime = (time2.tv_sec * 1000000LL + time2.tv_nsec / 1000)
+                    - (time1.tv_sec * 1000000LL + time1.tv_nsec / 1000);
+
+    if ((mNn_qcontext[0] == NULL) || (mNn_qcontext[1] == NULL) || (mNn_qcontext[2] == NULL) ||
+        (check_interlace &&
+        ((mNn_qcontext[3] == NULL) || (mNn_qcontext[4] == NULL) || (mNn_qcontext[5] == NULL)))) {
+        ALOGE("%s: load NN model failed.\n", __FUNCTION__);
+    } else {
+        ALOGD("%s: load NN model spend %" PRId64" ns.\n", __FUNCTION__, totalTime);
+        mModelLoaded = true;
+    }
+    return NULL;
+}
+
+void NnProcessor::load_nn_model() {
+    ATRACE_CALL();
+    pthread_t thread;
+    int ret;
+
+    if (mModelLoaded)
+        return;
+
+    ret = pthread_create(&thread,
+        NULL,
+        LoadNNModel,
+        (void *)&mIsModelInterfaceExist);
+    if (ret != 0) {
+        ALOGE("failed to start LoadNNModel thread: %s",
+        strerror(ret));
+    }
+}
 
 int NnProcessor::nn_check_D() {
     return (log_level > 0);
 }
 
 NnProcessor::NnProcessor() {
+    ATRACE_CALL();
     ALOGD("NnProcessor");
-
     int i = 0;
     int interlaceCheckProp = 0;
-    mBuf_Alloced = false;
     mExitThread = true;
+    mAllocProcessDone = false;
+    mBufferAllocDone = false;
     pthread_mutex_init(&m_waitMutex, NULL);
     pthread_cond_init(&m_waitCond, NULL);
     while (i < SR_OUT_BUF_COUNT) {
@@ -71,12 +135,13 @@ NnProcessor::NnProcessor() {
         mSrBuf[i].fence_fd = -1;
         mSrBuf[i].fence_fd_last = -1;
         mSrBuf[i].phy = 0;
+        mSrBuf[i].shared_fd = -1;
         mSrBuf[i].buffer_handle = NULL;
         i++;
     }
     mInited = false;
     mIsModelInterfaceExist = true;
-    mUvmHander = -1;
+    mUvmHandler = -1;
     mNn_Index = 0;
     mDumpHf = 0;
     mLast_buf = NULL;
@@ -93,8 +158,8 @@ NnProcessor::NnProcessor() {
         }
     }
 
-    mUvmHander = open("/dev/uvm", O_RDWR | O_NONBLOCK);
-    if (mUvmHander < 0) {
+    mUvmHandler = open("/dev/uvm", O_RDWR | O_NONBLOCK);
+    if (mUvmHandler < 0) {
         ALOGE("can not open uvm");
     }
 
@@ -108,26 +173,28 @@ NnProcessor::NnProcessor() {
     mIsModelInterfaceExist = (isInterfaceImplement() == 1);
 
     if (!mModelLoaded && mIsModelInterfaceExist) {
-        if (LoadNNModel())
-            mModelLoaded = true;
+        load_nn_model();
     }
 
     mInstanceID++;
     mDupCount = 0;
     mCloseCount = 0;
+    mAllocThread = 0;
+    mNnDoing = false;
+    ALOGD("NnProcessor: end");
 }
 
 NnProcessor::~NnProcessor() {
     int i;
 
-    ALOGD("~NnProcessor: mDupCount =%lld, mCloseCount =%lld, total %lld %lld",
+    ALOGD("~NnProcessor: mDupCount =%" PRId64", mCloseCount =%" PRId64", total %" PRId64" %" PRId64"",
         mDupCount, mCloseCount, mTotalDupCount, mTotalCloseCount);
 
     if (mDupCount != mCloseCount)
-        ALOGE("~NnProcessor:count err: %lld %lld", mDupCount, mCloseCount);
+        ALOGE("~NnProcessor:count err: %" PRId64" %" PRId64"", mDupCount, mCloseCount);
 
     if (mTotalDupCount != mTotalCloseCount)
-        ALOGE("~NnProcessor:total count err: %lld %lld", mTotalDupCount, mTotalCloseCount);
+        ALOGE("~NnProcessor:total count err: %" PRId64" %" PRId64"", mTotalDupCount, mTotalCloseCount);
 
     if (mInited)
         teardown();
@@ -138,7 +205,7 @@ NnProcessor::~NnProcessor() {
         if (mTime[i].count > 0) {
             mTime[i].avg_time = mTime[i].total_time / mTime[i].count;
         }
-        ALOGD("%s: time: i=%d, count=%lld, max=%lld, min=%lld, avg=%lld",
+        ALOGD("%s: time: i=%d, count=%" PRId64", max=%" PRId64", min=%" PRId64", avg=%" PRId64"",
             __FUNCTION__,
             i,
             mTime[i].count,
@@ -146,11 +213,11 @@ NnProcessor::~NnProcessor() {
             mTime[i].min_time,
             mTime[i].avg_time);
     }
-    if (mUvmHander) {
-        close(mUvmHander);
-        mUvmHander = NULL;
+    if (mUvmHandler) {
+        close(mUvmHandler);
+        mUvmHandler = -1;
     }
-    ALOGD("%s: fence :r=%lld,wait=%lld, r-w=%lld",
+    ALOGD("%s: fence :r=%" PRId64",wait=%" PRId64", r-w=%" PRId64"",
           __FUNCTION__,
           mFence_receive_count,
           mFence_wait_count,
@@ -170,22 +237,24 @@ int NnProcessor::PropGetInt(const char* str, int def) {
 }
 
 int32_t NnProcessor::setup() {
+    ATRACE_CALL();
     ALOGD("%s", __FUNCTION__);
-    if (!mUvmHander || !mIsModelInterfaceExist) {
+    if (!mUvmHandler || !mIsModelInterfaceExist) {
         ALOGD("%s: init action is not ok.\n", __FUNCTION__);
         return -1;
     }
 
     if (mExitThread == true) {
+            mExitThread = false;
             int ret = pthread_create(&mThread,
                                      NULL,
                                      NnProcessor::threadMain,
                                      (void *)this);
             if (ret != 0) {
+                mExitThread = true;
                 ALOGE("failed to start NnProcessor main thread: %s",
                       strerror(ret));
-            } else
-                mExitThread = false;
+            }
     }
 
     mNn_mode = -1;
@@ -196,6 +265,12 @@ int32_t NnProcessor::setup() {
     mNeed_fence = false;
     mFence_receive_count = 0;
     mFence_wait_count = 0;
+
+    int i = 0;
+    int realloc_count = PropGetInt("vendor.hwc.aisr.realloc_count", REALLOC_COUNT);
+    for (i = 0; i < realloc_count; i++) {
+        allocDmaBuffer(i);
+    }
 
     return 0;
 }
@@ -210,6 +285,7 @@ int32_t NnProcessor::asyncProcess(
         std::shared_ptr<DrmFramebuffer> & inputfb,
         std::shared_ptr<DrmFramebuffer> & outfb,
         int & processFence) {
+    ATRACE_CALL();
     int ret;
     int ret_attach = 0;
     int fence_fd = -1;
@@ -249,8 +325,13 @@ int32_t NnProcessor::asyncProcess(
         goto bypass;
     }
 
-    w = am_gralloc_get_width(inputfb->mBufferHandle);
-    h = am_gralloc_get_height(inputfb->mBufferHandle);
+    if (!inputfb->mIsSidebandBuffer) {
+        w = am_gralloc_get_width(inputfb->mBufferHandle);
+        h = am_gralloc_get_height(inputfb->mBufferHandle);
+    } else {
+        w = -1;
+        h = -1;
+    }
     crop_right = inputfb->mSourceCrop.right;
     crop_bottom = inputfb->mSourceCrop.bottom;
 
@@ -264,7 +345,12 @@ int32_t NnProcessor::asyncProcess(
     if (crop_right > 1920 || crop_bottom > 1080)
         goto bypass;
 
-    if (!mUvmHander) {
+    if (mVInfo_width != 1920 && mVInfo_width != 3840 && mVInfo_width != 7680 && mVInfo_width != 0) {
+        ALOGD_IF(nn_check_D(), "vinfo %d %d not support", mVInfo_width, mVInfo_height);
+        goto bypass;
+    }
+
+    if (!mUvmHandler) {
         ALOGE("%s: uvm not opened.\n", __FUNCTION__);
         goto bypass;
     }
@@ -280,12 +366,12 @@ int32_t NnProcessor::asyncProcess(
     ai_sr_info->shared_fd = input_fd;
     ai_sr_info->get_info_type = GET_HF_INFO;
 
-    ret = ioctl(mUvmHander, UVM_IOC_GET_INFO, &hook_data);
+    ret = ioctl(mUvmHandler, UVM_IOC_GET_INFO, &hook_data);
     if (ret < 0) {
         ALOGD("%s: UVM_IOC_GET_INFO failed.", __FUNCTION__);
     } else {
         ALOGD_IF(nn_check_D(),
-            "asyncProcess_1: get_info: nn_status=%d, hf_phy_addr=%llx, %d*%d",
+            "asyncProcess_1: get_info: nn_status=%d, hf_phy_addr=%" PRId64", %d*%d",
             ai_sr_info->nn_status,
             ai_sr_info->hf_phy_addr,
             ai_sr_info->hf_width,
@@ -299,7 +385,7 @@ int32_t NnProcessor::asyncProcess(
             goto bypass;
         }
         ALOGD_IF(nn_check_D(),
-            "asyncProcess_2: get_info: nn_status=%d, hf_phy_addr=%llx, %d*%d",
+            "asyncProcess_2: get_info: nn_status=%d, hf_phy_addr=%" PRId64", %d*%d",
             ai_sr_info->nn_status,
             ai_sr_info->hf_phy_addr,
             ai_sr_info->hf_width,
@@ -318,7 +404,7 @@ int32_t NnProcessor::asyncProcess(
     ai_sr_info->nn_out_fd = -1;
     ai_sr_info->nn_status = NN_WAIT_DOING;
 
-    ret_attach = ioctl(mUvmHander, UVM_IOC_ATTACH, &hook_data);
+    ret_attach = ioctl(mUvmHandler, UVM_IOC_ATTACH, &hook_data);
     if (ret_attach != 0) {
         ALOGE("attach err: ret_attach =%d", ret_attach);
         goto bypass;
@@ -338,7 +424,7 @@ int32_t NnProcessor::asyncProcess(
 
     if ((mVInfo_width == 0) || (mVInfo_height == 0)) {
         ai_sr_info->get_info_type = GET_VINFO_SIZE;
-        ret = ioctl(mUvmHander, UVM_IOC_GET_INFO, &hook_data);
+        ret = ioctl(mUvmHandler, UVM_IOC_GET_INFO, &hook_data);
         if (ret < 0) {
             ALOGE("GET_VINFO_SIZE failed.\n");
             goto bypass;
@@ -357,13 +443,21 @@ int32_t NnProcessor::asyncProcess(
         goto error;
     }
 
-    if (!mBuf_Alloced) {
-        ret = allocDmaBuffer();
-        if (ret) {
-            ALOGE("%s: alloc buffer fail", __FUNCTION__);
-            goto error;
-        }
-        mBuf_Alloced = true;
+    if (!mAllocProcessDone) {
+            mAllocProcessDone = true;
+            int ret = pthread_create(&mAllocThread,
+                                     NULL,
+                                     NnProcessor::allocThread,
+                                     (void *)this);
+            if (ret != 0) {
+                ALOGE("failed to start NnProcessor allocThread: %s",
+                      strerror(ret));
+            }
+    }
+
+    if (!checkBufferAlloced()) {
+        ALOGD("need do aisr, but buffer not ready, need bypass\n");
+        goto error;
     }
 
     dup_fd = dup(input_fd);
@@ -376,7 +470,7 @@ int32_t NnProcessor::asyncProcess(
 
     mBuf_index_cur = mBuf_index;
     ALOGD_IF(nn_check_D(),
-        "%s: i=%d, fence_fd_last =%d, fence_fd=%d, %lld %lld",
+        "%s: i=%d, fence_fd_last =%d, fence_fd=%d, %" PRId64" %" PRId64"",
         __FUNCTION__,
         mBuf_index,
         mSrBuf[mBuf_index].fence_fd_last,
@@ -406,7 +500,7 @@ int32_t NnProcessor::asyncProcess(
         ready_size = mBuf_index_q.size();
         if (ready_size >= SR_OUT_BUF_COUNT) {
             usleep(2*1000);
-            ALOGE("too many buf need nn process, wait");
+            ALOGE("too many buf need nn process, wait: mNn_Index=%d, mNnDoing=%d", mNn_Index, mNnDoing);
         } else
             break;
     }
@@ -419,7 +513,7 @@ error:
 
     ai_sr_info->shared_fd = input_fd;
     ai_sr_info->nn_status = NN_INVALID;
-    ret = ioctl(mUvmHander, UVM_IOC_SET_INFO, &hook_data);
+    ret = ioctl(mUvmHandler, UVM_IOC_SET_INFO, &hook_data);
     if (ret < 0) {
         ALOGE("setinfo input_fd fail =%d", ret);
     }
@@ -443,7 +537,7 @@ int32_t NnProcessor::onBufferDisplayed(
     mFence_receive_count += 1;
 
     ALOGD_IF(nn_check_D(),
-             "setfence: index=%d, fence_fd=%d, r=%lld,wait=%lld, r-w=%lld",
+             "setfence: index=%d, fence_fd=%d, r=%" PRId64", wait=%" PRId64", r-w=%" PRId64"",
              mBuf_index,
              releaseFence,
              mFence_receive_count,
@@ -454,16 +548,25 @@ int32_t NnProcessor::onBufferDisplayed(
 }
 
 int32_t NnProcessor::teardown() {
+    ATRACE_CALL();
     mExitThread = true;
     int i;
     int shared_fd = -1;
     int buf_index;
     struct sr_buffer_t *sr_buf;
 
+    struct uvm_hook_data hook_data;
+    struct uvm_hf_info_t *uvm_hf_info;
+    struct uvm_ai_sr_info *ai_sr_info;
+    int ret;
+
     ALOGD("%s.\n", __FUNCTION__);
 
-    if (mInited)
+    if (mInited) {
         pthread_join(mThread, NULL);
+        if (mAllocThread != 0)
+            pthread_join(mAllocThread, NULL);
+    }
 
     while (mBuf_index_q.size() > 0)
     {
@@ -471,6 +574,24 @@ int32_t NnProcessor::teardown() {
         buf_index = mBuf_index_q.front();
         sr_buf = &mSrBuf[buf_index];
         shared_fd = sr_buf->shared_fd;
+
+        uvm_hf_info = (struct uvm_hf_info_t *)&hook_data;
+        ai_sr_info = &(uvm_hf_info->ai_sr_info);
+        uvm_hf_info->mode_type = PROCESS_NN;
+        uvm_hf_info->shared_fd = shared_fd;
+        ai_sr_info->shared_fd = shared_fd;
+        ai_sr_info->nn_out_fd = -1;
+        ai_sr_info->nn_status = NN_INVALID;
+        ai_sr_info->nn_index = -1;
+        ai_sr_info->nn_out_width = 0;
+        ai_sr_info->nn_out_height = 0;
+        ai_sr_info->nn_mode = -1;
+
+        ret = ioctl(mUvmHandler, UVM_IOC_SET_INFO, &hook_data);
+        if (ret < 0) {
+            ALOGE("teardown: UVM_IOC_SET_HF_OUTPUT fail =%d.\n", ret);
+        }
+
         if (shared_fd != -1) {
             close(shared_fd);
             mCloseCount++;
@@ -479,6 +600,8 @@ int32_t NnProcessor::teardown() {
         mBuf_index_q.pop();
         ALOGD("%s: close fd =%d, buf_index=%d\n", __FUNCTION__, shared_fd, buf_index);
     }
+
+    mBufferAllocDone = false;
 
     freeDmaBuffers();
 
@@ -497,7 +620,6 @@ int32_t NnProcessor::teardown() {
         }
     }
 
-    mBuf_Alloced = false;
     mInited = false;
     return 0;
 }
@@ -528,6 +650,11 @@ void NnProcessor::threadProcess() {
         buf_index = mBuf_index_q.front();
     }
 
+    if (mSrBuf[buf_index].fd == -1) {
+        nn_bypass = true;
+        ALOGE("ion buf is null, need bypass");
+    }
+
     sr_buf = &mSrBuf[buf_index];
     shared_fd = sr_buf->shared_fd;
     if (sr_buf->fence_fd_last >= 0) {
@@ -544,10 +671,10 @@ void NnProcessor::threadProcess() {
         nn_time = mTime_2 - mTime_1;
         mFence_wait_count += 1;
         ALOGD_IF(nn_check_D(),
-                 "fence: wait %lldms, buf_index=%d, fence_fd=%d",
+                 "fence: wait %" PRId64"ms, buf_index=%d, fence_fd=%d",
                  nn_time / 1000, buf_index, sr_buf->fence_fd_last);
         if (nn_time > 5000)
-            ALOGE("fence: wait too long %lld", nn_time);
+            ALOGE("fence: wait too long %" PRId64"", nn_time);
 
         sr_buf->fence_fd_last = -1;
     }
@@ -585,33 +712,59 @@ void * NnProcessor::threadMain(void * data) {
     return NULL;
 }
 
-int NnProcessor::LoadNNModel() {
-    ALOGD("NnProcessor: %s start.\n", __FUNCTION__);
-    int ret = 1;
-    struct timespec time1, time2;
-    clock_gettime(CLOCK_MONOTONIC, &time1);
-    mNn_qcontext[0] = nn_init(NN_PB_4);
-    mNn_qcontext[1] = nn_init(NN_PB_3);
-    mNn_qcontext[2] = nn_init(NN_PB_2);
+bool NnProcessor::checkBufferAlloced() {
+    int i;
 
-    if (mNeed_check_interlace) {
-        mNn_qcontext[3] = nn_init(NN_PB_4_I);
-        mNn_qcontext[4] = nn_init(NN_PB_3_I);
-        mNn_qcontext[5] = nn_init(NN_PB_2_I);
-    }
-    clock_gettime(CLOCK_MONOTONIC, &time2);
-    uint64_t totalTime = (time2.tv_sec * 1000000LL + time2.tv_nsec / 1000)
-                    - (time1.tv_sec * 1000000LL + time1.tv_nsec / 1000);
+    if (mBufferAllocDone)
+        return true;
 
-    if ((mNn_qcontext[0] == NULL) || (mNn_qcontext[1] == NULL) || (mNn_qcontext[2] == NULL) ||
-        (mNeed_check_interlace &&
-        ((mNn_qcontext[3] == NULL) || (mNn_qcontext[4] == NULL) || (mNn_qcontext[5] == NULL)))) {
-        ALOGE("%s: load NN model failed.\n", __FUNCTION__);
-        ret = 0;
-    } else {
-        ALOGD("%s: load NN model spend %lld ns.\n", __FUNCTION__, totalTime);
+    for (i = 0; i < SR_OUT_BUF_COUNT; i++) {
+        if (mSrBuf[i].fd == -1) {
+            break;
+        }
     }
-    return ret;
+    if (i == SR_OUT_BUF_COUNT) {
+        ALOGD("buffer alloc done");
+        mBufferAllocDone = true;
+        return true;
+    }
+    return false;
+}
+void NnProcessor::allocThreadProcess() {
+    int i;
+    int ret;
+
+    for (i = 0; i < SR_OUT_BUF_COUNT; i++) {
+        if (mSrBuf[i].fd == -1) {
+            ret = allocDmaBuffer(i);
+            if (ret) {
+                ALOGE("%s: alloc buffer fail, i=%d", __FUNCTION__, i);
+            }
+        }
+    }
+}
+
+void * NnProcessor::allocThread(void * data) {
+    NnProcessor * pThis = (NnProcessor *) data;
+    int rt_thread = pThis->PropGetInt("vendor.hwc.aisr_alloc_rt", 0);
+    struct sched_param param = {0};
+
+    if (rt_thread) {
+        ALOGD("set alloc thread real time");
+        param.sched_priority = 2;
+        if (sched_setscheduler(0, SCHED_FIFO, &param) != 0) {
+            ALOGE("%s: Couldn't set SCHED_FIFO: %d.\n", __FUNCTION__, errno);
+        }
+    }
+
+    MESON_ASSERT(data, "NnProcessor data should not be NULL.\n");
+
+    pThis->allocThreadProcess();
+
+    ALOGD("%s exit.\n", __FUNCTION__);
+    pthread_exit(0);
+    pThis->mAllocThread = 0;
+    return NULL;
 }
 
 int32_t NnProcessor::ai_sr_process(
@@ -644,23 +797,27 @@ int32_t NnProcessor::ai_sr_process(
     ai_sr_info->shared_fd = input_fd;
 
     ai_sr_info->nn_out_fd = sr_buf->fd;
+
+    if (nn_bypass)
+        goto bypass;
+
     ai_sr_info->nn_status = NN_WAIT_DOING;
     ai_sr_info->nn_index = mNn_Index++;
     ai_sr_info->nn_out_width = mVInfo_width;
     ai_sr_info->nn_out_height = mVInfo_height;
 
-    ret = ioctl(mUvmHander, UVM_IOC_SET_INFO, &hook_data);
+    ret = ioctl(mUvmHandler, UVM_IOC_SET_INFO, &hook_data);
     if (ret < 0) {
         ALOGE("UVM_IOC_SET_HF_OUTPUT fail =%d.\n", ret);
     }
 
     ai_sr_info->get_info_type = GET_HF_INFO;
-    ret = ioctl(mUvmHander, UVM_IOC_GET_INFO, &hook_data);
+    ret = ioctl(mUvmHandler, UVM_IOC_GET_INFO, &hook_data);
     if (ret < 0) {
         ALOGD_IF(nn_check_D(),"UVM_IOC_GET_HF_INFO fail =%d.\n", ret);
     }
     ALOGD_IF(nn_check_D(),
-        "hf_phy=%lld, %d * %d, align: %d * %d, interlace: %d, sf_fd=%d, input_fd=%d.\n",
+        "hf_phy=%" PRId64", %d * %d, align: %d * %d, interlace: %d, sf_fd=%d, input_fd=%d.\n",
         ai_sr_info->hf_phy_addr,
         ai_sr_info->hf_width,
         ai_sr_info->hf_height,
@@ -670,7 +827,7 @@ int32_t NnProcessor::ai_sr_process(
         sr_buf->fd,
         input_fd);
     ai_sr_info->nn_out_fd = sr_buf->fd;
-    if (mVInfo_width == 3840) {
+    if (mVInfo_width == 3840 || mVInfo_width == 7680) {
         if (ai_sr_info->hf_align_w == 960) {
             if (ai_sr_info->hf_width > 960 || ai_sr_info->hf_height > 540)
                 hf_info_err = true;
@@ -690,8 +847,8 @@ int32_t NnProcessor::ai_sr_process(
             ai_sr_info->buf_align_w = 1920;
             ai_sr_info->buf_align_h = 1080;
         } else
-            return 0;
-    } else {
+            goto bypass;
+    } else if (mVInfo_width == 1920) {
         if (ai_sr_info->hf_align_w == 960) {
             if (ai_sr_info->hf_width > 960 || ai_sr_info->hf_height > 540)
                 hf_info_err = true;
@@ -700,8 +857,11 @@ int32_t NnProcessor::ai_sr_process(
             ai_sr_info->buf_align_h = 1080;
         } else {
             ALOGD_IF(nn_check_D(), "not 540p,no need ai_sr.\n");
-            return 0;
+            goto bypass;
         }
+    } else {
+        ALOGD_IF(nn_check_D(), "not support aisr, vinfo=%d * %d\n", mVInfo_width, mVInfo_height);
+        goto bypass;
     }
 
     if (hf_info_err) {
@@ -712,7 +872,7 @@ int32_t NnProcessor::ai_sr_process(
             ai_sr_info->hf_align_h,
             ai_sr_info->buf_align_w,
             ai_sr_info->buf_align_h);
-        return 0;
+        goto bypass;
     }
 
     if ((need_nn_mode != mNn_mode) ||
@@ -730,11 +890,12 @@ int32_t NnProcessor::ai_sr_process(
 
     ai_sr_info->nn_mode = mNn_mode;
     ai_sr_info->nn_status = NN_START_DOING;
-    ret = ioctl(mUvmHander, UVM_IOC_SET_INFO, &hook_data);
+    ret = ioctl(mUvmHandler, UVM_IOC_SET_INFO, &hook_data);
     if (ret < 0) {
         ALOGE("UVM_IOC_SET_HF_OUTPUT fail =%d.\n", ret);
     }
 
+    mNnDoing = true;
     clock_gettime(CLOCK_MONOTONIC, &tm_1);
 
     if (!nn_bypass)
@@ -743,6 +904,7 @@ int32_t NnProcessor::ai_sr_process(
                                  (unsigned char *)ai_sr_info->nn_out_phy_addr);
 
     clock_gettime(CLOCK_MONOTONIC, &tm_2);
+    mNnDoing = false;
     if (ret !=0)
         ALOGE("nn_process_network: err: ret=%d.\n", ret);
     else {
@@ -754,12 +916,13 @@ int32_t NnProcessor::ai_sr_process(
         mTime_2 = tm_2.tv_sec * 1000000LL + tm_2.tv_nsec / 1000;
         nn_time = mTime_2 - mTime_1;
         ALOGD_IF(nn_check_D(),
-            "nn process %lld index=%d, mNn_mode=%d.\n",
+            "nn process %" PRId64" index=%d, mNn_mode=%d nn_mode_index=%d\n",
             nn_time,
             ai_sr_info->nn_index,
-            mNn_mode);
+            mNn_mode,
+            nn_mode_index);
         if (nn_time > 14000)
-            ALOGE("nn time too long %lld index=%d, mNn_mode=%d.\n",
+            ALOGE("nn time too long %" PRId64" index=%d, mNn_mode=%d.\n",
                 nn_time,
                 ai_sr_info->nn_index,
                 mNn_mode);
@@ -781,7 +944,7 @@ int32_t NnProcessor::ai_sr_process(
     sr_buf->status = BUF_NN_DONE;
 
     ai_sr_info->nn_status = NN_DONE;
-    ret = ioctl(mUvmHander, UVM_IOC_SET_INFO, &hook_data);
+    ret = ioctl(mUvmHandler, UVM_IOC_SET_INFO, &hook_data);
     if (ret < 0) {
         ALOGE("UVM_IOC_SET_HF_OUTPUT fail =%d.\n", ret);
     }
@@ -793,7 +956,7 @@ int32_t NnProcessor::ai_sr_process(
             if (mTime[i].count > 0) {
                 mTime[i].avg_time = mTime[i].total_time / mTime[i].count;
             }
-            ALOGD("NnProcessor: time1: i=%d, count=%lld, max=%lld, min=%lld, avg=%lld",
+            ALOGD("NnProcessor: time1: i=%d, count=%" PRId64", max=%" PRId64", min=%" PRId64", avg=%" PRId64"",
                 i,
                 mTime[i].count,
                 mTime[i].max_time,
@@ -802,13 +965,22 @@ int32_t NnProcessor::ai_sr_process(
         }
     }
     return ret;
+
+bypass:
+    ai_sr_info->nn_status = NN_INVALID;
+    ret = ioctl(mUvmHandler, UVM_IOC_SET_INFO, &hook_data);
+    if (ret < 0) {
+        ALOGE("UVM_IOC_SET_HF_OUTPUT fail =%d.\n", ret);
+    }
+    ALOGD_IF(nn_check_D(), "nn process err, set NN_INVALID");
+    return 0;
 }
 
 void NnProcessor::dump_nn_out(struct sr_buffer_t *sr_buf) {
     const char* dump_path = "/data/nn_out.yuv";
     FILE * dump_file = NULL;
 
-    ALOGD("%s: fd_ptr=%p, phy=%llx, size=%d",
+    ALOGD("%s: fd_ptr=%p, phy=%" PRId64", size=%d",
         __FUNCTION__,
         sr_buf->fd_ptr,
         sr_buf->phy,
@@ -846,74 +1018,71 @@ void NnProcessor::triggerEvent(void) {
 
 #define ION_FLAG_EXTEND_MESON_HEAP (1 << 30)
 
-int NnProcessor::allocDmaBuffer() {
+int NnProcessor::allocDmaBuffer(int i) {
     int buffer_size = AISR_BUF_WIDTH * AISR_BUF_HEIGHT;
     int gralloc_fd = -1;
     void * cpu_ptr = NULL;
     uint32_t stride;
     int format = 17;
-    int i = 0;
     uint64_t usage = GRALLOC1_PRODUCER_USAGE_CAMERA;
     GraphicBufferAllocator & allocService = GraphicBufferAllocator::get();
 
-    while (i < SR_OUT_BUF_COUNT) {
-        if (NO_ERROR != allocService.allocate(
-            AISR_BUF_WIDTH, AISR_BUF_HEIGHT * 2 / 3, format, 1, usage,
-            &mSrBuf[i].buffer_handle, &stride, 0, "aisr")) {
-            ALOGE("alloc buffer failed");
-        }
+    if (NO_ERROR != allocService.allocate(
+        AISR_BUF_WIDTH, AISR_BUF_HEIGHT * 2 / 3, format, 1, usage,
+        &mSrBuf[i].buffer_handle, &stride, 0, "aisr")) {
+        ALOGE("alloc buffer failed");
+    }
 
-        if (mSrBuf[i].buffer_handle) {
-            gralloc_fd = am_gralloc_get_buffer_fd((native_handle_t *)mSrBuf[i].buffer_handle);
-            if (gralloc_fd < 0) {
-                allocService.free(mSrBuf[i].buffer_handle);
-                ALOGE("get fd fail");
-                return -1;
-            }
-
-            cpu_ptr = (unsigned char *)mmap(NULL, buffer_size,
-                PROT_READ | PROT_WRITE, MAP_SHARED, gralloc_fd, 0);
-
-            if (MAP_FAILED == cpu_ptr) {
-                ALOGE("mmap error!");
-                freeDmaBuffers();
-                return -1;
-            } else {
-                mSrBuf[i].fd_ptr = cpu_ptr;
-            }
-        } else {
+    if (mSrBuf[i].buffer_handle) {
+        gralloc_fd = am_gralloc_get_buffer_fd((native_handle_t *)mSrBuf[i].buffer_handle);
+        if (gralloc_fd < 0) {
+            allocService.free(mSrBuf[i].buffer_handle);
+            ALOGE("get fd fail");
             return -1;
         }
 
-        mSrBuf[i].size = buffer_size;
-        mSrBuf[i].outFb = NULL;
-        mSrBuf[i].fence_fd = -1;
-        mSrBuf[i].fence_fd_last = -1;
-        mSrBuf[i].shared_fd = -1;
-        mSrBuf[i].status = BUF_INVALID;
-        mSrBuf[i].fd = gralloc_fd;
-        ALOGD("%s: fd=%d, fd_ptr=%p, buffer_size=%d", __FUNCTION__, gralloc_fd, cpu_ptr, buffer_size);
-        i++;
+        cpu_ptr = (unsigned char *)mmap(NULL, buffer_size,
+            PROT_READ | PROT_WRITE, MAP_SHARED, gralloc_fd, 0);
+
+        if (MAP_FAILED == cpu_ptr) {
+            ALOGE("mmap error!");
+            freeDmaBuffer(i);
+            return -1;
+        } else {
+            mSrBuf[i].fd_ptr = cpu_ptr;
+        }
+    } else {
+        return -1;
     }
+
+    mSrBuf[i].size = buffer_size;
+    mSrBuf[i].status = BUF_INVALID;
+    mSrBuf[i].fd = gralloc_fd;
+    ALOGD("%s: fd=%d, fd_ptr=%p, buffer_size=%d", __FUNCTION__, gralloc_fd, cpu_ptr, buffer_size);
+
     return 0;
 };
 
-int NnProcessor::freeDmaBuffers() {
+void NnProcessor::freeDmaBuffer(int i) {
     GraphicBufferAllocator & allocService = GraphicBufferAllocator::get();
+    if (mSrBuf[i].fd_ptr) {
+        munmap(mSrBuf[i].fd_ptr, mSrBuf[i].size);
+        mSrBuf[i].fd_ptr = NULL;
+    }
+    if (mSrBuf[i].fd != -1)
+        mSrBuf[i].fd = -1;
+
+    if (mSrBuf[i].buffer_handle) {
+        allocService.free(mSrBuf[i].buffer_handle);
+        mSrBuf[i].buffer_handle = NULL;
+    }
+}
+
+int NnProcessor::freeDmaBuffers() {
     int i = 0;
 
     while (i < SR_OUT_BUF_COUNT) {
-        if (mSrBuf[i].fd_ptr) {
-            munmap(mSrBuf[i].fd_ptr, mSrBuf[i].size);
-            mSrBuf[i].fd_ptr = NULL;
-        }
-        if (mSrBuf[i].fd != -1)
-            mSrBuf[i].fd = -1;
-
-        if (mSrBuf[i].buffer_handle) {
-            allocService.free(mSrBuf[i].buffer_handle);
-            mSrBuf[i].buffer_handle = NULL;
-        }
+        freeDmaBuffer(i);
         i++;
     }
 

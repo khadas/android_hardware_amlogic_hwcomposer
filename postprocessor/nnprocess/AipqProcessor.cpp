@@ -9,6 +9,9 @@
 
 #define LOG_NDEBUG 0
 #define LOG_TAG "hwc_aipq"
+#define ATRACE_TAG ATRACE_TAG_GRAPHICS
+#include <utils/Trace.h>
+#include <inttypes.h>
 
 #include "AipqProcessor.h"
 #include <MesonLog.h>
@@ -17,12 +20,9 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sched.h>
-#include "pq_sdk.h"
 #include <cutils/properties.h>
 #include <ui/GraphicBufferAllocator.h>
 #include <hardware/gralloc1.h>
-
-#define BUFFER_SIZE 224 * 224 * 3
 
 #define FENCE_TIMEOUT_MS 1000
 
@@ -314,7 +314,9 @@ static void get_vnn_scenes_data()
 }
 
 AipqProcessor::AipqProcessor() {
+    ATRACE_CALL();
     ALOGD("%s", __FUNCTION__);
+    mNnDoing = false;
     mBuf_Alloced = false;
     mExitThread = true;
     pthread_mutex_init(&m_waitMutex, NULL);
@@ -324,9 +326,13 @@ AipqProcessor::AipqProcessor() {
     mAipq_Buf.fd_ptr = NULL;
     mAipq_Buf.size = -1;
     mAipq_Buf.buffer_handle = NULL;
+    mNnInputVframeWidth = PropGetInt("vendor.hwc.aipq.nn_input_frame_width",
+                                     NN_INPUT_FRAME_WIDTH_DEFAULT);
+    mNnInputVframeHeight = PropGetInt("vendor.hwc.aipq.nn_input_frame_height",
+                                      NN_INPUT_FRAME_HEIGHT_DEFAULT);
 
     mInited = false;
-    mUvmHander = -1;
+    mUvmHandler = -1;
     mNn_Index = 0;
     mCacheIndex = 0;
     mBuf_index = 0;
@@ -348,8 +354,8 @@ AipqProcessor::AipqProcessor() {
     if (!mModelLoaded)
         LoadNNModel();
 
-    mUvmHander = open("/dev/uvm", O_RDWR | O_NONBLOCK);
-    if (mUvmHander < 0) {
+    mUvmHandler = open("/dev/uvm", O_RDWR | O_NONBLOCK);
+    if (mUvmHandler < 0) {
         ALOGE("can not open uvm");
     }
 
@@ -370,14 +376,14 @@ AipqProcessor::AipqProcessor() {
 }
 
 AipqProcessor::~AipqProcessor() {
-    ALOGD("%s: mDupCount =%lld, mCloseCount =%lld, total %lld %lld",
+    ALOGD("%s: mDupCount =%" PRId64", mCloseCount =%" PRId64", total %" PRId64" %" PRId64"",
         __FUNCTION__, mDupCount, mCloseCount, mTotalDupCount, mTotalCloseCount);
 
     if (mDupCount != mCloseCount)
-        ALOGE("%s: count err: %lld %lld", __FUNCTION__, mDupCount, mCloseCount);
+        ALOGE("%s: count err: %" PRId64" %" PRId64"", __FUNCTION__, mDupCount, mCloseCount);
 
     if (mTotalDupCount != mTotalCloseCount)
-        ALOGE("%s: total count err: %lld %lld",
+        ALOGE("%s: total count err: %" PRId64" %" PRId64"",
              __FUNCTION__,mTotalDupCount, mTotalCloseCount);
 
     if (mInited)
@@ -386,12 +392,12 @@ AipqProcessor::~AipqProcessor() {
     if (mTime.count > 0) {
         mTime.avg_time = mTime.total_time / mTime.count;
     }
-    ALOGD("%s: time: count=%lld, max=%lld, min=%lld, avg=%lld",
+    ALOGD("%s: time: count=%" PRId64", max=%" PRId64", min=%" PRId64", avg=%" PRId64"",
         __FUNCTION__, mTime.count, mTime.max_time, mTime.min_time, mTime.avg_time);
 
-    if (mUvmHander) {
-        close(mUvmHander);
-        mUvmHander = NULL;
+    if (mUvmHandler) {
+        close(mUvmHandler);
+        mUvmHandler = -1;
     }
 }
 
@@ -407,14 +413,16 @@ int AipqProcessor::PropGetInt(const char* str, int def) {
 }
 
 int32_t AipqProcessor::setup() {
+    ATRACE_CALL();
     ALOGD("%s", __FUNCTION__);
-    if (!mUvmHander) {
+    if (!mUvmHandler) {
         ALOGD("%s: init action is not ok.\n", __FUNCTION__);
         return -1;
     }
 
     if (mExitThread == true) {
             ALOGD("threadMain creat");
+            mExitThread = false;
             int ret = pthread_create(&mThread,
                                      NULL,
                                      AipqProcessor::threadMain,
@@ -422,8 +430,8 @@ int32_t AipqProcessor::setup() {
             if (ret != 0) {
                 ALOGE("failed to start AipqProcessor main thread: %s",
                       strerror(ret));
-            } else
-                mExitThread = false;
+                mExitThread = true;
+            }
     }
 
     mInited = true;
@@ -441,6 +449,7 @@ int32_t AipqProcessor::asyncProcess(
         std::shared_ptr<DrmFramebuffer> & inputfb,
         std::shared_ptr<DrmFramebuffer> & outfb,
         int & processFence) {
+    ATRACE_CALL();
     int ret;
     int ret_attach = 0;
     buffer_handle_t buf = inputfb->mBufferHandle;
@@ -471,7 +480,7 @@ int32_t AipqProcessor::asyncProcess(
     }
 
 
-    if (!mUvmHander) {
+    if (!mUvmHandler) {
         goto bypass;
     }
 
@@ -485,6 +494,8 @@ int32_t AipqProcessor::asyncProcess(
     aipq_info->shared_fd = input_fd;
     aipq_info->need_do_aipq = 0;
     aipq_info->repeat_frame = 0;
+    aipq_info->nn_input_frame_height = mNnInputVframeHeight;
+    aipq_info->nn_input_frame_width = mNnInputVframeWidth;
 
     {
         std::lock_guard<std::mutex> lock(mMutex_index);
@@ -496,7 +507,7 @@ int32_t AipqProcessor::asyncProcess(
         pq_value_index = mLastNnValue[AI_PQ_TOP - 1].maxprob;
     }
 
-    ret_attach = ioctl(mUvmHander, UVM_IOC_ATTACH, &hook_data);
+    ret_attach = ioctl(mUvmHandler, UVM_IOC_ATTACH, &hook_data);
     if (ret_attach != 0) {
         ALOGE("attach err: ret_attach =%d", ret_attach);
         goto bypass;
@@ -558,7 +569,8 @@ int32_t AipqProcessor::asyncProcess(
         ready_size = mBuf_fd_q.size();
         if (ready_size >= AIPQ_MAX_CACHE_COUNT) {
             usleep(2*1000);
-            ALOGE("too many buf need aipq process, wait ready_size =%d", ready_size);
+            ALOGE("too many buf need aipq process, wait ready_size =%d, pq_value_index =%d, mNnDoing=%d",
+            ready_size, pq_value_index, mNnDoing);
         } else
             break;
     }
@@ -581,6 +593,7 @@ int32_t AipqProcessor::onBufferDisplayed(
 }
 
 int32_t AipqProcessor::teardown() {
+    ATRACE_CALL();
     mExitThread = true;
     int shared_fd = -1;
     int cache_index;
@@ -698,7 +711,7 @@ int AipqProcessor::LoadNNModel() {
             break;
         }
     }
-    mNn_qcontext = init(AIPQ_NB_PATH, 1);
+    mNn_qcontext = init(AIPQ_NB_PATH, 1, mNnInputVframeWidth, mNnInputVframeHeight);
     if (mNn_qcontext == NULL) {
         ALOGE("ai_pq_init fail! %s\n", AIPQ_NB_PATH);
         return -1;
@@ -713,7 +726,7 @@ int AipqProcessor::LoadNNModel() {
         ret = 0;
     } else {
         mModelLoaded = true;
-        ALOGD("%s: load NN model spend %lld ns.\n", __FUNCTION__, totalTime);
+        ALOGD("%s: load NN model spend %" PRId64" ns.\n", __FUNCTION__, totalTime);
     }
     return ret;
 }
@@ -848,21 +861,24 @@ int32_t AipqProcessor::ai_pq_process(int cache_index) {
 
     aipq_info->shared_fd = input_fd;
     aipq_info->aipq_fd = mAipq_Buf.fd;
-
     aipq_info->get_info_type = AIPQ_GET_224_DATA;
+    aipq_info->nn_input_frame_height = mNnInputVframeHeight;
+    aipq_info->nn_input_frame_width = mNnInputVframeWidth;
 
     clock_gettime(CLOCK_MONOTONIC, &tm_0);
-    ret = ioctl(mUvmHander, UVM_IOC_GET_INFO, &hook_data);
+    ret = ioctl(mUvmHandler, UVM_IOC_GET_INFO, &hook_data);
     if (ret < 0) {
         ALOGD_IF(check_D(),"UVM_IOC_GET_HF_INFO fail =%d.\n", ret);
         return ret;
     }
 
+    mNnDoing = true;
     clock_gettime(CLOCK_MONOTONIC, &tm_1);
 
     nn_out = (img_classify_out_t *)process_network(mNn_qcontext, (unsigned char *)mAipq_Buf.fd_ptr);
 
     clock_gettime(CLOCK_MONOTONIC, &tm_2);
+    mNnDoing = false;
     if (nn_out == NULL) {
         ALOGE("nn_process_network: err: ret=%d.\n", ret);
         return 0;
@@ -878,10 +894,10 @@ int32_t AipqProcessor::ai_pq_process(int cache_index) {
         mTime_2 = tm_2.tv_sec * 1000000LL + tm_2.tv_nsec / 1000;
         ge2d_time = mTime_1 - mTime_0;
         nn_time = mTime_2 - mTime_1;
-        ALOGD_IF(check_D(), "aipq_process ge2d %lld, nn %lld, total %lld mNn_Index=%d\n",
+        ALOGD_IF(check_D(), "aipq_process ge2d %" PRId64", nn %" PRId64", total %" PRId64" mNn_Index=%d\n",
             ge2d_time, nn_time, ge2d_time + nn_time, mNn_Index);
         if (nn_time > 20000)
-            ALOGE("nn time too long %lld.\n", nn_time);
+            ALOGE("nn time too long %" PRId64".\n", nn_time);
         mTime.total_time += nn_time;
         mTime.count++;
     }
@@ -914,7 +930,7 @@ int32_t AipqProcessor::ai_pq_process(int cache_index) {
     }
 
     if (update_pq_value) {
-        ret = ioctl(mUvmHander, UVM_IOC_SET_INFO, &hook_data);
+        ret = ioctl(mUvmHandler, UVM_IOC_SET_INFO, &hook_data);
         if (ret < 0) {
             ALOGE("UVM_IOC_SET_HF_OUTPUT fail =%d.\n", ret);
         }
@@ -924,7 +940,7 @@ int32_t AipqProcessor::ai_pq_process(int cache_index) {
             if (mTime.count > 0) {
                 mTime.avg_time = mTime.total_time / mTime.count;
             }
-            ALOGD("AipqProcessor: time1: count=%lld, max=%lld, min=%lld, avg=%lld",
+            ALOGD("AipqProcessor: time1: count=%" PRId64", max=%" PRId64", min=%" PRId64", avg=%" PRId64"",
                 mTime.count,
                 mTime.max_time,
                 mTime.min_time,
@@ -978,7 +994,7 @@ void AipqProcessor::triggerEvent(void) {
 #define ION_FLAG_EXTEND_MESON_HEAP (1 << 30)
 
 int AipqProcessor::allocDmaBuffer() {
-    int buffer_size = BUFFER_SIZE;
+    int buffer_size = mNnInputVframeWidth * mNnInputVframeHeight * 3;
     uint32_t stride;
     int format = 17;
     int gralloc_fd = -1;
@@ -987,7 +1003,7 @@ int AipqProcessor::allocDmaBuffer() {
     GraphicBufferAllocator & allocService = GraphicBufferAllocator::get();
 
     if (NO_ERROR != allocService.allocate(
-        224, 448, format, 1, usage,
+        mNnInputVframeWidth, mNnInputVframeHeight * 2, format, 1, usage,
         &mAipq_Buf.buffer_handle, &stride, 0, "aipq")) {
         ALOGE("alloc buffer failed");
     }

@@ -14,11 +14,12 @@
 #include <queue>
 #include <linux/ion.h>
 #include <ion/ion.h>
-#include <nn_demo.h>
 #include <UvmDev.h>
+#include "pq_sdk.h"
 
 #define META_DATA_SIZE      (256)
-
+#define NN_INPUT_FRAME_WIDTH_DEFAULT    224
+#define NN_INPUT_FRAME_HEIGHT_DEFAULT   224
 #define MAX_SCENE 7
 #define AI_OUT_SCENE 5
 #define AI_PQ_TOP AI_OUT_SCENE
@@ -66,6 +67,8 @@ struct uvm_aipq_info {
     int32_t repeat_frame;
     int32_t dw_width;
     int32_t dw_height;
+    int32_t nn_input_frame_width;
+    int32_t nn_input_frame_height;
 };
 
 struct uvm_aipq_info_t {
@@ -124,13 +127,16 @@ public:
     int check_D();
     pthread_mutex_t m_waitMutex;
     pthread_cond_t m_waitCond;
-    int mUvmHander;
+    int mUvmHandler;
     int mNn_Index;
     static struct aipq_time_info_t mTime;
     static int mInstanceID;
     static int mLogLevel;
     bool mBuf_Alloced;
+    bool mNnDoing;
     aipq_buffer_t mAipq_Buf;
+    int mNnInputVframeWidth;
+    int mNnInputVframeHeight;
     int mDumpIndex;
     static int mSkin_index_class1;
     static int mSkin_index_class2;

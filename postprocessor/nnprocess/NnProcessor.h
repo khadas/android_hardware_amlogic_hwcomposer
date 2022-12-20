@@ -121,19 +121,24 @@ public:
         std::shared_ptr<DrmFramebuffer> & outfb,
         int releaseFence);
     int32_t teardown();
-    int allocDmaBuffer();
+    int allocDmaBuffer(int i);
+    void freeDmaBuffer(int i);
     int freeDmaBuffers();
     void triggerEvent();
     void threadProcess();
+    void allocThreadProcess();
+    bool checkBufferAlloced();
     int32_t waitEvent(int microseconds);
-    static void *mNn_qcontext[NN_MODE_COUNT];
-    static bool mModelLoaded;
     mutable std::mutex mMutex;
     std::queue<int> mBuf_index_q;
     static void * threadMain(void * data);
-    int LoadNNModel();
+    void load_nn_model();
     pthread_t mThread;
     bool mExitThread;
+    static void * allocThread(void * data);
+    pthread_t mAllocThread;
+    bool mAllocProcessDone;
+    bool mBufferAllocDone;
     bool mInited;
     int32_t ai_sr_process(
     int input_fd,
@@ -148,7 +153,7 @@ public:
     int32_t mBuf_index;
     int32_t mBuf_index_cur;
     int32_t mBuf_index_last;
-    int mUvmHander;
+    int mUvmHandler;
     int mNn_Index;
     int mNn_mode;
     int mDumpHf;
@@ -156,13 +161,13 @@ public:
     static struct time_info_t mTime[NN_MODE_COUNT];
     static int mInstanceID;
     static int log_level;
-    bool mBuf_Alloced;
     bool mNeed_fence;
     int mNn_interlace_flag;
     bool mNeed_check_interlace;
     int64_t mFence_receive_count;
     int64_t mFence_wait_count;
     bool mIsModelInterfaceExist;
+    bool mNnDoing;
     int64_t mDupCount;
     int64_t mCloseCount;
     static int64_t mTotalDupCount;
