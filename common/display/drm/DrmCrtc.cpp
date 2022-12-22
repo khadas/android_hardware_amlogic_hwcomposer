@@ -216,7 +216,8 @@ int32_t DrmCrtc::setModeLocked(drm_mode_info_t & mode, bool seamless __unused) {
     // Currently always enable vrr, let drm has chance to
     // select BRR mode if connector support it.
     // TODO: support disable it when have UI switch
-    if (connector->supportVrr())
+    // TODO: remove single display limit when dual display support boot conifg
+    if (connector->supportVrr() && HWC_DISPLAY_NUM == 1)
         enableVrr = 1;
 
     mVrrEnabled->setValue(enableVrr);

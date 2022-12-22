@@ -31,6 +31,7 @@ soong_config_module_type {
     module_type: "cc_defaults",
     config_namespace: "meson_hwc",
     value_variables: [
+        "display_num",
         "hdmi_frac_mode",
     ],
 
@@ -45,6 +46,10 @@ meson_hwc_display_cc_defaults {
     defaults: ["hwcomposer_cc_defaults"],
 
     soong_config_variables: {
+        display_num: {
+            cflags: ["-DHWC_DISPLAY_NUM=%s"],
+        },
+
         hdmi_frac_mode: {
             cflags: [
                 "-DHWC_HDMI_FRAC_MODE=%s",
