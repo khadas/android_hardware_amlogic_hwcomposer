@@ -151,16 +151,21 @@ int32_t FixedSizeModeMgr::setActiveConfig(
     return HWC2_ERROR_NONE;
 }
 
-int32_t FixedSizeModeMgr::getPreferredBootConfig(int32_t* outConfig __unused) {
-    return HWC2_ERROR_UNSUPPORTED;
+int32_t FixedSizeModeMgr::getPreferredBootConfig(int32_t* outConfig) {
+    *outConfig = 0;
+
+    return HWC2_ERROR_NONE;
 }
 
-int32_t FixedSizeModeMgr::setBootConfig(int32_t config __unused) {
-    return HWC2_ERROR_UNSUPPORTED;
+int32_t FixedSizeModeMgr::setBootConfig(int32_t config) {
+    if (config != 0)
+        return HWC2_ERROR_BAD_CONFIG;
+
+    return HWC2_ERROR_NONE;
 }
 
 int32_t FixedSizeModeMgr::clearBootConfig() {
-    return HWC2_ERROR_UNSUPPORTED;
+    return HWC2_ERROR_NONE;
 }
 
 void FixedSizeModeMgr::dump(String8 & dumpstr) {
