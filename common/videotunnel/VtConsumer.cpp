@@ -62,7 +62,7 @@ int32_t VtConsumer::onVtCmds(vt_cmd_t & cmd, vt_cmd_data_t & cmdData) {
             {
                 vt_video_status_t statusType = (vt_video_status_t)cmdData.data;
                 MESON_LOGD("[%s] [%s] received cmd VT_CMD_SET_VIDEO_STATUS %s",
-                        __func__, mName, VtVideoStausToString(statusType));
+                        __func__, mName, VtVideoStatusToString(statusType));
                 mContentListener->onVideoStatus(statusType);
             }
             break;
@@ -93,7 +93,7 @@ int32_t VtConsumer::onVtCmds(vt_cmd_t & cmd, vt_cmd_data_t & cmdData) {
             {
                 vt_video_status_t status = (vt_video_status_t)cmdData.data;
                 MESON_LOGD("[%s] [%s] received cmd VT_CMD_SET_COLOR_BLACK %s",
-                        __func__, mName, VtVideoStausToString(status));
+                        __func__, mName, VtVideoStatusToString(status));
                 mContentListener->onNeedShowTempBufferWithStatus(
                         SOLID_COLOR_FOR_BLACK, status);
             }
@@ -102,7 +102,7 @@ int32_t VtConsumer::onVtCmds(vt_cmd_t & cmd, vt_cmd_data_t & cmdData) {
             {
                 vt_video_status_t status = (vt_video_status_t)cmdData.data;
                 MESON_LOGD("[%s] [%s] received cmd VT_CMD_SET_COLOR_BLUE %s",
-                        __func__, mName, VtVideoStausToString(status));
+                        __func__, mName, VtVideoStatusToString(status));
                 mContentListener->onNeedShowTempBufferWithStatus(
                         SOLID_COLOR_FOR_BLUE, status);
             }
@@ -111,7 +111,7 @@ int32_t VtConsumer::onVtCmds(vt_cmd_t & cmd, vt_cmd_data_t & cmdData) {
             {
                 vt_video_status_t status = (vt_video_status_t)cmdData.data;
                 MESON_LOGD("[%s] [%s] received cmd VT_CMD_SET_COLOR_BLUE %s",
-                        __func__, mName, VtVideoStausToString(status));
+                        __func__, mName, VtVideoStatusToString(status));
                 mContentListener->onNeedShowTempBufferWithStatus(
                         SOLID_COLOR_FOR_GREEN, status);
             }
@@ -182,7 +182,7 @@ const char * VtConsumer::VtSolidColorToString(vt_video_color_t type) {
     return typeStr;
 }
 
-const char * VtConsumer::VtVideoStausToString(vt_video_status_t type) {
+const char * VtConsumer::VtVideoStatusToString(vt_video_status_t type) {
     const char * typeStr;
     switch (type) {
         case VT_VIDEO_STATUS_BLANK:

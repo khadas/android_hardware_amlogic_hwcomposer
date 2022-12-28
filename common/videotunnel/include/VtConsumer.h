@@ -98,7 +98,7 @@ public:
     bool getDestroyFlag();
 
     const char * VtSolidColorToString(vt_video_color_t type);
-    const char * VtVideoStausToString(vt_video_status_t type);
+    const char * VtVideoStatusToString(vt_video_status_t type);
 private:
     bool mFlags;
     int mTunnelId;
