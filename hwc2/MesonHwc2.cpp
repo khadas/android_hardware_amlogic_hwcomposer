@@ -106,7 +106,9 @@ void MesonHwc2::dump(uint32_t* outSize, char* outBuffer) {
 void MesonHwc2::getCapabilities(uint32_t* outCount,
     int32_t* outCapabilities) {
 #ifdef ENABLE_AIDL
-    *outCount = 3;
+    //TODO: enable boot display config when G support it for dual display
+    if (HwcConfig::getDisplayNum() == 1)
+        *outCount = 3;
 #else
     *outCount = 2;
 #endif
@@ -114,7 +116,8 @@ void MesonHwc2::getCapabilities(uint32_t* outCount,
         outCapabilities[0] = HWC2_CAPABILITY_SIDEBAND_STREAM;
         outCapabilities[1] = HWC2_CAPABILITY_SKIP_VALIDATE;
 #ifdef ENABLE_AIDL
-        outCapabilities[2] = HWC3_CAPABILITY_BOOT_DISPLAY_CONFIG;
+        if (HwcConfig::getDisplayNum() == 1)
+            outCapabilities[2] = HWC3_CAPABILITY_BOOT_DISPLAY_CONFIG;
 #endif
     }
 }
