@@ -64,7 +64,7 @@ void SingleplaneComposition::setup(
     std::shared_ptr<HwDisplayCrtc> & crtc,
     uint32_t reqFlag,
     float scaleValue __unused,
-    hwc2_vsync_period_t vsyncPeriod __unused) {
+    drm_mode_info_t mode __unused) {
     std::lock_guard<std::mutex> lock(mMutex);
     cleanup();
 

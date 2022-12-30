@@ -37,7 +37,7 @@ public:
         std::shared_ptr<HwDisplayCrtc> & crtc,
         uint32_t flags,
         float scaleValue,
-        hwc2_vsync_period_t vsyncPeriod);
+        drm_mode_info_t mode);
     void updateComposition();
 
     int decideComposition();

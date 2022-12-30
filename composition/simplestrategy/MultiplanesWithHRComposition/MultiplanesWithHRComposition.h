@@ -28,7 +28,7 @@ public:
         std::shared_ptr<HwDisplayCrtc> & crtc,
         uint32_t flags,
         float scaleValue,
-        hwc2_vsync_period_t vsyncPeriod);
+        drm_mode_info_t mode);
     void updateComposition();
 
     int decideComposition();
@@ -63,6 +63,7 @@ protected:
     int allocateDiOutputFb(
         std::shared_ptr<DrmFramebuffer> & fb, uint32_t z);
     int chooseOneVideoFb(std::shared_ptr<DrmFramebuffer> & videoFb);
+    bool checkAndHandle4Mosaic(uint32_t videoZorder);
 
     struct DisplayPair {
         uint32_t din;                           // 0: din0, 1: din1, 2:din2, 3:video1, 4:video2
@@ -133,6 +134,9 @@ protected:
     std::shared_ptr<FbProcessor> mSrProcessor;
     std::shared_ptr<FbProcessor> mPqProcessor;
     std::vector<std::shared_ptr<FbProcessor>> mProcessors;
+    /* for 2*2 mosaic feature */
+    bool m4Mosaic;
+    drm_mode_info_t mDisplayMode;
 };
 
 

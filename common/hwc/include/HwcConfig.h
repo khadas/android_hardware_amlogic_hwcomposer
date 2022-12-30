@@ -47,6 +47,7 @@ public:
     static float getMaxRefreshRate();
     static bool AiSrProcessorEnabled();
     static bool AiPqProcessorEnabled();
+    static bool mosaicEnabled();
 
     static void dump(String8 & dumpstr);
 };

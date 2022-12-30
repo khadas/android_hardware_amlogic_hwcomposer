@@ -1295,7 +1295,7 @@ void MultiplanesWithDiComposition::setup(
     std::shared_ptr<HwDisplayCrtc> & crtc,
     uint32_t reqFlag,
     float scaleValue,
-    hwc2_vsync_period_t vsyncPeriod) {
+    drm_mode_info_t mode) {
     ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
     init();
@@ -1376,10 +1376,8 @@ void MultiplanesWithDiComposition::setup(
 
     mVideoPlaneNum = mHwcVideoPlanes.size();
     mOsdPlaneNum = mOsdPlanes.size();
-    if (vsyncPeriod == 0)
-        mVsyncRefreshRate = 60;
-    else
-        mVsyncRefreshRate = 1e9 / vsyncPeriod;
+
+    mVsyncRefreshRate = (mode.refreshRate == 0 ? 60 : mode.refreshRate);
 }
 
 //for present skip validate need update composition

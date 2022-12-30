@@ -8,6 +8,9 @@
  */
 #define ATRACE_TAG ATRACE_TAG_GRAPHICS
 
+/* video composer driver define it */
+#define MOSAIC_MODE_BIT 24
+
 #include <utils/Trace.h>
 #include <DebugHelper.h>
 #include <MesonLog.h>
@@ -62,6 +65,10 @@ uint32_t HwcVideoPlane::getCapabilities() {
     }
     capacity =(retValue >> (2 * mIndex + 18) & 0x3);
 
+    if (retValue >> MOSAIC_MODE_BIT) {
+        mCapability |= PLANE_SUPPORT_MOSAIC;
+    }
+
     switch ( capacity ) {
             case 0:
                 mCapability |= PLANE_SUPPORT_1;
@@ -112,6 +119,13 @@ uint32_t HwcVideoPlane::getPossibleCrtcs() {
 
 bool HwcVideoPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
     if (fb->mFbType == DRM_FB_VIDEO_UVM_DMA)
+        return true;
+
+    return false;
+}
+
+bool HwcVideoPlane::isSupportMosaic() {
+    if (mCapability & PLANE_SUPPORT_MOSAIC)
         return true;
 
     return false;

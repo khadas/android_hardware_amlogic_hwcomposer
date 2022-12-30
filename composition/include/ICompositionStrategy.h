@@ -65,13 +65,13 @@ public:
         std::vector<std::shared_ptr<HwDisplayPlane>> & planes,
         std::shared_ptr<HwDisplayCrtc> & crtc,
         uint32_t reqFlag, float scaleValue,
-        hwc2_vsync_period_t vsyncPeriod) {
+        drm_mode_info_t mode) {
         UNUSED(layers);
         UNUSED(composers);
         UNUSED(planes);
         UNUSED(crtc);
         UNUSED(scaleValue);
-        UNUSED(vsyncPeriod);
+        UNUSED(mode);
         mCompositionFlag = reqFlag;
     }
 

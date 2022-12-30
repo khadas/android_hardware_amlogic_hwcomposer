@@ -267,6 +267,17 @@ bool HwcConfig::AiPqProcessorEnabled() {
 #endif
 }
 
+bool HwcConfig::mosaicEnabled() {
+#ifdef ENABLE_VIDEO_MOSAIC
+    if (!property_get_bool("vendor.hwc.mosaic_enable", false))
+        return false;
+
+    return true;
+#else
+    return false;
+#endif
+}
+
 void HwcConfig::dump(String8 & dumpstr) {
     if (isHeadlessMode()) {
         dumpstr.appendFormat("\t HeadlessMode refreshrate: %d", headlessRefreshRate());
@@ -299,6 +310,8 @@ void HwcConfig::dump(String8 & dumpstr) {
             dumpstr.appendFormat("\t AiSrProcessor: %s", AiSrProcessorEnabled() ? "Y" : "N");
             dumpstr.append("\n");
             dumpstr.appendFormat("\t AiPqProcessor: %s", AiPqProcessorEnabled() ? "Y" : "N");
+            dumpstr.append("\n");
+            dumpstr.appendFormat("\t Mosaic: %s", mosaicEnabled() ? "Y" : "N");
             dumpstr.append("\n");
         }
     }

@@ -74,6 +74,11 @@ endif
 
 ifndef HWC_PIPE_VIU1VDINVIU2_ALWAYS_LOOPBACK
 HWC_PIPE_VIU1VDINVIU2_ALWAYS_LOOPBACK := false
+
+ifndef HWC_VIDEO_MOSAIC
+HWC_VIDEO_MOSAIC := false
+endif
+
 endif
 
 ifndef HWC_DYNAMIC_SWITCH_CONNECTOR
@@ -148,6 +153,7 @@ $(call soong_config_set,meson_hwc,enable_uvm_dettach,$(HWC_UVM_DETTACH))
 $(call soong_config_set,meson_hwc,filter_16_9mode,$(HWC_FILTER_16_9MODE))
 $(call soong_config_set,meson_hwc,android_platform_sdk_extension_version,$(PLATFORM_SDK_EXTENSION_VERSION))
 $(call soong_config_set,meson_hwc,enable_virtual_layer,$(HWC_ENABLE_VIRTUAL_LAYER))
+$(call soong_config_set,meson_hwc,enable_video_mosaic,$(HWC_VIDEO_MOSAIC))
 
 #$(warning "the value of aidl: $(HWC_ENABLE_AIDL)")
 $(warning "the value of uvm_dettach: $(HWC_UVM_DETTACH)")

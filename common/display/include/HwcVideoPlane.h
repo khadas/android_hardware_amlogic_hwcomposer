@@ -28,6 +28,7 @@ public:
 
 
     bool isFbSupport(std::shared_ptr<DrmFramebuffer> & fb);
+    bool isSupportMosaic();
 
     void setAmVideoPath(int32_t id);
     int32_t setPlane(std::shared_ptr<DrmFramebuffer> fb, uint32_t zorder, int blankOp);

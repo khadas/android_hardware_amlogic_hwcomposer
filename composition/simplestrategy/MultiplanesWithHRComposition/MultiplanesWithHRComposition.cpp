@@ -50,6 +50,7 @@ MultiplanesWithHRComposition::MultiplanesWithHRComposition() {
     mOsdPlaneNum = 0;
     mVideoPlaneNum = 0;
     mScaleValue = 0;
+    memset(&mDisplayMode, 0, sizeof(mDisplayMode));
 }
 
 /* Deconstructor function */
@@ -66,6 +67,7 @@ void MultiplanesWithHRComposition::init() {
     mInsideVideoFbsFlag  = false;
     mSkipValidate = false;
     mVsyncOverDefault = false;
+    m4Mosaic = false;
 
     /*crtc scale info.*/
     mDisplayRefFb.reset();
@@ -218,6 +220,103 @@ int MultiplanesWithHRComposition::chooseOneVideoFb(std::shared_ptr<DrmFramebuffe
 
     return 0;
 }
+
+/*
+ * If all the 4 video meet the following requirements, then all of then can send to vd1.
+ * 1. each video is within its own 1/4 window
+ * 2. The horizontal border distance from each video to its 1/4 window must be equal
+ * 3. 4 video must be all afbc
+ * 4. The distance to the border must be a multiple of 8
+ */
+bool MultiplanesWithHRComposition::checkAndHandle4Mosaic(uint32_t videoZorder) {
+    if (HwcConfig::mosaicEnabled() == false)
+        return false;
+
+    // first check if hwc video plane (VD1) support mosaic feature
+    HwcVideoPlane *plane = (HwcVideoPlane *)(mHwcVideoPlanes[0].get());
+    if (!plane)
+        return false;
+    if (plane->isSupportMosaic() == false)
+        return false;
+
+    // check 4 video playback
+    if (mDIComposerFbs.empty() || mDIComposerFbs.size() != 4)
+        return false;
+
+    std::shared_ptr<DrmFramebuffer> fb;
+    uint32_t halfWidth = mDisplayMode.pixelW/2;
+    uint32_t halfHeight = mDisplayMode.pixelH/2;
+
+    // 2*2 mosaic check
+    int leftWindow = 0;
+    int topWindow = 0;
+    for (auto it = mDIComposerFbs.begin(); it != mDIComposerFbs.end(); it++) {
+        fb = *it;
+        drm_rect_t displayFrame = fb->mDisplayFrame;
+        uint32_t frameWidth = displayFrame.right - displayFrame.left;
+        uint32_t frameHeight = displayFrame.bottom - displayFrame.top;
+
+        // check all afbc
+        if (!(fb->getVideoType() & AM_VIDEO_AFBC))
+            return false;
+
+        // check if the width and height <= 1/2 vinfo */
+        if (frameWidth > halfWidth || frameHeight > halfHeight)
+            return false;
+
+        // check the border distance
+        if (displayFrame.left < halfWidth) {
+            leftWindow++;
+            if (displayFrame.left != halfWidth - displayFrame.right)
+                return false;
+
+            // check border distance
+            if (displayFrame.left % 8 != 0)
+                return false;
+        } else {
+            if (displayFrame.left - halfWidth != mDisplayMode.pixelW - displayFrame.right)
+                return false;
+
+            // check border distance
+            if ((displayFrame.left - halfWidth) % 8 != 0)
+                return false;
+        }
+
+        if (displayFrame.top < halfHeight) {
+            topWindow++;
+        }
+    }
+
+    // check each video within its own 1/4 window
+    if (topWindow != leftWindow)
+        return false;
+
+    mHwcVideoInputFbs = mDIComposerFbs;
+    m4Mosaic = true;
+
+    for (auto it = mHwcVideoInputFbs.begin(); it != mHwcVideoInputFbs.end(); it++) {
+        (*it)->mCompositionType = MESON_COMPOSITION_DI;
+    }
+
+    /*set dicomposer and get output video.*/
+    std::vector<std::shared_ptr<DrmFramebuffer>> nofbs;
+    mDiComposer->prepare();
+    mDiComposer->addInputs(mDIComposerFbs, nofbs, 0);
+    /*TODO: workaround to pass zorder to composer.*/
+    hwc_region_t damage = {0, 0};
+    allocateDiOutputFb(fb, (*mHwcVideoInputFbs.begin())->mZorder);
+    mDiComposer->setOutput(fb, damage, 0);
+
+    /*-----set buffer to displaypair------*/
+    mDisplayPairs.push_back(DisplayPair{
+            (uint32_t)mOsdPlaneNum,  videoZorder, fb, mHwcVideoPlanes[0],
+            std::vector<std::shared_ptr<FbProcessor>>()});
+
+    mHwcVideoPlanes.erase(mHwcVideoPlanes.begin());
+
+    return true;
+}
+
 
 int MultiplanesWithHRComposition::setUpProcessor() {
     if (DebugHelper::getInstance().disableAISRAIPQ())
@@ -407,6 +506,10 @@ void MultiplanesWithHRComposition::handleNonLegacySidebandVideoFbs(
             }
         }
     } else {
+        if (checkAndHandle4Mosaic(minVideoZ)) {
+            return;
+        }
+
         for (int i = 0; i < videoFbNum; i++) {
             usedPlanes++;
             /* Fbs set to the last hwcVideoPlane */
@@ -1313,7 +1416,7 @@ void MultiplanesWithHRComposition::setup(
     std::shared_ptr<HwDisplayCrtc> & crtc,
     uint32_t reqFlag,
     float scaleValue,
-    hwc2_vsync_period_t vsyncPeriod) {
+    drm_mode_info_t mode) {
     ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
     init();
@@ -1321,15 +1424,13 @@ void MultiplanesWithHRComposition::setup(
     mCompositionFlag = reqFlag;
     mScaleValue = scaleValue;
     mCrtc = crtc;
+    mDisplayMode = mode;
 
 #ifdef MESON_HWC_RESOLUTION_AND_REFRESH_RATE_LIMIT
     // need remove limitation of refrash rate
-    if (vsyncPeriod != 0 &&
-            (uint32_t(1e9 / vsyncPeriod) > DEFAULT_REFRESH_RATE)) {
+    if (mode.refreshRate > DEFAULT_REFRESH_RATE) {
         mVsyncOverDefault = true;
     }
-#else
-    UNUSED(vsyncPeriod);
 #endif
 
     /* add layers */
@@ -1508,7 +1609,7 @@ int MultiplanesWithHRComposition::commit() {
             }
             /* make sure SF donot refresh VtLayer and VT only refresh VtLayer*/
             if (!hasVtBuffer)
-                mDiComposer->start(mVideoPlaneNum - 1);
+                mDiComposer->start(m4Mosaic ? 0 : mVideoPlaneNum - 1);
         } else {
             dumpFbAndPlane(fb, plane, presentZorder, blankFlag);
         }
@@ -1615,7 +1716,7 @@ int MultiplanesWithHRComposition::commitTunnelVideo() {
             continue;
 
         if (fb->mCompositionType == MESON_COMPOSITION_DI) {
-            mDiComposer->start(mVideoPlaneNum - 1);
+            mDiComposer->start(m4Mosaic ? 0 : mVideoPlaneNum - 1);
             continue;
         }
 
