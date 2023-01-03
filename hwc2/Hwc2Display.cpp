@@ -631,12 +631,12 @@ hwc2_error_t Hwc2Display::setPowerMode(int32_t mode) {
         return HWC2_ERROR_UNSUPPORTED;
     }
 
+    int32_t ret = mPowerMode->setPowerMode(mode);
+
     /* need blank display when power off */
     if (mode == HWC2_POWER_MODE_OFF) {
         blankDisplay();
     }
-
-    int32_t ret = mPowerMode->setPowerMode(mode);
     return (hwc2_error_t) ret;
 }
 
