@@ -45,7 +45,10 @@ static const char* DISPLAY_MODE_LIST[] = {
     "1080p24hz",    // MODE_1080P24HZ
     "1080p25hz",    // MODE_1080P25HZ
     "1080p30hz",    // MODE_1080P30HZ
+    "1080p47hz",    // MODE_1080P47HZ
+    "1080p48hz",    // MODE_1080P48HZ
     "1080p50hz",    // MODE_1080P50HZ
+    "1080p59hz",    // MODE_1080P59HZ
     "1080p60hz",    // MODE_1080P
     "1080p100hz",   // MODE_1080P_100HZ
     "1080p120hz",   // MODE_1080P_120HZ
@@ -469,6 +472,8 @@ bool RealModeMgr::isSupportModeForCurrentDevice(drm_mode_info_t mode) {
 int32_t RealModeMgr::setModeLocked(drm_mode_info_t & mode) {
     bool seamless = (mode.groupId == mLatestRealMode.groupId);
 
+    mCallOnHotPlug = false;
+
     mLatestRealMode = mode;
 
     MESON_LOGD("RealModeMgr::setActiveConfig setMode: %s, seamless:%d",
@@ -492,7 +497,6 @@ int32_t RealModeMgr::setModeLocked(drm_mode_info_t & mode) {
         // seamless mode switch, only vsync period change
         mCrtc->setMode(mode, seamless);
     }  else {
-        mCallOnHotPlug = false;
         std::string bestDolbyVision;
         bool needRecoveryBestDV = false;
         if (mDvEnabled) {

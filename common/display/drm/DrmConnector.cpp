@@ -187,10 +187,17 @@ int32_t DrmConnector::loadDisplayModes(drmModeConnectorPtr p) {
 
 bool DrmConnector::supportVrr() {
     /* does the sink support vrr */
-    if (!mVrrCap || mVrrCap->getValue() == 0)
-        return false;
+    /* for TV product*/
+    if (mType == DRM_MODE_CONNECTOR_MESON_LVDS_A || mType == DRM_MODE_CONNECTOR_MESON_LVDS_B ||
+            mType == DRM_MODE_CONNECTOR_MESON_LVDS_C || mType == DRM_MODE_CONNECTOR_MESON_VBYONE_A ||
+            mType == DRM_MODE_CONNECTOR_MESON_VBYONE_B || mType == DRM_MODE_CONNECTOR_LVDS)
+        return true;
 
-    return true;
+    /*for OTT product*/
+    if (mType == DRM_MODE_CONNECTOR_HDMIA && mVrrCap && mVrrCap->getValue() == 1)
+        return true;
+
+    return false;
 }
 
 /*
