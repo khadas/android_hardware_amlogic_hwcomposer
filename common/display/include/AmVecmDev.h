@@ -14,7 +14,7 @@
 
 struct eye_protect_s {
     int en;
-    int rgb[3];
+    int mtx_ep[4][4];
 };
 
 class AmVecmDev : public android::Singleton<AmVecmDev> {

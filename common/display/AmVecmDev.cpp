@@ -34,20 +34,25 @@ AmVecmDev::~AmVecmDev() {
 
 int AmVecmDev::setColorTransform(const float *matrix,  const bool on) {
     memcpy(mColorMatrix, matrix, sizeof(float) * 16);
-    int r, g, b;
+    mEnable = on;
+    struct eye_protect_s  data;
+    data.en = on;
 
     /* transform to 10 bit */
-    r = (int)(1024 * matrix[0]);
-    g = (int)(1024 * matrix[5]);
-    b = (int)(1024 * matrix[10]);
+    for (int i = 0; i < 16; i++) {
+        data.mtx_ep[i/4][i%4] = (int)(1024 * matrix[i]);
+    }
 
-    mEnable = on;
-    struct eye_protect_s  data = {
-        .en = on,
-        .rgb = {r, g, b},
-    };
+    String8 matrixDump;
+    matrixDump.append("\n-------------------------------------------------\n");
+    for (int i = 0; i < 16; i ++ ) {
+        matrixDump.appendFormat("%6f ", matrix[i]);
+        if ((i+1) % 4 == 0)
+            matrixDump.append("\n");
+    }
+    matrixDump.append("-------------------------------------------------\n");
 
-    MESON_LOGD("%s to amvecm:%d,%d,%d  enable:%d", __func__, r, g, b, on);
+    MESON_LOGD("%s matrix:%s  enable:%d", __func__,  matrixDump.string(), on);
 
     if (ioctl(mDrvFd, AMVECM_IOC_S_EYE_PROT, &data) != 0) {
         MESON_LOGD("set AmVECM eye prot failed: %s", strerror(errno));
