@@ -109,6 +109,8 @@ void MesonHwc2::getCapabilities(uint32_t* outCount,
     //TODO: enable boot display config when G support it for dual display
     if (HwcConfig::getDisplayNum() == 1)
         *outCount = 3;
+    else
+        *outCount = 2;
 #else
     *outCount = 2;
 #endif
