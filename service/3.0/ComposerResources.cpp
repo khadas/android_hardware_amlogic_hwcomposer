@@ -16,6 +16,7 @@
 
 #include "ComposerResources.h"
 #include <aidlcommonsupport/NativeHandle.h>
+#include "am_gralloc_ext.h"
 
 namespace aidl::android::hardware::graphics::composer3::impl {
 namespace meson {
@@ -237,7 +238,7 @@ HWC3::Error ComposerResources::getDisplayOutputBuffer(
 
 HWC3::Error ComposerResources::getLayerBuffer(
         int64_t displayId, int64_t layerId, const Buffer& buffer,
-        buffer_handle_t* outHandle, ComposerResourceReleaser* releaser) {
+        buffer_handle_t* outHandle, ComposerResourceReleaser* releaser, bool& isClearCache) {
     DEBUG_LOG("%s: display:%" PRId64 " layer:%" PRId64, __FUNCTION__, displayId,
             layerId);
 
@@ -247,10 +248,17 @@ HWC3::Error ComposerResources::getLayerBuffer(
         toHwc2Layer(layerId);
 
     const bool useCache = !buffer.handle.has_value();
+    int32_t w = -1;
+    int32_t h = -1;
 
     buffer_handle_t bufferHandle = nullptr;
     if (buffer.handle.has_value()) {
         bufferHandle = ::android::makeFromAidl(*buffer.handle);
+        w = am_gralloc_get_width(bufferHandle);
+        h = am_gralloc_get_height(bufferHandle);
+        if (w == 1 && w == h) {
+            isClearCache = true;
+        }
     }
 
     DEBUG_LOG("%s fromCache:%s buffer slot:%u",

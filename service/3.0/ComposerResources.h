@@ -96,7 +96,7 @@ public:
     HWC3::Error getLayerBuffer(int64_t displayId, int64_t layerId,
             const Buffer& buffer,
             buffer_handle_t* outBufferHandle,
-            ComposerResourceReleaser* bufReleaser);
+            ComposerResourceReleaser* bufReleaser, bool& isClearCache);
     HWC3::Error getLayerSidebandStream(
             int64_t displayId, int64_t layerId,
             const aidl::android::hardware::common::NativeHandle& rawHandle,

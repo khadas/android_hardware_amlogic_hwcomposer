@@ -302,12 +302,6 @@ Error ComposerHandleCache::getHandle(uint32_t slot, bool fromCache, const native
         *outReplacedHandle = nullptr;
         error = lookupCache(slot, outHandle);
     } else {
-        if (mHandleType == HandleType::BUFFER
-                && (isChangedFromeVideoToUi(inHandle) || isVideoBufferSequenceChanged(inHandle))) {
-            ALOGD("[%s] release cache", __func__);
-            releaseCache(0);
-        }
-
         *outHandle = inHandle;
         error = updateCache(slot, inHandle, outReplacedHandle);
     }

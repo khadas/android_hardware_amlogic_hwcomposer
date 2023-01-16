@@ -32,6 +32,7 @@
 // TODO remove hwcomposer_defs.h dependency
 #include <hardware/hwcomposer_defs.h>
 #include <log/log.h>
+#include "am_gralloc_ext.h"
 
 namespace android {
 namespace hardware {
@@ -370,12 +371,26 @@ class ComposerCommandEngine : protected CommandReaderBase {
         auto rawHandle = readHandle(&useCache);
         auto fence = readFence();
         bool closeFence = true;
+        bool isClearCache = false;
+        int32_t w = -1;
+        int32_t h = -1;
 
         const native_handle_t* buffer;
         ComposerResources::ReplacedHandle replacedBuffer(true);
         auto err = mResources->getLayerBuffer(mCurrentDisplay, mCurrentLayer, slot, useCache,
                                               rawHandle, &buffer, &replacedBuffer);
-        if (err == Error::NONE) {
+
+        if (rawHandle) {
+            w = am_gralloc_get_width(rawHandle);
+            h = am_gralloc_get_height(rawHandle);
+        }
+        if (w == 1 && w == h) {
+            ALOGV("%s layerId: %" PRIu64 " slot %d is clear cache no need call setLayerBuffer",
+                     __func__,mCurrentLayer,slot);
+            isClearCache = true;
+        }
+
+        if (err == Error::NONE && !isClearCache) {
             err = mHal->setLayerBuffer(mCurrentDisplay, mCurrentLayer, buffer, fence);
             if (err == Error::NONE) {
                 closeFence = false;
