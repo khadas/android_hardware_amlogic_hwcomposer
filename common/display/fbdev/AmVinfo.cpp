@@ -111,6 +111,12 @@ static struct vmode_match_s vmode_match_table[] = {
 	{"4k05k240hz",    VMODE_4K05K_240HZ},
 	{"4k05k200hz420", VMODE_4K05K_200HZ_Y420},
 	{"4k05k200hz",    VMODE_4K05K_200HZ},
+	{"7680x4320p24hz",     VMODE_8K4K_24HZ},
+	{"7680x4320p25hz",     VMODE_8K4K_25HZ},
+	{"7680x4320p30hz",     VMODE_8K4K_30HZ},
+	{"7680x4320p48hz",     VMODE_8K4K_48HZ},
+	{"7680x4320p50hz",     VMODE_8K4K_50HZ},
+	{"7680x4320p60hz",     VMODE_8K4K_60HZ},
 	{"panel",         VMODE_LCD},
 	{"pal_m",         VMODE_PAL_M},
 	{"pal_n",         VMODE_PAL_N},
@@ -903,6 +909,84 @@ static const struct vinfo_s tv_info[] = {
 		.video_clk         = 594000000,
 		.viu_color_fmt     = TVIN_YUV444,
 	},
+	{ /* VMODE_8K4K_24HZ */
+		.name              = "7680x4320p24hz",
+		.mode              = VMODE_8K4K_24HZ,
+		.width             = 7680,
+		.height            = 4320,
+		.field_height      = 4320,
+		.aspect_ratio_num  = 16,
+		.aspect_ratio_den  = 9,
+		.sync_duration_num = 24,
+		.sync_duration_den = 1,
+		.video_clk         = 594000000,
+		.viu_color_fmt     = TVIN_YUV444,
+	},
+	{ /* VMODE_8K4K_25HZ */
+		.name              = "7680x4320p25hz",
+		.mode              = VMODE_8K4K_25HZ,
+		.width             = 7680,
+		.height            = 4320,
+		.field_height      = 4320,
+		.aspect_ratio_num  = 16,
+		.aspect_ratio_den  = 9,
+		.sync_duration_num = 25,
+		.sync_duration_den = 1,
+		.video_clk         = 594000000,
+		.viu_color_fmt     = TVIN_YUV444,
+	},
+	{ /* VMODE_8K4K_30HZ */
+		.name              = "7680x4320p30hz",
+		.mode              = VMODE_8K4K_30HZ,
+		.width             = 7680,
+		.height            = 4320,
+		.field_height      = 4320,
+		.aspect_ratio_num  = 16,
+		.aspect_ratio_den  = 9,
+		.sync_duration_num = 30,
+		.sync_duration_den = 1,
+		.video_clk         = 594000000,
+		.viu_color_fmt     = TVIN_YUV444,
+	},
+	{ /* VMODE_8K4K_48HZ */
+		.name              = "7680x4320p48hz",
+		.mode              = VMODE_8K4K_48HZ,
+		.width             = 7680,
+		.height            = 4320,
+		.field_height      = 4320,
+		.aspect_ratio_num  = 16,
+		.aspect_ratio_den  = 9,
+		.sync_duration_num = 48,
+		.sync_duration_den = 1,
+		.video_clk         = 594000000,
+		.viu_color_fmt     = TVIN_YUV444,
+	},
+	{ /* VMODE_8K4K_50HZ */
+		.name              = "7680x4320p50hz",
+		.mode              = VMODE_8K4K_50HZ,
+		.width             = 7680,
+		.height            = 4320,
+		.field_height      = 4320,
+		.aspect_ratio_num  = 16,
+		.aspect_ratio_den  = 9,
+		.sync_duration_num = 50,
+		.sync_duration_den = 1,
+		.video_clk         = 594000000,
+		.viu_color_fmt     = TVIN_YUV444,
+	},
+	{ /* VMODE_8K4K_60HZ */
+		.name              = "7680x4320p60hz",
+		.mode              = VMODE_8K4K_60HZ,
+		.width             = 7680,
+		.height            = 4320,
+		.field_height      = 4320,
+		.aspect_ratio_num  = 16,
+		.aspect_ratio_den  = 9,
+		.sync_duration_num = 60,
+		.sync_duration_den = 1,
+		.video_clk         = 594000000,
+		.viu_color_fmt     = TVIN_YUV444,
+	},
 	{ /* VMODE_vga */
 		.name              = "vga",
 		.mode              = VMODE_VGA,
@@ -1200,6 +1284,12 @@ int want_hdmi_mode(enum vmode_e mode)
 	    || (mode == VMODE_4K2K_60HZ_Y420)
 	    || (mode == VMODE_4K2K_100HZ)
 	    || (mode == VMODE_4K2K_120HZ)
+	    || (mode == VMODE_8K4K_24HZ)
+	    || (mode == VMODE_8K4K_25HZ)
+	    || (mode == VMODE_8K4K_30HZ)
+	    || (mode == VMODE_8K4K_48HZ)
+	    || (mode == VMODE_8K4K_50HZ)
+	    || (mode == VMODE_8K4K_60HZ)
 	   )
 		ret = 1;
 	return ret;

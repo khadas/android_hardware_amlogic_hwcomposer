@@ -27,6 +27,10 @@ UvmDettach::~UvmDettach() {
     releaseUvmResource();
 }
 
+int32_t UvmDettach::getVideoType(int bufferFd) {
+    return UvmDev::getInstance().getVideoType(bufferFd);
+}
+
 #ifdef HWC_UVM_DETTACH
 int32_t UvmDettach::attachUvmBuffer(int bufferFd) {
     return UvmDev::getInstance().attachBuffer(bufferFd);

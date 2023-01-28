@@ -54,6 +54,8 @@ uint32_t HwcVideoPlane::getType() {
 uint32_t HwcVideoPlane::getCapabilities() {
     int retValue;
     int capacity;
+    capability_info_t caps_info = {};
+
     if (ioctl(mDrvFd, VIDEO_COMPOSER_IOCTL_GET_PANEL_CAPABILITY, &retValue) != 0) {
         MESON_LOGE("video plane get capability ioctl (%d) return(%d)", retValue, errno);
         return 0;
@@ -73,6 +75,14 @@ uint32_t HwcVideoPlane::getCapabilities() {
             default:
                 return mCapability;
     }
+
+    if (ioctl(mDrvFd, VIDEO_COMPOSER_IOCTL_GET_LAYER_CAPABILITY, &caps_info) != 0) {
+        MESON_LOGE("video plane get layer cap return(%d)", errno);
+        return 0;
+    }
+
+    if (caps_info.max_w >= FB_SIZE_8K_W && caps_info.max_h >= FB_SIZE_8K_H)
+        mCapability |= PLANE_SUPPORT_8K;
 
     /*HWCVideoplane always support zorder.*/
     return mCapability;

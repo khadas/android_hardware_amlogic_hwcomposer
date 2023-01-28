@@ -1,0 +1,139 @@
+/*
+* Copyright (c) 2022 Amlogic, Inc. All rights reserved.
+*
+* This source code is subject to the terms and conditions defined in the
+* file 'LICENSE' which is part of this source code package.
+*
+* Description: support 8K video and 4k120hz video
+*/
+
+#ifndef MULTI_PLANES_WITH_HIGH_REFRESH_COMPOSITION_H
+#define MULTI_PLANES_WITH_HIGH_REFRESH_COMPOSITION_H
+
+#include <functional>
+#include <FbProcessor.h>
+#include "ICompositionStrategy.h"
+
+
+class MultiplanesWithHRComposition : public ICompositionStrategy {
+public:
+    MultiplanesWithHRComposition();
+    ~MultiplanesWithHRComposition();
+
+    const char* getName() {return "MultiplanesWithHRComposition";}
+
+    void setup(std::vector<std::shared_ptr<DrmFramebuffer>> & layers,
+        std::vector<std::shared_ptr<IComposer>> & composers,
+        std::vector<std::shared_ptr<HwDisplayPlane>> & planes,
+        std::shared_ptr<HwDisplayCrtc> & crtc,
+        uint32_t flags,
+        float scaleValue,
+        hwc2_vsync_period_t vsyncPeriod);
+    void updateComposition();
+
+    int decideComposition();
+    int commit();
+    int commitTunnelVideo();
+    void dump(String8 & dumpstr);
+
+protected:
+    void handleLegacySidebandVideoFbs(std::vector<std::shared_ptr<DrmFramebuffer>> & sidebandFbs, uint32_t maxVideoZ);
+    void handleVideoWithoutVideoPlane(std::vector<std::shared_ptr<DrmFramebuffer>> & fbs);
+    void handleNonLegacySidebandVideoFbs(uint32_t minVideoZ, uint32_t maxVideoZ);
+    int processVideoFbs();
+    int processGfxFbs();
+
+    void init();
+    int applyCompositionFlags();
+    int pickoutOsdFbs();
+    int countComposerFbs(int &belowClientNum, int &upClientNum, int &insideClientNum);
+    int confirmComposerRange();
+    int setOsdFbs2PlanePairs();
+    int selectComposer();
+    int fillComposerFbs();
+    void handleOverlayVideoZorder();
+    int checkCommitZorder();
+    void handleVPUScaleLimit();
+    void handleVPULimit(bool video);
+    void handleDisplayLayerZorder();
+    int handleOsdComposition();
+    int handleOsdCompositionWithVideo();
+    int32_t compareFbScale(drm_rect_t & aSrc, drm_rect_t & aDst, drm_rect_t & bSrc, drm_rect_t & bDst);
+    int handleUVM();
+    int allocateDiOutputFb(
+        std::shared_ptr<DrmFramebuffer> & fb, uint32_t z);
+    int chooseOneVideoFb(std::shared_ptr<DrmFramebuffer> & videoFb);
+
+    struct DisplayPair {
+        uint32_t din;                           // 0: din0, 1: din1, 2:din2, 3:video1, 4:video2
+        uint32_t presentZorder;
+        std::shared_ptr<DrmFramebuffer> fb;     // UI or Video from SF
+        std::shared_ptr<HwDisplayPlane> plane;  // osdPlane <= 3, videoPlane <= 2
+        std::vector<std::shared_ptr<FbProcessor>> processors; // fb processor
+    };
+
+    // for video processor
+    int setUpProcessor();
+    int tearDownProcessor();
+    int collectProcessor();
+    bool runProcessor(struct DisplayPair &dp, int &blankFlag, int &ret);
+
+protected:
+    /* Input Flags from SF */
+    bool mHDRMode;
+    bool mHideSecureLayer;
+    bool mForceClientComposer;
+
+    /* Input Fbs from SF, min zorder at begin, max zorder at end. */
+    std::map<uint32_t, std::shared_ptr<DrmFramebuffer>, std::less<uint32_t>> mFramebuffers;
+
+    /*reffb is the fb used to setup the osddisplayframe.*/
+    std::shared_ptr<DrmFramebuffer> mDisplayRefFb;
+    display_zoom_info_t mOsdDisplayFrame;
+    std::shared_ptr<HwDisplayCrtc> mCrtc;
+
+    /* Composer */
+    std::shared_ptr<IComposer> mDummyComposer;
+    std::shared_ptr<IComposer> mClientComposer;
+    std::shared_ptr<IComposer> mDiComposer;
+    std::vector<std::shared_ptr<IComposer>> mOtherComposers;
+
+    /* Get display planes from DisplayManager */
+    std::vector<std::shared_ptr<HwDisplayPlane>> mOsdPlanes;
+
+    std::vector<std::shared_ptr<HwDisplayPlane>> mHwcVideoPlanes;             // Future  VIDEO support : 2 HwcVideoPlane
+    std::vector<std::shared_ptr<HwDisplayPlane>> mOtherPlanes;
+
+    /* Use for composer */
+    std::shared_ptr<IComposer> mComposer;                       // Handle composer Fbs
+    std::vector<std::shared_ptr<DrmFramebuffer>> mOverlayFbs;
+    std::vector<std::shared_ptr<DrmFramebuffer>> mComposerFbs;  // Save Fbs that should be composered
+    std::vector<std::shared_ptr<DrmFramebuffer>> mDIComposerFbs;
+    std::vector<std::shared_ptr<DrmFramebuffer>> mHwcVideoInputFbs;
+
+    std::list<DisplayPair> mDisplayPairs;
+
+    bool mHaveClient;
+    bool mInsideVideoFbsFlag;      // Has VIDEO between different OSD ui layers.
+    uint32_t mMinComposerZorder;
+    uint32_t mMaxComposerZorder;
+    uint32_t mMinVideoZorder;
+    uint32_t mMaxVideoZorder;
+
+    int mOsdPlaneNum;
+    int mVideoPlaneNum;
+    bool mVsyncOverDefault;
+
+    std::mutex mMutex;
+
+    float mScaleValue;
+    bool mSkipValidate;
+    bool mIsSideBandDisable;
+    /* for video processor */
+    std::shared_ptr<FbProcessor> mSrProcessor;
+    std::shared_ptr<FbProcessor> mPqProcessor;
+    std::vector<std::shared_ptr<FbProcessor>> mProcessors;
+};
+
+
+#endif/*MULTI_PLANES_WITH_HIGH_REFRESH_COMPOSITION_H*/

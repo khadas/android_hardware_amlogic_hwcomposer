@@ -153,6 +153,8 @@ typedef enum {
     PLANE_SUPPORT_1 = (1 << 9),
     PLANE_SUPPORT_2 = (1 << 10),
     PLANE_SUPPORT_3 = (1 << 11),
+    PLANE_SUPPORT_4K = (1 << 12),
+    PLANE_SUPPORT_8K = (1 << 13),
 } drm_plane_capacity_t;
 
 typedef enum {
@@ -263,6 +265,12 @@ typedef struct display_zoom_info {
 
 /*the invalid zorder value defination.*/
 #define INVALID_ZORDER 0xFFFFFFFF
+#define FB_SIZE_1080P_W 1920
+#define FB_SIZE_1080P_H 1080
+#define FB_SIZE_4K_W 3840
+#define FB_SIZE_4K_H 2160
+#define FB_SIZE_8K_W 7680
+#define FB_SIZE_8K_H 4320
 
 const char * drmFbTypeToString(drm_fb_type_t fbtype);
 const char * drmPlaneBlankToString(drm_plane_blank_t planetype);

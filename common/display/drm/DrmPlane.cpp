@@ -79,6 +79,7 @@ void DrmPlane::loadProperties() {
         {DRM_PLANE_PROR_IN_FORMATS, &mInFormats},
         {DRM_PLANE_PROP_BLENDMODE, &mBlendMode},
         {DRM_PLANE_PROP_ALPHA, &mAlpha},
+        {DRM_PLANE_PROP_MAX_FB_SIZE, &mMaxFbSize},
         {DRM_PLANE_PROP_OCCUPY, &mMesonOccupy},
     };
     const int planePropsNum = sizeof(planeProps)/sizeof(planeProps[0]);
@@ -104,6 +105,17 @@ void DrmPlane::loadProperties() {
 
     if (initedProps != planePropsNum)
         MESON_LOGE("NOT ALL PROPS LOADED, %d-%d.",   initedProps, planePropsNum);
+
+    if ((getCapabilities() & PLANE_SUPPORT_4K) == PLANE_SUPPORT_4K) {
+        mOsdInputMaxWidth = FB_SIZE_4K_W;
+        mOsdInputMaxHeight = FB_SIZE_4K_H;
+    } else if ((getCapabilities() & PLANE_SUPPORT_8K) == PLANE_SUPPORT_8K) {
+        mOsdInputMaxWidth = FB_SIZE_8K_W;
+        mOsdInputMaxHeight = FB_SIZE_8K_H;
+    } else {
+        mOsdInputMaxWidth = FB_SIZE_1080P_W;
+        mOsdInputMaxHeight = FB_SIZE_1080P_H;
+    }
 }
 
 const char * DrmPlane::getName() {
@@ -143,6 +155,10 @@ uint32_t DrmPlane::getType() {
 
 uint32_t DrmPlane::getCapabilities() {
     uint32_t caps = 0;
+    int max_fb_size = 0;
+    int max_fb_size_w = 0;
+    int max_fb_size_h = 0;
+
     if (mType->getValue() == DRM_PLANE_TYPE_PRIMARY) {
         caps |= PLANE_SHOW_LOGO;
         caps |= PLANE_PRIMARY;
@@ -150,6 +166,16 @@ uint32_t DrmPlane::getCapabilities() {
 
     if (!mZpos->isImmutable()) {
         caps |= PLANE_SUPPORT_ZORDER;
+    }
+
+
+    if (mMaxFbSize.get()) {
+        max_fb_size = mMaxFbSize->getValue();
+        max_fb_size_w = max_fb_size & 0xffff;
+        max_fb_size_h = max_fb_size >> 16;
+
+        if (max_fb_size_w >= FB_SIZE_4K_W && max_fb_size_h >= FB_SIZE_4K_H)
+            caps |= PLANE_SUPPORT_4K;
     }
 
     return caps;
@@ -182,8 +208,6 @@ bool DrmPlane::isAvailable() {
 }
 
 
-#define OSD_INPUT_MAX_WIDTH (1920)
-#define OSD_INPUT_MAX_HEIGHT (1080)
 #define OSD_INPUT_MIN_WIDTH (128)
 #define OSD_INPUT_MIN_HEIGHT (128)
 bool DrmPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
@@ -230,9 +254,9 @@ bool DrmPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
     /*check vpu limit: buffer size*/
     uint32_t sourceWidth = fb->mSourceCrop.bottom - fb->mSourceCrop.top;
     uint32_t sourceHeight = fb->mSourceCrop.right - fb->mSourceCrop.left;
-    if (sourceWidth > OSD_INPUT_MAX_HEIGHT ||sourceHeight > OSD_INPUT_MAX_WIDTH)
+    if (sourceWidth > mOsdInputMaxHeight || sourceHeight > mOsdInputMaxWidth)
         return false;
-    if (sourceWidth < OSD_INPUT_MIN_HEIGHT ||sourceHeight < OSD_INPUT_MIN_WIDTH)
+    if (sourceWidth < OSD_INPUT_MIN_HEIGHT || sourceHeight < OSD_INPUT_MIN_WIDTH)
         return false;
 
     /*

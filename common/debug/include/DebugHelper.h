@@ -63,6 +63,7 @@ public:
     inline float getScaleLimit() {return mScaleLimit;}
 
     inline bool enableDrmBlockMode() { return mDrmBlockMode; }
+    inline bool disableAISRAIPQ() { return mDisableAisrAipq; }
 
 protected:
     bool isEnabled();
@@ -102,5 +103,6 @@ protected:
     bool mDiscardInFence;
     bool mDiscardOutFence;
     bool mDrmBlockMode;
+    bool mDisableAisrAipq;
 };
 #endif

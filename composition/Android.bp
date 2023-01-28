@@ -74,6 +74,7 @@ cc_library_static {
         "simplestrategy/SingleplaneComposition/SingleplaneComposition.cpp",
         "simplestrategy/MultiplanesComposition/MultiplanesComposition.cpp",
         "simplestrategy/MultiplanesWithDiComposition/MultiplanesWithDiComposition.cpp",
+        "simplestrategy/MultiplanesWithHRComposition/MultiplanesWithHRComposition.cpp",
     ],
 
     static_libs: [

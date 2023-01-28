@@ -116,11 +116,6 @@ int32_t VtConsumer::onVtCmds(vt_cmd_t & cmd, vt_cmd_data_t & cmdData) {
                         SOLID_COLOR_FOR_GREEN, status);
             }
             break;
-        case VT_CMD_SET_VIDEO_TYPE:
-            MESON_LOGD("[%s] [%s] received cmd VT_CMD_SET_VIDEO_TYPE",
-                    __func__, mName);
-            mContentListener->setVideoType(cmdData.data);
-            break;
         default:
             MESON_LOGW("[%s] [%s] received an invalid CMD %d",
                     __func__, mName, (int)cmd);

@@ -43,6 +43,8 @@ ANDROID_SINGLETON_STATIC_INSTANCE(DebugHelper)
 #define COMMAND_DEVICE_COMPOSITION_THRESHOLD "--device-layers-threshold"
 #define COMMAND_SCALE_LIMIT "--scale-limit"
 #define COMMAND_DRM_BLOCK_MODE "--drm-block"
+#define COMMAND_DISABLE_AISR_AIPQ "--no-aisr-aipq"
+
 
 #define MAX_DEBUG_COMMANDS (20)
 
@@ -95,6 +97,7 @@ void DebugHelper::clearPersistCmd() {
     mPlanesDebugFlag.clear();
     mDebugPlane = false;
     mDrmBlockMode = false;
+    mDisableAisrAipq = false;
 }
 
 void DebugHelper::addHideLayer(int id) {
@@ -359,6 +362,13 @@ void DebugHelper::resolveCmd() {
                     continue;
                 }
 
+                if (strcmp(paramArray[i], COMMAND_DISABLE_AISR_AIPQ) == 0) {
+                    i++;
+                    CHECK_CMD_INT_PARAMETER();
+                    mDisableAisrAipq = INT_PARAMETER_TO_BOOL(paramArray[i]);
+                    continue;
+                }
+
             }
 
             /*Need permission to reset prop.*/
@@ -421,7 +431,8 @@ void DebugHelper::dump(String8 & dumpstr) {
             "\t " COMMAND_SAVE_LAYER " [layerId]: save specific layer's raw data by layer id. \n"
             "\t " COMMAND_MONITOR_DEVICE_COMPOSITION " 0|1: monitor non device composition. \n"
             "\t " COMMAND_SCALE_LIMIT " [float]: vpu scale limit factor. \n"
-            "\t " COMMAND_DRM_BLOCK_MODE " 0|1: enable/disable drm-block commit mode. \n";
+            "\t " COMMAND_DRM_BLOCK_MODE " 0|1: enable/disable drm-block commit mode. \n"
+            "\t " COMMAND_DISABLE_AISR_AIPQ " 0|1: enable/disable aisr aipq.\n";
 
         dumpstr.append("\nMesonHwc debug helper:\n");
         dumpstr.append(usage);
@@ -441,6 +452,7 @@ void DebugHelper::dump(String8 & dumpstr) {
         dumpstr.appendFormat(COMMAND_DEVICE_COMPOSITION_THRESHOLD " (%d)\n", mDeviceCompositionThreshold);
         dumpstr.appendFormat(COMMAND_SCALE_LIMIT " (%.2f)\n", mScaleLimit);
         dumpstr.appendFormat(COMMAND_DRM_BLOCK_MODE " (%d)\n", mDrmBlockMode);
+        dumpstr.appendFormat(COMMAND_DISABLE_AISR_AIPQ " (%d)\n", mDisableAisrAipq);
 
         dumpstr.append(COMMAND_HIDE_PLANE "/" COMMAND_SHOW_PATTERN_ON_PLANE " (");
 

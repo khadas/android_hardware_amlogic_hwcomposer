@@ -149,13 +149,22 @@ int32_t Hwc2Display::setDisplayResource(
     /*update composition strategy.*/
     uint32_t strategyFlags = 0;
     int osdPlanes = 0;
+    bool videoPlanesSupportHighResolution = false;
     for (auto it = mPlanes.begin(); it != mPlanes.end(); ++ it) {
         if ((*it)->getType() == OSD_PLANE) {
             osdPlanes ++;
         }
 
+        if ((*it)->getType() == HWC_VIDEO_PLANE &&
+            ((*it)->getCapabilities() & PLANE_SUPPORT_8K) == PLANE_SUPPORT_8K) {
+            videoPlanesSupportHighResolution = true;
+        }
+
         if (osdPlanes > 1 && (it == mPlanes.end() - 1 )) {
-            strategyFlags |= MULTI_PLANES_WITH_DI;
+            if (videoPlanesSupportHighResolution)
+                strategyFlags |= MULTI_PLANES_WITH_HR;
+            else
+                strategyFlags |= MULTI_PLANES_WITH_DI;
         }
 
         (*it)->setDisplayMode(mDisplayMode);

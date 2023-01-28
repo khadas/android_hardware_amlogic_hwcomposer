@@ -55,7 +55,6 @@ meson_hwc_display_cc_defaults {
                 "-DHWC_HDMI_FRAC_MODE=%s",
             ],
         },
-
     },
 
     srcs: [

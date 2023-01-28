@@ -10,6 +10,7 @@
 #include "simplestrategy/SingleplaneComposition/SingleplaneComposition.h"
 #include "simplestrategy/MultiplanesComposition/MultiplanesComposition.h"
 #include "simplestrategy/MultiplanesWithDiComposition/MultiplanesWithDiComposition.h"
+#include "simplestrategy/MultiplanesWithHRComposition/MultiplanesWithHRComposition.h"
 
 #include <MesonLog.h>
 
@@ -25,6 +26,10 @@ std::shared_ptr<ICompositionStrategy> CompositionStrategyFactory::create(
 
         if (flags & MULTI_PLANES_WITH_DI) {
             return std::make_shared<MultiplanesWithDiComposition>();
+        }
+
+        if (flags & MULTI_PLANES_WITH_HR) {
+            return std::make_shared<MultiplanesWithHRComposition>();
         }
 
        return std::make_shared<SingleplaneComposition>();

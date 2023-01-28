@@ -60,7 +60,6 @@ typedef enum vt_cmd {
     VT_CMD_SET_COLOR_BLACK,
     VT_CMD_SET_COLOR_BLUE,
     VT_CMD_SET_COLOR_GREEN,
-    VT_CMD_SET_VIDEO_TYPE,
 } vt_cmd_t;
 
 typedef struct vt_rect {

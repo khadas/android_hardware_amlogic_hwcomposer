@@ -85,6 +85,7 @@ protected:
     std::shared_ptr<DrmProperty> mAlpha;
 
     std::shared_ptr<DrmProperty> mInFormats;
+    std::shared_ptr<DrmProperty> mMaxFbSize;
     std::shared_ptr<DrmProperty> mMesonOccupy;
 
     bool mBlank;
@@ -97,6 +98,9 @@ protected:
     std::queue<std::shared_ptr<DrmBo>> mBoCache;
 
     int mDbgFlag;
+
+    uint32_t mOsdInputMaxWidth;
+    uint32_t mOsdInputMaxHeight;
 
     drm_mode_info_t mDispMode;
 

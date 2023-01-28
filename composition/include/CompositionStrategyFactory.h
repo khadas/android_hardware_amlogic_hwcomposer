@@ -19,6 +19,7 @@ enum {
 enum {
     MULTI_OSD_PLANES = 1 << 0, //vpu have multi layers
     MULTI_PLANES_WITH_DI = 1 << 1, // use di to compose the multi video
+    MULTI_PLANES_WITH_HR = 1 << 2, // support high resolution input
 } COMPOSITION_FLAG;
 
 class CompositionStrategyFactory {

@@ -25,6 +25,7 @@ public:
     int32_t dettachUvmBuffer();
     int32_t collectUvmBuffer(const int fd, const int fence);
     int32_t releaseUvmResource();
+    int32_t getVideoType(int bufferFd);
 
     char *getDebugName() {return mName;};
 

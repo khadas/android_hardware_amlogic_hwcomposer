@@ -29,7 +29,7 @@ enum uvm_hook_mod_type {
 
 struct uvm_fd_data {
     int fd;
-    int commit_display;
+    int data;
 };
 
 struct uvm_hook_data {
@@ -49,6 +49,7 @@ public:
     int commitDisplay(const int fd, const int commit);
     int dettachBuffer(const int fd);
     int attachBuffer(const int fd);
+    int getVideoType(const int fd);
 
 private:
     int mDrvFd;

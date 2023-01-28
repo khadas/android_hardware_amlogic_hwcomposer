@@ -40,7 +40,7 @@ Hwc2Layer::Hwc2Layer(uint32_t dispId) : DrmFramebuffer(){
     mTunnelId = -1;
     mGameMode = false;
     mVideoDisplayStatus = VT_VIDEO_STATUS_SHOW;
-    mAMVideoType = -1;
+    mAMVideoType = 0;
     mVtRefreshed = false;
     mQueueItems.clear();
 
@@ -185,6 +185,7 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
         if (bufFd >= 0) {
             mPreUvmBufferFd = dup(bufFd);
             attachUvmBuffer(mPreUvmBufferFd);
+            setVideoType(bufFd);
         }
     } else if (am_gralloc_is_omx_metadata_buffer(buffer)) {
         int tunnel = 0;
@@ -405,7 +406,6 @@ void Hwc2Layer::clearUpdateFlag() {
 }
 
 /* ========================== Uvm Attach =================================== */
-/* just for non-tunnel type video */
 int32_t Hwc2Layer::attachUvmBuffer(const int bufferFd) {
     if (!mUvmDettach)
         mUvmDettach = std::make_shared<UvmDettach>(mId);
@@ -534,6 +534,7 @@ void Hwc2Layer::updateVtBuffer() {
     mVtUpdate = true;
     mVtBufferFd = mQueueItems[0].mVtBufferFd;
     mTimestamp = mQueueItems[0].mTimeStamp;
+    setVideoType(mVtBufferFd);
 
     diffAdded = mTimestamp - mPreviousTimestamp;
     mPreviousTimestamp = mTimestamp;
@@ -996,23 +997,23 @@ void Hwc2Layer::onNeedShowTempBufferWithStatus(
     onVtVideoStatus(status);
 }
 
-void Hwc2Layer::setVideoType(int videoType) {
-    mAMVideoType = videoType;
+void Hwc2Layer::setVideoType(int fd) {
+    /* this function is called after attachUvmBuffer*/
+    int bufFd = -1;
+
+    if (fd >= 0) {
+        bufFd = dup(fd);
+        if (bufFd >=0 && mUvmDettach) {
+            mAMVideoType = mUvmDettach->getVideoType(bufFd);
+            MESON_LOGV("[%s] [%" PRIu64 "] videoType:0x%x",
+                    __func__, mId, mAMVideoType);
+            close(bufFd);
+        }
+     }
 }
 
 int Hwc2Layer::getVideoType() {
-    int video_type = -1;
-    if (isVtBuffer())
-        video_type = mAMVideoType;
-    else {
-        if (mFbType != DRM_FB_VIDEO_SIDEBAND_TV &&
-            mFbType != DRM_FB_VIDEO_TUNNEL_SIDEBAND &&
-            mFbType != DRM_FB_VIDEO_SIDEBAND_SECOND &&
-            mFbType != DRM_FB_VIDEO_SIDEBAND)
-            am_gralloc_get_omx_video_type(mBufferHandle, &video_type);
-    }
-
-    return video_type;
+    return mAMVideoType;
 }
 /* ========================================================================= */
 
@@ -1084,13 +1085,5 @@ void Hwc2Layer::VtContentChangeListener::onNeedShowTempBufferWithStatus(
     else
          MESON_LOGE("Hwc2Layer::VtContentChangeListener::%s mLayer is NULL",
                  __func__);
-}
-
-void Hwc2Layer::VtContentChangeListener::setVideoType(int videoType) {
-    if (mLayer)
-        mLayer->setVideoType(videoType);
-    else
-        MESON_LOGE("Hwc2Layer::VtContentChangeListener::%s mLayer is NULL",
-                __func__);
 }
 /* ========================================================================= */

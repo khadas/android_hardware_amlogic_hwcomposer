@@ -65,6 +65,12 @@ static const char* DISPLAY_MODE_LIST[] = {
     "smpte60hz",    // MODE_4K2KSMPTE60HZ
     "smpte100hz",   // MODE_4K2KSMPTE100HZ
     "smpte120hz",  // MODE_4K2KSMPTE120HZ
+    "7680x4320p24hz",    // MODE_8K4K24HZ
+    "7680x4320p25hz",    // MODE_8K4K25HZ
+    "7680x4320p30hz",    // MODE_8K4K30HZ
+    "7680x4320p48hz",    // MODE_8K4K48HZ
+    "7680x4320p50hz",    // MODE_8K4K50HZ
+    "7680x4320p60hz",    // MODE_8K4K60HZ
     "panel",        // MODE_PANEL
     "pal_m",        // MODE_PAL_M
     "pal_n",        // MODE_PAL_N

@@ -21,6 +21,7 @@ typedef uint32_t u32;
 #define VIDEO_COMPOSER_IOCTL_SET_ENABLE   _IOW(VIDEO_COMPOSER_IOC_MAGIC, 0x01, int)
 #define VIDEO_COMPOSER_IOCTL_SET_DISABLE  _IOW(VIDEO_COMPOSER_IOC_MAGIC, 0x02, int)
 #define VIDEO_COMPOSER_IOCTL_GET_PANEL_CAPABILITY   _IOR(VIDEO_COMPOSER_IOC_MAGIC, 0x03, int)
+#define VIDEO_COMPOSER_IOCTL_GET_LAYER_CAPABILITY _IOR(VIDEO_COMPOSER_IOC_MAGIC, 0x04, capability_info_t)
 
 #define MAX_LAYER_COUNT 9
 
@@ -66,6 +67,15 @@ typedef struct video_frames_info {
     u32 disp_zorder;
     u32 reserved[4];
 } video_frames_info_t;
+
+typedef struct capability_info {
+    u32 capability;
+    u32 min_w;
+    u32 min_h;
+    u32 max_w;
+    u32 max_h;
+    u32 reserved[10];
+} capability_info_t;
 
 class VideoComposerDev {
 public:

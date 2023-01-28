@@ -1,10 +1,10 @@
 /*
-* Copyright (c) 2018 Amlogic, Inc. All rights reserved.
+* Copyright (c) 2022 Amlogic, Inc. All rights reserved.
 *
 * This source code is subject to the terms and conditions defined in the
 * file 'LICENSE' which is part of this source code package.
 *
-* Description:
+* Description: support 8K video and 4k120hz video
 */
 
 #define LOG_NDEBUG 1
@@ -12,7 +12,7 @@
 
 #include <utils/Trace.h>
 #include <hardware/hwcomposer2.h>
-#include "MultiplanesWithDiComposition.h"
+#include "MultiplanesWithHRComposition.h"
 #include <DrmTypes.h>
 #include <MesonLog.h>
 #include <fcntl.h>
@@ -29,32 +29,35 @@
 #define TOP_VIDEO_FB_BEGIN_ZORDER      129  // top video zorder: 129 - 192
 #define BOTTOM_VIDEO_FB_BEGIN_ZORDER   1    // bottom video zorder: 1 - 64
 
-#define OSD_SCALER_INPUT_MAX_WIDTH (1920)
-#define OSD_SCALER_INPUT_MAX_HEIGHT (1080)
+#define OSD_SCALER_INPUT_MAX_WIDTH (3840)
+#define OSD_SCALER_INPUT_MAX_HEIGHT (2160)
+
 #define OSD_SCALER_INPUT_FACTOR (3.0)
 #define OSD_SCALER_INPUT_MARGIN (1.1)
+
+#define DEFAULT_REFRESH_RATE 60
 
 #define IS_FB_COMPOSED(fb) \
     (fb->mZorder >= mMinComposerZorder && fb->mZorder <= mMaxComposerZorder)
 
 /* Constructor function */
-MultiplanesWithDiComposition::MultiplanesWithDiComposition() {
+MultiplanesWithHRComposition::MultiplanesWithHRComposition() {
     init();
+    if (HwcConfig::AiSrProcessorEnabled())
+        createFbProcessor(FB_AISR_PROCESSOR, mSrProcessor);
     mSrProcessor.reset();
     mPqProcessor.reset();
     mOsdPlaneNum = 0;
     mVideoPlaneNum = 0;
-    mVsyncRefreshRate = 0;
     mScaleValue = 0;
-    mResetProcessorFlag  = false;
 }
 
 /* Deconstructor function */
-MultiplanesWithDiComposition::~MultiplanesWithDiComposition() {
+MultiplanesWithHRComposition::~MultiplanesWithHRComposition() {
 }
 
 /* Clean FrameBuffer, Composer and Plane. */
-void MultiplanesWithDiComposition::init() {
+void MultiplanesWithHRComposition::init() {
     /* Reset Flags */
     mHDRMode             = false;
     mHideSecureLayer     = false;
@@ -62,6 +65,7 @@ void MultiplanesWithDiComposition::init() {
     mHaveClient          = false;
     mInsideVideoFbsFlag  = false;
     mSkipValidate = false;
+    mVsyncOverDefault = false;
 
     /*crtc scale info.*/
     mDisplayRefFb.reset();
@@ -99,7 +103,7 @@ void MultiplanesWithDiComposition::init() {
     mDumpStr.clear();
 }
 
-int MultiplanesWithDiComposition::allocateDiOutputFb(
+int MultiplanesWithHRComposition::allocateDiOutputFb(
     std::shared_ptr<DrmFramebuffer> & fb,
     uint32_t z) {
     /*now output fb is fake, allocate once create.*/
@@ -110,13 +114,13 @@ int MultiplanesWithDiComposition::allocateDiOutputFb(
     return 0;
 }
 
-int MultiplanesWithDiComposition::chooseOneVideoFb(std::shared_ptr<DrmFramebuffer> & videoFb) {
+int MultiplanesWithHRComposition::chooseOneVideoFb(std::shared_ptr<DrmFramebuffer> & videoFb) {
     videoFb.reset();
     // no Video Fbs
     if (mDIComposerFbs.empty())
         return -EINVAL;
 
-    std::vector<int> video_types {AM_VIDEO_DI_POST, AM_VIDEO_SECURE, AM_VIDEO_DV,
+    std::vector<int> video_types {AM_VIDEO_8K, AM_VIDEO_DV, AM_VIDEO_DI_POST, AM_VIDEO_SECURE,
         AM_VIDEO_4K, AM_VIDEO_AFBC, AM_VIDEO_HDR, AM_VIDEO_HDR10_PLUS, AM_VIDEO_HLG};
     std::multimap<int, std::shared_ptr<DrmFramebuffer>> video_type_maps;
     int video_type;
@@ -215,7 +219,7 @@ int MultiplanesWithDiComposition::chooseOneVideoFb(std::shared_ptr<DrmFramebuffe
     return 0;
 }
 
-int MultiplanesWithDiComposition::setUpProcessor() {
+int MultiplanesWithHRComposition::setUpProcessor() {
     if (DebugHelper::getInstance().disableAISRAIPQ())
         return 0;
     if (HwcConfig::AiSrProcessorEnabled()) {
@@ -223,7 +227,6 @@ int MultiplanesWithDiComposition::setUpProcessor() {
         if (!mSrProcessor.get()) {
             createFbProcessor(FB_AISR_PROCESSOR, mSrProcessor);
             mSrProcessor->setup();
-            mResetProcessorFlag = true;
         }
     }
 
@@ -232,14 +235,13 @@ int MultiplanesWithDiComposition::setUpProcessor() {
         if (!mPqProcessor.get()) {
             createFbProcessor(FB_AIPQ_PROCESSOR, mPqProcessor);
             mPqProcessor->setup();
-            mResetProcessorFlag = true;
         }
     }
 
     return 0;
 }
 
-int MultiplanesWithDiComposition::tearDownProcessor() {
+int MultiplanesWithHRComposition::tearDownProcessor() {
     if (mSrProcessor.get()) {
         mSrProcessor->teardown();
         mSrProcessor.reset();
@@ -253,26 +255,7 @@ int MultiplanesWithDiComposition::tearDownProcessor() {
     return 0;
 }
 
-int MultiplanesWithDiComposition::resetProcessor() {
-    if (mResetProcessorFlag)
-        return 0;
-
-    if (mSrProcessor.get()) {
-        mSrProcessor->teardown();
-        mSrProcessor->setup();
-    }
-
-    if (mPqProcessor.get()) {
-        mPqProcessor->teardown();
-        mPqProcessor->setup();
-    }
-
-    mResetProcessorFlag = true;
-
-    return 0;
-}
-
-int MultiplanesWithDiComposition::collectProcessor() {
+int MultiplanesWithHRComposition::collectProcessor() {
     if (mSrProcessor.get())
         mProcessors.push_back(mSrProcessor);
 
@@ -282,7 +265,7 @@ int MultiplanesWithDiComposition::collectProcessor() {
     return 0;
 }
 
-bool MultiplanesWithDiComposition::runProcessor(
+bool MultiplanesWithHRComposition::runProcessor(
         struct DisplayPair &dp,
         int &blankFlag,
         int &ret) {
@@ -310,7 +293,6 @@ bool MultiplanesWithDiComposition::runProcessor(
             outFb->setProcessFence(processFence);
             inFb = outFb;
             hasProcessor = true;
-            mResetProcessorFlag = false;
         }
     }
 
@@ -331,11 +313,182 @@ bool MultiplanesWithDiComposition::runProcessor(
     return hasProcessor;
 }
 
-int MultiplanesWithDiComposition::processVideoFbs() {
+void MultiplanesWithHRComposition::handleLegacySidebandVideoFbs(
+        std::vector<std::shared_ptr<DrmFramebuffer>> & sidebandFbs,
+        uint32_t maxVideoZ) {
+    /*TODO: only one legacy sideband(hwc cannot get fb info) supported now. */
+    std::shared_ptr<DrmFramebuffer> fb;
+    uint32_t videoZ;
+
+    if (sidebandFbs.size() > 0) {
+        /*sideband always push to video plane 0*/
+        auto it = sidebandFbs.begin();
+        fb = *it;
+        it ++;
+
+        for (; it != sidebandFbs.end(); it ++) {
+            MESON_LOGD("%s too many sideband, skip.", __func__);
+            (*it)->mCompositionType = MESON_COMPOSITION_DUMMY;
+        }
+        sidebandFbs.clear();
+    }
+
+    if (fb) {
+        videoZ = (maxVideoZ != INVALID_ZORDER) ? maxVideoZ : fb->mZorder;
+
+        mDisplayPairs.push_back(DisplayPair{
+                (uint32_t)mOsdPlaneNum, maxVideoZ, fb, mHwcVideoPlanes[0], mProcessors});
+        mHwcVideoPlanes.erase(mHwcVideoPlanes.begin());
+    }
+}
+
+void MultiplanesWithHRComposition::handleVideoWithoutVideoPlane(
+    std::vector<std::shared_ptr<DrmFramebuffer>> & fbs) {
+    auto it = fbs.begin();
+    for (; it != fbs.end(); it++)
+        (*it)->mCompositionType = MESON_COMPOSITION_CLIENT;
+}
+
+void MultiplanesWithHRComposition::handleNonLegacySidebandVideoFbs(
+        uint32_t minVideoZ, uint32_t maxVideoZ) {
+    bool bVideoCompose = false;
+    bool have8K60HZ = false;
+    std::shared_ptr<DrmFramebuffer> fb;
+    uint32_t videoZ, usedPlanes = 0;
+    int videoType;
+    int videoFbNum = mDIComposerFbs.size();
+
+    if (videoFbNum == 0)
+        return;
+
+    if (!mHwcVideoPlanes.size() ||
+        mHwcVideoPlanes.size() != mVideoPlaneNum) {
+        /* 1, just one video plane to display legacy sideband video
+         * 2, not support legacy sideband + non-sideband video */
+        handleVideoWithoutVideoPlane(mDIComposerFbs);
+        mDIComposerFbs.clear();
+        return;
+    }
+
+    if (videoFbNum > mVideoPlaneNum)
+        bVideoCompose = true;
+
+    if (mVsyncOverDefault) {
+        while (true) {
+            if (!chooseOneVideoFb(fb)) {
+                videoType = fb->getVideoType();
+
+                if ((videoType & AM_VIDEO_8K) == AM_VIDEO_8K) {
+                    MESON_LOGV("%s, VideoPlane can not support 8K video "
+                        "when refresh rate greater then DEFAULT",
+                        __func__);
+                    fb->mCompositionType = MESON_COMPOSITION_CLIENT;
+                    continue;
+                } else {
+                    fb->mCompositionType = MESON_COMPOSITION_PLANE_HWCVIDEO;
+                    if (bVideoCompose)
+                        videoZ = maxVideoZ;
+                    else
+                        videoZ = fb->mZorder;
+
+                    mDisplayPairs.push_back(DisplayPair{
+                            (uint32_t)mOsdPlaneNum, videoZ, fb,
+                            mHwcVideoPlanes[0], mProcessors});
+                    mHwcVideoPlanes.erase(mHwcVideoPlanes.begin());
+                    /* currently, hwc only supports one channel
+                     * when refresh rate greater than DEFAULT */
+                    handleVideoWithoutVideoPlane(mDIComposerFbs);
+                    mDIComposerFbs.clear();
+                    return;
+                }
+            } else {
+                /* no find available FB */
+                return;
+            }
+        }
+    } else {
+        for (int i = 0; i < videoFbNum; i++) {
+            usedPlanes++;
+            /* Fbs set to the last hwcVideoPlane */
+            if (i >= mVideoPlaneNum -1) {
+                mHwcVideoInputFbs = mDIComposerFbs;
+                if (mHwcVideoInputFbs.size() > 0) {
+                    if (have8K60HZ) {
+                        /* currently, hwc only supports one channel for 8K60Hz */
+                        handleVideoWithoutVideoPlane(mDIComposerFbs);
+                        mDIComposerFbs.clear();
+                        break;
+                    }
+
+                    if (bVideoCompose) {
+                        videoZ = minVideoZ;
+                        auto it = mHwcVideoInputFbs.begin();
+                        for (; it != mHwcVideoInputFbs.end(); it++)
+                            (*it)->mCompositionType = MESON_COMPOSITION_DI;
+
+                        /*set dicomposer and get output video.*/
+                        std::vector<std::shared_ptr<DrmFramebuffer>> nofbs;
+                        mDiComposer->prepare();
+                        mDiComposer->addInputs(mDIComposerFbs, nofbs, i);
+                        /*TODO: workaround to pass zorder to composer.*/
+                        hwc_region_t damage = {0, 0};
+                        allocateDiOutputFb(fb, (*mHwcVideoInputFbs.begin())->mZorder);
+                        mDiComposer->setOutput(fb, damage, i);
+                    } else {
+                        fb = *mHwcVideoInputFbs.begin();
+                        videoZ = fb->mZorder;
+                        fb->mCompositionType = MESON_COMPOSITION_PLANE_HWCVIDEO;
+                    }
+
+                    /*-----set buffer to displaypair------*/
+                    mDisplayPairs.push_back(DisplayPair{
+                            (uint32_t)mOsdPlaneNum + i,  videoZ, fb, mHwcVideoPlanes[i],
+                            std::vector<std::shared_ptr<FbProcessor>>()});
+
+                }
+                break;
+            }
+
+            if (!chooseOneVideoFb(fb)) {
+#ifdef MESON_HWC_RESOLUTION_AND_REFRESH_RATE_LIMIT
+                // need remove limitations of 8K resolution.
+                videoType = fb->getVideoType();
+                if ((videoType & AM_VIDEO_8K) == AM_VIDEO_8K) {
+                    if ((videoType & AM_VIDEO_DV) == AM_VIDEO_DV) {
+                        MESON_LOGV("%s, VideoPlane can not support 8K+DV video ", __func__);
+                        fb->mCompositionType = MESON_COMPOSITION_CLIENT;
+                        continue;
+                    } else {
+                        have8K60HZ = true;
+                    }
+                }
+#endif
+
+                MESON_LOGV("[%s] id:%" PRIu64 ", setTo video %d ", __func__, fb->getUniqueId(), i);
+                fb->mCompositionType = MESON_COMPOSITION_PLANE_HWCVIDEO;
+                if (i == 0 && bVideoCompose)
+                    videoZ = maxVideoZ;
+                else
+                    videoZ = fb->mZorder;
+
+                mDisplayPairs.push_back(DisplayPair{
+                        (uint32_t)mOsdPlaneNum + i, videoZ, fb, mHwcVideoPlanes[i],
+                            (!i ? mProcessors : std::vector<std::shared_ptr<FbProcessor>>())});
+            }
+        }
+
+        /* removed used planes from mHwcVideoPlanes */
+        for (uint32_t i = 0; i < usedPlanes; i++)
+            mHwcVideoPlanes.erase(mHwcVideoPlanes.begin());
+    }
+}
+
+int MultiplanesWithHRComposition::processVideoFbs() {
     std::vector<std::shared_ptr<DrmFramebuffer>> sidebandFbs;
     std::shared_ptr<DrmFramebuffer> fb;
 
-    uint32_t minVideoZ = -1, maxVideoZ = -1;
+    uint32_t minVideoZ = INVALID_ZORDER;
+    uint32_t maxVideoZ = INVALID_ZORDER;
     int videoFbNum = 0;
     for (auto fbIt = mFramebuffers.begin(); fbIt != mFramebuffers.end(); ++fbIt) {
         bool bSideband = false;
@@ -375,9 +528,7 @@ int MultiplanesWithDiComposition::processVideoFbs() {
     if ((videoFbNum <= mVideoPlaneNum) && (mDiComposer != NULL))
         mDiComposer->prepare();
 
-    if (videoFbNum == 0 ||
-        videoFbNum - sidebandFbs.size() != 1 ||
-        mVsyncRefreshRate > 60) {
+    if (mDIComposerFbs.size() != 1 || mVsyncOverDefault) {
         /* Video Processor: only support one video now,
          * not support legacy sideband ,
          * not support aipq&aisr when refresh rate is greater than 60,
@@ -394,8 +545,8 @@ int MultiplanesWithDiComposition::processVideoFbs() {
     /*
     * Composition: only 1 + .. + N mode now
     * For vd1:
-    * 1. sideband.
-    * 2. special video types: AFBC/DV/HDR/HDR10/HLG/SECURE/DIPOST.
+    * 1. support on channel legacy sideband.
+    * 2. special video types: 8K/AFBC/DV/HDR/HDR10/HLG/SECURE/DIPOST.
     * 3. no overlap & biggest one.
     * For the last vd:
     * 1. compose always happened on the last vd.
@@ -403,111 +554,14 @@ int MultiplanesWithDiComposition::processVideoFbs() {
     * 3. vd1 should on top of vd2 when have video composed.
     */
 
-    videoFbNum = (sidebandFbs.size() > 0 ? 1 : 0) + (videoFbNum - sidebandFbs.size());
-    bool bVideoCompose = videoFbNum > mVideoPlaneNum ? true : false;
-    uint32_t videoZ = -1, usedPlanes = 0;
-    std::shared_ptr<DrmFramebuffer> videoFb;
-
-    if (mVideoPlaneNum == 1 && sidebandFbs.size() > 0) {
-        /* for just one hwcVideoPlane and have sideband video*/
-        auto it = sidebandFbs.begin();
-        fb = *it;
-        it ++;
-        for (; it != sidebandFbs.end(); it ++) {
-            MESON_LOGD("too many sideband, skip.");
-            (*it)->mCompositionType = MESON_COMPOSITION_DUMMY;
-        }
-        sidebandFbs.clear();
-        fb->mCompositionType = MESON_COMPOSITION_PLANE_HWCVIDEO;
-        mDisplayPairs.push_back(DisplayPair{
-                (uint32_t)mOsdPlaneNum, fb->mZorder, fb, mHwcVideoPlanes[0],
-                std::vector<std::shared_ptr<FbProcessor>>()});
-        mHwcVideoPlanes.erase(mHwcVideoPlanes.begin());
-        fb.reset();
-
-        mHwcVideoInputFbs = mDIComposerFbs;
-        if (mHwcVideoInputFbs.size() > 0) {
-            for (auto it = mHwcVideoInputFbs.begin(); it != mHwcVideoInputFbs.end(); it++) {
-                (*it)->mCompositionType = MESON_COMPOSITION_DUMMY;
-            }
-        }
-        return 0;
-    }
-
-    fb.reset();
-    for (int i = 0; i < videoFbNum; i++) {
-        usedPlanes++;
-        /* Fbs set to the last hwcVideoPlane */
-        if (i >= mVideoPlaneNum -1) {
-            mHwcVideoInputFbs = mDIComposerFbs;
-            if (mHwcVideoInputFbs.size() > 0) {
-                if (bVideoCompose) {
-                    videoZ = minVideoZ;
-                    for (auto it = mHwcVideoInputFbs.begin(); it != mHwcVideoInputFbs.end(); it++) {
-                        (*it)->mCompositionType = MESON_COMPOSITION_DI;
-                    }
-
-                    /*set dicomposer and get output video.*/
-                    std::vector<std::shared_ptr<DrmFramebuffer>> nofbs;
-                    mDiComposer->prepare();
-                    mDiComposer->addInputs(mDIComposerFbs, nofbs, i);
-                    /*TODO: workaround to pass zorder to composer.*/
-                    hwc_region_t damage = {0, 0};
-                    allocateDiOutputFb(fb, (*mHwcVideoInputFbs.begin())->mZorder);
-                    mDiComposer->setOutput(fb, damage, i);
-                } else {
-                    fb = *mHwcVideoInputFbs.begin();
-                    videoZ = fb->mZorder;
-                    fb->mCompositionType = MESON_COMPOSITION_PLANE_HWCVIDEO;
-                }
-
-                /*-----set buffer to displaypair------*/
-                mDisplayPairs.push_back(DisplayPair{
-                        (uint32_t)mOsdPlaneNum + i,  videoZ, fb, mHwcVideoPlanes[i],
-                        std::vector<std::shared_ptr<FbProcessor>>()});
-            }
-            break;
-        }
-
-        /*TODO: only one sideband supported now. */
-        if (sidebandFbs.size() > 0) {
-            auto it = sidebandFbs.begin();
-            /*sideband always push to video plane 0*/
-            fb = *it;
-            it ++;
-            for (; it != sidebandFbs.end(); it ++) {
-                MESON_LOGD("too many sideband, skip.");
-                (*it)->mCompositionType = MESON_COMPOSITION_DUMMY;
-            }
-            sidebandFbs.clear();
-        }
-
-        if (!fb)
-            chooseOneVideoFb(fb);
-
-        MESON_LOGV("[%s] id:%" PRIu64 ", setTo video %d ", __func__, fb->getUniqueId(), i);
-        fb->mCompositionType = MESON_COMPOSITION_PLANE_HWCVIDEO;
-        if (i == 0 && bVideoCompose)
-            videoZ = maxVideoZ;
-        else
-            videoZ = fb->mZorder;
-
-        mDisplayPairs.push_back(DisplayPair{
-                (uint32_t)mOsdPlaneNum + i, videoZ, fb, mHwcVideoPlanes[i],
-                (!i ? mProcessors : std::vector<std::shared_ptr<FbProcessor>>())});
-        fb.reset();
-    }
-
-    /* removed used planes from mHwcVideoPlanes */
-    for (uint32_t i = 0; i < usedPlanes; i++)
-        mHwcVideoPlanes.erase(mHwcVideoPlanes.begin());
-
+    handleLegacySidebandVideoFbs(sidebandFbs, maxVideoZ);
+    handleNonLegacySidebandVideoFbs(minVideoZ, maxVideoZ);
 
     return 0;
 }
 
 /* Apply flag with secure and forceClient Fbs. */
-int MultiplanesWithDiComposition::applyCompositionFlags() {
+int MultiplanesWithHRComposition::applyCompositionFlags() {
     if (!mHideSecureLayer && !mForceClientComposer) {
         return 0;
     }
@@ -529,7 +583,7 @@ int MultiplanesWithDiComposition::applyCompositionFlags() {
 }
 
 /* handle uvm, */
-int MultiplanesWithDiComposition::handleUVM() {
+int MultiplanesWithHRComposition::handleUVM() {
     std::shared_ptr<DrmFramebuffer> fb;
     auto fbIt = mDisplayPairs.begin();
 
@@ -547,7 +601,7 @@ int MultiplanesWithDiComposition::handleUVM() {
     return 0;
 }
 
-int MultiplanesWithDiComposition::processGfxFbs() {
+int MultiplanesWithHRComposition::processGfxFbs() {
     /* Remove dummy and video Fbs for later osd composition.
      * Pickout OSD Fbs.
      * Save client flag.
@@ -570,7 +624,7 @@ int MultiplanesWithDiComposition::processGfxFbs() {
 }
 
 /* Delete dummy and video Fbs, then pickout OSD Fbs. */
-int MultiplanesWithDiComposition::pickoutOsdFbs() {
+int MultiplanesWithHRComposition::pickoutOsdFbs() {
     std::shared_ptr<DrmFramebuffer> fb;
     std::vector<std::shared_ptr<DrmFramebuffer>> dummyFbs;
     bool bRemove = false;
@@ -697,7 +751,7 @@ int MultiplanesWithDiComposition::pickoutOsdFbs() {
  **                                                                 *
  ********************************************************************
  */
-int MultiplanesWithDiComposition::countComposerFbs(int &belowClientNum, int &upClientNum, int &insideClientNum) {
+int MultiplanesWithHRComposition::countComposerFbs(int &belowClientNum, int &upClientNum, int &insideClientNum) {
     if (mMinComposerZorder == INVALID_ZORDER) {
         belowClientNum = 0;
         upClientNum = 0;
@@ -720,7 +774,7 @@ int MultiplanesWithDiComposition::countComposerFbs(int &belowClientNum, int &upC
     return 1;
 }
 
-int MultiplanesWithDiComposition::confirmComposerRange() {
+int MultiplanesWithHRComposition::confirmComposerRange() {
     std::shared_ptr<DrmFramebuffer> fb;
     uint32_t osdFbsNum    = mFramebuffers.size();
     uint32_t osdPlanesNum = mOsdPlanes.size();
@@ -790,7 +844,7 @@ int MultiplanesWithDiComposition::confirmComposerRange() {
     return 0;
 }
 
-int32_t MultiplanesWithDiComposition::compareFbScale(
+int32_t MultiplanesWithHRComposition::compareFbScale(
     drm_rect_t & aSrc,
     drm_rect_t & aDst,
     drm_rect_t & bSrc,
@@ -819,7 +873,7 @@ int32_t MultiplanesWithDiComposition::compareFbScale(
 }
 
 /* Set DisplayPairs between UI(OSD) Fbs with plane. */
-int MultiplanesWithDiComposition::setOsdFbs2PlanePairs() {
+int MultiplanesWithHRComposition::setOsdFbs2PlanePairs() {
     if (mFramebuffers.size() == 0)
         return 0;
 
@@ -874,7 +928,7 @@ int MultiplanesWithDiComposition::setOsdFbs2PlanePairs() {
 }
 
 /* Select composer */
-int MultiplanesWithDiComposition::selectComposer() {
+int MultiplanesWithHRComposition::selectComposer() {
     if (mComposerFbs.size() == 0) {
         mClientComposer->prepare();
         return 0;
@@ -901,7 +955,7 @@ int MultiplanesWithDiComposition::selectComposer() {
 }
 
 /* Find out which fb need to compose and push DisplayPair */
-int MultiplanesWithDiComposition::fillComposerFbs() {
+int MultiplanesWithHRComposition::fillComposerFbs() {
     std::shared_ptr<DrmFramebuffer> fb;
     if (mMaxComposerZorder != INVALID_ZORDER &&
         mMinComposerZorder != INVALID_ZORDER) {
@@ -939,7 +993,7 @@ int MultiplanesWithDiComposition::fillComposerFbs() {
 /* Update present zorder.
  * If videoZ ~ (mMinComposerZorder, mMaxComposerZorder), set maxVideoZ = maxVideoZ - 1
  */
-void MultiplanesWithDiComposition::handleOverlayVideoZorder() {
+void MultiplanesWithHRComposition::handleOverlayVideoZorder() {
     auto it = mDisplayPairs.begin();
     it = mDisplayPairs.begin();
     for (; it != mDisplayPairs.end(); ++it) {
@@ -955,7 +1009,7 @@ void MultiplanesWithDiComposition::handleOverlayVideoZorder() {
  * 2. For afbc layers,  exp_h = SourceFrame_height * 1/3 * 1.1;
  *     when DisplayFrame_height < exp_h then only support two layers.
  */
-void MultiplanesWithDiComposition::handleVPUScaleLimit() {
+void MultiplanesWithHRComposition::handleVPUScaleLimit() {
     uint32_t nonAfbcFbsNumb = 0;
     uint32_t limitCount = 0;
 
@@ -1020,7 +1074,7 @@ Limitation:
 1. scale input should smaller than 1080P.
 2. din0 should input the base fb.
 */
-void MultiplanesWithDiComposition::handleVPULimit(bool video) {
+void MultiplanesWithHRComposition::handleVPULimit(bool video) {
     UNUSED(video);
     //MESON_ASSERT(video == false, "handleVPULimit havenot support video");
 
@@ -1090,7 +1144,7 @@ void MultiplanesWithDiComposition::handleVPULimit(bool video) {
     }
 }
 
-void MultiplanesWithDiComposition::handleDisplayLayerZorder() {
+void MultiplanesWithHRComposition::handleDisplayLayerZorder() {
     int topVideoNum = 0;
     uint32_t maxOsdZorder = INVALID_ZORDER;
     for (auto it = mDisplayPairs.begin(); it != mDisplayPairs.end(); ++it) {
@@ -1122,7 +1176,7 @@ void MultiplanesWithDiComposition::handleDisplayLayerZorder() {
 }
 
 /* Handle OSD Fbs and set OsdFbs2Plane pairs. */
-int MultiplanesWithDiComposition::handleOsdComposition() {
+int MultiplanesWithHRComposition::handleOsdComposition() {
     /* Step 1:
      * Judge whether compose or not.
      * If need to compose, confirm max/min client zorder.
@@ -1148,7 +1202,7 @@ int MultiplanesWithDiComposition::handleOsdComposition() {
     return 0;
 }
 
-int MultiplanesWithDiComposition::handleOsdCompositionWithVideo() {
+int MultiplanesWithHRComposition::handleOsdCompositionWithVideo() {
     std::shared_ptr<DrmFramebuffer> fb;
 
     /* STEP 1: handle two video fbs. */
@@ -1172,18 +1226,18 @@ int MultiplanesWithDiComposition::handleOsdCompositionWithVideo() {
             }
         }
 
-        /* Judge whether double video are neighbour or not */
-        bool bNeighbourVideo = true;
+        /* Judge whether double video are neighbor or not */
+        bool bNeighborVideo = true;
         auto fbIt = mFramebuffers.lower_bound(mMinVideoZorder);
         for (; fbIt != mFramebuffers.end(); ++ fbIt) {
             if (fbIt->second->mZorder > mMinVideoZorder && fbIt->second->mZorder < mMaxVideoZorder) {
-                bNeighbourVideo = false;
+                bNeighborVideo = false;
                 break;
             }
         }
 
-        if (!bNeighbourVideo) {
-            /* CASE VIDEO_1_1: two video fbs are not neighbour. */
+        if (!bNeighborVideo) {
+            /* CASE VIDEO_1_1: two video fbs are not neighbor. */
             if (mMinComposerZorder != INVALID_ZORDER) {
                 /* CASE VIDEO_1_1_1: have default compose range */
                 /* Change compose range to cover two video fbs. */
@@ -1223,12 +1277,12 @@ zorder: 8 -- osd ---------                      | 8 -- osd ---------            
             }
             /* goto case VIDEO_2 */
         } else {
-            /* CASE VIDEO_1_2: two video fbs are neighbour, treat as one video. */
+            /* CASE VIDEO_1_2: two video fbs are neighbor, treat as one video. */
             /* goto case VIDEO_2 */
         }
     }
 
-    /* STEP 2: now only one video fb or two neighbour video fbs.
+    /* STEP 2: now only one video fb or two neighbor video fbs.
      * pick ui fbs to compose.
      */
     confirmComposerRange();
@@ -1252,7 +1306,7 @@ zorder: 8 -- osd ---------                      | 8 -- osd ---------            
  * composers: Composer style.
  * planes: Get OSD and VIDEO planes from HwDisplayManager.
  */
-void MultiplanesWithDiComposition::setup(
+void MultiplanesWithHRComposition::setup(
     std::vector<std::shared_ptr<DrmFramebuffer>> & layers,
     std::vector<std::shared_ptr<IComposer>> & composers,
     std::vector<std::shared_ptr<HwDisplayPlane>> & planes,
@@ -1266,21 +1320,17 @@ void MultiplanesWithDiComposition::setup(
 
     mCompositionFlag = reqFlag;
     mScaleValue = scaleValue;
-#if OSD_OUTPUT_ONE_CHANNEL
-    mHDRMode = true;
-#else
-    if (reqFlag & COMPOSE_WITH_HDR_VIDEO) {
-        mHDRMode = true;
-    }
-#endif
-    if (reqFlag & COMPOSE_HIDE_SECURE_FB) {
-        mHideSecureLayer = true;
-    }
-    if (reqFlag & COMPOSE_FORCE_CLIENT) {
-        mForceClientComposer = true;
-    }
-
     mCrtc = crtc;
+
+#ifdef MESON_HWC_RESOLUTION_AND_REFRESH_RATE_LIMIT
+    // need remove limitation of refrash rate
+    if (vsyncPeriod != 0 &&
+            (uint32_t(1e9 / vsyncPeriod) > DEFAULT_REFRESH_RATE)) {
+        mVsyncOverDefault = true;
+    }
+#else
+    UNUSED(vsyncPeriod);
+#endif
 
     /* add layers */
     auto layerIt = layers.begin();
@@ -1319,14 +1369,10 @@ void MultiplanesWithDiComposition::setup(
     auto planeIt = planes.begin();
     for (; planeIt != planes.end(); ++planeIt) {
         std::shared_ptr<HwDisplayPlane> plane = *planeIt;
-
-        if (!plane->isAvailable())
-            continue;
-
         switch (plane->getType()) {
             case OSD_PLANE:
-                mOsdPlanes.push_back(plane);
-                break;
+                    mOsdPlanes.push_back(plane);
+                    break;
 
             case HWC_VIDEO_PLANE:
                 mHwcVideoPlanes.push_back(plane);
@@ -1340,14 +1386,24 @@ void MultiplanesWithDiComposition::setup(
 
     mVideoPlaneNum = mHwcVideoPlanes.size();
     mOsdPlaneNum = mOsdPlanes.size();
-    if (vsyncPeriod == 0)
-        mVsyncRefreshRate = 60;
-    else
-        mVsyncRefreshRate = 1e9 / vsyncPeriod;
+
+#if OSD_OUTPUT_ONE_CHANNEL
+    mHDRMode = true;
+#else
+    if (reqFlag & COMPOSE_WITH_HDR_VIDEO) {
+        mHDRMode = true;
+    }
+#endif
+    if (reqFlag & COMPOSE_HIDE_SECURE_FB) {
+        mHideSecureLayer = true;
+    }
+    if (reqFlag & COMPOSE_FORCE_CLIENT) {
+        mForceClientComposer = true;
+    }
 }
 
 //for present skip validate need update composition
-void MultiplanesWithDiComposition::updateComposition() {
+void MultiplanesWithHRComposition::updateComposition() {
     ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
 
@@ -1357,7 +1413,7 @@ void MultiplanesWithDiComposition::updateComposition() {
 }
 
 /* Decide to choose which Fbs and how to build OsdFbs2Plane pairs. */
-int MultiplanesWithDiComposition::decideComposition() {
+int MultiplanesWithHRComposition::decideComposition() {
     ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
     int ret = 0;
@@ -1386,14 +1442,15 @@ int MultiplanesWithDiComposition::decideComposition() {
 }
 
 /* Commit DisplayPair to display. */
-int MultiplanesWithDiComposition::commit() {
+int MultiplanesWithHRComposition::commit() {
     ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
-     bool setPlaneSuccess = true;
-     int ret = -1;
+    bool setPlaneSuccess = true;
+    int ret = -1;
 
     if (mCrtc == nullptr) {
-        MESON_LOGE("commit but no crtc!");
+        MESON_LOGE("MultiplanesWithHRComposition::%s commit but no crtc!",
+                __func__);
         return HWC2_ERROR_NO_RESOURCES;
     }
 
@@ -1459,7 +1516,7 @@ int MultiplanesWithDiComposition::commit() {
         if (fb->isVtBuffer()) {
             if (fb->isVtNeedClearFrameOrShowColorBuffer() ||
                 (fb->getVtBuffer() < 0 && !fb->haveSolidColorBuffer())) {
-                resetProcessor();
+                tearDownProcessor();
 
                 /* need blank video plane:
                  * 1, received a clear last frame cmd
@@ -1470,13 +1527,16 @@ int MultiplanesWithDiComposition::commit() {
             }
 
             if (fb->getVtBuffer() < 0 && fb->haveSolidColorBuffer()) {
-                resetProcessor();
+                tearDownProcessor();
 
                 plane->setPlane(fb, presentZorder, blankFlag);
                 fb->freeSolidColorBuffer();
                 continue;
             }
         } else {
+            /* make sure SF donot refresh VtLayer
+             * and VT thread only refresh VtLayer when layer have a valid buffer
+             */
             if (!runProcessor(*displayIt, blankFlag, ret))
                 ret = plane->setPlane(fb, presentZorder, blankFlag);
 
@@ -1532,12 +1592,14 @@ int MultiplanesWithDiComposition::commit() {
     return 0;
 }
 
-int MultiplanesWithDiComposition::commitTunnelVideo() {
+/* Commit DisplayPair to display. */
+int MultiplanesWithHRComposition::commitTunnelVideo() {
     ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
+    int ret = -1;
 
     if (mCrtc == nullptr) {
-        MESON_LOGE("MultiplanesWithDiComposition::%s commit but no crtc!",
+        MESON_LOGE("MultiplanesWithHRComposition::%s commit but no crtc!",
                 __func__);
         return HWC2_ERROR_NO_RESOURCES;
     }
@@ -1559,7 +1621,7 @@ int MultiplanesWithDiComposition::commitTunnelVideo() {
 
         if (fb->isVtNeedClearFrameOrShowColorBuffer() ||
             (fb->getVtBuffer() < 0 && !fb->haveSolidColorBuffer())) {
-            resetProcessor();
+            tearDownProcessor();
 
             /* need blank video plane:
              * 1, received a clear last frame cmd
@@ -1570,17 +1632,17 @@ int MultiplanesWithDiComposition::commitTunnelVideo() {
         }
 
         if (fb->getVtBuffer() < 0 && fb->haveSolidColorBuffer()) {
-            resetProcessor();
+            tearDownProcessor();
 
             plane->setPlane(fb, presentZorder, blankFlag);
             fb->freeSolidColorBuffer();
             continue;
         }
 
-        int ret = -1;
         if (!runProcessor(*displayIt, blankFlag, ret)) {
             ret = plane->setPlane(fb, presentZorder, blankFlag);
             fb->clearFbHandleFlag();
+
             if (ret != 0) {
                 MESON_LOGE("%s setPlane failed", plane->getName());
                 return ret;
@@ -1590,8 +1652,7 @@ int MultiplanesWithDiComposition::commitTunnelVideo() {
 
     return 0;
 }
-
-void MultiplanesWithDiComposition::dump(String8 & dumpstr) {
+void MultiplanesWithHRComposition::dump(String8 & dumpstr) {
     std::lock_guard<std::mutex> lock(mMutex);
     ICompositionStrategy::dump(dumpstr);
     dumpstr.appendFormat("BaseScaleInfo (%dx%d->%dx%d, %dx%d) \n",

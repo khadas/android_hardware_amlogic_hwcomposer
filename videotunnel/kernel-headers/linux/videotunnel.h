@@ -38,7 +38,6 @@ enum vt_video_cmd_e {
 	VT_VIDEO_SET_COLOR_BLACK,
 	VT_VIDEO_SET_COLOR_BLUE,
 	VT_VIDEO_SET_COLOR_GREEN,
-	VT_VIDEO_SET_VIDEO_TYPE,
 };
 
 struct vt_alloc_id_data {
