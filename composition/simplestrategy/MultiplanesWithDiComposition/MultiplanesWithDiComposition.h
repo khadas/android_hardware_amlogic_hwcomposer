@@ -72,6 +72,7 @@ protected:
     // for video processor
     int setUpProcessor();
     int tearDownProcessor();
+    int resetProcessor();
     int collectProcessor();
     bool runProcessor(struct DisplayPair &dp, int &blankFlag, int &ret);
 
@@ -123,6 +124,7 @@ protected:
 
     float mScaleValue;
     bool mSkipValidate;
+    bool mResetProcessorFlag;
 
     /* for video processor */
     std::shared_ptr<FbProcessor> mSrProcessor;

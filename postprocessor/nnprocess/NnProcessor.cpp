@@ -566,6 +566,8 @@ int32_t NnProcessor::teardown() {
         pthread_join(mThread, NULL);
         if (mAllocThread != 0)
             pthread_join(mAllocThread, NULL);
+
+        mAllocProcessDone = false;
     }
 
     while (mBuf_index_q.size() > 0)
