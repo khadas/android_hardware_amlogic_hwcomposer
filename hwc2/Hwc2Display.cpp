@@ -1380,6 +1380,20 @@ hwc2_error_t Hwc2Display::setActiveConfig(hwc2_config_t config) {
         std::unique_lock<std::mutex> stateLock(mStateLock);
         mModeChanged = true;
         int ret = mModeMgr->setActiveConfig(config);
+
+        /*
+         * seamless mode swith has no mode change uevent
+         * we need update the vsync thread period
+         */
+        if (mSeamlessSwitch) {
+            hwc2_vsync_period_t period = 1e9 / 60;
+            getDisplayVsyncPeriod(&period);
+            if (mVsync)
+                mVsync->setPeriod(period);
+            if (mVtVsync)
+                mVtVsync->setPeriod(period);
+        }
+
         /* wait when the display start refresh at the new config */
         if (!mSeamlessSwitch && mModeChanged) {
             mStateCondition.wait_for(stateLock, std::chrono::seconds(3));
@@ -1490,6 +1504,19 @@ hwc2_error_t Hwc2Display::setActiveConfigWithConstraints(hwc2_config_t config,
         std::unique_lock<std::mutex> stateLock(mStateLock);
         mModeChanged = true;
         int ret = mModeMgr->setActiveConfig(config);
+        /*
+         * seamless mode swith has no mode change uevent
+         * we need update the vsync thread period
+         */
+        if (mSeamlessSwitch) {
+            hwc2_vsync_period_t period = 1e9 / 60;
+            getDisplayVsyncPeriod(&period);
+            if (mVsync)
+                mVsync->setPeriod(period);
+            if (mVtVsync)
+                mVtVsync->setPeriod(period);
+        }
+
         /* wait when the display start refresh at the new config */
         if (!mSeamlessSwitch && mModeChanged) {
             mStateCondition.wait_for(stateLock, std::chrono::seconds(3));
@@ -2014,17 +2041,8 @@ int32_t Hwc2Display::setFrameRate(float value) {
     }
 
     MESON_LOGD("%s value:%f", __func__, value);
+    mFRPeriodNanos = value == 0 ? 0 : 1e9 / value;
     setActiveConfig(config);
-    mFRPeriodNanos = 1e9 / value;
-    if (mVtVsync.get()) {
-        // set vt vsync period
-        hwc2_vsync_period_t period = 1e9 / 60;
-        getDisplayVsyncPeriod(&period);
-        period = mFRPeriodNanos == 0 ? period : mFRPeriodNanos;
-        MESON_LOGD("%s set vt Period to %d", __func__, period);
-        mVtVsync->setPeriod(period);
-    }
-
 
     return HWC2_ERROR_NONE;
 }
