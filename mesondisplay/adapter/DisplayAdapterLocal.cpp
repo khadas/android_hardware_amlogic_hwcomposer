@@ -415,7 +415,14 @@ bool DisplayAdapterLocal::setDisplayAttribute(
 
 int32_t DisplayAdapterLocal::setFrameRate(float frameRate) {
     MESON_LOGD("%s frameRate %.2f",__func__,frameRate);
-    return MesonHwc2::getInstance().setFrameRate(frameRate);
+
+    if (HwcConfig::getDisplayNum() == 1) {
+        return MesonHwc2::getInstance().setFrameRate(frameRate);
+    } else {
+        // TODO: remove it when multi display support Active Config
+        std::string value = std::to_string(static_cast<int>(frameRate*100));
+        return setDisplayAttribute(DISPLAY_FR_HINT, value, DisplayAdapter::CONN_TYPE_PANEL);
+    }
 }
 
 bool DisplayAdapterLocal::getDisplayAttribute(

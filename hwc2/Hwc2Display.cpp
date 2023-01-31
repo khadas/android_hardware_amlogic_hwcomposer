@@ -2084,26 +2084,19 @@ std::unordered_map<hwc2_layer_t, std::shared_ptr<Hwc2Layer>> Hwc2Display::getAll
 bool Hwc2Display::setFrameRateHint(std::string value) {
     if (!value.compare("0")) {
         mFRPeriodNanos = 0;
-    } else if (!value.compare("6000")) {
-        mFRPeriodNanos = 1e9 / 60;
-    } else if (!value.compare("5994")) {
-        mFRPeriodNanos = 1e9 / 59.94;
-    } else if (!value.compare("5000")) {
-        mFRPeriodNanos = 1e9 / 50;
     } else {
-        MESON_LOGE("%s unsupport value:%s", __func__, value.c_str());
-        return false;
+        mFRPeriodNanos = 1e9 * 100 / std::stoi(value);
     }
 
     MESON_LOGD("%s value:%s", __func__, value.c_str());
-    if (mVtVsync.get()) {
-        // set vt vsync period
-        hwc2_vsync_period_t period = 1e9 / 60;
-        getDisplayVsyncPeriod(&period);
-        period = mFRPeriodNanos == 0 ? period : mFRPeriodNanos;
-        MESON_LOGD("%s setPeriod to %d", __func__, period);
+    hwc2_vsync_period_t period = 1e9 / 60;
+    getDisplayVsyncPeriod(&period);
+    period = mFRPeriodNanos == 0 ? period : mFRPeriodNanos;
+    MESON_LOGD("%s setPeriod to %d", __func__, period);
+    if (mVtVsync.get())
         mVtVsync->setPeriod(period);
-    }
+    if (mVsync.get())
+        mVsync->setPeriod(period);
 
     return true;
 }
