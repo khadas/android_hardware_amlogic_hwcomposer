@@ -81,6 +81,7 @@ void DrmPlane::loadProperties() {
         {DRM_PLANE_PROP_ALPHA, &mAlpha},
         {DRM_PLANE_PROP_MAX_FB_SIZE, &mMaxFbSize},
         {DRM_PLANE_PROP_OCCUPY, &mMesonOccupy},
+        {DRM_PLANE_PROP_SECURE, &mSecureEnable},
     };
     const int planePropsNum = sizeof(planeProps)/sizeof(planeProps[0]);
     int initedProps = 0;
@@ -383,6 +384,11 @@ int32_t DrmPlane::setPlane(
            // MESON_LOGE("No alpha supported in driver.");
         }
 
+        if (mDrmBo->secureEnable != mSecureEnable->getValue()) {
+            mSecureEnable->setValue(mDrmBo->secureEnable);
+            bUpdate = true;
+        }
+
         if (bUpdate) {
             mFbId->apply(req);
             mCrtcId->apply(req);
@@ -395,6 +401,7 @@ int32_t DrmPlane::setPlane(
             mCrtcW->apply(req);
             mCrtcH->apply(req);
             mZpos->apply(req);
+            mSecureEnable->apply(req);
             if (DebugHelper::getInstance().discardInFence()) {
                 fb->getAcquireFence()->waitForever("osd-input");
             }

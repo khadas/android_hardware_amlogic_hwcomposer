@@ -70,6 +70,7 @@ DrmBo::DrmBo() {
     z = 0;
     inFence = -1;
     color = 0;
+    secureEnable = 0;
     memset(&srcRect, 0, sizeof(srcRect));
     memset(&crtcRect, 0, sizeof(crtcRect));
 }
@@ -145,6 +146,7 @@ int32_t DrmBo::import(
     blend = fb->mBlendMode;
     z = fb->mZorder;
     inFence = fb->getAcquireFence() ? fb->getAcquireFence()->dup() : -1;
+    secureEnable = am_gralloc_is_secure_buffer(buf) ?  1 : 0;
 
     refHandle(handles[0]);
     return ret;

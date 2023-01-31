@@ -88,6 +88,8 @@ protected:
     std::shared_ptr<DrmProperty> mMaxFbSize;
     std::shared_ptr<DrmProperty> mMesonOccupy;
 
+    std::shared_ptr<DrmProperty> mSecureEnable;
+
     bool mBlank;
 
     std::shared_ptr<DrmBo> mLastDrmBo;

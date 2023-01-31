@@ -68,4 +68,5 @@
 
 #define DRM_PLANE_PROP_OCCUPY "meson.plane.occupied"
 
+#define DRM_PLANE_PROP_SECURE "SEC_EN"
 #endif

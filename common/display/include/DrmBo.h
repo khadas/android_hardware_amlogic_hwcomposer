@@ -48,6 +48,8 @@ public:
     /*special buffer: No support now*/
     uint32_t color;
 
+    int secureEnable;
+
 protected:
     void refHandle(uint32_t hnd);
     void unrefHandle(uint32_t hnd);
