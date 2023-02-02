@@ -163,8 +163,12 @@ void DrmFramebuffer::clearBufferInfo() {
     // not reset prevReleaseFence for sidebandBuffer, as vt sidebanbuffer use it later
     if (!isVtBufferLocked()) {
         mPrevReleaseFence = mCurReleaseFence;
-        mCurReleaseFence.reset();
-        mCurReleaseFence = DrmFence::NO_FENCE;
+        /*
+         * SF will call setBuffer multiple times in one vsync,
+         * so do not reset mCurReleaseFence in this function.
+         * mCurReleaseFence.reset();
+         * mCurReleaseFence = DrmFence::NO_FENCE;
+        */
     }
     mProcessFence.reset();
     mProcessFence = DrmFence::NO_FENCE;
