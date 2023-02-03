@@ -79,6 +79,7 @@ public:
     virtual int32_t handleRequest(uint32_t flags);
     virtual void handleEvent(drm_display_event event, int val);
     virtual void dump(String8 & dumpstr);
+    virtual void lateInit(){};
 
 protected:
     class PipeCfg {
