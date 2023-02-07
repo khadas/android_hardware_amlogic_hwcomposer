@@ -764,8 +764,8 @@ void * NnProcessor::allocThread(void * data) {
     pThis->allocThreadProcess();
 
     ALOGD("%s exit.\n", __FUNCTION__);
-    pthread_exit(0);
     pThis->mAllocThread = 0;
+    pthread_exit(0);
     return NULL;
 }
 
