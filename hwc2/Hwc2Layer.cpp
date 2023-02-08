@@ -555,14 +555,17 @@ int32_t Hwc2Layer::releaseVtBuffer() {
 
     dettachUvmBuffer();
 
-    if (mVtRefreshed && !mVtUpdate) {
+    if (mVtRefreshed) {
         mVtRefreshed = false;
-        MESON_LOGV("[%s] [%" PRIu64 "] mVtRefreshed", __func__, mId);
-        /* set release fence */
-        setVtPrevReleaseFence();
-        return 0;
+
+        if (!shouldPresentNow(mTimestamp) ||
+            (shouldPresentNow(mTimestamp) && !mVtUpdate)) {
+            MESON_LOGV("[%s] [%" PRIu64 "] mVtRefreshed", __func__, mId);
+            /* set release fence */
+            setVtPrevReleaseFence();
+            return 0;
+        }
     }
-    mVtRefreshed = false;
 
     if (!mVtUpdate) {
         MESON_LOGV("[%s] [%d] [%" PRIu64 "] vt buffer not update", __func__, mDisplayId, mId);
