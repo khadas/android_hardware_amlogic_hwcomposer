@@ -25,7 +25,9 @@ cc_defaults {
     static_libs: [
         "libjsoncpp",
     ],
-
+    export_include_dirs: [
+        "../../common/utils/include/",
+    ],
 }
 
 cc_binary {
@@ -42,6 +44,22 @@ cc_binary {
         "libamgralloc_ext",
     ],
 
+}
+
+ cc_binary {
+    name: "white_board_handle",
+    defaults: ["meson_display_test_defaults"],
+    vendor: true,
+
+    srcs: [
+        "white_board_handle.cpp",
+    ],
+
+    shared_libs: [
+        "libpng",
+        "libz",
+        "libwhiteboard_adapter",
+    ],
 }
 
 cc_binary {

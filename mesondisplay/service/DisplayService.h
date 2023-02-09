@@ -89,6 +89,8 @@ public:
     virtual void  message_handle(Json::Value& in, Json::Value& out);
     virtual Return<void> captureDisplayScreen(const int32_t displayId,
             const int32_t layerId, captureDisplayScreen_cb hidl_cb) override;
+    virtual Return<void> getWhiteBoardHanle(const int32_t displayId,
+            const int32_t layerId, getWhiteBoardHanle_cb hidl_cb) override;
 
 private:
     bool check_recursion_record_and_push(const hidl_string& str);
@@ -105,6 +107,8 @@ public:
     Return<void> debug(const hidl_handle &fd, const hidl_vec<hidl_string> &args) override;
     Return<void> captureDisplayScreen(const int32_t displayId,
             const int32_t layerId, captureDisplayScreen_cb hidl_cb) override;
+    Return<void> getWhiteBoardHanle(const int32_t displayId,
+            const int32_t layerId, getWhiteBoardHanle_cb hidl_cb) override;
 
 private:
     std::unique_ptr<DisplayAdapter> adapter;

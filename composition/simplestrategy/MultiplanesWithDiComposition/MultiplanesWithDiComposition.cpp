@@ -22,6 +22,7 @@
 #include <DebugHelper.h>
 #include <HwcConfig.h>
 #include "UvmDev.h"
+#include <ui/Fence.h>
 
 #define OSD_OUTPUT_ONE_CHANNEL         1
 
@@ -33,6 +34,7 @@
 #define OSD_SCALER_INPUT_MAX_HEIGHT (1080)
 #define OSD_SCALER_INPUT_FACTOR (3.0)
 #define OSD_SCALER_INPUT_MARGIN (1.1)
+#define WB_BUF_CNT (3)
 
 #define IS_FB_COMPOSED(fb) \
     (fb->mZorder >= mMinComposerZorder && fb->mZorder <= mMaxComposerZorder)
@@ -575,11 +577,18 @@ int MultiplanesWithDiComposition::pickoutOsdFbs() {
     std::vector<std::shared_ptr<DrmFramebuffer>> dummyFbs;
     bool bRemove = false;
     bool bClientLayer = false;
+    bool mHaveVirLayer = false;
     auto fbIt = mFramebuffers.begin();
     for (; fbIt != mFramebuffers.end(); ) {
         fb = fbIt->second;
         bRemove = false;
         bClientLayer = false;
+        //get the white board data
+        if (fb->isVirtualLayer()) {
+            mHaveVirLayer = true;
+            mWhiteBoardData = fb;
+        }
+
         switch (fb->mCompositionType) {
             case MESON_COMPOSITION_DUMMY:
                 dummyFbs.push_back(fb);
@@ -628,6 +637,33 @@ int MultiplanesWithDiComposition::pickoutOsdFbs() {
             fbIt = mFramebuffers.erase(fbIt);
         else
             ++ fbIt;
+    }
+
+    /*add the compositionProcessor in WhiteMode*/
+    if (mHaveVirLayer)  {
+        mWhiteBoardMode = true;
+    } else {
+        mWhiteBoardMode = false;
+        mFirst = true;
+        for (auto buf = mWBQueue.begin(); buf != mWBQueue.end(); ++buf) {
+            std::shared_ptr<DrmFramebuffer> temp = *buf;
+            temp->mBufferState = DrmFramebuffer::MODE_FREE;
+        }
+    }
+
+    if (mWhiteBoardMode) {
+        if (!mComProcessor.get()) {
+            createFbProcessor(FB_RENDER_PROCESSOR, mComProcessor);
+            mComProcessor->setup();
+            for (int i = 0;i < WB_BUF_CNT;i ++) {
+                buffer_handle_t hnd;
+                hnd = gralloc_alloc_dma_buf(FB_SIZE_4K_W, FB_SIZE_4K_H, HAL_PIXEL_FORMAT_RGBA_8888, true, true, RENDER_TARGET);
+                auto buf = std::make_shared<DrmFramebuffer>(hnd, -1);
+                buf->setUniqueId(i);
+                buf->mBufferState = DrmFramebuffer::MODE_FREE;
+                mWBQueue.push_back(buf);
+            }
+        }
     }
 
     if (dummyFbs.size() > 0) {
@@ -1385,6 +1421,24 @@ int MultiplanesWithDiComposition::decideComposition() {
     return ret;
 }
 
+void MultiplanesWithDiComposition::setReleaseFence(int32_t fence) {
+    if (fence < 0) {
+        MESON_LOGE("%s:get an invalid fenceFd", __func__);
+        return;
+    }
+
+    if (!mFirst) {
+        for (auto buf = mWBQueue.begin();buf != mWBQueue.end(); ++buf) {
+            std::shared_ptr<DrmFramebuffer> temp = *buf;
+            if (temp->mBufferState == DrmFramebuffer::MODE_FREE) {
+                temp->setPrevReleaseFence(::dup(fence));
+            }
+        }
+    }
+    close(fence);
+    mFirst = false;
+}
+
 /* Commit DisplayPair to display. */
 int MultiplanesWithDiComposition::commit() {
     ATRACE_CALL();
@@ -1477,8 +1531,64 @@ int MultiplanesWithDiComposition::commit() {
                 continue;
             }
         } else {
-            if (!runProcessor(*displayIt, blankFlag, ret))
+            //Follow the original process in two scenarios
+            //1. Whiteboard mode is not turned on
+            //1. Whiteboard mode is enable and the fb type is't DRM_FB_SCANOUT
+            if (!runProcessor(*displayIt, blankFlag, ret) && (!mWhiteBoardMode || (mWhiteBoardMode && fb->getFbType() != DRM_FB_SCANOUT)))
                 ret = plane->setPlane(fb, presentZorder, blankFlag);
+
+            //only process the DRM_FB_SCANOUT type
+            if (mWhiteBoardMode && fb->getFbType() == DRM_FB_SCANOUT) {
+                //get the Free buffers
+                for (auto buf = mWBQueue.begin();buf != mWBQueue.end(); ++buf) {
+                    outfb = *buf;
+                    if (outfb->mBufferState ==DrmFramebuffer::MODE_FREE) {
+                        break;
+                    }
+                }
+
+                //wait the buffer's releasefence
+                ATRACE_BEGIN("wait relase fence");
+                int releaseFence = outfb->getPrevReleaseFence();
+                if (releaseFence >= 0) {
+                    DrmFence fence(releaseFence);
+                    fence.wait(3000);
+                }
+                ATRACE_END();
+
+                //render the whiteboard and UI to outputs
+                fb->getAcquireFence()->waitForever("ClientTarget");
+                mComProcessor->update(mWhiteBoardData->mDisplayFrame);
+                mComProcessor->composite(fb, mWhiteBoardData ,outfb);
+
+                outfb->mSourceCrop = fb->mSourceCrop;
+                outfb->mDisplayFrame = fb->mDisplayFrame;
+                outfb->mBlendMode = fb->mBlendMode;
+                outfb->mPlaneAlpha = fb->mPlaneAlpha;
+
+                if (mFirst) {
+                    ret = plane->setPlane(fb, presentZorder, blankFlag);
+                } else {
+                    for (auto bufReady = mWBQueue.begin();bufReady != mWBQueue.end(); ++bufReady) {
+                        showfb = *bufReady;
+                        if (showfb->mBufferState == DrmFramebuffer::MODE_RENDERED) {
+                            break;
+                        }
+                    }
+
+                    ret = plane->setPlane(showfb, presentZorder, blankFlag);
+
+                    for (auto change = mWBQueue.begin();change != mWBQueue.end(); ++change) {
+                        std::shared_ptr<DrmFramebuffer> temp = *change;
+                        if (temp->mBufferState == DrmFramebuffer::MODE_ACQUIRE) {
+                            temp->mBufferState = DrmFramebuffer::MODE_FREE;
+                        }
+                    }
+
+                    showfb->mBufferState = DrmFramebuffer::MODE_ACQUIRE;
+                }
+                outfb->mBufferState = DrmFramebuffer::MODE_RENDERED;
+            }
 
             fb->clearFbHandleFlag();
             if (ret != 0) {

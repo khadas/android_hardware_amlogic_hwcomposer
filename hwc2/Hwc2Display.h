@@ -31,6 +31,7 @@
 #include "HwcModeMgr.h"
 
 class VtDisplayThread;
+class WBDisplayThread;
 
 /* IComposerClient@2.4::DisplayConnectionType */
 enum {
@@ -140,7 +141,7 @@ public:
     virtual int32_t setVsync(std::shared_ptr<HwcVsync> vsync);
     virtual int32_t blankDisplay(bool restLayers = false);
 
-    virtual void onVsync(int64_t timestamp, uint32_t vsyncPeriodNanos);
+    virtual void onVsync(int64_t timestamp, uint32_t vsyncPeriodNanos, int vsyncType = 0);
     virtual void onHotplug(bool connected);
     virtual void onVsyncPeriodTimingChanged(hwc_vsync_period_change_timeline_t* updatedTimeline);
     virtual void onUpdate(bool bHdcp);
@@ -153,8 +154,6 @@ public:
     virtual void updateVtBuffers();
     virtual hwc2_error_t presentVtVideo(int32_t* outPresentFence);
 
-    virtual int32_t setVtVsync(std::shared_ptr<HwcVsync> vsync);
-    virtual void onVTVsync(int64_t timestamp, uint32_t vsyncPeriodNanos);
     virtual void handleVtThread();
     virtual void setVtLayersPresentTime();
     virtual void releaseVtLayers();
@@ -163,6 +162,27 @@ public:
     virtual void onFrameAvailable();
 
     virtual void refreshVtLayers();
+
+/*White board*/
+public:
+    virtual void setWriteBoardMode(bool mode);
+    virtual void getWriteBoardMode(bool& mode);
+    virtual void hideVideoLayer(bool hide);
+    virtual void setWBDisplayFrame(int x, int y);
+
+    void createVirtualLayer();
+    void destroyVirtualLayer();
+    virtual void handleWBThread();
+    std::shared_ptr<WBDisplayThread> mWBDisplayThread;
+    bool mInitWBDisplayThread = false;
+    std::shared_ptr<HwcVsync> mWBVsync;
+
+    std::shared_ptr<Hwc2Layer> mVirtualLayer;
+    uint32_t mVLIdx = -1;
+    bool mWhiteBoardMode = false;
+    bool mHideVideo = false;
+    buffer_handle_t wbHnd;
+    std::shared_ptr<Hwc2DisplayObserver> mObserver;
 
 /* meson display ddk */
 public:
@@ -208,7 +228,6 @@ protected:
 
 protected:
     std::unordered_map<hwc2_layer_t, std::shared_ptr<Hwc2Layer>> mLayers;
-    std::shared_ptr<Hwc2DisplayObserver> mObserver;
     drm_hdr_capabilities_t mHdrCaps;
 
     /*hw related components*/

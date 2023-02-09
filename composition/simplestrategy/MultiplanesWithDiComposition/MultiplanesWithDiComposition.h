@@ -13,7 +13,8 @@
 #include <functional>
 #include <FbProcessor.h>
 #include "ICompositionStrategy.h"
-
+#include <misc.h>
+#include <queue>
 
 class MultiplanesWithDiComposition : public ICompositionStrategy {
 public:
@@ -35,6 +36,7 @@ public:
     int commit();
     int commitTunnelVideo();
     void dump(String8 & dumpstr);
+    void setReleaseFence(int32_t fence);
 
 protected:
     int processVideoFbs();
@@ -130,6 +132,15 @@ protected:
     std::shared_ptr<FbProcessor> mSrProcessor;
     std::shared_ptr<FbProcessor> mPqProcessor;
     std::vector<std::shared_ptr<FbProcessor>> mProcessors;
+
+    //For White board
+    bool mWhiteBoardMode = false;
+    std::shared_ptr<FbProcessor> mComProcessor;
+    std::vector<std::shared_ptr<DrmFramebuffer>> mWBQueue;
+    std::shared_ptr<DrmFramebuffer> mWhiteBoardData;
+    std::shared_ptr<DrmFramebuffer> outfb;
+    std::shared_ptr<DrmFramebuffer> showfb;
+    bool mFirst = true;
 };
 
 

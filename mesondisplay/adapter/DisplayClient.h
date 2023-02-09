@@ -39,6 +39,7 @@ public:
     int32_t send_request(Json::Value& data);
     bool captureDisplayScreen(const native_handle_t** outBufferHandle);
     static DisplayClient &getInstance();
+    bool getWhiteBoardHanle(const native_handle_t** outBufferHandle);
 
 protected:
     std::string name;

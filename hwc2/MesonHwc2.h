@@ -164,6 +164,11 @@ public:
 /* for meson display service */
 public:
     int32_t captureDisplayScreen(buffer_handle_t hnd);
+    int32_t getWhiteBoardHanle(native_handle_t** hnd);
+    bool setWriteBoardMode(bool mode);
+    bool getWriteBoardMode(bool& mode);
+    bool setWBDisplayFrame(int x, int y);
+    bool hideVideoLayer(bool hide);
     bool setViewPort(const drm_rect_wh_t viewPort);
     void getViewPort(drm_rect_wh_t& viewPort);
     bool setFrameRateHint(std::string value);

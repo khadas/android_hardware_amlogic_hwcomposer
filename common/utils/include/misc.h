@@ -14,6 +14,8 @@
 #include <cutils/native_handle.h>
 
 #define PROP_VALUE_LEN_MAX  92
+#define RENDER_TARGET 1
+#define RENDER_TEXTURE 2
 
 bool sys_get_bool_prop(const char* prop, bool defVal);
 int32_t sys_get_string_prop(const char* prop, char * val);
@@ -25,7 +27,7 @@ int32_t sysfs_get_string_original(const char *path, char *str, int32_t len);
 int32_t sysfs_get_string_ex(const char* path, char *str, int32_t size, bool needOriginalData);
 int32_t sysfs_set_string(const char *path, const char *val);
 
-native_handle_t * gralloc_alloc_dma_buf(int w, int h, int format, bool bScanout, bool afbc = false);
+native_handle_t * gralloc_alloc_dma_buf(int w, int h, int format, bool bScanout, bool afbc = false, int type = 0);
 int32_t gralloc_free_dma_buf(native_handle_t * hnd);
 
 native_handle_t * gralloc_ref_dma_buf(const native_handle_t * hnd, bool isSidebandBuffer=false);

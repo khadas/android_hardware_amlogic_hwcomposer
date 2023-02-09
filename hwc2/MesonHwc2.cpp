@@ -940,6 +940,45 @@ int32_t MesonHwc2::captureDisplayScreen(buffer_handle_t hnd) {
     return hwcDisplay->captureDisplayScreen(hnd);
 }
 
+int32_t MesonHwc2::getWhiteBoardHanle(native_handle_t** hnd) {
+    GET_HWC_DISPLAY(0);
+    if (hwcDisplay->mVirtualLayer == nullptr) {
+        MESON_LOGE("Please enable white board first");
+        return -1;
+    }
+    *hnd = hwcDisplay->mVirtualLayer->mBufferHandle;
+    return 0;
+}
+
+bool MesonHwc2::setWriteBoardMode(bool mode) {
+    GET_HWC_DISPLAY(0);
+    hwcDisplay->setWriteBoardMode(mode);
+    return true;
+}
+
+bool MesonHwc2::getWriteBoardMode(bool& mode) {
+    GET_HWC_DISPLAY(0);
+    hwcDisplay->getWriteBoardMode(mode);
+    return true;
+}
+
+bool MesonHwc2::setWBDisplayFrame(int x, int y) {
+    GET_HWC_DISPLAY(0);
+    if (x < 0 || y < 0 || x > FB_SIZE_4K_W || y > FB_SIZE_4K_H) {
+        MESON_LOGE("setWBDisplayFrame the position is invalid");
+        return false;
+    }
+    hwcDisplay->setWBDisplayFrame(x, y);
+
+    return true;
+}
+
+bool MesonHwc2::hideVideoLayer(bool hide) {
+    GET_HWC_DISPLAY(0);
+    hwcDisplay->hideVideoLayer(hide);
+    return true;
+}
+
 bool MesonHwc2::setViewPort(const drm_rect_wh_t viewPort) {
     GET_HWC_DISPLAY(0);
     mViewPort = viewPort;

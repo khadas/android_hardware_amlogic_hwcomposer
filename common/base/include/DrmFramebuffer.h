@@ -69,6 +69,7 @@ public:
     // for video processor
     int32_t setProcessFence(int32_t fenceFd);
     int32_t getProcessFence();
+    virtual bool isVirtualLayer() { return false;}
 
 protected:
     void setBufferInfo(const native_handle_t * bufferhnd, int32_t acquireFence, bool isSidebandBuffer=false);
@@ -102,6 +103,14 @@ public:
 
     std::shared_ptr<DrmFence> mPrevReleaseFence;
     std::shared_ptr<DrmFence> mCurReleaseFence;
+    bool mIsVirtualLayer = false;
+    int32_t mBufferState = 0;
+    enum {
+        MODE_INVALID = 0,
+        MODE_ACQUIRE = 1,
+        MODE_FREE = 2,
+        MODE_RENDERED = 3,
+    };
 protected:
     std::shared_ptr<DrmFence> mAcquireFence;
     std::shared_ptr<DrmFence> mProcessFence;

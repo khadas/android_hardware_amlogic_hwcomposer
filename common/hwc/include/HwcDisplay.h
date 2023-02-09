@@ -34,7 +34,6 @@ public:
     virtual int32_t setPostProcessor(
         std::shared_ptr<HwcPostProcessor> processor) = 0;
     virtual int32_t setVsync(std::shared_ptr<HwcVsync> vsync) = 0;
-    virtual int32_t setVtVsync(std::shared_ptr<HwcVsync> vsync) = 0;
     virtual int32_t blankDisplay(bool resetLayer=false) = 0;
 
     virtual void onHotplug(bool connected) = 0;

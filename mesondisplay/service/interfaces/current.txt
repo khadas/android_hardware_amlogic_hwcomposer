@@ -1,2 +1,2 @@
 9b52977028f4727a827a8b84b3632c39adffc8158236df9f17c2baf73863383a vendor.amlogic.display.meson_display_ipc@1.0::types
-c3a089cf5de290af7b67e19baff04740129b755e6ff0f7852fe3ccd4e6678925 vendor.amlogic.display.meson_display_ipc@1.0::IMesonDisplayIPC
+a39c8c8d5df9668c7020c903201cda9c8a9af6295cdeec432a6a308327d58ab9 vendor.amlogic.display.meson_display_ipc@1.0::IMesonDisplayIPC

@@ -11,7 +11,7 @@
 
 #include "DisplayClient.h"
 #include "DisplayAdapter.h"
-#include "MesonLog.h"
+#include "MesonDisplayLog.h"
 
 namespace meson{
 using namespace std;
@@ -120,6 +120,34 @@ bool DisplayClient::captureDisplayScreen(const native_handle_t** outBufferHandle
             });
     if (error != Error::NONE) {
         MESON_LOGE("captureDisplayScreen failed");
+        return false;
+    }
+
+    // only import the first buffer handle.
+    // We assumed there is only one native handle currently
+    if (dataHandles.size() > 0) {
+        importBuffer(dataHandles[0], outBufferHandle);
+    }
+
+    return true;
+}
+
+bool DisplayClient::getWhiteBoardHanle(const native_handle_t** outBufferHandle) {
+    if (!is_ready) {
+        MESON_LOGE("getWhiteBoardHanle Server not ready");
+        return false;
+    }
+
+    Error error;
+    hidl_vec<hidl_handle> dataHandles;
+
+    meson_ipc_client->getWhiteBoardHanle(0 /*displayId reserved*/, 0 /*layerId reserved*/,
+            [&] (const auto& tmpError, const auto& tmpOutHandles){
+                error = tmpError;
+                dataHandles = tmpOutHandles;
+            });
+    if (error != Error::NONE) {
+        MESON_LOGE("getWhiteBoardHanle failed");
         return false;
     }
 

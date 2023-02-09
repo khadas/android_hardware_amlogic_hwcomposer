@@ -20,10 +20,10 @@
 #define VT_OFFSET_HIGH_RFRESHRATE 1000000
 #define VT_OFFSET_LOW_RFRESHRATE  5000000
 
-HwcVsync::HwcVsync() {
+HwcVsync::HwcVsync(int vsyncType) {
     mSoftVsync = true;
+    mVsyncType = vsyncType;
     mEnabled = false;
-    mVTEnabled = false;
     mMixVsync = false;
     mMixRebase = false;
     mPreTimeStamp = 0;
@@ -107,17 +107,13 @@ int32_t HwcVsync::setPeriod(nsecs_t period) {
 int32_t HwcVsync::setEnabled(bool enabled) {
     std::unique_lock<std::mutex> stateLock(mStatLock);
     mEnabled = enabled;
-    stateLock.unlock();
-    mStateCondition.notify_all();
-    return 0;
-}
 
-int32_t HwcVsync::setVideoTunnelEnabled(bool enabled) {
-    std::unique_lock<std::mutex> stateLock(mStatLock);
-    mVTEnabled = enabled;
+    if (mVsyncType == DISPLAY_VIDEOTUNNEL) {
+        if (mMixVsync == true) {
+            mMixRebase = true;
+        }
+    }
 
-    if (mMixVsync == true)
-        mMixRebase = true;
     stateLock.unlock();
     mStateCondition.notify_all();
     return 0;
@@ -137,7 +133,7 @@ void * HwcVsync::vsyncThread(void * data) {
     while (true) {
         {
             std::unique_lock<std::mutex> stateLock(pThis->mStatLock);
-            while (!pThis->mEnabled && !pThis->mVTEnabled) {
+            while (!pThis->mEnabled) {
                 pThis->mStateCondition.wait(stateLock);
                 if (pThis->mExit) {
                     MESON_LOGD("exit vsync loop");
@@ -172,11 +168,8 @@ void * HwcVsync::vsyncThread(void * data) {
         }
 
         if (ret == 0 && pThis->mObserver) {
-            if (pThis->mEnabled) {
-                pThis->mObserver->onVsync(timestamp, period);
-            }
-            if (pThis->mVTEnabled) {
-                pThis->mObserver->onVTVsync(timestamp, pThis->mReqPeriod);
+           if (pThis->mEnabled) {
+                pThis->mObserver->onVsync(timestamp, period, pThis->mVsyncType);
             }
         } else {
             if (ret != 0)
@@ -260,7 +253,7 @@ int32_t HwcVsync::waitMixVsync(nsecs_t& vsync_timestamp) {
             return -EFAULT;
         mCrtc->waitVBlank(mVsyncTime);
         // videotunnel vsync offset
-        if (mVTEnabled) {
+        if (mEnabled && mVsyncType == DISPLAY_VIDEOTUNNEL) {
             if (std::floor(1e9/mReqPeriod) > SF_VSYNC_DFT_PERIOD)
                 mMixOffset = VT_OFFSET_HIGH_RFRESHRATE;
             else

@@ -17,6 +17,7 @@
 #ifdef ENABLE_VIDEO_AIPQ
 #include "AipqProcessor.h"
 #endif
+#include "CompositionProcessor.h"
 
 extern int32_t createKeystoneCorrection(
     std::shared_ptr<FbProcessor> & processor);
@@ -48,6 +49,9 @@ int32_t createFbProcessor(
             processor = std::make_shared<AipqProcessor>();
             break;
 #endif
+        case FB_RENDER_PROCESSOR:
+            processor = std::make_shared<CompositionProcessor>();
+            break;
         default:
             MESON_ASSERT(0, "unknown processor type %d", type);
             processor = NULL;

@@ -272,6 +272,13 @@ typedef struct display_zoom_info {
 #define FB_SIZE_8K_W 7680
 #define FB_SIZE_8K_H 4320
 
+#define RENDER_TARGET 1
+#define RENDER_TEXTURE 2
+
+#define DISPLAY_DEFAULT 0
+#define DISPLAY_VIDEOTUNNEL 1
+#define DISPLAY_WHITEBOARD 2
+
 const char * drmFbTypeToString(drm_fb_type_t fbtype);
 const char * drmPlaneBlankToString(drm_plane_blank_t planetype);
 bool drmHdrCapsDiffer(const drm_hdr_capabilities &hdr1, const drm_hdr_capabilities &hdr2);

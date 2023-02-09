@@ -83,6 +83,7 @@ public:
     virtual bool haveSolidColorBuffer();
     void vtRefresh();
     int getVideoTunnelId();
+    bool isVirtualLayer() { return mIsVirtualLayer;}
 
     int32_t registerConsumer();
     int32_t unregisterConsumer();

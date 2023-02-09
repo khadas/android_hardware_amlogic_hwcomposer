@@ -93,6 +93,8 @@ cc_library_static {
         "fbprocessor/FbProcessor.cpp",
         "fbprocessor/DummyProcessor.cpp",
         "fbprocessor/CopyProcessor.cpp",
+        "fbprocessor/CompositionProcessor.cpp",
+        "common/WBGLHelper.cpp",
     ],
 
     static_libs: [
@@ -105,5 +107,6 @@ cc_library_static {
     export_include_dirs: [
         "include",
         "fbprocessor",
+        "common",
     ],
 }

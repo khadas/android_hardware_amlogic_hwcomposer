@@ -35,4 +35,19 @@ interface IMesonDisplayIPC{
     captureDisplayScreen(int32_t displayId, int32_t layerId)
         generates (Error error,
             vec<handle> outHandles);
+
+    /**
+     * Get the White Board data handle.
+     * @param displayId is the hwc display id which now is reserved.
+     *                  only support the primary Display
+     * @param layerId is the hwc layer id which now is reserved
+     * @return error is NONE upon success. otherwise
+     *                  BAD_VALUE when the id is invalid (reserved)
+     *                  NO_RESOURCE when capture failed
+     * @return buffer is the return buffer handle and has the type
+     *          buffer_handle_t
+     */
+    getWhiteBoardHanle(int32_t displayId, int32_t layerId)
+        generates (Error error,
+            vec<handle> outHandles);
 };

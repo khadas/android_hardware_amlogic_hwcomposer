@@ -130,7 +130,7 @@ int32_t sysfs_get_int(const char* path, int32_t def) {
 
 #if PLATFORM_SDK_VERSION >= 28
 native_handle_t * gralloc_alloc_dma_buf(
-    int w, int h, int format, bool bScanout, bool afbc) {
+    int w, int h, int format, bool bScanout, bool afbc, int type) {
     static GraphicBufferAllocator & allocService = GraphicBufferAllocator::get();
     uint32_t stride;
     uint64_t usage = 0;
@@ -139,6 +139,12 @@ native_handle_t * gralloc_alloc_dma_buf(
         usage |= GRALLOC_USAGE_HW_FB;
     if (!afbc)
         usage |= GRALLOC_USAGE_SW_READ_OFTEN | GRALLOC_USAGE_SW_WRITE_OFTEN;
+
+    if (type == RENDER_TARGET)
+        usage |= GRALLOC_USAGE_HW_RENDER | GRALLOC_USAGE_HW_COMPOSER;
+
+    if (type == RENDER_TEXTURE)
+        usage |= GRALLOC_USAGE_HW_TEXTURE;
 
     buffer_handle_t handle;
     if (NO_ERROR != allocService.allocate(

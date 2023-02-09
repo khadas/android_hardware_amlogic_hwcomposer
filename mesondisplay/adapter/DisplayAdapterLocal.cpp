@@ -276,6 +276,36 @@ bool DisplayAdapterLocal::captureDisplayScreen(const native_handle_t **outBuffer
     return ret == 1 ? true : false;
 }
 
+bool DisplayAdapterLocal::getWhiteBoardHanle(const native_handle_t **outBufferHandle, int& fd __unused) {
+    native_handle_t* hnd = nullptr;
+    int ret = MesonHwc2::getInstance().getWhiteBoardHanle(&hnd);
+    if (ret) {
+        MESON_LOGE("getWhiteBoardHanle failed");
+        return false;
+    }
+    *outBufferHandle = hnd;
+    return true;
+}
+
+bool DisplayAdapterLocal::setWriteBoardMode(bool mode){
+    return MesonHwc2::getInstance().setWriteBoardMode(mode);
+}
+
+bool DisplayAdapterLocal::getWriteBoardMode(bool& mode){
+    MesonHwc2::getInstance().getWriteBoardMode(mode);
+    return true;
+}
+
+bool DisplayAdapterLocal::setWBDisplayFrame(int x, int y){
+    MesonHwc2::getInstance().setWBDisplayFrame(x, y);
+    return true;
+}
+
+bool DisplayAdapterLocal::hideVideoLayer(bool hide){
+    MesonHwc2::getInstance().hideVideoLayer(hide);
+    return true;
+}
+
 bool DisplayAdapterLocal::setDisplayRect(const Rect rect, ConnectorType displayType) {
     bool ret = false;
     drm_connector_type_t type;

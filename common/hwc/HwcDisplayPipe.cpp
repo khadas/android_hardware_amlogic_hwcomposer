@@ -117,8 +117,9 @@ int32_t HwcDisplayPipe::init(std::map<uint32_t, std::shared_ptr<HwcDisplay>> & h
         modeMgr->setFramebufferSize(fbW, fbH);
         stat->modeMgr = modeMgr;
         /*create vsync.*/
-        stat->hwcVsync = std::make_shared<HwcVsync>();
-        stat->hwcVtVsync = std::make_shared<HwcVsync>();
+        stat->hwcVsync = std::make_shared<HwcVsync>(DISPLAY_DEFAULT);
+        stat->hwcVtVsync = std::make_shared<HwcVsync>(DISPLAY_VIDEOTUNNEL);
+        stat->hwcWBVsync = std::make_shared<HwcVsync>(DISPLAY_WHITEBOARD);
         /*init display pipe.*/
         updatePipe(stat);
 
@@ -278,6 +279,7 @@ int32_t HwcDisplayPipe::updatePipe(std::shared_ptr<PipeStat> & stat) {
         }
 
         stat->hwcVtVsync->setVtMode(stat->modeCrtc);
+        stat->hwcWBVsync->setHwMode(stat->modeCrtc);
 
         drm_mode_info_t mode;
         if (0 == stat->modeMgr->getDisplayMode(mode)) {
@@ -288,10 +290,12 @@ int32_t HwcDisplayPipe::updatePipe(std::shared_ptr<PipeStat> & stat) {
             }
             stat->hwcVsync->setPeriod(1e9 / refresh_rate);
             stat->hwcVtVsync->setPeriod(1e9 / refresh_rate);
+            stat->hwcWBVsync->setPeriod(1e9 / refresh_rate);
         }
 
         stat->hwcDisplay->setVsync(stat->hwcVsync);
-        stat->hwcDisplay->setVtVsync(stat->hwcVtVsync);
+        stat->hwcDisplay->setVsync(stat->hwcVtVsync);
+        stat->hwcDisplay->setVsync(stat->hwcWBVsync);
         stat->hwcDisplay->setModeMgr(stat->modeMgr);
         stat->hwcDisplay->setDisplayResource(
             stat->hwcCrtc, stat->hwcConnector, stat->hwcPlanes);
@@ -372,12 +376,14 @@ void HwcDisplayPipe::handleEvent(drm_display_event event, int val) {
                                 }
                                 statIt.second->hwcVsync->setPeriod(1e9 / refresh_rate);
                                 statIt.second->hwcVtVsync->setPeriod(1e9 / refresh_rate);
+                                statIt.second->hwcWBVsync->setPeriod(1e9 / refresh_rate);
                                 if (HwcConfig::softwareVsyncEnabled()) {
                                     statIt.second->hwcVsync->setSoftwareMode();
                                 } else {
                                     statIt.second->hwcVsync->setHwMode(statIt.second->modeCrtc);
                                 }
                                 statIt.second->hwcVtVsync->setVtMode(statIt.second->modeCrtc);
+                                statIt.second->hwcWBVsync->setHwMode(statIt.second->modeCrtc);
                             } else {
                                 /* could not get mode, switch to software vsync */
                                 statIt.second->hwcVsync->setPeriod(1e9 / DEFAULT_REFRESH_RATE);
@@ -385,6 +391,9 @@ void HwcDisplayPipe::handleEvent(drm_display_event event, int val) {
 
                                 statIt.second->hwcVtVsync->setPeriod(1e9 / DEFAULT_REFRESH_RATE);
                                 statIt.second->hwcVtVsync->setSoftwareMode();
+
+                                statIt.second->hwcWBVsync->setPeriod(1e9 / DEFAULT_REFRESH_RATE);
+                                statIt.second->hwcWBVsync->setSoftwareMode();
                             }
                         }
                     }

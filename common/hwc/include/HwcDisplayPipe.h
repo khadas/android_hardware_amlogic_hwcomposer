@@ -108,6 +108,7 @@ protected:
         // for videotunnel thread
         std::shared_ptr<HwcVsync> hwcVtVsync;
         std::shared_ptr<HwcPostProcessor> hwcPostProcessor;
+        std::shared_ptr<HwcVsync> hwcWBVsync;
 
         std::shared_ptr<HwcModeMgr> modeMgr;
         std::shared_ptr<HwDisplayCrtc> modeCrtc;

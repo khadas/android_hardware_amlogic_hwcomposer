@@ -19,6 +19,7 @@ typedef enum {
     FB_KEYSTONE_PROCESSOR,
     FB_AISR_PROCESSOR,
     FB_AIPQ_PROCESSOR,
+    FB_RENDER_PROCESSOR,
 } meson_fb_processor_t;
 
 class FbProcessor {
@@ -43,6 +44,14 @@ public:
         std::shared_ptr<DrmFramebuffer> & outfb) = 0;
     virtual int32_t teardown() = 0;
     virtual bool updateProcess() { return false;};
+    virtual int32_t composite(
+        std::shared_ptr<DrmFramebuffer> & inputUIfb __unused, std::shared_ptr<DrmFramebuffer> & inputWBfb __unused,
+        std::shared_ptr<DrmFramebuffer> & outfb __unused) {
+        return 0;
+    };
+    virtual int32_t update(drm_rect_t pos __unused) {
+        return 0;
+    };
 };
 
 int32_t createFbProcessor(meson_fb_processor_t type, std::shared_ptr<FbProcessor> & processor);

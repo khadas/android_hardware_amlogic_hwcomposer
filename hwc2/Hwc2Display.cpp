@@ -22,7 +22,7 @@
 #include "Hwc2Layer.h"
 #include "Hwc2Base.h"
 #include "VtDisplayThread.h"
-
+#include "WBDisplayThread.h"
 
 #include <DrmTypes.h>
 #include <HwcConfig.h>
@@ -50,6 +50,7 @@ Hwc2Display::Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer, uint32_t
     mScaleValue = 1;
     mPresentFence = -1;
     mVtDisplayThread = nullptr;
+    mWBDisplayThread = nullptr;
     mVsyncTimestamp = 0;
     mFirstPresent = true;
     mDisplayId = display;
@@ -92,10 +93,22 @@ Hwc2Display::~Hwc2Display() {
     }
     mVtVsync.reset();
 
+    if (mWBDisplayThread) {
+        mWBDisplayThread.reset();
+    }
+    mWBVsync.reset();
 
     if (mPostProcessor != NULL)
         mPostProcessor->stop();
     mPostProcessor.reset();
+}
+
+void Hwc2Display::handleWBThread() {
+    if (mWhiteBoardMode) {
+        if (!mWBDisplayThread) {
+            mWBDisplayThread = std::make_shared<WBDisplayThread>(this);
+        }
+    }
 }
 
 int32_t Hwc2Display::setModeMgr(std::shared_ptr<HwcModeMgr> & mgr) {
@@ -198,17 +211,44 @@ int32_t Hwc2Display::setPostProcessor(
 
 int32_t Hwc2Display::setVsync(std::shared_ptr<HwcVsync> vsync) {
     std::lock_guard<std::mutex> lock(mMutex);
-    if (mVsync != vsync) {
-        if (mVsync.get()) {
-            mVsync->setEnabled(false);
-            mVsync->setObserver(NULL);
-        } else {
-            mVsync = vsync;
-            mVsync->setObserver(this);
-            mVsync->setEnabled(mVsyncState);
-        }
+    int vsyncType = vsync->getVsyncType();
+    switch (vsyncType) {
+        case DISPLAY_DEFAULT:
+            if (mVsync != vsync) {
+                if (mVsync.get()) {
+                    mVsync->setEnabled(false);
+                    mVsync->setObserver(NULL);
+                } else {
+                    mVsync = vsync;
+                    mVsync->setObserver(this);
+                    mVsync->setEnabled(mVsyncState);
+                }
+            }
+            break;
+        case DISPLAY_VIDEOTUNNEL:
+            if (mVtVsync != vsync) {
+                if (mVtVsync.get()) {
+                    mVtVsync->setObserver(NULL);
+                } else {
+                    mVtVsync = vsync;
+                    mVtVsync->setObserver(this);
+                }
+            }
+            break;
+        case DISPLAY_WHITEBOARD:
+            if (mWBVsync != vsync) {
+                if (mWBVsync.get()) {
+                    mWBVsync->setObserver(NULL);
+                } else {
+                    mWBVsync = vsync;
+                    mWBVsync->setObserver(this);
+                }
+            }
+            break;
+        default:
+            MESON_LOGE("Get invalid vsync");
+            break;
     }
-
     return 0;
 }
 
@@ -425,19 +465,31 @@ void Hwc2Display::onUpdate(bool bHdcp) {
     }
 }
 
-void Hwc2Display::onVsync(int64_t timestamp, uint32_t vsyncPeriodNanos) {
-    if (mObserver != NULL) {
-        mObserver->onVsync(timestamp, vsyncPeriodNanos);
-    } else {
-        MESON_LOGE("Hwc2Display (%p) observer is NULL", this);
-    }
-}
-
-void Hwc2Display::onVTVsync(int64_t timestamp, uint32_t vsyncPeriodNanos) {
+void Hwc2Display::onVsync(int64_t timestamp, uint32_t vsyncPeriodNanos, int vsyncType) {
     ATRACE_CALL();
-    mVsyncTimestamp = timestamp;
-    if (mVtDisplayThread) {
-        mVtDisplayThread->onVtVsync(timestamp, vsyncPeriodNanos);
+    switch (vsyncType) {
+        case DISPLAY_DEFAULT:
+            if (mObserver != NULL) {
+                mObserver->onVsync(timestamp, vsyncPeriodNanos);
+            } else {
+                MESON_LOGE("Hwc2Display (%p) observer is NULL", this);
+            }
+            break;
+        case DISPLAY_VIDEOTUNNEL:
+            mVsyncTimestamp = timestamp;
+            if (mVtDisplayThread) {
+                mVtDisplayThread->onVtVsync(timestamp, vsyncPeriodNanos);
+            }
+            break;
+        case DISPLAY_WHITEBOARD:
+            mVsyncTimestamp = timestamp;
+            if (mWBDisplayThread) {
+                mWBDisplayThread->onWBVsync(timestamp, vsyncPeriodNanos);
+            }
+            break;
+        default:
+            MESON_LOGE("onVsync get invalid vsync");
+            break;
     }
 }
 
@@ -681,7 +733,7 @@ hwc2_error_t Hwc2Display::collectLayersForPresent() {
         std::shared_ptr<Hwc2Layer> layer = it->second;
         std::shared_ptr<DrmFramebuffer> buffer = layer;
         if ((bUpdateLayerList == true && layer->isUpdateZorder() == false) &&
-            !layer->isVtBuffer()) {
+            !layer->isVtBuffer() && !layer->isVirtualLayer()) {
             continue;
         }
 
@@ -720,6 +772,15 @@ hwc2_error_t Hwc2Display::collectLayersForPresent() {
             }
         } zorderCompare;
         std::sort(mPresentLayers.begin(), mPresentLayers.end(), zorderCompare);
+    }
+
+    //Set the video layer to dummy when the whiteboard is open and the miniboard is not open
+    for (auto it = mPresentLayers.begin() ; it != mPresentLayers.end(); it++) {
+        Hwc2Layer * layer;
+        if (((*it)->getFbType() == DRM_FB_VIDEO_UVM_DMA ||(*it)->getFbType() == DRM_FB_VIDEO_TUNNEL_SIDEBAND) && mHideVideo) {
+            layer = (Hwc2Layer*)(it->get());
+            layer->mCompositionType = MESON_COMPOSITION_DUMMY;
+        }
     }
 
     return HWC2_ERROR_NONE;
@@ -774,6 +835,94 @@ hwc2_error_t Hwc2Display::setCalibrateInfo(int32_t caliX,int32_t caliY,int32_t c
 void Hwc2Display::outsideChanged(){
     /*outside hwc has changes need do validate first*/
     mOutsideChanged= true;
+}
+
+void Hwc2Display::createVirtualLayer() {
+    std::lock_guard<std::mutex> lock(mMutex);
+    mVirtualLayer = std::make_shared<Hwc2Layer>(mDisplayId);
+    mVLIdx = createLayerId();
+    mVirtualLayer->setUniqueId(mVLIdx);
+    mVirtualLayer->mIsVirtualLayer = true;
+
+    hwc_frect_t mCrop = {0, 0, static_cast<float>(FB_SIZE_4K_W), static_cast<float>(FB_SIZE_4K_H)};
+    mVirtualLayer->setSourceCrop(mCrop);
+    hwc_rect_t mDisplayFrame = {0, 0, FB_SIZE_4K_W, FB_SIZE_4K_H};
+    mVirtualLayer->setDisplayFrame(mDisplayFrame);
+    mVirtualLayer->setBlendMode(HWC2_BLEND_MODE_NONE);
+    mVirtualLayer->mZorder = 100;
+    mVirtualLayer->mCompositionType = MESON_COMPOSITION_UNDETERMINED;
+
+    //Bind the buffer to Virtual Layer
+    if (wbHnd == NULL) {
+        wbHnd = gralloc_alloc_dma_buf(FB_SIZE_4K_W, FB_SIZE_4K_H, HAL_PIXEL_FORMAT_RGBA_8888, true, true, RENDER_TEXTURE);
+        if (wbHnd == NULL ) {
+            MESON_LOGE("Alloc dma buffer for virtual failed");
+            return;
+        }
+    }
+
+    mVirtualLayer->setBuffer(wbHnd,-1);
+    mLayers.emplace(mVLIdx, mVirtualLayer);
+    return;
+}
+
+void Hwc2Display::destroyVirtualLayer() {
+    std::lock_guard<std::mutex> lock(mMutex);
+    auto layerit = mLayers.find(mVLIdx);
+    if (layerit == mLayers.end()) {
+        MESON_LOGE("The virtual layer is invalid mVLIdx = %d",mVLIdx);
+        return;
+    }
+    destroyLayerId(mVLIdx);
+    mLayers.erase(mVLIdx);
+    mVLIdx = -1;
+    return;
+}
+
+void Hwc2Display::getWriteBoardMode(bool& mode) {
+    mode = mWhiteBoardMode;
+    return;
+}
+
+void Hwc2Display::hideVideoLayer(bool hide) {
+    MESON_LOGD("set hide video layer mode to %s", hide ? "true" : "false");
+    mHideVideo = hide;
+    return;
+}
+
+void Hwc2Display::setWBDisplayFrame(int x, int y) {
+    hwc_rect_t displayFrame = {x, y, (int)mDisplayMode.pixelW, (int)mDisplayMode.pixelH};
+    mVirtualLayer->setDisplayFrame(displayFrame);
+    return;
+}
+
+void Hwc2Display::setWriteBoardMode(bool mode) {
+    MESON_LOGD("set setWriteBoardMode to %s, mWhiteBoardMode = %d", mode ? "true" : "false", mWhiteBoardMode);
+
+    //First create a Virtual Layer to show White Board content.
+    if (mode == true && mode != mWhiteBoardMode) {
+        createVirtualLayer();
+        mWhiteBoardMode = true;
+    } else if (mode == false) {
+        destroyVirtualLayer();
+        mWhiteBoardMode = false;
+    }
+
+    //Create White Board Display Thread
+    if (!mInitWBDisplayThread) {
+        handleWBThread();
+        mInitWBDisplayThread = true;
+    }
+
+    //Enable White Board display thread Vsync
+    if (mWhiteBoardMode == true) {
+        mWBVsync->setEnabled(true);
+    } else {
+        mWBVsync->setEnabled(false);
+    }
+
+    mObserver->refresh();
+    return;
 }
 
 int32_t Hwc2Display::getDisplayIdentificationData(uint32_t &outPort,
@@ -838,7 +987,7 @@ int32_t Hwc2Display::adjustDisplayFrame() {
     Hwc2Layer * layer;
     for (auto it = mPresentLayers.begin() ; it != mPresentLayers.end(); it++) {
         layer = (Hwc2Layer*)(it->get());
-        if (bNoScale) {
+        if (bNoScale || layer->isVirtualLayer()) {
             layer->mDisplayFrame = layer->mBackupDisplayFrame;
         } else {
             layer->mDisplayFrame.left = (int32_t)ceilf((float)layer->mBackupDisplayFrame.left *
@@ -993,6 +1142,10 @@ hwc2_error_t Hwc2Display::collectCompositionRequest(
     /*collect display requested, and changed composition type.*/
     for (auto it = mPresentLayers.begin() ; it != mPresentLayers.end(); it++) {
         layer = (Hwc2Layer*)(it->get());
+        if (layer->isVirtualLayer()) {
+            continue;
+        }
+
         /* decoration type not support it now */
         if (layer->mFbType == DRM_FB_DECORATION) {
             hasDecoration = true;
@@ -1081,6 +1234,7 @@ hwc2_error_t Hwc2Display::getDisplayRequests(
 hwc2_error_t Hwc2Display::getChangedCompositionTypes(
     uint32_t * outNumElements, hwc2_layer_t * outLayers,
     int32_t *  outTypes) {
+    std::lock_guard<std::mutex> lock(mMutex);
     *outNumElements = mChangedLayers.size();
     if (outLayers && outTypes) {
         for (uint32_t i = 0; i < mChangedLayers.size(); i++) {
@@ -1226,12 +1380,21 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
         /* reset layer flag to false */
         for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
             std::shared_ptr<Hwc2Layer> layer = it->second;
+            if (layer->isVirtualLayer()) {
+                continue;
+            }
+
             layer->clearUpdateFlag();
         }
 
         /* Page flip */
         if (mCrtc->pageFlip(mPresentFence) < 0) {
             return HWC2_ERROR_UNSUPPORTED;
+        }
+
+        if (mWhiteBoardMode) {
+            int32_t fence = ::dup(mPresentFence);
+            mPresentCompositionStg->setReleaseFence(fence);
         }
 
         if (mPostProcessor != NULL) {
@@ -1280,6 +1443,10 @@ hwc2_error_t Hwc2Display::getReleaseFences(uint32_t* outNumElements,
         std::lock_guard<std::mutex> lock(mMutex);
         for (auto it = mPresentLayers.begin(); it != mPresentLayers.end(); it++) {
             Hwc2Layer *layer = (Hwc2Layer*)(it->get());
+            if (layer->isVirtualLayer()) {
+                continue;
+            }
+
             num++;
             if (needInfo) {
                 int32_t releaseFence = layer->getPrevReleaseFence();
@@ -2093,20 +2260,6 @@ hwc2_error_t Hwc2Display::presentVtVideo(int32_t* outPresentFence) {
     return HWC2_ERROR_NONE;
 }
 
-int32_t Hwc2Display::setVtVsync(std::shared_ptr<HwcVsync> vsync) {
-    std::lock_guard<std::mutex> lock(mMutex);
-    if (mVtVsync != vsync) {
-        if (mVtVsync.get()) {
-            mVtVsync->setObserver(NULL);
-        } else {
-            mVtVsync = vsync;
-            mVtVsync->setObserver(this);
-        }
-    }
-
-    return 0;
-}
-
 void Hwc2Display::onFrameAvailable() {
     ATRACE_CALL();
     if (mVtDisplayThread)
@@ -2129,14 +2282,14 @@ void Hwc2Display::handleVtThread() {
             mVtDisplayThread = std::make_shared<VtDisplayThread>(this);
         }
         if (!mVtVsyncStatus) {
-            mVtVsync->setVideoTunnelEnabled(true);
+            mVtVsync->setEnabled(true);
             mVtVsyncStatus = true;
             MESON_LOGD("%s, displayId:%d set video tunnel thread to Enabled",
                     __func__, mDisplayId);
         }
     } else {
         if (mVtDisplayThread && mVtVsyncStatus) {
-            mVtVsync->setVideoTunnelEnabled(false);
+            mVtVsync->setEnabled(false);
             mVtVsyncStatus = false;
             MESON_LOGD("%s, displayId:%d, set video tunnel thread to Disabled",
                     __func__, mDisplayId);

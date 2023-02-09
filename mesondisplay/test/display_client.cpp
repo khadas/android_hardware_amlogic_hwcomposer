@@ -32,6 +32,10 @@ static const struct option long_option[] = {
     {"F", required_argument, 0, 'F'},
     {"dump-display-attribute", no_argument, 0, 'd'},
     {"vsync-timestamp", no_argument, 0, 'v'},
+    {"w",required_argument,0,'w'},
+    {"b",no_argument,0,'b'},
+    {"f",required_argument,0,'f'},
+    {"h",required_argument,0,'h'},
     {0, 0, 0, 0}
 };
 
@@ -49,6 +53,10 @@ static void print_usage(const char* name) {
             "                               \t eg: \"Content Protection\" 1\n"
             "       -v, --get-vsyn-timestamp and period \t get primary display vsync timestamp and vsync period\n"
             "       -F, [framerate] \tset framerate for AFR\n"
+            "       -w,--set-whiteboard  \t  disable [false|true]white board \n "
+            "       -b,--get-whiteboard  \t  get current white board mode\n "
+            "       -f,--set-whiteboard display position \t  x and y is the position\n "
+            "       -h,--hide the video layer \t  hide the video layer\n "
             "       -r,--raw-cmd           \tsend raw cmd\n", name);
 }
 
@@ -176,6 +184,43 @@ int main(int argc, char* argv[]) {
                     client->dumpDisplayAttribute(json, type);
                     printf("Dump display attribute:\n%s", meson::JsonValue2String(json).c_str());
                 }
+                break;
+            case 'w':
+                 if (optarg == NULL)
+                     break;
+                  {
+                      bool mode = false;
+                      if (0 == memcmp("true", optarg, sizeof("true"))) {
+                            mode =true;
+                      }
+                      client->setWriteBoardMode(mode);
+                      printf("set white board to %s \n", mode ? "true":"false");
+                  }
+                break;
+            case 'b':
+                  {
+                      bool mode = false;
+                      client->getWriteBoardMode(mode);
+                      printf("get current white board %s \n", mode ? "true":"false");
+                  }
+                break;
+            case 'f':
+                  {
+                      printf("set the white board position (%s %s)\n", optarg, argv[optind]);
+                      client->setWBDisplayFrame(atoi(optarg), atoi(argv[optind]));
+                  }
+                break;
+            case 'h':
+                 if (optarg == NULL)
+                     break;
+                  {
+                      bool mode = false;
+                      if (0 == memcmp("true", optarg, sizeof("true"))) {
+                            mode =true;
+                      }
+                      client->hideVideoLayer(mode);
+                      printf("hide video layer mode is %s \n", mode ? "true":"false");
+                  }
                 break;
             default:
                 print_usage(argv[0]);

@@ -10,7 +10,8 @@
 #include "DisplayAdapter.h"
 #include "DisplayClient.h"
 #include "DisplayAdapterRemote.h"
-#include "MesonLog.h"
+#include "MesonDisplayLog.h"
+#include "am_gralloc_ext.h"
 
 #define IF_SERVER_NOT_READY_RETURN(ret) \
     if (!connectServerIfNeed()) { \
@@ -87,6 +88,57 @@ bool DisplayAdapterRemote::setDisplayMode(const string& mode, ConnectorType disp
 bool DisplayAdapterRemote::captureDisplayScreen(const native_handle_t **outBufferHandle) {
     IF_SERVER_NOT_READY_RETURN(false);
     return ipc->captureDisplayScreen(outBufferHandle);
+}
+
+bool DisplayAdapterRemote::getWhiteBoardHanle(const native_handle_t **outBufferHandle, int& fd) {
+    IF_SERVER_NOT_READY_RETURN(false);
+    bool ret = true;
+    ret = ipc->getWhiteBoardHanle(outBufferHandle);
+    fd = am_gralloc_get_buffer_fd(*outBufferHandle);
+    return ret;
+}
+
+bool DisplayAdapterRemote::setWriteBoardMode(bool mode) {
+    Json::Value cmd;
+    IF_SERVER_NOT_READY_RETURN(false);
+    cmd["cmd"] = "setWriteBoardMode";
+    cmd["value"] = mode ? "true":"false";
+    ipc->send_request(cmd);
+    return true;
+}
+
+bool DisplayAdapterRemote::getWriteBoardMode(bool& mode) {
+    Json::Value cmd, ret;
+    IF_SERVER_NOT_READY_RETURN(false);
+    cmd["cmd"] = "getWriteBoardMode";
+    ipc->send_request_wait_reply(cmd, ret);
+    if (ret.isMember("ret") && ret["ret"]["mode"].isString()) {
+        if (ret["ret"]["mode"].asString() == "true") {
+            mode = true;
+        }
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool DisplayAdapterRemote::setWBDisplayFrame(int x, int y) {
+    Json::Value cmd;
+    IF_SERVER_NOT_READY_RETURN(false);
+    cmd["cmd"] = "setWBDisplayFrame";
+    cmd["posX"] = x;
+    cmd["posY"] = y;
+    ipc->send_request(cmd);
+    return true;
+}
+
+bool DisplayAdapterRemote::hideVideoLayer(bool hide) {
+    Json::Value cmd;
+    IF_SERVER_NOT_READY_RETURN(false);
+    cmd["cmd"] = "hideVideoLayer";
+    cmd["value"] = hide ? "true":"false";
+    ipc->send_request(cmd);
+    return true;
 }
 
 bool DisplayAdapterRemote::setDisplayRect(const Rect rect, ConnectorType displayType) {

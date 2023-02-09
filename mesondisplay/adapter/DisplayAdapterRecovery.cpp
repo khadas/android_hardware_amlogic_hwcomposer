@@ -291,6 +291,40 @@ bool DisplayAdapterLocal::captureDisplayScreen(const native_handle_t **outBuffer
     return true;
 }
 
+bool DisplayAdapterLocal::getWhiteBoardHanle(const native_handle_t **outBufferHandle, int& fd __unused) {
+    *outBufferHandle = nullptr;
+    return true;
+}
+
+bool DisplayAdapterLocal::setWriteBoardMode(bool mode) {
+    bool ret = false;
+    UNUSED(mode);
+    NOTIMPLEMENTED;
+    return ret;
+}
+
+bool DisplayAdapterLocal::getWriteBoardMode(bool& mode) {
+    bool ret = false;
+    UNUSED(mode);
+    NOTIMPLEMENTED;
+    return ret;
+}
+
+bool DisplayAdapterLocal::setWBDisplayFrame(int x, int y) {
+    bool ret = false;
+    UNUSED(x);
+    UNUSED(y);
+    NOTIMPLEMENTED;
+    return ret;
+}
+
+bool DisplayAdapterLocal::hideVideoLayer(bool hide) {
+    bool ret = false;
+    UNUSED(hide);
+    NOTIMPLEMENTED;
+    return ret;
+}
+
 bool DisplayAdapterLocal::setDisplayRect(const Rect rect, ConnectorType displayType) {
     bool ret = false;
     UNUSED(rect);

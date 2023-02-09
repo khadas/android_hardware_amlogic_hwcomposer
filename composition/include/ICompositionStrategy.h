@@ -92,6 +92,8 @@ public:
         dumpstr.append("--------------------------------------------------------------\n");
     }
 
+    virtual void setReleaseFence(int32_t fence __unused) {return;};
+
 protected:
     /*common functions for dump.*/
     inline void dumpComposedFb(

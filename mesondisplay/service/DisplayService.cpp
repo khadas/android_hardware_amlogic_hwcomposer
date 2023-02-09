@@ -110,6 +110,15 @@ Return<void> MesonIpcServer::captureDisplayScreen(const int32_t displayId, const
     return Void();
 }
 
+Return<void> MesonIpcServer::getWhiteBoardHanle(const int32_t displayId, const int32_t layerId,
+        getWhiteBoardHanle_cb hidl_cb) {
+    UNUSED(displayId);
+    UNUSED(layerId);
+    UNUSED(hidl_cb);
+    NOTIMPLEMENTED;
+    return Void();
+}
+
 DisplayServer::DisplayServer(std::unique_ptr<DisplayAdapter>& adapter) {
     if (!adapter) {
         MESON_LOGE("Server create with null adapter!");
@@ -195,6 +204,32 @@ void DisplayServer::message_handle(Json::Value& in, Json::Value& out) {
             goto OUT;
         int value = adapter->setFrameRate(in["frameRate_value"].asFloat());
         ret["value"] = value;
+   } else if (cmd == "setWriteBoardMode") {
+        if (!in.isMember("value"))
+            goto OUT;
+        bool mode = false;
+        if (in["value"].asString() == "true" )
+            mode = true;
+        adapter->setWriteBoardMode(mode);
+    } else if (cmd == "getWriteBoardMode") {
+        bool mode = false;;
+        adapter->getWriteBoardMode(mode);
+        if (mode ==  true) {
+            ret["mode"] = "true";
+        } else {
+            ret["mode"] = "false";
+        }
+    } else if (cmd == "setWBDisplayFrame") {
+        if (!in.isMember("posX") || !in.isMember("posY"))
+            goto OUT;
+        adapter->setWBDisplayFrame(in["posX"].asUInt(), in["posY"].asUInt());
+    } else if (cmd == "hideVideoLayer") {
+        if (!in.isMember("value"))
+            goto OUT;
+        bool mode = false;
+        if (in["value"].asString() == "true" )
+            mode = true;
+        adapter->hideVideoLayer(mode);
     } else {
         MESON_LOGE("CMD not implement!");
     }
@@ -236,6 +271,37 @@ Return<void> DisplayServer::captureDisplayScreen(const int32_t displayId, const 
         gralloc_unref_dma_buf(const_cast<native_handle_t*> (bufferHandle));
         gralloc_free_dma_buf(const_cast<native_handle_t*> (bufferHandle));
     }
+    return Void();
+}
+
+Return<void> DisplayServer::getWhiteBoardHanle(const int32_t displayId, const int32_t layerId,
+        getWhiteBoardHanle_cb hidl_cb) {
+    UNUSED(displayId);
+    UNUSED(layerId);
+
+    hidl_vec<hidl_handle> outHandles;
+
+    if (!adapter) {
+        MESON_LOGD("DisplayServer display adaptor not ready");
+        outHandles.setToExternal(nullptr, 0);
+        hidl_cb(Error::NO_RESOURCES, outHandles);
+        return Void();
+    }
+
+    const native_handle_t* bufferHandle = nullptr;
+    int fd;
+    bool ret = adapter->getWhiteBoardHanle(&bufferHandle,fd);
+    if (!ret) {
+        outHandles.setToExternal(nullptr, 0);
+        hidl_cb(Error::NO_RESOURCES, outHandles);
+        return Void();
+    }
+
+    std::vector<hidl_handle> handles;
+    handles.push_back(bufferHandle);
+
+    outHandles.setToExternal(const_cast<hidl_handle*>(handles.data()), handles.size());
+    hidl_cb(Error::NONE, outHandles);
     return Void();
 }
 
