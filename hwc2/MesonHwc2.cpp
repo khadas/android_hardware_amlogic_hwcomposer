@@ -1024,6 +1024,15 @@ int32_t MesonHwc2::initialize() {
     }
 
     mDisplayPipe->init(mhwcDisps);
+/*For round corner*/
+#ifdef ENABLE_VIRTUAL_LAYER
+    GET_HWC_DISPLAY(0);
+    hwc2_layer_t outLayer  = 0;
+    hwcDisplay->createVirtualLayer(&outLayer);
+    if (outLayer == 0) {
+        MESON_LOGD("createVirtualLayer failed");
+    }
+#endif
     return HWC2_ERROR_NONE;
 }
 

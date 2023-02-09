@@ -55,6 +55,7 @@ soong_config_module_type {
         "enable_video_aisr",
         "enable_video_aipq",
         "enable_aidl",
+        "enable_virtual_layer",
     ],
 
     value_variables: [
@@ -122,6 +123,10 @@ meson_hwc_cc_defaults {
         android_platform_sdk_extension_version: {
             cflags: ["-DANDROID_PLATFORM_SDK_EXTENSION_VERSION=%s"],
         },
+
+        enable_virtual_layer: {
+            cflags: ["-DENABLE_VIRTUAL_LAYER"],
+        },
     },
 
     product_variables: {
@@ -150,5 +155,7 @@ meson_hwc_cc_defaults {
         "libamgralloc_ext",
         "vendor.amlogic.hardware.systemcontrol@1.0",
         "vendor.amlogic.hardware.systemcontrol@1.1",
+        "libpng",
+        "libz",
     ],
 }

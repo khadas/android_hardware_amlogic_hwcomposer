@@ -61,6 +61,8 @@ public:
 
     bool isSecure() { return mSecure;}
 
+    bool isVirtualLayer() { return mIsVirtualLayer;}
+
     int32_t commitCompType(hwc2_composition_t hwcComp);
 
     bool isUpdateZorder() { return mUpdateZorder;}
@@ -83,7 +85,6 @@ public:
     virtual bool haveSolidColorBuffer();
     void vtRefresh();
     int getVideoTunnelId();
-    bool isVirtualLayer() { return mIsVirtualLayer;}
 
     int32_t registerConsumer();
     int32_t unregisterConsumer();

@@ -24,6 +24,12 @@
 #include "VtDisplayThread.h"
 #include "WBDisplayThread.h"
 
+/*For round corner*/
+#include <png.h>
+#include <zlib.h>
+#include <misc.h>
+#include <sys/mman.h>
+
 #include <DrmTypes.h>
 #include <HwcConfig.h>
 #include <MesonLog.h>
@@ -294,6 +300,12 @@ int32_t Hwc2Display::blankDisplay(bool resetLayers) {
         }
 
         mLayers.clear();
+        // For round corner,mVirtualLayer should not be cleared
+#ifdef ENABLE_VIRTUAL_LAYER
+        if (mVirtualLayer) {
+            mLayers.emplace(mVirtualLayer->getUniqueId(), mVirtualLayer);
+        }
+#endif
         mPresentLayers.clear();
         mCompositionStrategy->updateComposition();
         mPresentCompositionStg->setup(mPresentLayers,
@@ -657,6 +669,82 @@ hwc2_error_t Hwc2Display::destroyLayer(hwc2_layer_t  inLayer) {
     return HWC2_ERROR_NONE;
 }
 
+hwc2_error_t Hwc2Display::loadVirtualLayerData(FILE *file){
+
+    //use libpng
+    png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, 0, 0, 0);
+    png_infop info_ptr = png_create_info_struct(png_ptr);
+    setjmp(png_jmpbuf(png_ptr));
+    png_init_io(png_ptr, file);
+    png_read_png(png_ptr, info_ptr, PNG_TRANSFORM_EXPAND, 0);
+
+    int m_width = png_get_image_width(png_ptr, info_ptr);
+    int m_height = png_get_image_height(png_ptr, info_ptr);
+
+    hwc_frect_t mCrop = {0, 0, static_cast<float>(m_width), static_cast<float>(m_height)};
+    mVirtualLayer->setSourceCrop(mCrop);
+    mVirtualLayer->setBlendMode(HWC2_BLEND_MODE_PREMULTIPLIED);
+
+    buffer_handle_t hnd = gralloc_alloc_dma_buf(m_width, m_height, HAL_PIXEL_FORMAT_RGBA_8888, true, false);
+    if (hnd == NULL ) {
+        MESON_LOGE("VirtualLayer allocate buf failed.");
+        return HWC2_ERROR_NO_RESOURCES;
+    }
+
+    mVirtualLayer->setBuffer(hnd,-1);
+    int bufFd = am_gralloc_get_buffer_fd(hnd);
+    char *base = (char *)mmap(NULL, m_width*m_height*4, PROT_WRITE , MAP_SHARED, bufFd, 0);
+    if (base == MAP_FAILED) {
+        MESON_LOGE("VirtualLayer mmap failed");
+        return HWC2_ERROR_NO_RESOURCES;
+    }
+
+    unsigned char ** row_pointers = png_get_rows(png_ptr, info_ptr);
+    unsigned int row_bytes = png_get_rowbytes(png_ptr, info_ptr);
+    if (row_pointers)
+        MESON_LOGD("VirtualLayer size(%dx%d) row_bytes %d", m_width, m_height,row_bytes);
+
+    for (int i = 0; i < m_height; i++) {
+        memcpy(base + row_bytes*i, row_pointers[i], row_bytes);
+    }
+    munmap(base,m_width*m_height*4);
+
+    return HWC2_ERROR_NONE;
+
+}
+
+hwc2_error_t Hwc2Display::createVirtualLayer(hwc2_layer_t * outLayer) {
+    ATRACE_CALL();
+    std::lock_guard<std::mutex> lock(mMutex);
+    const char * pngPath  = "/data/vendor/Rhodes_RoundedCorner_Proto_alpha_v2.png";
+
+    FILE *file = fopen(pngPath,"rb");
+    if (file == NULL) {
+        MESON_LOGE("Unable to open PNG %s",pngPath);
+        return HWC2_ERROR_NO_RESOURCES;
+    }
+
+    mVirtualLayer = std::make_shared<Hwc2Layer>(mDisplayId);
+    hwc2_error_t ret = loadVirtualLayerData(file);
+    if (ret != HWC2_ERROR_NONE) {
+        *outLayer = 0;
+        return ret;
+    }
+
+    uint32_t idx = createLayerId();
+    *outLayer = idx;
+
+    mVirtualLayer->setUniqueId(*outLayer);
+    mVirtualLayer->mIsVirtualLayer = true;
+    mVirtualLayer->mZorder = 63;
+    mVirtualLayer->mCompositionType = MESON_COMPOSITION_UNDETERMINED;
+    mLayers.emplace(*outLayer, mVirtualLayer);
+
+    fclose(file);
+
+    return HWC2_ERROR_NONE;
+}
+
 hwc2_error_t Hwc2Display::setCursorPosition(hwc2_layer_t layer __unused,
     int32_t x __unused, int32_t y __unused) {
     MESON_LOG_EMPTY_FUN();
@@ -1011,6 +1099,13 @@ int32_t Hwc2Display::adjustDisplayFrame() {
     Hwc2Layer * layer;
     for (auto it = mPresentLayers.begin() ; it != mPresentLayers.end(); it++) {
         layer = (Hwc2Layer*)(it->get());
+/*For round corner*/
+#ifdef ENABLE_VIRTUAL_LAYER
+        if (mVirtualLayer && layer->isVirtualLayer()) {
+            hwc_rect_t mFrame = {0, 0, mCalibrateInfo.framebuffer_w, mCalibrateInfo.framebuffer_h};
+            mVirtualLayer->setDisplayFrame(mFrame);
+        }
+#endif
         if (bNoScale || layer->isVirtualLayer()) {
             layer->mDisplayFrame = layer->mBackupDisplayFrame;
         } else {
