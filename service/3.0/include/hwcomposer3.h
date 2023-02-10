@@ -162,3 +162,7 @@ typedef enum {
 typedef enum {
     HWC3_CAPABILITY_BOOT_DISPLAY_CONFIG = 5,
 } hwc3_capability_t;
+
+typedef enum {
+    DOLBY_VISION_4K30 = 5,
+} hwc3_hdr_t;

@@ -288,6 +288,15 @@ int32_t MesonHwc2::getHdrCapabilities(hwc2_display_t display,
             }
         }
 
+#if (PLATFORM_SDK_VERSION > 33) || (PLATFORM_SDK_VERSION == 33 \
+            && (ANDROID_PLATFORM_SDK_EXTENSION_VERSION >= 5))
+        if (caps->DOLBY_VISION_4K30_Supported) {
+            *outNumTypes = *outNumTypes + 1;
+            if (getInfo) {
+                *outTypes++ = DOLBY_VISION_4K30;
+            }
+        }
+#endif
         if (getInfo) {
             *outMaxLuminance = caps->maxLuminance;
             *outMaxAverageLuminance = caps->avgLuminance;

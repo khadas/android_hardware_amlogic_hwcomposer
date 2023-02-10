@@ -142,6 +142,7 @@ $(call soong_config_set,meson_hwc,enable_vt_hwVsync,$(HWC_VT_HW_VSYNC))
 $(call soong_config_set,meson_hwc,enable_video_aipq,$(HWC_VIDEO_AIPQ))
 $(call soong_config_set,meson_hwc,enable_uvm_dettach,$(HWC_UVM_DETTACH))
 $(call soong_config_set,meson_hwc,filter_16_9mode,$(HWC_FILTER_16_9MODE))
+$(call soong_config_set,meson_hwc,android_platform_sdk_extension_version,$(PLATFORM_SDK_EXTENSION_VERSION))
 
 #$(warning "the value of aidl: $(HWC_ENABLE_AIDL)")
 $(warning "the value of uvm_dettach: $(HWC_UVM_DETTACH)")

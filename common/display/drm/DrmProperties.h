@@ -61,6 +61,7 @@
 #define DRM_HDMI_PROP_HDR_STATUS     "hdmi_hdr_status"
 #define DRM_HDMI_PROP_CONTENT_TYPE   "content type"
 #define DRM_HDMI_PROP_HDMI_AV_MUTE   "MESON_DRM_HDMITX_PROP_AVMUTE"
+#define DRM_HDMI_PROP_DV_CAP         "dv_cap"
 
 /*meson prop*/
 #define DRM_CONNECTOR_PROP_UPDATE "UPDATE"

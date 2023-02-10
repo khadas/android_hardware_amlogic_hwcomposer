@@ -22,6 +22,7 @@
 #include <systemcontrol.h>
 
 #include "../fbdev/AmVinfo.h"
+#include "Dv.h"
 
 #define EDID_MIN_LEN (128)
 #define HDMI_FRAC_RATE_POLICY "/sys/class/amhdmitx/amhdmitx0/frac_rate_policy"
@@ -85,6 +86,7 @@ int32_t DrmConnector::loadProperties(drmModeConnectorPtr p __unused) {
         {DRM_HDMI_PROP_HDR_STATUS, &mHdrStatus},
         {DRM_HDMI_PROP_CONTENT_TYPE, &mContentType},
         {DRM_HDMI_PROP_HDMI_AV_MUTE, &mAVMute},
+        {DRM_HDMI_PROP_DV_CAP, &mDvCaps},
     };
     const int connectorPropsNum = sizeof(connectorProps)/sizeof(connectorProps[0]);
 
@@ -279,6 +281,11 @@ int32_t DrmConnector::loadConnectorInfo(drmModeConnectorPtr metadata) {
 
         if (mType == DRM_MODE_CONNECTOR_HDMIA) {
             parseHdmiHdrCapabilities(mHdrCapabilities);
+            mSupportDv = getDvSupportStatus();
+#if (PLATFORM_SDK_VERSION > 33) || (PLATFORM_SDK_VERSION == 33 \
+                && (ANDROID_PLATFORM_SDK_EXTENSION_VERSION >= 5))
+            parseHdmiDvCapabilities();
+#endif
         }
 
         loadDisplayModes(metadata);
@@ -290,6 +297,24 @@ int32_t DrmConnector::loadConnectorInfo(drmModeConnectorPtr metadata) {
 
     return 0;
 }
+
+#if (PLATFORM_SDK_VERSION > 33) || (PLATFORM_SDK_VERSION == 33 \
+            && (ANDROID_PLATFORM_SDK_EXTENSION_VERSION >= 5))
+/*use drm property for dv_cap*/
+int32_t DrmConnector:: parseHdmiDvCapabilities() {
+    if (mDvCaps) {
+        if (mDvCaps->getValue() != 0 && mSupportDv) {
+            mHdrCapabilities.DolbyVisionSupported = true;
+            if ((mDvCaps->getValue() & (1<<2)) == 0 )
+                mHdrCapabilities.DOLBY_VISION_4K30_Supported = true;
+        }
+    } else {
+        MESON_LOGD("%s mDvCaps is null",__func__);
+    }
+
+    return 0;
+}
+#endif
 
 uint32_t DrmConnector::getId() {
     return mId;
@@ -567,6 +592,10 @@ int32_t DrmConnector::setAutoLowLatencyMode(bool on) {
 
 void DrmConnector::updateHdrCaps() {
     parseHdmiHdrCapabilities(mHdrCapabilities);
+#if (PLATFORM_SDK_VERSION > 33) || (PLATFORM_SDK_VERSION == 33 \
+                && (ANDROID_PLATFORM_SDK_EXTENSION_VERSION >= 5))
+            parseHdmiDvCapabilities();
+#endif
 }
 
 void DrmConnector::getHdrCapabilities(drm_hdr_capabilities * caps) {

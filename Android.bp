@@ -57,6 +57,10 @@ soong_config_module_type {
         "enable_aidl",
     ],
 
+    value_variables: [
+        "android_platform_sdk_extension_version",
+    ],
+
     properties: [
         "cflags",
         "srcs",
@@ -113,6 +117,10 @@ meson_hwc_cc_defaults {
 
         enable_aidl: {
             cflags: ["-DENABLE_AIDL"],
+        },
+
+        android_platform_sdk_extension_version: {
+            cflags: ["-DANDROID_PLATFORM_SDK_EXTENSION_VERSION=%s"],
         },
     },
 

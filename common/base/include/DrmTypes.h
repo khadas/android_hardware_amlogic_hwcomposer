@@ -210,6 +210,7 @@ typedef struct drm_hdr_capabilities {
     bool HLGSupported;
     bool HDR10Supported;
     bool HDR10PlusSupported;
+    bool DOLBY_VISION_4K30_Supported;
 
     int maxLuminance;
     int avgLuminance;

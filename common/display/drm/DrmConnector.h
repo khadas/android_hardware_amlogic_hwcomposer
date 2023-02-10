@@ -77,6 +77,7 @@ protected:
     int32_t loadConnectorInfo(drmModeConnectorPtr metadata);
     int32_t loadDisplayModes(drmModeConnectorPtr p);
     int32_t loadProperties(drmModeConnectorPtr p);
+    int32_t parseHdmiDvCapabilities();
 
     int32_t parseHdrCapabilities();
     int32_t groupDisplayModes();
@@ -110,6 +111,7 @@ protected:
     std::shared_ptr<DrmProperty> mHdrStatus;
     std::shared_ptr<DrmProperty> mContentType;
     std::shared_ptr<DrmProperty> mAVMute;
+    std::shared_ptr<DrmProperty> mDvCaps;
     /*for lcd now*/
     std::shared_ptr<DrmProperty> mMesonConnectorType;
     /* for vrr */
@@ -120,6 +122,7 @@ protected:
 
     /* support VRR or not */
     bool mSupportVrr = false;
+    bool mSupportDv = false;
 };
 
 #endif/*DRM_CONNECTOR_H*/
