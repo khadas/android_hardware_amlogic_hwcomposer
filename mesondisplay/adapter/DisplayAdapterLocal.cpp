@@ -143,6 +143,7 @@ DisplayAdapterLocal::DisplayAdapterLocal() {
     DA_DEFINE(HDMI_COLOR_ATTR, "0", update_sys_node);
     DA_DEFINE(HDMI_AVMUTE, "0", update_sys_node);
     DA_DEFINE(FR_HINT, "0", update_sys_node);
+    DA_DEFINE(HDR_PRIORITY, "0", update_sys_node);
 
 #define DA_SET_NODE(ID, NODE) \
     display_attrs[DA_##ID].sysfs_node = NODE
@@ -174,6 +175,7 @@ DisplayAdapterLocal::DisplayAdapterLocal() {
     DA_SET_NODE(HDMI_COLOR_ATTR ,"/sys/class/amhdmitx/amhdmitx0/attr");
     DA_SET_NODE(HDMI_AVMUTE ,"/sys/devices/virtual/amhdmitx/amhdmitx0/avmute");
     DA_SET_NODE(FR_HINT, "/sys/class/display/fr_hint");
+    DA_SET_NODE(HDR_PRIORITY, "/sys/class/amhdmitx/amhdmitx0/hdr_priority_mode");
 
 #define DA_SET_READ_ONLY(ID) \
     display_attrs[DA_##ID].is_read_only = true
