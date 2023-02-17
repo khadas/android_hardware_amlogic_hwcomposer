@@ -336,6 +336,7 @@ AipqProcessor::AipqProcessor() {
     mNn_Index = 0;
     mCacheIndex = 0;
     mBuf_index = 0;
+    mThread = 0;
 
     if (mInstanceID == 0) {
         mTime.count = 0;
@@ -599,7 +600,7 @@ int32_t AipqProcessor::teardown() {
     int cache_index;
 
     ALOGD("%s.\n", __FUNCTION__);
-    if (mInited)
+    if (mInited && mThread)
         pthread_join(mThread, NULL);
 
     while (mBuf_fd_q.size() > 0)
@@ -671,6 +672,7 @@ void * AipqProcessor::threadMain(void * data) {
     }
 
     ALOGD("%s exit.\n", __FUNCTION__);
+    pThis->mThread = 0;
     pthread_exit(0);
     return NULL;
 }
