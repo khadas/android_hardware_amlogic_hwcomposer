@@ -139,11 +139,16 @@ int32_t RealModeMgr::updateActiveConfig(drm_mode_info_t activeMode) {
 void RealModeMgr::reset() {
     mModes.clear();
     mActiveConfigId = -1;
+    mIsFake1080p = false;
 }
 
 void RealModeMgr::resetTags() {
     mCallOnHotPlug = true;
 };
+
+bool RealModeMgr::isFakeSizeMode() {
+    return mIsFake1080p;
+}
 
 void RealModeMgr::processModeList(std::map<uint32_t, drm_mode_info_t> & modeList,
         drm_mode_info_t & currentMode) {
@@ -161,6 +166,7 @@ void RealModeMgr::processModeList(std::map<uint32_t, drm_mode_info_t> & modeList
                 mode.dpiY = ((float)fakePixelH / mode.pixelH) * mode.dpiY;
                 mode.pixelW = fakePixelW;
                 mode.pixelH = fakePixelH;
+                mIsFake1080p = true;
 
                 if (!strcmp(mode.name, currentMode.name))
                      currentMode = mode;

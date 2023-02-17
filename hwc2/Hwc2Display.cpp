@@ -1506,7 +1506,8 @@ hwc2_error_t Hwc2Display::setClientTarget(buffer_handle_t target,
     if (HwcConfig::getModePolicy(0) ==  REAL_MODE_POLICY) {
         drm_mode_info_t mode;
         if (mModeMgr->getDisplayMode(mode) == 0) {
-            if (!HwcConfig::getModeCondition() || (HwcConfig::getModeCondition() && mModeMgr->is16_9Mode(mode))) {
+            if ((!HwcConfig::getModeCondition() && !std::static_pointer_cast<RealModeMgr>(mModeMgr)->isFakeSizeMode()) ||
+                    (HwcConfig::getModeCondition() && std::static_pointer_cast<RealModeMgr>(mModeMgr)->is16_9Mode(mode))) {
                 mClientTarget->mSourceCrop.right = ((int32_t)mode.pixelW < mClientTarget->mSourceCrop.right)
                     ? mode.pixelW : mClientTarget->mSourceCrop.right;
                 mClientTarget->mSourceCrop.bottom = ((int32_t)mode.pixelH < mClientTarget->mSourceCrop.bottom)

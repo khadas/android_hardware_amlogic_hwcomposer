@@ -29,6 +29,7 @@
 #include "Hwc2Layer.h"
 #include "MesonHwc2Defs.h"
 #include "HwcModeMgr.h"
+#include "RealModeMgr.h"
 
 class VtDisplayThread;
 class WBDisplayThread;

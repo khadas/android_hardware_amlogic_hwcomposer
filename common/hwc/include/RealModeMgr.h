@@ -52,6 +52,7 @@ public:
 
     // for filter 16:9 mode
     bool is16_9Mode(drm_mode_info_t mode);
+    bool isFakeSizeMode();
     void processModeList(std::map<uint32_t, drm_mode_info_t> & modeList,
             drm_mode_info_t & currentMode);
 
@@ -79,6 +80,7 @@ protected:
     bool mDvEnabled;
 
     bool mCallOnHotPlug;
+    bool mIsFake1080p;
 };
 
 #endif // REAL_MODE_MGR_H
