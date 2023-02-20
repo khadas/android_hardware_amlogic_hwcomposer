@@ -345,7 +345,7 @@ int32_t NnProcessor::asyncProcess(
     if (crop_right > 1920 || crop_bottom > 1080)
         goto bypass;
 
-    if (mVInfo_width != 1920 && mVInfo_width != 3840 && mVInfo_width != 7680 && mVInfo_width != 0) {
+    if (mVInfo_width != 3840 && mVInfo_width != 7680 && mVInfo_width != 0) {
         ALOGD_IF(nn_check_D(), "vinfo %d %d not support", mVInfo_width, mVInfo_height);
         goto bypass;
     }
@@ -437,9 +437,8 @@ int32_t NnProcessor::asyncProcess(
         }
     }
 
-    if (mVInfo_width == 1920 &&
-        (ai_sr_info->hf_width > 960 || ai_sr_info->hf_height > 540)) {
-        ALOGD_IF(nn_check_D(), "not 540p, don't support.\n");
+    if (mVInfo_width == 1920) {
+        ALOGD_IF(nn_check_D(), "don't support 1080p aisr output.\n");
         goto error;
     }
 
