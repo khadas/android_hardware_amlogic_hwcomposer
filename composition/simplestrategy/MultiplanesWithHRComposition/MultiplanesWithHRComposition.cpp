@@ -234,6 +234,7 @@ int MultiplanesWithHRComposition::chooseOneVideoFb(std::shared_ptr<DrmFramebuffe
  * 2. The horizontal border distance from each video to its 1/4 window must be equal
  * 3. 4 video must be all afbc
  * 4. The distance to the border must be a multiple of 8
+ * 5. only support when refresh rate <= 60hz
  */
 bool MultiplanesWithHRComposition::checkAndHandle4Mosaic(uint32_t videoZorder) {
     if (HwcConfig::mosaicEnabled() == false)
@@ -244,6 +245,10 @@ bool MultiplanesWithHRComposition::checkAndHandle4Mosaic(uint32_t videoZorder) {
     if (!plane)
         return false;
     if (plane->isSupportMosaic() == false)
+        return false;
+
+    // mosaic need disable when output refresh rate > 60hz
+    if (mDisplayMode.refreshRate > DEFAULT_REFRESH_RATE)
         return false;
 
     // check 4 video playback
