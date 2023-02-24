@@ -1128,19 +1128,12 @@ void ComposerClient::executeLayerCommandSetLayerBuffer(int64_t displayId,
     buffer_handle_t importedBuffer = nullptr;
 
     auto releaser = mResources->createReleaser(/*isBuffer=*/true);
-    bool isClearCache = false;
     auto error =
         mResources->getLayerBuffer(displayId, layerId, buffer,
-                                   &importedBuffer, releaser.get(), isClearCache);
+                                   &importedBuffer, releaser.get());
     if (error != HWC3::Error::None) {
         LOG_LAYER_COMMAND_ERROR(displayId, layerId, error);
         mCommandResults->addError(error);
-        return;
-    }
-
-    if (isClearCache) {
-        DEBUG_LOG("%s layerId %" PRId64 " is clear cache,no need call setLayerBuffer",
-                __FUNCTION__,layerId);
         return;
     }
 
