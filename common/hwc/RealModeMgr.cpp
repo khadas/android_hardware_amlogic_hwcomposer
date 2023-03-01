@@ -45,7 +45,6 @@ static const char* DISPLAY_MODE_LIST[] = {
     "1080p24hz",    // MODE_1080P24HZ
     "1080p25hz",    // MODE_1080P25HZ
     "1080p30hz",    // MODE_1080P30HZ
-    "1080p47hz",    // MODE_1080P47HZ
     "1080p48hz",    // MODE_1080P48HZ
     "1080p50hz",    // MODE_1080P50HZ
     "1080p59hz",    // MODE_1080P59HZ
