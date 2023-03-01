@@ -77,7 +77,7 @@ protected:
     int32_t loadConnectorInfo(drmModeConnectorPtr metadata);
     int32_t loadDisplayModes(drmModeConnectorPtr p);
     int32_t loadProperties(drmModeConnectorPtr p);
-    int32_t parseHdmiDvCapabilities();
+    int32_t parseDvCapabilities();
 
     int32_t parseHdrCapabilities();
     int32_t groupDisplayModes();

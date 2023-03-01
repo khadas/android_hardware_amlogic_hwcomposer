@@ -268,7 +268,6 @@ int32_t DrmConnector::loadConnectorInfo(drmModeConnectorPtr metadata) {
         mPhyWidth = metadata->mmWidth;
         mPhyHeight = metadata->mmHeight;
 
-
         if (mPhyWidth == 0 || mPhyHeight == 0) {
             struct vinfo_base_s vinfo;
             if (read_vout_info(0, &vinfo) == 0) {
@@ -279,15 +278,7 @@ int32_t DrmConnector::loadConnectorInfo(drmModeConnectorPtr metadata) {
             }
         }
 
-        if (mType == DRM_MODE_CONNECTOR_HDMIA) {
-            parseHdmiHdrCapabilities(mHdrCapabilities);
-            mSupportDv = getDvSupportStatus();
-#if (PLATFORM_SDK_VERSION > 33) || (PLATFORM_SDK_VERSION == 33 \
-                && (ANDROID_PLATFORM_SDK_EXTENSION_VERSION >= 5))
-            parseHdmiDvCapabilities();
-#endif
-        }
-
+        updateHdrCaps();
         loadDisplayModes(metadata);
         groupDisplayModes();
     } else {
@@ -301,7 +292,7 @@ int32_t DrmConnector::loadConnectorInfo(drmModeConnectorPtr metadata) {
 #if (PLATFORM_SDK_VERSION > 33) || (PLATFORM_SDK_VERSION == 33 \
             && (ANDROID_PLATFORM_SDK_EXTENSION_VERSION >= 5))
 /*use drm property for dv_cap*/
-int32_t DrmConnector:: parseHdmiDvCapabilities() {
+int32_t DrmConnector:: parseDvCapabilities() {
     if (mDvCaps) {
         if (mDvCaps->getValue() != 0 && mSupportDv) {
             mHdrCapabilities.DolbyVisionSupported = true;
@@ -591,17 +582,45 @@ int32_t DrmConnector::setAutoLowLatencyMode(bool on) {
 }
 
 void DrmConnector::updateHdrCaps() {
-    parseHdmiHdrCapabilities(mHdrCapabilities);
+    memset(&mHdrCapabilities, 0, sizeof(drm_hdr_capabilities));
+    mSupportDv = getDvSupportStatus();
+
+    if (mType == DRM_MODE_CONNECTOR_HDMIA) {
+        parseHdmiHdrCapabilities(mHdrCapabilities);
 #if (PLATFORM_SDK_VERSION > 33) || (PLATFORM_SDK_VERSION == 33 \
                 && (ANDROID_PLATFORM_SDK_EXTENSION_VERSION >= 5))
-            parseHdmiDvCapabilities();
+        parseDvCapabilities();
 #endif
+    }
+    /* for TV product*/
+    if (mType == DRM_MODE_CONNECTOR_MESON_LVDS_A || mType == DRM_MODE_CONNECTOR_MESON_LVDS_B ||
+            mType == DRM_MODE_CONNECTOR_MESON_LVDS_C || mType == DRM_MODE_CONNECTOR_MESON_VBYONE_A ||
+            mType == DRM_MODE_CONNECTOR_MESON_VBYONE_B || mType == DRM_MODE_CONNECTOR_LVDS) {
+        constexpr int sDefaultMinLumiance = 0;
+        constexpr int sDefaultMaxLumiance = 500;
+
+        mHdrCapabilities.DolbyVisionSupported = mSupportDv;
+        mHdrCapabilities.HLGSupported = true;
+        mHdrCapabilities.HDR10Supported = true;
+        mHdrCapabilities.maxLuminance = sDefaultMaxLumiance;
+        mHdrCapabilities.avgLuminance = sDefaultMaxLumiance;
+        mHdrCapabilities.minLuminance = sDefaultMinLumiance;
+#if (PLATFORM_SDK_VERSION > 33) || (PLATFORM_SDK_VERSION == 33 \
+                && (ANDROID_PLATFORM_SDK_EXTENSION_VERSION >= 5))
+        parseDvCapabilities();
+#endif
+    MESON_LOGD("dolby version:%d, hlg:%d, hdr10:%d, hdr10+:%d max:%d, avg:%d, min:%d\n",
+        mHdrCapabilities.DolbyVisionSupported ? 1:0,
+        mHdrCapabilities.HLGSupported ? 1:0,
+        mHdrCapabilities.HDR10Supported ? 1:0,
+        mHdrCapabilities.HDR10PlusSupported ? 1:0,
+        mHdrCapabilities.maxLuminance,
+        mHdrCapabilities.avgLuminance,
+        mHdrCapabilities.minLuminance);
+    }
 }
 
 void DrmConnector::getHdrCapabilities(drm_hdr_capabilities * caps) {
-    if (mType != DRM_MODE_CONNECTOR_HDMIA)
-        return;
-
     if (caps) {
         *caps = mHdrCapabilities;
     }
