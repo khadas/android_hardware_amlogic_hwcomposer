@@ -418,7 +418,8 @@ bool DisplayAdapterLocal::setDisplayAttribute(
 int32_t DisplayAdapterLocal::setFrameRate(float frameRate) {
     MESON_LOGD("%s frameRate %.2f",__func__,frameRate);
 
-    if (HwcConfig::getDisplayNum() == 1) {
+    if (HwcConfig::getDisplayNum() == 1 &&
+            HwcConfig::getModePolicy(0) == REAL_MODE_POLICY) {
         return MesonHwc2::getInstance().setFrameRate(frameRate);
     } else {
         // TODO: remove it when multi display support Active Config

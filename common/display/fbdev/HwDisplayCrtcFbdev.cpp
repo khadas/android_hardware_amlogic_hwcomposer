@@ -26,6 +26,7 @@ static vframe_master_display_colour_s_t nullHdr;
 #define VIU1_DISPLAY_MODE_SYSFS "/sys/class/display/mode"
 #define VIU2_DISPLAY_MODE_SYSFS "/sys/class/display2/mode"
 #define VIU_DISPLAY_ATTR_SYSFS "/sys/class/amhdmitx/amhdmitx0/attr"
+#define DISPLAY_FR_HINT "/sys/class/display/fr_hint"
 
 HwDisplayCrtcFbdev::HwDisplayCrtcFbdev(int drvFd, int32_t id)
     : HwDisplayCrtc() {
@@ -99,11 +100,18 @@ uint32_t HwDisplayCrtcFbdev::getPipe() {
     return mPipe;
 }
 
-int32_t HwDisplayCrtcFbdev::setMode(drm_mode_info_t & mode, bool /*seamless*/) {
+int32_t HwDisplayCrtcFbdev::setMode(drm_mode_info_t & mode, bool seamless) {
     /*DRM_DISPLAY_MODE_NULL is always allowed.*/
     MESON_LOGI("Crtc setMode: %s", mode.name);
-    std::string dispmode(mode.name);
-    return writeCurDisplayMode(dispmode);
+    if (!seamless) {
+        std::string dispmode(mode.name);
+        return writeCurDisplayMode(dispmode);
+    } else {
+        /* seamless, fb dev just set fr hint */
+        std::string value = std::to_string(static_cast<int>(mode.refreshRate*100));
+        MESON_LOGI("Crtc set fr hint: %s", value.c_str());
+        return sysfs_set_string(DISPLAY_FR_HINT, value.c_str());
+    }
 }
 
 int32_t HwDisplayCrtcFbdev::getMode(drm_mode_info_t & mode) {

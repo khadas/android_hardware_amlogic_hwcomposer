@@ -208,6 +208,13 @@ int32_t ConnectorPanel::loadDisplayModes() {
         //for tv display mode.
         std::size_t pos = dispmode.find("60hz", 0);
         if (pos != std::string::npos) {
+            // add 59.94hz mode
+            drm_mode_info_t fracMode = mDisplayModes[0];
+            if (fracMode.refreshRate == REFRESH_60kHZ) {
+                fracMode.refreshRate = (mDisplayModes[0].refreshRate * 1000) / (float)1001;
+                mDisplayModes.emplace(mDisplayModes.size(), fracMode);
+            }
+
             dispmode.replace(pos, 4, "50hz");
             addDisplayMode(dispmode);
         } else {
@@ -242,20 +249,21 @@ void ConnectorPanel::getHdrCapabilities(drm_hdr_capabilities * caps) {
 void ConnectorPanel:: dump(String8& dumpstr) {
     dumpstr.appendFormat("Connector (Panel,  %d)\n",1);
     dumpstr.append("   CONFIG   |   VSYNC_PERIOD   |   WIDTH   |   HEIGHT   |"
-        "   DPI_X   |   DPI_Y   \n");
+        "   DPI_X   |   DPI_Y   | GROUPID |\n");
     dumpstr.append("------------+------------------+-----------+------------+"
-        "-----------+-----------\n");
+        "-----------+-----------+---------+\n");
 
     std::map<uint32_t, drm_mode_info_t>::iterator it = mDisplayModes.begin();
     for ( ; it != mDisplayModes.end(); ++it) {
         dumpstr.appendFormat("   %6d   |      %.3f      |   %5d   |   %5d    |"
-            "    %3d    |    %3d    \n",
+            "    %3d    |    %3d    |   %3d   |\n",
                  it->first,
                  it->second.refreshRate,
                  it->second.pixelW,
                  it->second.pixelH,
                  it->second.dpiX,
-                 it->second.dpiY);
+                 it->second.dpiY,
+                 it->second.groupId);
     }
     dumpstr.append("------------+------------------+-----------+------------+"
         "-----------+-----------\n");
