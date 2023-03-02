@@ -47,12 +47,14 @@ public:
 
     virtual int32_t prePageFlip();
     virtual int32_t pageFlip(int32_t & out_fence) = 0;
+    virtual int32_t updatePropertyValue();
 
     virtual int32_t readCurDisplayMode(std::string & dispmode) = 0;
     virtual int32_t writeCurDisplayAttr(std::string & dispattr) = 0;
     virtual int32_t setPendingMode() = 0;
     virtual void dump(String8 & dumpstr __unused) {}
     virtual void closeLogoDisplay();
+    virtual int32_t getPixelFormats(std::vector<uint32_t>& pixelFormats) = 0;
 
     /* for hotplug */
     enum class HotplugStatus {

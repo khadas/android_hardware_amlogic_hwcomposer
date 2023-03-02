@@ -473,6 +473,27 @@ int32_t setAidlClientPid(hwc2_device_t* device, int32_t pid) {
     return mesonhwc->setAidlClientPid(pid);
 }
 
+int32_t getHdrConversionCapabilities(hwc2_device_t* device,
+        uint32_t* outNumCapability, hwc3_hdr_conversion_capability* outConversionCapability) {
+    GET_MESON_HWC();
+    return mesonhwc->getHdrConversionCapabilities(outNumCapability,
+               (drm_hdr_conversion_capability_t*)outConversionCapability);
+}
+
+int32_t setHdrConversionStrategy(hwc2_device_t* device,
+        bool passThrough, uint32_t numElements, uint32_t* autoAllowedHdrTypes,
+        uint32_t* preferredHdrOutputType) {
+    GET_MESON_HWC();
+    return mesonhwc->setHdrConversionStrategy(passThrough,
+               numElements, autoAllowedHdrTypes, preferredHdrOutputType);
+}
+
+int32_t getOverlaySupport(hwc2_device_t* device,
+        uint32_t* numElements, uint32_t* pixelFormats) {
+    GET_MESON_HWC();
+    return mesonhwc->getOverlaySupport(numElements, pixelFormats);
+}
+
 hwc2_function_pointer_t hwc2_getFunction(struct hwc2_device* device __unused,
         int32_t descriptor) {
     switch (descriptor) {
@@ -606,6 +627,13 @@ hwc2_function_pointer_t hwc2_getFunction(struct hwc2_device* device __unused,
             return reinterpret_cast<hwc2_function_pointer_t>(setLayerBrightness);
         case HWC3_FUNCTION_SET_AIDL_CLIENT_PID:
             return reinterpret_cast<hwc2_function_pointer_t>(setAidlClientPid);
+        /* hwc 3.2 */
+        case HWC3_FUNCTION_GET_HDR_CONVERSION_CAPABILITIES:
+            return reinterpret_cast<hwc2_function_pointer_t>(getHdrConversionCapabilities);
+        case HWC3_FUNCTION_SET_HDR_CONVERSION_STRATEGY:
+            return reinterpret_cast<hwc2_function_pointer_t>(setHdrConversionStrategy);
+        case HWC3_FUNCTION_GET_OVERLAY_SUPPORT:
+             return reinterpret_cast<hwc2_function_pointer_t>(getOverlaySupport);
         default:
             MESON_LOGE("Unknown function description (%d)", descriptor);
             break;

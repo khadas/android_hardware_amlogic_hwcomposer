@@ -974,6 +974,149 @@ HWC3::Error HwcHal::setAidlClientPid(int32_t pid) {
     return HWC3::Error::None;
 }
 
+/* hwc 3.2 */
+#if (PLATFORM_SDK_VERSION > 33) || (PLATFORM_SDK_VERSION == 33 \
+            && (ANDROID_PLATFORM_SDK_EXTENSION_VERSION >= 5))
+HWC3::Error HwcHal::getHdrConversionCapabilities(
+    std::vector<common::HdrConversionCapability>* outHdrConversionCapability) {
+
+    DEBUG_LOG("%s", __FUNCTION__);
+    if (!mDispatch.getHdrConversionCapabilities) {
+        return HWC3::Error::Unsupported;
+    }
+
+    uint32_t count = 0;
+    int32_t error =
+                mDispatch.getHdrConversionCapabilities(mDevice, &count, nullptr);
+    if (error != HWC2_ERROR_NONE) {
+        return static_cast<HWC3::Error>(error);
+    }
+
+    outHdrConversionCapability->reserve(count);
+    std::vector<hwc3_hdr_conversion_capability> hwc_hdr_capabilities;
+    hwc_hdr_capabilities.resize(count);
+    error =
+        mDispatch.getHdrConversionCapabilities(mDevice, &count,
+            reinterpret_cast<hwc3_hdr_conversion_capability *>(hwc_hdr_capabilities.data()));
+    if (error != HWC2_ERROR_NONE) {
+        return static_cast<HWC3::Error>(error);
+    }
+
+    for (auto capability : hwc_hdr_capabilities) {
+        common::HdrConversionCapability tempCapability;
+        tempCapability.sourceType = static_cast<common::Hdr>(capability.sourceType);
+        tempCapability.outputType = static_cast<common::Hdr>(capability.outputType);
+        tempCapability.addsLatency = capability.addsLatency;
+        outHdrConversionCapability->push_back(std::move(tempCapability));
+    }
+    return HWC3::Error::None;
+}
+
+HWC3::Error HwcHal::setHdrConversionStrategy(
+    const common::HdrConversionStrategy& conversionStrategy, common::Hdr *preferredHdrOutputType) {
+
+    DEBUG_LOG("%s", __FUNCTION__);
+    if (!mDispatch.setHdrConversionStrategy) {
+        return HWC3::Error::Unsupported;
+    }
+
+    using HdrConversionStrategyTag =
+              aidl::android::hardware::graphics::common::HdrConversionStrategy::Tag;
+
+    switch (conversionStrategy.getTag()) {
+        case HdrConversionStrategyTag::passthrough: {
+            bool passthrough =
+                    conversionStrategy.get<HdrConversionStrategyTag::passthrough>();
+            int32_t error =
+                        mDispatch.setHdrConversionStrategy(mDevice, passthrough,
+                                                           0, nullptr, nullptr);
+            *preferredHdrOutputType = common::Hdr::INVALID;
+            if (error != HWC2_ERROR_NONE) {
+                return static_cast<HWC3::Error>(error);
+            }
+            break;
+        }
+        case HdrConversionStrategyTag::autoAllowedHdrTypes: {
+            auto autoHdrTypes =
+                    conversionStrategy
+                            .get<HdrConversionStrategyTag::autoAllowedHdrTypes>();
+
+            std::vector<uint32_t> hwcAutoHdrTypes;
+            for (auto type : autoHdrTypes) {
+                hwcAutoHdrTypes.push_back(
+                        static_cast<uint32_t>(type));
+            }
+            int32_t error = mDispatch.setHdrConversionStrategy(mDevice,
+                        false, (uint32_t)autoHdrTypes.size(), hwcAutoHdrTypes.data(),
+                        reinterpret_cast<uint32_t *>(preferredHdrOutputType));
+            if (error != HWC2_ERROR_NONE) {
+                    return static_cast<HWC3::Error>(error);
+            }
+            break;
+        }
+        case HdrConversionStrategyTag::forceHdrConversion: {
+            uint32_t forceHdrConversion =
+                     static_cast<uint32_t >(conversionStrategy
+                            .get<HdrConversionStrategyTag::forceHdrConversion>());
+            int32_t error =
+                        mDispatch.setHdrConversionStrategy(mDevice, false, 1, &forceHdrConversion,
+                            reinterpret_cast<uint32_t *>(preferredHdrOutputType));
+
+            *preferredHdrOutputType = common::Hdr::INVALID;
+            if (error != HWC2_ERROR_NONE) {
+                 return static_cast<HWC3::Error>(error);
+            }
+            break;
+        }
+        default:break;
+    }
+
+    return HWC3::Error::None;
+}
+
+HWC3::Error HwcHal::getOverlaySupport(OverlayProperties* outProperties) {
+    DEBUG_LOG("%s", __FUNCTION__);
+    if (!mDispatch.getOverlaySupport) {
+        return HWC3::Error::Unsupported;
+    }
+
+    uint32_t count = 0;
+    outProperties->supportMixedColorSpaces = true;
+    auto error = mDispatch.getOverlaySupport(mDevice, &count, nullptr);
+    if (error != HWC2_ERROR_NONE) {
+        return static_cast<HWC3::Error>(error);
+    }
+
+    std::vector<common::PixelFormat> pixelFormats;
+    pixelFormats.resize(count);
+
+    error = mDispatch.getOverlaySupport(mDevice, &count, reinterpret_cast<uint32_t* >(pixelFormats.data()));
+    if (error != HWC2_ERROR_NONE) {
+        return static_cast<HWC3::Error>(error);
+    }
+
+    /*tmp solution for Dataspace */
+    OverlayProperties::SupportedBufferCombinations outCombination;
+    outProperties->combinations.reserve(1);
+    std::vector<common::Dataspace> standards = {common::Dataspace::STANDARD_BT709,
+                                     common::Dataspace::STANDARD_BT601_625,
+                                     common::Dataspace::STANDARD_BT601_525,
+                                     common::Dataspace::STANDARD_BT2020};
+    std::vector<common::Dataspace> transfers = {common::Dataspace::TRANSFER_SMPTE_170M,
+                                     common::Dataspace::TRANSFER_GAMMA2_2,
+                                     common::Dataspace::TRANSFER_ST2084};
+    std::vector<common::Dataspace> ranges = {common::Dataspace::RANGE_FULL,
+                                     common::Dataspace::RANGE_LIMITED};
+    outCombination.pixelFormats = std::move(pixelFormats);
+    outCombination.standards = std::move(standards);
+    outCombination.transfers = std::move(transfers);
+    outCombination.ranges = std::move(ranges);
+    outProperties->combinations.emplace_back(outCombination);
+
+    return HWC3::Error::None;
+}
+#endif
+
 void HwcHal::initCapabilities() {
     uint32_t count = 0;
     mDevice->getCapabilities(mDevice, &count, nullptr);
@@ -1135,6 +1278,18 @@ bool HwcHal::initDispatch() {
         ALOGE("initDispatch hwc3 interface failed");
     }
 
+    /* hwc3.2 interfaces */
+#if (PLATFORM_SDK_VERSION > 33) || (PLATFORM_SDK_VERSION == 33 \
+            && (ANDROID_PLATFORM_SDK_EXTENSION_VERSION >= 5))
+    if (!initHwc3Dispatch(HWC3_FUNCTION_GET_HDR_CONVERSION_CAPABILITIES,
+                &mDispatch.getHdrConversionCapabilities) ||
+        !initHwc3Dispatch(HWC3_FUNCTION_SET_HDR_CONVERSION_STRATEGY,
+                &mDispatch.setHdrConversionStrategy) ||
+        !initHwc3Dispatch(HWC3_FUNCTION_GET_OVERLAY_SUPPORT,
+                &mDispatch.getOverlaySupport)) {
+        ALOGE("initDispatch hwc3.2 interface failed");
+    }
+#endif
     return true;
 }
 

@@ -260,6 +260,21 @@ HWC3::Error ComposerResources::getLayerBuffer(
                 releaser->getReplacedHandle()));
 }
 
+HWC3::Error ComposerResources::setLayerBufferSlotsToClear(
+        int64_t displayId, int64_t layerId, int32_t slot,
+        buffer_handle_t* outHandle, ComposerResourceReleaser* releaser) {
+
+    buffer_handle_t bufferHandle = nullptr;
+    ::android::hardware::graphics::composer::V2_1::Display display =
+        toHwc2Display(displayId);
+    ::android::hardware::graphics::composer::V2_1::Layer layer =
+        toHwc2Layer(layerId);
+
+     return toHwc3Error(mImpl->getLayerBuffer(display, layer, static_cast<uint32_t>(slot),
+                /*useCache*/false, bufferHandle, outHandle,
+                releaser->getReplacedHandle()));
+}
+
 HWC3::Error ComposerResources::getLayerSidebandStream(
         int64_t displayId, int64_t layerId,
         const aidl::android::hardware::common::NativeHandle& handle,

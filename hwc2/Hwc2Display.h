@@ -133,6 +133,14 @@ public:
     virtual hwc2_error_t setExpectedPresentTime(int64_t expectedPresentTime);
     virtual hwc2_error_t setAidlClientPid(int32_t pid);
 
+    /* hwc 3.2 interface*/
+    virtual hwc2_error_t getHdrConversionCapabilities(uint32_t* outNumCapability,
+                drm_hdr_conversion_capability* outConversionCapability);
+    virtual hwc2_error_t setHdrConversionStrategy(bool passThrough, uint32_t numElements,
+                uint32_t* autoAllowedHdrTypes, uint32_t* preferredHdrOutputType);
+    virtual hwc2_error_t getOverlaySupport(uint32_t* numElements,
+                uint32_t* pixelFormats);
+
 /*HwcDisplay interface*/
 public:
     virtual int32_t initialize();
@@ -236,6 +244,7 @@ protected:
 protected:
     std::unordered_map<hwc2_layer_t, std::shared_ptr<Hwc2Layer>> mLayers;
     drm_hdr_capabilities_t mHdrCaps;
+    std::vector<drm_hdr_conversion_capability> mHdrConversionCaps;
 
     /*hw related components*/
     std::shared_ptr<HwDisplayCrtc> mCrtc;

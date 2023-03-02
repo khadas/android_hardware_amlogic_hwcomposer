@@ -61,6 +61,8 @@ int32_t DrmCrtc::loadProperties() {
         {DRM_CRTC_PROP_MODEID, &mModeBlobId},
         {DRM_CRTC_PROP_OUTFENCEPTR, &mOutFencePtr},
         {DRM_CRTC_PROP_VRR_ENABLED, &mVrrEnabled},
+        {DRM_CRTC_PROP_VIDEO_PIXEL_FORMAT, &mVideoPixelFormat},
+        {DRM_CRTC_PROP_OSD_PIXEL_FORMAT, &mOsdPixelFormat},
     };
     const int crtcPropsNum = sizeof(crtcProps)/sizeof(crtcProps[0]);
     int initedProps = 0;
@@ -146,6 +148,31 @@ int32_t DrmCrtc::getMode(drm_mode_info_t & mode) {
     MESON_LOGV("Crtc [%d] getmode %" PRIu64 ":[%dx%d-%f].",
         mId, mModeBlobId->getValue(), mode.pixelW, mode.pixelH, mode.refreshRate);
     return 0;
+}
+
+int32_t DrmCrtc::getPixelFormats(std::vector<uint32_t>& pixelFormats) {
+    if (mVideoPixelFormat && mOsdPixelFormat) {
+        uint32_t value = -1;
+        value = value = mOsdPixelFormat->getValue();
+        if (value & (1 << 0))
+            pixelFormats.emplace_back(DRM_RGBA_8888);
+        if (value & (1 << 1))
+            pixelFormats.emplace_back(DRM_RGBX_8888);
+        if (value & (1 << 2))
+            pixelFormats.emplace_back(DRM_RGB_888);
+        if (value & (1 << 3))
+            pixelFormats.emplace_back(DRM_RGB_565);
+        if (value & (1 << 4))
+            pixelFormats.emplace_back(DRM_BGRA_8888);
+
+        value = mVideoPixelFormat->getValue();
+        if (value & (1 << 0))
+            pixelFormats.emplace_back(DRM_YCRCB_420_SP);
+        if (value & (1 << 1))
+            pixelFormats.emplace_back(DRM_YCBCR_422_I);
+        return 0;
+    }
+    return -EINVAL;
 }
 
 int32_t DrmCrtc::setMode(drm_mode_info_t & mode, bool seamless) {
@@ -278,6 +305,32 @@ int32_t DrmCrtc::prePageFlip() {
     }
 
     return 0;
+}
+
+int32_t DrmCrtc::updatePropertyValue() {
+    ATRACE_CALL();
+    std::lock_guard<std::mutex> lock(mMutex);
+
+    //MESON_ASSERT(mReq!= NULL, "updatePropertyValue  with NULL request.");
+    if (!mReq) {
+        ALOGD("updatePropertyValue with NULL request");
+        return 0;
+    }
+
+    uint32_t flag = DRM_MODE_ATOMIC_NONBLOCK;
+    int32_t ret = drmModeAtomicCommit(
+        mDrmFd,
+        mReq,
+        flag,
+        NULL);
+    if (ret) {
+        MESON_LOGE("updatePropertyValue-%d:atomic commit ret (%d)", getId(), ret);
+    }
+
+    drmModeAtomicFree(mReq);
+    mReq = NULL;
+
+    return ret;
 }
 
 int32_t DrmCrtc::pageFlip(int32_t & out_fence) {

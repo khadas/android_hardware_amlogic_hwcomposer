@@ -31,5 +31,7 @@ public:
     virtual int32_t setBootConfig(std::string &config) = 0;
     virtual int32_t clearBootConfig() = 0;
 
+    virtual int32_t setHdrConversionPolicy(bool passthrough) = 0;
+
     virtual void dump(String8 &dumpstr) = 0;
 };

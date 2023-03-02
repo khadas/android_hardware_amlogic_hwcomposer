@@ -125,6 +125,7 @@
 
 #define HDR_POLICY_SINK                 "0"
 #define HDR_POLICY_SOURCE               "1"
+#define HDR_POLICY_FORCE                "2"
 
 #define DV_HDR_SINK_SOURCE_BYPASS       "0"
 #define DV_HDR_SINK_PROCESS             "1"
@@ -279,6 +280,8 @@ public:
     int32_t getPreferredBootConfig(std::string &config);
     int32_t setBootConfig(std::string &config);
     int32_t clearBootConfig();
+
+    int32_t setHdrConversionPolicy(bool passthrough);
 
     void dump(String8 &dumpstr) override;
 

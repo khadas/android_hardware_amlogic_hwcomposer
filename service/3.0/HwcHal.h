@@ -125,6 +125,17 @@ public:
     HWC3::Error setExpectedPresentTime(int64_t display, const int64_t expectedPresentTime) override;
     HWC3::Error setLayerBrightness(int64_t display, int64_t layer, const LayerBrightness& brightness) override;
 
+    /* hwc3.2 interface */
+#if (PLATFORM_SDK_VERSION > 33) || (PLATFORM_SDK_VERSION == 33 \
+            && (ANDROID_PLATFORM_SDK_EXTENSION_VERSION >= 5))
+    HWC3::Error getHdrConversionCapabilities(
+        std::vector<common::HdrConversionCapability>*) override;
+    HWC3::Error setHdrConversionStrategy(
+        const common::HdrConversionStrategy& conversionStrategy,
+        common::Hdr* preferredHdrOutputType) override;
+    HWC3::Error getOverlaySupport(OverlayProperties* properties) override;
+#endif
+
     /* extern interface */
     HWC3::Error setAidlClientPid(int32_t pid) override;
 
@@ -231,6 +242,11 @@ protected:
         HWC3_PFN_GET_DISPLAY_PHYSICAL_ORIENTATION getDisplayPhysicalOrientation;
         HWC3_PFN_SET_EXPECTED_PRESENT_TIME setExpectedPresentTime;
         HWC3_PFN_SET_LAYER_BRIGHTNESS setLayerBrightness;
+
+        /* hwc 3.2*/
+        HWC3_PFN_SET_HDR_CONVERSION_STRATEGY setHdrConversionStrategy;
+        HWC3_PFN_GET_HDR_CONVERSION_CAPABILITIES getHdrConversionCapabilities;
+        HWC3_PFN_GET_OVERLAY_SUPPORT getOverlaySupport;
         /* extern */
         HWC3_PFN_SET_AIDL_CLIENT_PID setAidlClientPid;
     } mDispatch = {};

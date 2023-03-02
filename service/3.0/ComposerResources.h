@@ -97,6 +97,8 @@ public:
             const Buffer& buffer,
             buffer_handle_t* outBufferHandle,
             ComposerResourceReleaser* bufReleaser);
+    HWC3::Error setLayerBufferSlotsToClear(int64_t displayId, int64_t layerId, int32_t slot,
+            buffer_handle_t* outHandle, ComposerResourceReleaser* releaser);
     HWC3::Error getLayerSidebandStream(
             int64_t displayId, int64_t layerId,
             const aidl::android::hardware::common::NativeHandle& rawHandle,

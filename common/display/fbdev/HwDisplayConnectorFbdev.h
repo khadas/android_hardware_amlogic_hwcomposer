@@ -51,6 +51,11 @@ public:
 
     virtual bool isTvSupportALLM();
 
+    int32_t setHdrConversionStrategy(bool passthrough __unused, int32_t type __unused);
+
+    int32_t getConversionCaps(std::vector<drm_hdr_conversion_capability>&
+                    hdrconversionCaps __unused);
+
 protected:
     virtual void loadPhysicalSize();
     virtual int32_t addDisplayMode(std::string& mode);

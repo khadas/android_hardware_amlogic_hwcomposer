@@ -332,8 +332,10 @@ void ModePolicy::getHdrStrategy(char* value) {
 
     if (strstr(hdr_policy, HDR_POLICY_SOURCE)) {
         strcpy(value, HDR_POLICY_SOURCE);
-    } else {
+    } else if (strstr(hdr_policy, HDR_POLICY_SINK)) {
         strcpy(value, HDR_POLICY_SINK);
+    } else if (strstr(hdr_policy, HDR_POLICY_FORCE)) {
+        strcpy(value, HDR_POLICY_FORCE);
     }
     MESON_LOGI("getHdrStrategy is [%s]", value);
 }
@@ -1901,6 +1903,16 @@ int ModePolicy::getDolbyVisionType() {
     return DOLBY_VISION_SET_DISABLE;
 }
 
+int32_t ModePolicy::setHdrConversionPolicy(bool passthrough) {
+    if (passthrough) {
+        setBootEnv(UBOOTENV_HDR_POLICY, HDR_POLICY_SOURCE);
+    } else {
+        if (!isMboxSupportDolbyVision())
+            setBootEnv(UBOOTENV_HDR_POLICY, HDR_POLICY_FORCE);
+    }
+
+    return 0;
+}
 
 /*
 * apply setting

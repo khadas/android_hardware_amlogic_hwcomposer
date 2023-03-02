@@ -83,6 +83,10 @@ public:
 
     virtual bool isTvSupportALLM() = 0;
 
+    virtual int32_t setHdrConversionStrategy(bool passthrough, int32_t type) = 0;
+
+    virtual int32_t getConversionCaps(std::vector<drm_hdr_conversion_capability>&
+                    hdrconversionCaps) = 0;
 
 };
 

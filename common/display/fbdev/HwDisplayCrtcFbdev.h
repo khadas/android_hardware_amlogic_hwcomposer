@@ -51,12 +51,15 @@ public:
 
     int32_t prePageFlip();
     int32_t pageFlip(int32_t & out_fence);
+    int32_t updatePropertyValue();
 
     int32_t readCurDisplayMode(std::string & dispmode);
     int32_t writeCurDisplayAttr(std::string & dispattr);
 
     int32_t setPendingMode() { return 0; };
     void closeLogoDisplay();
+
+    int32_t getPixelFormats(std::vector<uint32_t>& pixelFormats __unused) { return 0; };
 
 protected:
     int32_t writeCurDisplayMode(std::string & dispmode);

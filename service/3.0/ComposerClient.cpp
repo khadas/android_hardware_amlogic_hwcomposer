@@ -764,6 +764,46 @@ ndk::ScopedAStatus ComposerClient::setIdleTimerEnabled(int64_t displayId __unuse
     return ToBinderStatus(HWC3::Error::Unsupported);
 }
 
+/*hwc 3.2 */
+#if (PLATFORM_SDK_VERSION > 33) || (PLATFORM_SDK_VERSION == 33 \
+            && (ANDROID_PLATFORM_SDK_EXTENSION_VERSION >= 5))
+ndk::ScopedAStatus ComposerClient::getHdrConversionCapabilities(
+        std::vector<common::HdrConversionCapability>* outHdrConversionCapability) {
+    DEBUG_LOG("%s", __FUNCTION__);
+    std::unique_lock<std::mutex> lock(mStateMutex);
+    auto err = mHal->getHdrConversionCapabilities(outHdrConversionCapability);
+
+    return ToBinderStatus(err);
+}
+
+
+ndk::ScopedAStatus ComposerClient::setHdrConversionStrategy(
+        const common::HdrConversionStrategy& conversionStrategy,
+        common::Hdr* preferredHdrOutputType) {
+    DEBUG_LOG("%s", __FUNCTION__);
+    std::unique_lock<std::mutex> lock(mStateMutex);
+    auto err = mHal->setHdrConversionStrategy(conversionStrategy, preferredHdrOutputType);
+
+    return ToBinderStatus(err);
+}
+
+ndk::ScopedAStatus ComposerClient::getOverlaySupport(
+        OverlayProperties* properties ) {
+    DEBUG_LOG("%s", __FUNCTION__);
+    std::unique_lock<std::mutex> lock(mStateMutex);
+    auto err = mHal->getOverlaySupport(properties);
+
+    return ToBinderStatus(err);
+
+}
+
+ndk::ScopedAStatus ComposerClient::setRefreshRateChangedCallbackDebugEnabled(
+        int64_t displayId __unused, bool) {
+    DEBUG_LOG("%s", __FUNCTION__);
+    return ToBinderStatus(HWC3::Error::Unsupported);
+}
+#endif
+
 ndk::SpAIBinder ComposerClient::createBinder() {
     auto binder = BnComposerClient::createBinder();
     AIBinder_setInheritRt(binder.get(), true);
@@ -853,6 +893,11 @@ void ComposerClient::executeLayerCommand(int64_t displayId,
     DISPATCH_LAYER_COMMAND(layerCommand, displayId, layerId, cursorPosition,
                            CursorPosition);
     DISPATCH_LAYER_COMMAND(layerCommand, displayId, layerId, buffer, Buffer);
+#if (PLATFORM_SDK_VERSION > 33) || (PLATFORM_SDK_VERSION == 33 \
+            && (ANDROID_PLATFORM_SDK_EXTENSION_VERSION >= 5))
+    DISPATCH_LAYER_COMMAND(layerCommand, displayId, layerId, bufferSlotsToClear,
+                           BufferSlotsToClear);
+#endif
     DISPATCH_LAYER_COMMAND(layerCommand, displayId, layerId, damage, SurfaceDamage);
     DISPATCH_LAYER_COMMAND(layerCommand, displayId, layerId, blendMode, BlendMode);
     DISPATCH_LAYER_COMMAND(layerCommand, displayId, layerId, color, Color);
@@ -1144,6 +1189,28 @@ void ComposerClient::executeLayerCommandSetLayerBuffer(int64_t displayId,
         mCommandResults->addError(error);
     }
 }
+
+#if (PLATFORM_SDK_VERSION > 33) || (PLATFORM_SDK_VERSION == 33 \
+            && (ANDROID_PLATFORM_SDK_EXTENSION_VERSION >= 5))
+void ComposerClient::executeLayerCommandSetLayerBufferSlotsToClear(int64_t displayId,
+        int64_t layerId, const std::vector<int32_t>& bufferSlotsToClear) {
+    DEBUG_LOG("%s", __FUNCTION__);
+
+    buffer_handle_t importedBuffer = nullptr;
+
+    auto releaser = mResources->createReleaser(/*isBuffer=*/true);
+    for (int32_t slot : bufferSlotsToClear) {
+        auto error =
+            mResources->setLayerBufferSlotsToClear(displayId, layerId, slot,
+                                   &importedBuffer, releaser.get());
+        if (error != HWC3::Error::None) {
+            LOG_LAYER_COMMAND_ERROR(displayId, layerId, error);
+            mCommandResults->addError(error);
+            return;
+        }
+    }
+}
+#endif
 
 void ComposerClient::executeLayerCommandSetLayerSurfaceDamage(
       int64_t displayId, int64_t layerId,

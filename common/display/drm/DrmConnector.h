@@ -59,6 +59,10 @@ public:
 
     bool isTvSupportALLM();
     int32_t setAVMute(uint32_t mute);
+
+    int32_t setHdrConversionStrategy(bool passthrough, int32_t type);
+    int32_t getConversionCaps(std::vector<drm_hdr_conversion_capability>&
+                    hdrconversionCaps);
     /*drm package internal use.*/
 public:
     uint32_t getEncoderId() {return mEncoderId;}
@@ -79,6 +83,11 @@ protected:
     int32_t loadDisplayModes(drmModeConnectorPtr p);
     int32_t loadProperties(drmModeConnectorPtr p);
     int32_t parseDvCapabilities();
+    int32_t initConversionCaps();
+    bool supportSourceLed();
+    bool supportSinkLed();
+    int32_t setAttrForDV(uint32_t color_space_value, uint32_t color_depth_value);
+    int32_t setForceMode(uint32_t value);
 
     int32_t parseHdrCapabilities();
     int32_t groupDisplayModes();
@@ -90,6 +99,7 @@ protected:
     uint32_t mEncoderId;
     drmModeConnection mState;
     int32_t mFracMode;
+    std::vector<drm_hdr_conversion_capability> mDrmHdrConversionCaps;
 
     /*mode_id, modeinfo. mode_id is created by userspace, not from kernel.*/
     std::map<uint32_t, drmModeModeInfo> mDrmModes;
@@ -113,6 +123,8 @@ protected:
     std::shared_ptr<DrmProperty> mContentType;
     std::shared_ptr<DrmProperty> mAVMute;
     std::shared_ptr<DrmProperty> mDvCaps;
+    std::shared_ptr<DrmProperty> mHdrConversionCaps;
+    std::shared_ptr<DrmProperty> mHdrForceMode;
     /*for lcd now*/
     std::shared_ptr<DrmProperty> mMesonConnectorType;
     /* for vrr */

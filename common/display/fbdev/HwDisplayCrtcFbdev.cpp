@@ -202,6 +202,11 @@ int32_t HwDisplayCrtcFbdev::prePageFlip() {
     return 0;
 }
 
+int32_t HwDisplayCrtcFbdev::updatePropertyValue() {
+    /*nothing to do*/
+    return 0;
+}
+
 int32_t HwDisplayCrtcFbdev::pageFlip(int32_t &out_fence) {
     osd_page_flip_info_t flipInfo;
     flipInfo.background_w = mScaleInfo.framebuffer_w;

@@ -45,6 +45,7 @@
 #include <misc.h>
 #include <UvmDev.h>
 #include <AmVecmDev.h>
+#include <DrmTypes.h>
 
 Hwc2Display::Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer, uint32_t display) {
     mObserver = observer;
@@ -1943,6 +1944,87 @@ hwc2_error_t Hwc2Display::setAidlClientPid(int32_t pid) {
     UvmDev::getInstance().setPid(pid);
     mAidlService = true;
     return HWC2_ERROR_NONE;
+}
+
+/* hwc 3.2 */
+hwc2_error_t Hwc2Display::getOverlaySupport(uint32_t* numElements,
+                uint32_t* pixelFormats) {
+    std::vector<uint32_t> tempPixelFormats;
+    mCrtc->getPixelFormats(tempPixelFormats);
+    *numElements = tempPixelFormats.size();
+
+    if (pixelFormats != nullptr) {
+        for (auto i = 0; i < tempPixelFormats.size(); i++) {
+            pixelFormats[i] = tempPixelFormats[i];
+        }
+    }
+
+    return HWC2_ERROR_NONE;
+}
+
+hwc2_error_t Hwc2Display::getHdrConversionCapabilities(uint32_t* outNumCapability,
+                drm_hdr_conversion_capability_t* outConversionCapability) {
+    MESON_LOGD(" %s ",__func__);
+
+    mConnector->getConversionCaps(mHdrConversionCaps);
+    *outNumCapability = mHdrConversionCaps.size();
+
+    if (outConversionCapability != NULL) {
+        for (auto i = 0; i < mHdrConversionCaps.size(); i++) {
+            outConversionCapability[i] = mHdrConversionCaps[i];
+        }
+    }
+
+    return HWC2_ERROR_NONE;
+}
+
+hwc2_error_t Hwc2Display::setHdrConversionStrategy(bool passThrough, uint32_t numElements,
+                uint32_t* autoAllowedHdrTypes, uint32_t* preferredHdrOutputType) {
+    std::lock_guard<std::mutex> lock(mMutex);
+    MESON_LOGD("%s passThrough %d ",__func__, passThrough);
+
+    auto forceType = -1;
+    /* DV enable support DV and HDR10
+     * DV disable support HDR10 and HLG */
+    if (!passThrough && preferredHdrOutputType) {
+        std::vector<uint32_t> HdrTypes(autoAllowedHdrTypes, autoAllowedHdrTypes+numElements);
+        bool containDVType =
+                 std::find(HdrTypes.begin(), HdrTypes.end(), HAL_HDR_DOLBY_VISION) != HdrTypes.end();
+        bool containHDR10Type =
+                 std::find(HdrTypes.begin(), HdrTypes.end(), HAL_HDR_HDR10) != HdrTypes.end();
+        bool containHLGType =
+                 std::find(HdrTypes.begin(), HdrTypes.end(), HAL_HDR_HLG) != HdrTypes.end();
+        bool containSDRType =
+                 std::find(HdrTypes.begin(), HdrTypes.end(), DRM_INVALID) != HdrTypes.end();
+        if (mHdrCaps.DolbyVisionSupported) {
+            if (containDVType)
+                forceType = HAL_HDR_DOLBY_VISION;
+            if (mHdrCaps.HDR10Supported && containHDR10Type && !containDVType)
+                forceType = HAL_HDR_HDR10;
+            if (!containHDR10Type && !containDVType && containSDRType)
+                forceType = DRM_INVALID;
+        } else {
+            if (mHdrCaps.HDR10Supported && containHDR10Type)
+                forceType = HAL_HDR_HDR10;
+            if (mHdrCaps.HLGSupported && !containHDR10Type && containHLGType)
+                forceType = HAL_HDR_HLG;
+            if (!containHDR10Type && !containHLGType && containSDRType)
+                forceType = DRM_INVALID;
+        }
+        if (forceType == -1) {
+            if (mModePolicy)
+                mModePolicy->setHdrConversionPolicy(true);
+            mConnector->setHdrConversionStrategy(true, forceType);
+            return HWC2_ERROR_UNSUPPORTED;
+        }
+        *preferredHdrOutputType = forceType;
+    }
+
+    if (mModePolicy)
+        mModePolicy->setHdrConversionPolicy(passThrough);
+    auto ret = mConnector->setHdrConversionStrategy(passThrough,forceType);
+    return (hwc2_error_t) ret;
+
 }
 
 bool Hwc2Display::hasVideoLayerPresent() {

@@ -141,6 +141,14 @@ public:
     int32_t setLayerBrightness(hwc2_display_t display, hwc2_layer_t layer, float brightness);
     int32_t setAidlClientPid(int32_t pid);
 
+    /* hwc3.2*/
+    int32_t getHdrConversionCapabilities(uint32_t* outNumCapability,
+                drm_hdr_conversion_capability_t* outConversionCapability);
+    int32_t setHdrConversionStrategy(bool passThrough, uint32_t numElements,
+                uint32_t* autoAllowedHdrTypes, uint32_t* preferredHdrOutputType);
+    int32_t getOverlaySupport(uint32_t* numElements,
+                uint32_t* pixelFormats);
+
     void dump(uint32_t* outSize, char* outBuffer);
 
 /*amlogic ext display interface*/

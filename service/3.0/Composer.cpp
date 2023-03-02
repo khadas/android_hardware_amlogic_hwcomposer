@@ -108,12 +108,16 @@ binder_status_t Composer::dump(int fd, const char** /*args*/,
 ndk::ScopedAStatus Composer::getCapabilities(std::vector<Capability>* caps) {
     DEBUG_LOG("%s", __FUNCTION__);
 
-    const std::array<Capability, 5> all_caps = {{
+    const std::array<Capability, 6> all_caps = {{
         Capability::SIDEBAND_STREAM,
         Capability::SKIP_CLIENT_COLOR_TRANSFORM,
         Capability::PRESENT_FENCE_IS_NOT_RELIABLE,
         Capability::SKIP_VALIDATE,
         Capability::BOOT_DISPLAY_CONFIG,
+#if (PLATFORM_SDK_VERSION > 33) || (PLATFORM_SDK_VERSION == 33 \
+            && (ANDROID_PLATFORM_SDK_EXTENSION_VERSION >= 5))
+        Capability::HDR_OUTPUT_CONVERSION_CONFIG,
+#endif
     }};
 
     caps->clear();

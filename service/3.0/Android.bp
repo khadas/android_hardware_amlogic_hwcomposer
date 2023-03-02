@@ -52,7 +52,6 @@ cc_defaults {
     shared_libs: [
         "android.hardware.graphics.composer@2.1-resources-aidl",
         "android.hardware.graphics.composer@2.2-resources-aidl",
-        "android.hardware.graphics.composer3-V1-ndk",
         "android.hardware.graphics.mapper@2.0",
         "android.hardware.graphics.mapper@4.0",
         "libbase",
@@ -98,6 +97,8 @@ cc_binary {
     name: "android.hardware.graphics.composer@3.0-service.droidlogic",
     defaults: [
         "libmeson_hwc3_defaults",
+        "composer_aidl_go_defaults",
+        "hwcomposer_cc_defaults",
     ],
 
     vendor: true,

@@ -107,19 +107,33 @@ void MesonHwc2::getCapabilities(uint32_t* outCount,
     int32_t* outCapabilities) {
 #ifdef ENABLE_AIDL
     //TODO: enable boot display config when G support it for dual display
-    if (HwcConfig::getDisplayNum() == 1)
+    if (HwcConfig::getDisplayNum() == 1) {
+#if (PLATFORM_SDK_VERSION > 33) || (PLATFORM_SDK_VERSION == 33 \
+            && (ANDROID_PLATFORM_SDK_EXTENSION_VERSION >= 5))
+        *outCount = 4;
+#else
         *outCount = 3;
-    else
+#endif
+    }
+    else {
         *outCount = 2;
+    }
 #else
     *outCount = 2;
 #endif
+
     if (outCapabilities) {
         outCapabilities[0] = HWC2_CAPABILITY_SIDEBAND_STREAM;
         outCapabilities[1] = HWC2_CAPABILITY_SKIP_VALIDATE;
 #ifdef ENABLE_AIDL
-        if (HwcConfig::getDisplayNum() == 1)
+        if (HwcConfig::getDisplayNum() == 1) {
             outCapabilities[2] = HWC3_CAPABILITY_BOOT_DISPLAY_CONFIG;
+#if (PLATFORM_SDK_VERSION > 33) || (PLATFORM_SDK_VERSION == 33 \
+            && (ANDROID_PLATFORM_SDK_EXTENSION_VERSION >= 5))
+            outCapabilities[3] = HWC3_HDR_OUTPUT_CONVERSION_CONFIG;
+#endif
+        }
+
 #endif
     }
 }
@@ -714,6 +728,25 @@ int32_t MesonHwc2::setLayerBrightness(hwc2_display_t display,
 int32_t MesonHwc2::setAidlClientPid(int32_t pid) {
     GET_HWC_DISPLAY(0);
     return hwcDisplay->setAidlClientPid(pid);
+}
+
+int32_t MesonHwc2::getHdrConversionCapabilities(uint32_t* outNumCapability,
+            drm_hdr_conversion_capability_t* outConversionCapability) {
+    GET_HWC_DISPLAY(0);
+    return hwcDisplay->getHdrConversionCapabilities(outNumCapability,outConversionCapability);
+}
+
+int32_t MesonHwc2::setHdrConversionStrategy(bool passThrough, uint32_t numElements,
+            uint32_t* autoAllowedHdrTypes, uint32_t* preferredHdrOutputType) {
+    GET_HWC_DISPLAY(0);
+    return hwcDisplay->setHdrConversionStrategy(passThrough, numElements,
+                                                    autoAllowedHdrTypes, preferredHdrOutputType);
+}
+
+int32_t MesonHwc2::getOverlaySupport(uint32_t* numElements,
+            uint32_t* pixelFormats) {
+    GET_HWC_DISPLAY(0);
+    return hwcDisplay->getOverlaySupport(numElements, pixelFormats);
 }
 
 /**********************Amlogic ext display interface*******************/

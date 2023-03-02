@@ -75,6 +75,24 @@ typedef enum _ENUM_HDMI_CONTENT_TYPE {
    HDMI_CONTENT_TYPE_MAX
 } ENUM_HDMI_CONTENT_TYPE;
 
+
+typedef enum _ENUM_DRM_HDR_CONVERSION_TYPE {
+    /*The value INVALID
+     * is used to depict SDR outputType.*/
+    DRM_INVALID       = 0,
+    DRM_DOLBY_VISION,
+    DRM_HDR10,
+    DRM_HLG,
+    DRM_HDR10_PLUS,
+    DRM_DOLBY_VISION_4K30,
+} ENUM_DRM_HDR_CONVERSION_TYPE;
+
+typedef struct drm_hdr_conversion_capability {
+    uint32_t sourceType;
+    uint32_t outputType;
+    bool addsLatency;
+} drm_hdr_conversion_capability_t;
+
 typedef enum drm_fb_type {
     /*scattered buffer, can be used for rendering.*/
     DRM_FB_UNDEFINED = 0,
@@ -217,6 +235,42 @@ typedef struct drm_hdr_capabilities {
     int avgLuminance;
     int minLuminance;
 } drm_hdr_capabilities_t;
+
+typedef enum {
+    DRM_UNSPECIFIED = 0,
+    DRM_RGBA_8888 = 1,
+    DRM_RGBX_8888 = 2,
+    DRM_RGB_888 = 3,
+    DRM_RGB_565 = 4,
+    DRM_BGRA_8888 = 5,
+    DRM_YCBCR_422_SP = 16,
+    DRM_YCRCB_420_SP = 17,
+    DRM_YCBCR_422_I = 20,
+    DRM_RGBA_FP16 = 22,
+    DRM_RAW16 = 32,
+    DRM_BLOB = 33,
+    DRM_IMPLEMENTATION_DEFINED = 34,
+    DRM_YCBCR_420_888 = 35,
+    DRM_RAW_OPAQUE = 36,
+    DRM_RAW10 = 37,
+    DRM_RAW12 = 38,
+    DRM_RGBA_1010102 = 43,
+    DRM_Y8 = 538982489,
+    DRM_Y16 = 540422489,
+    DRM_YV12 = 842094169,
+    DRM_DEPTH_16 = 48,
+    DRM_DEPTH_24 = 49,
+    DRM_DEPTH_24_STENCIL_8 = 50,
+    DRM_DEPTH_32F = 51,
+    DRM_DEPTH_32F_STENCIL_8 = 52,
+    DRM_STENCIL_8 = 53,
+    DRM_YCBCR_P010 = 54,
+    DRM_HSV_888 = 55,
+    DRM_R_8 = 56,
+    DRM_R_16_UINT = 57,
+    DRM_RG_1616_UINT = 58,
+    DRM_RGBA_10101010 = 59,
+} drm_pixel_format_t;
 
 /*same as hwc2_per_frame_metadata_key_t*/
 typedef enum {

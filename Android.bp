@@ -44,6 +44,29 @@ license {
     ],
 }
 
+bootstrap_go_package {
+    name: "hwcomposer_aidl",
+    pkgPath: "android/soong/hw_composer_aidl",
+    deps: [
+        "blueprint",
+        "soong",
+        "soong-android",
+        "soong-cc",
+        "soong-genrule",
+        "blueprint-bootstrap",
+        "soong-cc-config"
+    ],
+    srcs: [
+        "hwcomposer_aidl.go",
+    ],
+
+    pluginFor: ["soong_build"],
+}
+
+hw_composer_aidl_go_defaults {
+    name: "composer_aidl_go_defaults",
+}
+
 soong_config_module_type {
     name: "meson_hwc_cc_defaults",
     module_type: "cc_defaults",

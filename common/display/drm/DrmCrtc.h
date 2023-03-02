@@ -35,6 +35,7 @@ public:
 
     int32_t prePageFlip();
     int32_t pageFlip(int32_t & out_fence);
+    int32_t updatePropertyValue();
 
     /*TODO:should refact*/
     int32_t readCurDisplayMode(std::string & dispmode);
@@ -47,6 +48,8 @@ public:
 
     int32_t setPendingMode();
     void closeLogoDisplay();
+
+    int32_t getPixelFormats(std::vector<uint32_t>& pixelFormats);
 
     void dump(String8 & dumpstr);
 
@@ -76,6 +79,8 @@ protected:
     std::shared_ptr<DrmProperty> mModeBlobId;
     std::shared_ptr<DrmProperty> mOutFencePtr;
     std::shared_ptr<DrmProperty> mVrrEnabled;
+    std::shared_ptr<DrmProperty> mVideoPixelFormat;
+    std::shared_ptr<DrmProperty> mOsdPixelFormat;
 
     drmModeAtomicReqPtr mReq;
 
