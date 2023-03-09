@@ -96,7 +96,7 @@ int UvmDev::getVideoType(const int fd) {
     fd_data.data = 0;
 
     if (ioctl(mDrvFd, UVM_IOC_GET_TYPE, &fd_data) != 0) {
-        MESON_LOGD("get %d video type failed: %s", fd, strerror(errno));
+        MESON_LOGV("get %d video type failed: %s", fd, strerror(errno));
         return 0;
     }
 

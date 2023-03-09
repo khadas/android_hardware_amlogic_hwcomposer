@@ -51,6 +51,9 @@ static const char* DISPLAY_MODE_LIST[] = {
     "1080p60hz",    // MODE_1080P
     "1080p100hz",   // MODE_1080P_100HZ
     "1080p120hz",   // MODE_1080P_120HZ
+    "3840x1080p100hz", // MODE_4K1K100HZ
+    "3840x1080p119hz", // MODE_4K1K119HZ
+    "3840x1080p120hz", // MODE_4K1K120HZ
     "2160p24hz",    // MODE_4K2K24HZ
     "2160p25hz",    // MODE_4K2K25HZ
     "2160p30hz",    // MODE_4K2K30HZ
@@ -192,8 +195,14 @@ void RealModeMgr::processModeList(std::map<uint32_t, drm_mode_info_t> & modeList
                     bRemove = true;
                 }
             } else {
-                // do nothing
-                break;
+                /* if mode is DLG mode (4k1k), need map it to 4k mode */
+                if (mode.pixelW == FB_SIZE_4K_W && mode.pixelH == FB_SIZE_1080P_H) {
+                    mode.dpiY = ((float)FB_SIZE_4K_H / mode.pixelH) * mode.dpiY;
+                    mode.pixelH = FB_SIZE_4K_H;
+
+                    if (!strcmp(mode.name, currentMode.name))
+                        currentMode = mode;
+                }
             }
         }
 
