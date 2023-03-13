@@ -169,6 +169,10 @@ int32_t DrmConnector::loadDisplayModes(drmModeConnectorPtr p) {
             mFracMode == MODE_ALL || mFracMode == MODE_NON_FRACTION) {
             bNonFractionMode = true;
         }
+         // drm only send frame rate (int)59hz, its real rate is 59.94hz
+        if (modeInfo.refreshRate == 59.00) {
+            modeInfo.refreshRate = 59.94;
+        }
 
         if (bNonFractionMode) {
             // add normal refresh rate config, like 24hz, 30hz...
@@ -187,16 +191,17 @@ int32_t DrmConnector::loadDisplayModes(drmModeConnectorPtr p) {
     return 0;
 }
 
-bool DrmConnector::supportVrr() {
-    /* does the sink support vrr */
-    /* for TV product*/
+bool DrmConnector::isTvType() {
     if (mType == DRM_MODE_CONNECTOR_MESON_LVDS_A || mType == DRM_MODE_CONNECTOR_MESON_LVDS_B ||
             mType == DRM_MODE_CONNECTOR_MESON_LVDS_C || mType == DRM_MODE_CONNECTOR_MESON_VBYONE_A ||
             mType == DRM_MODE_CONNECTOR_MESON_VBYONE_B || mType == DRM_MODE_CONNECTOR_LVDS)
         return true;
 
-    /*for OTT product*/
-    if (mType == DRM_MODE_CONNECTOR_HDMIA && mVrrCap && mVrrCap->getValue() == 1)
+    return false;
+}
+
+bool DrmConnector::supportVrr() {
+    if (mVrrCap && mVrrCap->getValue() == 1)
         return true;
 
     return false;
@@ -209,9 +214,11 @@ bool DrmConnector::supportVrr() {
  */
 int32_t DrmConnector::groupDisplayModes() {
     /* no need to regenerate groupId if without QMS/VRR support */
-    if (!(mSupportVrr = supportVrr()))
-        return 0;
-
+    if (!isTvType()) {
+        if (!(mSupportVrr = supportVrr())) {
+            return 0;
+        }
+    }
     /* clear the old group modes */
     mMesonGroupModes.clear();
 

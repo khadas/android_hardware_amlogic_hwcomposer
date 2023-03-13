@@ -68,6 +68,7 @@ public:
     int getUpdateProp(std::shared_ptr<DrmProperty> & prop);
 
     int DrmMode2Mode(drmModeModeInfo & drmmode, drm_mode_info_t & mode);
+    bool isTvType();
     bool supportVrr();
 
     std::mutex mMutex;

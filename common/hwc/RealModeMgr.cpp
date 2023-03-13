@@ -58,6 +58,7 @@ static const char* DISPLAY_MODE_LIST[] = {
     "2160p25hz",    // MODE_4K2K25HZ
     "2160p30hz",    // MODE_4K2K30HZ
     "2160p50hz",    // MODE_4K2K50HZ
+    "2160p59hz",    // MODE_4K2K59HZ
     "2160p60hz",    // MODE_4K2K60HZ
     "2160p100hz",   // MODE_4K2K100HZ
     "2160p120hz",   // MODE_4K2K120HZ
