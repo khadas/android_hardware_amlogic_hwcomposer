@@ -11,7 +11,6 @@
 #ifndef MESON_DISPLAY_MODE_POLICY_H
 #define MESON_DISPLAY_MODE_POLICY_H
 
-#define MESON_MODE_LEN                      64
 #define MESON_DV_MODE_LEN                   265
 
 /* default value */

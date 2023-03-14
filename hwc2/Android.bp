@@ -78,6 +78,8 @@ cc_library_shared {
 
     // !!! static lib sequence is serious, donot change it.
     static_libs: [
+        "meson_mode_util_static",
+        "meson_hdcp_auth_static",
         "libjsoncpp",
         "meson_display.adapter_local_static",
         "hwc.composer_static",

@@ -17,6 +17,7 @@
 #include "mode_policy.h"
 #include "mode_ubootenv.h"
 #include "IModePolicy.h"
+#include "HDCPTxAuth.h"
 
 #include "DisplayAdapterLocal.h"
 #include <pthread.h>
@@ -312,7 +313,11 @@ private:
     bool initColorAttribute(char* supportedColorList, int len);
     bool isSupportHdmiMode(const char *hdmi_mode, const char *supportedColorList);
     void filterHdmiDispcap(meson_connector_info* data);
+    /* color deep attr */
     bool isModeSupportDeepColorAttr(const char *mode, const char * color);
+    void getBestHdmiDeepColorAttr(const char *outputmode, char* colorAttribute);
+    void getHdmiColorAttribute(const char* outputmode, char* colorAttribute, int state);
+    void getProperHdmiColorAttribute(const char* outputmode, char* colorAttribute);
 
     bool isFrameratePriority();
     bool isSupport4K();
@@ -323,6 +328,10 @@ private:
     void getCommonData(struct meson_policy_in* data, hdmi_dv_info_t *dinfo);
 
     void initHdrSdrMode();
+    void initDolbyVision(output_mode_state state);
+    int updateDolbyVisionType(void);
+    bool checkDolbyVisionDeepColorChanged(int state);
+    bool getCurDolbyVisionState(int state, output_mode_state mode_state);
     void setHdrMode(const char* mode);
     void setSdrMode(const char* mode);
     bool checkDolbyVisionStatusChanged(int state);
@@ -353,6 +362,7 @@ private:
     void applyDisplaySetting();
 
     void setSourceDisplay(output_mode_state state);
+    void updateDeepColor(bool cvbsMode, output_mode_state state, const char* outputmode);
     bool isVMXCertification();
     bool isConnected();
     bool isHdmiUsed(void);
@@ -407,4 +417,5 @@ private:
     uint32_t mDisplayId;
 
     std::map<uint32_t, drm_mode_info_t> mModes;
+    std::shared_ptr<HDCPTxAuth> mTxAuth;
 };

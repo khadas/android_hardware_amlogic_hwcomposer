@@ -125,6 +125,51 @@ static const char* COLOR_ATTRIBUTE_LIST_8BIT[] = {
     COLOR_YCBCR422_8BIT,
 };
 
+
+//this is prior selected list  of 4k2k50hz, 4k2k60hz smpte50hz, smpte60hz
+static const char* COLOR_ATTRIBUTE_LIST1[] = {
+    COLOR_YCBCR420_10BIT,
+    COLOR_YCBCR422_12BIT,
+    COLOR_YCBCR420_8BIT,
+    COLOR_YCBCR444_8BIT,
+    COLOR_RGB_8BIT,
+};
+
+//this is prior selected list  of other display mode
+static const char* COLOR_ATTRIBUTE_LIST2[] = {
+    COLOR_YCBCR444_10BIT,
+    COLOR_YCBCR422_12BIT,
+    COLOR_RGB_10BIT,
+    COLOR_YCBCR444_8BIT,
+    COLOR_RGB_8BIT,
+};
+
+//this is prior selected list  of Low Power Mode 4k2k50hz, 4k2k60hz smpte50hz, smpte60hz
+static const char* COLOR_ATTRIBUTE_LIST3[] = {
+    COLOR_YCBCR420_8BIT,
+    COLOR_YCBCR420_10BIT,
+    COLOR_YCBCR422_8BIT,
+    COLOR_YCBCR422_10BIT,
+    COLOR_YCBCR444_8BIT,
+    COLOR_RGB_8BIT,
+    COLOR_YCBCR420_12BIT,
+    COLOR_YCBCR422_12BIT,
+};
+
+//this is prior selected list of Low Power Mode other display mode
+static const char* COLOR_ATTRIBUTE_LIST4[] = {
+    COLOR_YCBCR444_8BIT,
+    COLOR_YCBCR422_8BIT,
+    COLOR_RGB_8BIT,
+    COLOR_YCBCR444_10BIT,
+    COLOR_YCBCR422_10BIT,
+    COLOR_RGB_10BIT,
+    COLOR_YCBCR444_12BIT,
+    COLOR_YCBCR422_12BIT,
+    COLOR_RGB_12BIT,
+};
+
+
 ModePolicy::ModePolicy() {
     mDisplayType = DISPLAY_TYPE_MBOX;
     mPolicy = MESON_POLICY_INVALID;
@@ -554,6 +599,121 @@ bool ModePolicy::isSupportHdmiMode(const char *hdmi_mode, const char *supportedC
     }
 }
 
+// color deep
+void ModePolicy::getBestHdmiDeepColorAttr(const char *outputmode, char* colorAttribute) {
+    char *pos = NULL;
+    int length = 0;
+    const char **colorList = NULL;
+    char supportedColorList[MESON_MAX_STR_LEN];
+    if (!initColorAttribute(supportedColorList, MESON_MAX_STR_LEN)) {
+        MESON_LOGE("initColorAttribute fail\n");
+        return;
+    }
+
+    //filter some color value options, aimed at some modes.
+    if (!strcmp(outputmode, MODE_4K2K60HZ) || !strcmp(outputmode, MODE_4K2K50HZ)
+        || !strcmp(outputmode, MODE_4K2KSMPTE60HZ) || !strcmp(outputmode, MODE_4K2KSMPTE50HZ)) {
+        if (sys_get_bool_prop(LOW_POWER_DEFAULT_COLOR, false)) {
+            colorList = COLOR_ATTRIBUTE_LIST3;
+            length = ARRAY_SIZE(COLOR_ATTRIBUTE_LIST3);
+        } else {
+            colorList = COLOR_ATTRIBUTE_LIST1;
+            length = ARRAY_SIZE(COLOR_ATTRIBUTE_LIST1);
+        }
+    } else {
+        if (sys_get_bool_prop(LOW_POWER_DEFAULT_COLOR, false)) {
+            colorList = COLOR_ATTRIBUTE_LIST4;
+            length = ARRAY_SIZE(COLOR_ATTRIBUTE_LIST4);
+        } else {
+            colorList = COLOR_ATTRIBUTE_LIST2;
+            length = ARRAY_SIZE(COLOR_ATTRIBUTE_LIST2);
+        }
+    }
+
+    for (int i = 0; i < length; i++) {
+        if ((pos = strstr(supportedColorList, colorList[i])) != NULL) {
+            if (isModeSupportDeepColorAttr(outputmode, colorList[i])) {
+                MESON_LOGI("support current mode:[%s], deep color:[%s]\n", outputmode, colorList[i]);
+
+                strcpy(colorAttribute, colorList[i]);
+                break;
+            }
+        }
+    }
+}
+
+void ModePolicy::getHdmiColorAttribute(const char* outputmode, char* colorAttribute, int state) {
+    char supportedColorList[MESON_MAX_STR_LEN];
+
+    //if read /sys/class/amhdmitx/amhdmitx0/dc_cap is null. return
+    if (!initColorAttribute(supportedColorList, MESON_MAX_STR_LEN)) {
+
+        char defVal[64];
+        if (!strcmp(outputmode, MODE_4K2K60HZ) || !strcmp(outputmode, MODE_4K2K50HZ)
+            || !strcmp(outputmode, MODE_4K2KSMPTE60HZ) || !strcmp(outputmode, MODE_4K2KSMPTE50HZ)) {
+            strcpy(defVal, COLOR_YCBCR420_8BIT);
+        } else {
+            strcpy(defVal, COLOR_YCBCR444_8BIT);
+        }
+        sys_get_string_prop_default(PROP_DEFAULT_COLOR, colorAttribute, defVal);
+
+        MESON_LOGE("Error!!! Do not find sink color list, use default color attribute:%s\n", colorAttribute);
+        return;
+    }
+
+    if (sys_get_bool_prop(PROP_HDMIONLY, true)) {
+        char curMode[MESON_MODE_LEN]    = {0};
+        char isBestMode[MESON_MODE_LEN] = {0};
+        char colorTemp[MESON_MODE_LEN]  = {0};
+
+        getDisplayMode(curMode);
+
+        // if only change deepcolor in Droid Settings
+        // get color format from ubootenv, it was set in Droid Settings
+        if ((state == OUTPUT_MODE_STATE_SWITCH) && (!strcmp(curMode, outputmode))
+            && getBootEnv(UBOOTENV_ISBESTMODE, isBestMode) && (strcmp(isBestMode, "false") == 0)) {
+            //note: "outputmode" should be the second parameter of "strcmp", because it maybe prefix of "curMode".
+            MESON_LOGI("Only modify deep color mode, get colorAttr from ubootenv.var.colorattribute\n");
+            getBootEnv(UBOOTENV_COLORATTRIBUTE, colorTemp);
+            if (isModeSupportDeepColorAttr(curMode,colorTemp)) {
+                getBootEnv(UBOOTENV_COLORATTRIBUTE, colorAttribute);
+            }
+        } else {
+            getProperHdmiColorAttribute(outputmode,  colorAttribute);
+        }
+    }
+
+    MESON_LOGI("get hdmi color attribute : [%s], outputmode is: [%s] , and support color list is: [%s]\n",
+        colorAttribute, outputmode, supportedColorList);
+}
+
+void ModePolicy::getProperHdmiColorAttribute(const char* outputmode, char* colorAttribute) {
+    char ubootvar[MESON_MODE_LEN] = {0};
+    char tmpValue[MESON_MODE_LEN] = {0};
+    char isBestMode[MESON_MODE_LEN] = {0};
+
+    // if auto switch best mode is off, get priority color value of mode in ubootenv,
+    // and judge current mode whether this colorValue is supported in This TV device.
+    // if not support or auto switch best mode is on, select color value from Lists in next step.
+    if (getBootEnv(UBOOTENV_ISBESTMODE, isBestMode) && (strcmp(isBestMode, "false") == 0)) {
+        MESON_LOGI("get color attr from ubootenv.var.%s_deepcolor When is not best mode\n", outputmode);
+        sprintf(ubootvar, "ubootenv.var.%s_deepcolor", outputmode);
+        if (getBootEnv(ubootvar, tmpValue) && strstr(tmpValue, "bit")
+            && isModeSupportDeepColorAttr(outputmode, tmpValue)) {
+            strcpy(colorAttribute, tmpValue);
+            return;
+        }
+    }
+
+    getBestHdmiDeepColorAttr(outputmode, colorAttribute);
+
+    //if colorAttr is null above steps, will defines a initial value to it
+    if (!strstr(colorAttribute, "bit")) {
+        strcpy(colorAttribute, COLOR_YCBCR444_8BIT);
+    }
+}
+
+
 
 void ModePolicy::filterHdmiDispcap(meson_connector_info* data) {
     const char *delim = "\n";
@@ -824,6 +984,95 @@ void ModePolicy::initHdrSdrMode() {
     }
     setSdrMode(mode);
 }
+
+void ModePolicy::initDolbyVision(output_mode_state state) {
+    int dv_type = DOLBY_VISION_SET_DISABLE;
+
+    MESON_LOGI("state:%d\n", state);
+
+    dv_type = updateDolbyVisionType();
+
+    if (getCurDolbyVisionState(dv_type,  state)) {
+        MESON_LOGI("Current DV type is same as the set value\n");
+        return;
+    }
+
+    setDolbyVisionEnable(dv_type,  state);
+}
+
+int ModePolicy::updateDolbyVisionType(void) {
+    char type[MESON_MODE_LEN];
+
+    //1. read DV mode from prop(maybe need to env)
+    strcpy(type, mConData.hdr_info.ubootenv_dv_type);
+    MESON_LOGI("type %s tv DV mode:%s\n", type, mConData.hdr_info.dv_deepcolor);
+
+    //2. check tv support or not
+    if ((strstr(type, "1") != NULL) && strstr(mConData.hdr_info.dv_deepcolor, "DV_RGB_444_8BIT") != NULL) {
+        return DOLBY_VISION_SET_ENABLE;
+    } else if ((strstr(type, "2") != NULL) && strstr(mConData.hdr_info.dv_deepcolor, "LL_YCbCr_422_12BIT") != NULL) {
+        return DOLBY_VISION_SET_ENABLE_LL_YUV;
+    } else if ((strstr(type, "3") != NULL)
+        && ((strstr(mConData.hdr_info.dv_deepcolor, "LL_RGB_444_12BIT") != NULL) ||
+        (strstr(mConData.hdr_info.dv_deepcolor, "LL_RGB_444_10BIT") != NULL))) {
+        return DOLBY_VISION_SET_ENABLE_LL_RGB;
+    } else if (strstr(type, "0") != NULL) {
+        return DOLBY_VISION_SET_DISABLE;
+    }
+
+    //3. DV best policy:STD->LL_YUV->LL_RGB for netflix request
+    //   DV best policy:LL_YUV->STD->LL_RGB for DV request
+    if ((strstr(mConData.hdr_info.dv_deepcolor, "DV_RGB_444_8BIT") != NULL) ||
+        (strstr(mConData.hdr_info.dv_deepcolor, "LL_YCbCr_422_12BIT") != NULL)) {
+        if (sys_get_bool_prop(PROP_ALWAYS_DOLBY_VISION, false)) {
+            if (strstr(mConData.hdr_info.dv_deepcolor, "DV_RGB_444_8BIT") != NULL) {
+                return DOLBY_VISION_SET_ENABLE;
+            } else if (strstr(mConData.hdr_info.dv_deepcolor, "LL_YCbCr_422_12BIT") != NULL) {
+                return DOLBY_VISION_SET_ENABLE_LL_YUV;
+            }
+        } else {
+            if (strstr(mConData.hdr_info.dv_deepcolor, "LL_YCbCr_422_12BIT") != NULL) {
+                return DOLBY_VISION_SET_ENABLE_LL_YUV;
+            } else if (strstr(mConData.hdr_info.dv_deepcolor, "DV_RGB_444_8BIT") != NULL) {
+                return DOLBY_VISION_SET_ENABLE;
+            }
+        }
+    } else if ((strstr(mConData.hdr_info.dv_deepcolor, "LL_RGB_444_12BIT") != NULL) ||
+        (strstr(mConData.hdr_info.dv_deepcolor, "LL_RGB_444_10BIT") != NULL)) {
+        return DOLBY_VISION_SET_ENABLE_LL_RGB;
+    }
+
+    return DOLBY_VISION_SET_DISABLE;
+}
+
+bool ModePolicy::getCurDolbyVisionState(int state, output_mode_state mode_state) {
+    if ((mode_state != OUTPUT_MODE_STATE_INIT)
+            || checkDolbyVisionStatusChanged(state)
+            || checkDolbyVisionDeepColorChanged(state)) {
+        return false;
+    }
+    return true;
+}
+
+bool ModePolicy::checkDolbyVisionDeepColorChanged(int state) {
+    std::string colorAttr;
+    char mode[MESON_MAX_STR_LEN] = {0};
+    getDisplayAttribute(DISPLAY_HDMI_COLOR_ATTR, colorAttr);
+    if (isTvSupportDolbyVision(mode) && (state == DOLBY_VISION_SET_ENABLE)
+            && (strstr(colorAttr.c_str(), "444,8bit") == NULL)) {
+        MESON_LOGI("colorAttr %s is not match with DV STD\n", colorAttr.c_str());
+        return true;
+    } else if ((state == DOLBY_VISION_SET_ENABLE_LL_YUV) && (strstr(colorAttr.c_str(), "422,12bit") == NULL)) {
+        MESON_LOGI("colorAttr %s is not match with DV LL YUV\n", colorAttr.c_str());
+        return true;
+    } else if ((state == DOLBY_VISION_SET_ENABLE_LL_RGB) && (strstr(colorAttr.c_str(), "444,12bit") == NULL)
+                && (strstr(colorAttr.c_str(), "444,10bit") == NULL)) {
+        MESON_LOGI("colorAttr %s is not match with DV LL RGB\n", colorAttr.c_str());
+        return true;
+    }
+    return false;
+}
+
 
 bool ModePolicy::checkDolbyVisionStatusChanged(int state) {
     std::string curDvEnable = "";
@@ -1478,8 +1727,8 @@ void ModePolicy::setALLMMode(int state) {
 
             if (isTVSupportDV) {
                 // reset doblyvision when set -1/0 to ALLM
-                //setBootEnv(UBOOTENV_BESTDOLBYVISION, "true");
-                //initDolbyVision(OUTPUT_MODE_STATE_SWITCH);
+                setBootEnv(UBOOTENV_BESTDOLBYVISION, "true");
+                initDolbyVision(OUTPUT_MODE_STATE_SWITCH);
                 setDolbyVisionEnable(DOLBY_VISION_SET_ENABLE,OUTPUT_MODE_STATE_SWITCH);
             }
             break;
@@ -1588,7 +1837,7 @@ void ModePolicy::applyDisplaySetting() {
      * as phy will be enabled in driver when set mode
      * only enable phy if phy is disabled but not enabled
      */
-    //bool phy_enabled_already = true;
+    bool phy_enabled_already = true;
 
     // 1. update hdmi frac_rate_policy
     char frac_rate_policy[MESON_MODE_LEN]     = {0};
@@ -1704,14 +1953,41 @@ void ModePolicy::applyDisplaySetting() {
     }
 
     // 7. stop hdcp
-    // TODO: no need for drm backend
+    if (isNeedChange) {
+        sysfs_set_string(DISPLAY_HDMI_AVMUTE_SYSFS, "1");
+        if (OUTPUT_MODE_STATE_POWER != mState) {
+            if (usleep(100000) < 0)//100ms
+                MESON_LOGE("usleep interrupt!\n");
+            sysfs_set_string(DISPLAY_HDMI_HDCP_MODE, "-1");
+            //usleep(100000);//100ms
+            sysfs_set_string(DISPLAY_HDMI_PHY, "0"); /* Turn off TMDS PHY */
+            phy_enabled_already = false;
+            if (usleep(50000) < 0)//50ms
+                MESON_LOGE("usleep interrupt!\n");
+        }
+        // stop hdcp tx
+        mTxAuth->stop();
+    } else if (OUTPUT_MODE_STATE_INIT == mState) {
+        // stop hdcp tx
+        mTxAuth->stop();
+        char fail_case[PROPERTY_VALUE_MAX] = {0};
+        char defVal[] = "4";
+        sys_get_string_prop_default(HDCP_TX_AUTH_FAIL, fail_case, defVal);
+        if (!strcmp(fail_case, "1")) {
+            sysfs_set_string(DISPLAY_HDMI_VIDEO_MUTE, "1");
+            sysfs_set_string(DISPLAY_HDMI_AUDIO_MUTE, "1");
+        } else if (!strcmp(fail_case, "2")) {
+            sysfs_set_string(DISPLAY_HDMI_AUDIO_MUTE, "1");
+            sysfs_set_string(DISPLAY_MEDIA_VIDEO_MUTE, "1");
+        }
+    }
 
     // 8. set hdmi final output mode
     if (isNeedChange) {
         //set hdmi mode
         setDisplayMode(final_displaymode);
         /* phy already turned on after write display/mode node */
-        //phy_enabled_already     = true;
+        phy_enabled_already     = true;
     } else {
         MESON_LOGI("curDisplayMode is equal  final_displaymode, Do not need set it\n");
     }
@@ -1765,6 +2041,17 @@ void ModePolicy::applyDisplaySetting() {
     //must clear avmute for new policy(driver maybe set mute)
     sysfs_set_string(DISPLAY_HDMI_AVMUTE_SYSFS, "-1");
 
+    // 10. start HDMI HDCP authenticate
+    if (isNeedChange) {
+        if (!cvbsMode) {
+            mTxAuth->start();
+        }
+    } else if (OUTPUT_MODE_STATE_INIT == mState) {
+        if (!cvbsMode) {
+            mTxAuth->start();
+        }
+    }
+
     //audio
     char value[MESON_MAX_STR_LEN] = {0};
     memset(value, 0, sizeof(0));
@@ -1787,6 +2074,8 @@ int32_t ModePolicy::initialize() {
     mDefaultUI = to_string(height);
 
     if (DISPLAY_TYPE_MBOX == mDisplayType) {
+        mTxAuth = std::make_shared<HDCPTxAuth>();
+
         setSourceDisplay(OUTPUT_MODE_STATE_INIT);
     } else if (DISPLAY_TYPE_TV == mDisplayType) {
         setSinkDisplay(true);
@@ -2010,6 +2299,57 @@ void ModePolicy::setSourceDisplay(output_mode_state state) {
 
     //5. apply settings to driver
     applyDisplaySetting();
+}
+
+//TODO: do we really need it ?
+void ModePolicy::updateDeepColor(bool cvbsMode, output_mode_state state, const char* outputmode) {
+    if (!cvbsMode && (mDisplayType != DISPLAY_TYPE_TV)) {
+        char colorAttribute[MESON_MODE_LEN] = {0};
+        if (sys_get_bool_prop(PROP_DEEPCOLOR, true)) {
+            char mode[MESON_MAX_STR_LEN] = {0};
+            if (isDolbyVisionEnable() && isTvSupportDolbyVision(mode) &&
+                    (mConData.hdr_info.hdr_priority == MESON_DOLBY_VISION_PRIORITY)) {
+                 char type[MESON_MODE_LEN] = {0};
+                 strcpy(type, mConData.hdr_info.ubootenv_dv_type);
+                if (((atoi(type) == 2) && (strstr(mode, DV_MODE_TYPE[2]) == NULL))
+                        || ((atoi(type) == 3) && (strstr(mode, DV_MODE_TYPE[3]) == NULL)
+                            && (strstr(mode, DV_MODE_TYPE[4]) == NULL))) {
+                    strcpy(type, "1");
+                }
+                switch (atoi(type)) {
+                    case DOLBY_VISION_SET_ENABLE:
+                        strcpy(colorAttribute, "444,8bit");
+                        break;
+                    case DOLBY_VISION_SET_ENABLE_LL_YUV:
+                        strcpy(colorAttribute, "422,12bit");
+                        break;
+                    case DOLBY_VISION_SET_ENABLE_LL_RGB:
+                        if (strstr(mode, "LL_RGB_444_12BIT") != NULL) {
+                            strcpy(colorAttribute, "444,12bit");
+                        } else if (strstr(mode, "LL_RGB_444_10BIT") != NULL) {
+                            strcpy(colorAttribute, "444,10bit");
+                        }
+                        break;
+                }
+            } else {
+                getHdmiColorAttribute(outputmode, colorAttribute, (int)state);
+            }
+        } else {
+            strcpy(colorAttribute, "default");
+        }
+        std::string attr;
+        getDisplayAttribute(DISPLAY_HDMI_COLOR_ATTR, attr);
+        if (strstr(attr.c_str(), colorAttribute) == NULL) {
+            MESON_LOGI("set DeepcolorAttr value is different from attr sysfs value\n");
+            setDisplayAttribute(DISPLAY_HDMI_COLOR_ATTR, colorAttribute);
+        } else {
+            MESON_LOGI("cur deepcolor attr value is equals to colorAttribute, Do not need set it\n");
+        }
+        MESON_LOGI("setMboxOutputMode colorAttribute = %s\n", colorAttribute);
+        //save to ubootenv
+        saveDeepColorAttr(outputmode, colorAttribute);
+        setBootEnv(UBOOTENV_COLORATTRIBUTE, colorAttribute);
+    }
 }
 
 void ModePolicy::getCommonData(struct meson_policy_in* data, hdmi_dv_info_t *dinfo) {

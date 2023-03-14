@@ -14,42 +14,17 @@ package {
 }
 
 cc_library_static {
-    name: "meson_mode_util_static",
-    vendor_available: true,
+    name: "meson_hdcp_auth_static",
+    vendor: true,
 
     srcs: [
-        "mode_util.c",
+        "HDCPTxAuth.cpp",
     ],
 
     shared_libs: [
         "liblog",
         "libutils",
         "libcutils",
-    ],
-
-    local_include_dirs: [
-        "include",
-    ],
-
-    export_include_dirs: [
-        "include",
-    ],
-}
-
-cc_library_shared {
-    name: "libmeson_mode_policy",
-    vendor_available: true,
-
-    srcs: [
-        "mode_policy.c",
-        "mode_ubootenv.c",
-    ],
-
-    shared_libs: [
-        "liblog",
-        "libutils",
-        "libcutils",
-        "libz"
     ],
 
     static_libs: [
@@ -59,14 +34,13 @@ cc_library_shared {
     local_include_dirs: [
         "include",
     ],
+
     export_include_dirs: [
         "include",
     ],
+
     cflags: [
-        "-DLOG_TAG=\"MesonDisplay\"",
-        "-Werror",
-        "-Wall",
+        "-DHDCP_AUTHENTICATION",
     ],
 }
 
-subdirs = ["tests"]

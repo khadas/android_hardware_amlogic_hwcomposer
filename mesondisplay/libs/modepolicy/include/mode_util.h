@@ -22,7 +22,12 @@
 #include <poll.h>
 #include <time.h>
 
-#define MAX_BUF_LEN   4096
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define MAX_BUF_LEN 4096
+#define MESON_MODE_LEN 64
 
 #define DEBUG
 
@@ -63,5 +68,9 @@
 
 int32_t meson_mode_write_sys(const char *path, const char *val);
 int32_t meson_mode_read_sys(const char *path, char *val, bool original);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif // MESON_MODE_POLICY_UTIL_H
