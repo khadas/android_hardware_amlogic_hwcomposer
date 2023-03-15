@@ -273,7 +273,7 @@ int32_t gralloc_free_dma_buf(native_handle_t * hnd) {
 
 native_handle_t * gralloc_ref_dma_buf(const native_handle_t * hnd) {
     ./*in fact we need the retain function in gralloc1 hal, but
-     it is not exposed to other moduels,
+     it is not exposed to other modules,
      we use clone instead now.*/
     return native_handle_clone(hnd);
 }

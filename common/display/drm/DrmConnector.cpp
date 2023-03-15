@@ -399,7 +399,7 @@ bool DrmConnector::checkFracMode(const drm_mode_info_t & mode) {
         return (currentIsFrac && modeIsFrac) || (!currentIsFrac && !modeIsFrac);
 #else
         // TODO:refactor it when mode policy move to hwc
-        // for boot config, prefered is frac policy
+        // for boot config, preferred is frac policy
         return modeIsFrac;
 #endif
     }

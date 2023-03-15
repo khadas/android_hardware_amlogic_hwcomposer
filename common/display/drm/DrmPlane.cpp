@@ -200,7 +200,7 @@ bool DrmPlane::isAvailable() {
         return false;
     }
 
-    /*plane occupied by non-drm moduels, cannot be used now.*/
+    /*plane occupied by non-drm modules, cannot be used now.*/
     if (mMesonOccupy && mMesonOccupy->getValue()) {
         return false;
     }

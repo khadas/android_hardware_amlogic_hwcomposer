@@ -32,7 +32,7 @@ VtAllocSolidColorBuffer::~VtAllocSolidColorBuffer() {
 
 int VtAllocSolidColorBuffer::allocBuffer(vt_video_color_t colorType) {
     uint32_t stride;
-    int format = 17; // alawys HAL_PIXEL_FORMAT_YCrCb_420_SP
+    int format = 17; // always HAL_PIXEL_FORMAT_YCrCb_420_SP
     int len_y = VIDEO_BUFFER_H * VIDEO_BUFFER_W;
     int len_vu = len_y * 1 / 2;
     int i = 0;

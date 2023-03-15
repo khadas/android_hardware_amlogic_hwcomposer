@@ -236,8 +236,8 @@ typedef enum {
 typedef enum {
     OUTPUT_CHANGE_BY_INIT               = 0,
     OUTPUT_CHANGE_BY_USER               = 1,
-    OUPTUT_CHANGE_BY_PLUG               = 2,
-    OUPTUT_CHANGE_BY_HWC                = 3
+    OUTPUT_CHANGE_BY_PLUG               = 2,
+    OUTPUT_CHANGE_BY_HWC                = 3
 } output_change_reason;
 
 typedef enum {

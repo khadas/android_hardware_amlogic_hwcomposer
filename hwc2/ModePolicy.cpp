@@ -1191,7 +1191,7 @@ void ModePolicy::setPosition(const char* curMode, int left, int top, int width, 
     }
 
     pthread_mutex_lock(&mEnvLock);
-    if (mReason != OUPTUT_CHANGE_BY_HWC) {
+    if (mReason != OUTPUT_CHANGE_BY_HWC) {
         sprintf(ubootvar, "ubootenv.var.%s_x", keyValue);
         setBootEnv(ubootvar, x);
         sprintf(ubootvar, "ubootenv.var.%s_y", keyValue);
@@ -1595,7 +1595,7 @@ void ModePolicy::applyDisplaySetting() {
     char cur_frac_rate_policy[MESON_MODE_LEN] = {0};
     bool frac_rate_policy_change        = false;
 
-    if (mReason != OUPTUT_CHANGE_BY_HWC) {
+    if (mReason != OUTPUT_CHANGE_BY_HWC) {
         sysfs_get_string(HDMI_TX_FRAMERATE_POLICY, cur_frac_rate_policy, MESON_MODE_LEN);
         getBootEnv(UBOOTENV_FRAC_RATE_POLICY, frac_rate_policy);
         if (strstr(frac_rate_policy, cur_frac_rate_policy) == NULL) {

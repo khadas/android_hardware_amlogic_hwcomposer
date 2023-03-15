@@ -1548,7 +1548,7 @@ int MultiplanesWithDiComposition::commit() {
                 }
 
                 //wait the buffer's releasefence
-                ATRACE_BEGIN("wait relase fence");
+                ATRACE_BEGIN("wait release fence");
                 int releaseFence = outfb->getPrevReleaseFence();
                 if (releaseFence >= 0) {
                     DrmFence fence(releaseFence);
