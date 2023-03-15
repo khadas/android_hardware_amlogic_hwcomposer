@@ -172,8 +172,12 @@ void * HwcVsync::vsyncThread(void * data) {
                 pThis->mObserver->onVsync(timestamp, period, pThis->mVsyncType);
             }
         } else {
-            if (ret != 0)
+            if (ret != 0) {
                 MESON_LOGE("wait for hw vsync error:%d", ret);
+                // wait vblank error we may in a mode switch
+                // sleep 5 ms and then try again
+                usleep(5000);
+            }
         }
     }
     return NULL;

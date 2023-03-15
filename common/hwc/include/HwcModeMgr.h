@@ -13,6 +13,7 @@
 #include <BasicTypes.h>
 #include <HwDisplayConnector.h>
 #include <HwDisplayCrtc.h>
+#include "IModePolicy.h"
 
 #define UBOOTENV_BESTDOLBYVISION        "ubootenv.var.bestdolbyvision"
 #define UBOOTENV_HDMIMODE               "ubootenv.var.hdmimode"
@@ -66,6 +67,7 @@ public:
         int32_t* outConfig) = 0;
     virtual int32_t setBootConfig(int32_t config) = 0;
     virtual int32_t clearBootConfig() = 0;
+    virtual void setModePolicy(std::shared_ptr<IModePolicy> /* policy*/) {};
 
     virtual void resetTags() = 0;
     virtual void dump(String8 & dumpstr) = 0;

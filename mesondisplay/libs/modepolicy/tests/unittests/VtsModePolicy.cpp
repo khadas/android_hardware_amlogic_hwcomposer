@@ -75,6 +75,7 @@ int VtsModePolicy::setEdidInfoPath(const char *path) {
         return -EINVAL;
     }
 
+    ALOGD("%s %s", __func__, path);
     parseConnectorInfo(root);
     parseHdrInfo(root);
 
@@ -122,6 +123,7 @@ int VtsModePolicy::parseConnectorInfo(const Json::Value &root) {
     strncpy(conPtr->ubootenv_colorattr, root["uenvColorAttribute"].asString().c_str(), MESON_MODE_LEN);
     conPtr->is_support4k = root["support4k"].asBool();
     conPtr->is_deepcolor = root["deepColor"].asBool();
+    conPtr->is_bestcolorspace = true;
 
     return 0;
 }
@@ -176,6 +178,7 @@ void VtsModePolicy::jsonMode2MesonMode(meson_mode_info_t &mesonMode, const Json:
 }
 
 int VtsModePolicy::sceneProcess() {
+    ALOGD("%s", __func__);
     meson_mode_set_policy(mModeConType, mPolicy);
     meson_mode_set_policy_input(mModeConType, &mIn);
     meson_mode_get_policy_output(mModeConType, &mOut);
@@ -184,10 +187,14 @@ int VtsModePolicy::sceneProcess() {
 }
 
 void VtsModePolicy::dump() {
+    auto hdrPtr = &mIn.hdr_info;
+    ALOGD("supportHDR:%d\n", hdrPtr->is_tv_supportHDR);
+    ALOGD("HDR priority:%d\n", hdrPtr->hdr_priority);
+    ALOGD("HDR policy:%d\n", hdrPtr->hdr_policy);
+
     auto conPtr = &mIn.con_info;
     ALOGD("EdidParsing:%s\n", conPtr->edid_parsing);
     ALOGD("sinkType:%d\n", conPtr->sink_type);
-
     ALOGD("dc_cap :%s\n", conPtr->dc_cap);
     ALOGD("disp_cap :%s\n", conPtr->disp_cap);
     ALOGD("\nModePolicyTest support modes(%d):\n", conPtr->modes_size);

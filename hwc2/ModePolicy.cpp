@@ -21,6 +21,7 @@
 #define UBOOTENV_COLORATTRIBUTE         "ubootenv.var.colorattribute"
 
 #define EDID_MAX_SIZE                   2049
+#define MODE_8K4K_PREFIX "4320p"
 
 #define COLOR_YCBCR444_12BIT             "444,12bit"
 #define COLOR_YCBCR444_10BIT             "444,10bit"
@@ -191,7 +192,7 @@ ModePolicy::~ModePolicy() {
 
 bool ModePolicy::getBootEnv(const char *key, char *value) {
     const char* p_value =  meson_mode_get_ubootenv(key);
-    MESON_LOGD("key:%s value:%s", key, p_value);
+    MESON_LOGD("get key:%s value:%s", key, p_value);
 
     if (p_value) {
         strcpy(value, p_value);
@@ -211,7 +212,7 @@ int ModePolicy::getBootenvInt(const char* key, int defaultVal) {
 }
 
 void ModePolicy::setBootEnv(const char* key, const char* value) {
-    MESON_LOGD("key:%s value:%s", key, value);
+    MESON_LOGD("set key:%s value:%s", key, value);
 
     meson_mode_set_ubootenv(key, value);
 }
@@ -848,21 +849,80 @@ void ModePolicy::onHotplug(bool connected) {
     //hdmi edid parse error and hpd = 1
     //set default reolsution and color format
     if (isHdmiEdidParseOK() == false) {
-        sysfs_set_string(DISPLAY_HDMI_AVMUTE_SYSFS, "1");
-        setDisplayAttribute(DISPLAY_HDMI_COLOR_ATTR, MESON_DEFAULT_COLOR_FORMAT);
-        //set hdmi default mode
-        setDisplayMode(MESON_DEFAULT_HDMI_MODE);
-
-        //update display position
-        int position[4] = { 0, 0, 0, 0 };//x,y,w,h
-        getPosition(MESON_DEFAULT_HDMI_MODE, position);
-        setPosition(MESON_DEFAULT_HDMI_MODE, position[0], position[1],position[2], position[3]);
-        sysfs_set_string(DISPLAY_HDMI_AVMUTE_SYSFS, "-1");
+        setDefaultMode();
         return;
     }
 
     //hdmi edid parse ok
     setSourceDisplay(OUTPUT_MODE_STATE_POWER);
+}
+
+void ModePolicy::setActiveConfig(std::string mode) {
+    mReason = OUTPUT_CHANGE_BY_HWC;
+    MESON_LOGI("setDisplayed by hwc %s", mode.c_str());
+    setSourceOutputMode(mode.c_str());
+    mReason = OUTPUT_CHANGE_BY_INIT;
+}
+
+int32_t ModePolicy::getPreferredBootConfig(std::string &config) {
+    if (DISPLAY_TYPE_TV == mDisplayType) {
+        char curMode[MESON_MODE_LEN] = {0};
+        getDisplayMode(curMode);
+        config = curMode;
+    } else {
+#if 0
+        //1. get hdmi data
+        hdmi_data_t data;
+
+        memset(&data, 0, sizeof(hdmi_data_t));
+        getHdmiData(&data);
+#endif
+        mConData.state = static_cast<meson_mode_state>(OUTPUT_MODE_STATE_INIT);
+        mConData.con_info.is_bestcolorspace = true;
+
+        //2. scene logic process
+        meson_mode_set_policy(mModeConType, MESON_POLICY_BEST);
+        meson_mode_set_policy_input(mModeConType, &mConData);
+        meson_mode_get_policy_output(mModeConType, &mSceneOutInfo);
+
+        config = mSceneOutInfo.displaymode;
+    }
+
+    MESON_LOGI("getPreferredDisplayConfig [%s]", config.c_str());
+    return 0;
+}
+
+int32_t ModePolicy::setBootConfig(std::string &config) {
+    MESON_LOGI("set boot display config to %s\n", config.c_str());
+    setBootEnv(UBOOTENV_ISBESTMODE, "false");
+    setBootEnv(UBOOTENV_HDMIMODE, config.c_str());
+    mPolicy = MESON_POLICY_INVALID;
+
+    return 0;
+}
+
+int32_t ModePolicy::clearBootConfig() {
+    MESON_LOGI("clear boot display \n");
+    setBootEnv(UBOOTENV_ISBESTMODE, "true");
+    mPolicy = MESON_POLICY_BEST;
+    // after clear boot config, need save the bestMode to uboot env
+    mConData.state = static_cast<meson_mode_state>(OUTPUT_MODE_STATE_INIT);
+    mConData.con_info.is_bestcolorspace = true;
+
+    //2. scene logic process
+    meson_mode_set_policy(mModeConType, MESON_POLICY_BEST);
+    meson_mode_set_policy_input(mModeConType, &mConData);
+    meson_mode_get_policy_output(mModeConType, &mSceneOutInfo);
+
+    //save color space and hdmi resolution to env
+    setBootEnv(UBOOTENV_COLORATTRIBUTE, mSceneOutInfo.deepcolor);
+    setBootEnv(UBOOTENV_HDMIMODE, mSceneOutInfo.displaymode);
+    //need to keep the same value with the defaul value
+    setBootEnv(UBOOTENV_FRAC_RATE_POLICY, "1");
+    //need enable color space best policy
+    setBootEnv(UBOOTENV_BESTCOLORSPACE, "true");
+
+    return 0;
 }
 
 void ModePolicy::dump(String8 &dumpstr) {
@@ -1253,7 +1313,7 @@ void ModePolicy::enableDolbyVision(int DvMode) {
             }
         }
 
-        setDisplayAttribute(DISPLAY_DOLBY_VISION_HDR_10_POLICY, DV_HDR_SINK_PROCESS);
+        //setDisplayAttribute(DISPLAY_DOLBY_VISION_HDR_10_POLICY, DV_HDR_SINK_PROCESS);
     }
 
     usleep(100000);//100ms
@@ -1653,8 +1713,11 @@ void ModePolicy::setDolbyVisionEnable(int state,  output_mode_state mode_state _
         //save env
         setBootEnv(UBOOTENV_DV_ENABLE, mDvInfo.dv_enable);
     } else {
-        //1. update uboot env
+        //1. update dv env
         char tmp[10];
+        char hdr_policy[MESON_MODE_LEN] = {0};
+        char dvstatus[MESON_MODE_LEN]   = {0};
+
         sprintf(tmp, "%d", state);
         strcpy(mConData.hdr_info.ubootenv_dv_type, tmp);
 
@@ -1666,6 +1729,37 @@ void ModePolicy::setDolbyVisionEnable(int state,  output_mode_state mode_state _
 
         setBootEnv(UBOOTENV_DV_TYPE, mConData.hdr_info.ubootenv_dv_type);
         setBootEnv(UBOOTENV_DV_ENABLE, mDvInfo.dv_enable);
+
+        getHdrStrategy(hdr_policy);
+        if (!strcmp(hdr_policy, HDR_POLICY_SOURCE)) {
+            sprintf(dvstatus, "%d", 0);
+        } else {
+            sprintf(dvstatus, "%d", state);
+        }
+        setBootEnv(UBOOTENV_DOLBYSTATUS, dvstatus);
+
+        //2. get final display mode and color format
+        setBootEnv(UBOOTENV_ISBESTMODE, "false");
+
+        mConData.state = static_cast<meson_mode_state>(OUTPUT_MODE_STATE_INIT);
+
+        //2. scene logic process
+        getConnectorData(&mConData, &mDvInfo);
+
+        meson_mode_set_policy(mModeConType, MESON_POLICY_BEST);
+        meson_mode_set_policy_input(mModeConType, &mConData);
+        meson_mode_get_policy_output(mModeConType, &mSceneOutInfo);
+
+        // 3. save uboot env
+        //3.1 save hdmimode
+        if (strstr(mSceneOutInfo.displaymode, "cvbs") != NULL) {
+            setBootEnv(UBOOTENV_CVBSMODE, mSceneOutInfo.displaymode);
+        } else if (strstr(mSceneOutInfo.displaymode, "hz") != NULL) {
+            setBootEnv(UBOOTENV_HDMIMODE, mSceneOutInfo.displaymode);
+        }
+        //3.2 save colorattribute
+        saveDeepColorAttr(mSceneOutInfo.displaymode, mSceneOutInfo.deepcolor);
+        setBootEnv(UBOOTENV_COLORATTRIBUTE, mSceneOutInfo.deepcolor);
     }
 }
 
@@ -1860,8 +1954,10 @@ void ModePolicy::applyDisplaySetting() {
          if (strstr(frac_rate_policy,"2")) {
              getBootEnv(UBOOTENV_FRAC_RATE_POLICY, frac_rate_policy);
          }
-         MESON_LOGD("get frc policy from hwc is %s and save value is %s",cur_frac_rate_policy,frac_rate_policy);
+         MESON_LOGI("get frc policy from hwc is %s and current value is %s\n",frac_rate_policy, cur_frac_rate_policy);
           if (strstr(frac_rate_policy, cur_frac_rate_policy) == NULL) {
+             sysfs_set_string(HDMI_TX_FRAMERATE_POLICY, frac_rate_policy);
+
                frac_rate_policy_change = true;
          }
     }
@@ -1885,9 +1981,20 @@ void ModePolicy::applyDisplaySetting() {
         MESON_LOGI("cur deepcolor is equals\n");
     }
 
-    // 3. update sdr/hdr strategy
+    // 3. update hdr strategy
+    bool hdr_policy_change = false;
+    std::string cur_hdr_policy;
+    getDisplayAttribute(DISPLAY_HDR_POLICY, cur_hdr_policy);
+    MESON_LOGI("cur hdr policy:%s\n", cur_hdr_policy.c_str());
+
     char hdr_policy[MESON_MODE_LEN] = {0};
     getHdrStrategy(hdr_policy);
+
+    if (strstr(cur_hdr_policy.c_str(), hdr_policy) == NULL) {
+        MESON_LOGI("set hdr policy from:%s to %s\n", cur_hdr_policy.c_str(), hdr_policy);
+        hdr_policy_change = true;
+    }
+
     if (!cvbsMode && (isMboxSupportDolbyVision() == false)) {
         if (sys_get_bool_prop(PROP_DOLBY_VISION_FEATURE, false)) {
             if (strstr(hdr_policy, HDR_POLICY_SINK)) {
@@ -1946,7 +2053,7 @@ void ModePolicy::applyDisplaySetting() {
     //6. check any change
     bool isNeedChange = false;
 
-    if (modeChange || attr_change || frac_rate_policy_change) {
+    if (modeChange || attr_change || frac_rate_policy_change || hdr_policy_change) {
         isNeedChange = true;
     } else {
         MESON_LOGI("nothing need to be changed\n");
@@ -1984,6 +2091,35 @@ void ModePolicy::applyDisplaySetting() {
 
     // 8. set hdmi final output mode
     if (isNeedChange) {
+        //need drive to do
+        if (strstr(final_displaymode, MODE_8K4K_PREFIX)) {
+            sysfs_set_string(DISPLAY_HDMI_FRL_RATE, "4");
+        } else {
+            sysfs_set_string(DISPLAY_HDMI_FRL_RATE, "0");
+        }
+
+        //apply hdr policy to driver sysfs
+        if (hdr_policy_change) {
+            if (strstr(hdr_policy, HDR_POLICY_SINK)) {
+                setDisplayAttribute(DISPLAY_HDR_POLICY, HDR_POLICY_SINK);
+                if (isDolbyVisionEnable()) {
+                    setDisplayAttribute(DISPLAY_DOLBY_VISION_POLICY, HDR_POLICY_SINK);
+                }
+            } else if (strstr(hdr_policy, HDR_POLICY_SOURCE)) {
+                setDisplayAttribute(DISPLAY_HDR_POLICY, HDR_POLICY_SOURCE);
+                if (isDolbyVisionEnable()) {
+                    setDisplayAttribute(DISPLAY_DOLBY_VISION_POLICY, HDR_POLICY_SOURCE);
+                }
+            }
+        }
+
+#if 0
+        //apply hdr priority to driver sysfs
+        if (hdr_priority_change) {
+            setDisplayAttribute(DISPLAY_HDR_PRIORITY, HDR_PRIORITY_TYPE[hdr_priority]);
+        }
+#endif
+
         //set hdmi mode
         setDisplayMode(final_displaymode);
         /* phy already turned on after write display/mode node */
@@ -2057,9 +2193,6 @@ void ModePolicy::applyDisplaySetting() {
     memset(value, 0, sizeof(0));
     getBootEnv(UBOOTENV_DIGITAUDIO, value);
     setDigitalMode(value);
-
-    sysfs_get_string(HDMI_TX_FRAMERATE_POLICY, cur_frac_rate_policy, MESON_MODE_LEN);
-    sys_set_prop(HDMI_FRC_POLICY_PROP,cur_frac_rate_policy);
 
     if ((mState == OUTPUT_MODE_STATE_INIT) ||
          (mState == OUTPUT_MODE_STATE_POWER)) {
@@ -2234,6 +2367,42 @@ bool ModePolicy::isBestPolicy() {
     return !getBootEnv(UBOOTENV_ISBESTMODE, isBestMode) || strcmp(isBestMode, "true") == 0;
 }
 
+bool ModePolicy::isBestColorSpace() {
+    char isBestColorSpace[MESON_MODE_LEN] = {0};
+    if (DISPLAY_TYPE_TV == mDisplayType) {
+        return false;
+    }
+    return !getBootEnv(UBOOTENV_BESTCOLORSPACE, isBestColorSpace) || strcmp(isBestColorSpace, "true") == 0;
+}
+
+void ModePolicy::setDefaultMode() {
+    MESON_LOGE("EDID parsing error detected\n");
+
+    // check hdmi output mode
+    char curDisplayMode[MESON_MODE_LEN]    = {0};
+    getDisplayMode(curDisplayMode);
+
+    if (!isMatchMode(curDisplayMode, MESON_DEFAULT_HDMI_MODE)) {
+        //set avmute
+        sysfs_set_string(DISPLAY_HDMI_AVMUTE_SYSFS, "1");
+        //set default color format
+        setDisplayAttribute(DISPLAY_HDMI_COLOR_ATTR, MESON_DEFAULT_COLOR_FORMAT);
+        //set default resolution
+        setDisplayMode(MESON_DEFAULT_HDMI_MODE);
+
+        //update display position
+        int position[4] = { 0, 0, 0, 0 };//x,y,w,h
+        getPosition(MESON_DEFAULT_HDMI_MODE, position);
+        setPosition(MESON_DEFAULT_HDMI_MODE, position[0], position[1],position[2], position[3]);
+
+        //clear avmute
+        sysfs_set_string(DISPLAY_HDMI_AVMUTE_SYSFS, "-1");
+    } else {
+        MESON_LOGI("cur mode is default mode\n");
+    }
+}
+
+
 /*
  * OUTPUT_MODE_STATE_INIT for boot
  * OUTPUT_MODE_STATE_POWER for hdmi plug and suspend/resume
@@ -2260,22 +2429,8 @@ void ModePolicy::setSourceDisplay(output_mode_state state) {
     //set default reolsution and color format
     if ((isHdmiEdidParseOK() == false) &&
         (isConnected() == true)) {
-        //set avmute
-        sysfs_set_string(DISPLAY_HDMI_AVMUTE_SYSFS, "1");
-        //set default color format
-        setDisplayAttribute(DISPLAY_HDMI_COLOR_ATTR, MESON_DEFAULT_COLOR_FORMAT);
+        setDefaultMode();
 
-        //set default resolution
-        setDisplayMode(MESON_DEFAULT_HDMI_MODE);
-
-        //update display position
-        int position[4] = { 0, 0, 0, 0 };//x,y,w,h
-        getPosition(MESON_DEFAULT_HDMI_MODE, position);
-        setPosition(MESON_DEFAULT_HDMI_MODE, position[0], position[1],position[2], position[3]);
-
-        //clear avmute
-        sysfs_set_string(DISPLAY_HDMI_AVMUTE_SYSFS, "-1");
-        MESON_LOGE("EDID parsing error detected\n");
         return;
     }
 
@@ -2285,7 +2440,10 @@ void ModePolicy::setSourceDisplay(output_mode_state state) {
         memset(&mConData, 0, sizeof(meson_policy_in));
         memset(&mDvInfo, 0, sizeof(hdmi_dv_info_t));
         mState = state;
+        mConData.state = static_cast<meson_mode_state>(state);
         getConnectorData(&mConData, &mDvInfo);
+
+        strcpy(mConData.cur_displaymode, mConData.con_info.ubootenv_hdmimode);
      }
 
     // TOD sceneProcess
@@ -2299,6 +2457,30 @@ void ModePolicy::setSourceDisplay(output_mode_state state) {
 
     //5. apply settings to driver
     applyDisplaySetting();
+}
+
+void ModePolicy::setSourceOutputMode(const char* outputmode) {
+    std::lock_guard<std::mutex> lock(mMutex);
+
+    if (DISPLAY_TYPE_TV == mDisplayType) {
+        setSinkOutputMode(outputmode, false);
+    } else {
+#if 0
+        //1. get hdmi data
+        memset(&mConData, 0, sizeof(meson_policy_in));
+        memset(&mDvInfo, 0, sizeof(hdmi_dv_info_t));
+        getConnectorData(&mConData, &mDvInfo);
+#endif
+        mState = OUTPUT_MODE_STATE_SWITCH;
+        mConData.state = static_cast<meson_mode_state>(mState);
+
+        strcpy(mConData.cur_displaymode, outputmode);
+        //meson_mode_set_policy(mModeConType, mPolicy);
+        meson_mode_set_policy_input(mModeConType, &mConData);
+        meson_mode_get_policy_output(mModeConType, &mSceneOutInfo);
+
+        applyDisplaySetting();
+    }
 }
 
 //TODO: do we really need it ?
@@ -2358,13 +2540,17 @@ void ModePolicy::getCommonData(struct meson_policy_in* data, hdmi_dv_info_t *din
         return;
     }
 
+    //hdmi color space best policy flag
+    data->con_info.is_bestcolorspace = isBestColorSpace();
+
     char hdr_policy[MESON_MODE_LEN] = {0};
     getHdrStrategy(hdr_policy);
     data->hdr_info.hdr_policy = (meson_hdr_policy_e)atoi(hdr_policy);
 
     data->hdr_info.hdr_priority = (meson_hdr_priority_e)getHdrPriority();
 
-    MESON_LOGI("hdr_policy:%d, hdr_priority :%d\n",
+    MESON_LOGI("isbestColorspace:%d, hdr_policy:%d, hdr_priority :%d\n",
+            data->con_info.is_bestcolorspace,
             data->hdr_info.hdr_policy,
             data->hdr_info.hdr_priority);
 

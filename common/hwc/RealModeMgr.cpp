@@ -423,7 +423,14 @@ int32_t RealModeMgr::getPreferredBootConfig(int32_t* outConfig) {
     *outConfig = mActiveConfigId;
 
     std::string prefMode;
-    if (!sc_getPreferredDisplayConfig(HWC_DISPLAY_PRIMARY, prefMode)) {
+    int32_t ret = -1;
+    if (mModePolicy.get()) {
+        ret = mModePolicy->getPreferredBootConfig(prefMode);
+    } else {
+        ret = sc_getPreferredDisplayConfig(HWC_DISPLAY_PRIMARY, prefMode);
+    }
+
+    if (!ret) {
         for (auto it = mModes.begin(); it != mModes.end(); ++it) {
             if (strncmp(prefMode.c_str(), it->second.name, DRM_DISPLAY_MODE_LEN) == 0 &&
                     mConnector->checkFracMode(it->second)) {
@@ -454,7 +461,12 @@ int32_t RealModeMgr::setBootConfig(int32_t config) {
 
         MESON_LOGD("%s %dx%d@%.2f", __func__, cfg.pixelW, cfg.pixelH, cfg.refreshRate);
         std::string dispmode(cfg.name);
-        sc_setBootDisplayConfig(HWC_DISPLAY_PRIMARY, dispmode);
+
+        if (mModePolicy.get()) {
+            mModePolicy->setBootConfig(dispmode);
+        } else {
+            sc_setBootDisplayConfig(HWC_DISPLAY_PRIMARY, dispmode);
+        }
 
         //TODO: remove it when ModePolicy move to hwc
         if (fabs(cfg.refreshRate - std::floor(cfg.refreshRate)) > 1e-2) {
@@ -473,8 +485,17 @@ int32_t RealModeMgr::setBootConfig(int32_t config) {
 int32_t RealModeMgr::clearBootConfig() {
     std::lock_guard<std::mutex> lock(mMutex);
     MESON_LOGD("%s", __func__);
-    sc_clearBootDisplayConfig(HWC_DISPLAY_PRIMARY);
+    if (mModePolicy.get()) {
+        mModePolicy->clearBootConfig();
+    } else {
+        sc_clearBootDisplayConfig(HWC_DISPLAY_PRIMARY);
+    }
     return HWC2_ERROR_NONE;
+}
+
+void RealModeMgr::setModePolicy(std::shared_ptr<IModePolicy> policy) {
+    mModePolicy = policy;
+    MESON_LOGD("%s", __func__);
 }
 
 bool RealModeMgr::isSupportModeForCurrentDevice(drm_mode_info_t mode) {
@@ -535,7 +556,10 @@ int32_t RealModeMgr::setModeLocked(drm_mode_info_t & mode) {
         // set the display mode through systemControl
         // As it will need update the colorspace/colordepth too.
         std::string dispmode(mode.name);
-        sc_set_display_mode(dispmode);
+        if (mModePolicy.get())
+            mModePolicy->setActiveConfig(dispmode);
+        else
+            sc_set_display_mode(dispmode);
 
         // If we need recovery best dobly vision policy, then recovery it.
         if (mDvEnabled && needRecoveryBestDV) {

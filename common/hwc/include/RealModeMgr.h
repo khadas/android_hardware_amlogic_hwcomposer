@@ -46,6 +46,7 @@ public:
     int32_t getPreferredBootConfig(int32_t* outConfig);
     int32_t setBootConfig(int32_t config);
     int32_t clearBootConfig();
+    void setModePolicy(std::shared_ptr<IModePolicy> policy);
 
     void resetTags();
     void dump(String8 & dumpstr);
@@ -65,6 +66,7 @@ protected:
 protected:
     std::shared_ptr<HwDisplayConnector> mConnector;
     std::shared_ptr<HwDisplayCrtc> mCrtc;
+    std::shared_ptr<IModePolicy> mModePolicy;
 
     uint32_t mHwcFbWidth;
     uint32_t mHwcFbHeight;

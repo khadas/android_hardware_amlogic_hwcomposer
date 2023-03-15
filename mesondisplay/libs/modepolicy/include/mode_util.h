@@ -44,8 +44,8 @@ extern "C" {
 
 #define SYS_LOGV(fmt,...)     ALOGV(fmt, ##__VA_ARGS__)
 #define SYS_LOGD(fmt,...)		ALOGD(fmt, ##__VA_ARGS__)
-#define SYS_LOGI(fmt,...)		ALOGI(fmt, ##__VA_ARGS__)
-//#define SYS_LOGI(fmt,...)		ALOGI("[%s, %s, %d] " fmt, strrchr(__FILE__, '/'), __FUNCTION__, __LINE__, ##__VA_ARGS__)
+//#define SYS_LOGI(fmt,...)		ALOGI(fmt, ##__VA_ARGS__)
+#define SYS_LOGI(fmt,...)		ALOGI("[%s, %s, %d] " fmt, strrchr(__FILE__, '/'), __FUNCTION__, __LINE__, ##__VA_ARGS__)
 #define SYS_LOGW(fmt,...)		ALOGW(fmt, ##__VA_ARGS__)
 #define SYS_LOGE(fmt,...)		ALOGE(fmt, ##__VA_ARGS__)
 #define SYS_ASSERT(condition,fmt,...) \

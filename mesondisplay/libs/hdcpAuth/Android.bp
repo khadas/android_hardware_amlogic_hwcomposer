@@ -41,6 +41,7 @@ cc_library_static {
 
     cflags: [
         "-DHDCP_AUTHENTICATION",
+        "-DLOG_TAG=\"MesonDisplay\"",
     ],
 }
 

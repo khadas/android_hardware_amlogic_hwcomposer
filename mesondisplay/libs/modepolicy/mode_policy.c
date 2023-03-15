@@ -181,6 +181,18 @@ static int32_t find_resolution_index(const char *mode, int flag) {
 }
 
 
+static bool is_dv_support_mode(char *mode) {
+    bool validMode = false;
+    if (strlen(mode) != 0) {
+        if (strstr(mode, "hz") != NULL
+        && ((strstr(mode, "480p") == NULL) && (strstr(mode, "576p") == NULL))) {
+            validMode = true;
+        }
+    }
+
+    return validMode;
+}
+
 static void update_dv_mode(char *dv_maxmode,
                     char *cur_outputmode,
                     int dv_type,
@@ -239,8 +251,7 @@ static void update_dv_mode(char *dv_maxmode,
          */
         if ((find_resolution_index(cur_outputmode, MESON_POLICY_RESOLUTION) >
                     find_resolution_index(dv_displaymode, MESON_POLICY_RESOLUTION)) ||
-                (strstr(cur_outputmode, "smpte") != NULL) || (strstr(cur_outputmode, "i") != NULL) ||
-                (strstr(cur_outputmode, "480p") != NULL) || (strstr(cur_outputmode, "576p") != NULL)) {
+                !is_dv_support_mode(cur_outputmode)) {
             strcpy(final_displaymode, dv_displaymode);
         } else {
             strcpy(final_displaymode, cur_outputmode);
@@ -539,7 +550,8 @@ static void hdr_scene_process(struct meson_policy_in *input,
                               struct meson_policy_out *output_info,
                               enum meson_mode_policy policy) {
     bool find = false;
-    if (policy == MESON_POLICY_BEST &&
+    SYS_LOGI(" policy:%d isBestColor:%d state:%d", policy, input->con_info.is_bestcolorspace, input->state);
+    if (policy == MESON_POLICY_BEST && input->con_info.is_bestcolorspace &&
             ((input->state == MESON_SCENE_STATE_INIT) || (input->state == MESON_SCENE_STATE_POWER))) {
          /*
           * best policy enable case
@@ -562,7 +574,7 @@ static void hdr_scene_process(struct meson_policy_in *input,
           *   and except from third apk or framework set mode.
           */
          if (mode_support_check(input->cur_displaymode, input->con_info.ubootenv_colorattr) &&
-                 !((input->state == MESON_SCENE_STATE_SWITCH) && policy == MESON_POLICY_BEST)) {
+                 !((input->state == MESON_SCENE_STATE_SWITCH) && input->con_info.is_bestcolorspace)) {
              SYS_LOGI("support current mode:[%s], deep color:[%s]\n",
                      input->cur_displaymode, input->con_info.ubootenv_colorattr);
              strcpy(output_info->deepcolor, input->con_info.ubootenv_colorattr);
@@ -653,7 +665,23 @@ static void get_hdmi_outputmode(struct meson_policy_in *input,
         return;
     }
 
-    get_highest_mode_by_policy(input, mode, policy);
+    if (policy == MESON_POLICY_INVALID) {
+        /* if current mode support,use current mode */
+        meson_mode_info_t *modes_ptr = input->con_info.modes;
+
+        for (int i = 0; i < input->con_info.modes_size; i ++) {
+            meson_mode_info_t *it = &modes_ptr[i];
+
+            if (!strcmp(it->name, input->cur_displaymode)) {
+                strcpy(mode, input->cur_displaymode);
+                return;;
+            }
+        }
+         /* if current mode not support,find best prefer resolution base driver edid */
+        get_highest_mode_by_policy(input, mode, MESON_POLICY_BEST);
+    } else {
+        get_highest_mode_by_policy(input, mode, policy);
+    }
 
     SYS_LOGI("set HDMI mode to %s\n", mode);
 }
@@ -661,7 +689,7 @@ static void get_hdmi_outputmode(struct meson_policy_in *input,
 static void get_hdmi_color_attr(struct meson_policy_in *input,
                                 const char *outputmode,
                                 char *color_attr,
-                                enum meson_mode_policy policy) {
+                                enum meson_mode_policy policy __unused) {
     char supportedColorList[MESON_MAX_STR_LEN];
     strcpy(supportedColorList, input->con_info.dc_cap);
 
@@ -682,10 +710,10 @@ static void get_hdmi_color_attr(struct meson_policy_in *input,
     }
 
     /*
-     * if bestpolicy is disable use ubootenv.var.colorattribute
+     * use ubootenv.var.colorattribute when best color space policy is disable
      * will check resolution + color format be support TV EDID
      */
-    if (policy != MESON_POLICY_BEST) {
+    if (input->con_info.is_bestcolorspace == false) {
         char colorTemp[MESON_MODE_LEN] = {0};
         strcpy(colorTemp, input->con_info.ubootenv_colorattr);
         if (mode_support_check(outputmode, colorTemp)) {
@@ -786,6 +814,7 @@ static void sdr_scene_process(struct meson_policy_in *input,
  */
 int32_t meson_mode_set_policy(int32_t connector, const meson_mode_policy_e policy) {
     GET_CURRENT_POLICY(connector);
+    SYS_LOGI("connector:%d to policy:%d", connector, policy);
     mp->policy = policy;
     return 0;
 }

@@ -15,8 +15,8 @@
 
 /* default value */
 #define MESON_DEFAULT_COLOR_FORMAT_4K       "420,8bit"
-#define MESON_DEFAULT_COLOR_FORMAT          "444,8bit"
-#define MESON_DEFAULT_HDMI_MODE             "480p60hz"
+#define MESON_DEFAULT_COLOR_FORMAT          "rgb,8bit"
+#define MESON_DEFAULT_HDMI_MODE             "720p60hz"
 #define MESON_MAX_STR_LEN                   4096
 
 #ifndef ARRAY_SIZE
@@ -93,6 +93,7 @@ typedef struct meson_hdr_info {
 } meson_hdr_info_t;
 
 typedef struct meson_connector_info {
+    bool is_bestcolorspace;                 /* hdmi best colorspace,false:disable true:enable */
     bool is_support4k;                      /* soc support 4k or not */
     bool is_support4k30HZ;                  /* soc max support 4k30hz or not */
     bool is_deepcolor;                      /* deepcolor feature enable or not */

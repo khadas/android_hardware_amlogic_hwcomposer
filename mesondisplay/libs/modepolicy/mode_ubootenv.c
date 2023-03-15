@@ -71,7 +71,7 @@ static struct env_attribute* meson_mode_parse_attribute() {
 
     do {
         nextProc = proc + strlen(proc) + sizeof(char);
-        // SYS_LOGI("[ubootenv] process %s\n",proc);
+        SYS_LOGI("[ubootenv] process %s\n",proc);
         char *key = strchr(proc, (int)'=');
         if (key != NULL) {
             *key=0;
@@ -82,7 +82,7 @@ static struct env_attribute* meson_mode_parse_attribute() {
         }
 
         if (!(*nextProc)) {
-            // SYS_LOGI("[ubootenv] process end \n");
+            SYS_LOGI("[ubootenv] process end \n");
             break;
         }
         proc = nextProc;
@@ -254,7 +254,6 @@ static int meson_mode_save_ubootenv() {
     return 0;
 }
 
-#if 0
 static void meson_mode_print_values() {
     env_attribute_t *attr = &mEnvAttrHeader;
     while (attr != NULL) {
@@ -262,7 +261,6 @@ static void meson_mode_print_values() {
         attr = attr->next;
     }
 }
-#endif
 
 static int meson_mode_read_ubootenv() {
     int fd;
@@ -295,7 +293,7 @@ static int meson_mode_read_ubootenv() {
             SYS_LOGE("[ubootenv] CRC Check  save_crc=%08x, crcCalc = %08x \n",
                 *mEnvData.crc, crcCalc);
         if (crcCalc != *(mEnvData.crc)) {
-            SYS_LOGE("[ubootenv] CRC Check  save_crc=%08x, crcCalc = %08x \n",
+            SYS_LOGE("[ubootenv] CRC Check error  save_crc=%08x, crcCalc = %08x \n",
                 *mEnvData.crc, crcCalc);
             flag = -3;
         }
@@ -323,9 +321,22 @@ static int meson_mode_read_ubootenv() {
     }
 
     meson_mode_parse_attribute();
+    meson_mode_print_values();
 
     close(fd);
     return 0;
+}
+
+static const char * meson_mode_get_uenv(const char * key) {
+    env_attribute_t *attr = &mEnvAttrHeader;
+    while (attr) {
+        if (!strcmp(key, attr->key)) {
+            SYS_LOGI("get ubootenv [ubootenv] key: [%s], value: [%s]\n", attr->key, attr->value);
+            return attr->value;
+        }
+        attr = attr->next;
+    }
+    return NULL;
 }
 
 int meson_mode_init_ubootenv() {
@@ -416,7 +427,7 @@ int meson_mode_set_ubootenv(const char* name, const char* value) {
         envName = name + strlen(PROFIX_UBOOTENV_VAR);
     }
 
-    const char *envValue = meson_mode_get_ubootenv(envName);
+    const char *envValue = meson_mode_get_uenv(envName);
     if (!envValue)
         envValue = "";
 
@@ -450,15 +461,11 @@ const char * meson_mode_get_ubootenv(const char * key) {
         meson_mode_init_ubootenv();
     }
 
-    env_attribute_t *attr = &mEnvAttrHeader;
-    while (attr) {
-        if (!strcmp(key, attr->key)) {
-            SYS_LOGI("get ubootenv [ubootenv] key: [%s], value: [%s]\n", attr->key, attr->value);
-            return attr->value;
-        }
-        attr = attr->next;
-    }
-    return NULL;
+    pthread_mutex_lock(&mEnvLock);
+    const char* envName = key + strlen(PROFIX_UBOOTENV_VAR);
+    const char* envValue = meson_mode_get_uenv(envName);
+    pthread_mutex_unlock(&mEnvLock);
+    return envValue;
 }
 
 void meson_mode_ubootenv_dump(int fd) {

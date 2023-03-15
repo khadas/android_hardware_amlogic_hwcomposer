@@ -52,7 +52,7 @@
 #define HDMI_CONTENT_TYPE_CAP           "/sys/class/amhdmitx/amhdmitx0/contenttype_cap"
 #define HDMI_CONTENT_TYPE               "/sys/class/amhdmitx/amhdmitx0/contenttype_mode"
 #define HDMI_TX_FRAMERATE_POLICY        "/sys/class/amhdmitx/amhdmitx0/frac_rate_policy"
-
+#define DISPLAY_HDMI_FRL_RATE           "/sys/class/amhdmitx/amhdmitx0/frl_rate"
 
 #define PROP_HDMIONLY                   "ro.vendor.platform.hdmionly"
 #define PROP_SUPPORT_4K                 "ro.vendor.platform.support.4k"
@@ -99,6 +99,7 @@
 #define DEFAULT_EDID_CRCHEAD            "checkvalue: "
 
 
+#define UBOOTENV_BESTCOLORSPACE         "ubootenv.var.bestcolorspace"
 #define UBOOTENV_DIGITAUDIO             "ubootenv.var.digitaudiooutput"
 #define UBOOTENV_HDMIMODE               "ubootenv.var.hdmimode"
 #define UBOOTENV_TESTMODE               "ubootenv.var.testmode"
@@ -273,6 +274,11 @@ public:
     bool setPolicy(int32_t policy) override;
     int32_t initialize() override;
     void onHotplug(bool connected) override;
+    void setActiveConfig(std::string mode);
+
+    int32_t getPreferredBootConfig(std::string &config);
+    int32_t setBootConfig(std::string &config);
+    int32_t clearBootConfig();
 
     void dump(String8 &dumpstr) override;
 
@@ -362,6 +368,7 @@ private:
     void applyDisplaySetting();
 
     void setSourceDisplay(output_mode_state state);
+    void setSourceOutputMode(const char* outputmode);
     void updateDeepColor(bool cvbsMode, output_mode_state state, const char* outputmode);
     bool isVMXCertification();
     bool isConnected();
@@ -377,6 +384,8 @@ private:
     int getDolbyVisionType();
     bool isHdmiEdidParseOK(void);
     bool isBestPolicy();
+    bool isBestColorSpace();
+    void setDefaultMode();
 
     // new added function
     void drmMode2MesonMode(meson_mode_info_t &mesonMode, drm_mode_info_t &drmMode);

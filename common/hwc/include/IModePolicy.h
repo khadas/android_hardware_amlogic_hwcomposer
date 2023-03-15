@@ -19,13 +19,17 @@ public:
     virtual ~IModePolicy() { }
 
     virtual int32_t bindConnector(std::shared_ptr<HwDisplayConnector> & connector);
-
     virtual bool setPolicy(int32_t policy) = 0;
-
     virtual int32_t initialize() = 0;
-
     virtual void onHotplug(bool connected) = 0;
 
-    virtual void dump(String8 &dumpstr) = 0;
+    //TODO: refactor it
+    virtual void setActiveConfig(std::string mode) = 0;
 
+    // defaut boot config
+    virtual int32_t getPreferredBootConfig(std::string &config) = 0;
+    virtual int32_t setBootConfig(std::string &config) = 0;
+    virtual int32_t clearBootConfig() = 0;
+
+    virtual void dump(String8 &dumpstr) = 0;
 };

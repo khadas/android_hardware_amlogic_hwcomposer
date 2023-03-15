@@ -34,6 +34,10 @@ cc_library_static {
     export_include_dirs: [
         "include",
     ],
+
+    cflags: [
+        "-DLOG_TAG=\"MesonDisplay\"",
+    ],
 }
 
 cc_library_shared {

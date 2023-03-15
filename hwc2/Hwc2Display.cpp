@@ -414,19 +414,15 @@ void Hwc2Display::onHotplug(bool connected) {
             handleVtThread();
             return;
         } else {
-             drm_mode_info_t tmpDisplayMode = {
-                "null",
-                0, 0,
-                0, 0,
-                60.0,
-                0
-            };
-            if (sc_get_property_boolean("persist.vendor.sys.vmx", false)) {
-                strcpy(tmpDisplayMode.name, "576cvbs");
-            } else {
-                strcpy(tmpDisplayMode.name, "dummy_l");
+            if (!mModePolicy.get()) {
+                drm_mode_info_t displayMode;
+                if (sc_get_property_boolean("persist.vendor.sys.vmx", false)) {
+                    strcpy(displayMode.name, "576cvbs");
+                } else {
+                    strcpy(displayMode.name, "dummy_l");
+                }
+                mCrtc->setMode(displayMode);
             }
-            mCrtc->setMode(tmpDisplayMode);
         }
 
         mPowerMode->setConnectorStatus(false);
@@ -804,14 +800,11 @@ hwc2_error_t Hwc2Display::setPowerMode(int32_t mode) {
     if (mode == HWC2_POWER_MODE_OFF) {
         blankDisplay();
         if (mConnector && (mConnector->getType() == DRM_MODE_CONNECTOR_HDMIA )) {
-            drm_mode_info_t dummyDisplayMode = {
-                "dummy_l",
-                0, 0,
-                0, 0,
-                60.0,
-                0
-            };
-            mCrtc->setMode(dummyDisplayMode);
+            if (!mModePolicy.get()) {
+                drm_mode_info_t displayMode;
+                strcpy(displayMode.name, "dummy_l");
+                mCrtc->setMode(displayMode);
+            }
         }
     }
     return (hwc2_error_t) ret;
@@ -2178,6 +2171,8 @@ std::unordered_map<hwc2_layer_t, std::shared_ptr<Hwc2Layer>> Hwc2Display::getAll
 int32_t Hwc2Display::setModePolicy(std::shared_ptr<IModePolicy> policy) {
     mModePolicy = policy;
     mModePolicy->bindConnector(mConnector);
+
+    mModeMgr->setModePolicy(policy);
     return 0;
 }
 
