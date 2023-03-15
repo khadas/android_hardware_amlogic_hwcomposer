@@ -19,6 +19,8 @@
 
 #define DEFAULT_DPI (159)
 #define DEFAULT_REFRESH_RATE (60.0f)
+#define CVBS_MODE_W (1280)
+#define CVBS_MODE_H (720)
 
 #define UBOOTENV_FRAC_RATE_POLICY  "ubootenv.var.frac_rate_policy"
 #define FRC_POLICY_PROP            "vendor.sys.frc_policy"
@@ -165,10 +167,10 @@ void RealModeMgr::processModeList(std::map<uint32_t, drm_mode_info_t> & modeList
         // cvbs connector, map cvbs mode to fake size mode
         if (mConnector->getType() == DRM_MODE_CONNECTOR_TV) {
             if (strstr(mode.name,"cvbs") || !strcmp(mode.name, currentMode.name)) {
-                mode.dpiX = ((float)fakePixelW / mode.pixelW) * mode.dpiX;
-                mode.dpiY = ((float)fakePixelH / mode.pixelH) * mode.dpiY;
-                mode.pixelW = fakePixelW;
-                mode.pixelH = fakePixelH;
+                mode.dpiX = ((float)CVBS_MODE_W / mode.pixelW) * mode.dpiX;
+                mode.dpiY = ((float)CVBS_MODE_H / mode.pixelH) * mode.dpiY;
+                mode.pixelW = CVBS_MODE_W;
+                mode.pixelH = CVBS_MODE_H;
                 mIsFake1080p = true;
 
                 if (!strcmp(mode.name, currentMode.name))
