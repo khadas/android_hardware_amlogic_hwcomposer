@@ -23,11 +23,9 @@ VtConsumer::~VtConsumer() {
 }
 
 int32_t VtConsumer::setReleaseListener(VtReleaseListener *listener) {
-    if (!listener) {
-        MESON_LOGE("[%s] [%s] set release listener is null",
+    if (!listener)
+        MESON_LOGD("[%s] [%s] set release listener is null",
                 __func__, mName);
-        return -1;
-    }
 
     mReleaseListener = listener;
 

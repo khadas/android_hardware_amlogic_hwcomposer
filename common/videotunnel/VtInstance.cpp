@@ -20,6 +20,12 @@ VtInstance::VtInstance(int tunnelId)
 }
 
 VtInstance::~VtInstance() {
+    auto it = mConsumers.begin();
+    for (; it != mConsumers.end(); it++) {
+        if ((*it).get())
+            (*it)->setReleaseListener(nullptr);
+    }
+
     mConsumers.clear();
     releaseInstanceBuffers();
     disconnect();

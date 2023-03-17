@@ -886,7 +886,12 @@ int32_t Hwc2Layer::onVtFrameAvailable(
     ATRACE_CALL();
     mMutex.lock();
 
-    if (!isVtBufferLocked()) {
+    /* if mNeedReleaseVtResource is true that means
+     * this sideband layer receive blank frame. and layer's
+     * type change from sideband to color.
+     * don't return error.
+     * */
+    if (!isVtBufferLocked() && !mNeedReleaseVtResource) {
         MESON_LOGE("[%s] [%d] [%" PRIu64 "] not videotunnel type", __func__, mDisplayId, mId);
         mMutex.unlock();
         return -EINVAL;
