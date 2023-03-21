@@ -44,9 +44,15 @@ int32_t MultiDisplayDrmPipe::init(
             case DRM_MODE_CONNECTOR_LVDS:
             case DRM_MODE_CONNECTOR_HDMIA:
                 {
+                    drm_mode_info_t bootMode = displayMode;
                     std::map<uint32_t, drm_mode_info_t> modes;
                     stat.second->modeConnector->getModes(modes);
                     strcpy(displayMode.name, modes[0].name);
+                    stat.second->modeCrtc->getMode(bootMode);
+                    if(strncmp(bootMode.name, displayMode.name,
+                         DRM_DISPLAY_MODE_LEN) == 0) {
+                         break;
+                    }
                     stat.second->modeCrtc->setMode(displayMode);
                     MESON_LOGI("init connector[%d] mode [%s]",
                         stat.second->cfg.modeConnectorType,
