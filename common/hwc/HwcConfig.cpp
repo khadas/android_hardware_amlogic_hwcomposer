@@ -39,6 +39,7 @@ int32_t HwcConfig::isLcdExist() {
 
 int32_t HwcConfig::getFramebufferSize(int disp, uint32_t & width, uint32_t & height) {
     char uiMode[PROPERTY_VALUE_MAX] = {0};
+    char value[PROPERTY_VALUE_MAX];
     if (disp == 0) {
         /*primary display*/
         if (sys_get_string_prop("persist.sys.builtin.ui_mode", uiMode) > 0) {
@@ -79,8 +80,14 @@ int32_t HwcConfig::getFramebufferSize(int disp, uint32_t & width, uint32_t & hei
             }
         } else {
             if (isLcdExist() == 1) {
-               width = LCD_HWC_PRIMARY_FRAMEBUFFER_WIDTH;
-               height = LCD_HWC_PRIMARY_FRAMEBUFFER_HEIGHT;
+                property_get("sys.lcd.reverse", value, "0");
+                if(atoi(value) == 2) {//TS101 UI resolution size
+                    width = 1920;
+                    height = 1200;
+                } else {//old_TS050 or new_TS050 UI resolution size
+                    width = LCD_HWC_PRIMARY_FRAMEBUFFER_WIDTH;
+                    height = LCD_HWC_PRIMARY_FRAMEBUFFER_HEIGHT;
+                }
             } else {
                width  = HWC_PRIMARY_FRAMEBUFFER_WIDTH;
                height = HWC_PRIMARY_FRAMEBUFFER_HEIGHT;
