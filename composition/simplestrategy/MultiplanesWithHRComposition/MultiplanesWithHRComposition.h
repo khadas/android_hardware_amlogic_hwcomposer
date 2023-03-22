@@ -76,6 +76,7 @@ protected:
     // for video processor
     int setUpProcessor();
     int tearDownProcessor();
+    int resetProcessor();
     int collectProcessor();
     bool runProcessor(struct DisplayPair &dp, int &blankFlag, int &ret);
 
@@ -125,11 +126,10 @@ protected:
     int mVideoPlaneNum;
     bool mVsyncOverDefault;
 
-    std::mutex mMutex;
-
     float mScaleValue;
     bool mSkipValidate;
     bool mIsSideBandDisable;
+    bool mResetProcessorFlag;
     /* for video processor */
     std::shared_ptr<FbProcessor> mSrProcessor;
     std::shared_ptr<FbProcessor> mPqProcessor;

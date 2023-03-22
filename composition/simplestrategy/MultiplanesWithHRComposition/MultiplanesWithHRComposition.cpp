@@ -51,6 +51,7 @@ MultiplanesWithHRComposition::MultiplanesWithHRComposition() {
     mVideoPlaneNum = 0;
     mScaleValue = 0;
     memset(&mDisplayMode, 0, sizeof(mDisplayMode));
+    mResetProcessorFlag  = false;
 }
 
 /* Deconstructor function */
@@ -326,6 +327,7 @@ int MultiplanesWithHRComposition::setUpProcessor() {
         if (!mSrProcessor.get()) {
             createFbProcessor(FB_AISR_PROCESSOR, mSrProcessor);
             mSrProcessor->setup();
+            mResetProcessorFlag = true;
         }
     }
 
@@ -334,6 +336,7 @@ int MultiplanesWithHRComposition::setUpProcessor() {
         if (!mPqProcessor.get()) {
             createFbProcessor(FB_AIPQ_PROCESSOR, mPqProcessor);
             mPqProcessor->setup();
+            mResetProcessorFlag = true;
         }
     }
 
@@ -353,6 +356,26 @@ int MultiplanesWithHRComposition::tearDownProcessor() {
 
     return 0;
 }
+
+int MultiplanesWithHRComposition::resetProcessor() {
+    if (mResetProcessorFlag)
+        return 0;
+
+    if (mSrProcessor.get()) {
+        mSrProcessor->teardown();
+        mSrProcessor->setup();
+    }
+
+    if (mPqProcessor.get()) {
+        mPqProcessor->teardown();
+        mPqProcessor->setup();
+    }
+
+    mResetProcessorFlag = true;
+
+    return 0;
+}
+
 
 int MultiplanesWithHRComposition::collectProcessor() {
     if (mSrProcessor.get())
@@ -392,6 +415,7 @@ bool MultiplanesWithHRComposition::runProcessor(
             outFb->setProcessFence(processFence);
             inFb = outFb;
             hasProcessor = true;
+            mResetProcessorFlag = false;
         }
     }
 
@@ -1617,7 +1641,7 @@ int MultiplanesWithHRComposition::commit() {
         if (fb->isVtBuffer()) {
             if (fb->isVtNeedClearFrameOrShowColorBuffer() ||
                 (fb->getVtBuffer() < 0 && !fb->haveSolidColorBuffer())) {
-                tearDownProcessor();
+                resetProcessor();
 
                 /* need blank video plane:
                  * 1, received a clear last frame cmd
@@ -1628,7 +1652,7 @@ int MultiplanesWithHRComposition::commit() {
             }
 
             if (fb->getVtBuffer() < 0 && fb->haveSolidColorBuffer()) {
-                tearDownProcessor();
+                resetProcessor();
 
                 plane->setPlane(fb, presentZorder, blankFlag);
                 fb->freeSolidColorBuffer();
@@ -1722,7 +1746,7 @@ int MultiplanesWithHRComposition::commitTunnelVideo() {
 
         if (fb->isVtNeedClearFrameOrShowColorBuffer() ||
             (fb->getVtBuffer() < 0 && !fb->haveSolidColorBuffer())) {
-            tearDownProcessor();
+            resetProcessor();
 
             /* need blank video plane:
              * 1, received a clear last frame cmd
@@ -1733,7 +1757,7 @@ int MultiplanesWithHRComposition::commitTunnelVideo() {
         }
 
         if (fb->getVtBuffer() < 0 && fb->haveSolidColorBuffer()) {
-            tearDownProcessor();
+            resetProcessor();
 
             plane->setPlane(fb, presentZorder, blankFlag);
             fb->freeSolidColorBuffer();
