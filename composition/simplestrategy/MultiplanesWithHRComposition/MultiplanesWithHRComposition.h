@@ -129,6 +129,7 @@ protected:
     float mScaleValue;
     bool mSkipValidate;
     bool mIsSideBandDisable;
+    bool mSkipVideoTypeCheckInComp;
     bool mResetProcessorFlag;
     /* for video processor */
     std::shared_ptr<FbProcessor> mSrProcessor;

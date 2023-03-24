@@ -127,6 +127,7 @@ protected:
     float mScaleValue;
     bool mSkipValidate;
     bool mResetProcessorFlag;
+    bool mSkipVideoTypeCheckInComp;
 
     /* for video processor */
     std::shared_ptr<FbProcessor> mSrProcessor;

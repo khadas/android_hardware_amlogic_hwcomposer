@@ -69,6 +69,7 @@ void MultiplanesWithHRComposition::init() {
     mSkipValidate = false;
     mVsyncOverDefault = false;
     m4Mosaic = false;
+    mSkipVideoTypeCheckInComp = false;
 
     /*crtc scale info.*/
     mDisplayRefFb.reset();
@@ -137,14 +138,19 @@ int MultiplanesWithHRComposition::chooseOneVideoFb(std::shared_ptr<DrmFramebuffe
                     video_type_maps.insert(std::make_pair(*type_it, *it));
                 }
             }
+        } else {
+            mSkipVideoTypeCheckInComp = true;
+            break;
         }
     }
 
-    for (auto type_it = video_types.begin(); type_it != video_types.end(); type_it++) {
-        if (video_type_maps.count(*type_it) > 0) {
-            auto map_it = video_type_maps.lower_bound(*type_it);
-            videoFb = map_it->second;
-            break;
+    if (!mSkipVideoTypeCheckInComp) {
+        for (auto type_it = video_types.begin(); type_it != video_types.end(); type_it++) {
+            if (video_type_maps.count(*type_it) > 0) {
+                auto map_it = video_type_maps.lower_bound(*type_it);
+                videoFb = map_it->second;
+                break;
+            }
         }
     }
 
