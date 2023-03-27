@@ -2207,10 +2207,6 @@ int32_t Hwc2Display::getBootConfig(int32_t & config) {
         return HWC2_ERROR_BAD_PARAMETER;
 
     const char *defaultMode = UBOOTENV_OUTPUTMODE;
-    if (mConnector->getType() == DRM_MODE_CONNECTOR_HDMIA) {
-        defaultMode = UBOOTENV_HDMIMODE;
-    }
-
     std::string modeName;
     if (sc_read_bootenv(defaultMode, modeName) != 0) {
         return HWC2_ERROR_BAD_PARAMETER;
