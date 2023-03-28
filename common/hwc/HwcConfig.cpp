@@ -14,6 +14,12 @@
 #include <misc.h>
 #include <DrmTypes.h>
 
+#include "mode_ubootenv.h"
+
+#define UBOOTENV_PRIMARY_CONNECTOR_TYPE "ubootenv.var.connector_type"
+#define UBOOTENV_EXTEND_CONNECTOR_TYPE  "ubootenv.var.connector1_type"
+#define UBOOTENV_EXTEND2_CONNECTOR_TYPE "ubootenv.var.connector2_type"
+
 int32_t HwcConfig::getFramebufferSize(int disp, uint32_t & width, uint32_t & height) {
     char uiMode[PROPERTY_VALUE_MAX] = {0};
     if (disp == 0) {
@@ -60,26 +66,41 @@ uint32_t HwcConfig::getConnectorType(int disp) {
     char strval[PROP_VALUE_LEN_MAX];
     const char * connectorstr = NULL;
     if (disp == 0) {
-        #ifdef HWC_PRIMARY_CONNECTOR_TYPE
-            if (sys_get_string_prop("persist.vendor.hwc.connector-0", strval) > 0)
-                connectorstr = strval;
-            else
-                connectorstr = HWC_PRIMARY_CONNECTOR_TYPE;
-        #else
-            MESON_ASSERT(0, "HWC_PRIMARY_CONNECTOR_TYPE not set.");
-        #endif
+        connectorstr = meson_mode_get_ubootenv(UBOOTENV_PRIMARY_CONNECTOR_TYPE);
+        MESON_LOGD("%s, get %s from uboot env, return %s",
+                __func__, UBOOTENV_PRIMARY_CONNECTOR_TYPE, connectorstr);
+        if (connectorstr == NULL) {
+            #ifdef HWC_PRIMARY_CONNECTOR_TYPE
+                if (sys_get_string_prop("persist.vendor.hwc.connector-0", strval) > 0)
+                    connectorstr = strval;
+                else
+                    connectorstr = HWC_PRIMARY_CONNECTOR_TYPE;
+            #else
+                MESON_ASSERT(0, "HWC_PRIMARY_CONNECTOR_TYPE not set.");
+            #endif
+        }
     } else if (disp == 1) {
-        #ifdef HWC_EXTEND_CONNECTOR_TYPE
-            if (sys_get_string_prop("persist.vendor.hwc.connector-1", strval) > 0)
-                connectorstr = strval;
-            else
-                connectorstr = HWC_EXTEND_CONNECTOR_TYPE;
-        #else
-            MESON_ASSERT(0, "HWC_EXTEND_CONNECTOR_TYPE not set.");
-        #endif
+        connectorstr = meson_mode_get_ubootenv(UBOOTENV_EXTEND_CONNECTOR_TYPE);
+        MESON_LOGD("%s, get %s from uboot env, return %s",
+                __func__, UBOOTENV_PRIMARY_CONNECTOR_TYPE, connectorstr);
+        if (connectorstr == NULL) {
+            #ifdef HWC_EXTEND_CONNECTOR_TYPE
+                if (sys_get_string_prop("persist.vendor.hwc.connector-1", strval) > 0)
+                    connectorstr = strval;
+                else
+                    connectorstr = HWC_EXTEND_CONNECTOR_TYPE;
+            #else
+                MESON_ASSERT(0, "HWC_EXTEND_CONNECTOR_TYPE not set.");
+            #endif
+        }
     } else {
-        if (sys_get_string_prop("persist.vendor.hwc.connector-2", strval) > 0)
-            connectorstr = strval;
+        connectorstr = meson_mode_get_ubootenv(UBOOTENV_EXTEND2_CONNECTOR_TYPE);
+        MESON_LOGD("%s, get %s from uboot env, return %s",
+                __func__, UBOOTENV_PRIMARY_CONNECTOR_TYPE, connectorstr);
+        if (connectorstr == NULL) {
+            if (sys_get_string_prop("persist.vendor.hwc.connector-2", strval) > 0)
+                connectorstr = strval;
+        }
     }
 
     if (connectorstr != NULL) {
@@ -91,7 +112,9 @@ uint32_t HwcConfig::getConnectorType(int disp) {
         } else if (strcasecmp(connectorstr, "hdmi-only") == 0) {
             connector_type = DRM_MODE_CONNECTOR_HDMIA;
         } else {
-            connector_type = drmStringToConnType(connectorstr);
+            std::string con_str(connectorstr);
+            std::replace(con_str.begin(), con_str.end(), '_', '-');
+            connector_type = drmStringToConnType(con_str.c_str());
         }
 
         MESON_ASSERT(connector_type != DRM_MODE_CONNECTOR_INVALID_TYPE,
