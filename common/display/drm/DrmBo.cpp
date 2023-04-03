@@ -140,8 +140,8 @@ int32_t DrmBo::import(
                     modifiers[0] ? DRM_MODE_FB_MODIFIERS : 0);
     MESON_ASSERT(!ret, "drmModeAddFB2 failed(%d)", ret);
 
-    srcRect = fb->mSourceCrop;
-    crtcRect = fb->mDisplayFrame;
+    srcRect = fb->getSourceCrop();
+    crtcRect = fb->getDisplayFrame();
     alpha = fb->mPlaneAlpha;
     blend = fb->mBlendMode;
     z = fb->mZorder;

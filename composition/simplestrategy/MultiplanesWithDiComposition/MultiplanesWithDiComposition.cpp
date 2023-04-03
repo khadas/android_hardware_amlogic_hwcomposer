@@ -175,10 +175,10 @@ int MultiplanesWithDiComposition::chooseOneVideoFb(std::shared_ptr<DrmFramebuffe
             large_fb = fb;
 
         /* find one that did not overlap with others */
-        dispFrame = fb->mDisplayFrame;
+        dispFrame = fb->getDisplayFrame();
         for (auto it1 = mDIComposerFbs.begin(); it1 != mDIComposerFbs.end(); it1++) {
             fb1 = *it1;
-            dispFrame1 = fb1->mDisplayFrame;
+            dispFrame1 = fb1->getDisplayFrame();
             if (fb == fb1)
                 continue;
             if (std::max(0, std::min(dispFrame.right, dispFrame1.right) -
@@ -1022,8 +1022,9 @@ void MultiplanesWithDiComposition::handleVPUScaleLimit() {
         if (scaleLimit == 0)
             scaleLimit = OSD_SCALER_INPUT_MARGIN / OSD_SCALER_INPUT_FACTOR;
 
+        drm_rect_t dispFrame = fb->getDisplayFrame();
         float expHeight = (fb->mSourceCrop.bottom - fb->mSourceCrop.top) * scaleLimit;
-        float dispHeight = (fb->mDisplayFrame.bottom -fb->mDisplayFrame.top) * mScaleValue;
+        float dispHeight = (dispFrame.bottom - dispFrame.top) * mScaleValue;
 
         /* osdComposed layers */
         if (fb->mZorder < mMinComposerZorder || fb->mZorder > mMaxComposerZorder) {
@@ -1091,16 +1092,16 @@ void MultiplanesWithDiComposition::handleVPULimit(bool video) {
     int32_t minXOffset = -1, minYOffset = -1;
     int32_t compositionTargetW = 0, compositionTargetH = 0;
     for (auto it = mFramebuffers.begin(); it != mFramebuffers.end(); it++) {
-        std::shared_ptr<DrmFramebuffer> fb = it->second;
-        if (minXOffset == -1 || minXOffset > fb->mDisplayFrame.left)
-            minXOffset = fb->mDisplayFrame.left;
-        if (minYOffset == -1 || minYOffset > fb->mDisplayFrame.top)
-            minYOffset = fb->mDisplayFrame.top;
+        drm_rect_t dispFrame = it->second->getDisplayFrame();
+        if (minXOffset == -1 || minXOffset > dispFrame.left)
+            minXOffset = dispFrame.left;
+        if (minYOffset == -1 || minYOffset > dispFrame.top)
+            minYOffset = dispFrame.top;
 
-        if (fb->mDisplayFrame.right > compositionTargetW)
-            compositionTargetW = fb->mDisplayFrame.right;
-        if (fb->mDisplayFrame.bottom > compositionTargetH)
-            compositionTargetH = fb->mDisplayFrame.bottom;
+        if (dispFrame.right > compositionTargetW)
+            compositionTargetW = dispFrame.right;
+        if (dispFrame.bottom > compositionTargetH)
+            compositionTargetH = dispFrame.bottom;
     }
 
     /*choose base fb, the scale is smallest bigger.*/
@@ -1114,7 +1115,9 @@ void MultiplanesWithDiComposition::handleVPULimit(bool video) {
     /*choose the scale > targetW/MAX_INPUT*/
     for (auto it = mFramebuffers.begin(); it != mFramebuffers.end(); it++) {
         std::shared_ptr<DrmFramebuffer> fb = it->second;
-        int32_t ret = compareFbScale(fb->mSourceCrop, fb->mDisplayFrame, scaleInput, scaleOutput);
+        drm_rect_t dispFrame = fb->getDisplayFrame();
+        drm_rect_t refDispFrame;
+        int32_t ret = compareFbScale(fb->mSourceCrop, dispFrame, scaleInput, scaleOutput);
         if (0 == ret) {
             mDisplayRefFb = fb;
             break;
@@ -1122,8 +1125,9 @@ void MultiplanesWithDiComposition::handleVPULimit(bool video) {
             if (!mDisplayRefFb)
                 mDisplayRefFb = fb;
             else {
-                if (-1 == compareFbScale(fb->mSourceCrop, fb->mDisplayFrame,
-                    mDisplayRefFb->mSourceCrop, mDisplayRefFb->mDisplayFrame) ) {
+                refDispFrame = mDisplayRefFb->getDisplayFrame();
+                if (-1 == compareFbScale(fb->mSourceCrop, dispFrame,
+                    mDisplayRefFb->mSourceCrop, refDispFrame)) {
                     mDisplayRefFb = fb;
                 }
             }
@@ -1587,11 +1591,11 @@ int MultiplanesWithDiComposition::commit() {
 
                 //render the whiteboard and UI to outputs
                 fb->getAcquireFence()->waitForever("ClientTarget");
-                mComProcessor->update(mWhiteBoardData->mDisplayFrame);
+                mComProcessor->update(mWhiteBoardData->getDisplayFrame());
                 mComProcessor->composite(fb, mWhiteBoardData ,outfb);
 
                 outfb->mSourceCrop = fb->mSourceCrop;
-                outfb->mDisplayFrame = fb->mDisplayFrame;
+                outfb->mDisplayFrame = fb->getDisplayFrame();
                 outfb->mBlendMode = fb->mBlendMode;
                 outfb->mPlaneAlpha = fb->mPlaneAlpha;
 
@@ -1634,24 +1638,23 @@ int MultiplanesWithDiComposition::commit() {
         return HWC2_ERROR_NO_RESOURCES;
 
     if (mDisplayRefFb.get()) {
+        drm_rect_t dispFrame = mDisplayRefFb->getDisplayFrame();
         if (IS_FB_COMPOSED(mDisplayRefFb)) {
             if (composerOutput.get()) {
                 mDisplayRefFb = composerOutput;
             } else {
                 MESON_LOGE("Output of client composer is NULL!");
             }
-            mOsdDisplayFrame.crtc_display_x = mDisplayRefFb->mDisplayFrame.left;
-            mOsdDisplayFrame.crtc_display_y = mDisplayRefFb->mDisplayFrame.top;
+            mOsdDisplayFrame.crtc_display_x = dispFrame.left;
+            mOsdDisplayFrame.crtc_display_y = dispFrame.top;
         }
 
         mOsdDisplayFrame.framebuffer_w = mDisplayRefFb->mSourceCrop.right -
             mDisplayRefFb->mSourceCrop.left;
         mOsdDisplayFrame.framebuffer_h = mDisplayRefFb->mSourceCrop.bottom -
             mDisplayRefFb->mSourceCrop.top;
-        mOsdDisplayFrame.crtc_display_w = mDisplayRefFb->mDisplayFrame.right -
-            mDisplayRefFb->mDisplayFrame.left;
-        mOsdDisplayFrame.crtc_display_h = mDisplayRefFb->mDisplayFrame.bottom -
-            mDisplayRefFb->mDisplayFrame.top;
+        mOsdDisplayFrame.crtc_display_w = dispFrame.right - dispFrame.left;
+        mOsdDisplayFrame.crtc_display_h = dispFrame.bottom - dispFrame.top;
     }
 
     mCrtc->setDisplayFrame(mOsdDisplayFrame);

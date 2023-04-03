@@ -74,7 +74,7 @@ int32_t CursorPlane::setPlane(
     }
 
     if (fb) {
-        drm_rect_t disFrame      = fb->mDisplayFrame;
+        drm_rect_t disFrame      = fb->getDisplayFrame();
         buffer_handle_t buf      = fb->mBufferHandle;
 
         /* osd request plane zorder > 0 */

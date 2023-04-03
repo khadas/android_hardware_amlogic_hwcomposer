@@ -72,10 +72,10 @@ bool LegacyExtVideoPlane::shouldUpdateAxis(
     std::shared_ptr<DrmFramebuffer> &fb) {
     bool bUpdate = false;
 
-    drm_rect_t *displayFrame = &(fb->mDisplayFrame);
+    drm_rect_t displayFrame = fb->getDisplayFrame();
 
-    if (memcmp(&mBackupDisplayFrame, displayFrame, sizeof(drm_rect_t))) {
-        memcpy(&mBackupDisplayFrame, displayFrame, sizeof(drm_rect_t));
+    if (memcmp(&mBackupDisplayFrame, &displayFrame, sizeof(drm_rect_t))) {
+        memcpy(&mBackupDisplayFrame, &displayFrame, sizeof(drm_rect_t));
         bUpdate = true;
     }
 
@@ -115,9 +115,9 @@ int32_t LegacyExtVideoPlane::setPlane(
         /*set video axis.*/
         if (shouldUpdateAxis(fb)) {
             char videoAxisStr[AXIS_STR_LEN] = {0};
-            drm_rect_t * videoAxis = &(fb->mDisplayFrame);
-            sprintf(videoAxisStr, "%d %d %d %d", videoAxis->left, videoAxis->top,
-                videoAxis->right - 1, videoAxis->bottom - 1);
+            drm_rect_t videoAxis = fb->getDisplayFrame();
+            sprintf(videoAxisStr, "%d %d %d %d", videoAxis.left, videoAxis.top,
+                videoAxis.right - 1, videoAxis.bottom - 1);
             sysfs_set_string(SYSFS_VIDEO_AXIS_PIP, videoAxisStr);
         }
 

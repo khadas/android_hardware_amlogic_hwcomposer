@@ -264,7 +264,8 @@ bool DrmPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
      * osdPlane free scale limitation:
      * SRC_W * SRC_H * (1/666M HZ) < EXP_H/DST_H * (1/RREQ HZ)
      */
-    uint32_t dispHeight = fb->mDisplayFrame.bottom - fb->mDisplayFrame.top;
+    drm_rect_t dispFrame = fb->getDisplayFrame();
+    uint32_t dispHeight = dispFrame.bottom - dispFrame.top;
     uint32_t desHeight = am_gralloc_get_height(fb->mBufferHandle);
     float freq;
     if (mDispMode.pixelH != 0) {

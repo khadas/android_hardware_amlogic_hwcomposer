@@ -56,6 +56,7 @@ public:
 
 
     drm_rect_t getSourceCrop();
+    drm_rect_t getDisplayFrame();
 
     // Virtuals for video tunnel
     virtual int32_t getVtBuffer() { return -EINVAL; }
@@ -86,6 +87,7 @@ public:
     drm_rect_t mSourceCrop;
     drm_rect_t mVtSourceCrop;
     drm_rect_t mDisplayFrame;
+    drm_rect_t mVtDisplayFrame;
     drm_blend_mode_t mBlendMode;
     float mPlaneAlpha;
     int32_t mTransform;

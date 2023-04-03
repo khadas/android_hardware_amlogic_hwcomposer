@@ -123,10 +123,11 @@ int32_t VideoComposerDev::setFrames(
 
         bool isSidebandBuffer = fb->isSidebandBuffer();
         drm_rect_t sourceCrop = fb->getSourceCrop();
-        vFrameInfo->dst_x = fb->mDisplayFrame.left;
-        vFrameInfo->dst_y = fb->mDisplayFrame.top;
-        vFrameInfo->dst_w = fb->mDisplayFrame.right - fb->mDisplayFrame.left;
-        vFrameInfo->dst_h = fb->mDisplayFrame.bottom - fb->mDisplayFrame.top;
+        drm_rect_t displayFrame = fb->getDisplayFrame();
+        vFrameInfo->dst_x = displayFrame.left;
+        vFrameInfo->dst_y = displayFrame.top;
+        vFrameInfo->dst_w = displayFrame.right - displayFrame.left;
+        vFrameInfo->dst_h = displayFrame.bottom - displayFrame.top;
         vFrameInfo->crop_x = sourceCrop.left;
         vFrameInfo->crop_y = sourceCrop.top;
         vFrameInfo->crop_w = sourceCrop.right - sourceCrop.left;

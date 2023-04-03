@@ -96,12 +96,16 @@ public:
     void onVtVideoStatus(vt_video_status_t status);
     void onVtVideoGameMode(int data);
     int32_t getVtVideoStatus();
-    void setVtSourceCrop(drm_rect_t & rect);
+    void setVtSourceCrop(drm_rect_t & crop);
+    void setVtDisplayFrame(drm_rect_t & frame);
     void onNeedShowTempBuffer(vt_video_color_t colorType);
     void onNeedShowTempBufferWithStatus(
             vt_video_color_t colorType, vt_video_status_t status);
     void setVideoType(int fb);
     void handleDisplayDisconnect(bool connect);
+
+    void adjustDisplayFrame(display_zoom_info_t & calibrateInfo);
+    void adjustDisplayFrameLocked();
 
 public:
     android_dataspace_t mDataSpace;
@@ -122,6 +126,7 @@ public:
         void onVideoGameMode(int data);
         int32_t getVideoStatus();
         void onSourceCropChange(vt_rect_t & crop);
+        void onDisplayFrameChange(vt_rect_t & crop);
         void onNeedShowTempBuffer(vt_video_color_t colorType);
         void onNeedShowTempBufferWithStatus(
                 vt_video_color_t colorType, vt_video_status_t status);
@@ -176,6 +181,8 @@ protected:
     int mPreUvmBufferFd;
 
     float mBrightness;
+
+    display_zoom_info_t mCalibrateInfo;
 };
 
 #endif/*HWC2_LAYER_H*/

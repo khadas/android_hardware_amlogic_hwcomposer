@@ -27,6 +27,8 @@ public:
     int cancelBuffer();
     int sendCmd(vt_cmd cmd, int data);
     int setSolidColor(vt_color_cmd cmd, vt_color_data data);
+    int setSourceCrop(struct vt_rect rect);
+    int setDisplayFrame(struct vt_rect rect);
 
     int getVideoTunnelId() const { return mTunnelId; };
     int allocVideoTunnelId();

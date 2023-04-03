@@ -83,3 +83,12 @@ int VideoTunnelProducer::freeVideoTunnelId() {
 
     return 0;
 }
+
+int VideoTunnelProducer::setSourceCrop(struct vt_rect rect) {
+    return meson_vt_set_sourceCrop(mDevFd, mTunnelId, rect);
+}
+
+
+int VideoTunnelProducer::setDisplayFrame(struct vt_rect rect) {
+    return meson_vt_set_displayFrame(mDevFd, mTunnelId, rect);
+}

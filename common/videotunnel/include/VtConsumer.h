@@ -78,6 +78,7 @@ public:
         virtual void onVideoGameMode(int data __unused) {};
         virtual int32_t getVideoStatus() {return 0;};
         virtual void onSourceCropChange(vt_rect_t & crop __unused) {};
+        virtual void onDisplayFrameChange(vt_rect_t & frame __unused) {};
         // need show solid color frame when video starts playing
         virtual void onNeedShowTempBuffer(vt_video_color_t colorType __unused) {};
         virtual void onNeedShowTempBufferWithStatus(

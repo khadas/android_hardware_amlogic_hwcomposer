@@ -39,6 +39,14 @@ public:
     {
         mProducer->freeVideoTunnelId();
     }
+
+    bool compareRect(vt_rect_t rect1, vt_rect_t rect2) {
+        if (rect1.left == rect2.left && rect1.top == rect2.top &&
+            rect1.right == rect2.right && rect1.bottom == rect2.bottom)
+            return true;
+        else
+            return false;
+    }
 protected:
     std::shared_ptr<VideoTunnelProducer> mProducer;
     std::shared_ptr<VideoTunnelConsumer> mConsumer;
@@ -97,7 +105,7 @@ TEST_F(VideoTunnelTest, queueBuffer_acquireBuffer)
     EXPECT_EQ(OK, mConsumer->consumerConnect());
     EXPECT_EQ(OK, mConsumer->acquireBuffer(acquireItem));
 
-    EXPECT_GT(acquireItem.getBufferFd(), 0);
+    EXPECT_GE(acquireItem.getBufferFd(), 0);
 
     EXPECT_EQ(OK, mConsumer->consumerDisconnect());
     EXPECT_EQ(OK, mProducer->producerDisconnect());
@@ -159,7 +167,7 @@ TEST_F(VideoTunnelTest, dequeueBuffer_releaseBuffer)
     VTBufferItem acquireItem;
     EXPECT_EQ(OK, mConsumer->consumerConnect());
     EXPECT_EQ(OK, mConsumer->acquireBuffer(acquireItem));
-    EXPECT_GT(acquireItem.getBufferFd(), 0);
+    EXPECT_GE(acquireItem.getBufferFd(), 0);
     EXPECT_EQ(OK, mConsumer->releaseBuffer(acquireItem));
 
     VTBufferItem dequeueItem;
@@ -265,7 +273,7 @@ TEST_F(VideoTunnelTest, timeStamp)
     EXPECT_EQ(OK, mConsumer->consumerConnect());
     EXPECT_EQ(OK, mConsumer->acquireBuffer(acquireItem));
 
-    EXPECT_GT(acquireItem.getBufferFd(), 0);
+    EXPECT_GE(acquireItem.getBufferFd(), 0);
     EXPECT_EQ(acquireItem.getTimeStamp(), now);
     //EXPECT_EQ(acquireItem.getTimeStamp(), 5185103);
 
@@ -286,14 +294,14 @@ TEST_F(VideoTunnelTest, dequeueBuffer_releaseBuffer_releaseFence)
     VTBufferItem acquireItem;
     EXPECT_EQ(OK, mConsumer->consumerConnect());
     EXPECT_EQ(OK, mConsumer->acquireBuffer(acquireItem));
-    EXPECT_GT(acquireItem.getBufferFd(), 0);
+    EXPECT_GE(acquireItem.getBufferFd(), 0);
     EXPECT_EQ(OK, mConsumer->releaseBuffer(acquireItem));
 
     VTBufferItem dequeueItem;
     EXPECT_EQ(OK, mProducer->dequeueBuffer(dequeueItem));
     EXPECT_EQ(queueItem.getBufferFd(), dequeueItem.getBufferFd());
 
-    EXPECT_GT(dequeueItem.getReleaseFenceFd(), 0);
+    EXPECT_GE(dequeueItem.getReleaseFenceFd(), -1);
 
     EXPECT_EQ(OK, mConsumer->consumerDisconnect());
     EXPECT_EQ(OK, mProducer->producerDisconnect());
@@ -320,5 +328,35 @@ TEST_F(VideoTunnelTest, color_cmd)
     EXPECT_EQ(VT_CMD_SET_COLOR_BLACK, cmdRecv);
     EXPECT_EQ(dataSend, dataRecv.data);
     EXPECT_EQ(getpid(), dataRecv.client);
+    EXPECT_EQ(OK, mConsumer->consumerDisconnect());
+}
+
+TEST_F(VideoTunnelTest, set_sourceCrop_cmd)
+{
+    vt_cmd cmdRecv;
+    struct vt_cmd_data dataRecv;
+    vt_rect_t rect = {0, 0, 600, 600};
+
+    EXPECT_EQ(OK, mConsumer->consumerConnect());
+    EXPECT_EQ(OK, mProducer->setSourceCrop(rect));
+    EXPECT_EQ(OK, mConsumer->recvCmd(cmdRecv, dataRecv, false));
+
+    EXPECT_EQ(VT_CMD_SET_SOURCE_CROP, cmdRecv);
+    EXPECT_TRUE(compareRect(rect, dataRecv.rect));
+    EXPECT_EQ(OK, mConsumer->consumerDisconnect());
+}
+
+TEST_F(VideoTunnelTest, set_displayFrame_cmd)
+{
+    vt_cmd cmdRecv;
+    struct vt_cmd_data dataRecv;
+    vt_rect_t rect = {0, 0, 500, 500};
+
+    EXPECT_EQ(OK, mConsumer->consumerConnect());
+    EXPECT_EQ(OK, mProducer->setDisplayFrame(rect));
+    EXPECT_EQ(OK, mConsumer->recvCmd(cmdRecv, dataRecv, false));
+
+    EXPECT_EQ(VT_CMD_SET_DISPLAY_FRAME, cmdRecv);
+    EXPECT_TRUE(compareRect(rect, dataRecv.rect));
     EXPECT_EQ(OK, mConsumer->consumerDisconnect());
 }

@@ -458,15 +458,16 @@ int SingleplaneComposition::commit() {
             dumpFbAndPlane(fb, plane, z, blankFlag);
         }
 
+        drm_rect_t dispFrame = fb->getDisplayFrame();
         if (plane->getType() == OSD_PLANE) {
             osdDisplayFrame.framebuffer_w = fb->mSourceCrop.right - fb->mSourceCrop.left;
             osdDisplayFrame.framebuffer_h = fb->mSourceCrop.bottom - fb->mSourceCrop.top;
             osdDisplayFrame.crtc_display_x = 0;
             osdDisplayFrame.crtc_display_y = 0;
-            osdDisplayFrame.crtc_display_w = fb->mDisplayFrame.right -
-                fb->mDisplayFrame.left;
-            osdDisplayFrame.crtc_display_h = fb->mDisplayFrame.bottom -
-                fb->mDisplayFrame.top;
+            osdDisplayFrame.crtc_display_w = dispFrame.right -
+                dispFrame.left;
+            osdDisplayFrame.crtc_display_h = dispFrame.bottom -
+                dispFrame.top;
         }
 
         /*set display info*/

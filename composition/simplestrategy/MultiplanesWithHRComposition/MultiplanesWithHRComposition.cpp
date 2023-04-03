@@ -179,10 +179,10 @@ int MultiplanesWithHRComposition::chooseOneVideoFb(std::shared_ptr<DrmFramebuffe
             large_fb = fb;
 
         /* find one that did not overlap with others */
-        dispFrame = fb->mDisplayFrame;
+        dispFrame = fb->getDisplayFrame();
         for (auto it1 = mDIComposerFbs.begin(); it1 != mDIComposerFbs.end(); it1++) {
             fb1 = *it1;
-            dispFrame1 = fb1->mDisplayFrame;
+            dispFrame1 = fb1->getDisplayFrame();
             if (fb == fb1)
                 continue;
             if (std::max(0, std::min(dispFrame.right, dispFrame1.right) -
@@ -264,7 +264,7 @@ bool MultiplanesWithHRComposition::checkAndHandle4Mosaic(uint32_t videoZorder) {
     int topWindow = 0;
     for (auto it = mDIComposerFbs.begin(); it != mDIComposerFbs.end(); it++) {
         fb = *it;
-        drm_rect_t displayFrame = fb->mDisplayFrame;
+        drm_rect_t displayFrame = fb->getDisplayFrame();
         uint32_t frameWidth = displayFrame.right - displayFrame.left;
         uint32_t frameHeight = displayFrame.bottom - displayFrame.top;
 
@@ -1168,8 +1168,9 @@ void MultiplanesWithHRComposition::handleVPUScaleLimit() {
         if (scaleLimit == 0)
             scaleLimit = OSD_SCALER_INPUT_MARGIN / OSD_SCALER_INPUT_FACTOR;
 
+        drm_rect_t dispFrame = fb->getDisplayFrame();
         float expHeight = (fb->mSourceCrop.bottom - fb->mSourceCrop.top) * scaleLimit;
-        float dispHeight = (fb->mDisplayFrame.bottom -fb->mDisplayFrame.top) * mScaleValue;
+        float dispHeight = (dispFrame.bottom - dispFrame.top) * mScaleValue;
 
         /* osdComposed layers */
         if (fb->mZorder < mMinComposerZorder || fb->mZorder > mMaxComposerZorder) {
@@ -1237,16 +1238,16 @@ void MultiplanesWithHRComposition::handleVPULimit(bool video) {
     int32_t minXOffset = -1, minYOffset = -1;
     int32_t compositionTargetW = 0, compositionTargetH = 0;
     for (auto it = mFramebuffers.begin(); it != mFramebuffers.end(); it++) {
-        std::shared_ptr<DrmFramebuffer> fb = it->second;
-        if (minXOffset == -1 || minXOffset > fb->mDisplayFrame.left)
-            minXOffset = fb->mDisplayFrame.left;
-        if (minYOffset == -1 || minYOffset > fb->mDisplayFrame.top)
-            minYOffset = fb->mDisplayFrame.top;
+        drm_rect_t dispFrame = it->second->getDisplayFrame();
+        if (minXOffset == -1 || minXOffset > dispFrame.left)
+            minXOffset = dispFrame.left;
+        if (minYOffset == -1 || minYOffset > dispFrame.top)
+            minYOffset = dispFrame.top;
 
-        if (fb->mDisplayFrame.right > compositionTargetW)
-            compositionTargetW = fb->mDisplayFrame.right;
-        if (fb->mDisplayFrame.bottom > compositionTargetH)
-            compositionTargetH = fb->mDisplayFrame.bottom;
+        if (dispFrame.right > compositionTargetW)
+            compositionTargetW = dispFrame.right;
+        if (dispFrame.bottom > compositionTargetH)
+            compositionTargetH = dispFrame.bottom;
     }
 
     /*choose base fb, the scale is smallest bigger.*/
@@ -1260,7 +1261,8 @@ void MultiplanesWithHRComposition::handleVPULimit(bool video) {
     /*choose the scale > targetW/MAX_INPUT*/
     for (auto it = mFramebuffers.begin(); it != mFramebuffers.end(); it++) {
         std::shared_ptr<DrmFramebuffer> fb = it->second;
-        int32_t ret = compareFbScale(fb->mSourceCrop, fb->mDisplayFrame, scaleInput, scaleOutput);
+        drm_rect_t dispFrame = fb->getDisplayFrame();
+        int32_t ret = compareFbScale(fb->mSourceCrop, dispFrame, scaleInput, scaleOutput);
         if (0 == ret) {
             mDisplayRefFb = fb;
             break;
@@ -1268,8 +1270,9 @@ void MultiplanesWithHRComposition::handleVPULimit(bool video) {
             if (!mDisplayRefFb)
                 mDisplayRefFb = fb;
             else {
-                if (-1 == compareFbScale(fb->mSourceCrop, fb->mDisplayFrame,
-                    mDisplayRefFb->mSourceCrop, mDisplayRefFb->mDisplayFrame) ) {
+                drm_rect_t refDispFrame = mDisplayRefFb->getDisplayFrame();
+                if (-1 == compareFbScale(fb->mSourceCrop, dispFrame,
+                    mDisplayRefFb->mSourceCrop, refDispFrame)) {
                     mDisplayRefFb = fb;
                 }
             }
@@ -1708,24 +1711,23 @@ int MultiplanesWithHRComposition::commit() {
         return HWC2_ERROR_NO_RESOURCES;
 
     if (mDisplayRefFb.get()) {
+        drm_rect_t dispFrame = mDisplayRefFb->getDisplayFrame();
         if (IS_FB_COMPOSED(mDisplayRefFb)) {
             if (composerOutput.get()) {
                 mDisplayRefFb = composerOutput;
             } else {
                 MESON_LOGE("Output of client composer is NULL!");
             }
-            mOsdDisplayFrame.crtc_display_x = mDisplayRefFb->mDisplayFrame.left;
-            mOsdDisplayFrame.crtc_display_y = mDisplayRefFb->mDisplayFrame.top;
+            mOsdDisplayFrame.crtc_display_x = dispFrame.left;
+            mOsdDisplayFrame.crtc_display_y = dispFrame.top;
         }
 
         mOsdDisplayFrame.framebuffer_w = mDisplayRefFb->mSourceCrop.right -
             mDisplayRefFb->mSourceCrop.left;
         mOsdDisplayFrame.framebuffer_h = mDisplayRefFb->mSourceCrop.bottom -
             mDisplayRefFb->mSourceCrop.top;
-        mOsdDisplayFrame.crtc_display_w = mDisplayRefFb->mDisplayFrame.right -
-            mDisplayRefFb->mDisplayFrame.left;
-        mOsdDisplayFrame.crtc_display_h = mDisplayRefFb->mDisplayFrame.bottom -
-            mDisplayRefFb->mDisplayFrame.top;
+        mOsdDisplayFrame.crtc_display_w = dispFrame.right - dispFrame.left;
+        mOsdDisplayFrame.crtc_display_h = dispFrame.bottom - dispFrame.top;
     }
 
     mCrtc->setDisplayFrame(mOsdDisplayFrame);

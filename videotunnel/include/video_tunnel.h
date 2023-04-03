@@ -65,6 +65,7 @@ typedef enum vt_cmd {
     VT_CMD_SET_COLOR_BLACK,
     VT_CMD_SET_COLOR_BLUE,
     VT_CMD_SET_COLOR_GREEN,
+    VT_CMD_SET_DISPLAY_FRAME,
 } vt_cmd_t;
 
 typedef struct vt_rect {
@@ -75,7 +76,7 @@ typedef struct vt_rect {
 } vt_rect_t;
 
 typedef struct vt_cmd_data {
-    struct vt_rect crop;
+    struct vt_rect rect;
     vt_video_status_t data;
     int client;
 } vt_cmd_data_t;
@@ -116,6 +117,7 @@ int meson_vt_queue_buffer(int fd, int tunnel_id, int buffer_fd,
 int meson_vt_dequeue_buffer(int fd, int tunnel_id, int *buffer_fd, int *fence_fd);
 int meson_vt_cancel_buffer(int fd, int tunnel_id);
 int meson_vt_set_sourceCrop(int fd, int tunnel_id, struct vt_rect rect);
+int meson_vt_set_displayFrame(int fd, int tunnel_id, struct vt_rect rect);
 int meson_vt_getDisplayVsyncAndPeriod(int fd, int tunnel_id, uint64_t *timestamp, uint32_t *period);
 
 /* for consumer */

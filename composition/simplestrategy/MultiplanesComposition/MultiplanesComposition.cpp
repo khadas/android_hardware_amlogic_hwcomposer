@@ -141,8 +141,9 @@ int MultiplanesComposition::handleVideoComposition() {
                     break;
                 } else if (planeCompPairs[i].destPlane == LEGACY_EXT_VIDEO_PLANE) {
                     int32_t width = 0, height = 0;
-                    width = abs(fb->mDisplayFrame.right - fb->mDisplayFrame.left);
-                    height = abs(fb->mDisplayFrame.bottom - fb->mDisplayFrame.top);
+                    drm_rect_t dispFrame = fb->getDisplayFrame();
+                    width = abs(dispFrame.right - dispFrame.left);
+                    height = abs(dispFrame.bottom - dispFrame.top);
                     if (width <= PIP_VIDEO_DISPLAYFRAME_SIZE && height <= PIP_VIDEO_DISPLAYFRAME_SIZE) {
                         destComp = MESON_COMPOSITION_DUMMY;
                     } else if (mLegacyExtVideoPlane.get()) {
@@ -621,15 +622,16 @@ void MultiplanesComposition::handleVPULimit(bool video) {
     int32_t compositionTargetW = 0, compositionTargetH = 0;
     for (auto it = mFramebuffers.begin(); it != mFramebuffers.end(); it++) {
         std::shared_ptr<DrmFramebuffer> fb = it->second;
-        if (minXOffset == -1 || minXOffset > fb->mDisplayFrame.left)
-            minXOffset = fb->mDisplayFrame.left;
-        if (minYOffset == -1 || minYOffset > fb->mDisplayFrame.top)
-            minYOffset = fb->mDisplayFrame.top;
+        drm_rect_t dispFrame = fb->getDisplayFrame();
+        if (minXOffset == -1 || minXOffset > dispFrame.left)
+            minXOffset = dispFrame.left;
+        if (minYOffset == -1 || minYOffset > dispFrame.top)
+            minYOffset = dispFrame.top;
 
-        if (fb->mDisplayFrame.right > compositionTargetW)
-            compositionTargetW = fb->mDisplayFrame.right;
-        if (fb->mDisplayFrame.bottom > compositionTargetH)
-            compositionTargetH = fb->mDisplayFrame.bottom;
+        if (dispFrame.right > compositionTargetW)
+            compositionTargetW = dispFrame.right;
+        if (dispFrame.bottom > compositionTargetH)
+            compositionTargetH = dispFrame.bottom;
     }
 
     /*choose base fb, the scale is smallest bigger.*/
@@ -643,7 +645,8 @@ void MultiplanesComposition::handleVPULimit(bool video) {
     /*choose the scale > targetW/MAX_INPUT*/
     for (auto it = mFramebuffers.begin(); it != mFramebuffers.end(); it++) {
         std::shared_ptr<DrmFramebuffer> fb = it->second;
-        int32_t ret = compareFbScale(fb->mSourceCrop, fb->mDisplayFrame, scaleInput, scaleOutput);
+        drm_rect_t dispFrame = fb->getDisplayFrame();
+        int32_t ret = compareFbScale(fb->mSourceCrop, dispFrame, scaleInput, scaleOutput);
         if (0 == ret) {
             mDisplayRefFb = fb;
             break;
@@ -651,8 +654,9 @@ void MultiplanesComposition::handleVPULimit(bool video) {
             if (!mDisplayRefFb)
                 mDisplayRefFb = fb;
             else {
-                if (-1 == compareFbScale(fb->mSourceCrop, fb->mDisplayFrame,
-                    mDisplayRefFb->mSourceCrop, mDisplayRefFb->mDisplayFrame) ) {
+                drm_rect_t refDispFrame = mDisplayRefFb->getDisplayFrame();
+                if (-1 == compareFbScale(fb->mSourceCrop, dispFrame,
+                    mDisplayRefFb->mSourceCrop, refDispFrame)) {
                     mDisplayRefFb = fb;
                 }
             }
@@ -1050,24 +1054,23 @@ int MultiplanesComposition::commit() {
     }
 
     if (mDisplayRefFb.get()) {
+        drm_rect_t dispFrame =  mDisplayRefFb->getDisplayFrame();
         if (IS_FB_COMPOSED(mDisplayRefFb)) {
             if (composerOutput.get()) {
                 mDisplayRefFb = composerOutput;
             } else {
                 MESON_LOGE("Output of client composer is NULL!");
             }
-            mOsdDisplayFrame.crtc_display_x = mDisplayRefFb->mDisplayFrame.left;
-            mOsdDisplayFrame.crtc_display_y = mDisplayRefFb->mDisplayFrame.top;
+            mOsdDisplayFrame.crtc_display_x = dispFrame.left;
+            mOsdDisplayFrame.crtc_display_y = dispFrame.top;
         }
 
         mOsdDisplayFrame.framebuffer_w = mDisplayRefFb->mSourceCrop.right -
             mDisplayRefFb->mSourceCrop.left;
         mOsdDisplayFrame.framebuffer_h = mDisplayRefFb->mSourceCrop.bottom -
             mDisplayRefFb->mSourceCrop.top;
-        mOsdDisplayFrame.crtc_display_w = mDisplayRefFb->mDisplayFrame.right -
-            mDisplayRefFb->mDisplayFrame.left;
-        mOsdDisplayFrame.crtc_display_h = mDisplayRefFb->mDisplayFrame.bottom -
-            mDisplayRefFb->mDisplayFrame.top;
+        mOsdDisplayFrame.crtc_display_w = dispFrame.right - dispFrame.left;
+        mOsdDisplayFrame.crtc_display_h = dispFrame.bottom - dispFrame.top;
     }
 
     mCrtc->setDisplayFrame(mOsdDisplayFrame);

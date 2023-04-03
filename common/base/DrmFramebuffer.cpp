@@ -121,6 +121,7 @@ void DrmFramebuffer::reset() {
     mDisplayFrame.right  = mSourceCrop.right  = 0;
     mDisplayFrame.bottom = mSourceCrop.bottom = 0;
     memset(&mVtSourceCrop, 0, sizeof(mVtSourceCrop));
+    memset(&mVtDisplayFrame, 0, sizeof(mVtDisplayFrame));
 }
 
 void DrmFramebuffer::clearFbHandleFlag() {
@@ -221,3 +222,9 @@ drm_rect_t DrmFramebuffer::getSourceCrop() {
         return mSourceCrop;
     }
 }
+
+drm_rect_t DrmFramebuffer::getDisplayFrame() {
+    std::lock_guard<std::mutex> lock(mMutex);
+    return mDisplayFrame;
+}
+

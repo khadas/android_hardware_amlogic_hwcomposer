@@ -261,7 +261,35 @@ int meson_vt_set_sourceCrop(int fd, int tunnel_id, struct vt_rect rect) {
         .tunnel_id = tunnel_id,
         .ctrl_cmd = VT_CTRL_SEND_CMD,
         .video_cmd = vcmd,
-        .source_crop = crop,
+        .rect = crop,
+    };
+
+    return meson_vt_ioctl(fd, VT_IOC_CTRL, &data);
+}
+
+/* Set the video display frame
+ *
+ * @param fd            [in] Videotunnel device fd
+ * @param tunnel_id     [in] tunnel id
+ * @param rect          [in].surface rect
+ *
+ * Return of 0 means the operation completed as normal.
+ * Return of a negative value means an error has occurred:
+ */
+int meson_vt_set_displayFrame(int fd, int tunnel_id, struct vt_rect rect) {
+    enum vt_video_cmd_e vcmd = VT_VIDEO_SET_DISPLAY_FRAME;
+    struct vt_krect dispFrame = {
+        .left = rect.left,
+        .top = rect.top,
+        .right = rect.right,
+        .bottom = rect.bottom,
+    };
+
+    struct vt_ctrl_data data = {
+        .tunnel_id = tunnel_id,
+        .ctrl_cmd = VT_CTRL_SEND_CMD,
+        .video_cmd = vcmd,
+        .rect = dispFrame,
     };
 
     return meson_vt_ioctl(fd, VT_IOC_CTRL, &data);
@@ -477,12 +505,13 @@ int meson_vt_recv_cmd(int fd, int tunnel_id, enum vt_cmd *cmd, struct vt_cmd_dat
 
     *cmd = (enum vt_cmd) data.video_cmd;
 
-    if (*cmd == VT_CMD_SET_SOURCE_CROP) {
-        cmd_data->crop = {
-            .left = data.source_crop.left,
-            .top = data.source_crop.top,
-            .right = data.source_crop.right,
-            .bottom = data.source_crop.bottom,
+    if (*cmd == VT_CMD_SET_SOURCE_CROP ||
+        *cmd == VT_CMD_SET_DISPLAY_FRAME) {
+        cmd_data->rect = {
+            .left = data.rect.left,
+            .top = data.rect.top,
+            .right = data.rect.right,
+            .bottom = data.rect.bottom,
         };
     } else  {
         cmd_data->data = (vt_video_status_t)data.video_cmd_data;

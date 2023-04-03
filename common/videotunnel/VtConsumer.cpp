@@ -74,10 +74,16 @@ int32_t VtConsumer::onVtCmds(vt_cmd_t & cmd, vt_cmd_data_t & cmdData) {
             mContentListener->onVideoGameMode(cmdData.data);
             break;
         case VT_CMD_SET_SOURCE_CROP:
-            MESON_LOGD("[%s] [%s] received cmd VT_CMD_SET_VIDEO_STATUS(%d %d %d %d)",
-                    __func__, mName, cmdData.crop.left, cmdData.crop.top,
-                    cmdData.crop.right, cmdData.crop.bottom);
-            mContentListener->onSourceCropChange(cmdData.crop);
+            MESON_LOGD("[%s] [%s] received cmd VT_CMD_SET_SOURCE_CROP(%d %d %d %d)",
+                    __func__, mName, cmdData.rect.left, cmdData.rect.top,
+                    cmdData.rect.right, cmdData.rect.bottom);
+            mContentListener->onSourceCropChange(cmdData.rect);
+            break;
+        case VT_CMD_SET_DISPLAY_FRAME:
+            MESON_LOGD("[%s] [%s] received cmd VT_CMD_SET_DISPLAY_FRAME(%d %d %d %d)",
+                    __func__, mName, cmdData.rect.left, cmdData.rect.top,
+                    cmdData.rect.right, cmdData.rect.bottom);
+            mContentListener->onDisplayFrameChange(cmdData.rect);
             break;
         case VT_CMD_SET_SHOW_SOLID_COLOR:
             {
@@ -108,7 +114,7 @@ int32_t VtConsumer::onVtCmds(vt_cmd_t & cmd, vt_cmd_data_t & cmdData) {
         case VT_CMD_SET_COLOR_GREEN:
             {
                 vt_video_status_t status = (vt_video_status_t)cmdData.data;
-                MESON_LOGD("[%s] [%s] received cmd VT_CMD_SET_COLOR_BLUE %s",
+                MESON_LOGD("[%s] [%s] received cmd VT_CMD_SET_COLOR_GREEN %s",
                         __func__, mName, VtVideoStatusToString(status));
                 mContentListener->onNeedShowTempBufferWithStatus(
                         SOLID_COLOR_FOR_GREEN, status);

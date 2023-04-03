@@ -24,6 +24,7 @@
 #include "Hwc2Layer.h"
 #include "Hwc2Base.h"
 #include "VideoTunnelDev.h"
+#include "HwcConfig.h"
 
 Hwc2Layer::Hwc2Layer(uint32_t dispId) : DrmFramebuffer(){
     mDataSpace     = HAL_DATASPACE_UNKNOWN;
@@ -817,6 +818,7 @@ int32_t Hwc2Layer::unregisterConsumer() {
     }
 
     memset(&mVtSourceCrop, 0, sizeof(mVtSourceCrop));
+    memset(&mVtDisplayFrame, 0, sizeof(mVtDisplayFrame));
 
     ret = VtInstanceMgr::getInstance().disconnectInstance(mTunnelId, mVtConsumer);
     mVtConsumer.reset();
@@ -953,6 +955,68 @@ void Hwc2Layer::setVtSourceCrop(drm_rect_t & rect) {
     mVtSourceCrop.bottom = rect.bottom;
 }
 
+void Hwc2Layer::setVtDisplayFrame(drm_rect_t & rect) {
+    std::lock_guard<std::mutex> lock(mMutex);
+    float scaleW = 1.0f;
+    float scaleH = 1.0f;
+
+    if (mDisplayId == HWC_DISPLAY_EXTERNAL) {
+        uint32_t externalDispW, externalDispH;
+        uint32_t primaryDispW, primaryDispH;
+        HwcConfig::getFramebufferSize(HWC_DISPLAY_EXTERNAL, externalDispW, externalDispH);
+        HwcConfig::getFramebufferSize(HWC_DISPLAY_PRIMARY, primaryDispW, primaryDispH);
+
+        scaleW = (float)externalDispW / primaryDispW;
+        scaleH = (float)externalDispH / primaryDispH;
+    }
+
+    mVtDisplayFrame.left   = (int32_t)ceilf(rect.left * scaleW);
+    mVtDisplayFrame.top    = (int32_t)ceilf(rect.top * scaleH);
+    mVtDisplayFrame.right  = (int32_t)ceilf(rect.right * scaleW);
+    mVtDisplayFrame.bottom = (int32_t)ceilf(rect.bottom * scaleH);
+
+    if (mCalibrateInfo.framebuffer_w > 0)
+        adjustDisplayFrameLocked();
+}
+
+void Hwc2Layer::adjustDisplayFrame(display_zoom_info_t & calibrateInfo) {
+    std::lock_guard<std::mutex> lock(mMutex);
+
+    mCalibrateInfo = calibrateInfo;
+    adjustDisplayFrameLocked();
+}
+void Hwc2Layer::adjustDisplayFrameLocked() {
+    bool bNoScale = false;
+    drm_rect_t dispFrame;
+
+    if (mCalibrateInfo.framebuffer_w == mCalibrateInfo.crtc_display_w &&
+        mCalibrateInfo.framebuffer_h == mCalibrateInfo.crtc_display_h)
+        bNoScale = true;
+
+    if (mVtDisplayFrame.left > 0 || mVtDisplayFrame.top > 0 ||
+        mVtDisplayFrame.right > 0 || mVtDisplayFrame.bottom > 0)
+        dispFrame = mVtDisplayFrame;
+    else
+        dispFrame = mBackupDisplayFrame;
+
+    if (bNoScale || mIsVirtualLayer) {
+        mDisplayFrame = dispFrame;
+    } else {
+       mDisplayFrame.left = (int32_t)ceilf((float)dispFrame.left *
+           mCalibrateInfo.crtc_display_w / mCalibrateInfo.framebuffer_w) +
+           mCalibrateInfo.crtc_display_x;
+       mDisplayFrame.top = (int32_t)ceilf((float)dispFrame.top *
+           mCalibrateInfo.crtc_display_h / mCalibrateInfo.framebuffer_h) +
+           mCalibrateInfo.crtc_display_y;
+       mDisplayFrame.right = (int32_t)ceilf((float)dispFrame.right *
+           mCalibrateInfo.crtc_display_w / mCalibrateInfo.framebuffer_w) +
+           mCalibrateInfo.crtc_display_x;
+       mDisplayFrame.bottom = (int32_t)ceilf((float)dispFrame.bottom *
+           mCalibrateInfo.crtc_display_h / mCalibrateInfo.framebuffer_h) +
+           mCalibrateInfo.crtc_display_y;
+    }
+}
+
 void Hwc2Layer::freeSolidColorBufferLocked() {
     if (mSolidColorBufferfd >= 0) {
         close(mSolidColorBufferfd);
@@ -1075,6 +1139,21 @@ void Hwc2Layer::VtContentChangeListener::onSourceCropChange(vt_rect & crop) {
         MESON_LOGE("Hwc2Layer::VtContentChangeListener::%s mLayer is NULL",
                 __func__);
 }
+
+void Hwc2Layer::VtContentChangeListener::onDisplayFrameChange(vt_rect & frame) {
+    drm_rect_t rect;
+    rect.left   = frame .left;
+    rect.top    = frame.top;
+    rect.right  = frame.right;
+    rect.bottom = frame.bottom;
+
+    if (mLayer)
+        mLayer->setVtDisplayFrame(rect);
+    else
+        MESON_LOGE("Hwc2Layer::VtContentChangeListener::%s mLayer is NULL",
+                __func__);
+}
+
 
 void Hwc2Layer::VtContentChangeListener::onNeedShowTempBuffer(vt_video_color_t colorType) {
     if (mLayer)

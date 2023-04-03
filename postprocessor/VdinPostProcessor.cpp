@@ -73,15 +73,14 @@ int32_t VdinPostProcessor::setVout(
 int32_t VdinPostProcessor::postVout(std::shared_ptr<DrmFramebuffer> fb) {
     ATRACE_CALL();
     if (fb.get() != NULL) {
+        drm_rect_t dispFrame = fb->getDisplayFrame();
         display_zoom_info_t osdDisplayFrame;
         osdDisplayFrame.framebuffer_w = fb->mSourceCrop.right - fb->mSourceCrop.left;
         osdDisplayFrame.framebuffer_h = fb->mSourceCrop.bottom - fb->mSourceCrop.top;
         osdDisplayFrame.crtc_display_x = 0;
         osdDisplayFrame.crtc_display_y = 0;
-        osdDisplayFrame.crtc_display_w = fb->mDisplayFrame.right -
-            fb->mDisplayFrame.left;
-        osdDisplayFrame.crtc_display_h = fb->mDisplayFrame.bottom -
-            fb->mDisplayFrame.top;
+        osdDisplayFrame.crtc_display_w = dispFrame.right - dispFrame.left;
+        osdDisplayFrame.crtc_display_h = dispFrame.bottom - dispFrame.top;
         mVout->setDisplayFrame(osdDisplayFrame);
 
         fb->mFbType = DRM_FB_SCANOUT;

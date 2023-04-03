@@ -1098,12 +1098,7 @@ int32_t Hwc2Display::loadCalibrateInfo() {
 // Scaled display frame to the framebuffer config if necessary
 // (i.e. not at the default resolution of 1080p)
 int32_t Hwc2Display::adjustDisplayFrame() {
-    bool bNoScale = false;
     bool bNeedUpdateLayer = false;
-    if (mCalibrateInfo.framebuffer_w == mCalibrateInfo.crtc_display_w &&
-        mCalibrateInfo.framebuffer_h == mCalibrateInfo.crtc_display_h) {
-        bNoScale = true;
-    }
 
     if (mOutsideChanged) {
         mOutsideChanged = false;
@@ -1120,22 +1115,7 @@ int32_t Hwc2Display::adjustDisplayFrame() {
             mVirtualLayer->setDisplayFrame(mFrame);
         }
 #endif
-        if (bNoScale || layer->isVirtualLayer()) {
-            layer->mDisplayFrame = layer->mBackupDisplayFrame;
-        } else {
-            layer->mDisplayFrame.left = (int32_t)ceilf((float)layer->mBackupDisplayFrame.left *
-                mCalibrateInfo.crtc_display_w / mCalibrateInfo.framebuffer_w) +
-                mCalibrateInfo.crtc_display_x;
-            layer->mDisplayFrame.top = (int32_t)ceilf((float)layer->mBackupDisplayFrame.top *
-                mCalibrateInfo.crtc_display_h / mCalibrateInfo.framebuffer_h) +
-                mCalibrateInfo.crtc_display_y;
-            layer->mDisplayFrame.right = (int32_t)ceilf((float)layer->mBackupDisplayFrame.right *
-                mCalibrateInfo.crtc_display_w / mCalibrateInfo.framebuffer_w) +
-                mCalibrateInfo.crtc_display_x;
-            layer->mDisplayFrame.bottom = (int32_t)ceilf((float)layer->mBackupDisplayFrame.bottom *
-                mCalibrateInfo.crtc_display_h / mCalibrateInfo.framebuffer_h) +
-                mCalibrateInfo.crtc_display_y;
-        }
+        layer->adjustDisplayFrame(mCalibrateInfo);
 
         if (bNeedUpdateLayer) {
             layer->setLayerUpdate(true);
@@ -1292,7 +1272,8 @@ hwc2_error_t Hwc2Display::collectCompositionRequest(
                 mFailedDeviceComp = true;
             }
         }
-        if (expectedHwcComposition == HWC2_COMPOSITION_SIDEBAND || layer->mCompositionType == MESON_COMPOSITION_PLANE_AMVIDEO)
+        if (expectedHwcComposition == HWC2_COMPOSITION_SIDEBAND ||
+            layer->mCompositionType == MESON_COMPOSITION_PLANE_AMVIDEO)
             mProcessorFlags |= PRESENT_SIDEBAND;
 
         // for self-adaptive
@@ -1300,14 +1281,15 @@ hwc2_error_t Hwc2Display::collectCompositionRequest(
             /* For hdmi self-adaptive in systemcontrol.
              * hdmi frame rate is on
              * */
-            region = (layer->mDisplayFrame.right - layer->mDisplayFrame.left) *
-                    (layer->mDisplayFrame.bottom - layer->mDisplayFrame.top);
+            drm_rect_t dispFrame = layer->getDisplayFrame();
+            region = (dispFrame.right - dispFrame.left) *
+                     (dispFrame.bottom - dispFrame.top);
             if (region > maxRegion) {
                 maxRegion = region;
-                maxRect.left   = layer->mDisplayFrame.left;
-                maxRect.right  = layer->mDisplayFrame.right;
-                maxRect.top    = layer->mDisplayFrame.top;
-                maxRect.bottom = layer->mDisplayFrame.bottom;
+                maxRect.left   = dispFrame.left;
+                maxRect.right  = dispFrame.right;
+                maxRect.top    = dispFrame.top;
+                maxRect.bottom = dispFrame.bottom;
             }
         }
     }
@@ -2074,6 +2056,7 @@ void Hwc2Display::dumpPresentLayers(String8 & dumpstr) {
     for (auto it = mPresentLayers.begin(); it != mPresentLayers.end(); it++) {
         Hwc2Layer *layer = (Hwc2Layer*)(it->get());
         drm_rect_t sourceCrop = layer->getSourceCrop();
+        drm_rect_t displayFrame = layer->getDisplayFrame();
 
         dumpstr.append("+------+-----+------------+-----+--------+-+--------+"
             "-------------------+-------------------+--------+\n");
@@ -2090,10 +2073,10 @@ void Hwc2Display::dumpPresentLayers(String8 & dumpstr) {
             sourceCrop.top,
             sourceCrop.right,
             sourceCrop.bottom,
-            layer->mDisplayFrame.left,
-            layer->mDisplayFrame.top,
-            layer->mDisplayFrame.right,
-            layer->mDisplayFrame.bottom,
+            displayFrame.left,
+            displayFrame.top,
+            displayFrame.right,
+            displayFrame.bottom,
             layer->getVideoTunnelId()
             );
     }
