@@ -640,11 +640,8 @@ int32_t Hwc2Layer::releaseVtResourceLocked(bool needDisconnect) {
                     __func__, mDisplayId, mId, mPreVtBufferFd, mQueuedFrames);
         }
 
-        // todo: for the last vt buffer, there is no fence got from videocomposer
-        // when videocomposer is disabled. Now set it to -1. And releaseVtResource
-        // delay to clearUpdateFlag() when receive blank frame.
         if (mVtBufferFd >= 0) {
-            onVtFrameDisplayed(mVtBufferFd, -1);
+            onVtFrameDisplayed(mVtBufferFd, getCurReleaseFence());
             mQueuedFrames--;
             MESON_LOGV("[%s] [%d] [%" PRIu64 "] release(%d) queuedFrames(%d)",
                     __func__, mDisplayId, mId, mVtBufferFd, mQueuedFrames);
@@ -984,15 +981,13 @@ bool Hwc2Layer::haveSolidColorBuffer() {
 
 void Hwc2Layer::onNeedShowTempBuffer(vt_video_color_t colorType) {
     std::lock_guard<std::mutex> lock(mMutex);
-    if (!mAllocSolidColorBufferHandle)
-        mAllocSolidColorBufferHandle = std::make_shared<VtAllocSolidColorBuffer>();
+    if (mSolidColorBufferfd < 0) {
+        if (!mAllocSolidColorBufferHandle)
+            mAllocSolidColorBufferHandle = std::make_shared<VtAllocSolidColorBuffer>();
 
-    int bufFd = mAllocSolidColorBufferHandle->allocBuffer(colorType);
-    if (bufFd >= 0) {
-        if (mSolidColorBufferfd >= 0)
-            close(mSolidColorBufferfd);
-
-        mSolidColorBufferfd = dup(bufFd);
+        int bufFd = mAllocSolidColorBufferHandle->allocBuffer(colorType);
+        if (bufFd >= 0)
+            mSolidColorBufferfd = dup(bufFd);
     }
 
     if (mSolidColorBufferfd >= 0)
