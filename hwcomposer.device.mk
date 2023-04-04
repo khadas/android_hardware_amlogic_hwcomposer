@@ -156,4 +156,3 @@ $(call soong_config_set,meson_hwc,enable_virtual_layer,$(HWC_ENABLE_VIRTUAL_LAYE
 $(call soong_config_set,meson_hwc,enable_video_mosaic,$(HWC_VIDEO_MOSAIC))
 
 #$(warning "the value of aidl: $(HWC_ENABLE_AIDL)")
-$(warning "the value of uvm_dettach: $(HWC_UVM_DETTACH)")
