@@ -193,9 +193,9 @@ int32_t DrmConnector::loadDisplayModes(drmModeConnectorPtr p) {
             mFracMode == MODE_ALL || mFracMode == MODE_NON_FRACTION) {
             bNonFractionMode = true;
         }
-         // drm only send frame rate (int)59hz, its real rate is 59.94hz
+         // drm only send frame rate (int)59hz, its real frac refresh rate is 59.94hz
         if (modeInfo.refreshRate == 59.00) {
-            modeInfo.refreshRate = 59.94;
+            modeInfo.refreshRate = (60 * 1000) / (float)1001;
         }
 
         if (bNonFractionMode) {

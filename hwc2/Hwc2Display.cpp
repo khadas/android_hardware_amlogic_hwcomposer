@@ -2397,7 +2397,8 @@ int32_t Hwc2Display::getFrameRateConfigId(int32_t &config, const float frameRate
             return HWC2_ERROR_BAD_CONFIG;
 
         /* find the mode */
-        if (vsyncPeriod == static_cast<int32_t>(1e9/frameRate) && groupId == configGroupId) {
+        if ((std::abs(static_cast<float>(1e9/vsyncPeriod) - frameRate) < 0.001)
+            && groupId == configGroupId) {
             config = *it;
             return HWC2_ERROR_NONE;
         }
