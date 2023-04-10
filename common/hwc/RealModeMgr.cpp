@@ -43,7 +43,8 @@ static const char* DISPLAY_MODE_LIST[] = {
     "720p60hz",     // MODE_720P
     "720p100hz",    // MODE_720P100HZ
     "720p120hz",    // MODE_720P120HZ
-    "768p60hz",     // MODE_768P
+    "768p50hz",     // MODE_768P50HZ
+    "768p60hz",     // MODE_768P60HZ
     "1080p24hz",    // MODE_1080P24HZ
     "1080p25hz",    // MODE_1080P25HZ
     "1080p30hz",    // MODE_1080P30HZ
@@ -144,7 +145,7 @@ int32_t RealModeMgr::updateActiveConfig(drm_mode_info_t activeMode) {
 void RealModeMgr::reset() {
     mModes.clear();
     mActiveConfigId = -1;
-    mIsFake1080p = false;
+    mIsFakeSizeMode = false;
 }
 
 void RealModeMgr::resetTags() {
@@ -152,29 +153,59 @@ void RealModeMgr::resetTags() {
 };
 
 bool RealModeMgr::isFakeSizeMode() {
-    return mIsFake1080p;
+    return mIsFakeSizeMode;
+}
+
+bool RealModeMgr::isTvConnector() {
+    uint32_t type = mConnector->getType();
+    if (type == DRM_MODE_CONNECTOR_MESON_LVDS_A || type == DRM_MODE_CONNECTOR_MESON_LVDS_B ||
+            type == DRM_MODE_CONNECTOR_MESON_LVDS_C || type == DRM_MODE_CONNECTOR_MESON_VBYONE_A ||
+            type == DRM_MODE_CONNECTOR_MESON_VBYONE_B || type == DRM_MODE_CONNECTOR_LVDS ||
+            type == LEGACY_NON_DRM_CONNECTOR_PANEL)
+        return true;
+
+    return false;
+}
+
+void RealModeMgr::mapToFakeSizeMode(drm_mode_info_t & mode, drm_mode_info_t & currentMode) {
+    uint32_t fakePixelW = FB_SIZE_1080P_W;
+    uint32_t fakePixelH = FB_SIZE_1080P_H;
+
+    // cvbs mode need map to 720p
+    if (mConnector->getType() == DRM_MODE_CONNECTOR_TV) {
+        fakePixelW = CVBS_MODE_W;
+        fakePixelH = CVBS_MODE_H;
+    // if mode is DLG mode (4k1k), need map it to 4k mode
+    } else if (mode.pixelW == FB_SIZE_4K_W && mode.pixelH == FB_SIZE_1080P_H) {
+        fakePixelW = FB_SIZE_4K_W;
+        fakePixelH = FB_SIZE_4K_H;
+    // other map to FB size
+    } else {
+        HwcConfig::getFramebufferSize(0, fakePixelW, fakePixelH);
+    }
+
+    mode.dpiX = ((float)fakePixelW / mode.pixelW) * mode.dpiX;
+    mode.dpiY = ((float)fakePixelH / mode.pixelH) * mode.dpiY;
+    mode.pixelW = fakePixelW;
+    mode.pixelH = fakePixelH;
+
+    if (!strcmp(mode.name, currentMode.name)) {
+        currentMode = mode;
+        mIsFakeSizeMode = true;
+    }
 }
 
 void RealModeMgr::processModeList(std::map<uint32_t, drm_mode_info_t> & modeList,
         drm_mode_info_t & currentMode) {
-    uint32_t fakePixelW = 0,fakePixelH = 0;
-    HwcConfig::getFramebufferSize(0,fakePixelW,fakePixelH);
-
     for (auto it = modeList.begin(); it != modeList.end(); ) {
         bool bRemove = false;
+        bool bMap = false;
         auto & mode = it->second;
 
         // cvbs connector, map cvbs mode to fake size mode
         if (mConnector->getType() == DRM_MODE_CONNECTOR_TV) {
             if (strstr(mode.name,"cvbs") || !strcmp(mode.name, currentMode.name)) {
-                mode.dpiX = ((float)CVBS_MODE_W / mode.pixelW) * mode.dpiX;
-                mode.dpiY = ((float)CVBS_MODE_H / mode.pixelH) * mode.dpiY;
-                mode.pixelW = CVBS_MODE_W;
-                mode.pixelH = CVBS_MODE_H;
-                mIsFake1080p = true;
-
-                if (!strcmp(mode.name, currentMode.name))
-                     currentMode = mode;
+                bMap = true;
             } else {
                 bRemove = true;
             }
@@ -182,32 +213,29 @@ void RealModeMgr::processModeList(std::map<uint32_t, drm_mode_info_t> & modeList
             // filter non 16:9 feature is enable
             if (HwcConfig::getModeCondition()) {
                 MESON_LOGV("RealModeMgr::filter 16:9 mode enabled");
-                if (!strcmp(currentMode.name, mode.name) || is16_9Mode(mode)) {
+                if (!is16_9Mode(mode)) {
                     // if current mode is not 16:9 mode, we don't filter it
-                    // just map it to fake size mode
-                    if (!is16_9Mode(mode)) {
-                        mode.dpiX = ((float)fakePixelW / mode.pixelW) * mode.dpiX;
-                        mode.dpiY = ((float)fakePixelH / mode.pixelH) * mode.dpiY;
-                        mode.pixelW = fakePixelW;
-                        mode.pixelH = fakePixelH;
-
-                        if (!strcmp(mode.name, currentMode.name))
-                            currentMode = mode;
+                    if (!strcmp(currentMode.name, mode.name)) {
+                        bMap = true;
+                    } else {
+                        bRemove = true;
                     }
-                } else {
-                    bRemove = true;
                 }
             } else {
-                /* if mode is DLG mode (4k1k), need map it to 4k mode */
+                // if mode is DLG mode (4k1k), need map it to 4k mode
                 if (mode.pixelW == FB_SIZE_4K_W && mode.pixelH == FB_SIZE_1080P_H) {
-                    mode.dpiY = ((float)FB_SIZE_4K_H / mode.pixelH) * mode.dpiY;
-                    mode.pixelH = FB_SIZE_4K_H;
-
-                    if (!strcmp(mode.name, currentMode.name))
-                        currentMode = mode;
+                    bMap = true;
+                } else {
+                    if (strstr(mode.name, "768p") && isTvConnector()) {
+                        bMap = true;
+                    }
                 }
             }
         }
+
+        // need map to fake size Mode
+        if (bMap)
+            mapToFakeSizeMode(mode, currentMode);
 
         if (bRemove) {
             it = modeList.erase(it);

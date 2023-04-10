@@ -62,6 +62,8 @@ protected:
     bool isSupportModeForCurrentDevice(drm_mode_info_t mode);
     void reset();
     int32_t setModeLocked(drm_mode_info_t & mode);
+    bool isTvConnector();
+    void mapToFakeSizeMode(drm_mode_info_t & mode, drm_mode_info_t & currentMode);
 
 protected:
     std::shared_ptr<HwDisplayConnector> mConnector;
@@ -82,7 +84,7 @@ protected:
     bool mDvEnabled;
 
     bool mCallOnHotPlug;
-    bool mIsFake1080p;
+    bool mIsFakeSizeMode;
 };
 
 #endif // REAL_MODE_MGR_H
