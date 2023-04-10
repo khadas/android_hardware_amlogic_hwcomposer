@@ -17,6 +17,7 @@
 #include <android-base/logging.h>
 #include <android/binder_manager.h>
 #include <android/binder_process.h>
+#include <cutils/properties.h>
 #include <binder/ProcessState.h>
 #include <sched.h>
 #include <log/log.h>
@@ -27,6 +28,15 @@ using aidl::android::hardware::graphics::composer3::impl::meson::Composer;
 
 int main(int /*argc*/, char** /*argv*/) {
     ALOGI("meson (HWComposer3) starting up...");
+    bool low_ram_device = property_get_bool("ro.config.low_ram", false);
+    if (low_ram_device) {
+        /* CAP_IPC_LOCK required */
+        if (mlockall(MCL_CURRENT | MCL_FUTURE | MCL_ONFAULT) && (errno != EINVAL)) {
+            ALOGE("composer service mlockall failed %s", strerror(errno));
+        } else {
+            ALOGD("composer service mlockall successfully %s", strerror(errno));
+        }
+    }
 
     // same as SF main thread
     struct sched_param param = {0};

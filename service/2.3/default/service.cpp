@@ -15,7 +15,7 @@
  */
 
 #include <sched.h>
-
+#include <cutils/properties.h>
 #include <android/hardware/graphics/composer/2.3/IComposer.h>
 #include <binder/ProcessState.h>
 #include <composer-passthrough/2.3/HwcLoader.h>
@@ -25,6 +25,17 @@ using android::hardware::graphics::composer::V2_3::IComposer;
 using android::hardware::graphics::composer::V2_3::passthrough::HwcLoader;
 
 int main() {
+
+    bool low_ram_device = property_get_bool("ro.config.low_ram", false);
+
+    if (low_ram_device) {
+        /* CAP_IPC_LOCK required */
+        if (mlockall(MCL_CURRENT | MCL_FUTURE | MCL_ONFAULT) && (errno != EINVAL)) {
+            ALOGE("composer service mlockall failed %s", strerror(errno));
+        } else {
+            ALOGD("composer service mlockall successfully %s", strerror(errno));
+        }
+    }
     // the conventional HAL might start binder services
     android::ProcessState::initWithDriver("/dev/vndbinder");
     android::ProcessState::self()->setThreadPoolMaxThreadCount(4);
