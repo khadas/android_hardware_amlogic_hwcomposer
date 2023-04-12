@@ -1885,12 +1885,17 @@ int ModePolicy::getDolbyVisionType() {
     return DOLBY_VISION_SET_DISABLE;
 }
 
-int32_t ModePolicy::setHdrConversionPolicy(bool passthrough) {
+int32_t ModePolicy::setHdrConversionPolicy(bool passthrough, int32_t forceType) {
     if (passthrough) {
         setBootEnv(UBOOTENV_HDR_POLICY, HDR_POLICY_SOURCE);
     } else {
         if (!isMboxSupportDolbyVision())
             setBootEnv(UBOOTENV_HDR_POLICY, HDR_POLICY_FORCE);
+        if (forceType == DRM_DOLBY_VISION) {
+            char dvstatus[MESON_MODE_LEN]   = {0};
+            sprintf(dvstatus, "%d", DOLBY_VISION_SET_ENABLE_LL_YUV);
+            setBootEnv(UBOOTENV_DOLBYSTATUS, dvstatus);
+        }
     }
 
     return 0;
@@ -1986,7 +1991,7 @@ void ModePolicy::applyDisplaySetting() {
 
     if (strstr(cur_hdr_policy.c_str(), hdr_policy) == NULL) {
         MESON_LOGI("set hdr policy from:%s to %s\n", cur_hdr_policy.c_str(), hdr_policy);
-        hdr_policy_change = true;
+        //hdr_policy_change = true;
     }
 
     if (!cvbsMode && (isMboxSupportDolbyVision() == false)) {
@@ -1994,6 +1999,8 @@ void ModePolicy::applyDisplaySetting() {
             if (strstr(hdr_policy, HDR_POLICY_SINK)) {
                 setDisplayAttribute(DISPLAY_HDR_POLICY, HDR_POLICY_SINK);
             } else if (strstr(hdr_policy, HDR_POLICY_SOURCE)) {
+                setDisplayAttribute(DISPLAY_HDR_POLICY, HDR_POLICY_SOURCE);
+            } else if (strstr(hdr_policy, HDR_POLICY_FORCE)) {
                 setDisplayAttribute(DISPLAY_HDR_POLICY, HDR_POLICY_SOURCE);
             }
         } else {

@@ -2015,7 +2015,7 @@ hwc2_error_t Hwc2Display::setHdrConversionStrategy(bool passThrough, uint32_t nu
         }
         if (forceType == -1) {
             if (mModePolicy)
-                mModePolicy->setHdrConversionPolicy(true);
+                mModePolicy->setHdrConversionPolicy(true, forceType);
             mConnector->setHdrConversionStrategy(true, forceType);
             return HWC2_ERROR_UNSUPPORTED;
         }
@@ -2023,7 +2023,7 @@ hwc2_error_t Hwc2Display::setHdrConversionStrategy(bool passThrough, uint32_t nu
     }
 
     if (mModePolicy)
-        mModePolicy->setHdrConversionPolicy(passThrough);
+        mModePolicy->setHdrConversionPolicy(passThrough, forceType);
     auto ret = mConnector->setHdrConversionStrategy(passThrough,forceType);
     return (hwc2_error_t) ret;
 
