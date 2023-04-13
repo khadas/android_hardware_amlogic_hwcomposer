@@ -600,9 +600,10 @@ int32_t AipqProcessor::teardown() {
     int cache_index;
 
     ALOGD("%s.\n", __FUNCTION__);
-    if (mInited && mThread)
+    if (mInited && mThread) {
         pthread_join(mThread, NULL);
-
+        mThread = 0;
+    }
     while (mBuf_fd_q.size() > 0)
     {
         std::lock_guard<std::mutex> lock(mMutex);
@@ -672,7 +673,6 @@ void * AipqProcessor::threadMain(void * data) {
     }
 
     ALOGD("%s exit.\n", __FUNCTION__);
-    pThis->mThread = 0;
     pthread_exit(0);
     return NULL;
 }

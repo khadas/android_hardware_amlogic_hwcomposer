@@ -180,6 +180,7 @@ NnProcessor::NnProcessor() {
     mDupCount = 0;
     mCloseCount = 0;
     mAllocThread = 0;
+    mThread = 0;
     mNnDoing = false;
     ALOGD("NnProcessor: end");
 }
@@ -561,8 +562,9 @@ int32_t NnProcessor::teardown() {
 
     ALOGD("%s.\n", __FUNCTION__);
 
-    if (mInited) {
+    if (mInited && mThread) {
         pthread_join(mThread, NULL);
+        mThread = 0;
         if (mAllocThread != 0)
             pthread_join(mAllocThread, NULL);
 
