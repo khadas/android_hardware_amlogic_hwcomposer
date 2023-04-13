@@ -173,15 +173,7 @@
 #define MODE_PAL_N                      "pal_n"
 #define MODE_NTSC_M                      "ntsc_m"
 
-#define MODE_480I_PREFIX                "480i"
-#define MODE_480P_PREFIX                "480p"
-#define MODE_576I_PREFIX                "576i"
-#define MODE_576P_PREFIX                "576p"
-#define MODE_720P_PREFIX                "720p"
-#define MODE_768P_PREFIX                "768p"
-#define MODE_1080I_PREFIX               "1080i"
 #define MODE_1080P_PREFIX               "1080p"
-#define MODE_4K2K_PREFIX                "2160p"
 #define MODE_4K2KSMPTE_PREFIX           "smpte"
 
 
@@ -210,22 +202,8 @@
 #define HDR_PROCESS                     "2"
 #define DV_PROCESS                      "3"
 
-#define FULL_WIDTH_480                  720
-#define FULL_HEIGHT_480                 480
-#define FULL_WIDTH_576                  720
-#define FULL_HEIGHT_576                 576
-#define FULL_WIDTH_720                  1280
-#define FULL_HEIGHT_720                 720
-#define FULL_WIDTH_768                  1366
-#define FULL_HEIGHT_768                 768
 #define FULL_WIDTH_1080                 1920
 #define FULL_HEIGHT_1080                1080
-#define FULL_WIDTH_4K2K                 3840
-#define FULL_HEIGHT_4K2K                2160
-#define FULL_WIDTH_4K2KSMPTE            4096
-#define FULL_HEIGHT_4K2KSMPTE           2160
-#define FULL_WIDTH_PANEL                1024
-#define FULL_HEIGHT_PANEL               600
 
 typedef enum {
     OUTPUT_MODE_STATE_INIT               = 0,

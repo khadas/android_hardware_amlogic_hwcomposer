@@ -1379,62 +1379,44 @@ void ModePolicy::getPosition(const char* curMode, int *position) {
     char ubootvar[100] = {0};
     int defaultWidth = 0;
     int defaultHeight = 0;
-    if (strstr(curMode, MODE_480CVBS)) {
-        strcpy(keyValue, MODE_480CVBS);
-        defaultWidth = FULL_WIDTH_480;
-        defaultHeight = FULL_HEIGHT_480;
-    } else if (strstr(curMode, "480")) {
-        strcpy(keyValue, strstr(curMode, MODE_480P_PREFIX) ? MODE_480P_PREFIX : MODE_480I_PREFIX);
-        defaultWidth = FULL_WIDTH_480;
-        defaultHeight = FULL_HEIGHT_480;
-    } else if (strstr(curMode, MODE_576CVBS)) {
-        strcpy(keyValue, MODE_576CVBS);
-        defaultWidth = FULL_WIDTH_576;
-        defaultHeight = FULL_HEIGHT_576;
-    } else if (strstr(curMode, "576")) {
-        strcpy(keyValue, strstr(curMode, MODE_576P_PREFIX) ? MODE_576P_PREFIX : MODE_576I_PREFIX);
-        defaultWidth = FULL_WIDTH_576;
-        defaultHeight = FULL_HEIGHT_576;
-    } else if (strstr(curMode, MODE_PAL_M)) {
-        strcpy(keyValue, MODE_PAL_M);
-        defaultWidth = FULL_WIDTH_480;
-        defaultHeight = FULL_HEIGHT_480;
-    } else if (strstr(curMode, MODE_PAL_N)) {
-        strcpy(keyValue, MODE_PAL_N);
-        defaultWidth = FULL_WIDTH_576;
-        defaultHeight = FULL_HEIGHT_576;
-    } else if (strstr(curMode, MODE_NTSC_M)) {
-        strcpy(keyValue, MODE_NTSC_M);
-        defaultWidth = FULL_WIDTH_480;
-        defaultHeight = FULL_HEIGHT_480;
-    } else if (strstr(curMode, MODE_720P_PREFIX)) {
-        strcpy(keyValue, MODE_720P_PREFIX);
-        defaultWidth = FULL_WIDTH_720;
-        defaultHeight = FULL_HEIGHT_720;
-    } else if (strstr(curMode, MODE_768P_PREFIX)) {
-        strcpy(keyValue, MODE_768P_PREFIX);
-        defaultWidth = FULL_WIDTH_768;
-        defaultHeight = FULL_HEIGHT_768;
-    } else if (strstr(curMode, MODE_1080I_PREFIX)) {
-        strcpy(keyValue, MODE_1080I_PREFIX);
-        defaultWidth = FULL_WIDTH_1080;
-        defaultHeight = FULL_HEIGHT_1080;
-    } else if (strstr(curMode, MODE_1080P_PREFIX)) {
-        strcpy(keyValue, MODE_1080P_PREFIX);
-        defaultWidth = FULL_WIDTH_1080;
-        defaultHeight = FULL_HEIGHT_1080;
-    } else if (strstr(curMode, MODE_4K2K_PREFIX)) {
-        strcpy(keyValue, MODE_4K2K_PREFIX);
-        defaultWidth = FULL_WIDTH_4K2K;
-        defaultHeight = FULL_HEIGHT_4K2K;
-    } else if (strstr(curMode, MODE_4K2KSMPTE_PREFIX)) {
-        strcpy(keyValue, "4k2ksmpte");
-        defaultWidth = FULL_WIDTH_4K2KSMPTE;
-        defaultHeight = FULL_HEIGHT_4K2KSMPTE;
-    } else if (strstr(curMode, MODE_PANEL)) {
-        strcpy(keyValue, MODE_PANEL);
-        defaultWidth = FULL_WIDTH_PANEL;
-        defaultHeight = FULL_HEIGHT_PANEL;
+    std::map<uint32_t, drm_mode_info_t> connecterModeList;
+    drm_mode_info_t mode;
+
+    if (mConnector->isConnected()) {
+        mConnector->getModes(connecterModeList);
+
+        for (auto it = connecterModeList.begin(); it != connecterModeList.end(); it++) {
+            if (mConnector->getType() == DRM_MODE_CONNECTOR_TV) {
+                if (strstr(curMode, it->second.name)) {
+                    strcpy(keyValue, curMode);
+                    mode = it->second;
+                    break;
+                }
+            } else {
+                if (strstr(curMode, MODE_4K2KSMPTE_PREFIX)) {
+                    strcpy(keyValue, "4k2ksmpte");
+                    mode = it->second;
+                    break;
+                } else if (strstr(curMode, MODE_PANEL)) {
+                    strcpy(keyValue, MODE_PANEL);
+                    mode = it->second;
+                    break;
+                } else if (strstr(curMode, it->second.name)) {
+                    if (strchr(curMode,'p')) {
+                        strncpy(keyValue, curMode, strchr(curMode,'p') - curMode + 1);
+                    } else if (strchr(curMode,'i')){
+                        strncpy(keyValue, curMode, strchr(curMode,'i') - curMode + 1);
+                    }
+                    mode = it->second;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (keyValue[0] != '0') {
+        defaultWidth = mode.pixelW;
+        defaultHeight = mode.pixelH;
     } else {
         strcpy(keyValue, MODE_1080P_PREFIX);
         defaultWidth = FULL_WIDTH_1080;
@@ -1471,34 +1453,34 @@ void ModePolicy::setPosition(const char* curMode, int left, int top, int width, 
 
     char keyValue[20] = {0};
     char ubootvar[100] = {0};
-    if (strstr(curMode, MODE_480CVBS)) {
-        strcpy(keyValue, MODE_480CVBS);
-    } else if (strstr(curMode, "480")) {
-        strcpy(keyValue, strstr(curMode, MODE_480P_PREFIX) ? MODE_480P_PREFIX : MODE_480I_PREFIX);
-    } else if (strstr(curMode, MODE_576CVBS)) {
-        strcpy(keyValue, MODE_576CVBS);
-    } else if (strstr(curMode, "576")) {
-        strcpy(keyValue, strstr(curMode, MODE_576P_PREFIX) ? MODE_576P_PREFIX : MODE_576I_PREFIX);
-    } else if (strstr(curMode, MODE_PAL_M)) {
-        strcpy(keyValue, MODE_PAL_M);
-    } else if (strstr(curMode, MODE_PAL_N)) {
-        strcpy(keyValue, MODE_PAL_N);
-    } else if (strstr(curMode, MODE_NTSC_M)) {
-        strcpy(keyValue, MODE_NTSC_M);
-    } else if (strstr(curMode, MODE_720P_PREFIX)) {
-        strcpy(keyValue, MODE_720P_PREFIX);
-    } else if (strstr(curMode, MODE_768P_PREFIX)) {
-        strcpy(keyValue, MODE_768P_PREFIX);
-    } else if (strstr(curMode, MODE_1080I_PREFIX)) {
-        strcpy(keyValue, MODE_1080I_PREFIX);
-    } else if (strstr(curMode, MODE_1080P_PREFIX)) {
-        strcpy(keyValue, MODE_1080P_PREFIX);
-    } else if (strstr(curMode, MODE_4K2K_PREFIX)) {
-        strcpy(keyValue, MODE_4K2K_PREFIX);
-    } else if (strstr(curMode, MODE_4K2KSMPTE_PREFIX)) {
-        strcpy(keyValue, "4k2ksmpte");
-    } else if (strstr(curMode, MODE_PANEL)) {
-        strcpy(keyValue, MODE_PANEL);
+    std::map<uint32_t, drm_mode_info_t> connecterModeList;
+
+    if (mConnector->isConnected()) {
+        mConnector->getModes(connecterModeList);
+
+        for (auto it = connecterModeList.begin(); it != connecterModeList.end(); it++) {
+            if (mConnector->getType() == DRM_MODE_CONNECTOR_TV) {
+                if (strstr(curMode, it->second.name)) {
+                    strcpy(keyValue, curMode);
+                    break;
+                }
+            } else {
+                if (strstr(curMode, MODE_4K2KSMPTE_PREFIX)) {
+                    strcpy(keyValue, "4k2ksmpte");
+                    break;
+                } else if (strstr(curMode, MODE_PANEL)) {
+                    strcpy(keyValue, MODE_PANEL);
+                    break;
+                } else if (strstr(curMode, it->second.name)) {
+                    if (strchr(curMode,'p')) {
+                        strncpy(keyValue, curMode, strchr(curMode,'p') - curMode + 1);
+                    } else if (strchr(curMode,'i')){
+                        strncpy(keyValue, curMode, strchr(curMode,'i') - curMode + 1);
+                    }
+                    break;
+                }
+            }
+        }
     }
 
     pthread_mutex_lock(&mEnvLock);
