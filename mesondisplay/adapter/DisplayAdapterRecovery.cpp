@@ -332,6 +332,14 @@ bool DisplayAdapterLocal::hideVideoLayer(bool hide) {
     return ret;
 }
 
+bool DisplayAdapterLocal::setHdrConversionStrategy(uint32_t passThrough, uint32_t forceMode) {
+    bool ret = false;
+    UNUSED(passThrough);
+    UNUSED(forceMode);
+    NOTIMPLEMENTED;
+    return ret;
+}
+
 bool DisplayAdapterLocal::setDisplayRect(const Rect rect, ConnectorType displayType) {
     bool ret = false;
     UNUSED(rect);

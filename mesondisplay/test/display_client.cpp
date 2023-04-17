@@ -38,6 +38,7 @@ static const struct option long_option[] = {
     {"h",required_argument,0,'h'},
     {"sync-protection",required_argument,0,'P'},
     {"disable-sideband",required_argument,0,'p'},
+    {"R", required_argument, 0, 'R'},
     {0, 0, 0, 0}
 };
 
@@ -61,6 +62,7 @@ static void print_usage(const char* name) {
             "       -h,--hide the video layer \t  hide the video layer\n "
             "       -p,--disable-sideband  \t  disable [false|true]side band \n "
             "       -P,--sync Protection control \t  sync Protection control\n "
+            "       -R,--set-hdr-conversionstrategy \tset [strategy] [fource type]\n"
             "       -r,--raw-cmd           \tsend raw cmd\n", name);
 }
 
@@ -248,6 +250,14 @@ int main(int argc, char* argv[]) {
                       }
                       client->enableSyncProtection(mode);
                       printf("the sync Protection switch to %s \n", mode ? "true":"false");
+                  }
+                break;
+            case 'R':
+                 if (optarg == NULL)
+                     break;
+                  {
+                      client->setHdrConversionStrategy(atoi(optarg),atoi(argv[optind]));
+                      printf("setHdrConversionStrategy %s %s \n", optarg, argv[optind]);
                   }
                 break;
             default:

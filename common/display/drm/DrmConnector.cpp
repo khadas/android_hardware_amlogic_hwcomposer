@@ -46,8 +46,8 @@
 #define DV_SINK_LED                   "0"
 #define DV_SOURCE_LED                 "1"
 
-#define DV_DISABLE_FORCE_SDR         "5"
-#define DV_ENABLE_FORCE_SDR          "1"
+#define DV_DISABLE_FORCE_SDR         "1"
+#define DV_ENABLE_FORCE_SDR          "5"
 
 static const u8 default_1080p_edid[EDID_MIN_LEN] = {
 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00,

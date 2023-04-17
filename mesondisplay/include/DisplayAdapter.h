@@ -126,6 +126,8 @@ public:
     virtual bool hideVideoLayer(bool hide) = 0;
     virtual bool enableSyncProtection(bool mode) = 0;
 
+    virtual bool setHdrConversionStrategy(uint32_t passThrough, uint32_t forcemode);
+
     virtual bool setDisplayRect(const Rect rect, ConnectorType displayType) {
         UNUSED(rect);
         UNUSED(displayType);

@@ -79,6 +79,7 @@ public:
     bool hideVideoLayer(bool hide) override;
     bool enableSyncProtection(bool mode) override;
     bool disableSidebandStream(bool isDisable) override;
+    bool setHdrConversionStrategy(uint32_t passThrough, uint32_t forceMode) override;
 
     static std::shared_ptr<DisplayAdapter> create(DisplayAdapter::BackendType type);
     DisplayAdapterLocal();

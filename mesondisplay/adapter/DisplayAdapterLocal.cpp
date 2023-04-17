@@ -312,6 +312,12 @@ bool DisplayAdapterLocal::hideVideoLayer(bool hide){
     return true;
 }
 
+bool DisplayAdapterLocal::setHdrConversionStrategy(uint32_t passThrough, uint32_t forceMode) {
+    uint32_t preferredHdrOutputType = -1;
+    MesonHwc2::getInstance().setHdrConversionStrategy(passThrough, 1, &forceMode, &preferredHdrOutputType);
+    return true;
+}
+
 bool DisplayAdapterLocal::setDisplayRect(const Rect rect, ConnectorType displayType) {
     bool ret = false;
     drm_connector_type_t type;

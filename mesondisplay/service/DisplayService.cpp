@@ -244,6 +244,10 @@ void DisplayServer::message_handle(Json::Value& in, Json::Value& out) {
         if (in["value"].asString() == "true" )
             mode = true;
         mAdapter->enableSyncProtection(mode);
+    } else if (cmd == "setHdrConversionStrategy") {
+        if (!in.isMember("passThrough") || !in.isMember("forceMode"))
+            goto OUT;
+        mAdapter->setHdrConversionStrategy(in["passThrough"].asUInt(), in["forceMode"].asUInt());
     } else {
         MESON_LOGE("CMD not implement!");
     }

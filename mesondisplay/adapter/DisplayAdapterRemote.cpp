@@ -141,6 +141,16 @@ bool DisplayAdapterRemote::hideVideoLayer(bool hide) {
     return true;
 }
 
+bool DisplayAdapterRemote::setHdrConversionStrategy(uint32_t passThrough, uint32_t forceMode) {
+    Json::Value cmd;
+    IF_SERVER_NOT_READY_RETURN(false);
+    cmd["cmd"] = "setHdrConversionStrategy";
+    cmd["passThrough"] = passThrough;
+    cmd["forceMode"] = forceMode;
+    ipc->send_request(cmd);
+    return true;
+}
+
 bool DisplayAdapterRemote::setDisplayRect(const Rect rect, ConnectorType displayType) {
     Json::Value cmd;
     IF_SERVER_NOT_READY_RETURN(false);
