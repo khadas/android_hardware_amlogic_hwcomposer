@@ -484,7 +484,9 @@ void MultiplanesWithHRComposition::handleNonLegacySidebandVideoFbs(
     bool have8K60HZ = false;
     std::shared_ptr<DrmFramebuffer> fb;
     uint32_t videoZ, usedPlanes = 0;
+#ifdef MESON_HWC_RESOLUTION_AND_REFRESH_RATE_LIMIT
     int videoType;
+#endif
     int videoFbNum = mDIComposerFbs.size();
 
     if (videoFbNum == 0)
@@ -502,6 +504,7 @@ void MultiplanesWithHRComposition::handleNonLegacySidebandVideoFbs(
     if (videoFbNum > mVideoPlaneNum)
         bVideoCompose = true;
 
+#ifdef MESON_HWC_RESOLUTION_AND_REFRESH_RATE_LIMIT
     if (mVsyncOverDefault) {
         while (true) {
             if (!chooseOneVideoFb(fb)) {
@@ -536,6 +539,7 @@ void MultiplanesWithHRComposition::handleNonLegacySidebandVideoFbs(
             }
         }
     } else {
+#endif
         if (checkAndHandle4Mosaic(minVideoZ)) {
             return;
         }
@@ -613,7 +617,9 @@ void MultiplanesWithHRComposition::handleNonLegacySidebandVideoFbs(
         /* removed used planes from mHwcVideoPlanes */
         for (uint32_t i = 0; i < usedPlanes; i++)
             mHwcVideoPlanes.erase(mHwcVideoPlanes.begin());
+#ifdef MESON_HWC_RESOLUTION_AND_REFRESH_RATE_LIMIT
     }
+#endif
 }
 
 int MultiplanesWithHRComposition::processVideoFbs() {
@@ -1456,12 +1462,10 @@ void MultiplanesWithHRComposition::setup(
     mCrtc = crtc;
     mDisplayMode = mode;
 
-#ifdef MESON_HWC_RESOLUTION_AND_REFRESH_RATE_LIMIT
     // need remove limitation of refrash rate
     if (mode.refreshRate > DEFAULT_REFRESH_RATE) {
         mVsyncOverDefault = true;
     }
-#endif
 
     /* add layers */
     auto layerIt = layers.begin();
