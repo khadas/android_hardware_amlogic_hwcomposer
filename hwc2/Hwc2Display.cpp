@@ -1179,14 +1179,14 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
 
     /*check power mode*/
     if (mPowerMode->needBlankScreen(mPresentLayers.size())) {
+        /*set all layers to dummy*/
+        Hwc2Layer *layer;
+        for (auto it = mPresentLayers.begin() ; it != mPresentLayers.end(); it++) {
+            layer = (Hwc2Layer*)(it->get());
+            layer->mCompositionType = MESON_COMPOSITION_DUMMY;
+        }
         if (!mPowerMode->getScreenStatus()) {
             MESON_LOGV("Need to blank screen.");
-            /*set all layers to dummy*/
-            Hwc2Layer *layer;
-            for (auto it = mPresentLayers.begin() ; it != mPresentLayers.end(); it++) {
-                layer = (Hwc2Layer*)(it->get());
-                layer->mCompositionType = MESON_COMPOSITION_DUMMY;
-            }
             mConfirmSkip = true;
          //   mPresentLayers.clear();
         } else {
@@ -1208,14 +1208,14 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
         if (mPresentCompositionStg->decideComposition() < 0)
             return HWC2_ERROR_NO_RESOURCES;
 
-        /*collect changed dispplay, layer, composition.*/
-        ret = collectCompositionRequest(outNumTypes, outNumRequests);
     } else {
         /* skip Composition */
         std::shared_ptr<IComposer> clientComposer =
             mComposers.find(MESON_CLIENT_COMPOSER)->second;
         clientComposer->prepare();
     }
+    /*collect changed dispplay, layer, composition.*/
+    ret = collectCompositionRequest(outNumTypes, outNumRequests);
 
     if (mPowerMode->getScreenStatus()) {
         mProcessorFlags |= PRESENT_BLANK;
