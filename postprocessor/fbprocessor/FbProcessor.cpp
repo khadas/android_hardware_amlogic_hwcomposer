@@ -17,6 +17,9 @@
 #ifdef ENABLE_VIDEO_AIPQ
 #include "AipqProcessor.h"
 #endif
+#ifdef ENABLE_VIDEO_AIFACE
+#include "AiFaceProcessor.h"
+#endif
 #include "CompositionProcessor.h"
 
 extern int32_t createKeystoneCorrection(
@@ -47,6 +50,11 @@ int32_t createFbProcessor(
 #ifdef ENABLE_VIDEO_AIPQ
         case FB_AIPQ_PROCESSOR:
             processor = std::make_shared<AipqProcessor>();
+            break;
+#endif
+#ifdef ENABLE_VIDEO_AIFACE
+        case FB_AIFACE_PROCESSOR:
+            processor = std::make_shared<AiFaceProcessor>();
             break;
 #endif
         case FB_RENDER_PROCESSOR:

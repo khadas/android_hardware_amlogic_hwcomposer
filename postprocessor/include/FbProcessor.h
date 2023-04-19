@@ -20,6 +20,9 @@ typedef enum {
     FB_AISR_PROCESSOR,
     FB_AIPQ_PROCESSOR,
     FB_RENDER_PROCESSOR,
+    FB_DALTON_PROCESSOR,
+    FB_AIFACE_PROCESSOR,
+    FB_AICOLOR_PROCESSOR,
 } meson_fb_processor_t;
 
 class FbProcessor {

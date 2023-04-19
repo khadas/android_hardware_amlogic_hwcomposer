@@ -18,7 +18,6 @@
 
 #define SR_OUT_BUF_COUNT 5
 
-#define META_DATA_SIZE      (256)
 #define NN_MODE_COUNT       (6)
 
 enum buf_status_e {

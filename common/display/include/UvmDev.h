@@ -12,7 +12,7 @@
 
 #include <utils/Singleton.h>
 
-#define META_DATA_SIZE       (256)
+#define META_DATA_SIZE       (512)
 
 enum uvm_hook_mod_type {
     VF_SRC_DECODER,

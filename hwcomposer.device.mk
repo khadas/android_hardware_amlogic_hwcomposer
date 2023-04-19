@@ -97,6 +97,10 @@ ifndef HWC_VIDEO_AIPQ
 HWC_VIDEO_AIPQ := false
 endif
 
+ifndef HWC_VIDEO_AIFACE
+HWC_VIDEO_AIFACE := false
+endif
+
 ifndef HWC_VT_HW_VSYNC
 HWC_VT_HW_VSYNC := false
 endif
@@ -149,6 +153,7 @@ $(call soong_config_set,meson_hwc,enable_aidl,$(HWC_ENABLE_AIDL))
 $(call soong_config_set,meson_hwc,enable_video_aisr,$(HWC_VIDEO_AISR))
 $(call soong_config_set,meson_hwc,enable_vt_hwVsync,$(HWC_VT_HW_VSYNC))
 $(call soong_config_set,meson_hwc,enable_video_aipq,$(HWC_VIDEO_AIPQ))
+$(call soong_config_set,meson_hwc,enable_video_aiface,$(HWC_VIDEO_AIFACE))
 $(call soong_config_set,meson_hwc,enable_uvm_dettach,$(HWC_UVM_DETTACH))
 $(call soong_config_set,meson_hwc,filter_16_9mode,$(HWC_FILTER_16_9MODE))
 $(call soong_config_set,meson_hwc,android_platform_sdk_extension_version,$(PLATFORM_SDK_EXTENSION_VERSION))

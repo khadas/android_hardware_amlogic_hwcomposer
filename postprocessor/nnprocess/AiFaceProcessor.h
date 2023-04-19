@@ -7,41 +7,39 @@
  * Description:
  */
 
-#ifndef AIPQ_PROCESSOR_H
-#define AIPQ_PROCESSOR_H
+#ifndef AIFACE_PROCESSOR_H
+#define AIFACE_PROCESSOR_H
 
 #include <FbProcessor.h>
 #include <queue>
 #include <linux/ion.h>
 #include <ion/ion.h>
 #include <UvmDev.h>
-#include "pq_sdk.h"
+#include "face_sdk.h"
 
-#define NN_INPUT_FRAME_WIDTH_DEFAULT    224
-#define NN_INPUT_FRAME_HEIGHT_DEFAULT   224
-#define MAX_SCENE 7
-#define AI_OUT_SCENE 5
-#define AI_PQ_TOP AI_OUT_SCENE
-#define AIPQ_MAX_CACHE_COUNT 5
-#define AIPQ_NB_PATH            "/vendor/bin/nn/PQNet.nb"
-#define AIPQ_SCENE_DATA_PATH    "/vendor/etc/scenes_data.txt"
-#define AIPQ_SKIP_FRAME_HEIGHT    1088
+#define AIFACE_INPUT_WIDTH    512
+#define AIFACE_INPUT_HEIGH    288
+#define AIFACE_INPUT_CHANNEL  1
+#define AIFACE_INPUT_ROTMAT   1  //1:RGB data  2:YUV gray data
 
-struct aipq_buffer_t {
+#define MAX_FACE_COUNT 10
+#define AIFACE_MAX_CACHE_COUNT 5
+
+struct aiface_buffer_t {
     int fd;
     void *fd_ptr; //only for non-nativebuffer!
     int size;
     buffer_handle_t buffer_handle;
 };
 
-enum aipq_get_info_type_e {
-        AIPQ_GET_INVALID = 0,
-        AIPQ_GET_224_DATA = 1,
-        AIPQ_GET_INDEX_INFO = 2,
-        AIPQ_GET_BASIC_INFO = 3,
+enum aiface_get_info_type_e {
+        AIFACE_GET_INVALID = 0,
+        AIFACE_GET_RGB_DATA = 1,
+        AIFACE_GET_INDEX_INFO = 2,
+        AIFACE_GET_BASIC_INFO = 3,
 };
 
-struct aipq_time_info_t {
+struct aiface_time_info_t {
     int64_t count;
     uint64_t max_time;
     uint64_t min_time;
@@ -49,48 +47,56 @@ struct aipq_time_info_t {
     uint64_t avg_time;
 };
 
-struct nn_value_t {
-    int maxclass;
-    int maxprob;
+struct face_value_t
+{
+    int32_t x;
+    int32_t y;
+    int32_t w;
+    int32_t h;
+    int32_t score;
 };
 
-/*hwc attach aipq info*/
-struct uvm_aipq_info {
+/*hwc attach aiface info*/
+struct uvm_aiface_info {
     int32_t shared_fd;
-    int32_t aipq_fd;
-    struct nn_value_t nn_value[AI_PQ_TOP];
-    int32_t aipq_buf_index;
-    int32_t aipq_value_index;
+    int32_t aiface_fd;
+    int64_t buf_phy_addr;
+    struct face_value_t nn_value[MAX_FACE_COUNT];
+    int32_t aiface_buf_index;
+    int32_t aiface_value_index;
     int32_t get_info_type;
-    int32_t need_do_aipq;
+    int32_t need_do_aiface;
     int32_t repeat_frame;
     int32_t dw_width;
     int32_t dw_height;
     int32_t nn_input_frame_width;
     int32_t nn_input_frame_height;
+    int32_t nn_input_frame_format;
+    int32_t nn_status;
+    int32_t omx_index;
+    void *dma_buf_addr;
 };
 
-struct uvm_aipq_info_t {
+struct uvm_aiface_info_t {
     enum uvm_hook_mod_type mode_type;
     int shared_fd;
-    struct uvm_aipq_info aipq_info;
+    struct uvm_aiface_info aiface_info;
 };
 
-union uvm_aipq_ioctl_arg {
+union uvm_aiface_ioctl_arg {
     struct uvm_hook_data hook_data;
-    struct uvm_aipq_info uvm_info;
+    struct uvm_aiface_info uvm_info;
 };
 
-struct aipq_index_value_t {
+struct aiface_index_value_t {
     int buf_index;
-    int pq_value_index;
     int shared_fd;
 };
 
-class AipqProcessor : public FbProcessor {
+class AiFaceProcessor : public FbProcessor {
 public:
-    AipqProcessor();
-    ~AipqProcessor();
+    AiFaceProcessor();
+    ~AiFaceProcessor();
 
     int32_t setup();
     int32_t process(
@@ -109,8 +115,8 @@ public:
     void triggerEvent();
     void threadProcess();
     int32_t waitEvent(int microseconds);
-    static void *mNn_qcontext;
-    static bool mModelLoaded;
+    void *mNn_qcontext;
+    bool mModelLoaded;
     mutable std::mutex mMutex;
     mutable std::mutex mMutex_index;
     std::queue<int> mBuf_fd_q;
@@ -119,8 +125,7 @@ public:
     pthread_t mThread;
     bool mExitThread;
     bool mInited;
-    int32_t ai_pq_process(int input_fd);
-    void nn_value_reorder(img_classify_out_t *nn_out, struct nn_value_t *scenes);
+    int32_t ai_face_process(int input_fd);
     void dump_nn_info();
     int PropGetInt(const char* str, int def);
     int check_D();
@@ -128,25 +133,30 @@ public:
     pthread_cond_t m_waitCond;
     int mUvmHandler;
     int mNn_Index;
-    static struct aipq_time_info_t mTime;
+    static struct aiface_time_info_t mTime;
     static int mInstanceID;
     static int mLogLevel;
+    static std::mutex mMutexAi;
     bool mBuf_Alloced;
     bool mNnDoing;
-    aipq_buffer_t mAipq_Buf;
-    int mNnInputVframeWidth;
-    int mNnInputVframeHeight;
+    aiface_buffer_t mAiFace_Buf;
     int mDumpIndex;
-    static int mSkin_index_class1;
-    static int mSkin_index_class2;
     int64_t mDupCount;
     int64_t mCloseCount;
     static int64_t mTotalDupCount;
     static int64_t mTotalCloseCount;
-    struct nn_value_t mLastNnValue[AI_PQ_TOP];
-    struct aipq_index_value_t mAipqIndex[AIPQ_MAX_CACHE_COUNT];
+    struct aiface_index_value_t mAiFaceIndex[AIFACE_MAX_CACHE_COUNT];
     int mCacheIndex;
     int mBuf_index;
+    int mVInfo_width;
+    int mVInfo_height;
+    int mNnInputWidth;
+    int mNnInputHeight;
+    int mNnInputChannel;
+    int mNnInputFormat;
+    void *mDmaBufAddr;
+    face_landmark5_out_t nn_out_temp;
 };
 
 #endif
+
