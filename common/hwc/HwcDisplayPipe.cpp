@@ -149,11 +149,12 @@ int32_t HwcDisplayPipe::getPlanes(
 
 int32_t HwcDisplayPipe::getConnector(
     drm_connector_type_t type, std::shared_ptr<HwDisplayConnector> & connector) {
+    int getRet = 0;
     auto it = mConnectors.find(type);
     if (it != mConnectors.end()) {
         connector = it->second;
     } else {
-        int32_t getRet = getHwDisplayManager()->getConnector(connector, type);
+        getRet = getHwDisplayManager()->getConnector(connector, type);
         if (getRet == 0) {
             mConnectors.emplace(type, connector);
             /*TODO: init current status, for we may need it later.*/
@@ -161,7 +162,7 @@ int32_t HwcDisplayPipe::getConnector(
         }
     }
 
-    return 0;
+    return getRet;
 }
 
 int32_t HwcDisplayPipe::getPostProcessor(
@@ -446,6 +447,18 @@ int32_t HwcDisplayPipe::initDisplayMode(std::shared_ptr<PipeStat> & stat) {
     stat->modeCrtc->setPendingMode();
     return 0;
 }
+
+bool HwcDisplayPipe::hasDummyConnector() {
+    // Drm backend
+    if (access("/dev/dri/card0", R_OK | W_OK) == 0) {
+        std::shared_ptr<HwDisplayConnector> dummyConnector;
+        if (getConnector(DRM_MODE_CONNECTOR_VIRTUAL, dummyConnector) == 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
 
 void HwcDisplayPipe::dump(String8 & dumpstr) {
     getHwDisplayManager()->dump(dumpstr);

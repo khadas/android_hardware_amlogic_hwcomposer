@@ -443,18 +443,16 @@ void Hwc2Display::onHotplug(bool connected) {
             bSendPlugOut = true;
         }
     }
-    /*call hotplug out of lock, SF may call some hwc function to cause deadlock.*/
-    if (bSendPlugOut) {
-        /* when hdmi plugout, send CONNECT message for "hdmi-only" */
-        if (mConnector && mConnector->getType() == DRM_MODE_CONNECTOR_HDMIA) {
-            mModeMgr->update();
+    /* call hotplug out of lock, SF may call some hwc function to cause deadlock.*/
+    /* switch to software vsync when hdmi plug out and no cvbs mode */
+    /* when hdmi plugout, send CONNECT message for "hdmi-only" */
+    if (mConnector && (mConnector->getType() == DRM_MODE_CONNECTOR_HDMIA ||
+                mConnector->getType() == DRM_MODE_CONNECTOR_VIRTUAL)) {
+        mVsync->setSoftwareMode();
+        mModeMgr->update();
+        if (bSendPlugOut) {
             mObserver->onHotplug(connected);
         }
-    }
-
-    /* switch to software vsync when hdmi plug out and no cvbs mode */
-    if (mConnector && mConnector->getType() == DRM_MODE_CONNECTOR_HDMIA) {
-        mVsync->setSoftwareMode();
     }
 
     /* wake up the setActiveConfig, if hdmi plug out */
@@ -2229,7 +2227,10 @@ bool Hwc2Display::getDisplayVsyncAndPeriod(int64_t& timestamp, int32_t& vsyncPer
 }
 
 bool Hwc2Display::isDisplayConnected() {
-    return (mConnector == nullptr)?false:mConnector->isConnected();
+    if (mConnector->getType() == DRM_MODE_CONNECTOR_VIRTUAL)
+        return false;
+
+    return mConnector ? mConnector->isConnected() : false;
 }
 
 std::unordered_map<hwc2_layer_t, std::shared_ptr<Hwc2Layer>> Hwc2Display::getAllLayers() {

@@ -31,8 +31,6 @@ ANDROID_SINGLETON_STATIC_INSTANCE(HwDisplayEventListener)
 
 #define UEVENT_MAX_LEN (4096)
 
-#define OLD_EVENT_STATE_ENABLE "SWITCH_STATE=1"
-#define OLD_EVENT_STATE_DISABLE "SWITCH_STATE=0"
 #define NEW_EVENT_STATE_ENABLE "hdmitx_hpd=1"
 #define NEW_EVENT_STATE_DISABLE "hdmitx_hpd=0"
 #define VOUT_EVENT_MODESWITCH_BEGIN "vout_setmode=1"
@@ -53,7 +51,6 @@ typedef struct drm_uevent_info {
 }drm_uevent_info_t;
 
 /*load uevent parser*/
-#if PLATFORM_SDK_VERSION >= 28
 static drm_uevent_info_t mUeventParser[] = {
     {HDMITX_HOTPLUG_EVENT, DRM_EVENT_HDMITX_HOTPLUG,
         NEW_EVENT_STATE_ENABLE, NEW_EVENT_STATE_DISABLE},
@@ -65,23 +62,9 @@ static drm_uevent_info_t mUeventParser[] = {
         VOUT2_EVENT_MODESWITCH_COMPLETE, VOUT2_EVENT_MODESWITCH_BEGIN},
     {VOUT3_MODE_EVENT, DRM_EVENT_VOUT3_MODE_CHANGED,
         VOUT3_EVENT_MODESWITCH_COMPLETE, VOUT3_EVENT_MODESWITCH_BEGIN},
-    {HDMITX_HOTPLUG_EVENT, DRM_EVENT_HDMITX_HOTPLUG,
+    {HDMITX_HOTPLUG_EVENT, DRM_EVENT_HDMITX_SUSPEND_RESUME,
         RESUME_EVENT_STATE, SUSPEND_EVENT_STATE},
 };
-#else
-static drm_uevent_info_t mUeventParser[] = {
-    {HDMITX_HOTPLUG_EVENT, DRM_EVENT_HDMITX_HOTPLUG,
-        OLD_EVENT_STATE_ENABLE, OLD_EVENT_STATE_DISABLE},
-    {HDMITX_HDCP_EVENT, DRM_EVENT_HDMITX_HDCP,
-        OLD_EVENT_STATE_ENABLE, OLD_EVENT_STATE_DISABLE},
-    {VOUT_MODE_EVENT, DRM_EVENT_VOUT1_MODE_CHANGED,
-        OLD_EVENT_STATE_ENABLE, OLD_EVENT_STATE_DISABLE},
-    {VOUT2_MODE_EVENT, DRM_EVENT_VOUT2_MODE_CHANGED,
-        OLD_EVENT_STATE_ENABLE, OLD_EVENT_STATE_DISABLE},
-    {HDMITX_HOTPLUG_EVENT, DRM_EVENT_HDMITX_HOTPLUG,
-        RESUME_EVENT_STATE, SUSPEND_EVENT_STATE},
-};
-#endif
 
 HwDisplayEventListener::HwDisplayEventListener()
     :   mUeventMsg(NULL),
@@ -223,6 +206,11 @@ int32_t HwDisplayEventListener::handle(drm_display_event event, int val) {
     std::multimap<drm_display_event, HwDisplayEventHandler *>::iterator it;
     for (it = mEventHandler.begin(); it != mEventHandler.end(); it++) {
         if (it->first == event || it->first == DRM_EVENT_ALL)
+            // handle suspend and resume as hotplug event
+            if (event == DRM_EVENT_HDMITX_SUSPEND_RESUME) {
+                event = DRM_EVENT_HDMITX_HOTPLUG;
+                val = val ? DRM_EVENT_RESUME : DRM_EVENT_SUSPEND;
+            }
             it->second->handleEvent(event, val);
     }
 
@@ -237,6 +225,7 @@ int32_t HwDisplayEventListener::registerHandler(
         case DRM_EVENT_HDMITX_HDCP:
         case DRM_EVENT_VOUT1_MODE_CHANGED:
         case DRM_EVENT_VOUT2_MODE_CHANGED:
+        case DRM_EVENT_HDMITX_SUSPEND_RESUME:
         case DRM_EVENT_ALL:
             mEventHandler.insert(std::make_pair(event, handler));
             createThread();

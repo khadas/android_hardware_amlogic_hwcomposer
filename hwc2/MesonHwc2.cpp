@@ -168,6 +168,7 @@ int32_t MesonHwc2::registerCallback(int32_t descriptor,
                 for (int i = 1; i < HwcConfig::getDisplayNum(); i ++) {
                     GET_HWC_DISPLAY(i);
                     if (hwcDisplay->isDisplayConnected()) {
+                        MESON_LOGD("%s sent hotplug display:%d", __func__, i);
                         mHotplugFn(mHotplugData, i, HWC2_CONNECTION_CONNECTED);
                     }
                 }

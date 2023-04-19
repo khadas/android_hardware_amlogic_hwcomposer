@@ -188,8 +188,17 @@ typedef enum {
     DRM_EVENT_VOUT1_MODE_CHANGED,
     DRM_EVENT_VOUT2_MODE_CHANGED,
     DRM_EVENT_VOUT3_MODE_CHANGED,
+    DRM_EVENT_HDMITX_SUSPEND_RESUME,
     DRM_EVENT_ALL = 0xFF
 } drm_display_event;
+
+typedef enum {
+    DRM_EVENT_DISABLE = 0,
+    DRM_EVENT_ENABLE,
+    DRM_EVENT_SUSPEND,
+    DRM_EVENT_RESUME,
+    DRM_EVENT_INVALID,
+} drm_event_state;
 
 /*From kernel/include/drm/amlogic/meson_connector_dev.h*/
 /*amlogic extend connector type: for original type is not enough.

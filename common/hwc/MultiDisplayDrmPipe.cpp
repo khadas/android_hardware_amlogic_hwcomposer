@@ -28,6 +28,12 @@ int32_t MultiDisplayDrmPipe::init(
         0
     };
 
+    std::shared_ptr<HwDisplayConnector> hwConnector;
+    getConnector(DRM_MODE_CONNECTOR_HDMIA, hwConnector);
+    if (hwConnector.get()) {
+        hwConnector->update();
+    }
+
     HwcDisplayPipe::init(hwcDisps);
 
     for (auto stat : mPipeStats) {
@@ -43,6 +49,7 @@ int32_t MultiDisplayDrmPipe::init(
             case DRM_MODE_CONNECTOR_MESON_EDP_B:
             case DRM_MODE_CONNECTOR_LVDS:
             case DRM_MODE_CONNECTOR_HDMIA:
+            case DRM_MODE_CONNECTOR_VIRTUAL:
                 {
                     drm_mode_info_t bootMode = displayMode;
                     std::map<uint32_t, drm_mode_info_t> modes;
@@ -85,7 +92,39 @@ int32_t MultiDisplayDrmPipe::getPipeCfg(uint32_t hwcid, PipeCfg & cfg) {
             return -EINVAL;
     };
     cfg.modePipeIdx = cfg.hwcPipeIdx;
-    cfg.modeConnectorType = cfg.hwcConnectorType = getConnectorCfg(hwcid);
+
+    drm_connector_type_t  connectorType = getConnectorCfg(hwcid);
+    if (connectorType == DRM_MODE_CONNECTOR_HDMIA) {
+        std::shared_ptr<HwDisplayConnector> hwConnector;
+        getConnector(DRM_MODE_CONNECTOR_HDMIA, hwConnector);
+
+        switch (mEventState) {
+        // plug out and suspend
+        case DRM_EVENT_DISABLE :
+        case DRM_EVENT_SUSPEND:
+            if (hasDummyConnector()) {
+                connectorType = DRM_MODE_CONNECTOR_VIRTUAL;
+            }
+            break;
+        // plug in
+        case DRM_EVENT_ENABLE :
+            connectorType = DRM_MODE_CONNECTOR_HDMIA;
+            break;
+        // wake up
+        case DRM_EVENT_RESUME:
+        // init
+        default:
+            if (hwConnector->isConnected()) {
+                connectorType = DRM_MODE_CONNECTOR_HDMIA;
+            } else {
+                if (hasDummyConnector()) {
+                    connectorType = DRM_MODE_CONNECTOR_VIRTUAL;
+                }
+            }
+        }
+    }
+
+    cfg.modeConnectorType = cfg.hwcConnectorType = connectorType;
     cfg.hwcPostprocessorType = INVALID_POST_PROCESSOR;
     return 0;
 }
@@ -93,9 +132,25 @@ int32_t MultiDisplayDrmPipe::getPipeCfg(uint32_t hwcid, PipeCfg & cfg) {
 void MultiDisplayDrmPipe::handleEvent(drm_display_event event, int val) {
     if (event == DRM_EVENT_HDMITX_HOTPLUG) {
         MESON_LOGD("Hotplug handle value %d.",val);
-        bool connected = (val == 0) ? false : true;
+        bool connected = (val == 0 || val == DRM_EVENT_SUSPEND) ? false : true;
+        mEventState = val;
+
+        std::shared_ptr<HwDisplayConnector> hwConnector;
+        getConnector(DRM_MODE_CONNECTOR_HDMIA, hwConnector);
+        if (hwConnector.get()) {
+            hwConnector->update();
+        }
+
+        MESON_LOGD("Update pipeline");
+        /*update display pipe.*/
         for (auto statIt : mPipeStats) {
-            if (statIt.second->modeConnector->getType() == DRM_MODE_CONNECTOR_HDMIA) {
+            updatePipe(statIt.second);
+        }
+
+        for (auto statIt : mPipeStats) {
+            auto connectorType = statIt.second->modeConnector->getType();
+            if (connectorType == DRM_MODE_CONNECTOR_HDMIA ||
+                    connectorType == DRM_MODE_CONNECTOR_VIRTUAL) {
                 statIt.second->modeConnector->update();
                 statIt.second->hwcDisplay->onHotplug(connected);
                 /*update to default mode.*/

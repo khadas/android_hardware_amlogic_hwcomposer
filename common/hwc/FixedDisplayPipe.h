@@ -25,6 +25,7 @@ protected:
     bool hasHdmiConnected();
     bool isVMXCertification();
 
+    int32_t mEventState = DRM_EVENT_INVALID;
 };
 
 #endif

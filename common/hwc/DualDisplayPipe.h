@@ -23,6 +23,8 @@ public:
     void lateInit();
     int32_t getPipeCfg(uint32_t hwcid, PipeCfg & cfg);
     void handleEvent(drm_display_event event, int val);
+
+    int32_t mEventState = DRM_EVENT_INVALID;
 };
 
 #endif

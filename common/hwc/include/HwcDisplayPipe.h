@@ -80,6 +80,7 @@ public:
     virtual void handleEvent(drm_display_event event, int val);
     virtual void dump(String8 & dumpstr);
     virtual void lateInit(){};
+    bool hasDummyConnector();
 
 protected:
     class PipeCfg {

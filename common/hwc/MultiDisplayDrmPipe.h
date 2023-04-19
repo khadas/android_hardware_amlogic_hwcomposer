@@ -22,6 +22,8 @@ public:
 
 protected:
     int32_t getPipeCfg(uint32_t hwcid, PipeCfg & cfg);
+
+    int32_t mEventState = DRM_EVENT_INVALID;
 };
 
 #endif

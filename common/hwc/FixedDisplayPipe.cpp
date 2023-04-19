@@ -32,7 +32,8 @@ int32_t FixedDisplayPipe::init(
 void FixedDisplayPipe::handleEvent(drm_display_event event, int val) {
     if (event == DRM_EVENT_HDMITX_HOTPLUG) {
         std::lock_guard<std::mutex> lock(mMutex);
-        bool connected = (val == 0) ? false : true;
+        mEventState = val;
+        bool connected = (val == 0 || val == DRM_EVENT_SUSPEND) ? false : true;
         std::shared_ptr<PipeStat> pipe;
         drm_connector_type_t targetConnector = DRM_MODE_CONNECTOR_Unknown;
         for (auto statIt : mPipeStats) {
@@ -46,17 +47,14 @@ void FixedDisplayPipe::handleEvent(drm_display_event event, int val) {
             * read connector status to decide connector.
             */
             pipe->modeConnector->update();
-
             pipe->modeCrtc->update();
 
-            if (connectorType == HWC_HDMI_CVBS) {
-                targetConnector = connected ?
-                    DRM_MODE_CONNECTOR_HDMIA : DRM_MODE_CONNECTOR_TV;
+            if (connectorType == HWC_HDMI_CVBS || connectorType == DRM_MODE_CONNECTOR_HDMIA) {
+                targetConnector = getConnectorCfg((int)statIt.first);
 
                 MESON_LOGD("handleEvent  DRM_EVENT_HDMITX_HOTPLUG %d VS %d",
                     pipe->cfg.hwcConnectorType, targetConnector);
-                if (pipe->cfg.hwcConnectorType != targetConnector &&
-                        (pipe->cfg.hwcConnectorType == DRM_MODE_CONNECTOR_TV || isVMXCertification())) {
+                if (pipe->cfg.hwcConnectorType != targetConnector) {
                     /*we need latest connector status, and no one will update
                     *connector not bind to crtc, we update here.
                     */
@@ -68,10 +66,6 @@ void FixedDisplayPipe::handleEvent(drm_display_event event, int val) {
                 }
                 pipe->modeCrtc->setHotplugStatus(HwDisplayCrtc::HotplugStatus::Default);
                 /*update display mode, workaround now.*/
-                initDisplayMode(pipe);
-                statIt.second->hwcDisplay->onHotplug(connected);
-            } else if (connectorType == DRM_MODE_CONNECTOR_HDMIA) {
-                pipe->modeCrtc->setHotplugStatus(HwDisplayCrtc::HotplugStatus::Default);
                 initDisplayMode(pipe);
                 statIt.second->hwcDisplay->onHotplug(connected);
             } else {
@@ -93,14 +87,47 @@ int32_t FixedDisplayPipe::getPipeCfg(uint32_t hwcid, PipeCfg & cfg) {
 
 drm_connector_type_t FixedDisplayPipe::getConnectorCfg(uint32_t hwcid) {
     drm_connector_type_t  connector = HwcDisplayPipe::getConnectorCfg(hwcid);
+    // need switch connector
     if (connector == DRM_MODE_CONNECTOR_Unknown ||
-            connector == DRM_MODE_CONNECTOR_TV) {
+            connector == DRM_MODE_CONNECTOR_TV ||
+            connector == DRM_MODE_CONNECTOR_HDMIA) {
         std::shared_ptr<HwDisplayConnector> hwConnector;
         getConnector(DRM_MODE_CONNECTOR_HDMIA, hwConnector);
-        if (hwConnector->isConnected()  || (hasHdmiConnected() && !isVMXCertification())) {
+
+        switch (mEventState) {
+        // plug out
+        case DRM_EVENT_DISABLE :
+            if (isVMXCertification() && connector != DRM_MODE_CONNECTOR_HDMIA) {
+                connector = DRM_MODE_CONNECTOR_TV;
+            } else {
+                connector = hasDummyConnector() ?
+                    DRM_MODE_CONNECTOR_VIRTUAL : DRM_MODE_CONNECTOR_HDMIA;
+            }
+            break;
+        // plug in
+        case DRM_EVENT_ENABLE :
             connector = DRM_MODE_CONNECTOR_HDMIA;
-        } else {
-            connector = DRM_MODE_CONNECTOR_TV;
+            break;
+        case DRM_EVENT_SUSPEND:
+            if (hwConnector->isConnected()) {
+                connector = hasDummyConnector() ?
+                    DRM_MODE_CONNECTOR_VIRTUAL : DRM_MODE_CONNECTOR_HDMIA;
+            }
+            break;
+        case DRM_EVENT_RESUME:
+        // init
+        default:
+            if (hwConnector->isConnected()) {
+                connector = DRM_MODE_CONNECTOR_HDMIA;
+            } else {
+                if ((isVMXCertification() || !hasHdmiConnected()) &&
+                        connector != DRM_MODE_CONNECTOR_HDMIA) {
+                    connector = DRM_MODE_CONNECTOR_TV;
+                } else {
+                    connector = hasDummyConnector() ?
+                        DRM_MODE_CONNECTOR_VIRTUAL : DRM_MODE_CONNECTOR_HDMIA;
+                }
+            }
         }
     }
 

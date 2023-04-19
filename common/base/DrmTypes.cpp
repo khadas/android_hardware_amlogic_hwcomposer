@@ -113,6 +113,7 @@ static struct conn_type_name_list drm_connector_enum_list[] = {
     {DRM_MODE_CONNECTOR_MESON_MIPI_B,   "MIPI-B"},
     {DRM_MODE_CONNECTOR_MESON_EDP_A,    "EDP-A"},
     {DRM_MODE_CONNECTOR_MESON_EDP_B,    "EDP-B"},
+    {DRM_MODE_CONNECTOR_VIRTUAL,    "VIRTUAL"},
 
     {LEGACY_NON_DRM_CONNECTOR_PANEL,    "panel"},
     {DRM_MODE_CONNECTOR_Unknown,        "Unknown"}
