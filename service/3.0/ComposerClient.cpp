@@ -891,12 +891,12 @@ void ComposerClient::executeLayerCommand(int64_t displayId,
 
     DISPATCH_LAYER_COMMAND(layerCommand, displayId, layerId, cursorPosition,
                            CursorPosition);
-    DISPATCH_LAYER_COMMAND(layerCommand, displayId, layerId, buffer, Buffer);
 #if (PLATFORM_SDK_VERSION > 33) || (PLATFORM_SDK_VERSION == 33 \
             && (ANDROID_PLATFORM_SDK_EXTENSION_VERSION >= 5))
     DISPATCH_LAYER_COMMAND(layerCommand, displayId, layerId, bufferSlotsToClear,
                            BufferSlotsToClear);
 #endif
+    DISPATCH_LAYER_COMMAND(layerCommand, displayId, layerId, buffer, Buffer);
     DISPATCH_LAYER_COMMAND(layerCommand, displayId, layerId, damage, SurfaceDamage);
     DISPATCH_LAYER_COMMAND(layerCommand, displayId, layerId, blendMode, BlendMode);
     DISPATCH_LAYER_COMMAND(layerCommand, displayId, layerId, color, Color);
