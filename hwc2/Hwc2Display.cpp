@@ -1608,23 +1608,6 @@ hwc2_error_t Hwc2Display::setClientTarget(buffer_handle_t target,
     mClientTarget->mTransform = 0;
     mClientTarget->mDataspace = dataspace;
 
-    /* real mode set real source crop */
-    if (HwcConfig::getModePolicy(0) ==  REAL_MODE_POLICY) {
-        drm_mode_info_t mode;
-        if (mModeMgr->getDisplayMode(mode) == 0) {
-            if ((!HwcConfig::getModeCondition() && !std::static_pointer_cast<RealModeMgr>(mModeMgr)->isFakeSizeMode()) ||
-                    (HwcConfig::getModeCondition() && std::static_pointer_cast<RealModeMgr>(mModeMgr)->is16_9Mode(mode))) {
-                mClientTarget->mSourceCrop.right = ((int32_t)mode.pixelW < mClientTarget->mSourceCrop.right)
-                    ? mode.pixelW : mClientTarget->mSourceCrop.right;
-                mClientTarget->mSourceCrop.bottom = ((int32_t)mode.pixelH < mClientTarget->mSourceCrop.bottom)
-                    ? mode.pixelH : mClientTarget->mSourceCrop.bottom;
-            }
-        }
-    }
-    /*clienttarget's displayframe which depends on output but not surfaceflinger,
-     *moved to PresentDisplay().
-     */
-
     /*set framebuffer to client composer.*/
     std::shared_ptr<IComposer> clientComposer =
         mComposers.find(MESON_CLIENT_COMPOSER)->second;

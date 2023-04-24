@@ -138,9 +138,18 @@ hwc_modes_policy_t HwcConfig::getModePolicy(int disp) {
 }
 
 bool HwcConfig::getModeCondition() {
+    const char* prop = "persist.vendor.filter.non16_9";
 #ifdef HWC_FILTER_16_9_MODE
+    if (!sys_get_bool_prop(prop, true)) {
+        return false;
+    }
+
     return true;
 #else
+    if (sys_get_bool_prop(prop, false)) {
+        return true;
+    }
+
     return false;
 #endif
 }
