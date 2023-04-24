@@ -690,7 +690,7 @@ int DrmConnector::getDrmModeByBlobId(drmModeModeInfo & drmmode, uint32_t blobid)
 
 int DrmConnector::DrmMode2Mode(drmModeModeInfo & drmmode, drm_mode_info_t & mode) {
     for (const auto & it : mMesonModes) {
-        if (strstr(drmmode.name, it.second.name)) {
+        if (!strncmp(drmmode.name, it.second.name, DRM_DISPLAY_MODE_LEN)) {
             if (mType == DRM_MODE_CONNECTOR_HDMIA) {
                 if (mFracMode == MODE_ALL || mFracMode == MODE_FRACTION) {
                     /* frac mode refresh rate */
