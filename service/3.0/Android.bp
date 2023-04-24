@@ -111,3 +111,22 @@ cc_binary {
     init_rc: ["android.hardware.graphics.composer@3.0-service.droidlogic.rc"],
 
 }
+
+cc_binary {
+    name: "android.hardware.graphics.composer@3.2-service.droidlogic",
+    defaults: [
+        "libmeson_hwc3_defaults",
+        "composer_aidl_go_defaults",
+        "hwcomposer_cc_defaults",
+    ],
+
+    vendor: true,
+    relative_install_path: "hw",
+    srcs: [
+        ":meson_hwc3_sources",
+    ],
+
+    vintf_fragments: ["android.hardware.graphics.composer@3.2-service.droidlogic.xml"],
+    init_rc: ["android.hardware.graphics.composer@3.2-service.droidlogic.rc"],
+
+}

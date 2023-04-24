@@ -1,0 +1,9 @@
+service vendor.hwcomposer-3 /vendor/bin/hw/android.hardware.graphics.composer@3.2-service.droidlogic
+    class hal animation
+    user system
+    group graphics drmrpc
+    capabilities SYS_NICE IPC_LOCK
+    onrestart restart surfaceflinger
+    task_profiles ServiceCapacityLow
+    writepid /dev/cpuset/system-background/tasks
+    interface vendor.amlogic.display.meson_display_ipc@1.0::IMesonDisplayIPC default
