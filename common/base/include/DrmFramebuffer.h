@@ -106,10 +106,8 @@ public:
     bool mIsVirtualLayer = false;
     int32_t mBufferState = 0;
     enum {
-        MODE_INVALID = 0,
-        MODE_ACQUIRE = 1,
-        MODE_FREE = 2,
-        MODE_RENDERED = 3,
+        MODE_BACK = 0,
+        MODE_FRONT = 1,
     };
 protected:
     std::shared_ptr<DrmFence> mAcquireFence;

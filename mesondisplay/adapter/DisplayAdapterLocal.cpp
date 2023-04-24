@@ -289,6 +289,10 @@ bool DisplayAdapterLocal::getWhiteBoardHanle(const native_handle_t **outBufferHa
     return true;
 }
 
+bool DisplayAdapterLocal::enableSyncProtection(bool mode){
+    return MesonHwc2::getInstance().enableSyncProtection(mode);
+}
+
 bool DisplayAdapterLocal::setWriteBoardMode(bool mode){
     return MesonHwc2::getInstance().setWriteBoardMode(mode);
 }

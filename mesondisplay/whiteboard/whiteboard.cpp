@@ -69,3 +69,13 @@ bool WhiteBoard::hideVideoLayer(bool mode) {
     displayAdapter->hideVideoLayer(mode);
     return true;
 }
+
+bool WhiteBoard::enableSyncProtection(bool mode) {
+
+    if (!displayAdapter) {
+        return false;
+    }
+
+    displayAdapter->enableSyncProtection(mode);
+    return true;
+}

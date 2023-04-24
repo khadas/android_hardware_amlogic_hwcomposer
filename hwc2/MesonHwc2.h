@@ -184,6 +184,7 @@ public:
     int32_t getDisplays(std::map<hwc2_display_t, shared_ptr<Hwc2Display>> & displays);
     int32_t setFrameRate(float value);
     std::shared_ptr<HwcDisplayPipe> mDisplayPipe;
+    bool enableSyncProtection(bool mode);
     bool disableSideband(bool isDisable);
 
 protected:

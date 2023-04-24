@@ -36,6 +36,7 @@ public:
         std::shared_ptr<DrmFramebuffer> & inputfb,
         std::shared_ptr<DrmFramebuffer> & outfb);
     int32_t update(drm_rect_t pos);
+    void enableSyncProtection(bool mode);
 protected:
     GLuint createProgram(const char* pVertexSource, const char* pFragmentSource);
     GLuint loadShader(GLenum shaderType, const char* pSource);
@@ -46,6 +47,35 @@ protected:
     bool mInitialized;
     GLfloat mPos[2];
 
+    std::mutex mBufferLock;
+
+    //white board
+    GLuint inWBTex;
+    sp<GraphicBuffer> wbbuf;
+    ANativeWindowBuffer * wbbuffer;
+    EGLImageKHR inWBImg;
+    //OSD
+    GLuint inUITex;
+    EGLImageKHR inUIImg;
+    sp<GraphicBuffer> uibuf;
+    ANativeWindowBuffer * uibuffer;
+
+    //Render Target
+    EGLImageKHR outImg[2];
+    GLuint outTex[2], outFBO[2];
+    sp<GraphicBuffer> outbuf[2];
+    ANativeWindowBuffer * outbuffer[2];
+
+    bool mFirst = true;
+
+    GLint gvPositionHandle;
+    GLint gvTexcoord;
+    GLint gwbPosX;
+    GLint gwbPosY;
+    GLint gYuvTexSamplerHandle;
+    GLint gWBTexSamplerHandle;
+
+    bool mThreadChanged = false;
 };
 
 #endif

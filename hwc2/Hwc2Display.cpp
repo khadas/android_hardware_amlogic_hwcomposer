@@ -78,6 +78,7 @@ Hwc2Display::Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer, uint32_t
     mVtVsyncStatus = false;
     mOutsideChanged = false;
     mBootConfig = -1;
+    wbHnd = nullptr;
     memset(&mDisplayMode, 0, sizeof(mDisplayMode));
     memset(&mCalibrateInfo, 0, sizeof(mCalibrateInfo));
 }
@@ -152,6 +153,14 @@ int32_t Hwc2Display::initialize() {
 
     MESON_LOG_FUN_LEAVE();
     return 0;
+}
+
+void Hwc2Display::enableSyncProtection(bool mode) {
+    ATRACE_CALL();
+    if (mWhiteBoardMode && mCompositionStrategy) {
+        mCompositionStrategy->enableSyncProtection(mode);
+    }
+    return;
 }
 
 int32_t Hwc2Display::setDisplayResource(
@@ -961,13 +970,13 @@ void Hwc2Display::createVirtualLayer() {
     hwc_rect_t mDisplayFrame = {0, 0, FB_SIZE_4K_W, FB_SIZE_4K_H};
     mVirtualLayer->setDisplayFrame(mDisplayFrame);
     mVirtualLayer->setBlendMode(HWC2_BLEND_MODE_NONE);
-    mVirtualLayer->mZorder = 100;
+    mVirtualLayer->mZorder = 15;
     mVirtualLayer->mCompositionType = MESON_COMPOSITION_UNDETERMINED;
 
     //Bind the buffer to Virtual Layer
-    if (wbHnd == NULL) {
+    if (wbHnd == nullptr) {
         wbHnd = gralloc_alloc_dma_buf(FB_SIZE_4K_W, FB_SIZE_4K_H, HAL_PIXEL_FORMAT_RGBA_8888, true, true, RENDER_TEXTURE);
-        if (wbHnd == NULL ) {
+        if (wbHnd == nullptr ) {
             MESON_LOGE("Alloc dma buffer for virtual failed");
             return;
         }

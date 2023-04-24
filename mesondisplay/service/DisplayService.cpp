@@ -237,6 +237,13 @@ void DisplayServer::message_handle(Json::Value& in, Json::Value& out) {
         if (in["value"].asString() == "true" )
             isDisable = true;
         mAdapter->disableSidebandStream(isDisable);
+    } else if (cmd == "enableSyncProtection") {
+        if (!in.isMember("value"))
+            goto OUT;
+        bool mode = false;
+        if (in["value"].asString() == "true" )
+            mode = true;
+        mAdapter->enableSyncProtection(mode);
     } else {
         MESON_LOGE("CMD not implement!");
     }

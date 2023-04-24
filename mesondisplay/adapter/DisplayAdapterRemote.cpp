@@ -258,6 +258,15 @@ bool DisplayAdapterRemote::disableSidebandStream(bool isDisable) {
     return true;
 }
 
+bool DisplayAdapterRemote::enableSyncProtection(bool mode) {
+    Json::Value cmd;
+    IF_SERVER_NOT_READY_RETURN(false);
+    cmd["cmd"] = "enableSyncProtection";
+    cmd["value"] = mode ? "true":"false";
+    ipc->send_request(cmd);
+    return true;
+}
+
 std::unique_ptr<DisplayAdapter> DisplayAdapterRemote::create() {
     return static_cast<std::unique_ptr<DisplayAdapter>>(std::make_unique<DisplayAdapterRemote>());
 }

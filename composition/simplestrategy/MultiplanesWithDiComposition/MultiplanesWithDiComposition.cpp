@@ -34,7 +34,7 @@
 #define OSD_SCALER_INPUT_MAX_HEIGHT (1080)
 #define OSD_SCALER_INPUT_FACTOR (3.0)
 #define OSD_SCALER_INPUT_MARGIN (1.1)
-#define WB_BUF_CNT (3)
+#define WB_BUF_CNT (2)
 
 #define IS_FB_COMPOSED(fb) \
     (fb->mZorder >= mMinComposerZorder && fb->mZorder <= mMaxComposerZorder)
@@ -661,10 +661,9 @@ int MultiplanesWithDiComposition::pickoutOsdFbs() {
         mWhiteBoardMode = true;
     } else {
         mWhiteBoardMode = false;
-        mFirst = true;
         for (auto buf = mWBQueue.begin(); buf != mWBQueue.end(); ++buf) {
             std::shared_ptr<DrmFramebuffer> temp = *buf;
-            temp->mBufferState = DrmFramebuffer::MODE_FREE;
+            temp->mBufferState = DrmFramebuffer::MODE_BACK;
         }
     }
 
@@ -677,7 +676,7 @@ int MultiplanesWithDiComposition::pickoutOsdFbs() {
                 hnd = gralloc_alloc_dma_buf(FB_SIZE_4K_W, FB_SIZE_4K_H, HAL_PIXEL_FORMAT_RGBA_8888, true, true, RENDER_TARGET);
                 auto buf = std::make_shared<DrmFramebuffer>(hnd, -1);
                 buf->setUniqueId(i);
-                buf->mBufferState = DrmFramebuffer::MODE_FREE;
+                buf->mBufferState = DrmFramebuffer::MODE_BACK;
                 mWBQueue.push_back(buf);
             }
         }
@@ -1440,22 +1439,27 @@ int MultiplanesWithDiComposition::decideComposition() {
     return ret;
 }
 
+void MultiplanesWithDiComposition::enableSyncProtection(bool mode) {
+    ATRACE_CALL();
+    if (mWhiteBoardMode && mComProcessor) {
+        mComProcessor->enableSyncProtection(mode);
+    }
+    return;
+}
+
 void MultiplanesWithDiComposition::setReleaseFence(int32_t fence) {
     if (fence < 0) {
         MESON_LOGE("%s:get an invalid fenceFd", __func__);
         return;
     }
 
-    if (!mFirst) {
-        for (auto buf = mWBQueue.begin();buf != mWBQueue.end(); ++buf) {
-            std::shared_ptr<DrmFramebuffer> temp = *buf;
-            if (temp->mBufferState == DrmFramebuffer::MODE_FREE) {
-                temp->setPrevReleaseFence(::dup(fence));
-            }
+    for (auto buf = mWBQueue.begin();buf != mWBQueue.end(); ++buf) {
+        std::shared_ptr<DrmFramebuffer> temp = *buf;
+        if (temp->mBufferState == DrmFramebuffer::MODE_BACK) {
+            temp->setPrevReleaseFence(::dup(fence));
         }
     }
     close(fence);
-    mFirst = false;
 }
 
 /* Commit DisplayPair to display. */
@@ -1561,7 +1565,7 @@ int MultiplanesWithDiComposition::commit() {
                 //get the Free buffers
                 for (auto buf = mWBQueue.begin();buf != mWBQueue.end(); ++buf) {
                     outfb = *buf;
-                    if (outfb->mBufferState ==DrmFramebuffer::MODE_FREE) {
+                    if (outfb->mBufferState ==DrmFramebuffer::MODE_BACK) {
                         break;
                     }
                 }
@@ -1585,28 +1589,15 @@ int MultiplanesWithDiComposition::commit() {
                 outfb->mBlendMode = fb->mBlendMode;
                 outfb->mPlaneAlpha = fb->mPlaneAlpha;
 
-                if (mFirst) {
-                    ret = plane->setPlane(fb, presentZorder, blankFlag);
-                } else {
-                    for (auto bufReady = mWBQueue.begin();bufReady != mWBQueue.end(); ++bufReady) {
-                        showfb = *bufReady;
-                        if (showfb->mBufferState == DrmFramebuffer::MODE_RENDERED) {
-                            break;
-                        }
+                ret = plane->setPlane(outfb, presentZorder, blankFlag);
+                for (auto buf = mWBQueue.begin();buf != mWBQueue.end(); ++buf) {
+                    showfb = *buf;
+                    if (showfb->mBufferState == DrmFramebuffer::MODE_FRONT) {
+                        showfb->mBufferState = DrmFramebuffer::MODE_BACK;
+                        break;
                     }
-
-                    ret = plane->setPlane(showfb, presentZorder, blankFlag);
-
-                    for (auto change = mWBQueue.begin();change != mWBQueue.end(); ++change) {
-                        std::shared_ptr<DrmFramebuffer> temp = *change;
-                        if (temp->mBufferState == DrmFramebuffer::MODE_ACQUIRE) {
-                            temp->mBufferState = DrmFramebuffer::MODE_FREE;
-                        }
-                    }
-
-                    showfb->mBufferState = DrmFramebuffer::MODE_ACQUIRE;
                 }
-                outfb->mBufferState = DrmFramebuffer::MODE_RENDERED;
+                outfb->mBufferState = DrmFramebuffer::MODE_FRONT;
             }
 
             fb->clearFbHandleFlag();

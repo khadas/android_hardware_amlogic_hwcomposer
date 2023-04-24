@@ -998,6 +998,12 @@ bool MesonHwc2::setWriteBoardMode(bool mode) {
     return true;
 }
 
+bool MesonHwc2::enableSyncProtection(bool mode) {
+    GET_HWC_DISPLAY(0);
+    hwcDisplay->enableSyncProtection(mode);
+    return true;
+}
+
 bool MesonHwc2::getWriteBoardMode(bool& mode) {
     GET_HWC_DISPLAY(0);
     hwcDisplay->getWriteBoardMode(mode);

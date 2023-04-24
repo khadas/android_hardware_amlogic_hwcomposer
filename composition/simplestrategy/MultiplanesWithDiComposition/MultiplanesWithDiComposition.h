@@ -37,6 +37,7 @@ public:
     int commitTunnelVideo();
     void dump(String8 & dumpstr);
     void setReleaseFence(int32_t fence);
+    void enableSyncProtection(bool mode);
 
 protected:
     int processVideoFbs();
@@ -142,7 +143,6 @@ protected:
     std::shared_ptr<DrmFramebuffer> mWhiteBoardData;
     std::shared_ptr<DrmFramebuffer> outfb;
     std::shared_ptr<DrmFramebuffer> showfb;
-    bool mFirst = true;
 };
 
 

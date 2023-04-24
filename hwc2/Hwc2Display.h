@@ -184,6 +184,7 @@ public:
     virtual void getWriteBoardMode(bool& mode);
     virtual void hideVideoLayer(bool hide);
     virtual void setWBDisplayFrame(int x, int y);
+    void enableSyncProtection(bool mode);
 
     void createVirtualLayer();
     void destroyVirtualLayer();
@@ -196,7 +197,7 @@ public:
     uint32_t mVLIdx = -1;
     bool mWhiteBoardMode = false;
     bool mHideVideo = false;
-    buffer_handle_t wbHnd;
+    buffer_handle_t wbHnd = nullptr;
     std::shared_ptr<Hwc2DisplayObserver> mObserver;
 
 /* meson display ddk */

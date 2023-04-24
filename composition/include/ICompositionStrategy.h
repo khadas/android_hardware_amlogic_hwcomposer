@@ -94,6 +94,7 @@ public:
     }
 
     virtual void setReleaseFence(int32_t fence __unused) {return;};
+    virtual void enableSyncProtection(bool mode __unused) {return;};
 
 protected:
     /*common functions for dump.*/

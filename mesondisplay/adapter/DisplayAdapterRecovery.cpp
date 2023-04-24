@@ -296,6 +296,13 @@ bool DisplayAdapterLocal::getWhiteBoardHanle(const native_handle_t **outBufferHa
     return true;
 }
 
+bool DisplayAdapterLocal::enableSyncProtection(bool mode) {
+    bool ret = false;
+    UNUSED(mode);
+    NOTIMPLEMENTED;
+    return ret;
+}
+
 bool DisplayAdapterLocal::setWriteBoardMode(bool mode) {
     bool ret = false;
     UNUSED(mode);

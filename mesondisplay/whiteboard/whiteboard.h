@@ -16,5 +16,6 @@ public:
     static bool getWhiteBoardMode(bool& mode);
     static bool setWBDisplayFrame(int x, int y);
     static bool hideVideoLayer(bool hide);
+    static bool enableSyncProtection(bool mode);
 };
 #endif

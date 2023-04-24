@@ -124,6 +124,7 @@ public:
     virtual bool getWriteBoardMode(bool& mode) = 0;
     virtual bool setWBDisplayFrame(int x, int y) = 0;
     virtual bool hideVideoLayer(bool hide) = 0;
+    virtual bool enableSyncProtection(bool mode) = 0;
 
     virtual bool setDisplayRect(const Rect rect, ConnectorType displayType) {
         UNUSED(rect);

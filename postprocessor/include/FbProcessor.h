@@ -55,6 +55,7 @@ public:
     virtual int32_t update(drm_rect_t pos __unused) {
         return 0;
     };
+    virtual void enableSyncProtection(bool mode __unused) {return;};
 };
 
 int32_t createFbProcessor(meson_fb_processor_t type, std::shared_ptr<FbProcessor> & processor);

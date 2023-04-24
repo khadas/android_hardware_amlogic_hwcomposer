@@ -36,6 +36,7 @@ static const struct option long_option[] = {
     {"b",no_argument,0,'b'},
     {"f",required_argument,0,'f'},
     {"h",required_argument,0,'h'},
+    {"sync-protection",required_argument,0,'P'},
     {"disable-sideband",required_argument,0,'p'},
     {0, 0, 0, 0}
 };
@@ -59,6 +60,7 @@ static void print_usage(const char* name) {
             "       -f,--set-whiteboard display position \t  x and y is the position\n "
             "       -h,--hide the video layer \t  hide the video layer\n "
             "       -p,--disable-sideband  \t  disable [false|true]side band \n "
+            "       -P,--sync Protection control \t  sync Protection control\n "
             "       -r,--raw-cmd           \tsend raw cmd\n", name);
 }
 
@@ -234,6 +236,18 @@ int main(int argc, char* argv[]) {
                       }
                       client->hideVideoLayer(mode);
                       printf("hide video layer mode is %s \n", mode ? "true":"false");
+                  }
+                break;
+            case 'P':
+                 if (optarg == NULL)
+                     break;
+                  {
+                      bool mode = false;
+                      if (0 == memcmp("true", optarg, sizeof("true"))) {
+                            mode =true;
+                      }
+                      client->enableSyncProtection(mode);
+                      printf("the sync Protection switch to %s \n", mode ? "true":"false");
                   }
                 break;
             default:

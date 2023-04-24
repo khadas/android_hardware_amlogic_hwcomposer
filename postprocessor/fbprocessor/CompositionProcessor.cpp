@@ -20,8 +20,20 @@
 #include <EGL/eglext.h>
 #include <ui/Fence.h>
 
+const GLfloat gTriangleVertices[] = {
+       -1.0f, 1.0f, 0.0f,       // Position 0
+       -1.0f, -1.0f, 0.0f,  // Position 1
+       1.0f, -1.0f, 0.0f,       // Position 2
+       1.0f, 1.0f, 0.0f,        // Position 3
+};
+GLushort indices[] = { 0, 1, 2, 0, 2, 3 };
 
-
+const GLfloat gTextureCoords[] = {
+       0.0f,  1.0f,   // TexCoord 0
+       0.0f,  0.0f,   // TexCoord 1
+       1.0f,  0.0f,   // TexCoord 2
+       1.0f,  1.0f    // TexCoord 3
+};
 
 static const char gVertexShader[] = "attribute vec4 vPosition;\n"
     "varying vec2 yuvTexCoords;\n"
@@ -41,18 +53,19 @@ static const char gFragmentShader[] = "#extension GL_OES_EGL_image_external : re
     "uniform float posy;\n"
     "void main() {\n"
     "    vec4 baseColor1;\n"
+    "    vec4 baseColor2;\n"
+    "    vec4 target;\n"
     "    if (yuvTexCoords.x > posx  && yuvTexCoords.y > posy) {\n"
     "        vec2 wbcoords = vec2(yuvTexCoords.x - posx, yuvTexCoords.y - posy);\n"
     "        baseColor1 = texture2D(WBTexSampler, wbcoords);\n"
-    "        if(baseColor1.a > 0.5) {\n"
-    "            gl_FragColor = baseColor1;\n"
-    "        } else {\n"
-    "            gl_FragColor = texture2D(yuvTexSampler, yuvTexCoords);\n"
-    "        }\n"
+    "        baseColor2 = texture2D(yuvTexSampler, wbcoords);\n"
+    "        target = mix(baseColor2, baseColor1, baseColor1.a);\n"
+    "        gl_FragColor = vec4(target.r, target.g, target.b, (1.0 - (1.0 - baseColor2.a)*(1.0 - baseColor1.a)));\n"
     "    } else {\n"
     "        gl_FragColor = texture2D(yuvTexSampler, yuvTexCoords);\n"
     "    }\n"
     "}\n";
+
 
 CompositionProcessor::CompositionProcessor() {
     mInitialized = false;
@@ -221,28 +234,102 @@ int32_t CompositionProcessor::composite(
             MESON_LOGE("eglMakeCurrent error: %#x\n", eglGetError());
             return -EINVAL;
         }
+        mThreadChanged = true;
     }
 
-    EGLImageKHR outImg;
-    GLuint outTex,outFBO;
-    ANativeWindowBuffer * outBuf = mWBHelper.createNativeBuffer (outfb);
-    bool outProtect = am_gralloc_is_secure_buffer(outfb->mBufferHandle) ? true:false;
-    mWBHelper.createImage (outBuf, &outImg, outProtect);
-    mWBHelper.bindFBO(outImg, &outTex, &outFBO);
+    int outfbId = (int)outfb->getUniqueId();
+    if (outbuf[outfbId] == NULL) {
+        outbuf[outfbId] = new GraphicBuffer(outfb->mBufferHandle,
+            GraphicBuffer:: WRAP_HANDLE,
+            am_gralloc_get_width(outfb->mBufferHandle),
+            am_gralloc_get_height(outfb->mBufferHandle),
+            am_gralloc_get_format(outfb->mBufferHandle),
+            1,
+            am_gralloc_get_consumer_usage(outfb->mBufferHandle),
+            am_gralloc_get_stride_in_pixel(outfb->mBufferHandle));
+        outbuffer[outfbId] = outbuf[outfbId]->getNativeBuffer();
+        mWBHelper.createImage (outbuffer[outfbId], &outImg[outfbId], false);
 
-    GLuint inUITex;
-    EGLImageKHR inUIImg;
-    ANativeWindowBuffer * inUIBuf = mWBHelper.createNativeBuffer(inputUIfb);
-    bool inUIProtect = am_gralloc_is_secure_buffer(inputUIfb->mBufferHandle) ? true:false;
-    mWBHelper.createImage (inUIBuf, &inUIImg, inUIProtect);
-    mWBHelper.createExternalTexture(inUIImg, &inUITex);
+        glGenTextures(1,&outTex[outfbId]);
+        glGenFramebuffers(1, &outFBO[outfbId]);
 
-    GLuint inWBTex;
-    EGLImageKHR inWBImg;
-    ANativeWindowBuffer * inWBBuf = mWBHelper.createNativeBuffer(inputWBfb);
-    bool inWBProtect = am_gralloc_is_secure_buffer(inputWBfb->mBufferHandle) ? true:false;
-    mWBHelper.createImage (inWBBuf, &inWBImg, inWBProtect);
-    mWBHelper.createExternalTexture(inWBImg, &inWBTex);
+        glBindTexture(GL_TEXTURE_2D, outTex[outfbId]);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 3840, 2160, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+        glEGLImageTargetTexture2DOES(GL_TEXTURE_2D, (GLeglImageOES)outImg[outfbId]);
+    }
+
+    glBindFramebuffer(GL_FRAMEBUFFER, outFBO[outfbId]);
+    glFramebufferTexture2D(
+                GL_FRAMEBUFFER,
+                GL_COLOR_ATTACHMENT0,
+                GL_TEXTURE_2D,
+                outTex[outfbId],
+                0);
+    GLenum status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if (status != GL_FRAMEBUFFER_COMPLETE)
+        MESON_LOGE("Framebuffer create failed! %x", status);
+
+    if (mFirst || mThreadChanged) {
+        gvPositionHandle = glGetAttribLocation(mProgramId, "vPosition");
+        checkGlError("glGetAttribLocation vPosition");
+
+        gvTexcoord = glGetAttribLocation(mProgramId, "a_texCoord");
+        checkGlError("glGetAttribLocation a_texCoord");
+
+        gwbPosX = glGetUniformLocation(mProgramId, "posx");
+        checkGlError("glGetUniformLocation posx");
+
+        gwbPosY = glGetUniformLocation(mProgramId, "posy");
+        checkGlError("glGetUniformLocation posy");
+
+        gYuvTexSamplerHandle = glGetUniformLocation(mProgramId, "yuvTexSampler");
+        checkGlError("glGetUniformLocation");
+
+        gWBTexSamplerHandle = glGetUniformLocation(mProgramId, "WBTexSampler");
+        checkGlError("glGetUniformLocation");
+
+        glVertexAttribPointer(gvPositionHandle, 3, GL_FLOAT,GL_FALSE, 3 * sizeof (GLfloat), gTriangleVertices);
+        checkGlError("glVertexAttribPointer Position ");
+        glEnableVertexAttribArray(gvPositionHandle);
+        checkGlError("glEnableVertexAttribArray Position");
+
+        glVertexAttribPointer (gvTexcoord, 2, GL_FLOAT, GL_FALSE, 2 * sizeof (GLfloat), gTextureCoords);
+        checkGlError("glVertexAttribPointer textureCoord");
+        glEnableVertexAttribArray(gvTexcoord);
+        checkGlError("glEnableVertexAttribArray textureCoord");
+
+        wbbuf = new GraphicBuffer(inputWBfb->mBufferHandle,
+            GraphicBuffer:: WRAP_HANDLE,
+            am_gralloc_get_width(inputWBfb->mBufferHandle),
+            am_gralloc_get_height(inputWBfb->mBufferHandle),
+            am_gralloc_get_format(inputWBfb->mBufferHandle),
+            1,
+            am_gralloc_get_consumer_usage(inputWBfb->mBufferHandle),
+            am_gralloc_get_stride_in_pixel(inputWBfb->mBufferHandle));
+        wbbuffer = wbbuf->getNativeBuffer();
+        mWBHelper.createImage (wbbuffer, &inWBImg, false);
+        mWBHelper.createExternalTexture(inWBImg, &inWBTex);
+
+        uibuf = new GraphicBuffer(inputUIfb->mBufferHandle,
+            GraphicBuffer:: WRAP_HANDLE,
+            am_gralloc_get_width(inputUIfb->mBufferHandle),
+            am_gralloc_get_height(inputUIfb->mBufferHandle),
+            am_gralloc_get_format(inputUIfb->mBufferHandle),
+               1,
+            am_gralloc_get_consumer_usage(inputUIfb->mBufferHandle),
+            am_gralloc_get_stride_in_pixel(inputUIfb->mBufferHandle));
+        uibuffer = uibuf->getNativeBuffer();
+        mWBHelper.createImage (uibuffer, &inUIImg, false);
+        mWBHelper.createExternalTexture(inUIImg, &inUITex);
+
+        mFirst = false;
+    }
+
+    mThreadChanged = false;
 
     float width = am_gralloc_get_width(outfb->mBufferHandle);
     float height = am_gralloc_get_height(outfb->mBufferHandle);
@@ -255,58 +342,8 @@ int32_t CompositionProcessor::composite(
     glClear( GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
     checkGlError("glClear");
 
-    GLint gvPositionHandle;
-    GLint gvTexcoord;
-    GLint gwbPosX;
-    GLint gwbPosY;
-    GLint gYuvTexSamplerHandle;
-    GLint gWBTexSamplerHandle;
-
-    const GLfloat gTriangleVertices[] = {
-        -1.0f, 1.0f, 0.0f,   // Position 0
-        -1.0f, -1.0f, 0.0f,  // Position 1
-        1.0f, -1.0f, 0.0f,   // Position 2
-        1.0f, 1.0f, 0.0f,    // Position 3
-    };
-    GLushort indices[] = { 0, 1, 2, 0, 2, 3 };
-
-    const GLfloat gTextureCoords[] = {
-        0.0f,  1.0f,   // TexCoord 0
-        0.0f,  0.0f,   // TexCoord 1
-        1.0f,  0.0f,   // TexCoord 2
-        1.0f,  1.0f    // TexCoord 3
-    };
-
-    gvPositionHandle = glGetAttribLocation(mProgramId, "vPosition");
-    checkGlError("glGetAttribLocation vPosition");
-
-    gvTexcoord = glGetAttribLocation(mProgramId, "a_texCoord");
-    checkGlError("glGetAttribLocation a_texCoord");
-
-    gwbPosX = glGetUniformLocation(mProgramId, "posx");
-    checkGlError("glGetUniformLocation posx");
-
-    gwbPosY = glGetUniformLocation(mProgramId, "posy");
-    checkGlError("glGetUniformLocation posy");
-
-    gYuvTexSamplerHandle = glGetUniformLocation(mProgramId, "yuvTexSampler");
-    checkGlError("glGetUniformLocation");
-
-    gWBTexSamplerHandle = glGetUniformLocation(mProgramId, "WBTexSampler");
-    checkGlError("glGetUniformLocation");
-
     glUseProgram(mProgramId);
     checkGlError("glUseProgram");
-
-    glVertexAttribPointer(gvPositionHandle, 3, GL_FLOAT,GL_FALSE, 3 * sizeof (GLfloat), gTriangleVertices);
-    checkGlError("glVertexAttribPointer Position ");
-    glEnableVertexAttribArray(gvPositionHandle);
-    checkGlError("glEnableVertexAttribArray Position");
-
-    glVertexAttribPointer (gvTexcoord, 2, GL_FLOAT, GL_FALSE, 2 * sizeof (GLfloat), gTextureCoords);
-    checkGlError("glVertexAttribPointer textureCoord");
-    glEnableVertexAttribArray(gvTexcoord);
-    checkGlError("glEnableVertexAttribArray textureCoord");
 
     glUniform1f (gwbPosX, mPos[0]);
     glUniform1f (gwbPosY, mPos[1]);
@@ -342,28 +379,49 @@ int32_t CompositionProcessor::composite(
 
     outfb->setAcquireFence(dup(fenceFd));
 
+    ATRACE_BEGIN("waiting for GPU completion");
+    mBufferLock.try_lock();
+    DrmFence fence(fenceFd);
+    fence.wait(3000);
+    mBufferLock.unlock();
+    ATRACE_END();
+
     close(fenceFd);
     glUseProgram(0);
-    mWBHelper.unbindFBO(outFBO, outTex);
-    mWBHelper.destroyImage(outImg);
-
-    mWBHelper.destroyExternalTexture (inWBTex);
-    mWBHelper.destroyImage(inWBImg);
-
-    mWBHelper.destroyExternalTexture (inUITex);
-    mWBHelper.destroyImage(inUIImg);
-
-    mWBHelper.destroyNativeBuffer(outBuf);
-    mWBHelper.destroyNativeBuffer(inUIBuf);
-    mWBHelper.destroyNativeBuffer(inWBBuf);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     return 0;
+}
+
+void CompositionProcessor::enableSyncProtection(bool mode) {
+    if (mode == true) {
+        mBufferLock.lock();
+    } else {
+        mBufferLock.unlock();
+    }
+    return;
 }
 
 int32_t CompositionProcessor::teardown() {
     if (mInitialized) {
         mWBHelper.destroyEglContext();
         glDeleteProgram(mProgramId);
+        mWBHelper.destroyImage(outImg[1]);
+        mWBHelper.destroyExternalTexture (inWBTex);
+        mWBHelper.destroyImage(inWBImg);
+
+        mWBHelper.destroyExternalTexture (inUITex);
+        mWBHelper.destroyImage(inUIImg);
+
+        mWBHelper.destroyNativeBuffer(wbbuffer);
+        mWBHelper.destroyNativeBuffer(uibuffer);
+        mWBHelper.destroyNativeBuffer(outbuffer[0]);
+        mWBHelper.destroyNativeBuffer(outbuffer[1]);
+        glDeleteFramebuffers(1, &outFBO[0]);
+        glDeleteFramebuffers(1, &outFBO[1]);
+        glDeleteTextures(1, &outTex[0]);
+        glDeleteTextures(1, &outTex[1]);
+
         mInitialized = false;
     }
     return 0;

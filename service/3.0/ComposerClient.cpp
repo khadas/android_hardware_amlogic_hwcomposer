@@ -88,7 +88,6 @@ public:
     }
 
     void onRefresh(int64_t display) {
-        mResources->setDisplayMustValidateState(display, true);
         auto ret = mCallback->onRefresh(display);
         ALOGE_IF(!ret.isOk(), "failed to send onRefresh");
     }
