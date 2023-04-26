@@ -77,8 +77,8 @@ int32_t sysfs_get_string_ex(const char* path, char *str, int32_t size,
                 str[i] = 0x20;
             }
 
-            /* delete all the character of '\n' */
-            if (0x0a != str[i]) {
+            /* delete all the character of '\n' and '\r'*/
+            if (0x0a != str[i] && 0x0d != str[i]) {
                 str[j++] = str[i];
             }
         }
