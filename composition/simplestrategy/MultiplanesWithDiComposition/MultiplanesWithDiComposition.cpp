@@ -1169,6 +1169,12 @@ void MultiplanesWithDiComposition::handleDisplayLayerZorder() {
             } else {
                 it->presentZorder = it->presentZorder + BOTTOM_VIDEO_FB_BEGIN_ZORDER; // bottom video zorder: 1 - 64
             }
+           /* keep top video when only one video commit
+            * tmp solution for SWPL-116333
+            * */
+            if (mDisplayPairs.size() == 1) {
+                it->presentZorder = it->presentZorder + TOP_VIDEO_FB_BEGIN_ZORDER;
+            }
         }
     }
 }
