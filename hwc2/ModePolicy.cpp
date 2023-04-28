@@ -6,6 +6,7 @@
  *
  * Description:
  */
+#include <hardware/hwcomposer2.h>
 #include <cutils/properties.h>
 #include <MesonLog.h>
 
@@ -1883,6 +1884,18 @@ int ModePolicy::getDolbyVisionType() {
     }
 
     return DOLBY_VISION_SET_DISABLE;
+}
+
+int32_t ModePolicy::setAutoLowLatencyMode(bool enabled) {
+    if (mConnector->getType() != DRM_MODE_CONNECTOR_HDMIA) {
+        return HWC2_ERROR_UNSUPPORTED;
+    }
+    if (isTvSupportALLM()) {
+        setALLMMode(enabled);
+        return HWC2_ERROR_NONE;
+    } else {
+        return HWC2_ERROR_UNSUPPORTED;
+    }
 }
 
 int32_t ModePolicy::setHdrConversionPolicy(bool passthrough, int32_t forceType) {

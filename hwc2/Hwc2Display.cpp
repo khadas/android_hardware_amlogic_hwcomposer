@@ -1835,9 +1835,11 @@ hwc2_error_t Hwc2Display::setAutoLowLatencyMode(bool enabled) {
     if (mConnector->isConnected() == false) {
         return HWC2_ERROR_UNSUPPORTED;
     } else {
+        if (mModePolicy) {
+            return (hwc2_error_t)mModePolicy->setAutoLowLatencyMode(enabled);
+        }
         return (hwc2_error_t)mConnector->setAutoLowLatencyMode(enabled);
     }
-
 }
 
 hwc2_error_t Hwc2Display::getSupportedContentTypes(uint32_t* outNum, uint32_t* outSupportedContentTypes) {
