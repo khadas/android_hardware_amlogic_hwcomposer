@@ -12,7 +12,7 @@
 
 #include <video_tunnel.h>
 
-#define VIDEO_BUFFER_W 160
+#define VIDEO_BUFFER_W 192
 #define VIDEO_BUFFER_H 90
 
 class VtAllocSolidColorBuffer{
