@@ -131,7 +131,9 @@ public:
 
 protected:
     hwc2_error_t handleDimLayer(buffer_handle_t buffer);
-    int32_t releaseVtResourceLocked(bool needDisconnect = true);
+    int32_t releaseVtResourceLocked();
+    int32_t releaseVtResourceLocked(bool needDisconnect);
+    int32_t releaseVtResourceLocked(bool needDisconnect, bool needKeepLastFrame);
     bool isVtBufferLocked() override;
 
     /* for NR */

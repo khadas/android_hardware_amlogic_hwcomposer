@@ -49,6 +49,11 @@ typedef enum vt_video_status {
      * disable color frame
      */
     VT_VIDEO_STATUS_COLOR_DISABLE = 6,
+
+    /* Always show the last frame
+     * until receive VT_VIDEO_STATUS_SHOW command
+     */
+    VT_VIDEO_STATUS_HOLD_FRAME = 7,
 } vt_video_status_t;
 
 typedef enum vt_cmd {

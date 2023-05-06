@@ -196,6 +196,9 @@ const char * VtConsumer::VtVideoStatusToString(vt_video_status_t type) {
         case VT_VIDEO_STATUS_COLOR_DISABLE:
             typeStr = "disable";
             break;
+        case VT_VIDEO_STATUS_HOLD_FRAME:
+            typeStr = "freeze";
+            break;
         default:
             typeStr = "unknown";
             break;

@@ -503,7 +503,9 @@ void Hwc2Layer::updateVtBuffer() {
 
     for (auto it = mQueueItems.begin(); it != mQueueItems.end(); it++) {
         if (it->mTimeStamp > 0 &&  shouldPresentNow(it->mTimeStamp)) {
-            expiredItemCount++;
+            // do not drop frame in game mode
+            if (!mGameMode)
+                expiredItemCount++;
         }
     }
 
@@ -626,18 +628,29 @@ int32_t Hwc2Layer::releaseVtResource() {
     return releaseVtResourceLocked();
 }
 
+int32_t Hwc2Layer::releaseVtResourceLocked() {
+    return releaseVtResourceLocked(true);
+}
+
 int32_t Hwc2Layer::releaseVtResourceLocked(bool needDisconnect) {
+    return releaseVtResourceLocked(needDisconnect, false);
+}
+
+int32_t Hwc2Layer::releaseVtResourceLocked(bool needDisconnect,
+        bool needKeepLastFrame) {
     ATRACE_CALL();
     if (isVtBufferLocked() || mNeedReleaseVtResource) {
         MESON_LOGV("[%s] [%d] [%" PRIu64 "]", __func__, mDisplayId, mId);
         if (!mVtConsumer)
             return 0;
 
-        if (mPreVtBufferFd >= 0) {
-            onVtFrameDisplayed(mPreVtBufferFd, getPrevReleaseFence());
-            mQueuedFrames--;
-            MESON_LOGV("[%s] [%d] [%" PRIu64 "] release(%d) queuedFrames(%d)",
-                    __func__, mDisplayId, mId, mPreVtBufferFd, mQueuedFrames);
+        if (!needKeepLastFrame || needDisconnect) {
+            if (mPreVtBufferFd >= 0) {
+                onVtFrameDisplayed(mPreVtBufferFd, getPrevReleaseFence());
+                mQueuedFrames--;
+                MESON_LOGV("[%s] [%d] [%" PRIu64 "] release(%d) queuedFrames(%d)",
+                        __func__, mDisplayId, mId, mPreVtBufferFd, mQueuedFrames);
+            }
         }
 
         if (mVtBufferFd >= 0) {
@@ -656,9 +669,10 @@ int32_t Hwc2Layer::releaseVtResourceLocked(bool needDisconnect) {
                     __func__, mDisplayId, mId, it->mVtBufferFd, mQueuedFrames);
         }
 
-        mQueueItems.clear();
+        if (!needKeepLastFrame || needDisconnect)
+            mPreVtBufferFd = -1;
         mVtBufferFd = -1;
-        mPreVtBufferFd = -1;
+        mQueueItems.clear();
         mVtUpdate = false;
         mTimestamp = -1;
 
@@ -728,20 +742,6 @@ bool Hwc2Layer::newGameBuffer() {
             __func__, mDisplayId, mId, ret);
     }
 
-    if (ret) {
-        // update current mVtBuffer
-        mVtUpdate = true;
-        mVtBufferFd = mQueueItems[0].mVtBufferFd;
-        mTimestamp = mQueueItems[0].mTimeStamp;
-
-        [[maybe_unused]] nsecs_t diffAdded = mTimestamp - mPreviousTimestamp;
-        mPreviousTimestamp = mTimestamp;
-
-        MESON_LOGV("[%s] [%d] [%" PRIu64 "] mVtBufferFd(%d) timestamp (%" PRId64 " us) expectedPresentTime(%"
-                PRId64 " us) diffAdded(%" PRId64 " us) shouldPresent:%d, queueFrameSize:%zu",
-                __func__, mDisplayId, mId, mVtBufferFd, mTimestamp, mExpectedPresentTime, diffAdded,
-                shouldPresentNow(mTimestamp), mQueueItems.size());
-    }
     /* not game mode */
     return ret;
 }
@@ -849,6 +849,9 @@ bool Hwc2Layer::isVtNeedClearFrameOrShowColorBuffer() {
         case VT_VIDEO_STATUS_COLOR_DISABLE:
             mVideoDisplayStatus = VT_VIDEO_STATUS_SHOW;
             freeSolidColorBufferLocked();
+            break;
+        case VT_VIDEO_STATUS_HOLD_FRAME:
+            releaseVtResourceLocked(false, true);
             break;
         default:
             // nothing to do;
