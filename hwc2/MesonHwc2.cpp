@@ -108,12 +108,7 @@ void MesonHwc2::getCapabilities(uint32_t* outCount,
 #ifdef ENABLE_AIDL
     //TODO: enable boot display config when G support it for dual display
     if (HwcConfig::getDisplayNum() == 1) {
-#if (PLATFORM_SDK_VERSION > 33) || (PLATFORM_SDK_VERSION == 33 \
-            && (ANDROID_PLATFORM_SDK_EXTENSION_VERSION >= 5))
-        *outCount = 4;
-#else
         *outCount = 3;
-#endif
     }
     else {
         *outCount = 2;
@@ -130,7 +125,7 @@ void MesonHwc2::getCapabilities(uint32_t* outCount,
             outCapabilities[2] = HWC3_CAPABILITY_BOOT_DISPLAY_CONFIG;
 #if (PLATFORM_SDK_VERSION > 33) || (PLATFORM_SDK_VERSION == 33 \
             && (ANDROID_PLATFORM_SDK_EXTENSION_VERSION >= 5))
-            outCapabilities[3] = HWC3_HDR_OUTPUT_CONVERSION_CONFIG;
+            outCapabilities[1] = HWC3_HDR_OUTPUT_CONVERSION_CONFIG;
 #endif
         }
 

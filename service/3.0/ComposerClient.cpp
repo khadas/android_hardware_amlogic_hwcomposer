@@ -1063,27 +1063,25 @@ void ComposerClient::executeDisplayCommandPresentOrValidateDisplay(
     }
 
     // First try to Present as is.
-    if (mHal->hasCapability(HWC2_CAPABILITY_SKIP_VALIDATE)) {
-        int presentFence = -1;
-        std::vector<int64_t> layers;
-        std::vector<int> fences;
-        auto err = mResources->mustValidateDisplay(displayId)
-            ? HWC3::Error::NotValidated
-            : mHal->presentDisplay(displayId, &presentFence, &layers, &fences);
-        if (err == HWC3::Error::None) {
-            ::android::base::unique_fd displayFence(presentFence);
-            std::unordered_map<int64_t, ::android::base::unique_fd> layerFences;
+    int presentFence = -1;
+    std::vector<int64_t> layers;
+    std::vector<int> fences;
+    auto err = mResources->mustValidateDisplay(displayId)
+        ? HWC3::Error::NotValidated
+        : mHal->presentDisplay(displayId, &presentFence, &layers, &fences);
+    if (err == HWC3::Error::None) {
+        ::android::base::unique_fd displayFence(presentFence);
+        std::unordered_map<int64_t, ::android::base::unique_fd> layerFences;
 
-            for (uint32_t i = 0; i < layers.size(); i++) {
-                layerFences[layers[i]] = ::android::base::unique_fd(fences[i]);
-            }
-
-            mCommandResults->addPresentOrValidateResult(
-                    displayId, PresentOrValidate::Result::Presented);
-            mCommandResults->addPresentFence(displayId, std::move(displayFence));
-            mCommandResults->addReleaseFences(displayId, std::move(layerFences));
-            return ;
+        for (uint32_t i = 0; i < layers.size(); i++) {
+            layerFences[layers[i]] = ::android::base::unique_fd(fences[i]);
         }
+
+        mCommandResults->addPresentOrValidateResult(
+                displayId, PresentOrValidate::Result::Presented);
+        mCommandResults->addPresentFence(displayId, std::move(displayFence));
+        mCommandResults->addReleaseFences(displayId, std::move(layerFences));
+        return ;
     }
 
     // Present has failed. We need to fallback to validate
