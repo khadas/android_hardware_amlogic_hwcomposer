@@ -100,7 +100,7 @@ typedef struct meson_connector_info {
     enum meson_sink_type sink_type;         /* 0: not hdmi sink; 1: hdmi sink; 2: repeater sink; */
     char edid_parsing[MESON_MODE_LEN];      /* edid parse ok or not, ok:parse ok,ng:parse ng */
     char dc_cap[MESON_MAX_STR_LEN];         /* device colorspace cap */
-    char disp_cap[MESON_MAX_STR_LEN];       /* device resolution cap */
+//    char disp_cap[MESON_MAX_STR_LEN];       /* device resolution cap */
     char ubootenv_cvbsmode[MESON_MODE_LEN];     /* the env of cvbsmode */
     char ubootenv_hdmimode[MESON_MODE_LEN];     /* the env of hdmimode */
     char ubootenv_colorattr[MESON_MODE_LEN];    /* the env of colospace for UI change colorspace or boot */

@@ -23,7 +23,7 @@
 #include <pthread.h>
 
 #define DISPLAY_HPD_STATE               "/sys/class/amhdmitx/amhdmitx0/hpd_state"
-#define DISPLAY_HDMI_DISP_CAP           "/sys/class/amhdmitx/amhdmitx0/disp_cap"//RX support display mode
+//#define DISPLAY_HDMI_DISP_CAP           "/sys/class/amhdmitx/amhdmitx0/disp_cap"//RX support display mode
 //#define DISPLAY_HDMI_DISP_CAP_3D        "/sys/class/amhdmitx/amhdmitx0/disp_cap_3d"//RX support display 3d mode
 #define DISPLAY_HDMI_DEEP_COLOR         "/sys/class/amhdmitx/amhdmitx0/dc_cap"//RX support deep color
 
@@ -293,7 +293,6 @@ private:
 
     void getHdmiEdidStatus(char* edidstatus, int32_t len);
     int getHdmiSinkType();
-    void getHdmiDispCap(char* disp_cap, int32_t len);
     void getHdmiDcCap(char* dc_cap, int32_t len);
 
     bool isFilterEdid();

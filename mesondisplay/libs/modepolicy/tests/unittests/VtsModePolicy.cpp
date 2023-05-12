@@ -79,17 +79,6 @@ int VtsModePolicy::setEdidInfoPath(const char *path) {
     parseConnectorInfo(root);
     parseHdrInfo(root);
 
-    // strcat disp cap
-    auto conPtr = &mIn.con_info;
-    conPtr->disp_cap[0] = '\0';
-    for (int i = 0; i < conPtr->modes_size; i++) {
-        auto config = conPtr->modes[i];
-        if (strlen(conPtr->disp_cap) + strlen(config.name) > MESON_MAX_STR_LEN)
-            break;
-        strcat(conPtr->disp_cap, config.name);
-        strcat(conPtr->disp_cap, "\n");
-    }
-
     return 0;
 }
 
@@ -196,7 +185,6 @@ void VtsModePolicy::dump() {
     ALOGD("EdidParsing:%s\n", conPtr->edid_parsing);
     ALOGD("sinkType:%d\n", conPtr->sink_type);
     ALOGD("dc_cap :%s\n", conPtr->dc_cap);
-    ALOGD("disp_cap :%s\n", conPtr->disp_cap);
     ALOGD("\nModePolicyTest support modes(%d):\n", conPtr->modes_size);
     ALOGD("-----------------------------------------------------------"
         "------------------\n");

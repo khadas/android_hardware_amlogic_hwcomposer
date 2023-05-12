@@ -334,7 +334,7 @@ static bool is_support_4kHDR(struct meson_policy_in *input,
 
     /*
      * choose prefer color format and resolution for 4k hdr
-     * disp_cap:the list of TV support resolution from driver parse edid
+     * modes_ptr:the list of TV support resolution from connector
      * dc_cap:the list of TV support color format from driver parse edid
      */
     for (int i = 0; i < colorList_length; i++) {
@@ -345,15 +345,19 @@ static bool is_support_4kHDR(struct meson_policy_in *input,
             resolutionList = MODE_4K_LIST;
             resolutionList_length = ARRAY_SIZE(MODE_4K_LIST);
             for (int j = 0; j < resolutionList_length; j++) {
-                if (strstr(input->con_info.disp_cap, resolutionList[j]) != NULL) {
-                    if (mode_support_check(resolutionList[j], colorList[i])) {
-                       SYS_LOGI("%s mode:[%s], deep color:[%s]\n", __FUNCTION__, resolutionList[j], colorList[i]);
-                       strcpy(output_info->deepcolor, colorList[i]);
-                       strcpy(output_info->displaymode, resolutionList[j]);
-                       return true;
+                meson_mode_info_t *modes_ptr = input->con_info.modes;
+                for (int k = 0; k < input->con_info.modes_size; k ++) {
+                    meson_mode_info_t *it = &modes_ptr[k];
+                    if (strcmp(it->name, resolutionList[j]) == 0) {
+                        if (mode_support_check(resolutionList[j], colorList[i])) {
+                           SYS_LOGI("%s mode:[%s], deep color:[%s]\n", __FUNCTION__, resolutionList[j], colorList[i]);
+                           strcpy(output_info->deepcolor, colorList[i]);
+                           strcpy(output_info->displaymode, resolutionList[j]);
+                           return true;
+                        }
                     }
-               }
-           }
+                }
+            }
         }
     }
 
@@ -378,7 +382,7 @@ static bool is_support_non4kHDR(struct meson_policy_in *input,
 
     /*
      * choose prefer color format and resolution for non 4k hdr
-     * disp_cap:the list of TV support resolution from driver parse edid
+     * modes_ptr:the list of TV support resolution from connector
      * dc_cap:the list of TV support color format from driver parse edid
      */
     for (int i = 0; i < colorList_length; i++) {
@@ -389,15 +393,19 @@ static bool is_support_non4kHDR(struct meson_policy_in *input,
             resolutionList = MODE_NON4K_LIST;
             resolutionList_length = ARRAY_SIZE(MODE_NON4K_LIST);
             for (int j = 0; j < resolutionList_length; j++) {
-                if (strstr(input->con_info.disp_cap, resolutionList[j]) != NULL) {
-                    if (mode_support_check(resolutionList[j], colorList[i])) {
-                       SYS_LOGI("%s mode:[%s], deep color:[%s]\n", __FUNCTION__, resolutionList[j], colorList[i]);
-                       strcpy(output_info->deepcolor, colorList[i]);
-                       strcpy(output_info->displaymode, resolutionList[j]);
-                       return true;
+                meson_mode_info_t *modes_ptr = input->con_info.modes;
+                for (int k = 0; k < input->con_info.modes_size; k ++) {
+                    meson_mode_info_t *it = &modes_ptr[k];
+                    if (strcmp(it->name, resolutionList[j]) == 0) {
+                        if (mode_support_check(resolutionList[j], colorList[i])) {
+                           SYS_LOGI("%s mode:[%s], deep color:[%s]\n", __FUNCTION__, resolutionList[j], colorList[i]);
+                           strcpy(output_info->deepcolor, colorList[i]);
+                           strcpy(output_info->displaymode, resolutionList[j]);
+                           return true;
+                        }
                     }
-               }
-           }
+                }
+            }
         }
     }
 
@@ -439,24 +447,15 @@ static bool is_support_HdmiMode(struct meson_policy_in *input, char* mode) {
         SYS_LOGE("mode is NULL\n");
         return false;
     } else {
-        /* check current resolution support or not base driver edid */
-        char *pCmp = input->con_info.disp_cap;
-        while ((pCmp - input->con_info.disp_cap) < (int)strlen(input->con_info.disp_cap)) {
-            char *pos = strchr(pCmp, 0x0a);
-            if (NULL == pos)
-                break;
-
-            int step = 1;
-            if (*(pos - 1) == '*') {
-                pos -= 1;
-                step += 1;
-            }
-            if (!strncmp(pCmp, mode, pos - pCmp)) {
-                strncpy(mode, pCmp, pos - pCmp);
+        /* check current resolution support or not base connector mode list */
+        meson_mode_info_t *modes_ptr = input->con_info.modes;
+        for (int i = 0; i < input->con_info.modes_size; i ++) {
+            meson_mode_info_t *it = &modes_ptr[i];
+            if (strcmp(it->name, mode) == 0) {
+                strcpy(mode, it->name);
                 SYS_LOGI("mode: %s\n", mode);
                 return true;
             }
-            pCmp = pos + step;
         }
 
         SYS_LOGI("mode: %s not support\n", mode);

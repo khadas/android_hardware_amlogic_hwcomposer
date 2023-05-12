@@ -276,28 +276,6 @@ void ModePolicy::getDvCap(struct meson_hdr_info *data) {
     }
 }
 
-//TODO: refactor
-void ModePolicy::getHdmiDispCap(char* disp_cap, int32_t len) {
-    if (!disp_cap) {
-        MESON_LOGE("%s disp_cap is NULL\n", __FUNCTION__);
-        return;
-    }
-
-    int count = 0;
-    while (true) {
-        sysfs_get_string_original(DISPLAY_HDMI_DISP_CAP, disp_cap, len);
-        if (strlen(disp_cap) > 0)
-            break;
-
-        if (count >= 5) {
-            strcpy(disp_cap, "null edid");
-            break;
-        }
-        count++;
-        usleep(500000);
-    }
-}
-
 void ModePolicy::getHdmiDcCap(char* dc_cap, int32_t len) {
     if (!dc_cap) {
         MESON_LOGE("%s dc_cap is NULL\n", __FUNCTION__);
@@ -733,46 +711,22 @@ void ModePolicy::getProperHdmiColorAttribute(const char* outputmode, char* color
 
 
 void ModePolicy::filterHdmiDispcap(meson_connector_info* data) {
-    const char *delim = "\n";
-    char filter_dispcap[MESON_MAX_STR_LEN] = {0};
     char supportedColorList[MESON_MAX_STR_LEN];
-    char *save_ptr = NULL;
 
     if (!(initColorAttribute(supportedColorList, MESON_MAX_STR_LEN))) {
         MESON_LOGE("initColorAttribute fail\n");
         return;
     }
 
-    MESON_LOGI("before filtered HdmiDispcap: %s\n", data->disp_cap);
-
-    char *hdmi_mode = strtok_r(data->disp_cap, delim, &save_ptr);
-    while (hdmi_mode != NULL) {
-        //recommend mode or not
-        bool recomMode = false;
-        int len = strlen(hdmi_mode);
-        if (hdmi_mode[len - 1] == '*') {
-            hdmi_mode[len - 1] = '\0';
-            recomMode = true;
+    meson_mode_info_t *modes_ptr = data->modes;
+    for (int i = 0; i < data->modes_size; i++) {
+        meson_mode_info_t *it = &modes_ptr[i];
+        MESON_LOGD("before filtered Hdmi support: %s\n", it->name);
+        if (isSupportHdmiMode(it->name, supportedColorList)) {
+            MESON_LOGD("after filtered Hdmi support mode : %s\n", it->name);
         }
-
-        if (isSupportHdmiMode(hdmi_mode, supportedColorList)) {
-            if ((strlen(filter_dispcap) + strlen(hdmi_mode)) < (MESON_MAX_STR_LEN-1)) {
-                strcat(filter_dispcap, hdmi_mode);
-                if (recomMode)
-                    strcat(filter_dispcap, "*");
-                strcat(filter_dispcap, delim);
-            } else {
-                MESON_LOGE("DisplayMode strcat overflow: src=%s, dst=%s\n", hdmi_mode, filter_dispcap);
-                break;
-            }
-        }
-
-        hdmi_mode = strtok_r(NULL, delim, &save_ptr);
     }
 
-    strcpy(data->disp_cap, filter_dispcap);
-
-    MESON_LOGI("after filtered HdmiDispcap: %s\n", data->disp_cap);
 }
 
 int32_t ModePolicy::getConnectorData(struct meson_policy_in* data, hdmi_dv_info_t *dinfo) {
@@ -797,10 +751,6 @@ int32_t ModePolicy::getConnectorData(struct meson_policy_in* data, hdmi_dv_info_
     MESON_LOGI("display sink type:%d [0:none, 1:sink, 2:repeater]\n", data->con_info.sink_type);
 
     if (HDMI_SINK_TYPE_NONE != data->con_info.sink_type) {
-        //read hdmi disp_cap
-        char disp_cap[MESON_MAX_STR_LEN];
-        getHdmiDispCap(disp_cap, MESON_MAX_STR_LEN);
-        strcpy(data->con_info.disp_cap, disp_cap);
         getSupportedModes();
 
         //read hdmi dc_cap
