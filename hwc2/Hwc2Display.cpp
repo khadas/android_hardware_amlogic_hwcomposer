@@ -970,7 +970,7 @@ void Hwc2Display::createVirtualLayer() {
     hwc_rect_t mDisplayFrame = {0, 0, FB_SIZE_4K_W, FB_SIZE_4K_H};
     mVirtualLayer->setDisplayFrame(mDisplayFrame);
     mVirtualLayer->setBlendMode(HWC2_BLEND_MODE_NONE);
-    mVirtualLayer->mZorder = 15;
+    mVirtualLayer->mZorder = MESON_WHITE_BOARD_ZORDER;
     mVirtualLayer->mCompositionType = MESON_COMPOSITION_UNDETERMINED;
 
     //Bind the buffer to Virtual Layer

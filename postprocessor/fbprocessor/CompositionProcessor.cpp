@@ -386,7 +386,6 @@ int32_t CompositionProcessor::composite(
     mBufferLock.unlock();
     ATRACE_END();
 
-    close(fenceFd);
     glUseProgram(0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 

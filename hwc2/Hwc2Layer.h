@@ -23,6 +23,8 @@
 #define VT_CMD_GAME_MODE_ENABLE  0x02
 #define VT_CMD_GAME_MODE_DISABLE 0x04
 
+#define MESON_WHITE_BOARD_ZORDER 60
+
 class VtDisplayObserver {
 public:
     VtDisplayObserver() {};
