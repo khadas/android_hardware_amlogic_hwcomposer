@@ -134,7 +134,7 @@ enum vmode_e vmode_name_to_mode(const char *str)
 	enum vmode_e vmode = VMODE_MAX;
 
 	for (i = 0; i < ARRAY_SIZE(vmode_match_table); i++) {
-		if (strncmp(str, vmode_match_table[i].name, DRM_DISPLAY_MODE_LEN)) {
+		if (!strncmp(str, vmode_match_table[i].name, DRM_DISPLAY_MODE_LEN)) {
 			vmode = vmode_match_table[i].mode;
 			break;
 		}
