@@ -10,6 +10,7 @@
 #include "FixedSizeModeMgr.h"
 #include <MesonLog.h>
 #include <HwcConfig.h>
+#include <systemcontrol.h>
 #include <hardware/hwcomposer2.h>
 
 
@@ -60,10 +61,27 @@ void FixedSizeModeMgr::setDisplayResources(
 int32_t FixedSizeModeMgr::update() {
     bool useFakeMode = true;
     drm_mode_info_t realMode;
+    bool need_reset_density = false;
 
     if (mConnector->isConnected() && 0 == mCrtc->getMode(realMode)) {
         if (realMode.name[0] != 0) {
             mCurMode.refreshRate = realMode.refreshRate;
+
+            if ((mFbWidth >= FB_SIZE_4K_W || mFbHeight >= FB_SIZE_4K_H) &&
+                strncmp(realMode.name, "dummy_l", DRM_DISPLAY_MODE_LEN)) {
+                if (realMode.pixelW <= FB_SIZE_1080P_W || realMode.pixelH <= FB_SIZE_1080P_H) {
+                    /* hardware limitations: display is not clear when
+                     * the dispMode is less than 720P and framebuffer size is 4K */
+                    mCurMode.pixelW = FB_SIZE_1080P_W;
+                    mCurMode.pixelH = FB_SIZE_1080P_H;
+                    need_reset_density = true;
+                } else if (mCurMode.pixelW != mFbWidth || mCurMode.pixelH != mFbHeight) {
+                    mCurMode.pixelW = mFbWidth;
+                    mCurMode.pixelH = mFbHeight;
+                    need_reset_density = true;
+                }
+            }
+
             mCurMode.dpiX = ((float)mCurMode.pixelW/ realMode.pixelW) * realMode.dpiX;
             mCurMode.dpiY = ((float)mCurMode.pixelH/ realMode.pixelH) * realMode.dpiY;
             mCurMode.groupId = realMode.groupId;
@@ -76,9 +94,17 @@ int32_t FixedSizeModeMgr::update() {
 
     if (useFakeMode) {
         mCurMode = mPreviousMode;
-        mCurMode.pixelW = mFbWidth;
-        mCurMode.pixelH = mFbHeight;
+        if (mCurMode.pixelW != mFbWidth || mCurMode.pixelH != mFbHeight) {
+            need_reset_density = true;
+            mCurMode.pixelW = mFbWidth;
+            mCurMode.pixelH = mFbHeight;
+        }
         strncpy(mCurMode.name, "FAKE_PREVIOUS_MODE", DRM_DISPLAY_MODE_LEN);
+    }
+
+    if (need_reset_density) {
+        //todo: replace the displayid for dualDisplay
+        sc_update_density(HWC_DISPLAY_PRIMARY, mCurMode.pixelW, mCurMode.pixelH);
     }
 
     return 0;
