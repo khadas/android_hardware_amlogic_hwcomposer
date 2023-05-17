@@ -58,7 +58,7 @@ cc_binary {
     shared_libs: [
         "libpng",
         "libz",
-        "libwhiteboard_adapter",
+        "libwhiteboard_adapter.amlogic",
     ],
 }
 
