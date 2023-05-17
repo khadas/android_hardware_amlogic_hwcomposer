@@ -1461,13 +1461,16 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
          * When app not updated, sf won't update client target, but hwc
          * need display frame. so always update it before commit.
          */
+        // tmp workaround for smpte
+        int32_t offset = strstr(mDisplayMode.name, "smpte") ? 1 : 0;
+
         if (mClientTarget.get()) {
             mClientTarget->mDisplayFrame.left = mCalibrateInfo.crtc_display_x;
-            mClientTarget->mDisplayFrame.top = mCalibrateInfo.crtc_display_y;
+            mClientTarget->mDisplayFrame.top = mCalibrateInfo.crtc_display_y + offset;
             mClientTarget->mDisplayFrame.right = mCalibrateInfo.crtc_display_x +
                 mCalibrateInfo.crtc_display_w;
             mClientTarget->mDisplayFrame.bottom = mCalibrateInfo.crtc_display_y +
-                mCalibrateInfo.crtc_display_h;
+                mCalibrateInfo.crtc_display_h - offset;
         }
 
         /*start new pageflip, and prepare.*/
@@ -1530,6 +1533,13 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
         String8 compDump;
         mPresentCompositionStg->dump(compDump);
         MESON_LOGE("%s", compDump.string());
+        if (mClientTarget.get()) {
+            MESON_LOGD("clientTarget dispFrame:(%d,%d,%d,%d)",
+                    mClientTarget->mDisplayFrame.left,
+                    mClientTarget->mDisplayFrame.top,
+                    mClientTarget->mDisplayFrame.right,
+                    mClientTarget->mDisplayFrame.bottom);
+        }
     }
 
 
