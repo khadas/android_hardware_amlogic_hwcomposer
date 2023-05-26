@@ -222,15 +222,22 @@ struct vt_ctx {
     int trans_fd;
     int is_exit;
     SyncTimeline *timeline;
+    bool setSolidColor;
+    int coloropt;
 };
 
 static void usage(const char* pname) {
     fprintf(stderr,
-            "usage: %s [-h] [-c] [-p] [-t tunnel_id] [FILENAME]\n"
+            "usage: %s [-h] [-c] [-p] [-s] [-t tunnel_id] [FILENAME]\n"
             "    -h: print this message\n"
             "    -c: as consumer.\n"
             "    -p: as producer.\n"
             "    -t: specify the tunnel_id\n"
+            "    -s: setSolidColor,-s opt,opt 0:black,once;opt 1:black,always;\n"
+            "        opt 2:blue,once;opt 3:blue,always;\n"
+            "        opt 4:green,once;opt 5:green,always;\n"
+            "        for example:./vt_test -t11 -s 2 \n"
+            "        send tunnel_id=11 one blue frame \n "
             " FILENAME is the file to transfer\n",
             pname);
 }
@@ -244,6 +251,45 @@ static int do_write(int fd, char *content) {
     return write(fd, content, strlen(content));
 }
 
+static int vt_set_solid_color(int mDevFd,int mTunnelId,int opt){
+    if (mTunnelId == -1) {
+        fprintf(stderr, "please input tunnel id \n");
+    }
+    vt_color_cmd cmdSend = VT_CMD_COLOR_BLACK;
+    vt_color_data dataSend = VT_CMD_COLOR_DATA_ONCE;
+    switch (opt) {
+        case 0:
+            cmdSend = VT_CMD_COLOR_BLACK;
+            dataSend = VT_CMD_COLOR_DATA_ONCE;
+            break;
+        case 1:
+            cmdSend = VT_CMD_COLOR_BLACK;
+            dataSend = VT_CMD_COLOR_DATA_ALWAYS;
+            break;
+        case 2:
+            cmdSend = VT_CMD_COLOR_BLUE;
+            dataSend = VT_CMD_COLOR_DATA_ONCE;
+            break;
+        case 3:
+            cmdSend = VT_CMD_COLOR_BLUE;
+            dataSend = VT_CMD_COLOR_DATA_ALWAYS;
+            break;
+        case 4:
+            cmdSend = VT_CMD_COLOR_GREEN;
+            dataSend = VT_CMD_COLOR_DATA_ONCE;
+            break;
+        case 5:
+            cmdSend = VT_CMD_COLOR_GREEN;
+            dataSend = VT_CMD_COLOR_DATA_ALWAYS;
+            break;
+        default:
+            break;
+    }
+    fprintf(stderr, "setSolidColor %d to tunnel_id %d\n", opt, mTunnelId);
+    return meson_vt_set_solid_color(mDevFd, mTunnelId, cmdSend, dataSend);
+}
+
+
 static void *vt_producer_thread(void *arg) {
     struct vt_ctx *ctx = (struct vt_ctx *) arg;
     int dequeue_fd, fence_fd;
@@ -251,8 +297,12 @@ static void *vt_producer_thread(void *arg) {
 
     meson_vt_connect(ctx->dev_fd, ctx->tunnel_id, 0);
 
+    char buffer[1024] = "producer";
+    if (ctx->setSolidColor) {
+        vt_set_solid_color(ctx->dev_fd, ctx->tunnel_id, ctx->coloropt);
+        return NULL;
+    }
     while (!ctx->is_exit) {
-        char buffer[1024] = "producer";
 
         meson_vt_queue_buffer(ctx->dev_fd, ctx->tunnel_id, ctx->trans_fd, -1, VT_TIME_STAMP);
         fprintf(stderr, "queuebuffer fd:%d to tunnel:%d\n", ctx->trans_fd, ctx->tunnel_id);
@@ -302,14 +352,15 @@ static void *vt_consumer_thread(void *arg) {
 
 int main(int argc, char **argv) {
     const char* pname = argv[0];
-    int c;
+    int ch;
     bool is_producer = true;
     bool is_consumer = false;
-    int tunnel_id = 0;
+    int tunnel_id = -1;
     struct vt_ctx ctx;
-
-    while ((c = getopt(argc, argv, "cpht:")) != -1) {
-        switch (c) {
+    int colorOpt= -1;
+    bool is_setSolidColor = false;
+    while ((ch = getopt(argc, argv, "cpht:s:")) != -1) {
+        switch (ch) {
             case 'c':
                 is_consumer = true;
                 is_producer = false;
@@ -320,6 +371,12 @@ int main(int argc, char **argv) {
                 break;
             case 't':
                 tunnel_id = atoi(optarg);
+                fprintf(stderr, "set tunnel_id is %d \n",tunnel_id);
+                break;
+            case 's':
+                is_setSolidColor = true;
+                fprintf(stderr, "colorOpt optarg is %s\n",optarg);
+                colorOpt = atoi(optarg);
                 break;
             case '?':
             case 'h':
@@ -343,12 +400,12 @@ int main(int argc, char **argv) {
     if (argc == 1) {
         fn = argv[0];
         fd = open(fn, O_WRONLY | O_CREAT , 0664);
-        if (fd == -1) {
+        if (fd == -1 && !is_setSolidColor) {
             fprintf(stderr, "Error opening file: %s (%s)\n", fn, strerror(errno));
             return 1;
         } }
 
-    if (is_producer && fd == -1) {
+    if (is_producer && fd == -1 && !is_setSolidColor) {
         usage(pname);
         return 1;
     }
@@ -362,7 +419,15 @@ int main(int argc, char **argv) {
     int ret = -1;
     if (is_producer) {
         ctx.tunnel_id = -1;
-        ret = meson_vt_alloc_id(ctx.dev_fd, &ctx.tunnel_id);
+        ctx.setSolidColor = is_setSolidColor;
+        ctx.coloropt = colorOpt;
+        if (tunnel_id != -1) {
+            ctx.tunnel_id =tunnel_id;
+            ret = 1;
+        } else {
+            ret = meson_vt_alloc_id(ctx.dev_fd, &ctx.tunnel_id);
+        }
+
         fprintf(stderr, "alloc videotunnel id:%d\n", ctx.tunnel_id);
         ctx.trans_fd = fd;
 
