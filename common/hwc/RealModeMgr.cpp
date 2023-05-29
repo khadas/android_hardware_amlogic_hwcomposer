@@ -290,7 +290,9 @@ int32_t RealModeMgr::update() {
 
                 for (auto it = connectorModeList.begin(); it != connectorModeList.end(); it++) {
                     if (!strcmp(realMode.name, it->second.name)) {
-                        if (!strstr(realMode.name, "i")) {
+                        if (!strstr(realMode.name, "i") &&
+                            !strstr(realMode.name, "pal") &&
+                            !strstr(realMode.name, "ntsc")) {
                             mModes.emplace(nextModeId++, it->second);
                         }
                         useFakeMode = false;
@@ -299,8 +301,10 @@ int32_t RealModeMgr::update() {
                     }
                 }
 
-                if (strstr(realMode.name, "i")) {
-                    dynamicMapMode(&mModes, true);
+                if (strstr(realMode.name, "pal") ||
+                    strstr(realMode.name, "ntsc") ||
+                    strstr(realMode.name, "i")) {
+                    dynamicMapMode(realMode.name);
                 }
 
             }
@@ -441,8 +445,8 @@ int32_t RealModeMgr::setActiveConfigLocked(uint32_t config) {
     return HWC2_ERROR_NONE;
 }
 
-int32_t RealModeMgr::setPerferredIModeOrPMode(std::string mode, bool isInterlace) {
-    MESON_LOGD("RealModeMgr %s, nextMode:%s, isInterlace:%d", __func__, mode.c_str(), isInterlace);
+int32_t RealModeMgr::setPerferredMode(std::string mode) {
+    MESON_LOGD("RealModeMgr %s, nextMode:%s", __func__, mode.c_str());
 
     std::lock_guard<std::mutex> lock(mMutex);
 
@@ -451,49 +455,70 @@ int32_t RealModeMgr::setPerferredIModeOrPMode(std::string mode, bool isInterlace
         return HWC2_ERROR_NOT_VALIDATED;
     }
 
-    //1. map p<->i mode
-    dynamicMapMode(&mModes, isInterlace);
+    //1. map mode
+    dynamicMapMode(mode);
 
-    //2. setActiveConfig for same resolution I/P mode
+    //2. setActiveConfig for same resolution and refreshrate mode
     drm_mode_info_t curMode;
     mCrtc->getMode(curMode);
-    std::string mirrorCurModeName(curMode.name);
-    int pos = -1;
-    if ((pos = mirrorCurModeName.find("p")) != -1) {
-        mirrorCurModeName.replace(pos, 1, "i");
-    } else if ((pos = mirrorCurModeName.find("i")) != -1) {
-        mirrorCurModeName.replace(pos, 1, "p");
-    } else {
-        MESON_LOGE("Invalid Mode: %s", mirrorCurModeName.c_str());
+    drm_mode_info_t desiredMode;
+    for (auto it : mModes) {
+        if (strcmp(it.second.name, mode.c_str()) == 0) {
+            desiredMode = it.second;
+            break;
+        }
     }
-
-    if (mirrorCurModeName == mode) {
+    if (strstr(desiredMode.name, "576cvbs") || strstr(desiredMode.name, "pal_n")) {
+        desiredMode.pixelW = 720;
+        desiredMode.pixelH = 576;
+    } else if (strstr(desiredMode.name, "480cvbs") || strstr(desiredMode.name, "pal_m") || strstr(desiredMode.name, "ntsc_m")) {
+        desiredMode.pixelW = 720;
+        desiredMode.pixelH = 480;
+    }
+    MESON_LOGD("curMode %s %d %d  desiredMode %s %d %d", curMode.name, curMode.pixelW, curMode.pixelH, desiredMode.name,
+    desiredMode.pixelW, desiredMode.pixelH);
+    if (desiredMode.pixelW == curMode.pixelW && desiredMode.pixelH == curMode.pixelH
+        && std::abs(desiredMode.refreshRate - curMode.refreshRate) < 0.001) {
         setActiveConfigLocked(mActiveConfigId);
     }
 
     return HWC2_ERROR_NONE;
 }
 
-void RealModeMgr::dynamicMapMode(std::map<uint32_t, drm_mode_info_t> * pModes, bool toInterlace) {
-    std::string src = toInterlace ? "p" : "i";
-    std::string dst = toInterlace ? "i" : "p";
+void RealModeMgr::dynamicMapMode(std::string mode) {
+    std::string dst("");
+    if (mode.find("pal") != -1) {
+        dst = "pal";
+    } else if (mode.find("ntsc") != -1) {
+        dst = "ntsc";
+    } else if (mode.find("cvbs") != -1) {
+        dst = "cvbs";
+    } else if (mode.find("i") != -1) {
+        dst = "i";
+    } else if (mode.find("p") != -1) {
+        dst = "p";
+    }
     std::map<uint32_t, drm_mode_info_t> connecterModeList;
     mConnector->getModes(connecterModeList);
 
-    for (auto iterMode = pModes->begin(); iterMode != pModes->end(); ++iterMode) {
-        drm_mode_info_t config = iterMode->second;
-        std::string modeName(config.name);
-        for (auto iterConnector = connecterModeList.begin(); iterConnector != connecterModeList.end(); ++iterConnector) {
-            std::string connectorModeName(iterConnector->second.name);
-            if (config.refreshRate == iterConnector->second.refreshRate &&
-                    config.pixelW == iterConnector->second.pixelW &&
-                    config.pixelH == iterConnector->second.pixelH &&
-                    connectorModeName.find(dst) != -1) {
-                int pos = modeName.find(src);
-                if (pos != -1) {
-                    modeName.replace(pos, 1, dst);
-                    strcpy(iterMode->second.name, modeName.c_str());
-                }
+    for (auto iterMode = mModes.begin(); iterMode != mModes.end(); ++iterMode) {
+        drm_mode_info_t itmode = iterMode->second;
+        std::string modeName(itmode.name);
+        if (strstr(itmode.name, "576cvbs") || strstr(itmode.name, "pal_n")) {
+            itmode.pixelW = 720;
+            itmode.pixelH = 576;
+        } else if (strstr(itmode.name, "480cvbs") || strstr(itmode.name, "pal_m") || strstr(itmode.name, "ntsc_m")) {
+            itmode.pixelW = 720;
+            itmode.pixelH = 480;
+        }
+        for (auto iterConnector : connecterModeList) {
+            std::string connectorModeName(iterConnector.second.name);
+            if (std::abs(itmode.refreshRate - iterConnector.second.refreshRate) < 0.001 &&
+                    itmode.pixelW == iterConnector.second.pixelW &&
+                    itmode.pixelH == iterConnector.second.pixelH &&
+                    connectorModeName.find(dst) != -1 ) {
+                strcpy(iterMode->second.name, iterConnector.second.name);
+                MESON_LOGD("mode %s map to %s", itmode.name, iterMode->second.name);
                 break;
             }
         }

@@ -43,7 +43,7 @@ public:
     bool dumpDisplayAttribute(Json::Value& json, ConnectorType displayType) override;
     bool enableSyncProtection(bool mode) override;
     bool disableSidebandStream(bool isDisable) override;
-    bool setPerferredIModeOrPMode(const string& mode, bool isInterlace, ConnectorType displayType) override;
+    bool setPerferredMode(const string& mode, ConnectorType displayType) override;
 
     static std::unique_ptr<DisplayAdapter> create();
     DisplayAdapterRemote();

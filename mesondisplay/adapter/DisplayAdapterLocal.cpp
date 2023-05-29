@@ -249,13 +249,12 @@ bool DisplayAdapterLocal::setDisplayMode(const string& mode, ConnectorType displ
     return true;
 }
 
-bool DisplayAdapterLocal::setPerferredIModeOrPMode(
-    const string& mode, bool isInterlace,
+bool DisplayAdapterLocal::setPerferredMode(
+    const string& mode,
     ConnectorType displayType) {
     UNUSED(displayType);
-    MESON_LOGD("setPerferred %s: %s", isInterlace ? "IMode" : "PMode", mode.c_str());
-
-    int32_t ret = MesonHwc2::getInstance().setPerferredIModeOrPMode(mode, isInterlace);
+    MESON_LOGD("setPerferred Mode : %s", mode.c_str());
+    int32_t ret = MesonHwc2::getInstance().setPerferredMode(mode);
     return ret == 1 ? true : false;
 }
 

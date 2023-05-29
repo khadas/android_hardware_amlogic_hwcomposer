@@ -69,7 +69,7 @@ public:
     int32_t getChangedCompositionTypes(hwc2_display_t display,
         uint32_t* outNumElements, hwc2_layer_t* outLayers, int32_t*  outTypes);
     int32_t setCalibrateInfo(hwc2_display_t display);
-    int32_t setPerferredIModeOrPMode(std::string mode, bool isInterlace);
+    int32_t setPerferredMode(std::string mode);
 
     /*layer functions*/
     int32_t createLayer(hwc2_display_t display, hwc2_layer_t* outLayer);

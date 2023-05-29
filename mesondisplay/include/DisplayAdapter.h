@@ -117,9 +117,8 @@ public:
         return false;
     };
 
-    virtual bool setPerferredIModeOrPMode(const string& mode, bool isInterlace, ConnectorType displayType) {
+    virtual bool setPerferredMode(const string& mode, ConnectorType displayType) {
         UNUSED(mode);
-        UNUSED(isInterlace);
         UNUSED(displayType);
         NOTIMPLEMENTED;
         return false;

@@ -86,12 +86,11 @@ bool DisplayAdapterRemote::setDisplayMode(const string& mode, ConnectorType disp
     return true;
 }
 
-bool DisplayAdapterRemote::setPerferredIModeOrPMode(const string& mode, bool isInterlace, ConnectorType displayType) {
+bool DisplayAdapterRemote::setPerferredMode(const string& mode, ConnectorType displayType) {
     Json::Value cmd;
     IF_SERVER_NOT_READY_RETURN(false);
-    cmd["cmd"] = "setPerferredIModeOrPMode";
+    cmd["cmd"] = "setPerferredMode";
     cmd["p_mode"] = mode;
-    cmd["isInterlace"] = isInterlace;
     cmd["p_displayType"] = displayType;
     ipc->send_request(cmd);
     return true;

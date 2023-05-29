@@ -1712,11 +1712,11 @@ hwc2_error_t Hwc2Display::setActiveConfig(hwc2_config_t config) {
     }
 }
 
-hwc2_error_t Hwc2Display::setPerferredIModeOrPMode(std::string mode, bool isInterlace) {
+hwc2_error_t Hwc2Display::setPerferredMode(std::string mode) {
     if (mModeMgr != NULL) {
-        return (hwc2_error_t)mModeMgr->setPerferredIModeOrPMode(mode, isInterlace);
+        return (hwc2_error_t)mModeMgr->setPerferredMode(mode);
     } else {
-        MESON_LOGE("Hwc2Display (%s) setPerferredIModeOrPMode miss valid DisplayConfigure.",
+        MESON_LOGE("Hwc2Display (%s) setPerferredMode miss valid DisplayConfigure.",
             getName());
         return HWC2_ERROR_BAD_DISPLAY;
     }

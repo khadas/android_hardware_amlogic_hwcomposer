@@ -248,10 +248,10 @@ void DisplayServer::message_handle(Json::Value& in, Json::Value& out) {
         if (!in.isMember("passThrough") || !in.isMember("forceMode"))
             goto OUT;
         mAdapter->setHdrConversionStrategy(in["passThrough"].asUInt(), in["forceMode"].asUInt());
-    } else if (cmd == "setPerferredIModeOrPMode") {
-        if (!in.isMember("p_mode") || !in.isMember("isInterlace") || !in.isMember("p_displayType"))
+    } else if (cmd == "setPerferredMode") {
+        if (!in.isMember("p_mode") || !in.isMember("p_displayType"))
             goto OUT;
-        mAdapter->setPerferredIModeOrPMode(in["p_mode"].asString(), in["isInterlace"].asUInt(), (ConnectorType)in["p_displayType"].asUInt());
+        mAdapter->setPerferredMode(in["p_mode"].asString(), (ConnectorType)in["p_displayType"].asUInt());
     } else {
         MESON_LOGE("CMD not implement!");
     }
