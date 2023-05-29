@@ -1715,6 +1715,7 @@ int MultiplanesWithHRComposition::commit() {
         if (IS_FB_COMPOSED(mDisplayRefFb)) {
             if (composerOutput.get()) {
                 mDisplayRefFb = composerOutput;
+                dispFrame = mDisplayRefFb->getDisplayFrame();
             } else {
                 MESON_LOGE("Output of client composer is NULL!");
             }
