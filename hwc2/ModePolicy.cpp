@@ -1394,16 +1394,12 @@ void ModePolicy::getPosition(const char* curMode, int *position) {
                     break;
                 }
             } else {
-                if (strstr(curMode, MODE_4K2KSMPTE_PREFIX)) {
-                    strcpy(keyValue, "4k2ksmpte");
-                    mode = it->second;
-                    break;
-                } else if (strstr(curMode, MODE_PANEL)) {
-                    strcpy(keyValue, MODE_PANEL);
-                    mode = it->second;
-                    break;
-                } else if (strstr(curMode, it->second.name)) {
-                    if (strchr(curMode,'p')) {
+                if (strstr(curMode, it->second.name)) {
+                    if (strstr(it->second.name, MODE_4K2KSMPTE_PREFIX)) {
+                        strcpy(keyValue, "4k2ksmpte");
+                    } else if (strstr(it->second.name, MODE_PANEL)) {
+                        strcpy(keyValue, MODE_PANEL);
+                    } else if (strchr(curMode,'p')) {
                         strncpy(keyValue, curMode, strchr(curMode,'p') - curMode + 1);
                     } else if (strchr(curMode,'i')){
                         strncpy(keyValue, curMode, strchr(curMode,'i') - curMode + 1);
@@ -1466,14 +1462,12 @@ void ModePolicy::setPosition(const char* curMode, int left, int top, int width, 
                     break;
                 }
             } else {
-                if (strstr(curMode, MODE_4K2KSMPTE_PREFIX)) {
-                    strcpy(keyValue, "4k2ksmpte");
-                    break;
-                } else if (strstr(curMode, MODE_PANEL)) {
-                    strcpy(keyValue, MODE_PANEL);
-                    break;
-                } else if (strstr(curMode, it->second.name)) {
-                    if (strchr(curMode,'p')) {
+                if (strstr(curMode, it->second.name)) {
+                     if (strstr(it->second.name, MODE_4K2KSMPTE_PREFIX)) {
+                        strcpy(keyValue, "4k2ksmpte");
+                    } else if (strstr(it->second.name, MODE_PANEL)) {
+                        strcpy(keyValue, MODE_PANEL);
+                    } else if (strchr(curMode,'p')) {
                         strncpy(keyValue, curMode, strchr(curMode,'p') - curMode + 1);
                     } else if (strchr(curMode,'i')){
                         strncpy(keyValue, curMode, strchr(curMode,'i') - curMode + 1);
