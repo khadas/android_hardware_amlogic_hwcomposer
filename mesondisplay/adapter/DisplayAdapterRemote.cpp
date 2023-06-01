@@ -12,6 +12,7 @@
 #include "DisplayAdapterRemote.h"
 #include "MesonDisplayLog.h"
 #include "am_gralloc_ext.h"
+#include <unistd.h>
 
 #define IF_SERVER_NOT_READY_RETURN(ret) \
     if (!connectServerIfNeed()) { \
@@ -98,11 +99,12 @@ bool DisplayAdapterRemote::getWhiteBoardHanle(const native_handle_t **outBufferH
     return ret;
 }
 
-bool DisplayAdapterRemote::setWriteBoardMode(bool mode) {
+bool DisplayAdapterRemote::setWriteBoardMode(bool mode, int callingPid __unused) {
     Json::Value cmd;
     IF_SERVER_NOT_READY_RETURN(false);
     cmd["cmd"] = "setWriteBoardMode";
     cmd["value"] = mode ? "true":"false";
+    cmd["callingPid"] = getpid();
     ipc->send_request(cmd);
     return true;
 }

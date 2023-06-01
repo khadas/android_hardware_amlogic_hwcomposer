@@ -12,6 +12,8 @@
 #include <unistd.h>
 #include <thread>
 #include <mutex>
+#include <signal.h>
+
 #include <condition_variable>
 
 #include <utils/Trace.h>
@@ -866,6 +868,13 @@ public:
 
     void refresh() {
         MESON_LOGD("Display (%d) ask for refresh.", (int)mDispId);
+
+        if (mHwc->mWhiteBoardMode) {
+            if (kill(mHwc->mCallingPid, 0) == -1 && errno == ESRCH) {
+                mHwc->setWriteBoardMode(false, mHwc->mCallingPid);
+            }
+        }
+
         mHwc->refresh(mDispId);
     }
 
@@ -988,8 +997,10 @@ int32_t MesonHwc2::getWhiteBoardHanle(native_handle_t** hnd) {
     return 0;
 }
 
-bool MesonHwc2::setWriteBoardMode(bool mode) {
+bool MesonHwc2::setWriteBoardMode(bool mode, int callingPid) {
     GET_HWC_DISPLAY(0);
+    mCallingPid = callingPid;
+    mWhiteBoardMode = mode;
     hwcDisplay->setWriteBoardMode(mode);
     return true;
 }

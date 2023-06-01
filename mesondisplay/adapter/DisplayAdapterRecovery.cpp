@@ -309,9 +309,10 @@ bool DisplayAdapterLocal::enableSyncProtection(bool mode) {
     return ret;
 }
 
-bool DisplayAdapterLocal::setWriteBoardMode(bool mode) {
+bool DisplayAdapterLocal::setWriteBoardMode(bool mode, int callingPid) {
     bool ret = false;
     UNUSED(mode);
+    UNUSED(callingPid);
     NOTIMPLEMENTED;
     return ret;
 }

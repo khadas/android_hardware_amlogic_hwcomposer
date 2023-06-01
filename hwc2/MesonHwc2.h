@@ -174,7 +174,7 @@ public:
 public:
     int32_t captureDisplayScreen(buffer_handle_t hnd);
     int32_t getWhiteBoardHanle(native_handle_t** hnd);
-    bool setWriteBoardMode(bool mode);
+    bool setWriteBoardMode(bool mode, int callingPid);
     bool getWriteBoardMode(bool& mode);
     bool setWBDisplayFrame(int x, int y);
     bool hideVideoLayer(bool hide);
@@ -186,6 +186,9 @@ public:
     std::shared_ptr<HwcDisplayPipe> mDisplayPipe;
     bool enableSyncProtection(bool mode);
     bool disableSideband(bool isDisable);
+
+    int mCallingPid = -1;
+    bool mWhiteBoardMode = false;
 
 protected:
     int32_t initialize();

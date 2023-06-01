@@ -34,7 +34,7 @@ public:
     bool getDisplayVsyncAndPeriod(int64_t& vsyncTimestamp, int32_t& vsyncPeriodNanos) override;
     int32_t setFrameRate(float frameRate) override;
     bool getWhiteBoardHanle(const native_handle_t **outBufferHandle,int& fd) override;
-    bool setWriteBoardMode(bool mode) override;
+    bool setWriteBoardMode(bool mode, int callingpid = 0) override;
     bool getWriteBoardMode(bool& mode) override;
     bool setWBDisplayFrame(int x, int y) override;
     bool hideVideoLayer(bool hide) override;

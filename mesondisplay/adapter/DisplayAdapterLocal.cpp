@@ -293,8 +293,8 @@ bool DisplayAdapterLocal::enableSyncProtection(bool mode){
     return MesonHwc2::getInstance().enableSyncProtection(mode);
 }
 
-bool DisplayAdapterLocal::setWriteBoardMode(bool mode){
-    return MesonHwc2::getInstance().setWriteBoardMode(mode);
+bool DisplayAdapterLocal::setWriteBoardMode(bool mode, int callingPid){
+    return MesonHwc2::getInstance().setWriteBoardMode(mode, callingPid);
 }
 
 bool DisplayAdapterLocal::getWriteBoardMode(bool& mode){
