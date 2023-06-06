@@ -79,10 +79,6 @@ public:
     virtual hwc2_error_t setCursorPosition(hwc2_layer_t layer,
         int32_t x, int32_t y);
 
-    /*For round corner.*/
-    virtual hwc2_error_t createVirtualLayer(hwc2_layer_t * outLayer);
-    virtual hwc2_error_t loadVirtualLayerData(FILE *file);
-
     virtual hwc2_error_t setColorTransform(const float* matrix,
         android_color_transform_t hint);
     virtual hwc2_error_t setPowerMode(int32_t mode);
@@ -163,6 +159,10 @@ public:
     virtual void onModeChanged(int stage);
     virtual void getDispMode(drm_mode_info_t & dispMode);
     virtual void cleanupBeforeDestroy();
+
+    /*For round corner.*/
+    hwc2_error_t createVirtualLayer(hwc2_layer_t * outLayer);
+    int32_t loadVirtualLayerData(FILE *file, std::shared_ptr<Hwc2Layer> tempVirtualLayer);
 
 /* video tunnel api*/
 public:

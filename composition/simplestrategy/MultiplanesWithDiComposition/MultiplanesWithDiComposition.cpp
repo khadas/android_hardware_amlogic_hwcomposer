@@ -617,11 +617,12 @@ int MultiplanesWithDiComposition::pickoutOsdFbs() {
         bRemove = false;
         bClientLayer = false;
         //get the white board data
+#ifndef ENABLE_VIRTUAL_LAYER
         if (fb->isVirtualLayer()) {
             mHaveVirLayer = true;
             mWhiteBoardData = fb;
         }
-
+#endif
         switch (fb->mCompositionType) {
             case MESON_COMPOSITION_DUMMY:
                 dummyFbs.push_back(fb);

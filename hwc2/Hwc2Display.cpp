@@ -680,7 +680,7 @@ hwc2_error_t Hwc2Display::destroyLayer(hwc2_layer_t  inLayer) {
     return HWC2_ERROR_NONE;
 }
 
-hwc2_error_t Hwc2Display::loadVirtualLayerData(FILE *file){
+int32_t Hwc2Display::loadVirtualLayerData(FILE *file, std::shared_ptr<Hwc2Layer> tempVirtualLayer) {
 
     //use libpng
     png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, 0, 0, 0);
@@ -693,65 +693,90 @@ hwc2_error_t Hwc2Display::loadVirtualLayerData(FILE *file){
     int m_height = png_get_image_height(png_ptr, info_ptr);
 
     hwc_frect_t mCrop = {0, 0, static_cast<float>(m_width), static_cast<float>(m_height)};
-    mVirtualLayer->setSourceCrop(mCrop);
-    mVirtualLayer->setBlendMode(HWC2_BLEND_MODE_PREMULTIPLIED);
+    tempVirtualLayer->setSourceCrop(mCrop);
 
-    buffer_handle_t hnd = gralloc_alloc_dma_buf(m_width, m_height, HAL_PIXEL_FORMAT_RGBA_8888, true, false);
+    buffer_handle_t hnd = gralloc_alloc_dma_buf(m_width, m_height,
+                                                   HAL_PIXEL_FORMAT_RGBA_8888, false, false);
     if (hnd == NULL ) {
-        MESON_LOGE("VirtualLayer allocate buf failed.");
-        return HWC2_ERROR_NO_RESOURCES;
+        MESON_LOGE("tempVirtualLayer allocate buf failed ");
+        return -1;
     }
 
-    mVirtualLayer->setBuffer(hnd,-1);
+    tempVirtualLayer->setBuffer(hnd,-1);
     int bufFd = am_gralloc_get_buffer_fd(hnd);
     char *base = (char *)mmap(NULL, m_width*m_height*4, PROT_WRITE , MAP_SHARED, bufFd, 0);
     if (base == MAP_FAILED) {
-        MESON_LOGE("VirtualLayer mmap failed");
-        return HWC2_ERROR_NO_RESOURCES;
+        MESON_LOGE("tempVirtualLayer mmap failed ");
+        return -1;
     }
 
     unsigned char ** row_pointers = png_get_rows(png_ptr, info_ptr);
     unsigned int row_bytes = png_get_rowbytes(png_ptr, info_ptr);
     if (row_pointers) {
-        MESON_LOGD("VirtualLayer size(%dx%d) row_bytes %d", m_width, m_height,row_bytes);
+        MESON_LOGD("tempVirtualLayer size(%dx%d) row_bytes %d ", m_width, m_height, row_bytes);
         for (int i = 0; i < m_height; i++) {
             memcpy(base + row_bytes*i, row_pointers[i], row_bytes);
         }
     }
     munmap(base,m_width*m_height*4);
 
-    return HWC2_ERROR_NONE;
-
+    return 0;
 }
 
 hwc2_error_t Hwc2Display::createVirtualLayer(hwc2_layer_t * outLayer) {
     ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
-    const char * pngPath  = "/data/vendor/Rhodes_RoundedCorner_Proto_alpha_v2.png";
 
-    FILE *file = fopen(pngPath,"rb");
+    std::shared_ptr<Hwc2Layer> mTempVirtualLayer = std::make_shared<Hwc2Layer>(1);
+    const char * rcpngPath  = "/data/vendor/Rhodes_RoundedCorner_Proto_alpha_v2.png";
+
+    FILE *file = fopen(rcpngPath,"rb");
     if (file == NULL) {
-        MESON_LOGE("Unable to open PNG %s",pngPath);
+        MESON_LOGE("Unable to open PNG %s ", rcpngPath);
         return HWC2_ERROR_NO_RESOURCES;
     }
 
-    mVirtualLayer = std::make_shared<Hwc2Layer>(mDisplayId);
-    hwc2_error_t ret = loadVirtualLayerData(file);
-    if (ret != HWC2_ERROR_NONE) {
-        *outLayer = 0;
-        return ret;
+    // load png data for Rounded Corner
+    int ret = loadVirtualLayerData(file, mTempVirtualLayer);
+    fclose(file);
+    if (ret == -1) {
+        MESON_LOGE("Load data failed\n");
+        return HWC2_ERROR_NO_RESOURCES;
     }
+
+    //setUp the render thread
+    std::shared_ptr<CompositionProcessor> comProcessor = std::make_shared<CompositionProcessor>();
+    comProcessor->setup();
+
+    //Create the outputs Buffer
+    buffer_handle_t hnd;
+    hnd = gralloc_alloc_dma_buf(FB_SIZE_1080P_W, FB_SIZE_1080P_H,
+                                   HAL_PIXEL_FORMAT_RGBA_8888, true, true, RENDER_TARGET);
+    auto outBuf = std::make_shared<DrmFramebuffer>(hnd, -1);
+
+    std::shared_ptr<DrmFramebuffer> inUI = mTempVirtualLayer;
+    comProcessor->composite(inUI, inUI, outBuf);
+
+    int width = am_gralloc_get_width(outBuf->mBufferHandle);
+    int height = am_gralloc_get_height(outBuf->mBufferHandle);
+    int stride = am_gralloc_get_stride_in_pixel(outBuf->mBufferHandle);
+    int format = am_gralloc_get_format(outBuf->mBufferHandle);
+    MESON_LOGD("outputs format %d, (%d, %d) stride %d\n",
+        format, width, height, stride);
+
+    mVirtualLayer = std::make_shared<Hwc2Layer>(mDisplayId);
+    mVirtualLayer->setBuffer(hnd,-1);
+    hwc_frect_t mCrop = {0, 0, static_cast<float>(width), static_cast<float>(height)};
+    mVirtualLayer->setSourceCrop(mCrop);
+    mVirtualLayer->setBlendMode(HWC2_BLEND_MODE_PREMULTIPLIED);
 
     uint32_t idx = createLayerId();
     *outLayer = idx;
-
     mVirtualLayer->setUniqueId(*outLayer);
     mVirtualLayer->mIsVirtualLayer = true;
     mVirtualLayer->mZorder = 63;
     mVirtualLayer->mCompositionType = MESON_COMPOSITION_UNDETERMINED;
     mLayers.emplace(*outLayer, mVirtualLayer);
-
-    fclose(file);
 
     return HWC2_ERROR_NONE;
 }
