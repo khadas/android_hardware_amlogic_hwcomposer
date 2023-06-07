@@ -13,6 +13,7 @@
 #include <functional>
 #include <FbProcessor.h>
 #include "ICompositionStrategy.h"
+#include "VideoProcessorsManager.h"
 #include <misc.h>
 #include <queue>
 
@@ -71,15 +72,8 @@ protected:
         uint32_t presentZorder;
         std::shared_ptr<DrmFramebuffer> fb;     // UI or Video from SF
         std::shared_ptr<HwDisplayPlane> plane;  // osdPlane <= 3, videoPlane <= 2
-        std::vector<std::shared_ptr<FbProcessor>> processors; // fb processor
+        //std::vector<std::shared_ptr<FbProcessor>> processors; // fb processor
     };
-
-    // for video processor
-    int setUpProcessor();
-    int tearDownProcessor();
-    int resetProcessor();
-    int collectProcessor();
-    bool runProcessor(struct DisplayPair &dp, int &blankFlag, int &ret);
 
 protected:
     /* Input Flags from SF */
@@ -128,14 +122,10 @@ protected:
     uint32_t mVsyncRefreshRate;
 
     float mScaleValue;
-    bool mResetProcessorFlag;
 
     bool mIsSideBandDisable;
     /* for video processor */
-    std::shared_ptr<FbProcessor> mSrProcessor;
-    std::shared_ptr<FbProcessor> mPqProcessor;
-    std::shared_ptr<FbProcessor> mColorProcessor;
-    std::vector<std::shared_ptr<FbProcessor>> mProcessors;
+    std::shared_ptr<VideoProcessorsManager> mVideoProcessorsMgr;
     bool mIsDisablePostProcessor = false;
 
     //For White board

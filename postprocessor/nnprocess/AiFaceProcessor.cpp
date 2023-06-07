@@ -201,13 +201,12 @@ int32_t AiFaceProcessor::asyncProcess(
     processFence = -1;
     outfb = inputfb;
 
-    if (/*inputfb->mFbType == DRM_FB_VIDEO_OMX_V4L ||*/
-        inputfb->mFbType == DRM_FB_VIDEO_UVM_DMA) {
-        input_fd = am_gralloc_get_omx_v4l_file(buf);
-    } else if (inputfb->mFbType == DRM_FB_VIDEO_TUNNEL_SIDEBAND) {
-        input_fd = inputfb->getVtBuffer();
+    drm_fb_type_t type = inputfb->getFbType();
+    if (type == DRM_FB_VIDEO_UVM_DMA ||
+        type == DRM_FB_VIDEO_TUNNEL_SIDEBAND) {
+        input_fd = inputfb->getBufferFd();
     } else
-        ALOGE("%s: get fd fail mFbType=%d.", __FUNCTION__, inputfb->mFbType);
+        ALOGE("%s: get fd fail type=%d.", __FUNCTION__, type);
 
     if (input_fd == -1) {
         ALOGD_IF(check_D(), "%s: input_fd invalid.", __FUNCTION__);

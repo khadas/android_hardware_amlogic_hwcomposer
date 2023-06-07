@@ -12,7 +12,6 @@
 
 #include <DrmTypes.h>
 #include <BasicTypes.h>
-#include <FbProcessor.h>
 #include <HwcModeMgr.h>
 #include <HwcDisplayPipe.h>
 
@@ -50,6 +49,11 @@ public:
     static bool AiColorProcessorEnabled();
     static bool mosaicEnabled();
     static bool UvmDettachEnabled();
+    static bool DiProcessorEnabled();
+    static int32_t getSupportDiChannelNumber();
+    static int32_t getSupportAiSrChannelNumber();
+    static int32_t getSupportAiPqChannelNumber();
+    static int32_t getSupportAiColorChannelNumber();
 
     static void dump(String8 & dumpstr);
 };

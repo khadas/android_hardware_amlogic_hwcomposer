@@ -37,6 +37,8 @@ public:
         std::shared_ptr<DrmFramebuffer> & outfb);
     int32_t update(drm_rect_t pos);
     void enableSyncProtection(bool mode);
+
+    meson_fb_processor_t getFbProcessorType() {return FB_RENDER_PROCESSOR;};
 protected:
     GLuint createProgram(const char* pVertexSource, const char* pFragmentSource);
     GLuint loadShader(GLenum shaderType, const char* pSource);

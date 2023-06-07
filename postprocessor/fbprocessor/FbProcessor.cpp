@@ -23,6 +23,9 @@
 #ifdef ENABLE_VIDEO_AICOLOR
 #include "AiColorProcessor.h"
 #endif
+#ifdef ENABLE_VIDEO_DI
+#include "DiProcessor.h"
+#endif
 
 #include "CompositionProcessor.h"
 
@@ -69,6 +72,11 @@ int32_t createFbProcessor(
         case FB_RENDER_PROCESSOR:
             processor = std::make_shared<CompositionProcessor>();
             break;
+#ifdef ENABLE_VIDEO_DI
+        case FB_DI_PROCESSOR:
+            processor = std::make_shared<DiProcessor>();
+            break;
+#endif
         default:
             MESON_ASSERT(0, "unknown processor type %d", type);
             processor = NULL;

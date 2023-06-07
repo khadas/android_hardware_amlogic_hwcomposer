@@ -82,6 +82,7 @@ soong_config_module_type {
         "enable_aidl",
         "enable_virtual_layer",
         "enable_ai_process_120",
+        "enable_video_di",
     ],
 
     value_variables: [
@@ -127,6 +128,10 @@ soong_config_bool_variable {
     name: "enable_ai_process_120",
 }
 
+soong_config_bool_variable {
+    name: "enable_video_di",
+}
+
 meson_hwc_cc_defaults {
     name: "hwcomposer_cc_defaults",
     vendor: true,
@@ -160,6 +165,10 @@ meson_hwc_cc_defaults {
 
         enable_video_aicolor: {
             cflags: ["-DENABLE_VIDEO_AICOLOR"],
+        },
+
+        enable_video_di: {
+            cflags: ["-DENABLE_VIDEO_DI"],
         },
 
         enable_aidl: {

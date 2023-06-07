@@ -64,6 +64,7 @@ public:
 
     inline bool enableDrmBlockMode() { return mDrmBlockMode; }
     inline bool disableAISRAIPQ() { return mDisableAisrAipq; }
+    inline bool disableDi() { return mDisableDi; }
 
 protected:
     bool isEnabled();
@@ -104,5 +105,6 @@ protected:
     bool mDiscardOutFence;
     bool mDrmBlockMode;
     bool mDisableAisrAipq;
+    bool mDisableDi;
 };
 #endif

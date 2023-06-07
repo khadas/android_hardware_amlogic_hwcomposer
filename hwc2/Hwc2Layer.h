@@ -76,10 +76,14 @@ public:
     int getVideoType() {return mAMVideoType;}
     uint32_t getVideoTimestamp() {return mVideoDecTimestamp;}
 
+    void setDiProcessorFd(int32_t fd);
+    void setDiProcessorFence(int32_t fenceFd);
+    int32_t getDiProcessorFence();
+    int32_t getBufferFd() override;
+
     /* video tunnel api */
     bool isVtBuffer() override;
     bool isFbUpdated() override;
-    int32_t getVtBuffer() override;
     void updateVtBuffer();
     int32_t releaseVtBuffer();
     int32_t releaseVtResource();
@@ -115,6 +119,7 @@ public:
     hwc_region_t mVisibleRegion;
     hwc_region_t mDamageRegion;
     drm_rect_t mBackupDisplayFrame;
+    std::shared_ptr<DrmFence> mDiProcessorFence;
 
 public:
     // for videotunnel
@@ -166,6 +171,7 @@ protected:
     int mVtBufferFd;
     int mSolidColorBufferfd;
     int mPreVtBufferFd;
+    int mDifd;
     int mAMVideoType;
     uint32_t mVideoDecTimestamp;
     uint32_t mDisplayId;

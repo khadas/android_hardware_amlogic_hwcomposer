@@ -95,6 +95,7 @@ public:
         std::shared_ptr<DrmFramebuffer> & outfb,
         int releaseFence);
     int32_t teardown();
+    meson_fb_processor_t getFbProcessorType() {return FB_AICOLOR_PROCESSOR;};
     int allocDmaBuffer();
     int freeDmaBuffers();
     void triggerEvent();

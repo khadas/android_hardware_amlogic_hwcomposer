@@ -23,6 +23,7 @@ typedef enum {
     FB_DALTON_PROCESSOR,
     FB_AIFACE_PROCESSOR,
     FB_AICOLOR_PROCESSOR,
+    FB_DI_PROCESSOR,
 } meson_fb_processor_t;
 
 class FbProcessor {
@@ -56,6 +57,8 @@ public:
         return 0;
     };
     virtual void enableSyncProtection(bool mode __unused) {return;};
+
+    virtual meson_fb_processor_t getFbProcessorType() = 0;
 };
 
 int32_t createFbProcessor(meson_fb_processor_t type, std::shared_ptr<FbProcessor> & processor);

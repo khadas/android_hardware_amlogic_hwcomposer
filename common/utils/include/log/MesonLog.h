@@ -21,6 +21,7 @@
 #include <log/log.h>
 #include <stdlib.h>
 #include <DebugHelper.h>
+#include <inttypes.h>
 
 #ifdef HWC_RELEASE
 #define MESON_DEBUG_LEVEL 0

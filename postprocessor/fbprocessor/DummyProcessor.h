@@ -30,6 +30,8 @@ public:
         std::shared_ptr<DrmFramebuffer> & inputfb,
         std::shared_ptr<DrmFramebuffer> & outfb);
     int32_t teardown();
+
+    meson_fb_processor_t getFbProcessorType() {return FB_DUMMY_PROCESSOR;};
 };
 
 #endif

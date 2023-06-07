@@ -75,6 +75,7 @@ cc_library_static {
         "simplestrategy/MultiplanesComposition/MultiplanesComposition.cpp",
         "simplestrategy/MultiplanesWithDiComposition/MultiplanesWithDiComposition.cpp",
         "simplestrategy/MultiplanesWithHRComposition/MultiplanesWithHRComposition.cpp",
+        "videoprocessorsmanager/VideoProcessorsManager.cpp",
     ],
 
     static_libs: [
@@ -86,7 +87,7 @@ cc_library_static {
         "hwc.postprocessor_static",
     ],
 
-    export_include_dirs: ["include"],
+    export_include_dirs: ["include", "videoprocessorsmanager"],
 
     // for the header file include problem
     shared_libs: [

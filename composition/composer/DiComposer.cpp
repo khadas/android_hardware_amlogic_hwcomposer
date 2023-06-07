@@ -50,6 +50,7 @@ int32_t DiComposer::prepare() {
         impl->inputFbs.clear();
         impl->overlayFbs.clear();
         impl->outputFb.reset();
+        impl->processorsMgr.reset();
     }
 
     return 0;
@@ -86,13 +87,20 @@ int32_t DiComposer::setOutput(
     return 0;
 }
 
-int32_t DiComposer::start(int composeIdx) {
+int32_t DiComposer::setProcessorsManager(std::shared_ptr<VideoProcessorsManager> & vpmgr,
+        int composeIdx) {
     MESON_ASSERT(composeIdx < mImplNum, "DiComposer composeidx %d err .", composeIdx);
 
+    std::shared_ptr<ComposerImpl> impl = mComposerImpl[composeIdx];
+    impl->processorsMgr = vpmgr;
+
+    return 0;
+}
+
+int32_t DiComposer::noProcessors(int composeIdx) {
     int fenceFd = -1;
     std::shared_ptr<ComposerImpl> impl = mComposerImpl[composeIdx];
 
-    MESON_ASSERT(impl->outputFb.get(), "DiComposer (%d) no output set!", composeIdx);
     impl->composeDev->enable(true);
     impl->composeDev->setFrames(impl->inputFbs, fenceFd, impl->outputFb->mZorder);
 
@@ -106,10 +114,25 @@ int32_t DiComposer::start(int composeIdx) {
     return 0;
 }
 
+int32_t DiComposer::start(int composeIdx) {
+    int32_t ret = 0;
+    std::shared_ptr<ComposerImpl> impl = mComposerImpl[composeIdx];
+    MESON_ASSERT(composeIdx < mImplNum, "DiComposer composeidx %d err .", composeIdx);
+    MESON_ASSERT(impl->outputFb.get(), "DiComposer (%d) no output set!", composeIdx);
+
+    if (!impl->processorsMgr.get() ||
+        !impl->processorsMgr->runProcessors(impl->inputFbs,
+                                            impl->composeDev,
+                                            impl->outputFb->mZorder)) {
+        ret = noProcessors(composeIdx);
+    }
+
+    return ret;
+}
+
 std::shared_ptr<DrmFramebuffer> DiComposer::getOutput(int composeIdx) {
     MESON_ASSERT(composeIdx < mImplNum, "DiComposer composeidx %d err .", composeIdx);
 
     std::shared_ptr<ComposerImpl> impl = mComposerImpl[composeIdx];
     return impl->outputFb;
 }
-

@@ -78,9 +78,11 @@ int32_t VideoComposerDev::setFrames(
         fb = composefbs[i];
         vFrameInfo = &mVideoFramesInfo.frame_info[mVideoFramesInfo.frame_count];
         buffer_handle_t buf = fb->mBufferHandle;
+        drm_fb_type_t fbType = fb->getFbType();
 
         vFrameInfo->sideband_type = 0;
-        drm_fb_type_t fbType = fb->getFbType();
+        vFrameInfo->fd = fb->getBufferFd();
+        vFrameInfo->disp_fen_fd = fb->getDiProcessorFence();
         if (fbType == DRM_FB_VIDEO_UVM_DMA ) {
             if (am_gralloc_get_format(buf) == HAL_PIXEL_FORMAT_YCBCR_444_888) {
                 vFrameInfo->bufferFormat = YUV444;
@@ -88,9 +90,9 @@ int32_t VideoComposerDev::setFrames(
                 vFrameInfo->bufferFormat = NV21;
             }
         }
+
         if (fbType == DRM_FB_VIDEO_DMABUF ||
             fbType == DRM_FB_VIDEO_UVM_DMA) {
-            vFrameInfo->fd = am_gralloc_get_buffer_fd(buf);
             vFrameInfo->type = 1;
         } else if (fbType == DRM_FB_VIDEO_SIDEBAND ||
             fbType == DRM_FB_VIDEO_SIDEBAND_SECOND ||
@@ -100,14 +102,12 @@ int32_t VideoComposerDev::setFrames(
             am_gralloc_get_sideband_type(buf, &sideband_type);
             vFrameInfo->sideband_type = sideband_type;
         } else if (fbType == DRM_FB_VIDEO_TUNNEL_SIDEBAND) {
-            int fd = fb->getVtBuffer();
-            if (fd < 0) {
+            if (vFrameInfo->fd < 0) {
                 vFrameInfo->fd = fb->getSolidColorBuffer();
                 vFrameInfo->type = 1;
                 isBlackBuffer = true;
                 vFrameInfo->source_type = HWC_CREAT_ION;
             } else {
-                vFrameInfo->fd = fd;
                 vFrameInfo->type = 0;
                 vFrameInfo->source_type = DTV_FIX_TUNNEL;
             }
@@ -167,6 +167,17 @@ int32_t VideoComposerDev::setFrames(
         MESON_LOGE("video composer: ioctl error, %s(%d), mDrvFd = %d",
             strerror(errno), errno, mDrvFd);
         return -1;
+    }
+
+    for (int i = 0; i < mVideoFramesInfo.frame_count; i++) {
+        vFrameInfo = &mVideoFramesInfo.frame_info[i];
+        if (vFrameInfo->disp_fen_fd >= 0)
+            close(vFrameInfo->disp_fen_fd);
+    }
+
+    for (int i = 0; i < composefbs.size(); i++) {
+        fb = composefbs[i];
+        fb->setDiProcessorFd(-1);
     }
 
     if (mVideoFramesInfo.frame_info[0].composer_fen_fd >= 0)

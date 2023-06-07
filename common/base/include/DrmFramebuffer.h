@@ -60,7 +60,7 @@ public:
     drm_rect_t getDisplayFrame();
 
     // Virtuals for video tunnel
-    virtual int32_t getVtBuffer() { return -EINVAL; }
+    virtual int32_t getBufferFd() { return -EINVAL; }
     virtual int32_t releaseVtBuffer() { return 0; }
     virtual bool isVtBuffer() { return false;}
     virtual bool isVtNeedClearFrameOrShowColorBuffer() { return false; }
@@ -69,6 +69,9 @@ public:
     virtual bool haveSolidColorBuffer() { return false; }
 
     // for video processor
+    virtual void setDiProcessorFd(int32_t fd __unused) {};
+    virtual void setDiProcessorFence(int32_t fenceFd __unused) {};
+    virtual int32_t getDiProcessorFence() {return -1;};
     int32_t setProcessFence(int32_t fenceFd);
     int32_t getProcessFence();
     virtual bool isVirtualLayer() { return false;}

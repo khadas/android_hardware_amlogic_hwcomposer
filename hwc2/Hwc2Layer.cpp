@@ -32,6 +32,7 @@ Hwc2Layer::Hwc2Layer(uint32_t dispId) : DrmFramebuffer(){
     mVtBufferFd    = -1;
     mPreVtBufferFd = -1;
     mSolidColorBufferfd = -1;
+    mDifd = -1;
     mVtUpdate      =  false;
     mNeedReleaseVtResource = false;
     mTimestamp     = -1;
@@ -64,6 +65,8 @@ Hwc2Layer::~Hwc2Layer() {
     releaseVtResource();
     releaseUvmResource();
     freeSolidColorBuffer();
+    if (mDifd >= 0)
+        close(mDifd);
 }
 
 hwc2_error_t Hwc2Layer::handleDimLayer(buffer_handle_t buffer) {
@@ -469,22 +472,48 @@ bool Hwc2Layer::isFbUpdated() {
     }
 }
 
-int32_t Hwc2Layer::getVtBuffer() {
-    std::lock_guard<std::mutex> lock(mMutex);
-    if (!isVtBufferLocked())
-        return -EINVAL;
+void Hwc2Layer::setDiProcessorFd(int32_t fd) {
+    // do not dup fd
+    if (mDifd >= 0)
+        close(mDifd);
 
-    /* should present the current buffer now? */
-    int ret = -1;
-    if (shouldPresentNow(mTimestamp)) {
-        ret = mVtUpdate ? mVtBufferFd : mPreVtBufferFd;
-    } else {
-        ret = mPreVtBufferFd;
+    mDifd = fd;
+
+    if (mDifd < 0)
+        MESON_LOGV("[%s] [%d] [%" PRIu64 "] Di buffer id is invalid",
+                __func__, mDisplayId, mId);
+}
+
+void Hwc2Layer::setDiProcessorFence(int32_t fenceFd) {
+    mDiProcessorFence.reset(new DrmFence(fenceFd));
+}
+
+int32_t Hwc2Layer::getDiProcessorFence() {
+    if (mDiProcessorFence.get())
+        return mDiProcessorFence->dup();
+    return -1;
+}
+
+int32_t Hwc2Layer::getBufferFd() {
+    std::lock_guard<std::mutex> lock(mMutex);
+    int32_t fd = -1;
+
+    if (mDifd >= 0 ) {
+        fd = mDifd;
+    } else if (mFbType == DRM_FB_VIDEO_TUNNEL_SIDEBAND) {
+        /* should present the current buffer now? */
+        if (shouldPresentNow(mTimestamp))
+            fd = mVtUpdate ? mVtBufferFd : mPreVtBufferFd;
+        else
+            fd = mPreVtBufferFd;
+    } else if (!isSidebandBuffer()){
+        fd = am_gralloc_get_buffer_fd(mBufferHandle);
     }
 
-    MESON_LOGV("[%s] [%d] [%" PRIu64 "] vtBufferfd(%d)", __func__, mDisplayId, mId, ret);
+    MESON_LOGV("[%s] [%d] [%" PRIu64 "] return fd:%d",
+            __func__, mDisplayId, mId, fd);
 
-    return ret;
+    return fd;
 }
 
 void Hwc2Layer::updateVtBuffer() {

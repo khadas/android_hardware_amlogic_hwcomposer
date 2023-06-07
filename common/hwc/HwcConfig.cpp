@@ -290,16 +290,7 @@ float  HwcConfig::getMaxRefreshRate() {
 
 bool HwcConfig::AiSrProcessorEnabled() {
 #ifdef ENABLE_VIDEO_AISR
-    char value[PROPERTY_VALUE_MAX];
-    int ret = 0;
-    const char* str = "vendor.hwc.aisr_enable";
-
-    if (property_get(str, value, NULL) > 0) {
-        ret = atoi(value);
-        if (ret)
-            return true;
-    }
-    return false;
+    return true;
 #else
     return false;
 #endif
@@ -328,6 +319,43 @@ bool HwcConfig::AiColorProcessorEnabled() {
 #else
     return false;
 #endif
+}
+
+bool HwcConfig::DiProcessorEnabled() {
+#ifdef ENABLE_VIDEO_DI
+    return true;
+#else
+    return false;
+#endif
+}
+
+int32_t HwcConfig::getSupportDiChannelNumber() {
+    int ret = 0;
+
+#ifdef ENABLE_VIDEO_DI
+    char value[PROPERTY_VALUE_MAX];
+    const char* str = "vendor.hwc.di_channel_number";
+
+    if (property_get(str, value, NULL) > 0)
+        ret = atoi(value);
+#endif
+
+    return ret;
+}
+
+int32_t HwcConfig::getSupportAiSrChannelNumber() {
+    /* currently, only one channel for aisr is supported */
+    return 1;
+}
+
+int32_t HwcConfig::getSupportAiPqChannelNumber() {
+    /* currently, only one channel for aipq is supported */
+    return 1;
+}
+
+int32_t HwcConfig::getSupportAiColorChannelNumber() {
+/* currently, only one channel for aicolor is supported */
+    return 1;
 }
 
 bool HwcConfig::mosaicEnabled() {

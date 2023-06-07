@@ -120,6 +120,7 @@ public:
         std::shared_ptr<DrmFramebuffer> & outfb,
         int releaseFence);
     int32_t teardown();
+    meson_fb_processor_t getFbProcessorType() {return FB_AISR_PROCESSOR;};
     int allocDmaBuffer(int i);
     void freeDmaBuffer(int i);
     int freeDmaBuffers();

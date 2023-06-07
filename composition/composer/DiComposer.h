@@ -42,6 +42,11 @@ public:
         hwc_region_t damage,
         int composeIdx = 0);
 
+    int32_t setProcessorsManager(
+            std::shared_ptr<VideoProcessorsManager> & vpmgr,
+            int composeIdx = 0);
+
+    int32_t noProcessors(int composeIdx = 0);
     int32_t start(int composeIdx = 0);
 
     std::shared_ptr<DrmFramebuffer> getOutput(int composeIdx = 0);
@@ -53,6 +58,7 @@ protected:
             std::vector<std::shared_ptr<DrmFramebuffer>> overlayFbs;
             std::shared_ptr<DrmFramebuffer> outputFb;
             std::shared_ptr<VideoComposerDev> composeDev;
+            std::shared_ptr<VideoProcessorsManager> processorsMgr;
     };
 
     std::vector<std::shared_ptr<ComposerImpl>> mComposerImpl;

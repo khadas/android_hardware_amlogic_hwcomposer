@@ -74,11 +74,10 @@ endif
 
 ifndef HWC_PIPE_VIU1VDINVIU2_ALWAYS_LOOPBACK
 HWC_PIPE_VIU1VDINVIU2_ALWAYS_LOOPBACK := false
+endif
 
 ifndef HWC_VIDEO_MOSAIC
 HWC_VIDEO_MOSAIC := false
-endif
-
 endif
 
 ifndef HWC_DYNAMIC_SWITCH_CONNECTOR
@@ -103,6 +102,10 @@ endif
 
 ifndef HWC_VIDEO_AICOLOR
 HWC_VIDEO_AICOLOR := false
+endif
+
+ifndef HWC_VIDEO_DI
+HWC_VIDEO_DI := false
 endif
 
 ifndef HWC_VT_HW_VSYNC
@@ -162,6 +165,7 @@ $(call soong_config_set,meson_hwc,enable_vt_hwVsync,$(HWC_VT_HW_VSYNC))
 $(call soong_config_set,meson_hwc,enable_video_aipq,$(HWC_VIDEO_AIPQ))
 $(call soong_config_set,meson_hwc,enable_video_aiface,$(HWC_VIDEO_AIFACE))
 $(call soong_config_set,meson_hwc,enable_video_aicolor,$(HWC_VIDEO_AICOLOR))
+$(call soong_config_set,meson_hwc,enable_video_di,$(HWC_VIDEO_DI))
 $(call soong_config_set,meson_hwc,enable_uvm_dettach,$(HWC_UVM_DETTACH))
 $(call soong_config_set,meson_hwc,filter_16_9mode,$(HWC_FILTER_16_9MODE))
 $(call soong_config_set,meson_hwc,android_platform_sdk_extension_version,$(PLATFORM_SDK_EXTENSION_VERSION))

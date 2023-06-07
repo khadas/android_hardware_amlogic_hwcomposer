@@ -44,17 +44,12 @@
 /* Constructor function */
 MultiplanesWithHRComposition::MultiplanesWithHRComposition() {
     init();
-    if (HwcConfig::AiSrProcessorEnabled())
-        createFbProcessor(FB_AISR_PROCESSOR, mSrProcessor);
-    mSrProcessor.reset();
-    mPqProcessor.reset();
-    mColorProcessor.reset();
     mOsdPlaneNum = 0;
     mVideoPlaneNum = 0;
     mScaleValue = 0;
     memset(&mDisplayMode, 0, sizeof(mDisplayMode));
-    mResetProcessorFlag  = false;
     mIsSideBandDisable = false;
+    mVideoProcessorsMgr = nullptr;
 }
 
 /* Deconstructor function */
@@ -99,7 +94,6 @@ void MultiplanesWithHRComposition::init() {
     mDIComposerFbs.clear();
     mHwcVideoInputFbs.clear();
     mDisplayPairs.clear();
-    mProcessors.clear();
 
     mMinComposerZorder = INVALID_ZORDER;
     mMaxComposerZorder = INVALID_ZORDER;
@@ -337,11 +331,11 @@ bool MultiplanesWithHRComposition::checkAndHandle4Mosaic(uint32_t videoZorder) {
     hwc_region_t damage = {0, 0};
     allocateDiOutputFb(fb, (*mHwcVideoInputFbs.begin())->mZorder);
     mDiComposer->setOutput(fb, damage, 0);
+    mDiComposer->setProcessorsManager(mVideoProcessorsMgr, 0);
 
     /*-----set buffer to displaypair------*/
     mDisplayPairs.push_back(DisplayPair{
-            (uint32_t)mOsdPlaneNum,  videoZorder, fb, mHwcVideoPlanes[0],
-            std::vector<std::shared_ptr<FbProcessor>>()});
+            (uint32_t)mOsdPlaneNum,  videoZorder, fb, mHwcVideoPlanes[0]});
 
     mHwcVideoPlanes.erase(mHwcVideoPlanes.begin());
 
@@ -352,142 +346,6 @@ bool MultiplanesWithHRComposition::handleLLM(const bool enable) {
     // LLM need disable FRC
     FrcDev::getInstance().enableFrc(!enable);
     return true;
-}
-
-int MultiplanesWithHRComposition::setUpProcessor() {
-    if (DebugHelper::getInstance().disableAISRAIPQ() || mIsDisablePostProcessor)
-        return 0;
-
-    if (HwcConfig::AiSrProcessorEnabled()) {
-        // setup AiSrprocessor
-        if (!mSrProcessor.get()) {
-            createFbProcessor(FB_AISR_PROCESSOR, mSrProcessor);
-            mSrProcessor->setup();
-            mResetProcessorFlag = true;
-        }
-    }
-
-    if (HwcConfig::AiPqProcessorEnabled()) {
-        // setup AiPqprocessor
-        if (!mPqProcessor.get()) {
-            createFbProcessor(FB_AIPQ_PROCESSOR, mPqProcessor);
-            mPqProcessor->setup();
-            mResetProcessorFlag = true;
-        }
-    }
-
-    if (HwcConfig::AiColorProcessorEnabled()) {
-        // setup AiColorprocessor
-        if (!mColorProcessor.get()) {
-            createFbProcessor(FB_AICOLOR_PROCESSOR, mColorProcessor);
-            mColorProcessor->setup();
-            mResetProcessorFlag = true;
-        }
-    }
-    return 0;
-}
-
-int MultiplanesWithHRComposition::tearDownProcessor() {
-    if (mSrProcessor.get()) {
-        mSrProcessor->teardown();
-        mSrProcessor.reset();
-    }
-
-    if (mPqProcessor.get()) {
-        mPqProcessor->teardown();
-        mPqProcessor.reset();
-    }
-
-    if (mColorProcessor.get()) {
-        mColorProcessor->teardown();
-        mColorProcessor.reset();
-    }
-    return 0;
-}
-
-int MultiplanesWithHRComposition::resetProcessor() {
-    if (mResetProcessorFlag)
-        return 0;
-
-    if (mSrProcessor.get()) {
-        mSrProcessor->teardown();
-        mSrProcessor->setup();
-    }
-
-    if (mPqProcessor.get()) {
-        mPqProcessor->teardown();
-        mPqProcessor->setup();
-    }
-
-    if (mColorProcessor.get()) {
-        mColorProcessor->teardown();
-        mColorProcessor->setup();
-    }
-    mResetProcessorFlag = true;
-
-    return 0;
-}
-
-
-int MultiplanesWithHRComposition::collectProcessor() {
-    if (mSrProcessor.get())
-        mProcessors.push_back(mSrProcessor);
-
-    if (mPqProcessor.get())
-        mProcessors.push_back(mPqProcessor);
-
-    if (mColorProcessor.get())
-        mProcessors.push_back(mColorProcessor);
-    return 0;
-}
-
-bool MultiplanesWithHRComposition::runProcessor(
-        struct DisplayPair &dp,
-        int &blankFlag,
-        int &ret) {
-    int processFence = -1;
-    bool hasProcessor = false;
-
-    std::shared_ptr<DrmFramebuffer> fb = dp.fb;
-    std::shared_ptr<HwDisplayPlane> plane = dp.plane;
-    uint32_t presentZorder = dp.presentZorder;
-
-    std::shared_ptr<DrmFramebuffer> inFb = fb;
-    std::shared_ptr<DrmFramebuffer> outFb;
-
-    if (dp.processors.empty())
-        return false;
-
-    // fb is not update
-    if (!fb->isFbUpdated()) {
-        return false;
-    }
-
-    for (auto it = dp.processors.begin(); it != dp.processors.end(); it++) {
-        if ((*it).get()) {
-            (*it)->asyncProcess(inFb, outFb, processFence);
-            outFb->setProcessFence(processFence);
-            inFb = outFb;
-            hasProcessor = true;
-            mResetProcessorFlag = false;
-        }
-    }
-
-    // has processor
-    if (hasProcessor) {
-        ret = plane->setPlane(outFb, presentZorder, blankFlag);
-        int releaseFence = outFb->getCurReleaseFence();
-
-        for (auto it = dp.processors.begin(); it != dp.processors.end(); it++) {
-            if ((*it).get()) {
-                (*it)->onBufferDisplayed(outFb, (releaseFence >= 0) ? ::dup(releaseFence) : -1);
-            }
-        }
-
-        fb->onLayerDisplayed(releaseFence, processFence);
-    }
-
-    return hasProcessor;
 }
 
 void MultiplanesWithHRComposition::handleLegacySidebandVideoFbs(
@@ -514,7 +372,7 @@ void MultiplanesWithHRComposition::handleLegacySidebandVideoFbs(
         videoZ = (maxVideoZ != INVALID_ZORDER) ? maxVideoZ : fb->mZorder;
 
         mDisplayPairs.push_back(DisplayPair{
-                (uint32_t)mOsdPlaneNum, maxVideoZ, fb, mHwcVideoPlanes[0], mProcessors});
+                (uint32_t)mOsdPlaneNum, maxVideoZ, fb, mHwcVideoPlanes[0]});
         mHwcVideoPlanes.erase(mHwcVideoPlanes.begin());
     }
 }
@@ -572,8 +430,7 @@ void MultiplanesWithHRComposition::handleNonLegacySidebandVideoFbs(
                         videoZ = fb->mZorder;
 
                     mDisplayPairs.push_back(DisplayPair{
-                            (uint32_t)mOsdPlaneNum, videoZ, fb,
-                            mHwcVideoPlanes[0], mProcessors});
+                            (uint32_t)mOsdPlaneNum, videoZ, fb, mHwcVideoPlanes[0]});
                     mHwcVideoPlanes.erase(mHwcVideoPlanes.begin());
                     /* currently, hwc only supports one channel
                      * when refresh rate greater than DEFAULT */
@@ -622,6 +479,7 @@ void MultiplanesWithHRComposition::handleNonLegacySidebandVideoFbs(
                         hwc_region_t damage = {0, 0};
                         allocateDiOutputFb(fb, (*mHwcVideoInputFbs.begin())->mZorder);
                         mDiComposer->setOutput(fb, damage, i);
+                        mDiComposer->setProcessorsManager(mVideoProcessorsMgr, i);
                     } else {
                         fb = *mHwcVideoInputFbs.begin();
                         videoZ = fb->mZorder;
@@ -630,8 +488,7 @@ void MultiplanesWithHRComposition::handleNonLegacySidebandVideoFbs(
 
                     /*-----set buffer to displaypair------*/
                     mDisplayPairs.push_back(DisplayPair{
-                            (uint32_t)mOsdPlaneNum + i,  videoZ, fb, mHwcVideoPlanes[i],
-                            std::vector<std::shared_ptr<FbProcessor>>()});
+                            (uint32_t)mOsdPlaneNum + i,  videoZ, fb, mHwcVideoPlanes[i]});
 
                 }
                 break;
@@ -656,8 +513,7 @@ void MultiplanesWithHRComposition::handleNonLegacySidebandVideoFbs(
                 fb->mCompositionType = MESON_COMPOSITION_PLANE_HWCVIDEO;
 
                 mDisplayPairs.push_back(DisplayPair{
-                        (uint32_t)mOsdPlaneNum + i, fb->mZorder, fb, mHwcVideoPlanes[i],
-                            (!i ? mProcessors : std::vector<std::shared_ptr<FbProcessor>>())});
+                        (uint32_t)mOsdPlaneNum + i, fb->mZorder, fb, mHwcVideoPlanes[i]});
             }
         }
 
@@ -716,26 +572,32 @@ int MultiplanesWithHRComposition::processVideoFbs() {
         mDiComposer->prepare();
 
 #ifdef ENABLE_AIPROCESS_120
-        isAiProcess120Enable = true;
+    isAiProcess120Enable = true;
 #else
-        if (mVsyncOverDefault)
-            isAiProcess120Enable = false;
-        else
-            isAiProcess120Enable = true;
+    if (mVsyncOverDefault)
+        isAiProcess120Enable = false;
+    else
+        isAiProcess120Enable = true;
 #endif
 
-    if (mDIComposerFbs.size() != 1 || !isAiProcess120Enable) {
+    if (videoFbNum == 0 ||
+        !isAiProcess120Enable || mIsDisablePostProcessor) {
         /* Video Processor: only support one video now,
          * not support legacy sideband ,
          * not support aipq&aisr when refresh rate is greater than 60,
          */
-        tearDownProcessor();
+        if (mVideoProcessorsMgr.get()) {
+            mVideoProcessorsMgr->tearDownAllProcessors();
+            mVideoProcessorsMgr.reset();
+        }
 
         if (videoFbNum == 0)
             return 0;
     } else {
-        setUpProcessor();
-        collectProcessor();
+        if (!mVideoProcessorsMgr.get())
+            mVideoProcessorsMgr = std::make_shared<VideoProcessorsManager>();
+
+        mVideoProcessorsMgr->setup(mDIComposerFbs);
     }
 
     /*
@@ -1088,8 +950,7 @@ int MultiplanesWithHRComposition::setOsdFbs2PlanePairs() {
     if (mDisplayRefFb.get()) {
         /*baseFb always post to din0*/
         mDisplayPairs.push_back(
-            DisplayPair{usedPlanes, mDisplayRefFb->mZorder, mDisplayRefFb, mOsdPlanes[usedPlanes],
-                std::vector<std::shared_ptr<FbProcessor>>()});
+            DisplayPair{usedPlanes, mDisplayRefFb->mZorder, mDisplayRefFb, mOsdPlanes[usedPlanes]});
         /* Not composed fb, set to osd composition. */
         if (mDisplayRefFb->mCompositionType == MESON_COMPOSITION_UNDETERMINED)
             mDisplayRefFb->mCompositionType = MESON_COMPOSITION_PLANE_OSD;
@@ -1107,8 +968,7 @@ int MultiplanesWithHRComposition::setOsdFbs2PlanePairs() {
             usedPlanes++;
         }
         mDisplayPairs.push_back(
-                DisplayPair{usedPlanes, fb->mZorder, fb, mOsdPlanes[usedPlanes],
-                std::vector<std::shared_ptr<FbProcessor>>()});
+                DisplayPair{usedPlanes, fb->mZorder, fb, mOsdPlanes[usedPlanes]});
 
         /* Not composed fb, set to osd composition. */
         if (fb->mCompositionType == MESON_COMPOSITION_UNDETERMINED)
@@ -1707,14 +1567,17 @@ int MultiplanesWithHRComposition::commit() {
             /* make sure SF donot refresh VtLayer and VT only refresh VtLayer*/
             if (!hasVtBuffer)
                 mDiComposer->start(m4Mosaic ? 0 : mVideoPlaneNum - 1);
+
+            continue;
         } else {
             dumpFbAndPlane(fb, plane, presentZorder, blankFlag);
         }
 
         if (fb->isVtBuffer()) {
             if (fb->isVtNeedClearFrameOrShowColorBuffer() ||
-                (fb->getVtBuffer() < 0 && !fb->haveSolidColorBuffer())) {
-                resetProcessor();
+                (fb->getBufferFd() < 0 && !fb->haveSolidColorBuffer())) {
+                if (mVideoProcessorsMgr.get())
+                    mVideoProcessorsMgr->resetProcessors(fb);
 
                 /* need blank video plane:
                  * 1, received a clear last frame cmd
@@ -1724,18 +1587,24 @@ int MultiplanesWithHRComposition::commit() {
                 continue;
             }
 
-            if (fb->getVtBuffer() < 0 && fb->haveSolidColorBuffer()) {
-                resetProcessor();
+            if (fb->getBufferFd() < 0 && fb->haveSolidColorBuffer()) {
+                if (mVideoProcessorsMgr.get())
+                    mVideoProcessorsMgr->resetProcessors(fb);
 
                 plane->setPlane(fb, presentZorder, blankFlag);
                 fb->freeSolidColorBuffer();
                 continue;
             }
         } else {
+            bool videoPcrMgr = false;
+            if (mVideoProcessorsMgr.get())
+                videoPcrMgr = mVideoProcessorsMgr->runProcessors(fb, plane,
+                        presentZorder, blankFlag);
+
             /* make sure SF donot refresh VtLayer
              * and VT thread only refresh VtLayer when layer have a valid buffer
              */
-            if (!runProcessor(*displayIt, blankFlag, ret))
+            if (!videoPcrMgr)
                 ret = plane->setPlane(fb, presentZorder, blankFlag);
 
             fb->clearFbHandleFlag();
@@ -1818,8 +1687,9 @@ int MultiplanesWithHRComposition::commitTunnelVideo() {
         }
 
         if (fb->isVtNeedClearFrameOrShowColorBuffer() ||
-            (fb->getVtBuffer() < 0 && !fb->haveSolidColorBuffer())) {
-            resetProcessor();
+            (fb->getBufferFd() < 0 && !fb->haveSolidColorBuffer())) {
+            if (mVideoProcessorsMgr.get())
+                mVideoProcessorsMgr->resetProcessors(fb);
 
             /* need blank video plane:
              * 1, received a clear last frame cmd
@@ -1829,15 +1699,21 @@ int MultiplanesWithHRComposition::commitTunnelVideo() {
             continue;
         }
 
-        if (fb->getVtBuffer() < 0 && fb->haveSolidColorBuffer()) {
-            resetProcessor();
+        if (fb->getBufferFd() < 0 && fb->haveSolidColorBuffer()) {
+            if (mVideoProcessorsMgr.get())
+                mVideoProcessorsMgr->resetProcessors(fb);
 
             plane->setPlane(fb, presentZorder, blankFlag);
             fb->freeSolidColorBuffer();
             continue;
         }
 
-        if (!runProcessor(*displayIt, blankFlag, ret)) {
+        bool videoPcrMgr = false;
+        if (mVideoProcessorsMgr.get())
+            videoPcrMgr = mVideoProcessorsMgr->runProcessors(fb, plane,
+                    presentZorder, blankFlag);
+
+        if (!videoPcrMgr) {
             ret = plane->setPlane(fb, presentZorder, blankFlag);
             fb->clearFbHandleFlag();
 

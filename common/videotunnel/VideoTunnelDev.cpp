@@ -22,7 +22,7 @@ ANDROID_SINGLETON_STATIC_INSTANCE(VideoTunnelDev)
 
 VideoTunnelDev::VideoTunnelDev() {
     mDrvFd = meson_vt_open();
-    MESON_ASSERT(mDrvFd > 0, "videotunnel dev open failed");
+    MESON_ASSERT(mDrvFd >= 0, "videotunnel dev open failed");
     // set videotunnel to non block mode by default
     int ret = meson_vt_set_mode(mDrvFd, 0);
     if (ret != 0)

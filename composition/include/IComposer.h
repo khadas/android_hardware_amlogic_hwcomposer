@@ -14,6 +14,7 @@
 #include <BasicTypes.h>
 #include <Composition.h>
 #include <DrmFramebuffer.h>
+#include "VideoProcessorsManager.h"
 
 #include <hardware/hwcomposer_defs.h>
 
@@ -44,6 +45,10 @@ public:
         std::shared_ptr<DrmFramebuffer> & fb,
         hwc_region_t damage,
         int composeIdx = 0) = 0;
+
+    virtual int32_t setProcessorsManager(
+            std::shared_ptr<VideoProcessorsManager> & vpmgr __unused,
+            int composeIdx = 0) {return composeIdx;};
 
     /* Start composition. When this function exit, input
    * should be able to get its release fence.*/

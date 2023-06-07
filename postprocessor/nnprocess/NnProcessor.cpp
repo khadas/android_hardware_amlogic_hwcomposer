@@ -290,7 +290,6 @@ int32_t NnProcessor::asyncProcess(
     int ret;
     int ret_attach = 0;
     int fence_fd = -1;
-    buffer_handle_t buf = inputfb->mBufferHandle;
     int input_fd = -1;
     struct uvm_hook_data hook_data;
     struct uvm_hf_info_t *uvm_hf_info;
@@ -301,6 +300,7 @@ int32_t NnProcessor::asyncProcess(
     int ready_size = 0;
     int crop_right;
     int crop_bottom;
+    drm_fb_type_t type;
 
     log_level = PropGetInt("vendor.hwc.nn_log", 0);
 
@@ -313,13 +313,12 @@ int32_t NnProcessor::asyncProcess(
         goto bypass;
     }
 
-    if (/*inputfb->mFbType == DRM_FB_VIDEO_OMX_V4L ||*/
-        inputfb->mFbType == DRM_FB_VIDEO_UVM_DMA) {
-        input_fd = am_gralloc_get_omx_v4l_file(buf);
-    } else if (inputfb->mFbType == DRM_FB_VIDEO_TUNNEL_SIDEBAND) {
-        input_fd = inputfb->getVtBuffer();
+    type = inputfb->getFbType();
+    if (type == DRM_FB_VIDEO_UVM_DMA ||
+        type == DRM_FB_VIDEO_TUNNEL_SIDEBAND) {
+        input_fd = inputfb->getBufferFd();
     } else
-        ALOGE("%s: get fd fail mFbType=%d.", __FUNCTION__, inputfb->mFbType);
+        ALOGE("%s: get fd fail type=%d.", __FUNCTION__, type);
 
     if (input_fd == -1) {
         ALOGD_IF(nn_check_D(), "%s: input_fd invalid.", __FUNCTION__);
