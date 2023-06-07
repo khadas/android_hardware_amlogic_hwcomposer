@@ -26,7 +26,7 @@ int32_t meson_mode_write_sys(const char *path, const char *val) {
     return 0;
 }
 
-int32_t meson_mode_read_sys(const char *path, char *val, bool original) {
+int32_t meson_mode_read_sys(const char *path, char *val, bool original, int valSize) {
     char buf[MAX_BUF_LEN] = {0};
 
     int fd, len;
@@ -65,7 +65,7 @@ int32_t meson_mode_read_sys(const char *path, char *val, bool original) {
 
     SYS_LOGD("read %s, result length:%d, val:%s\n", path, len, buf);
 
-    strcpy(val, buf);
+    strncpy(val, buf, valSize);
 
     return 0;
 }

@@ -52,9 +52,11 @@ Hwc2Layer::Hwc2Layer(uint32_t dispId) : DrmFramebuffer(){
     mAllocSolidColorBufferHandle = nullptr;
     mDisplayId = dispId;
     mHwcCompositionType = HWC2_COMPOSITION_INVALID;
+    mBrightness = -1;
     memset(&mVisibleRegion, 0, sizeof(mVisibleRegion));
     memset(&mDamageRegion, 0, sizeof(mDamageRegion));
     memset(&mBackupDisplayFrame, 0, sizeof(mBackupDisplayFrame));
+    memset(&mCalibrateInfo, 0, sizeof(mCalibrateInfo));
 }
 
 Hwc2Layer::~Hwc2Layer() {
@@ -1077,8 +1079,8 @@ void Hwc2Layer::setVideoType(int fd) {
             mAMVideoType = mUvmDettach->getVideoType(bufFd);
             MESON_LOGV("[%s] [%" PRIu64 "] videoType:0x%x",
                     __func__, mId, mAMVideoType);
-            close(bufFd);
         }
+        close(bufFd);
      }
 }
 

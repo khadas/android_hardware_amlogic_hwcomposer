@@ -215,6 +215,7 @@ static int meson_mode_save_ubootenv() {
         if (err < 0) {
             SYS_LOGE ("[ubootenv] MEMERASE %d\n",err);
             close(fd);
+            free(data);
             return  -2;
         }
 
@@ -224,7 +225,6 @@ static int meson_mode_save_ubootenv() {
                 err = write(fd , data, info.erasesize);
             else
                 SYS_LOGE("data is NULL\n");
-            free(data);
         }
         else {
             err = write(fd ,mEnvData.image, mEnvPartitionSize);
@@ -234,7 +234,7 @@ static int meson_mode_save_ubootenv() {
             }
             err = write(fd ,mEnvData.image, mEnvPartitionSize);
         }
-
+         free(data);
     } else {
         //emmc and nand needn't erase
         lseek(fd, 0L, SEEK_SET);

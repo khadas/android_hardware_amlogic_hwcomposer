@@ -204,7 +204,7 @@ bool ComposerHandleCache::initCache(HandleType type, uint32_t cacheSize) {
 }
 
 Error ComposerHandleCache::lookupCache(uint32_t slot, const native_handle_t** outHandle) {
-    if (slot >= 0 && slot < mHandles.size()) {
+    if (slot < mHandles.size()) {
         *outHandle = mHandles[slot];
         return Error::NONE;
     } else {
@@ -214,7 +214,7 @@ Error ComposerHandleCache::lookupCache(uint32_t slot, const native_handle_t** ou
 
 Error ComposerHandleCache::updateCache(uint32_t slot, const native_handle_t* handle,
                                        const native_handle** outReplacedHandle) {
-    if (slot >= 0 && slot < mHandles.size()) {
+    if (slot < mHandles.size()) {
         auto& cachedHandle = mHandles[slot];
         *outReplacedHandle = cachedHandle;
         cachedHandle = handle;
@@ -226,7 +226,7 @@ Error ComposerHandleCache::updateCache(uint32_t slot, const native_handle_t* han
 
 // release cache
 Error ComposerHandleCache::releaseCache(uint32_t slot) {
-    if (slot >= 0 && slot < mHandles.size()) {
+    if (slot < mHandles.size()) {
         switch (mHandleType) {
             case HandleType::BUFFER:
                 for (; slot < mHandles.size(); slot++) {

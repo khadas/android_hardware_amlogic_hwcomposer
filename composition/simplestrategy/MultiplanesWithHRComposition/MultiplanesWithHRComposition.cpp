@@ -52,6 +52,7 @@ MultiplanesWithHRComposition::MultiplanesWithHRComposition() {
     mScaleValue = 0;
     memset(&mDisplayMode, 0, sizeof(mDisplayMode));
     mResetProcessorFlag  = false;
+    mIsSideBandDisable = false;
 }
 
 /* Deconstructor function */

@@ -19,6 +19,7 @@ CursorPlane::CursorPlane(int32_t drvFd, uint32_t id)
       mLastTransform(0),
       mBlank(true),
       mDrmFb(NULL) {
+    memset(&mPlaneInfo, 0, sizeof(mPlaneInfo));
     snprintf(mName, 64, "CURSOR-%d", id);
 
     /*call mmap here to let osd alloc buffer from ion*/

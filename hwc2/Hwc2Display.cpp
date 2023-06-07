@@ -79,6 +79,7 @@ Hwc2Display::Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer, uint32_t
     mOutsideChanged = false;
     mBootConfig = -1;
     wbHnd = nullptr;
+    mExpectedPresentTime = -1;
     memset(&mDisplayMode, 0, sizeof(mDisplayMode));
     memset(&mCalibrateInfo, 0, sizeof(mCalibrateInfo));
 }
@@ -711,11 +712,11 @@ hwc2_error_t Hwc2Display::loadVirtualLayerData(FILE *file){
 
     unsigned char ** row_pointers = png_get_rows(png_ptr, info_ptr);
     unsigned int row_bytes = png_get_rowbytes(png_ptr, info_ptr);
-    if (row_pointers)
+    if (row_pointers) {
         MESON_LOGD("VirtualLayer size(%dx%d) row_bytes %d", m_width, m_height,row_bytes);
-
-    for (int i = 0; i < m_height; i++) {
-        memcpy(base + row_bytes*i, row_pointers[i], row_bytes);
+        for (int i = 0; i < m_height; i++) {
+            memcpy(base + row_bytes*i, row_pointers[i], row_bytes);
+        }
     }
     munmap(base,m_width*m_height*4);
 

@@ -153,7 +153,7 @@ int32_t DrmCrtc::getMode(drm_mode_info_t & mode) {
 int32_t DrmCrtc::getPixelFormats(std::vector<uint32_t>& pixelFormats) {
     if (mVideoPixelFormat && mOsdPixelFormat) {
         uint32_t value = -1;
-        value = value = mOsdPixelFormat->getValue();
+        value = mOsdPixelFormat->getValue();
         if (value & (1 << 0))
             pixelFormats.emplace_back(DRM_RGBA_8888);
         if (value & (1 << 1))

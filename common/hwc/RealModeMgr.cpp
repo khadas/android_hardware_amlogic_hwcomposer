@@ -101,6 +101,7 @@ RealModeMgr::RealModeMgr() {
     mHwcFbWidth = 0;
     mHwcFbHeight = 0;
     mActiveConfigId = 0;
+    mIsFakeSizeMode =false;
 }
 
 RealModeMgr::~RealModeMgr() {

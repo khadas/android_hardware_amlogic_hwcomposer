@@ -57,6 +57,7 @@ HDCPTxAuth::HDCPTxAuth() :
     pthreadIdHdcpTx(0),
     mFallbackDefault(false) {
 
+    mExitHdcpTxThread = false;
     int ret;/* initialize an attribute to default value */
     ret = pthread_mutex_init(&pthreadTxMutex, NULL);
     if (ret != 0) {
@@ -148,7 +149,7 @@ void HDCPTxAuth::mute(bool mute __unused) {
 
 #if !defined(HDCP_AUTHENTICATION_NO_KEYS)
     char hdcpTxKey[MESON_MODE_LEN] = {0};
-    meson_mode_read_sys(DISPLAY_HDMI_HDCP_KEY, hdcpTxKey, false);
+    meson_mode_read_sys(DISPLAY_HDMI_HDCP_KEY, hdcpTxKey, false, sizeof(hdcpTxKey));
 
     if ((strlen(hdcpTxKey) == 0) || !(strcmp(hdcpTxKey, "00")))
         return;
@@ -181,7 +182,7 @@ void* HDCPTxAuth::authThread(void* data) {
         char hdcpTxKey[MESON_MODE_LEN] = {0};
 
         //actually, every product need provision HDCP key, if can not read it, we will always pend on
-        meson_mode_read_sys(DISPLAY_HDMI_HDCP_KEY, hdcpTxKey, false);
+        meson_mode_read_sys(DISPLAY_HDMI_HDCP_KEY, hdcpTxKey, false, sizeof(hdcpTxKey));
         //we already read the HDCP key now, if we support 2.2, we must support 1.4
         if (((strstr(hdcpTxKey, (char *)"22") != NULL) && (strstr(hdcpTxKey, (char *)"14") != NULL)) ||
             // only have HDCP 1.4 key
@@ -218,7 +219,7 @@ bool HDCPTxAuth::authInit(bool *pHdcp22, bool *pHdcp14) {
     //in general, MBOX is TX device, need to detect its TX keys.
     //            TV   is RX device, need to detect its RX keys.
     //HDCP TX: get current MBOX[TX] device contains which TX keys. Values:[14/22, 00 is no key]
-    meson_mode_read_sys(DISPLAY_HDMI_HDCP_KEY, hdcpTxKey, false);
+    meson_mode_read_sys(DISPLAY_HDMI_HDCP_KEY, hdcpTxKey, false, sizeof(hdcpTxKey));
     SYS_LOGI("hdcp_tx key:%s\n", hdcpTxKey);
     if ((strlen(hdcpTxKey) == 0) || !(strcmp(hdcpTxKey, "00"))) {
         AuthResult(false);
@@ -227,7 +228,7 @@ bool HDCPTxAuth::authInit(bool *pHdcp22, bool *pHdcp14) {
 
     //HDCP RX: get current TV[RX] device contains which RX key. Values:[14/22, 00 is no key]
     //Values is the hightest key. if value is 22, means the devices supports 22 and 14.
-    meson_mode_read_sys(DISPLAY_HDMI_HDCP_VER, hdcpRxVer, false);
+    meson_mode_read_sys(DISPLAY_HDMI_HDCP_VER, hdcpRxVer, false, sizeof(hdcpRxVer));
     SYS_LOGI("hdcp_tx remote version:%s\n", hdcpRxVer);
     if ((strlen(hdcpRxVer) == 0) || !(strcmp(hdcpRxVer, "00"))) {
         AuthResult(false);
@@ -290,7 +291,7 @@ bool HDCPTxAuth::authLoop(bool useHdcp22, bool useHdcp14) {
         mCv.wait_for(autolock, std::chrono::milliseconds(200));
 
         char auth[MESON_MODE_LEN] = {0};
-        meson_mode_read_sys(DISPLAY_HDMI_HDCP_AUTH, auth, false);
+        meson_mode_read_sys(DISPLAY_HDMI_HDCP_AUTH, auth, false, sizeof(auth));
         if (strstr(auth, (char *)"1")) {//Authenticate is OK
             success = true;
             AuthResult(true);
@@ -345,7 +346,7 @@ void HDCPTxAuth::stopVerAll() {
     usleep(20000);
     property_set("ctl.stop", "hdcp_tx22");
     usleep(20000);
-    meson_mode_read_sys(DISPLAY_HDMI_HDCP_POWER, hdcpRxVer, false);
+    meson_mode_read_sys(DISPLAY_HDMI_HDCP_POWER, hdcpRxVer, false, sizeof(hdcpRxVer));
 
     meson_mode_write_sys(DISPLAY_HDMI_HDCP_CONF, DISPLAY_HDMI_HDCP14_STOP);
     meson_mode_write_sys(DISPLAY_HDMI_HDCP_CONF, DISPLAY_HDMI_HDCP22_STOP);
@@ -394,7 +395,7 @@ void HDCPTxAuth::isAuthSuccess(int *status) {
          *status = -1;
     }
     char auth[MESON_MODE_LEN] = {0};
-    meson_mode_read_sys(DISPLAY_HDMI_HDCP_AUTH, auth, false);
+    meson_mode_read_sys(DISPLAY_HDMI_HDCP_AUTH, auth, false, sizeof(auth));
     if (strstr(auth, (char *)"1")) {//Authenticate is OK
         *status = 1;
     }

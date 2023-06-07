@@ -21,6 +21,7 @@ namespace meson{
 #define MAX_BUFFER_LEN_EDID             4096
 #define READ_BUFFER_LEN 64
 #define FORMAT_DISPLAY_HDMI_EDID        "/sys/class/amhdmitx/amhdmitx0/disp_cap"//RX support display mode
+#define DRM_DISPLAY_MODE_NULL ("null")
 
 #define FS_READ(path, buffer, len) \
 do { \
@@ -202,7 +203,12 @@ error_handle:
 }
 
 bool DisplayAdapterLocal::getSupportDisplayModes(vector<DisplayModeInfo>& displayModeList, ConnectorType displayType) {
-    DisplayModeInfo mode;
+    DisplayModeInfo mode = {
+           DRM_DISPLAY_MODE_NULL,
+           0, 0,
+           0, 0,
+           60.0,
+    };
     if (displayType == DisplayAdapter::CONN_TYPE_HDMI) {
         displayModeList.clear();
         char edid_buf[MAX_BUFFER_LEN_EDID];

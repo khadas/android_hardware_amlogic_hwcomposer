@@ -177,6 +177,14 @@ ModePolicy::ModePolicy() {
     mPolicy = MESON_POLICY_INVALID;
     mReason = OUTPUT_CHANGE_BY_INIT;
     mDisplayId = 0;
+    memset(&mConnectorType, 0, sizeof(mConnectorType));
+    memset(&mModeConType, 0, sizeof(mModeConType));
+    memset(&mConData, 0, sizeof(mConData));
+    memset(&mSceneOutInfo, 0, sizeof(mSceneOutInfo));
+    memset(&mState, 0, sizeof(mState));
+    memset(&mDvInfo, 0, sizeof(mDvInfo));
+    mDisplayWidth = 0;
+    mDisplayHeight = 0;
 }
 
 ModePolicy::ModePolicy(std::shared_ptr<meson::DisplayAdapter> adapter, const uint32_t displayId) {
@@ -185,6 +193,14 @@ ModePolicy::ModePolicy(std::shared_ptr<meson::DisplayAdapter> adapter, const uin
     mPolicy = MESON_POLICY_INVALID;
     mReason = OUTPUT_CHANGE_BY_INIT;
     mDisplayId = displayId;
+    memset(&mConnectorType, 0, sizeof(mConnectorType));
+    memset(&mModeConType, 0, sizeof(mModeConType));
+    memset(&mConData, 0, sizeof(mConData));
+    memset(&mSceneOutInfo, 0, sizeof(mSceneOutInfo));
+    memset(&mState, 0, sizeof(mState));
+    memset(&mDvInfo, 0, sizeof(mDvInfo));
+    mDisplayWidth = 0;
+    mDisplayHeight = 0;
 }
 
 ModePolicy::~ModePolicy() {
@@ -305,7 +321,8 @@ void ModePolicy::getHdmiDcCap(char* dc_cap, int32_t len) {
 
 int ModePolicy::getHdmiSinkType() {
     char sinkType[MESON_MODE_LEN] = {0};
-    sysfs_get_string_ex(DISPLAY_HDMI_SINK_TYPE, sinkType, MESON_MODE_LEN, false);
+    if (sysfs_get_string_ex(DISPLAY_HDMI_SINK_TYPE, sinkType, MESON_MODE_LEN, false) !=0)
+        return HDMI_SINK_TYPE_NONE;
 
     if (NULL != strstr(sinkType, "sink")) {
         return HDMI_SINK_TYPE_SINK;
@@ -1377,7 +1394,14 @@ void ModePolicy::getPosition(const char* curMode, int *position) {
     int defaultWidth = 0;
     int defaultHeight = 0;
     std::map<uint32_t, drm_mode_info_t> connecterModeList;
-    drm_mode_info_t mode;
+
+    drm_mode_info_t mode = {
+           DRM_DISPLAY_MODE_NULL,
+           0, 0,
+           0, 0,
+           60.0,
+           0
+        };
 
     if (mConnector->isConnected()) {
         mConnector->getModes(connecterModeList);
@@ -2237,7 +2261,7 @@ void ModePolicy::setSinkDisplay(bool initState) {
     MESON_LOGD("init tv display old outputmode:%s, outputmode:%s\n", current_mode, outputmode);
 
     if (strlen(outputmode) == 0)
-        strncpy(outputmode, mDefaultUI.c_str(), MESON_MODE_LEN);
+        strncpy(outputmode, mDefaultUI.c_str(), MESON_MODE_LEN-1);
 
     setSinkOutputMode(outputmode, initState);
 }

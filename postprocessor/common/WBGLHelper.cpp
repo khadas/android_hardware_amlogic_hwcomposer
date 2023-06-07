@@ -18,6 +18,9 @@
 #include <cutils/properties.h>
 
 WBGLHelper::WBGLHelper() {
+    mDisplay = nullptr;
+    mContext = nullptr;
+    mConfig = nullptr;
 
 }
 

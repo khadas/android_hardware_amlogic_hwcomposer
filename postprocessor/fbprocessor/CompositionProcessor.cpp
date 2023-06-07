@@ -69,6 +69,22 @@ static const char gFragmentShader[] = "#extension GL_OES_EGL_image_external : re
 
 CompositionProcessor::CompositionProcessor() {
     mInitialized = false;
+    mProgramId = -1;
+    inWBTex = -1;
+    wbbuffer = nullptr;
+    inWBImg = nullptr;
+    inUITex = -1;
+    inUIImg = nullptr;
+    uibuffer = nullptr;
+
+    memset(&outImg , 0, sizeof(outImg ));
+    memset(&outbuffer , 0, sizeof(outbuffer ));
+    gvPositionHandle = -1;;
+    gvTexcoord = -1;;
+    gwbPosX = -1;
+    gwbPosY = -1;
+    gYuvTexSamplerHandle = -1;
+    gWBTexSamplerHandle = -1;
 }
 
 CompositionProcessor::~CompositionProcessor() {

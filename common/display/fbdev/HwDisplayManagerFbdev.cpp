@@ -190,6 +190,8 @@ int32_t HwDisplayManagerFbdev::loadPlanes() {
                     }
                 }
                 count_osd ++;
+            } else {
+                close(fd);
             }
         }
         idx ++;

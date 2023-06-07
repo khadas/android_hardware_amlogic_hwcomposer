@@ -211,6 +211,7 @@ void DrmDevice::loadPipe() {
         uint32_t encoder_id = et.second->getId();
 
         /*get crtc index*/
+        pipeCfg.connector_id = -1;
         pipeCfg.crtc_id = crtcid;
         auto crtcit = mCrtcs.find(crtcid);
         MESON_ASSERT(crtcit != mCrtcs.end(), "initPipe get crtc (%d) failed", crtcid);
