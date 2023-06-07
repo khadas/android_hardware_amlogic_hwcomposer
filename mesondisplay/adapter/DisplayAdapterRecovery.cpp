@@ -292,6 +292,15 @@ error_handle:
     return false;
 };
 
+bool DisplayAdapterLocal::setPerferredIModeOrPMode(const string& mode, bool isInterlace, ConnectorType displayType) {
+    bool ret = false;
+    UNUSED(mode);
+    UNUSED(isInterlace);
+    UNUSED(displayType);
+    NOTIMPLEMENTED;
+    return ret;
+}
+
 bool DisplayAdapterLocal::captureDisplayScreen(const native_handle_t **outBufferHandle) {
     *outBufferHandle = nullptr;
     return true;

@@ -117,6 +117,14 @@ public:
         return false;
     };
 
+    virtual bool setPerferredIModeOrPMode(const string& mode, bool isInterlace, ConnectorType displayType) {
+        UNUSED(mode);
+        UNUSED(isInterlace);
+        UNUSED(displayType);
+        NOTIMPLEMENTED;
+        return false;
+    };
+
     virtual bool captureDisplayScreen(const native_handle_t **outBufferHandle) = 0;
 
     virtual bool getWhiteBoardHanle(const native_handle_t **outBufferHandle, int& fd) = 0;

@@ -74,6 +74,7 @@ public:
 
     // for filter 16:9 mode
     virtual bool is16_9Mode(drm_mode_info_t mode) = 0;
+    virtual int32_t setPerferredIModeOrPMode(std::string mode, bool isInterlace) = 0;
 };
 
 std::shared_ptr<HwcModeMgr> createModeMgr(hwc_modes_policy_t policy);

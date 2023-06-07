@@ -249,6 +249,16 @@ bool DisplayAdapterLocal::setDisplayMode(const string& mode, ConnectorType displ
     return true;
 }
 
+bool DisplayAdapterLocal::setPerferredIModeOrPMode(
+    const string& mode, bool isInterlace,
+    ConnectorType displayType) {
+    UNUSED(displayType);
+    MESON_LOGD("setPerferred %s: %s", isInterlace ? "IMode" : "PMode", mode.c_str());
+
+    int32_t ret = MesonHwc2::getInstance().setPerferredIModeOrPMode(mode, isInterlace);
+    return ret == 1 ? true : false;
+}
+
 bool DisplayAdapterLocal::captureDisplayScreen(const native_handle_t **outBufferHandle) {
     // get framebuffer width and height
     uint32_t fbW = 1290;

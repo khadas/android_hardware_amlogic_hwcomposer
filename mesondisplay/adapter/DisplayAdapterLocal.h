@@ -80,6 +80,7 @@ public:
     bool enableSyncProtection(bool mode) override;
     bool disableSidebandStream(bool isDisable) override;
     bool setHdrConversionStrategy(uint32_t passThrough, uint32_t forceMode) override;
+    bool setPerferredIModeOrPMode(const string& mode, bool isInterlace, ConnectorType displayType) override;
 
     static std::shared_ptr<DisplayAdapter> create(DisplayAdapter::BackendType type);
     DisplayAdapterLocal();

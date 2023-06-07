@@ -853,6 +853,11 @@ bool MesonHwc2::getDisplayVsyncAndPeriod(int64_t& timestamp, int32_t& vsyncPerio
     return hwcDisplay->getDisplayVsyncAndPeriod(timestamp, vsyncPeriodNanos);
 }
 
+int32_t MesonHwc2::setPerferredIModeOrPMode(std::string mode, bool isInterlace) {
+    GET_HWC_DISPLAY(0);
+    return hwcDisplay->setPerferredIModeOrPMode(mode, isInterlace);
+}
+
 /**********************Internal Implement********************/
 
 class MesonHwc2Observer

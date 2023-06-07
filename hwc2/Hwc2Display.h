@@ -121,6 +121,7 @@ public:
     virtual hwc2_error_t setAutoLowLatencyMode(bool enabled);
     virtual hwc2_error_t getSupportedContentTypes(uint32_t* outNum, uint32_t* outSupportedContentTypes);
     virtual hwc2_error_t setContentType(uint32_t contentType);
+    virtual hwc2_error_t setPerferredIModeOrPMode(std::string mode, bool isInterlace);
 
     /* hwc 3 interface*/
     virtual hwc2_error_t setBootConfig(uint32_t config);

@@ -57,6 +57,9 @@ public:
     void processModeList(std::map<uint32_t, drm_mode_info_t> & modeList,
             drm_mode_info_t & currentMode);
 
+    // for Interlace mode
+    int32_t setPerferredIModeOrPMode(std::string mode, bool isInterlace);
+
 protected:
     int32_t updateActiveConfig(drm_mode_info_t activeMode);
     bool isSupportModeForCurrentDevice(drm_mode_info_t mode);
@@ -64,6 +67,8 @@ protected:
     int32_t setModeLocked(drm_mode_info_t & mode);
     bool isTvConnector();
     void mapToFakeSizeMode(drm_mode_info_t & mode, drm_mode_info_t & currentMode);
+    void dynamicMapMode(std::map<uint32_t, drm_mode_info_t> * pModes, bool toInterlace);
+    int32_t setActiveConfigLocked(uint32_t config);
 
 protected:
     std::shared_ptr<HwDisplayConnector> mConnector;

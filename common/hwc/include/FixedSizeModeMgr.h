@@ -50,6 +50,11 @@ public:
     void resetTags(){};
     void dump(String8 & dumpstr);
     bool is16_9Mode(drm_mode_info_t mode __unused) {return false;}
+    int32_t setPerferredIModeOrPMode(std::string mode, bool isInterlace) {
+        UNUSED(mode);
+        UNUSED(isInterlace);
+        return HWC2_ERROR_NONE;
+    };
 
 protected:
     std::shared_ptr<HwDisplayConnector> mConnector;
