@@ -549,7 +549,6 @@ bool ModePolicy::isFilterEdid() {
 
 
 bool ModePolicy::isModeSupportDeepColorAttr(const char *mode, const char * color) {
-    char valueStr[10] = {0};
     char outputmode[MESON_MODE_LEN] = {0};
 
     strcpy(outputmode, mode);
@@ -561,10 +560,7 @@ bool ModePolicy::isModeSupportDeepColorAttr(const char *mode, const char * color
     }
 
     //try support or not
-    sysfs_set_string(DISPLAY_HDMI_VALID_MODE, outputmode);
-    sysfs_get_string(DISPLAY_HDMI_VALID_MODE, valueStr, 10);
-
-    return atoi(valueStr) ? true : false;
+    return sys_set_valid_mode(DISPLAY_HDMI_VALID_MODE, outputmode);
 }
 
 

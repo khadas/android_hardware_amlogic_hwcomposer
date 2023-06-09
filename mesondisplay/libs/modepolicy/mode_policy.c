@@ -301,20 +301,18 @@ static int32_t dv_scene_process(struct meson_policy_in *input,
 
 /* check resolution and color format support or not */
 static bool mode_support_check(const char *mode, const char * color) {
-    char value[MESON_MODE_LEN] = {0};
     char outputmode[MESON_MODE_LEN] = {0};
-
+    bool validmode = false;
     strcpy(outputmode, mode);
     strcat(outputmode, color);
 
     /* try support or not */
-    meson_mode_write_sys(DISPLAY_HDMI_VALID_MODE, outputmode);
-    meson_mode_read_sys(DISPLAY_HDMI_VALID_MODE, value, false);
+    validmode = meson_write_valid_mode_sys(DISPLAY_HDMI_VALID_MODE, outputmode);
 
     if (test_mode)
         return true;
     else
-        return atoi(value) ? true : false;
+        return validmode;
 }
 
 /*

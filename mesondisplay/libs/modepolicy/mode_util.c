@@ -69,3 +69,24 @@ int32_t meson_mode_read_sys(const char *path, char *val, bool original) {
 
     return 0;
 }
+
+bool meson_write_valid_mode_sys(const char* path, const char *outputmode) {
+    int fd;
+
+    SYS_LOGD("meson_write %s, outputmode:%s\n", path, outputmode);
+
+    if ((fd = open(path, O_WRONLY)) < 0) {
+        SYS_LOGE("meson_write, open %s fail.", path);
+        return false;
+    }
+
+    if (write(fd, outputmode, strlen(outputmode)) != strlen(outputmode)) {
+        SYS_LOGD("valid mode is false!\n");
+        close(fd);
+        return false;
+    }
+
+    SYS_LOGD("valid mode is true!\n");
+    close(fd);
+    return true;
+}

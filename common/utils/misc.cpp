@@ -33,6 +33,27 @@ bool sys_get_bool_prop(const char *prop, bool defVal) {
     return property_get_bool(prop, defVal);
 }
 
+bool sys_set_valid_mode(const char* path, const char *outputmode) {
+    int fd;
+
+    MESON_LOGD("set %s, outputmode:%s\n", path, outputmode);
+
+    if ((fd = open(path, O_WRONLY)) < 0) {
+        MESON_LOGE("sys_set_valid_mode, open %s fail.", path);
+        return false;
+    }
+
+    if (write(fd, outputmode, strlen(outputmode)) != strlen(outputmode)) {
+        MESON_LOGE("valid mode is false!\n");
+        close(fd);
+        return false;
+    }
+
+    MESON_LOGD("valid mode is true!\n");
+    close(fd);
+    return true;
+}
+
 int32_t sys_get_string_prop(const char *prop, char *val) {
     return property_get(prop, val, NULL);
 }

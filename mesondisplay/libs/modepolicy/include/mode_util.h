@@ -68,6 +68,7 @@ extern "C" {
 
 int32_t meson_mode_write_sys(const char *path, const char *val);
 int32_t meson_mode_read_sys(const char *path, char *val, bool original);
+bool meson_write_valid_mode_sys(const char *path, const char *outputmode);
 
 #ifdef __cplusplus
 }
