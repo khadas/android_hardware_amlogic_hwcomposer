@@ -1491,16 +1491,6 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
             }
         }
 
-        /* reset layer flag to false */
-        for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
-            std::shared_ptr<Hwc2Layer> layer = it->second;
-            if (layer->isVirtualLayer()) {
-                continue;
-            }
-
-            layer->clearUpdateFlag();
-        }
-
         /* Page flip */
         if (mCrtc->pageFlip(mPresentFence) < 0) {
             return HWC2_ERROR_UNSUPPORTED;
@@ -1519,6 +1509,14 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
 
         /*need use in getReleaseFence() later, dup to return to sf.*/
         *outPresentFence = ::dup(mPresentFence);
+    }
+
+    /* reset layer flag to false */
+    for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
+        std::shared_ptr<Hwc2Layer> layer = it->second;
+        if (!layer->isVirtualLayer()) {
+            layer->clearUpdateFlag();
+        }
     }
 
     /*dump debug informations.*/
