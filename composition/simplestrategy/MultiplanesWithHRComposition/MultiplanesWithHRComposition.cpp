@@ -70,7 +70,6 @@ void MultiplanesWithHRComposition::init() {
     mSkipValidate = false;
     mVsyncOverDefault = false;
     m4Mosaic = false;
-    mSkipVideoTypeCheckInComp = false;
 
     /*crtc scale info.*/
     mDisplayRefFb.reset();
@@ -120,49 +119,66 @@ int MultiplanesWithHRComposition::allocateDiOutputFb(
 }
 
 int MultiplanesWithHRComposition::chooseOneVideoFb(std::shared_ptr<DrmFramebuffer> & videoFb) {
+    int video_type;
+    std::vector<std::shared_ptr<DrmFramebuffer>> fbs;
+    std::vector<std::shared_ptr<DrmFramebuffer>>::iterator itErase;
+
     videoFb.reset();
     // no Video Fbs
     if (mDIComposerFbs.empty())
         return -EINVAL;
 
-    std::vector<int> video_types {AM_VIDEO_8K, AM_VIDEO_DV, AM_VIDEO_DI_POST, AM_VIDEO_SECURE,
-        AM_VIDEO_4K, AM_VIDEO_AFBC, AM_VIDEO_HDR, AM_VIDEO_HDR10_PLUS, AM_VIDEO_HLG};
-    std::multimap<int, std::shared_ptr<DrmFramebuffer>> video_type_maps;
-    int video_type;
+    {
+        std::vector<int> video_types {AM_VIDEO_8K, AM_VIDEO_DV,
+            AM_VIDEO_DI_POST, AM_VIDEO_SECURE, AM_VIDEO_4K,
+            AM_VIDEO_AFBC, AM_VIDEO_HDR, AM_VIDEO_HDR10_PLUS, AM_VIDEO_HLG};
 
-    for (auto it = mDIComposerFbs.begin(); it != mDIComposerFbs.end(); it++) {
-        video_type = (*it)->getVideoType();
-        if (video_type > 0) {
-            MESON_LOGV("[%s] fbId:%" PRIu64 " videoType:%x", __func__, (*it)->getUniqueId(), video_type);
-            for (auto type_it = video_types.begin(); type_it != video_types.end(); type_it++) {
-                if ((video_type & *type_it) == *type_it) {
-                    video_type_maps.insert(std::make_pair(*type_it, *it));
+        for (auto it = mDIComposerFbs.begin(); it != mDIComposerFbs.end(); it++) {
+            video_type = (*it)->getVideoType();
+            if (video_type > 0) fbs.push_back(*it);
+
+            MESON_LOGV("[%s] fbId:%" PRIu64 " videoType:%x",
+                    __func__, (*it)->getUniqueId(), video_type);
+        }
+
+        if (!fbs.empty()) {
+            auto type_it = video_types.begin();
+            for (; type_it != video_types.end(); type_it++) {
+                bool have_type = false;
+                for (auto fbIt = fbs.begin(); fbIt != fbs.end(); fbIt++) {
+                    video_type = (*fbIt)->getVideoType();
+                    if ((video_type & *type_it) == *type_it) {
+                        have_type = true;
+                        break;
+                    }
                 }
+
+                if (have_type) {
+                    for (auto fbIt = fbs.begin(); fbIt != fbs.end();) {
+                        video_type = (*fbIt)->getVideoType();
+                        if ((video_type & *type_it) == *type_it)
+                            fbIt++;
+                        else
+                            fbs.erase(fbIt);
+                    }
+                }
+
+                if (fbs.size() == 1)
+                    break;
             }
-        } else {
-            mSkipVideoTypeCheckInComp = true;
-            break;
+        }
+
+        if (!fbs.empty()) {
+            videoFb = *(fbs.begin());
+
+            itErase = std::find(mDIComposerFbs.begin(), mDIComposerFbs.end(), videoFb);
+            if (itErase != mDIComposerFbs.end())
+                mDIComposerFbs.erase(itErase);
+
+            if (videoFb)
+                return 0;
         }
     }
-
-    if (!mSkipVideoTypeCheckInComp) {
-        for (auto type_it = video_types.begin(); type_it != video_types.end(); type_it++) {
-            if (video_type_maps.count(*type_it) > 0) {
-                auto map_it = video_type_maps.lower_bound(*type_it);
-                videoFb = map_it->second;
-                break;
-            }
-        }
-    }
-
-    std::vector<std::shared_ptr<DrmFramebuffer>>::iterator itErase;
-    itErase = std::find(mDIComposerFbs.begin(), mDIComposerFbs.end(), videoFb);
-    if (itErase != mDIComposerFbs.end())
-        mDIComposerFbs.erase(itErase);
-
-    // got one
-    if (videoFb)
-        return 0;
 
     /* find the biggest window and it can't overlap with other window.
      * if no success, find one that can't overlap to others and post it
@@ -216,9 +232,9 @@ int MultiplanesWithHRComposition::chooseOneVideoFb(std::shared_ptr<DrmFramebuffe
         }
     }
 
-    if (no_overlap_fb) {
+    if (no_overlap_fb)
         videoFb = no_overlap_fb;
-    } else if (large_fb)
+    else if (large_fb)
         videoFb = large_fb;
 
     /*remove from list*/

@@ -74,6 +74,7 @@ int32_t VideoComposerDev::setFrames(
 
     bool isBlackBuffer = false;
     for (int i = 0; i < composefbs.size(); i++) {
+        isBlackBuffer = false;
         fb = composefbs[i];
         vFrameInfo = &mVideoFramesInfo.frame_info[mVideoFramesInfo.frame_count];
         buffer_handle_t buf = fb->mBufferHandle;

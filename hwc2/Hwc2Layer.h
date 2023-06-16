@@ -30,6 +30,7 @@ public:
     VtDisplayObserver() {};
     virtual ~VtDisplayObserver() {};
     virtual void onFrameAvailable() = 0;
+    virtual void askSurfaceFlingerRefresh() = 0;
 };
 
 class Hwc2Layer : public DrmFramebuffer {
@@ -101,7 +102,7 @@ public:
     void onNeedShowTempBuffer(vt_video_color_t colorType);
     void onNeedShowTempBufferWithStatus(
             vt_video_color_t colorType, vt_video_status_t status);
-    void setVideoType(int fb);
+    bool setVideoType(int fb);
     void handleDisplayDisconnect(bool connect);
 
     void adjustDisplayFrame(display_zoom_info_t & calibrateInfo);

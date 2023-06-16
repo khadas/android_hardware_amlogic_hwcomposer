@@ -128,7 +128,6 @@ protected:
     float mScaleValue;
     bool mSkipValidate;
     bool mResetProcessorFlag;
-    bool mSkipVideoTypeCheckInComp;
 
     bool mIsSideBandDisable;
     /* for video processor */

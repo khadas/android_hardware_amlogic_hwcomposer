@@ -2454,6 +2454,12 @@ void Hwc2Display::onFrameAvailable() {
         mVtDisplayThread->onFrameAvailableForGameMode();
 }
 
+void Hwc2Display::askSurfaceFlingerRefresh() {
+    ATRACE_CALL();
+    if (mObserver != NULL)
+        mObserver->refresh();
+}
+
 void Hwc2Display::handleVtThread() {
     bool haveVtLayer = false;
 

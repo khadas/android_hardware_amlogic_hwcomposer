@@ -177,6 +177,7 @@ public:
     virtual void onFrameAvailable();
 
     virtual void refreshVtLayers();
+    virtual void askSurfaceFlingerRefresh();
 
 /*White board*/
 public:

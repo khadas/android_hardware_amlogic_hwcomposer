@@ -489,20 +489,24 @@ int32_t Hwc2Layer::getVtBuffer() {
 
 void Hwc2Layer::updateVtBuffer() {
     ATRACE_CALL();
-    std::lock_guard<std::mutex> lock(mMutex);
+    mMutex.lock();
     int expiredItemCount = 0;
     int dropCount = 0;
     nsecs_t diffAdded = 0;
 
-    if (!isVtBufferLocked())
+    if (!isVtBufferLocked()) {
+        mMutex.unlock();
         return;
+    }
 
      /*
      * getVtBuffer might drop the some buffers at the head of the queue
      * if there is a buffer behind them which is timely to be presented.
      */
-    if (mQueueItems.empty())
+    if (mQueueItems.empty()) {
+        mMutex.unlock();
         return;
+    }
 
     for (auto it = mQueueItems.begin(); it != mQueueItems.end(); it++) {
         if (it->mTimeStamp > 0 &&  shouldPresentNow(it->mTimeStamp)) {
@@ -539,7 +543,7 @@ void Hwc2Layer::updateVtBuffer() {
     mVtUpdate = true;
     mVtBufferFd = mQueueItems[0].mVtBufferFd;
     mTimestamp = mQueueItems[0].mTimeStamp;
-    setVideoType(mVtBufferFd);
+    bool isVideoTypeChange = setVideoType(mVtBufferFd);
 
     diffAdded = mTimestamp - mPreviousTimestamp;
     mPreviousTimestamp = mTimestamp;
@@ -548,6 +552,11 @@ void Hwc2Layer::updateVtBuffer() {
             PRId64 " us) diffAdded(%" PRId64 " us) shouldPresent:%d, queueFrameSize:%zu",
             __func__, mDisplayId, mId, mVtBufferFd, mTimestamp, mExpectedPresentTime, diffAdded,
             shouldPresentNow(mTimestamp), mQueueItems.size());
+
+    mMutex.unlock();
+
+    if (isVideoTypeChange)
+        mDisplayObserver->askSurfaceFlingerRefresh();
 }
 
 int32_t Hwc2Layer::releaseVtBuffer() {
@@ -1069,9 +1078,18 @@ void Hwc2Layer::onNeedShowTempBufferWithStatus(
     onVtVideoStatus(status);
 }
 
-void Hwc2Layer::setVideoType(int fd) {
+/*
+ * get video type from uvm driver
+ *
+ * @param fd     [in] buffer fd
+ *
+ * return ture means video type change
+ * */
+bool Hwc2Layer::setVideoType(int fd) {
     /* this function is called after attachUvmBuffer*/
+    bool ret = false;
     int bufFd = -1;
+    int prvAMVideoType = mAMVideoType;
 
     if (fd >= 0) {
         bufFd = dup(fd);
@@ -1079,9 +1097,14 @@ void Hwc2Layer::setVideoType(int fd) {
             mAMVideoType = mUvmDettach->getVideoType(bufFd);
             MESON_LOGV("[%s] [%" PRIu64 "] videoType:0x%x",
                     __func__, mId, mAMVideoType);
+
+            if (prvAMVideoType != mAMVideoType)
+                ret = true;
         }
         close(bufFd);
      }
+
+    return ret;
 }
 
 int Hwc2Layer::getVideoType() {
