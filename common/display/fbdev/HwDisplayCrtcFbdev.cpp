@@ -16,6 +16,8 @@
 #include <OmxUtil.h>
 #include <inttypes.h>
 #include <sys/utsname.h>
+#define ATRACE_TAG ATRACE_TAG_GRAPHICS
+#include <utils/Trace.h>
 
 #include "AmVinfo.h"
 #include "AmFramebuffer.h"
@@ -208,6 +210,8 @@ int32_t HwDisplayCrtcFbdev::updatePropertyValue() {
 }
 
 int32_t HwDisplayCrtcFbdev::pageFlip(int32_t &out_fence) {
+    ATRACE_CALL();
+
     osd_page_flip_info_t flipInfo;
     flipInfo.background_w = mScaleInfo.framebuffer_w;
     flipInfo.background_h = mScaleInfo.framebuffer_h;

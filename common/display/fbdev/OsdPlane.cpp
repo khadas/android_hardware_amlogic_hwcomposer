@@ -10,6 +10,8 @@
 #include "OsdPlane.h"
 #include <MesonLog.h>
 #include <DebugHelper.h>
+#define ATRACE_TAG ATRACE_TAG_GRAPHICS
+#include <utils/Trace.h>
 
 #include <math.h>
 #include "AmVinfo.h"
@@ -187,6 +189,8 @@ bool OsdPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
 }
 
 int32_t OsdPlane::setPlane(std::shared_ptr<DrmFramebuffer> fb, uint32_t zorder, int blankOp) {
+    ATRACE_CALL();
+
     MESON_ASSERT(mDrvFd >= 0, "osd plane fd is not available!");
     MESON_ASSERT(zorder > 0, "osd driver request zorder > 0");// driver request zorder > 0
 

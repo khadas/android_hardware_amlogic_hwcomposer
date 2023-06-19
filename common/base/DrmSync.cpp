@@ -16,6 +16,8 @@
 #include <errno.h>
 
 #include <MesonLog.h>
+#define ATRACE_TAG ATRACE_TAG_GRAPHICS
+#include <utils/Trace.h>
 
 
 const std::shared_ptr<DrmFence> DrmFence::NO_FENCE =
@@ -33,6 +35,7 @@ DrmFence::~DrmFence() {
 }
 
 int32_t DrmFence::wait(int timeout) {
+    ATRACE_CALL();
     if (mFenceFd == -1) {
         return 0;
     }
@@ -41,6 +44,7 @@ int32_t DrmFence::wait(int timeout) {
 }
 
 int32_t DrmFence::waitForever(const char* logname) {
+    ATRACE_CALL();
     if (mFenceFd == -1) {
         return 0;
     }
