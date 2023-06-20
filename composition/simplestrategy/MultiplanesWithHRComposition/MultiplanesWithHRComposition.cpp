@@ -580,10 +580,13 @@ void MultiplanesWithHRComposition::handleNonLegacySidebandVideoFbs(
                     }
 
                     if (bVideoCompose) {
-                        videoZ = minVideoZ;
+                        videoZ = maxVideoZ;
                         auto it = mHwcVideoInputFbs.begin();
-                        for (; it != mHwcVideoInputFbs.end(); it++)
+                        for (; it != mHwcVideoInputFbs.end(); it++) {
                             (*it)->mCompositionType = MESON_COMPOSITION_DI;
+                            if ((*it)->mZorder < videoZ)
+                                videoZ = (*it)->mZorder;
+                        }
 
                         /*set dicomposer and get output video.*/
                         std::vector<std::shared_ptr<DrmFramebuffer>> nofbs;
@@ -625,13 +628,9 @@ void MultiplanesWithHRComposition::handleNonLegacySidebandVideoFbs(
 
                 MESON_LOGV("[%s] id:%" PRIu64 ", setTo video %d ", __func__, fb->getUniqueId(), i);
                 fb->mCompositionType = MESON_COMPOSITION_PLANE_HWCVIDEO;
-                if (i == 0 && bVideoCompose)
-                    videoZ = maxVideoZ;
-                else
-                    videoZ = fb->mZorder;
 
                 mDisplayPairs.push_back(DisplayPair{
-                        (uint32_t)mOsdPlaneNum + i, videoZ, fb, mHwcVideoPlanes[i],
+                        (uint32_t)mOsdPlaneNum + i, fb->mZorder, fb, mHwcVideoPlanes[i],
                             (!i ? mProcessors : std::vector<std::shared_ptr<FbProcessor>>())});
             }
         }

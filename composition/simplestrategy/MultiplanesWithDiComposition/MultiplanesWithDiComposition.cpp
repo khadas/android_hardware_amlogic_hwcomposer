@@ -477,9 +477,11 @@ int MultiplanesWithDiComposition::processVideoFbs() {
             mHwcVideoInputFbs = mDIComposerFbs;
             if (mHwcVideoInputFbs.size() > 0) {
                 if (bVideoCompose) {
-                    videoZ = minVideoZ;
+                    videoZ = maxVideoZ;
                     for (auto it = mHwcVideoInputFbs.begin(); it != mHwcVideoInputFbs.end(); it++) {
                         (*it)->mCompositionType = MESON_COMPOSITION_DI;
+                        if ((*it)->mZorder < videoZ)
+                            videoZ = (*it)->mZorder;
                     }
 
                     /*set dicomposer and get output video.*/
@@ -522,13 +524,9 @@ int MultiplanesWithDiComposition::processVideoFbs() {
 
         MESON_LOGV("[%s] id:%" PRIu64 ", setTo video %d ", __func__, fb->getUniqueId(), i);
         fb->mCompositionType = MESON_COMPOSITION_PLANE_HWCVIDEO;
-        if (i == 0 && bVideoCompose)
-            videoZ = maxVideoZ;
-        else
-            videoZ = fb->mZorder;
 
         mDisplayPairs.push_back(DisplayPair{
-                (uint32_t)mOsdPlaneNum + i, videoZ, fb, mHwcVideoPlanes[i],
+                (uint32_t)mOsdPlaneNum + i, fb->mZorder, fb, mHwcVideoPlanes[i],
                 (!i ? mProcessors : std::vector<std::shared_ptr<FbProcessor>>())});
         fb.reset();
     }
