@@ -191,7 +191,8 @@ void RealModeMgr::mapToFakeSizeMode(drm_mode_info_t & mode, drm_mode_info_t & cu
     mode.pixelW = fakePixelW;
     mode.pixelH = fakePixelH;
 
-    if (!strcmp(mode.name, currentMode.name)) {
+    if (!strcmp(mode.name, currentMode.name) &&
+        fabs(mode.refreshRate - currentMode.refreshRate) < 0.001) {
         currentMode = mode;
         mIsFakeSizeMode = true;
     }
