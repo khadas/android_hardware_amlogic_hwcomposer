@@ -31,6 +31,7 @@ enum DisplayAttribute {
     DA_HDMI_AVMUTE,
     DA_FR_HINT,
     DA_HDR_PRIORITY,
+    DA_FORCE_HDR_MODE,
     DA_DISPLAY_ATTRIBUTE__COUNT
 };
 

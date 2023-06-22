@@ -13,6 +13,8 @@
 extern "C" {
 #endif
 
+#define UBOOTENV_HDR_POLICY             "ubootenv.var.hdr_policy"
+
 int meson_mode_init_ubootenv();
 
 const char *meson_mode_get_ubootenv(const char * key);

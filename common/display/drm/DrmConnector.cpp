@@ -23,6 +23,7 @@
 
 #include "../fbdev/AmVinfo.h"
 #include "Dv.h"
+#include "mode_ubootenv.h"
 
 #define EDID_MIN_LEN (128)
 #define HDMI_FRAC_RATE_POLICY "/sys/class/amhdmitx/amhdmitx0/frac_rate_policy"
@@ -320,16 +321,18 @@ int32_t DrmConnector::loadConnectorInfo(drmModeConnectorPtr metadata) {
     return 0;
 }
 
-#if (PLATFORM_SDK_VERSION > 33) || (PLATFORM_SDK_VERSION == 33 \
-            && (ANDROID_PLATFORM_SDK_EXTENSION_VERSION >= 5))
+#if (PLATFORM_SDK_VERSION >= 34)
 /*use drm property for dv_cap*/
 int32_t DrmConnector:: parseDvCapabilities() {
     if (mDvCaps) {
         if (mDvCaps->getValue() != 0 && mSupportDv) {
             mHdrCapabilities.DolbyVisionSupported = true;
-            if ((mDvCaps->getValue() & (1 << 2)) == 0 )
+            if ((mDvCaps->getValue() & (1 << 2)) == 0)
                 mHdrCapabilities.DOLBY_VISION_4K30_Supported = true;
         }
+
+        MESON_LOGD("dolby version 4k30:%d",
+                mHdrCapabilities.DOLBY_VISION_4K30_Supported ? 1 : 0);
     } else {
         MESON_LOGD("%s mDvCaps is null",__func__);
     }
@@ -416,6 +419,7 @@ int32_t DrmConnector::getConversionCaps(std::vector<drm_hdr_conversion_capabilit
 }
 
 int32_t DrmConnector::setHdrConversionStrategy (bool passthrough, int32_t forceType) {
+    int32_t ret = 0;
     MESON_LOGD("%s passthrough %d forceType %d ", __func__, passthrough, forceType);
 
     if (passthrough) {
@@ -431,16 +435,14 @@ int32_t DrmConnector::setHdrConversionStrategy (bool passthrough, int32_t forceT
                sysfs_set_string(DV_LL_POLICY, DV_SOURCE_LED);
            }
        }
+        meson_mode_set_ubootenv(UBOOTENV_HDR_POLICY, HDR_POLICY_SOURCE);
     } else {
         /*force mode need set attr before switch policy */
-        int ret = -1;
         switch (forceType) {
             case DRM_DOLBY_VISION: {
                 if (supportSinkLed()) {
                     /*444,8bit*/
                     sysfs_set_string(HDMI_ATTR, "444,8bit");
-                    if (ret != 0)
-                        return -EINVAL;
                 } else {
                     /*422,12bit*/
                     sysfs_set_string(HDMI_ATTR, "422,12bit");
@@ -483,11 +485,16 @@ int32_t DrmConnector::setHdrConversionStrategy (bool passthrough, int32_t forceT
             }
             default:
                 MESON_LOGE("setHdrConversionStrategy: error type[%d]", forceType);
+                ret = HWC2_ERROR_UNSUPPORTED;
                 break;
         }
+
+        if (!mSupportDv && !ret)
+            meson_mode_set_ubootenv(UBOOTENV_HDR_POLICY, HDR_POLICY_FORCE);
     }
-    return 0;
+    return ret;
 }
+
 
 /* use Drmproperty for forcemode
  * ToDo*/
@@ -769,11 +776,8 @@ bool DrmConnector::isSecure() {
 }
 
 std::string DrmConnector::getCurrentHdrType() {
-    if (mType != DRM_MODE_CONNECTOR_HDMIA)
-        return "sdr";
-
     std::string hdrType;
-    getHdrType(hdrType);
+    loadHdmiCurrentHdrType(hdrType);
     return hdrType;
 }
 
@@ -814,8 +818,7 @@ void DrmConnector::updateHdrCaps() {
 
     if (mType == DRM_MODE_CONNECTOR_HDMIA) {
         parseHdmiHdrCapabilities(mHdrCapabilities);
-#if (PLATFORM_SDK_VERSION > 33) || (PLATFORM_SDK_VERSION == 33 \
-                && (ANDROID_PLATFORM_SDK_EXTENSION_VERSION >= 5))
+#if (PLATFORM_SDK_VERSION >= 34)
         parseDvCapabilities();
 #endif
     }
@@ -832,15 +835,14 @@ void DrmConnector::updateHdrCaps() {
         mHdrCapabilities.maxLuminance = sDefaultMaxLumiance;
         mHdrCapabilities.avgLuminance = sDefaultMaxLumiance;
         mHdrCapabilities.minLuminance = sDefaultMinLumiance;
-#if (PLATFORM_SDK_VERSION > 33) || (PLATFORM_SDK_VERSION == 33 \
-                && (ANDROID_PLATFORM_SDK_EXTENSION_VERSION >= 5))
+#if (PLATFORM_SDK_VERSION >= 34)
         parseDvCapabilities();
 #endif
     MESON_LOGD("dolby version:%d, hlg:%d, hdr10:%d, hdr10+:%d max:%d, avg:%d, min:%d\n",
-        mHdrCapabilities.DolbyVisionSupported ? 1:0,
-        mHdrCapabilities.HLGSupported ? 1:0,
-        mHdrCapabilities.HDR10Supported ? 1:0,
-        mHdrCapabilities.HDR10PlusSupported ? 1:0,
+        mHdrCapabilities.DolbyVisionSupported ? 1 : 0,
+        mHdrCapabilities.HLGSupported ? 1 : 0,
+        mHdrCapabilities.HDR10Supported ? 1 : 0,
+        mHdrCapabilities.HDR10PlusSupported ? 1 : 0,
         mHdrCapabilities.maxLuminance,
         mHdrCapabilities.avgLuminance,
         mHdrCapabilities.minLuminance);

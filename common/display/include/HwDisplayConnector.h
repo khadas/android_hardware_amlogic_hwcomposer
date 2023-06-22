@@ -82,6 +82,8 @@ public:
     virtual void dump(String8 & dumpstr) = 0;
 
     virtual bool isTvSupportALLM() = 0;
+    virtual bool supportSourceLed() { return false; };
+    virtual bool supportSinkLed() { return false; };
 
     virtual int32_t setHdrConversionStrategy(bool passthrough, int32_t type) = 0;
 

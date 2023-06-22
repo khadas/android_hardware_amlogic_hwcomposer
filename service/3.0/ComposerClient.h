@@ -133,8 +133,7 @@ public:
                                            int32_t timeoutMs) override;
 
     /*HWC3-V2 interface*/
-#if (PLATFORM_SDK_VERSION > 33) || (PLATFORM_SDK_VERSION == 33 \
-            && (ANDROID_PLATFORM_SDK_EXTENSION_VERSION >= 5))
+#if (PLATFORM_SDK_VERSION >= 34)
     ndk::ScopedAStatus getHdrConversionCapabilities(
             std::vector<common::HdrConversionCapability>*) override;
     ndk::ScopedAStatus setHdrConversionStrategy(const common::HdrConversionStrategy& conversionStrategy,
@@ -173,8 +172,7 @@ private:
         int64_t displayId, int64_t layerId, const common::Point& cursorPosition);
     void executeLayerCommandSetLayerBuffer(int64_t displayId, int64_t layerId,
                                            const Buffer& buffer);
-#if (PLATFORM_SDK_VERSION > 33) || (PLATFORM_SDK_VERSION == 33 \
-            && (ANDROID_PLATFORM_SDK_EXTENSION_VERSION >= 5))
+#if (PLATFORM_SDK_VERSION >= 34)
     void executeLayerCommandSetLayerBufferSlotsToClear(int64_t displayId, int64_t layerId,
                                            const std::vector<int32_t>& slotsToClear);
 #endif

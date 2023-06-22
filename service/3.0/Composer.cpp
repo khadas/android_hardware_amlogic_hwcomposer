@@ -114,8 +114,7 @@ ndk::ScopedAStatus Composer::getCapabilities(std::vector<Capability>* caps) {
         Capability::PRESENT_FENCE_IS_NOT_RELIABLE,
         Capability::SKIP_VALIDATE,
         Capability::BOOT_DISPLAY_CONFIG,
-#if (PLATFORM_SDK_VERSION > 33) || (PLATFORM_SDK_VERSION == 33 \
-            && (ANDROID_PLATFORM_SDK_EXTENSION_VERSION >= 5))
+#if (PLATFORM_SDK_VERSION >= 34)
         Capability::HDR_OUTPUT_CONVERSION_CONFIG,
 #endif
     }};

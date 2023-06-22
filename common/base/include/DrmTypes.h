@@ -351,4 +351,6 @@ bool drmHdrCapsDiffer(const drm_hdr_capabilities &hdr1, const drm_hdr_capabiliti
 const char * drmConnTypeToString(drm_connector_type_t conn_type);
 drm_connector_type_t drmStringToConnType(const char *name);
 
+const char *hdrConversionTypeToString(int32_t type);
+
 #endif/*DRM_TYPES_H*/

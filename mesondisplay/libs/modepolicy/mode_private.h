@@ -17,11 +17,6 @@
 /* testing if tv support this displaymode and  deepcolor combination, then if cat result is 1: support, 0: not */
 #define DISPLAY_HDMI_VALID_MODE         "/sys/class/amhdmitx/amhdmitx0/valid_mode"
 
-#define DOLBY_VISION_LL_RGB             3
-#define DOLBY_VISION_LL_YUV             2
-#define DOLBY_VISION_STD_ENABLE         1
-#define DOLBY_VISION_DISABLE            0
-
 #define DV_MODE_720P50HZ                "720p50hz"
 #define DV_MODE_720P                    "720p60hz"
 #define DV_MODE_1080P24HZ               "1080p24hz"

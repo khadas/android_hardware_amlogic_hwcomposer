@@ -113,7 +113,6 @@
 #define UBOOTENV_DOLBYSTATUS            "ubootenv.var.dolby_status"
 #define UBOOTENV_DV_TYPE                "ubootenv.var.dv_type"
 #define UBOOTENV_DV_ENABLE              "ubootenv.var.dv_enable"
-#define UBOOTENV_HDR_POLICY             "ubootenv.var.hdr_policy"
 #define UBOOTENV_FRAC_RATE_POLICY       "ubootenv.var.frac_rate_policy"
 #define UBOOTENV_HDR_PRIORITY           "ubootenv.var.hdr_priority"
 #define UBOOTENV_SDR2HDR                "ubootenv.var.sdr2hdr"
@@ -131,9 +130,16 @@
 #define DV_HDR_SINK_PROCESS             "1"
 #define DV_HDR_SOURCE_PROCESS           "2"
 #define DV_HDR_SINK_SOURCE_PROCESS      "3"
+#define DV_ENABLE_FORCE_SDR_10BIT       "4"
+#define DV_ENABLE_FORCE_SDR_8BIT        "5"
 
-#define HDR_POLICY_SINK                 "0"
-#define HDR_POLICY_SOURCE               "1"
+#define DV_DISABLE_FORCE_SDR            "1"
+
+#define DV_SINK_LED                     "0"
+#define DV_SOURCE_LED                   "1"
+#define FORCE_DV                        "2"
+#define FORCE_HDR10                     "3"
+#define FORCE_HLG                       "5"
 
 #define MODE_480I                       "480i60hz"
 #define MODE_480P                       "480p60hz"
@@ -277,7 +283,9 @@ private:
     void setBootEnv(const char* key, const char* value);
 
     // HDR functions
+    int32_t setHdrStrategy(int32_t policy, const char *type);
     void getHdrStrategy(char* value);
+    int32_t setHdrPriority(int32_t type);
     int32_t getHdrPriority();
     bool isDolbyVisionEnable();
     bool isTvDolbyVisionEnable();
@@ -346,10 +354,10 @@ private:
     bool getSupportALLMContentTypeList(std::vector<std::string> *supportModes);
     void setALLMMode(int state);
 
-    void applyDisplaySetting();
+    void applyDisplaySetting(bool force = false);
 
     void setSourceDisplay(output_mode_state state);
-    void setSourceOutputMode(const char* outputmode);
+    void setSourceOutputMode(const char* outputmode, bool force = false);
     void updateDeepColor(bool cvbsMode, output_mode_state state, const char* outputmode);
     bool isVMXCertification();
     bool isConnected();
@@ -408,4 +416,5 @@ private:
 
     std::map<uint32_t, drm_mode_info_t> mModes;
     std::shared_ptr<HDCPTxAuth> mTxAuth;
+    // for hdr control
 };

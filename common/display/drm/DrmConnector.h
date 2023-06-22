@@ -58,11 +58,14 @@ public:
     int32_t setHDMIContentType(uint32_t contentType);
 
     bool isTvSupportALLM();
+    bool supportSourceLed();
+    bool supportSinkLed();
     int32_t setAVMute(uint32_t mute);
 
     int32_t setHdrConversionStrategy(bool passthrough, int32_t type);
     int32_t getConversionCaps(std::vector<drm_hdr_conversion_capability>&
                     hdrconversionCaps);
+
     /*drm package internal use.*/
 public:
     uint32_t getEncoderId() {return mEncoderId;}
@@ -84,8 +87,6 @@ protected:
     int32_t loadProperties(drmModeConnectorPtr p);
     int32_t parseDvCapabilities();
     int32_t initConversionCaps();
-    bool supportSourceLed();
-    bool supportSinkLed();
     int32_t setAttrForDV(uint32_t color_space_value, uint32_t color_depth_value);
     int32_t setForceMode(uint32_t value);
 

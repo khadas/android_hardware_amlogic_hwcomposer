@@ -33,8 +33,10 @@ static bool is_dv_prefer(struct meson_policy_in *input) {
     struct meson_hdr_info *hdr_ptr = &input->hdr_info;
 
     /* not dv priority */
-    if (hdr_ptr->hdr_priority != MESON_DOLBY_VISION_PRIORITY)
+    if (hdr_ptr->hdr_priority != MESON_DOLBY_VISION_PRIORITY) {
+        SYS_LOGI("not prefer dv, hdr_priority:%d", hdr_ptr->hdr_priority);
         return false;
+    }
 
     /* dv is enable and tv also support it */
     if (hdr_ptr->is_enable_dv && hdr_ptr->is_tv_supportDv)
@@ -915,4 +917,148 @@ int32_t meson_mode_get_policy_output(int32_t connector, struct meson_policy_out 
  */
 void meson_mode_set_test_mode(const bool enable) {
     test_mode = enable;
+}
+
+
+/*
+ * @param type: dv,hdr,sdr
+ */
+int32_t meson_mode_support_mode(int32_t connector, int32_t type, char *mode) {
+    SYS_LOGI("%s type:%d mode:%s", __func__, type, mode);
+    GET_CURRENT_POLICY(connector);
+    struct meson_policy_in *input = &mp->input;
+
+    int32_t ret = -EINVAL;
+    meson_mode_info_t *modes_ptr = input->con_info.modes;
+    meson_mode_info_t *config_ptr = NULL;
+
+    for (int i = 0; i < input->con_info.modes_size; i ++) {
+        meson_mode_info_t *it = &modes_ptr[i];
+
+        if (!strcmp(it->name, mode)) {
+            config_ptr = it;
+            break;
+        }
+    }
+    if (!config_ptr) {
+        SYS_LOGI("%s could not find mode:%s", __func__, mode);
+        return -EINVAL;
+    }
+
+    int length = 0;
+    const char **colorList = NULL;
+    char supportedColorList[MESON_MAX_STR_LEN];
+    strcpy(supportedColorList, input->con_info.dc_cap);
+
+    if (type == MESON_HDR10_PRIORITY) {
+        //1. select the color format table for different resolution
+        if (config_ptr->pixel_w >= 2160) {
+            //resolution support 420 case
+            colorList = HDR_4K_COLOR_ATTRIBUTE_LIST;
+            length = ARRAY_SIZE(HDR_4K_COLOR_ATTRIBUTE_LIST);
+        } else {
+            colorList = HDR_NON4K_COLOR_ATTRIBUTE_LIST;
+            length    = ARRAY_SIZE(HDR_NON4K_COLOR_ATTRIBUTE_LIST);
+        }
+        //2. check support or not
+        for (int i = 0; i < length; i++) {
+            if (strstr(supportedColorList, colorList[i]) != NULL) {
+                //check resolution+color format support or not base driver edid
+                if (mode_support_check(mode, colorList[i])) {
+                    SYS_LOGI("support current mode:[%s], deep color:[%s]\n", mode, colorList[i]);
+                    ret = 0;
+                    break;
+                }
+            }
+        }
+    } else if (type == MESON_DOLBY_VISION_PRIORITY) {
+        // 1. update tv support amdolby vision resolution
+        char dv_displaymode[MESON_MODE_LEN] = {0};
+        for (int i = DV_MODE_LIST_SIZE - 1; i >= 0; i--) {
+            if (strstr(input->hdr_info.dv_max_mode, DV_MODE_LIST[i]) != NULL) {
+                strcpy(dv_displaymode, DV_MODE_LIST[i]);
+                break;
+            }
+        }
+
+        meson_mode_info_t *current_ptr = NULL;
+        meson_mode_info_t *max_dv_ptr = NULL;
+        meson_mode_info_t *modes_ptr = input->con_info.modes;
+        for (int i = 0; i < input->con_info.modes_size; i ++) {
+            meson_mode_info_t *it = &modes_ptr[i];
+
+            if (!strcmp(it->name, dv_displaymode)) {
+                max_dv_ptr = it;
+            } else if (!strcmp(it->name, mode)) {
+                current_ptr =it;
+            }
+        }
+
+        if (!current_ptr || !max_dv_ptr) {
+            SYS_LOGI("could not find max dv or current mode");
+            return -EINVAL;
+        }
+
+        if ((current_ptr->pixel_w > max_dv_ptr->pixel_w) ||
+                (current_ptr->pixel_w == max_dv_ptr->pixel_w &&
+                    current_ptr->refresh_rate -1  > max_dv_ptr->refresh_rate)) {
+            SYS_LOGI("dv not support current mode :%s (%dx%d@%.2f), max dv: %s(%dx%d@%.2f)",
+                    current_ptr->name, current_ptr->pixel_w,
+                    current_ptr->pixel_h, current_ptr->refresh_rate,
+                    max_dv_ptr->name, max_dv_ptr->pixel_w,
+                    max_dv_ptr->pixel_h, max_dv_ptr->refresh_rate);
+            return -EINVAL;
+        }
+
+        int dv_type = update_dv_type(&input->hdr_info);
+        char dv_attr[MESON_MODE_LEN] = {0};
+        update_dv_attr(input->hdr_info.dv_deepcolor, dv_type, dv_attr);
+        if (mode_support_check(mode, dv_attr)) {
+            SYS_LOGI("support current mode:[%s], deep color:[%s]\n", mode, dv_attr);
+            ret = 0;
+        }
+    } else if (type == MESON_SDR_PRIORITY) {
+        // no check for sdr
+        ret = 0;
+    }
+
+    return ret;
+}
+
+const char *meson_hdrPriorityToString(int32_t type) {
+    const char * typeStr;
+    switch (type) {
+        case MESON_DOLBY_VISION_PRIORITY:
+            typeStr = "DV Priority";
+            break;
+        case MESON_HDR10_PRIORITY:
+            typeStr = "HDR10 Priority";
+            break;
+        case MESON_SDR_PRIORITY:
+            typeStr = "SDR priority";
+            break;
+        default:
+            typeStr = "INVALID";
+            break;
+    }
+    return typeStr;
+}
+
+const char *meson_hdrPolicyToString(int32_t type) {
+    const char * typeStr;
+    switch (type) {
+        case MESON_HDR_POLICY_SINK:
+            typeStr = "follow sink";
+            break;
+        case MESON_HDR_POLICY_SOURCE:
+            typeStr = "follow source";
+            break;
+        case MESON_HDR_POLICY_FORCE:
+            typeStr = "force";
+            break;
+        default:
+            typeStr = "INVALID";
+            break;
+    }
+    return typeStr;
 }

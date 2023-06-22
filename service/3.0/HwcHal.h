@@ -126,8 +126,7 @@ public:
     HWC3::Error setLayerBrightness(int64_t display, int64_t layer, const LayerBrightness& brightness) override;
 
     /* hwc3.2 interface */
-#if (PLATFORM_SDK_VERSION > 33) || (PLATFORM_SDK_VERSION == 33 \
-            && (ANDROID_PLATFORM_SDK_EXTENSION_VERSION >= 5))
+#if (PLATFORM_SDK_VERSION >= 34)
     HWC3::Error getHdrConversionCapabilities(
         std::vector<common::HdrConversionCapability>*) override;
     HWC3::Error setHdrConversionStrategy(

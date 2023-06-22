@@ -125,8 +125,7 @@ void MesonHwc2::getCapabilities(uint32_t* outCount,
 #ifdef ENABLE_AIDL
         if (HwcConfig::getDisplayNum() == 1) {
             outCapabilities[2] = HWC3_CAPABILITY_BOOT_DISPLAY_CONFIG;
-#if (PLATFORM_SDK_VERSION > 33) || (PLATFORM_SDK_VERSION == 33 \
-            && (ANDROID_PLATFORM_SDK_EXTENSION_VERSION >= 5))
+#if (PLATFORM_SDK_VERSION >= 34)
             outCapabilities[1] = HWC3_HDR_OUTPUT_CONVERSION_CONFIG;
 #endif
         }
@@ -300,8 +299,7 @@ int32_t MesonHwc2::getHdrCapabilities(hwc2_display_t display,
             }
         }
 
-#if (PLATFORM_SDK_VERSION > 33) || (PLATFORM_SDK_VERSION == 33 \
-            && (ANDROID_PLATFORM_SDK_EXTENSION_VERSION >= 5))
+#if (PLATFORM_SDK_VERSION >= 34)
         if (caps->DOLBY_VISION_4K30_Supported) {
             *outNumTypes = *outNumTypes + 1;
             if (getInfo) {

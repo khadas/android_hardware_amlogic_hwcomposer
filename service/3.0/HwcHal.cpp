@@ -975,8 +975,7 @@ HWC3::Error HwcHal::setAidlClientPid(int32_t pid) {
 }
 
 /* hwc 3.2 */
-#if (PLATFORM_SDK_VERSION > 33) || (PLATFORM_SDK_VERSION == 33 \
-            && (ANDROID_PLATFORM_SDK_EXTENSION_VERSION >= 5))
+#if (PLATFORM_SDK_VERSION >= 34)
 HWC3::Error HwcHal::getHdrConversionCapabilities(
     std::vector<common::HdrConversionCapability>* outHdrConversionCapability) {
 
@@ -1037,6 +1036,7 @@ HWC3::Error HwcHal::setHdrConversionStrategy(
             break;
         }
         case HdrConversionStrategyTag::autoAllowedHdrTypes: {
+            ALOGD("%s HdrConversionStrategy: [auto]", __FUNCTION__);
             auto autoHdrTypes =
                     conversionStrategy
                             .get<HdrConversionStrategyTag::autoAllowedHdrTypes>();
@@ -1055,6 +1055,7 @@ HWC3::Error HwcHal::setHdrConversionStrategy(
             break;
         }
         case HdrConversionStrategyTag::forceHdrConversion: {
+            ALOGD("%s HdrConversionStrategy: [force]", __FUNCTION__);
             uint32_t forceHdrConversion =
                      static_cast<uint32_t >(conversionStrategy
                             .get<HdrConversionStrategyTag::forceHdrConversion>());
@@ -1279,8 +1280,7 @@ bool HwcHal::initDispatch() {
     }
 
     /* hwc3.2 interfaces */
-#if (PLATFORM_SDK_VERSION > 33) || (PLATFORM_SDK_VERSION == 33 \
-            && (ANDROID_PLATFORM_SDK_EXTENSION_VERSION >= 5))
+#if (PLATFORM_SDK_VERSION >= 34)
     if (!initHwc3Dispatch(HWC3_FUNCTION_GET_HDR_CONVERSION_CAPABILITIES,
                 &mDispatch.getHdrConversionCapabilities) ||
         !initHwc3Dispatch(HWC3_FUNCTION_SET_HDR_CONVERSION_STRATEGY,

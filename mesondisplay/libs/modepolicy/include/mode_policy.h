@@ -27,6 +27,11 @@
 extern "C" {
 #endif
 
+#define DOLBY_VISION_LL_RGB             3
+#define DOLBY_VISION_LL_YUV             2
+#define DOLBY_VISION_STD_ENABLE         1
+#define DOLBY_VISION_DISABLE            0
+
 typedef enum meson_mode_policy {
     MESON_POLICY_BEST = 0,
     MESON_POLICY_RESOLUTION = 1,
@@ -60,6 +65,7 @@ typedef enum meson_hdr_priority {
 typedef enum meson_hdr_policy {
     MESON_HDR_POLICY_SINK = 0,
     MESON_HDR_POLICY_SOURCE = 1,
+    MESON_HDR_POLICY_FORCE = 2,
 } meson_hdr_policy_e;
 
 typedef enum meson_connector_type {
@@ -143,6 +149,18 @@ int32_t meson_mode_get_policy_output(int32_t connector, struct meson_policy_out 
  * for uinit test mode
  */
 void meson_mode_set_test_mode(const bool enable);
+
+/*
+ * check mode support or not under type
+ */
+int32_t meson_mode_support_mode(int32_t connector, int32_t type, char *mode);
+
+/*
+ * debug help function
+ */
+const char *meson_hdrPriorityToString(int32_t type);
+
+const char *meson_hdrPolicyToString(int32_t type);
 
 #ifdef __cplusplus
 }

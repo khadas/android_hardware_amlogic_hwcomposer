@@ -151,3 +151,30 @@ drm_connector_type_t drmStringToConnType(
     return type;
 }
 
+const char *hdrConversionTypeToString(int32_t type) {
+    const char * typeStr;
+    switch (type) {
+        case DRM_INVALID:
+            typeStr = "SDR";
+            break;
+        case DRM_DOLBY_VISION:
+            typeStr = "DV";
+            break;
+        case DRM_HDR10:
+            typeStr = "HDR10";
+            break;
+        case DRM_HLG:
+            typeStr = "HLG";
+            break;
+        case DRM_HDR10_PLUS:
+            typeStr = "HDR10+";
+            break;
+        case DRM_DOLBY_VISION_4K30:
+            typeStr = "DV4k30";
+            break;
+        default:
+            typeStr = "INVALID";
+            break;
+    }
+    return typeStr;
+}

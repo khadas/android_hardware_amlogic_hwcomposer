@@ -764,8 +764,7 @@ ndk::ScopedAStatus ComposerClient::setIdleTimerEnabled(int64_t displayId __unuse
 }
 
 /*hwc 3.2 */
-#if (PLATFORM_SDK_VERSION > 33) || (PLATFORM_SDK_VERSION == 33 \
-            && (ANDROID_PLATFORM_SDK_EXTENSION_VERSION >= 5))
+#if (PLATFORM_SDK_VERSION >= 34)
 ndk::ScopedAStatus ComposerClient::getHdrConversionCapabilities(
         std::vector<common::HdrConversionCapability>* outHdrConversionCapability) {
     DEBUG_LOG("%s", __FUNCTION__);
@@ -891,8 +890,7 @@ void ComposerClient::executeLayerCommand(int64_t displayId,
 
     DISPATCH_LAYER_COMMAND(layerCommand, displayId, layerId, cursorPosition,
                            CursorPosition);
-#if (PLATFORM_SDK_VERSION > 33) || (PLATFORM_SDK_VERSION == 33 \
-            && (ANDROID_PLATFORM_SDK_EXTENSION_VERSION >= 5))
+#if (PLATFORM_SDK_VERSION >= 34)
     DISPATCH_LAYER_COMMAND(layerCommand, displayId, layerId, bufferSlotsToClear,
                            BufferSlotsToClear);
 #endif
@@ -1187,8 +1185,7 @@ void ComposerClient::executeLayerCommandSetLayerBuffer(int64_t displayId,
     }
 }
 
-#if (PLATFORM_SDK_VERSION > 33) || (PLATFORM_SDK_VERSION == 33 \
-            && (ANDROID_PLATFORM_SDK_EXTENSION_VERSION >= 5))
+#if (PLATFORM_SDK_VERSION >= 34)
 void ComposerClient::executeLayerCommandSetLayerBufferSlotsToClear(int64_t displayId,
         int64_t layerId, const std::vector<int32_t>& bufferSlotsToClear) {
     DEBUG_LOG("%s", __FUNCTION__);

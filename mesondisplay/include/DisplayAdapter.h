@@ -35,6 +35,7 @@ using namespace std;
 #define DISPLAY_HDMI_AVMUTE                     "HDMI Avmute"
 #define DISPLAY_FR_HINT                         "FRAME HINT"
 #define DISPLAY_HDR_PRIORITY                    "HDR Priority"
+#define DISPLAY_FORCE_HDR_MODE                  "FORCE HDR Mode"
 
 typedef struct {
     string name;

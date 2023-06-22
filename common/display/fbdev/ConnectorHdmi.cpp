@@ -358,10 +358,15 @@ int32_t getLineValue(const char *lineStr, const char *magicStr) {
 *     DM Ver: 1
 *******************************************/
 int32_t parseHdmiHdrCapabilities(drm_hdr_capabilities & hdrCaps) {
+#if (PLATFORM_SDK_VERSION >= 34)
     // DolbyVision1
-    const char *DV_PATH = "/sys/class/amhdmitx/amhdmitx0/dv_cap";
+    const char *DV_PATH = "/sys/class/amhdmitx/amhdmitx0/dv_cap2";
     // HDR
+    const char *HDR_PATH = "/sys/class/amhdmitx/amhdmitx0/hdr_cap2";
+#else
+    const char *DV_PATH = "/sys/class/amhdmitx/amhdmitx0/dv_cap";
     const char *HDR_PATH = "/sys/class/amhdmitx/amhdmitx0/hdr_cap";
+#endif
     // hdmr attr
     [[maybe_unused]] const char *ATTR_PATH = "/sys/class/amhdmitx/amhdmitx0/attr";
 
@@ -384,7 +389,7 @@ int32_t parseHdmiHdrCapabilities(drm_hdr_capabilities & hdrCaps) {
             hdrCaps.DolbyVisionSupported = false;
         } else {
             bool devSupportDv = getDvSupportStatus();
-            if (((NULL != strstr(pos, "2160p30hz")) || (NULL != strstr(pos, "2160p60hz"))) && devSupportDv)
+            if (((NULL != strstr(pos, "2160p30hz")) || (NULL != strstr(pos, "2160p60hz"))) && devSupportDv) {
                 /* This information is coming / parsing from the VSVDB in Rx EDID.
                  * And there is a bit field that indicates the dv max resolution capability with 4k.
                  * If supports_2160p60hz is true, then this Rx can support the DV with 2160p60hz,
@@ -393,6 +398,13 @@ int32_t parseHdmiHdrCapabilities(drm_hdr_capabilities & hdrCaps) {
                  * That is to say, not every DV TV can supports up to 2160p60hz under DV, maybe 2160p30hz.
                  */
                 hdrCaps.DolbyVisionSupported = true;
+#if (PLATFORM_SDK_VERSION >= 34)
+                if (strstr(pos, "2160p30hz")) {
+                    hdrCaps.DOLBY_VISION_4K30_Supported = true;
+                }
+#endif
+            }
+
         }
         close(fd);
     }
@@ -455,15 +467,28 @@ int32_t parseHdmiHdrCapabilities(drm_hdr_capabilities & hdrCaps) {
      */
     if (hdr_preference == "sdr") {
       hdrCaps.DolbyVisionSupported = false;
+#if (PLATFORM_SDK_VERSION >= 34)
+      hdrCaps.DOLBY_VISION_4K30_Supported = false;
+#endif
       hdrCaps.HDR10Supported = false;
       hdrCaps.HDR10PlusSupported = false;
       hdrCaps.HLGSupported = false;
     } else if (hdr_preference == "hdr") {
       hdrCaps.DolbyVisionSupported = false;
+#if (PLATFORM_SDK_VERSION >= 34)
+      hdrCaps.DOLBY_VISION_4K30_Supported = false;
+#endif
     }
 
-    MESON_LOGD("dolby version:%d, hlg:%d, hdr10:%d, hdr10+:%d max:%d, avg:%d, min:%d\n",
+    MESON_LOGD("dolby version:%d,"
+#if (PLATFORM_SDK_VERSION >= 34)
+            " dv3:%d,"
+#endif
+            " hlg:%d, hdr10:%d, hdr10+:%d max:%d, avg:%d, min:%d\n",
         hdrCaps.DolbyVisionSupported ? 1:0,
+#if (PLATFORM_SDK_VERSION >= 34)
+        hdrCaps.DOLBY_VISION_4K30_Supported ? 1: 0,
+#endif
         hdrCaps.HLGSupported ? 1:0,
         hdrCaps.HDR10Supported ? 1:0,
         hdrCaps.HDR10PlusSupported ? 1:0,

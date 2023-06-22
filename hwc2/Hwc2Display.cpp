@@ -2030,6 +2030,9 @@ hwc2_error_t Hwc2Display::setHdrConversionStrategy(bool passThrough, uint32_t nu
                 forceType = HAL_HDR_DOLBY_VISION;
             if (mHdrCaps.HDR10Supported && containHDR10Type && !containDVType)
                 forceType = HAL_HDR_HDR10;
+            // TODO: enable it whe dv support convert to HLG output
+            //if (mHdrCaps.HLGSupported && !containHDR10Type && containHLGType)
+            //    forceType = HAL_HDR_HLG;
             if (!containHDR10Type && !containDVType && containSDRType)
                 forceType = DRM_INVALID;
         } else {
@@ -2041,19 +2044,24 @@ hwc2_error_t Hwc2Display::setHdrConversionStrategy(bool passThrough, uint32_t nu
                 forceType = DRM_INVALID;
         }
         if (forceType == -1) {
-            if (mModePolicy)
+            if (mModePolicy) {
                 mModePolicy->setHdrConversionPolicy(true, forceType);
-            mConnector->setHdrConversionStrategy(true, forceType);
+            } else {
+                mConnector->setHdrConversionStrategy(true, forceType);
+            }
             return HWC2_ERROR_UNSUPPORTED;
         }
         *preferredHdrOutputType = forceType;
     }
 
+    int32_t ret = -1;
     if (mModePolicy)
-        mModePolicy->setHdrConversionPolicy(passThrough, forceType);
-    auto ret = mConnector->setHdrConversionStrategy(passThrough,forceType);
-    return (hwc2_error_t) ret;
+        ret = mModePolicy->setHdrConversionPolicy(passThrough, forceType);
+    else {
+        ret = mConnector->setHdrConversionStrategy(passThrough,forceType);
+    }
 
+    return ret != 0 ? HWC2_ERROR_UNSUPPORTED : HWC2_ERROR_NONE;
 }
 
 bool Hwc2Display::hasVideoLayerPresent() {
@@ -2188,6 +2196,10 @@ void Hwc2Display::dump(String8 & dumpstr) {
     dumpstr.append("HDR Capabilities:\n");
     dumpstr.appendFormat("    DolbyVision1=%d\n",
         mHdrCaps.DolbyVisionSupported ?  1 : 0);
+#if (PLATFORM_SDK_VERSION >= 34)
+    dumpstr.appendFormat("    DOLBY_VISION_4K30=%d\n",
+        mHdrCaps.DOLBY_VISION_4K30_Supported ? 1 : 0);
+#endif
     dumpstr.appendFormat("    HLG=%d\n",
         mHdrCaps.HLGSupported ?  1 : 0);
     dumpstr.appendFormat("    HDR10=%d, HDR10+=%d, "
