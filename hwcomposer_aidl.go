@@ -3,7 +3,7 @@ package hw_composer_aidl
 import (
     "android/soong/android"
     "android/soong/cc"
-    "fmt"
+    //"fmt"
 )
 
 func init() {
@@ -23,10 +23,10 @@ func hw_composer_aidl_Defaults(ctx android.LoadHookContext) {
     p := &propsE{}
 
     PlatformSdkExtensionVersion := ctx.AConfig().PlatformSdkExtensionVersion()
-    fmt.Println(" hwcomposer PlatformSdkExtensionVersion:",PlatformSdkExtensionVersion);
+    //fmt.Println(" hwcomposer PlatformSdkExtensionVersion:",PlatformSdkExtensionVersion);
 
     PlatformSDKVersion:= ctx.AConfig().PlatformSdkVersion();
-    fmt.Println(" hwcomposer PlatformSdkExtensionVersion:",PlatformSDKVersion);
+    //fmt.Println(" hwcomposer PlatformSdkExtensionVersion:",PlatformSDKVersion);
 
     // For An Android letter, before freeze API PlatformVndkVersion return code name, like
     // "UpsideDownCake", after freeze API it has been changed to number.
