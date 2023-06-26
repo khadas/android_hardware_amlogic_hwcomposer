@@ -65,10 +65,18 @@ uint32_t HwcConfig::getConnectorType(int disp) {
     uint32_t connector_type = DRM_MODE_CONNECTOR_INVALID_TYPE;
     char strval[PROP_VALUE_LEN_MAX];
     const char * connectorstr = NULL;
+    bool isDrmBackend = false;
+
+    if (access("/dev/dri/card0", R_OK | W_OK) == 0)
+        isDrmBackend = true;
+
     if (disp == 0) {
-        connectorstr = meson_mode_get_ubootenv(UBOOTENV_PRIMARY_CONNECTOR_TYPE);
-        MESON_LOGD("%s, get %s from uboot env, return %s",
-                __func__, UBOOTENV_PRIMARY_CONNECTOR_TYPE, connectorstr);
+        if (isDrmBackend) {
+            connectorstr = meson_mode_get_ubootenv(UBOOTENV_PRIMARY_CONNECTOR_TYPE);
+            MESON_LOGD("%s, get %s from uboot env, return %s",
+                    __func__, UBOOTENV_PRIMARY_CONNECTOR_TYPE, connectorstr);
+        }
+
         if (connectorstr == NULL) {
             #ifdef HWC_PRIMARY_CONNECTOR_TYPE
                 if (sys_get_string_prop("persist.vendor.hwc.connector-0", strval) > 0)
@@ -80,9 +88,12 @@ uint32_t HwcConfig::getConnectorType(int disp) {
             #endif
         }
     } else if (disp == 1) {
-        connectorstr = meson_mode_get_ubootenv(UBOOTENV_EXTEND_CONNECTOR_TYPE);
-        MESON_LOGD("%s, get %s from uboot env, return %s",
-                __func__, UBOOTENV_PRIMARY_CONNECTOR_TYPE, connectorstr);
+        if (isDrmBackend) {
+            connectorstr = meson_mode_get_ubootenv(UBOOTENV_EXTEND_CONNECTOR_TYPE);
+            MESON_LOGD("%s, get %s from uboot env, return %s",
+                    __func__, UBOOTENV_PRIMARY_CONNECTOR_TYPE, connectorstr);
+        }
+
         if (connectorstr == NULL) {
             #ifdef HWC_EXTEND_CONNECTOR_TYPE
                 if (sys_get_string_prop("persist.vendor.hwc.connector-1", strval) > 0)
@@ -94,9 +105,12 @@ uint32_t HwcConfig::getConnectorType(int disp) {
             #endif
         }
     } else {
-        connectorstr = meson_mode_get_ubootenv(UBOOTENV_EXTEND2_CONNECTOR_TYPE);
-        MESON_LOGD("%s, get %s from uboot env, return %s",
-                __func__, UBOOTENV_PRIMARY_CONNECTOR_TYPE, connectorstr);
+        if (isDrmBackend) {
+            connectorstr = meson_mode_get_ubootenv(UBOOTENV_EXTEND2_CONNECTOR_TYPE);
+            MESON_LOGD("%s, get %s from uboot env, return %s",
+                    __func__, UBOOTENV_PRIMARY_CONNECTOR_TYPE, connectorstr);
+        }
+
         if (connectorstr == NULL) {
             if (sys_get_string_prop("persist.vendor.hwc.connector-2", strval) > 0)
                 connectorstr = strval;
