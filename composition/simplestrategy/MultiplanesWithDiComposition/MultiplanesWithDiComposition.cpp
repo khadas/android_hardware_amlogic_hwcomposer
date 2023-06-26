@@ -1627,10 +1627,8 @@ int MultiplanesWithDiComposition::commit() {
                 mComProcessor->update(mWhiteBoardData->getDisplayFrame());
                 mComProcessor->composite(fb, mWhiteBoardData ,outfb);
 
-                outfb->mSourceCrop = fb->mSourceCrop;
-                outfb->mDisplayFrame = fb->getDisplayFrame();
-                outfb->mBlendMode = fb->mBlendMode;
-                outfb->mPlaneAlpha = fb->mPlaneAlpha;
+                fb->clearBufferInfo();
+                fb->setBufferInfo(outfb->mBufferHandle, -1, false);
 
                 ret = plane->setPlane(outfb, presentZorder, blankFlag);
                 for (auto buf = mWBQueue.begin();buf != mWBQueue.end(); ++buf) {

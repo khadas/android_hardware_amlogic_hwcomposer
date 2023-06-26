@@ -71,10 +71,10 @@ public:
     int32_t setProcessFence(int32_t fenceFd);
     int32_t getProcessFence();
     virtual bool isVirtualLayer() { return false;}
-
-protected:
     void setBufferInfo(const native_handle_t * bufferhnd, int32_t acquireFence, bool isSidebandBuffer=false);
     void clearBufferInfo();
+
+protected:
     virtual bool isVtBufferLocked() {return false;}
 
     void reset();
