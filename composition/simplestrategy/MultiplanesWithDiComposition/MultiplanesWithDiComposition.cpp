@@ -399,6 +399,7 @@ int MultiplanesWithDiComposition::processVideoFbs() {
 
     uint32_t minVideoZ = -1, maxVideoZ = -1;
     int videoFbNum = 0;
+    bool isAiProcess120Enable = false;
     for (auto fbIt = mFramebuffers.begin(); fbIt != mFramebuffers.end(); ++fbIt) {
         bool bSideband = false;
         fb = fbIt->second;
@@ -437,9 +438,17 @@ int MultiplanesWithDiComposition::processVideoFbs() {
     if ((videoFbNum <= mVideoPlaneNum) && (mDiComposer != NULL))
         mDiComposer->prepare();
 
-    if (videoFbNum == 0 ||
-        videoFbNum - sidebandFbs.size() != 1 ||
-        mVsyncRefreshRate > 60) {
+#ifdef ENABLE_AIPROCESS_120
+        isAiProcess120Enable = true;
+#else
+        if (mVsyncRefreshRate > 60)
+                isAiProcess120Enable = false;
+        else
+                isAiProcess120Enable = true;
+#endif
+        if (videoFbNum == 0 ||
+            videoFbNum - sidebandFbs.size() != 1 ||
+            !isAiProcess120Enable) {
         /* Video Processor: only support one video now,
          * not support legacy sideband ,
          * not support aipq&aisr when refresh rate is greater than 60,

@@ -482,6 +482,7 @@ int32_t AipqProcessor::asyncProcess(
 
 
     if (!mUvmHandler) {
+        ALOGD_IF(check_D(), "%s: mUvmHandler is null.", __FUNCTION__);
         goto bypass;
     }
 
