@@ -314,6 +314,7 @@ int32_t Hwc2Display::blankDisplay(bool resetLayers) {
         }
 
         mLayers.clear();
+        mChangedLayers.clear();
         // For round corner,mVirtualLayer should not be cleared
 #ifdef ENABLE_VIRTUAL_LAYER
         if (mVirtualLayer) {
