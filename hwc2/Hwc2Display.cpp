@@ -759,8 +759,8 @@ hwc2_error_t Hwc2Display::createVirtualLayer(hwc2_layer_t * outLayer) {
 
     int width = am_gralloc_get_width(outBuf->mBufferHandle);
     int height = am_gralloc_get_height(outBuf->mBufferHandle);
-    int stride = am_gralloc_get_stride_in_pixel(outBuf->mBufferHandle);
-    int format = am_gralloc_get_format(outBuf->mBufferHandle);
+    [[maybe_unused]] int stride = am_gralloc_get_stride_in_pixel(outBuf->mBufferHandle);
+    [[maybe_unused]] int format = am_gralloc_get_format(outBuf->mBufferHandle);
     MESON_LOGD("outputs format %d, (%d, %d) stride %d\n",
         format, width, height, stride);
 
