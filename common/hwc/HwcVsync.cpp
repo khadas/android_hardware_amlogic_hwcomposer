@@ -97,10 +97,13 @@ int32_t HwcVsync::setVtMode(std::shared_ptr<HwDisplayCrtc> & crtc) {
 }
 
 int32_t HwcVsync::setPeriod(nsecs_t period) {
+    std::unique_lock<std::mutex> stateLock(mStatLock);
     if (mReqPeriod != period) {
         MESON_LOGD("Update period %" PRIx64 "->%" PRIx64 "", period, mReqPeriod);
         mReqPeriod = period;
     }
+    stateLock.unlock();
+    mStateCondition.notify_all();
     return 0;
 }
 
@@ -205,8 +208,20 @@ int32_t HwcVsync::waitVsync(nsecs_t& vsync_timestamp, nsecs_t& period) {
 
 int32_t HwcVsync::waitHwVsync(nsecs_t& vsync_timestamp) {
     ATRACE_CALL();
-    int32_t ret = mCrtc->waitVBlank(mVsyncTime);
+    std::unique_lock<std::mutex> stateLock(mStatLock);
+    if (!mCrtc.get()) {
+        return -EFAULT;
+    }
+    std::shared_ptr<HwDisplayCrtc> localCrtc = mCrtc;
+    stateLock.unlock();
+
+    int32_t ret = localCrtc->waitVBlank(mVsyncTime);
+
+    stateLock.lock();
     vsync_timestamp = mVsyncTime;
+    localCrtc.reset();
+    stateLock.unlock();
+
     return ret;
 }
 
@@ -215,6 +230,8 @@ int32_t HwcVsync::waitSoftwareVsync(nsecs_t& vsync_timestamp) {
     static nsecs_t vsync_time = 0;
     static nsecs_t old_vsync_period = 0;
     nsecs_t now = systemTime(CLOCK_MONOTONIC);
+
+    std::unique_lock<std::mutex> stateLock(mStatLock);
     mReqPeriod = (mReqPeriod <= 0) ? (1e9/SF_VSYNC_DFT_PERIOD) : mReqPeriod;
 
     //cal the last vsync time with old period
@@ -235,6 +252,8 @@ int32_t HwcVsync::waitSoftwareVsync(nsecs_t& vsync_timestamp) {
                  ((now - vsync_time) % mReqPeriod));
     }
 
+    stateLock.unlock();
+
     struct timespec spec;
     spec.tv_sec  = vsync_time / 1000000000;
     spec.tv_nsec = vsync_time % 1000000000;
@@ -253,9 +272,15 @@ int32_t HwcVsync::waitMixVsync(nsecs_t& vsync_timestamp) {
     mReqPeriod = (mReqPeriod <= 0) ? (1e9/SF_VSYNC_DFT_PERIOD) : mReqPeriod;
     if (mCurVsyncPeriod != mReqPeriod || mMixRebase) {
         MESON_LOGD("[%s] waitVBlank to get hw vsync timestamp", __func__);
+        std::unique_lock<std::mutex> stateLock(mStatLock);
         if (!mCrtc.get())
             return -EFAULT;
-        mCrtc->waitVBlank(mVsyncTime);
+        std::shared_ptr<HwDisplayCrtc> localCrtc = mCrtc;
+        stateLock.unlock();
+
+        localCrtc->waitVBlank(mVsyncTime);
+
+        stateLock.lock();
         // videotunnel vsync offset
         if (mEnabled && mVsyncType == DISPLAY_VIDEOTUNNEL) {
             if (std::floor(1e9/mReqPeriod) > SF_VSYNC_DFT_PERIOD)
@@ -267,6 +292,9 @@ int32_t HwcVsync::waitMixVsync(nsecs_t& vsync_timestamp) {
         mVsyncTime += mMixOffset;
         mCurVsyncPeriod = mReqPeriod;
         mMixRebase = false;
+
+        localCrtc.reset();
+        stateLock.unlock();
     } else {
         nsecs_t now = systemTime(CLOCK_MONOTONIC);
         mVsyncTime = mVsyncTime + mCurVsyncPeriod +
