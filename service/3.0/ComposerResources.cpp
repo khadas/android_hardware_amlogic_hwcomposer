@@ -255,9 +255,13 @@ HWC3::Error ComposerResources::getLayerBuffer(
 
     DEBUG_LOG("%s fromCache:%s buffer slot:%u",
             __FUNCTION__, (useCache ? "yes" : "no"), (uint32_t) buffer.slot);
-    return toHwc3Error(mImpl->getLayerBuffer(display, layer, (uint32_t)buffer.slot,
+    auto result = toHwc3Error(mImpl->getLayerBuffer(display, layer, (uint32_t)buffer.slot,
                 useCache, bufferHandle, outHandle,
                 releaser->getReplacedHandle()));
+    if (bufferHandle) {
+        native_handle_delete(const_cast<native_handle_t*>(bufferHandle));
+    }
+    return result;
 }
 
 HWC3::Error ComposerResources::setLayerBufferSlotsToClear(
