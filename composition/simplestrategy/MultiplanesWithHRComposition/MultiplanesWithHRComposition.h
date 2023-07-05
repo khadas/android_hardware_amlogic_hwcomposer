@@ -133,6 +133,7 @@ protected:
     /* for video processor */
     std::shared_ptr<FbProcessor> mSrProcessor;
     std::shared_ptr<FbProcessor> mPqProcessor;
+    std::shared_ptr<FbProcessor> mColorProcessor;
     std::vector<std::shared_ptr<FbProcessor>> mProcessors;
     /* for 2*2 mosaic feature */
     bool m4Mosaic;

@@ -313,6 +313,23 @@ bool HwcConfig::AiPqProcessorEnabled() {
 #endif
 }
 
+bool HwcConfig::AiColorProcessorEnabled() {
+#ifdef ENABLE_VIDEO_AICOLOR
+    char value[PROPERTY_VALUE_MAX];
+    int ret = 0;
+    const char* str = "vendor.hwc.aicolor_enable";
+
+    if (property_get(str, value, NULL) > 0) {
+        ret = atoi(value);
+        if (ret)
+            return true;
+    }
+    return false;
+#else
+    return false;
+#endif
+}
+
 bool HwcConfig::mosaicEnabled() {
 #ifdef ENABLE_VIDEO_MOSAIC
     if (!property_get_bool("vendor.hwc.mosaic_enable", false))
@@ -358,6 +375,8 @@ void HwcConfig::dump(String8 & dumpstr) {
             dumpstr.appendFormat("\t AiPqProcessor: %s", AiPqProcessorEnabled() ? "Y" : "N");
             dumpstr.append("\n");
             dumpstr.appendFormat("\t Mosaic: %s", mosaicEnabled() ? "Y" : "N");
+            dumpstr.append("\n");
+            dumpstr.appendFormat("\t AiColorProcessor: %s", AiColorProcessorEnabled() ? "Y" : "N");
             dumpstr.append("\n");
         }
     }

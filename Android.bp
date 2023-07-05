@@ -78,6 +78,7 @@ soong_config_module_type {
         "enable_video_aisr",
         "enable_video_aipq",
         "enable_video_aiface",
+        "enable_video_aicolor",
         "enable_aidl",
         "enable_virtual_layer",
     ],
@@ -117,6 +118,10 @@ soong_config_bool_variable {
     name: "enable_video_aiface",
 }
 
+soong_config_bool_variable {
+    name: "enable_video_aicolor",
+}
+
 meson_hwc_cc_defaults {
     name: "hwcomposer_cc_defaults",
     vendor: true,
@@ -146,6 +151,10 @@ meson_hwc_cc_defaults {
 
         enable_video_aiface: {
             cflags: ["-DENABLE_VIDEO_AIFACE"],
+        },
+
+        enable_video_aicolor: {
+            cflags: ["-DENABLE_VIDEO_AICOLOR"],
         },
 
         enable_aidl: {

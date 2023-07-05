@@ -44,6 +44,7 @@ MultiplanesWithDiComposition::MultiplanesWithDiComposition() {
     init();
     mSrProcessor.reset();
     mPqProcessor.reset();
+    mColorProcessor.reset();
     mOsdPlaneNum = 0;
     mVideoPlaneNum = 0;
     mVsyncRefreshRate = 0;
@@ -261,6 +262,14 @@ int MultiplanesWithDiComposition::setUpProcessor() {
         }
     }
 
+    if (HwcConfig::AiColorProcessorEnabled()) {
+        if (!mColorProcessor.get()) {
+            createFbProcessor(FB_AICOLOR_PROCESSOR, mColorProcessor);
+            mColorProcessor->setup();
+            mResetProcessorFlag = true;
+        }
+    }
+
     return 0;
 }
 
@@ -273,6 +282,11 @@ int MultiplanesWithDiComposition::tearDownProcessor() {
     if (mPqProcessor.get()) {
         mPqProcessor->teardown();
         mPqProcessor.reset();
+    }
+
+    if (mColorProcessor.get()) {
+        mColorProcessor->teardown();
+        mColorProcessor.reset();
     }
 
     return 0;
@@ -292,6 +306,11 @@ int MultiplanesWithDiComposition::resetProcessor() {
         mPqProcessor->setup();
     }
 
+    if (mColorProcessor.get()) {
+        mColorProcessor->teardown();
+        mColorProcessor->setup();
+    }
+
     mResetProcessorFlag = true;
 
     return 0;
@@ -303,6 +322,9 @@ int MultiplanesWithDiComposition::collectProcessor() {
 
     if (mPqProcessor.get())
         mProcessors.push_back(mPqProcessor);
+
+    if (mColorProcessor.get())
+        mProcessors.push_back(mColorProcessor);
 
     return 0;
 }

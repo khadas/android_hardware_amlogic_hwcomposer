@@ -34,6 +34,7 @@ soong_config_module_type {
         "enable_video_aisr",
         "enable_video_aipq",
         "enable_video_aiface",
+        "enable_video_aicolor",
     ],
 
     properties: [
@@ -86,6 +87,21 @@ meson_hwc_postprocessor_defaults {
                 "nnprocess/AiFaceProcessor.cpp",
                 "nnprocess/face_sdk.c",
                 "nnprocess/face_sdk_postprocess.c",
+
+            ],
+            shared_libs: [
+                "libion",
+                "libui",
+            ],
+
+            export_include_dirs: [
+                "nnprocess",
+            ]
+        },
+        enable_video_aicolor: {
+            srcs: [
+                "nnprocess/AiColorProcessor.cpp",
+                "nnprocess/color_sdk.c",
 
             ],
             shared_libs: [
