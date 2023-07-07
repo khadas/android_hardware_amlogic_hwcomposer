@@ -15,6 +15,8 @@ extern "C" {
 
 #define UBOOTENV_HDR_POLICY             "ubootenv.var.hdr_policy"
 
+#define UBOOTENV_HDR_FORCE_MODE         "ubootenv.var.hdr_force_mode"
+
 int meson_mode_init_ubootenv();
 
 const char *meson_mode_get_ubootenv(const char * key);

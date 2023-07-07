@@ -359,6 +359,7 @@ int32_t ModePolicy::setHdrStrategy(int32_t policy, const char *type) {
 
         setDisplayAttribute(DISPLAY_HDR_POLICY, HDR_POLICY_FORCE);
         setDisplayAttribute(DISPLAY_FORCE_HDR_MODE, type);
+        setBootEnv(UBOOTENV_HDR_FORCE_MODE, type);
     } else {
         MESON_LOGD("%s mode check failed", __func__);
         return -EINVAL;
@@ -2127,7 +2128,11 @@ void ModePolicy::applyDisplaySetting(bool force) {
             } else if (strstr(hdr_policy, HDR_POLICY_SOURCE)) {
                 setDisplayAttribute(DISPLAY_HDR_POLICY, HDR_POLICY_SOURCE);
             } else if (strstr(hdr_policy, HDR_POLICY_FORCE)) {
-                setDisplayAttribute(DISPLAY_HDR_POLICY, HDR_POLICY_SOURCE);
+                char hdr_force_mode[MESON_MODE_LEN] = {0};
+                memset(hdr_force_mode, 0, MESON_MODE_LEN);
+                getBootEnv(UBOOTENV_HDR_FORCE_MODE, hdr_force_mode);
+                setDisplayAttribute(DISPLAY_HDR_POLICY, HDR_POLICY_FORCE);
+                setDisplayAttribute(DISPLAY_FORCE_HDR_MODE, hdr_force_mode);
             }
         } else {
             initHdrSdrMode();
