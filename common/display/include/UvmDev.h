@@ -14,6 +14,11 @@
 
 #define META_DATA_SIZE       (512)
 
+/**
+ * please sync the file in kernel UVM module
+ * if you change uvm_hook_mod_type.
+ * include/linux/amlogic/meson_uvm_core.h
+ */
 enum uvm_hook_mod_type {
     VF_SRC_DECODER,
     VF_SRC_VDIN,
@@ -24,6 +29,10 @@ enum uvm_hook_mod_type {
     PROCESS_NN,
     PROCESS_GRALLOC,
     PROCESS_AIPQ,
+    PROCESS_DALTON,
+    PROCESS_AIFACE,
+    PROCESS_AICOLOR,
+    PROCESS_HWC,
     PROCESS_INVALID,
 };
 

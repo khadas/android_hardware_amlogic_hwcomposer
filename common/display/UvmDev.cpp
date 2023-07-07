@@ -77,7 +77,7 @@ int UvmDev::dettachBuffer(int fd) {
 
 int UvmDev::attachBuffer(const int fd) {
     struct uvm_hook_data hook_data = {
-        PROCESS_INVALID,
+        PROCESS_HWC,
         fd,
         "detach_flag=1",
     };
