@@ -342,7 +342,15 @@ int32_t DrmCrtc::pageFlip(int32_t & out_fence) {
     }
 
     if (!mReq) {
-        out_fence = -1;
+        drm_meson_present_fence_t presentFence;
+        presentFence.crtc_idx = mPipe;
+        auto ret = ioctl(mDrmFd, DRM_IOCTL_MESON_CREAT_PRESENT_FENCE, &presentFence);
+        if (ret) {
+            MESON_LOGE("Crtc ioctl get presentFence failed ret=%d", ret);
+            out_fence = -1;
+        } else {
+            out_fence = presentFence.fd;
+        }
         return 0;
     }
 

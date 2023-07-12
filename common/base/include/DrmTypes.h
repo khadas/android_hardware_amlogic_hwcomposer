@@ -328,6 +328,11 @@ typedef struct display_zoom_info {
     int32_t crtc_display_h;
 } display_zoom_info_t;
 
+typedef struct drm_meson_present_fence {
+        uint32_t crtc_idx;
+        uint32_t fd;
+} drm_meson_present_fence_t;
+
 /*the invalid zorder value defination.*/
 #define INVALID_ZORDER 0xFFFFFFFF
 #define FB_SIZE_1080P_W 1920

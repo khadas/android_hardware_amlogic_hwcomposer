@@ -17,6 +17,9 @@
 #include <HwDisplayPlane.h>
 #include "DrmProperty.h"
 
+#define DRM_IOCTL_MESON_CREAT_PRESENT_FENCE    DRM_IOWR(DRM_COMMAND_BASE + \
+               0x20, drm_meson_present_fence_t)
+
 class DrmCrtc : public HwDisplayCrtc {
 public:
     DrmCrtc(int drmFd, drmModeCrtcPtr p, uint32_t pipe);
