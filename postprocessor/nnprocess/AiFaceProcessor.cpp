@@ -89,10 +89,10 @@ AiFaceProcessor::AiFaceProcessor() {
         mTime.total_time = 0;
         mTime.avg_time = 0;
         mNn_qcontext = NULL;
+        mModelLoaded = false;
         isFaceInterfaceImplement();
     }
 
-    mModelLoaded = false;
     if (!mModelLoaded)
         LoadNNModel();
 
