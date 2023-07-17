@@ -8,6 +8,7 @@
  */
 
 #define LOG_NDEBUG 1
+#define UVM_DETTACH_HOLD_MAX_BUFFER (8)
 
 #include <MesonLog.h>
 #include "UvmDev.h"
@@ -83,6 +84,17 @@ int32_t UvmDettach::collectUvmBuffer(const int fd, const int fenceFd) {
         UvmDev::getInstance().dettachBuffer(fd);
         close(fd);
         return 0;
+    }
+
+    if (mUvmBufferQueue.size() >= UVM_DETTACH_HOLD_MAX_BUFFER) {
+        int count = mUvmBufferQueue.size() - UVM_DETTACH_HOLD_MAX_BUFFER;
+        for (int i = 0; i <= count; i++) {
+            auto item = mUvmBufferQueue.front();
+            if (item.bufferFd >= 0)
+                close(item.bufferFd);
+
+            mUvmBufferQueue.pop_front();
+        }
     }
 
     UvmBuffer item = {fd, std::move(std::make_shared<DrmFence>(fenceFd))};
