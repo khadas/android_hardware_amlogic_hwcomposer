@@ -68,7 +68,6 @@ void MultiplanesWithHRComposition::init() {
     mForceClientComposer = false;
     mHaveClient          = false;
     mInsideVideoFbsFlag  = false;
-    mSkipValidate = false;
     mVsyncOverDefault = false;
     m4Mosaic = false;
 
@@ -1587,7 +1586,6 @@ void MultiplanesWithHRComposition::updateComposition() {
 
     mOtherPlanes.clear();
     mDumpStr.clear();
-    mSkipValidate = true;
 }
 
 /* Decide to choose which Fbs and how to build OsdFbs2Plane pairs. */
@@ -1616,6 +1614,9 @@ int MultiplanesWithHRComposition::decideComposition() {
     /* handle graphic fbs.*/
     processGfxFbs();
 
+    handleOverlayVideoZorder();
+    handleDisplayLayerZorder();
+
     return ret;
 }
 
@@ -1642,11 +1643,6 @@ int MultiplanesWithHRComposition::commit() {
 
     /* handle uvm */
     handleUVM();
-
-    if (!mSkipValidate) {
-        handleOverlayVideoZorder();
-        handleDisplayLayerZorder();
-    }
 
     for (auto displayIt = mDisplayPairs.begin(); displayIt != mDisplayPairs.end(); ++displayIt) {
         uint32_t presentZorder = displayIt->presentZorder;

@@ -64,7 +64,6 @@ void MultiplanesWithDiComposition::init() {
     mForceClientComposer = false;
     mHaveClient          = false;
     mInsideVideoFbsFlag  = false;
-    mSkipValidate = false;
     mIsSideBandDisable = false;
 
     /*crtc scale info.*/
@@ -1454,7 +1453,6 @@ void MultiplanesWithDiComposition::updateComposition() {
 
     mOtherPlanes.clear();
     mDumpStr.clear();
-    mSkipValidate = true;
 }
 
 /* Decide to choose which Fbs and how to build OsdFbs2Plane pairs. */
@@ -1482,6 +1480,9 @@ int MultiplanesWithDiComposition::decideComposition() {
     applyCompositionFlags();
     /* handle graphic fbs.*/
     processGfxFbs();
+
+    handleOverlayVideoZorder();
+    handleDisplayLayerZorder();
 
     return ret;
 }
@@ -1531,11 +1532,6 @@ int MultiplanesWithDiComposition::commit() {
 
     /* handle uvm */
     handleUVM();
-
-    if (!mSkipValidate) {
-        handleOverlayVideoZorder();
-        handleDisplayLayerZorder();
-    }
 
     for (auto displayIt = mDisplayPairs.begin(); displayIt != mDisplayPairs.end(); ++displayIt) {
         uint32_t presentZorder = displayIt->presentZorder;

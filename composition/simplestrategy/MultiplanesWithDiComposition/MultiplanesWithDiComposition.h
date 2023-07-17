@@ -126,7 +126,6 @@ protected:
     uint32_t mVsyncRefreshRate;
 
     float mScaleValue;
-    bool mSkipValidate;
     bool mResetProcessorFlag;
 
     bool mIsSideBandDisable;

@@ -127,7 +127,6 @@ protected:
     bool mVsyncOverDefault;
 
     float mScaleValue;
-    bool mSkipValidate;
     bool mIsSideBandDisable;
     bool mResetProcessorFlag;
     /* for video processor */
