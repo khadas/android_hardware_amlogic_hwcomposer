@@ -91,6 +91,12 @@ static const char* DV_MODE_TYPE[] = {
     "LL_RGB_444_10BIT"
 };
 
+static const char* HDR_PRIORITY_TYPE[] = {
+    "0",
+    "1",
+    "2"
+};
+
 static const char* ALLM_MODE_CAP[] = {
     "0",
     "1",
@@ -381,7 +387,7 @@ void ModePolicy::getHdrStrategy(char* value) {
     } else if (strstr(hdr_policy, HDR_POLICY_FORCE)) {
         strcpy(value, HDR_POLICY_FORCE);
     }
-    MESON_LOGI("getHdrStrategy is [%s]", value);
+    MESON_LOGI("get uboot HdrStrategy is [%s]", value);
 }
 
 int32_t ModePolicy::setHdrPriority(int32_t type) {
@@ -402,6 +408,9 @@ int32_t ModePolicy::setHdrPriority(int32_t type) {
     meson_mode_set_policy_input(mModeConType, &mConData);
     getHdrInfo(&mConData.hdr_info);
     getDisplayMode(mCurrentMode);
+    mConData.hdr_info.hdr_priority = (meson_hdr_priority_e)type;
+    setDisplayAttribute(DISPLAY_HDR_PRIORITY, HDR_PRIORITY_TYPE[type]);
+
     if (!meson_mode_support_mode(mModeConType, type, mCurrentMode)) {
         std::string value = std::to_string(type);
         setBootEnv(UBOOTENV_HDR_PRIORITY, value.c_str());
@@ -457,7 +466,7 @@ int32_t ModePolicy::getHdrPriority() {
         value = MESON_DOLBY_VISION_PRIORITY;
     }
 
-    MESON_LOGI("getHdrPriority is [%s]", meson_hdrPriorityToString(value));
+    MESON_LOGI("get uboot HdrPriority is [%s]", meson_hdrPriorityToString(value));
     return (int32_t)value;
 }
 
