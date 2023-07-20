@@ -232,6 +232,7 @@ int32_t ConnectorPanel::parseHdrCapabilities() {
     mHdrCapabilities.DolbyVisionSupported = getDvSupportStatus();
     mHdrCapabilities.HLGSupported = true;
     mHdrCapabilities.HDR10Supported = true;
+    mHdrCapabilities.HDR10PlusSupported = true;
     mHdrCapabilities.maxLuminance = sDefaultMaxLumiance;
     mHdrCapabilities.avgLuminance = sDefaultMaxLumiance;
     mHdrCapabilities.minLuminance = sDefaultMinLumiance;
