@@ -67,6 +67,18 @@ void FixedDisplayPipe::handleEvent(drm_display_event event, int val) {
             pipe->modeCrtc->update();
 
             if (connectorType == HWC_HDMI_CVBS || connectorType == DRM_MODE_CONNECTOR_HDMIA) {
+                /* in case of hdmi plugin during standby */
+                if (mEventState == DRM_EVENT_RESUME) {
+                    auto pipeConnectorType = pipe->modeConnector->getType();
+                    if ((isVMXCertification() && pipeConnectorType == DRM_MODE_CONNECTOR_TV) ||
+                            pipeConnectorType != DRM_MODE_CONNECTOR_HDMIA) {
+                        MESON_LOGD("handleEvent resume update hdmi connector");
+                        std::shared_ptr<HwDisplayConnector> hwConnector;
+                        getConnector(DRM_MODE_CONNECTOR_HDMIA, hwConnector);
+                        hwConnector->update();
+                    }
+                }
+
                 targetConnector = getConnectorCfg((int)statIt.first);
 
                 MESON_LOGD("handleEvent  DRM_EVENT_HDMITX_HOTPLUG %d VS %d",
@@ -129,6 +141,14 @@ drm_connector_type_t FixedDisplayPipe::getConnectorCfg(uint32_t hwcid) {
             if (hwConnector->isConnected()) {
                 connector = hasDummyConnector() ?
                     DRM_MODE_CONNECTOR_VIRTUAL : DRM_MODE_CONNECTOR_HDMIA;
+            } else {
+                if ((isVMXCertification() || !hasHdmiConnected()) &&
+                        connector != DRM_MODE_CONNECTOR_HDMIA) {
+                    connector = DRM_MODE_CONNECTOR_TV;
+                } else {
+                    connector = hasDummyConnector() ?
+                        DRM_MODE_CONNECTOR_VIRTUAL : DRM_MODE_CONNECTOR_HDMIA;
+                }
             }
             break;
         case DRM_EVENT_RESUME:

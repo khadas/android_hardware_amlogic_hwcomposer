@@ -206,10 +206,13 @@ int32_t HwDisplayEventListener::handle(drm_display_event event, int val) {
     std::multimap<drm_display_event, HwDisplayEventHandler *>::iterator it;
     for (it = mEventHandler.begin(); it != mEventHandler.end(); it++) {
         if (it->first == event || it->first == DRM_EVENT_ALL)
-            // handle suspend and resume as hotplug event
             if (event == DRM_EVENT_HDMITX_SUSPEND_RESUME) {
+                // skip suspend event process
+                // we will handle it in setPowerMode
                 event = DRM_EVENT_HDMITX_HOTPLUG;
                 val = val ? DRM_EVENT_RESUME : DRM_EVENT_SUSPEND;
+                if (val == DRM_EVENT_SUSPEND)
+                    continue;
             }
             it->second->handleEvent(event, val);
     }

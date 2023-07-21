@@ -343,7 +343,18 @@ int32_t MesonHwc2::getHdrCapabilities(hwc2_display_t display,
 int32_t MesonHwc2::setPowerMode(hwc2_display_t display,
     int32_t mode) {
     GET_HWC_DISPLAY(display);
-    return hwcDisplay->setPowerMode((hwc2_power_mode_t)mode);
+    int32_t ret = hwcDisplay->setPowerMode((hwc2_power_mode_t)mode);
+
+    if (hwcDisplay->needSwitchConnector()) {
+        /*
+         * need switch connector
+         */
+        if (mode == HWC2_POWER_MODE_OFF) {
+            mDisplayPipe->handleEvent(DRM_EVENT_HDMITX_HOTPLUG, DRM_EVENT_SUSPEND);
+        }
+    }
+
+    return ret;
 }
 
 int32_t MesonHwc2::setVsyncEnable(hwc2_display_t display,

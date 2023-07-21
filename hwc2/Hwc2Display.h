@@ -168,6 +168,9 @@ public:
     hwc2_error_t createVirtualLayer(hwc2_layer_t * outLayer);
     int32_t loadVirtualLayerData(FILE *file, std::shared_ptr<Hwc2Layer> tempVirtualLayer);
 
+    /* dummy connector switch */
+    bool needSwitchConnector();
+
 /* video tunnel api*/
 public:
     virtual void updateVtBuffers();

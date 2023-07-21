@@ -723,7 +723,7 @@ ndk::ScopedAStatus ComposerClient::setPowerMode(int64_t displayId,
                                                   PowerMode mode) {
     DEBUG_LOG("%s", __FUNCTION__);
 
-    std::unique_lock<std::mutex> lock(mStateMutex);
+    //std::unique_lock<std::mutex> lock(mStateMutex);
     auto err = mHal->setPowerMode(displayId, mode);
 
     return ToBinderStatus(err);

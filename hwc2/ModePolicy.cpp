@@ -717,8 +717,10 @@ void ModePolicy::onHotplug(bool connected) {
         std::string displayMode("dummy_l");
         if (isVMXCertification()) {
             displayMode = "576cvbs";
+        } else {
+            sysfs_set_string(DISPLAY_HDMI_AVMUTE_SYSFS, "1");
+            usleep(100000); // add 100ms delay after av mute
         }
-
         setDisplayMode(displayMode);
         return;
     }

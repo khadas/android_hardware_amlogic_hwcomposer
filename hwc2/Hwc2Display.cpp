@@ -433,6 +433,8 @@ void Hwc2Display::onHotplug(bool connected) {
                 if (sc_get_property_boolean("persist.vendor.sys.vmx", false)) {
                     strcpy(displayMode.name, "576cvbs");
                 } else {
+                    sysfs_set_string(DISPLAY_HDMI_AVMUTE_SYSFS, "1");
+                    usleep(100000); // add 100ms delay after av mute
                     strcpy(displayMode.name, "dummy_l");
                 }
                 mCrtc->setMode(displayMode);
@@ -835,13 +837,8 @@ hwc2_error_t Hwc2Display::setPowerMode(int32_t mode) {
 
     /* need blank display when power off */
     if (mode == HWC2_POWER_MODE_OFF) {
-        blankDisplay();
-        if (mConnector && (mConnector->getType() == DRM_MODE_CONNECTOR_HDMIA )) {
-            if (!mModePolicy.get()) {
-                drm_mode_info_t displayMode;
-                strcpy(displayMode.name, "dummy_l");
-                mCrtc->setMode(displayMode);
-            }
+        if (mConnector->getType() != DRM_MODE_CONNECTOR_HDMIA) {
+            blankDisplay();
         }
     }
     return (hwc2_error_t) ret;
@@ -2522,6 +2519,20 @@ int32_t Hwc2Display::setFrameRate(float value) {
     setActiveConfig(config);
 
     return HWC2_ERROR_NONE;
+}
+
+bool Hwc2Display::needSwitchConnector() {
+    if (!mConnector)
+        return false;
+
+    auto type = mConnector->getType();
+    if (type == DRM_MODE_CONNECTOR_HDMIA ||
+            type == DRM_MODE_CONNECTOR_VIRTUAL ||
+            type == DRM_MODE_CONNECTOR_TV) {
+        return true;
+    }
+
+    return false;
 }
 
 /*******************Video Tunnel API below*******************/
