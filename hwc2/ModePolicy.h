@@ -290,14 +290,13 @@ private:
     bool isDolbyVisionEnable();
     bool isTvDolbyVisionEnable();
     bool isMboxSupportDolbyVision();
-    bool isTvSupportDolbyVision(char *mode);
+    bool isTvSupportDolbyVision();
     bool isTvSupportHDR();
     bool isLowPowerMode();
     bool isHdrResolutionPriority();
 
     void getDvCap(struct meson_hdr_info *data);
-    void getHdrInfo(meson_hdr_info_t *data);
-
+    void getHdrUserInfo(meson_hdr_info_t *data);
 
     void getHdmiEdidStatus(char* edidstatus, int32_t len);
     int getHdmiSinkType();
@@ -320,7 +319,7 @@ private:
     bool isSupportDeepColor();
 
     int32_t getConnectorData(struct meson_policy_in* data, hdmi_dv_info_t *dinfo);
-    void getCommonData(struct meson_policy_in* data, hdmi_dv_info_t *dinfo);
+    void getConnectorUserData(struct meson_policy_in* data, hdmi_dv_info_t *dinfo);
 
     void initHdrSdrMode();
     void initDolbyVision(output_mode_state state);
@@ -358,7 +357,6 @@ private:
 
     void setSourceDisplay(output_mode_state state);
     void setSourceOutputMode(const char* outputmode, bool force = false);
-    void updateDeepColor(bool cvbsMode, output_mode_state state, const char* outputmode);
     bool isVMXCertification();
     bool isConnected();
     bool isHdmiUsed(void);

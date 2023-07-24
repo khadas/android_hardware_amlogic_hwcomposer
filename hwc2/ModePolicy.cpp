@@ -21,6 +21,10 @@
 #define PROP_DEFAULT_COLOR              "ro.vendor.platform.default_color"
 #define LOW_POWER_DEFAULT_COLOR         "ro.vendor.low_power_default_color"  /* Set default deep color is 8bit for Low Power Mode */
 #define UBOOTENV_COLORATTRIBUTE         "ubootenv.var.colorattribute"
+/*
+ * save user set color format
+ */
+#define UBOOTENV_USER_COLORATTRIBUTE   "ubootenv.var.user_colorattribute"
 
 #define EDID_MAX_SIZE                   2049
 #define MODE_8K4K_PREFIX "4320p"
@@ -253,11 +257,12 @@ void ModePolicy::getDvCap(struct meson_hdr_info *data) {
     strcpy(data->dv_cap, dv_cap.c_str());
 
     if (strstr(data->dv_cap, "DolbyVision RX support list") != NULL) {
+        memset(data->dv_max_mode, 0, sizeof(data->dv_max_mode));
+        memset(data->dv_deepcolor, 0, sizeof(data->dv_deepcolor));
         for (int i = ARRAY_SIZE(DISPLAY_MODE_LIST) - 1; i >= 0; i--) {
             if (strstr(data->dv_cap, DISPLAY_MODE_LIST[i]) != NULL) {
                 if ((strlen(data->dv_max_mode) + strlen(DISPLAY_MODE_LIST[i]) + 1) < sizeof(data->dv_max_mode)) {
-                    strcat(data->dv_max_mode, DISPLAY_MODE_LIST[i]);
-                    strcat(data->dv_max_mode, ",");
+                    strcpy(data->dv_max_mode, DISPLAY_MODE_LIST[i]);
                 } else {
                     MESON_LOGE("DisplayMode strcat overflow: src=%s, dst=%s\n", DISPLAY_MODE_LIST[i], data->dv_max_mode);
                 }
@@ -267,7 +272,7 @@ void ModePolicy::getDvCap(struct meson_hdr_info *data) {
 
         for (int i = 0; i < sizeof(DV_MODE_TYPE)/sizeof(DV_MODE_TYPE[0]); i++) {
             if (strstr(data->dv_cap, DV_MODE_TYPE[i])) {
-                if ((strlen(data->dv_deepcolor) + strlen(DV_MODE_TYPE[i]) + 1) < sizeof(data->dv_deepcolor)) {
+                if ((strlen(data->dv_deepcolor) + strlen(DV_MODE_TYPE[i]) + 2) < sizeof(data->dv_deepcolor)) {
                     strcat(data->dv_deepcolor, DV_MODE_TYPE[i]);
                     strcat(data->dv_deepcolor, ",");
                 } else {
@@ -356,7 +361,7 @@ int32_t ModePolicy::setHdrStrategy(int32_t policy, const char *type) {
     setBootEnv(UBOOTENV_HDR_PRIORITY, value.c_str());
 
     //2. set current hdmi mode
-    getHdrInfo(&mConData.hdr_info);
+    getHdrUserInfo(&mConData.hdr_info);
     meson_mode_set_policy_input(mModeConType, &mConData);
     getDisplayMode(mCurrentMode);
 
@@ -406,7 +411,7 @@ int32_t ModePolicy::setHdrPriority(int32_t type) {
     }
 
     meson_mode_set_policy_input(mModeConType, &mConData);
-    getHdrInfo(&mConData.hdr_info);
+    getHdrUserInfo(&mConData.hdr_info);
     getDisplayMode(mCurrentMode);
     mConData.hdr_info.hdr_priority = (meson_hdr_priority_e)type;
     setDisplayAttribute(DISPLAY_HDR_PRIORITY, HDR_PRIORITY_TYPE[type]);
@@ -508,8 +513,7 @@ bool ModePolicy::isDolbyVisionEnable() {
  * if true, mode is the Highest resolution Tv dv supported
  * else mode is ""
  */
-bool ModePolicy::isTvSupportDolbyVision(char *mode) {
-    strcpy(mode, "");
+bool ModePolicy::isTvSupportDolbyVision() {
     if (DISPLAY_TYPE_TV == mDisplayType) {
         MESON_LOGI("Current Device is TV, no dv_cap\n");
         return false;
@@ -518,11 +522,6 @@ bool ModePolicy::isTvSupportDolbyVision(char *mode) {
     if (strstr(mConData.hdr_info.dv_cap, "DolbyVision RX support list") == NULL) {
         return false;
     }
-
-    strcat(mode, mConData.hdr_info.dv_max_mode);
-    strcat(mode, mConData.hdr_info.dv_deepcolor);
-
-    MESON_LOGD("Current Tv Support DV type [%s]", mode);
 
     return true;
 }
@@ -574,8 +573,7 @@ bool ModePolicy::isMboxSupportDolbyVision() {
     return getDvSupportStatus();
 }
 
-void ModePolicy::getHdrInfo(meson_hdr_info_t *data) {
-    char tvmode[MESON_MODE_LEN] = {0};
+void ModePolicy::getHdrUserInfo(meson_hdr_info_t *data) {
     if (!data) {
         MESON_LOGE("%s data is NULL\n", __FUNCTION__);
         return;
@@ -592,10 +590,11 @@ void ModePolicy::getHdrInfo(meson_hdr_info_t *data) {
             data->hdr_priority);
 
     data->is_enable_dv = isDolbyVisionEnable();
-    data->is_tv_supportDv = isTvSupportDolbyVision(tvmode);
+    data->is_tv_supportDv = isTvSupportDolbyVision();
     data->is_tv_supportHDR = isTvSupportHDR();
     data->is_hdr_resolution_priority = isHdrResolutionPriority();
     data->is_lowpower_mode = isLowPowerMode();
+
 
     char ubootenv_dv_type[MESON_MODE_LEN];
     bool ret = getBootEnv(UBOOTENV_DV_TYPE, ubootenv_dv_type);
@@ -607,7 +606,6 @@ void ModePolicy::getHdrInfo(meson_hdr_info_t *data) {
         strcpy(data->ubootenv_dv_type, "0");
     }
     MESON_LOGI("ubootenv_dv_type:%s\n", data->ubootenv_dv_type);
-
 }
 
 bool ModePolicy::initColorAttribute(char* supportedColorList, int len) {
@@ -848,13 +846,12 @@ int32_t ModePolicy::getConnectorData(struct meson_policy_in* data, hdmi_dv_info_
         return -EINVAL;
     }
 
-    getCommonData(data, dinfo);
+    getConnectorUserData(data, dinfo);
 
     //get hdmi dv_info
     getDvCap(&data->hdr_info);
-
     // get Hdr info
-    getHdrInfo(&data->hdr_info);
+    getHdrUserInfo(&data->hdr_info);
 
     //hdmi info
     getHdmiEdidStatus(data->con_info.edid_parsing, MESON_MODE_LEN);
@@ -870,16 +867,6 @@ int32_t ModePolicy::getConnectorData(struct meson_policy_in* data, hdmi_dv_info_
         char dc_cap[MESON_MAX_STR_LEN];
         getHdmiDcCap(dc_cap, MESON_MAX_STR_LEN);
         strcpy(data->con_info.dc_cap, dc_cap);
-
-        //getBootEnv(UBOOTENV_HDMIMODE, data->con_info.ubootenv_hdmimode);
-        getBootEnv(UBOOTENV_CVBSMODE, data->con_info.ubootenv_cvbsmode);
-        MESON_LOGI("ubootenv  cvbsmode:%s\n",
-                data->con_info.ubootenv_cvbsmode);
-
-        std::string curColorAttribute;
-        //getDisplayAttribute(DISPLAY_HDMI_COLOR_ATTR, curColorAttribute);
-        getBootEnv(UBOOTENV_COLORATTRIBUTE, data->con_info.ubootenv_colorattr);
-        MESON_LOGI("ubootenv_colorattribute:%s\n", data->con_info.ubootenv_colorattr);
     }
 
     getDisplayMode(data->cur_displaymode);
@@ -1197,9 +1184,8 @@ bool ModePolicy::getCurDolbyVisionState(int state, output_mode_state mode_state)
 
 bool ModePolicy::checkDolbyVisionDeepColorChanged(int state) {
     std::string colorAttr;
-    char mode[MESON_MAX_STR_LEN] = {0};
     getDisplayAttribute(DISPLAY_HDMI_COLOR_ATTR, colorAttr);
-    if (isTvSupportDolbyVision(mode) && (state == DOLBY_VISION_SET_ENABLE)
+    if (isTvSupportDolbyVision() && (state == DOLBY_VISION_SET_ENABLE)
             && (strstr(colorAttr.c_str(), "444,8bit") == NULL)) {
         MESON_LOGI("colorAttr %s is not match with DV STD\n", colorAttr.c_str());
         return true;
@@ -1340,8 +1326,6 @@ void ModePolicy::saveHdmiParamToEnv() {
 
 
 void ModePolicy::enableDolbyVision(int DvMode) {
-    char tvmode[MESON_MAX_STR_LEN] = {0};
-
     if (isMboxSupportDolbyVision() == false) {
         MESON_LOGI("This platform is not support dv or has no dv ko");
         return;
@@ -1358,9 +1342,7 @@ void ModePolicy::enableDolbyVision(int DvMode) {
 
     //if OTT
     if ((DISPLAY_TYPE_MBOX == mDisplayType) || (DISPLAY_TYPE_REPEATER == mDisplayType)) {
-        if (isTvSupportDolbyVision(tvmode) && (mConData.hdr_info.hdr_priority == MESON_DOLBY_VISION_PRIORITY)) {
-            MESON_LOGI("Tv is Support dv, tvmode is [%s]", tvmode);
-
+        if (isTvSupportDolbyVision() && (mConData.hdr_info.hdr_priority == MESON_DOLBY_VISION_PRIORITY)) {
             switch (DvMode) {
                 case DOLBY_VISION_SET_ENABLE:
                     MESON_LOGI("Dv set Mode [DV_RGB_444_8BIT]\n");
@@ -1779,7 +1761,6 @@ void ModePolicy::setDolbyVisionEnable(int state,  output_mode_state mode_state _
     } else {
         //1. update dv env
         char tmp[10];
-        char hdr_policy[MESON_MODE_LEN] = {0};
         char dvstatus[MESON_MODE_LEN]   = {0};
 
         sprintf(tmp, "%d", state);
@@ -1791,39 +1772,12 @@ void ModePolicy::setDolbyVisionEnable(int state,  output_mode_state mode_state _
             strcpy(mDvInfo.dv_enable, "1");
         }
 
+        //Save user prefer dv mode only user change dv through UI
         setBootEnv(UBOOTENV_DV_TYPE, mConData.hdr_info.ubootenv_dv_type);
         setBootEnv(UBOOTENV_DV_ENABLE, mDvInfo.dv_enable);
 
-        getHdrStrategy(hdr_policy);
-        if (!strcmp(hdr_policy, HDR_POLICY_SOURCE)) {
-            sprintf(dvstatus, "%d", 0);
-        } else {
-            sprintf(dvstatus, "%d", state);
-        }
+        sprintf(dvstatus, "%d", state);
         setBootEnv(UBOOTENV_DOLBYSTATUS, dvstatus);
-
-        //2. get final display mode and color format
-        setBootEnv(UBOOTENV_ISBESTMODE, "false");
-
-        mConData.state = static_cast<meson_mode_state>(OUTPUT_MODE_STATE_INIT);
-
-        //2. scene logic process
-        getConnectorData(&mConData, &mDvInfo);
-
-        meson_mode_set_policy(mModeConType, MESON_POLICY_BEST);
-        meson_mode_set_policy_input(mModeConType, &mConData);
-        meson_mode_get_policy_output(mModeConType, &mSceneOutInfo);
-
-        // 3. save uboot env
-        //3.1 save hdmimode
-        if (strstr(mSceneOutInfo.displaymode, "cvbs") != NULL) {
-            setBootEnv(UBOOTENV_CVBSMODE, mSceneOutInfo.displaymode);
-        } else if (strstr(mSceneOutInfo.displaymode, "hz") != NULL) {
-            setBootEnv(UBOOTENV_HDMIMODE, mSceneOutInfo.displaymode);
-        }
-        //3.2 save colorattribute
-        saveDeepColorAttr(mSceneOutInfo.displaymode, mSceneOutInfo.deepcolor);
-        setBootEnv(UBOOTENV_COLORATTRIBUTE, mSceneOutInfo.deepcolor);
     }
 }
 
@@ -1872,8 +1826,7 @@ void ModePolicy::setALLMMode(int state) {
         return;
     }
 
-    char dv_mode[MESON_MAX_STR_LEN];
-    bool isTVSupportDV = isTvSupportDolbyVision(dv_mode);
+    bool isTVSupportDV = isTvSupportDolbyVision();
 
     switch (state) {
         case -1:
@@ -1917,20 +1870,18 @@ void ModePolicy::setALLMMode(int state) {
  */
 int ModePolicy::getDolbyVisionType() {
     int dv_type;
-    char dv_mode[MESON_MAX_STR_LEN];
 
-    if (isTvSupportDolbyVision(dv_mode) && (mConData.hdr_info.hdr_priority == MESON_DOLBY_VISION_PRIORITY)) {
-        //1. read dv mode from prop(maybe need to env)
+    if (isTvSupportDolbyVision() && (mConData.hdr_info.hdr_priority == MESON_DOLBY_VISION_PRIORITY)) {
         dv_type = mSceneOutInfo.dv_type;
-        MESON_LOGI("dv_type %d tv dv mode:%s\n", dv_type, dv_mode);
+        MESON_LOGI("dv_type %d tv support dv mode:%s\n", dv_type, mConData.hdr_info.dv_deepcolor);
 
         //2. check tv support or not
-        if ((dv_type == 1) && strstr(dv_mode, "DV_RGB_444_8BIT") != NULL) {
+        if ((dv_type == 1) && strstr(mConData.hdr_info.dv_deepcolor, "DV_RGB_444_8BIT") != NULL) {
             return DOLBY_VISION_SET_ENABLE;
-        } else if ((dv_type == 2) && strstr(dv_mode, "LL_YCbCr_422_12BIT") != NULL) {
+        } else if ((dv_type == 2) && strstr(mConData.hdr_info.dv_deepcolor, "LL_YCbCr_422_12BIT") != NULL) {
             return DOLBY_VISION_SET_ENABLE_LL_YUV;
         } else if ((dv_type == 3)
-                && ((strstr(dv_mode, "LL_RGB_444_12BIT") != NULL) || (strstr(dv_mode, "LL_RGB_444_10BIT") != NULL))) {
+                && ((strstr(mConData.hdr_info.dv_deepcolor, "LL_RGB_444_12BIT") != NULL) || (strstr(mConData.hdr_info.dv_deepcolor, "LL_RGB_444_10BIT") != NULL))) {
             return DOLBY_VISION_SET_ENABLE_LL_RGB;
         } else if (dv_type == 0) {
             return DOLBY_VISION_SET_DISABLE;
@@ -1938,21 +1889,21 @@ int ModePolicy::getDolbyVisionType() {
 
         //3. amdolby vision best policy:STD->LL_YUV->LL_RGB for netflix request
         //   amdolby vision best policy:LL_YUV->STD->LL_RGB for amdolby vision request
-        if ((strstr(dv_mode, "DV_RGB_444_8BIT") != NULL) || (strstr(dv_mode, "LL_YCbCr_422_12BIT") != NULL)) {
+        if ((strstr(mConData.hdr_info.dv_deepcolor, "DV_RGB_444_8BIT") != NULL) || (strstr(mConData.hdr_info.dv_deepcolor, "LL_YCbCr_422_12BIT") != NULL)) {
             if (sys_get_bool_prop(PROP_ALWAYS_DOLBY_VISION, false)) {
-                if (strstr(dv_mode, "DV_RGB_444_8BIT") != NULL) {
+                if (strstr(mConData.hdr_info.dv_deepcolor, "DV_RGB_444_8BIT") != NULL) {
                     return DOLBY_VISION_SET_ENABLE;
-                } else if (strstr(dv_mode, "LL_YCbCr_422_12BIT") != NULL) {
+                } else if (strstr(mConData.hdr_info.dv_deepcolor, "LL_YCbCr_422_12BIT") != NULL) {
                     return DOLBY_VISION_SET_ENABLE_LL_YUV;
                 }
             } else {
-                if (strstr(dv_mode, "LL_YCbCr_422_12BIT") != NULL) {
+                if (strstr(mConData.hdr_info.dv_deepcolor, "LL_YCbCr_422_12BIT") != NULL) {
                     return DOLBY_VISION_SET_ENABLE_LL_YUV;
-                } else if (strstr(dv_mode, "DV_RGB_444_8BIT") != NULL) {
+                } else if (strstr(mConData.hdr_info.dv_deepcolor, "DV_RGB_444_8BIT") != NULL) {
                     return DOLBY_VISION_SET_ENABLE;
                 }
             }
-        } else if ((strstr(dv_mode, "LL_RGB_444_12BIT") != NULL) || (strstr(dv_mode, "LL_RGB_444_10BIT") != NULL)) {
+        } else if ((strstr(mConData.hdr_info.dv_deepcolor, "LL_RGB_444_12BIT") != NULL) || (strstr(mConData.hdr_info.dv_deepcolor, "LL_RGB_444_10BIT") != NULL)) {
             return DOLBY_VISION_SET_ENABLE_LL_RGB;
         }
     } else {
@@ -2622,58 +2573,7 @@ void ModePolicy::setSourceOutputMode(const char* outputmode, bool force) {
     }
 }
 
-//TODO: do we really need it ?
-void ModePolicy::updateDeepColor(bool cvbsMode, output_mode_state state, const char* outputmode) {
-    if (!cvbsMode && (mDisplayType != DISPLAY_TYPE_TV)) {
-        char colorAttribute[MESON_MODE_LEN] = {0};
-        if (sys_get_bool_prop(PROP_DEEPCOLOR, true)) {
-            char mode[MESON_MAX_STR_LEN] = {0};
-            if (isDolbyVisionEnable() && isTvSupportDolbyVision(mode) &&
-                    (mConData.hdr_info.hdr_priority == MESON_DOLBY_VISION_PRIORITY)) {
-                 char type[MESON_MODE_LEN] = {0};
-                 strcpy(type, mConData.hdr_info.ubootenv_dv_type);
-                if (((atoi(type) == 2) && (strstr(mode, DV_MODE_TYPE[2]) == NULL))
-                        || ((atoi(type) == 3) && (strstr(mode, DV_MODE_TYPE[3]) == NULL)
-                            && (strstr(mode, DV_MODE_TYPE[4]) == NULL))) {
-                    strcpy(type, "1");
-                }
-                switch (atoi(type)) {
-                    case DOLBY_VISION_SET_ENABLE:
-                        strcpy(colorAttribute, "444,8bit");
-                        break;
-                    case DOLBY_VISION_SET_ENABLE_LL_YUV:
-                        strcpy(colorAttribute, "422,12bit");
-                        break;
-                    case DOLBY_VISION_SET_ENABLE_LL_RGB:
-                        if (strstr(mode, "LL_RGB_444_12BIT") != NULL) {
-                            strcpy(colorAttribute, "444,12bit");
-                        } else if (strstr(mode, "LL_RGB_444_10BIT") != NULL) {
-                            strcpy(colorAttribute, "444,10bit");
-                        }
-                        break;
-                }
-            } else {
-                getHdmiColorAttribute(outputmode, colorAttribute, (int)state);
-            }
-        } else {
-            strcpy(colorAttribute, "default");
-        }
-        std::string attr;
-        getDisplayAttribute(DISPLAY_HDMI_COLOR_ATTR, attr);
-        if (strstr(attr.c_str(), colorAttribute) == NULL) {
-            MESON_LOGI("set DeepcolorAttr value is different from attr sysfs value\n");
-            setDisplayAttribute(DISPLAY_HDMI_COLOR_ATTR, colorAttribute);
-        } else {
-            MESON_LOGI("cur deepcolor attr value is equals to colorAttribute, Do not need set it\n");
-        }
-        MESON_LOGI("setMboxOutputMode colorAttribute = %s\n", colorAttribute);
-        //save to ubootenv
-        saveDeepColorAttr(outputmode, colorAttribute);
-        setBootEnv(UBOOTENV_COLORATTRIBUTE, colorAttribute);
-    }
-}
-
-void ModePolicy::getCommonData(struct meson_policy_in* data, hdmi_dv_info_t *dinfo) {
+void ModePolicy::getConnectorUserData(struct meson_policy_in* data, hdmi_dv_info_t *dinfo) {
     if (!data || !dinfo) {
         MESON_LOGE("%s data is NULL\n", __FUNCTION__);
         return;
@@ -2682,16 +2582,8 @@ void ModePolicy::getCommonData(struct meson_policy_in* data, hdmi_dv_info_t *din
     //hdmi color space best policy flag
     data->con_info.is_bestcolorspace = isBestColorSpace();
 
-    char hdr_policy[MESON_MODE_LEN] = {0};
-    getHdrStrategy(hdr_policy);
-    data->hdr_info.hdr_policy = (meson_hdr_policy_e)atoi(hdr_policy);
-
-    data->hdr_info.hdr_priority = (meson_hdr_priority_e)getHdrPriority();
-
-    MESON_LOGI("isbestColorspace:%d, hdr_policy:%d, hdr_priority :%d\n",
-            data->con_info.is_bestcolorspace,
-            data->hdr_info.hdr_policy,
-            data->hdr_info.hdr_priority);
+    MESON_LOGI("isbestColorspace:%d\n",
+            data->con_info.is_bestcolorspace);
 
     getDisplayMode(mCurrentMode);
     getBootEnv(UBOOTENV_HDMIMODE, data->con_info.ubootenv_hdmimode);
@@ -2701,7 +2593,7 @@ void ModePolicy::getCommonData(struct meson_policy_in* data, hdmi_dv_info_t *din
             data->con_info.ubootenv_hdmimode,
             data->con_info.ubootenv_cvbsmode);
 
-    getBootEnv(UBOOTENV_COLORATTRIBUTE, data->con_info.ubootenv_colorattr);
+    getBootEnv(UBOOTENV_USER_COLORATTRIBUTE, data->con_info.ubootenv_colorattr);
     MESON_LOGI("ubootenv_colorattribute:%s\n",
             data->con_info.ubootenv_colorattr);
 
