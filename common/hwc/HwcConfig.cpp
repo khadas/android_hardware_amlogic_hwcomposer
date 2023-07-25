@@ -341,6 +341,14 @@ bool HwcConfig::mosaicEnabled() {
 #endif
 }
 
+bool HwcConfig::UvmDettachEnabled() {
+#ifdef HWC_UVM_DETTACH
+    return true;
+#else
+    return false;
+#endif
+}
+
 void HwcConfig::dump(String8 & dumpstr) {
     if (isHeadlessMode()) {
         dumpstr.appendFormat("\t HeadlessMode refreshrate: %d", headlessRefreshRate());
@@ -377,6 +385,8 @@ void HwcConfig::dump(String8 & dumpstr) {
             dumpstr.appendFormat("\t Mosaic: %s", mosaicEnabled() ? "Y" : "N");
             dumpstr.append("\n");
             dumpstr.appendFormat("\t AiColorProcessor: %s", AiColorProcessorEnabled() ? "Y" : "N");
+            dumpstr.append("\n");
+            dumpstr.appendFormat("\t UvmDettach: %s", UvmDettachEnabled() ? "Y" : "N");
             dumpstr.append("\n");
         }
     }

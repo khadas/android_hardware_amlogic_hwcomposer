@@ -13,6 +13,7 @@
 #include <MesonLog.h>
 #include "UvmDev.h"
 #include "UvmDettach.h"
+#include "HwcConfig.h"
 
 UvmDettach::UvmDettach(hwc2_layer_t layerId) {
     snprintf(mName, 20, "layer-%d", (int)layerId);
@@ -32,105 +33,100 @@ int32_t UvmDettach::getVideoType(int bufferFd) {
     return UvmDev::getInstance().getVideoType(bufferFd);
 }
 
-#ifdef HWC_UVM_DETTACH
 int32_t UvmDettach::attachUvmBuffer(int bufferFd) {
-    return UvmDev::getInstance().attachBuffer(bufferFd);
+    if (HwcConfig::UvmDettachEnabled()) {
+        return UvmDev::getInstance().attachBuffer(bufferFd);
+    } else {
+        return 0;
+    }
 }
 
 int32_t UvmDettach::dettachUvmBuffer() {
-    int signalCount = 0;
-    if (mUvmBufferQueue.size() <= 0)
-        return -EAGAIN;
+    if (HwcConfig::UvmDettachEnabled()) {
+        int signalCount = 0;
+        if (mUvmBufferQueue.size() <= 0)
+            return -EAGAIN;
 
-    for (auto it = mUvmBufferQueue.begin(); it != mUvmBufferQueue.end(); it++) {
-        auto currentStatus = it->releaseFence->getStatus();
-        /* fence was signal */
-        if (currentStatus == DrmFence::Status::Invalid ||
-            currentStatus == DrmFence::Status::Signaled)
-            signalCount ++;
-    }
+        for (auto it = mUvmBufferQueue.begin(); it != mUvmBufferQueue.end(); it++) {
+            auto currentStatus = it->releaseFence->getStatus();
+            /* fence was signal */
+            if (currentStatus == DrmFence::Status::Invalid ||
+                currentStatus == DrmFence::Status::Signaled)
+                signalCount ++;
+        }
 
-    MESON_LOGV("%s: %s UvmBufferQueue size:%zu, signalCount:%d",
-            __func__, mName, mUvmBufferQueue.size(), signalCount);
+        MESON_LOGV("%s: %s UvmBufferQueue size:%zu, signalCount:%d",
+                __func__, mName, mUvmBufferQueue.size(), signalCount);
 
-    while (signalCount > 0) {
-        auto item = mUvmBufferQueue.front();
-        MESON_LOGV("%s: %s bufferFd:%d, fenceStatus:%d",
-                __func__, mName, item.bufferFd, item.releaseFence->getStatus());
+        while (signalCount > 0) {
+            auto item = mUvmBufferQueue.front();
+            MESON_LOGV("%s: %s bufferFd:%d, fenceStatus:%d",
+                    __func__, mName, item.bufferFd, item.releaseFence->getStatus());
 
-        UvmDev::getInstance().dettachBuffer(item.bufferFd);
-        if (item.bufferFd >= 0)
-            close(item.bufferFd);
+            UvmDev::getInstance().dettachBuffer(item.bufferFd);
+            if (item.bufferFd >= 0)
+                close(item.bufferFd);
 
-        mUvmBufferQueue.pop_front();
+            mUvmBufferQueue.pop_front();
 
-        signalCount --;
+            signalCount --;
+        }
     }
 
     return 0;
 }
 
 int32_t UvmDettach::collectUvmBuffer(const int fd, const int fenceFd) {
-    if (fd < 0) {
-        MESON_LOGV("%s: %s get an invalid fd", __func__, mName);
-        if (fenceFd >=0 )
+    if (HwcConfig::UvmDettachEnabled()) {
+        if (fd < 0) {
+            MESON_LOGV("%s: %s get an invalid fd", __func__, mName);
+            if (fenceFd >=0 )
+                close(fenceFd);
+
+            return -EINVAL;
+        }
+
+        if (fenceFd < 0) {
+            MESON_LOGV("%s: %s get an invalid fenceFd", __func__, mName);
+            UvmDev::getInstance().dettachBuffer(fd);
+            close(fd);
+            return 0;
+        }
+
+        if (mUvmBufferQueue.size() >= UVM_DETTACH_HOLD_MAX_BUFFER) {
+            int count = mUvmBufferQueue.size() - UVM_DETTACH_HOLD_MAX_BUFFER;
+            for (int i = 0; i <= count; i++) {
+                auto item = mUvmBufferQueue.front();
+                if (item.bufferFd >= 0)
+                    close(item.bufferFd);
+
+                mUvmBufferQueue.pop_front();
+            }
+        }
+
+        UvmBuffer item = {fd, std::move(std::make_shared<DrmFence>(fenceFd))};
+        mUvmBufferQueue.push_back(item);
+    } else {
+        if (fd >= 0) {
+            close(fd);
+        }
+        if (fenceFd >= 0) {
             close(fenceFd);
-
-        return -EINVAL;
-    }
-
-    if (fenceFd < 0) {
-        MESON_LOGV("%s: %s get an invalid fenceFd", __func__, mName);
-        UvmDev::getInstance().dettachBuffer(fd);
-        close(fd);
-        return 0;
-    }
-
-    if (mUvmBufferQueue.size() >= UVM_DETTACH_HOLD_MAX_BUFFER) {
-        int count = mUvmBufferQueue.size() - UVM_DETTACH_HOLD_MAX_BUFFER;
-        for (int i = 0; i <= count; i++) {
-            auto item = mUvmBufferQueue.front();
-            if (item.bufferFd >= 0)
-                close(item.bufferFd);
-
-            mUvmBufferQueue.pop_front();
         }
     }
-
-    UvmBuffer item = {fd, std::move(std::make_shared<DrmFence>(fenceFd))};
-    mUvmBufferQueue.push_back(item);
 
     return 0;
 }
 
 int32_t UvmDettach::releaseUvmResource() {
-    for (auto it = mUvmBufferQueue.begin(); it != mUvmBufferQueue.end(); it++) {
-        if (it->bufferFd >= 0)
-            close(it->bufferFd);
+    if (HwcConfig::UvmDettachEnabled()) {
+        for (auto it = mUvmBufferQueue.begin(); it != mUvmBufferQueue.end(); it++) {
+            if (it->bufferFd >= 0)
+                close(it->bufferFd);
+        }
+        mUvmBufferQueue.clear();
     }
 
-    mUvmBufferQueue.clear();
-
-    return 0;
-}
-#else
-int32_t UvmDettach::attachUvmBuffer(int bufferFd __unused) {
     return 0;
 }
 
-int32_t UvmDettach::dettachUvmBuffer() {
-    return 0;
-}
-
-int32_t UvmDettach::collectUvmBuffer(const int fd, const int fenceFd) {
-    if (fd >= 0) close(fd);
-
-    if (fenceFd >= 0) close(fenceFd);
-
-    return 0;
-}
-
-int32_t UvmDettach::releaseUvmResource(){
-    return 0;
-}
-#endif

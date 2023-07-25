@@ -49,6 +49,7 @@ public:
     static bool AiPqProcessorEnabled();
     static bool AiColorProcessorEnabled();
     static bool mosaicEnabled();
+    static bool UvmDettachEnabled();
 
     static void dump(String8 & dumpstr);
 };
