@@ -73,11 +73,15 @@ public:
                 // display change and thus the framework may want to reallocate buffers. We
                 // need to free all cached handles, since they are holding a strong reference
                 // to the underlying buffers.
+                size_t CacheSize = 0;
+                mResources->getDisplayClientTargetCacheSize(display, &CacheSize);
                 cleanDisplayResources(display);
                 mResources->removeDisplay(display);
+                mResources->addPhysicalDisplay(display);
+                mResources->setDisplayClientTargetCacheSize(display, static_cast<uint32_t>(CacheSize));
+            } else {
+                mResources->addPhysicalDisplay(display);
             }
-
-            mResources->addPhysicalDisplay(display);
         } else if (connected == HWC2::Connection::Disconnected) {
             mResources->removeDisplay(display);
             bCon = false;
