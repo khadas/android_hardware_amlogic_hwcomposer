@@ -13,8 +13,22 @@
 extern "C" {
 #endif
 
+/*
+ * save user prefer hdr policy
+ * 0:always hdr(output signal base TV)
+ * 1:adaptive hdr(output signal base tv and play content)
+ * 2:force hdr(output signal base hdr_force_mode)
+ */
 #define UBOOTENV_HDR_POLICY             "ubootenv.var.hdr_policy"
-
+/*
+ * save user force hdr mode
+ * 0:invalid hdr mode
+ * 1:force sdr
+ * 2:force dv
+ * 3:force hdr10
+ * 4:force hdr10+,need to do
+ * 5:force hlg
+ */
 #define UBOOTENV_HDR_FORCE_MODE         "ubootenv.var.hdr_force_mode"
 
 int meson_mode_init_ubootenv();

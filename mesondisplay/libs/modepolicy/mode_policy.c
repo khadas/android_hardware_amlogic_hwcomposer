@@ -38,6 +38,13 @@ static bool is_dv_prefer(struct meson_policy_in *input) {
         return false;
     }
 
+    /* not force dv */
+    if (hdr_ptr->hdr_policy == MESON_HDR_POLICY_FORCE
+        && hdr_ptr->hdr_force_mode != MESON_HDR_FORCE_MODE_DV) {
+        SYS_LOGI("not force dv, hdr_policy:%d hdr_force_mode:%d\n", hdr_ptr->hdr_policy, hdr_ptr->hdr_force_mode);
+        return false;
+    }
+
     /* dv is enable and tv also support it */
     if (hdr_ptr->is_enable_dv && hdr_ptr->is_tv_supportDv)
         return true;
@@ -51,9 +58,19 @@ static int32_t is_hdr_prefer(struct meson_policy_in *input) {
 
     struct meson_hdr_info *hdr_ptr = &(input->hdr_info);
 
-    /* not dv priority */
-    if (hdr_ptr->is_hdr_resolution_priority != 1)
+    /* not prefer hdr */
+    if (hdr_ptr->is_hdr_resolution_priority != 1) {
+        SYS_LOGI("not prefer hdr is_hdr_resolution_priority:%d\n", hdr_ptr->is_hdr_resolution_priority);
         return 0;
+    }
+    /* not force hdr */
+    if (hdr_ptr->hdr_policy == MESON_HDR_POLICY_FORCE
+        && !(hdr_ptr->hdr_force_mode == MESON_HDR_FORCE_MODE_HDR10
+        ||  hdr_ptr->hdr_force_mode == MESON_HDR_FORCE_MODE_HLG
+        ||  hdr_ptr->hdr_force_mode == MESON_HDR_FORCE_MODE_HDR10PLUS)) {
+        SYS_LOGI("not force hdr, hdr_policy:%d hdr_force_mode:%d\n", hdr_ptr->hdr_policy, hdr_ptr->hdr_force_mode);
+        return 0;
+    }
 
     /* hdr is enable and policy is also hdr */
     if (hdr_ptr->is_tv_supportHDR &&

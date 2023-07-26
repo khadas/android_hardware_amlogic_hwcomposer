@@ -2017,6 +2017,9 @@ hwc2_error_t Hwc2Display::setHdrConversionStrategy(bool passThrough, uint32_t nu
      * DV disable support HDR10 and HLG */
     if (!passThrough && preferredHdrOutputType) {
         std::vector<uint32_t> HdrTypes(autoAllowedHdrTypes, autoAllowedHdrTypes+numElements);
+        for (std::vector<uint32_t>::const_iterator iter = HdrTypes.begin(); iter != HdrTypes.end(); ++iter) {
+            MESON_LOGD("%s HdrTypes %d \n",__func__, *iter);
+        }
         bool containDVType =
                  std::find(HdrTypes.begin(), HdrTypes.end(), HAL_HDR_DOLBY_VISION) != HdrTypes.end();
         bool containHDR10Type =

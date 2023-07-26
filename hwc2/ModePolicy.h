@@ -98,7 +98,6 @@
 
 #define DEFAULT_EDID_CRCHEAD            "checkvalue: "
 
-
 #define UBOOTENV_BESTCOLORSPACE         "ubootenv.var.bestcolorspace"
 #define UBOOTENV_DIGITAUDIO             "ubootenv.var.digitaudiooutput"
 #define UBOOTENV_HDMIMODE               "ubootenv.var.hdmimode"
@@ -111,11 +110,20 @@
 #define UBOOTENV_HDMICOLORSPACE         "ubootenv.var.hdmi_colorspace"
 #define UBOOTENV_HDMICOLORDEPTH         "ubootenv.var.hdmi_colordepth"
 #define UBOOTENV_DOLBYSTATUS            "ubootenv.var.dolby_status"
-#define UBOOTENV_DV_TYPE                "ubootenv.var.dv_type"
+/*
+ * save user set dv mode
+ * systemcontrol output dv signal base this value
+ * 0:disable dv
+ * 1:sink-led
+ * 2:source-led
+ */
+#define UBOOTENV_USER_DV_TYPE                "ubootenv.var.user_prefer_dv_type"
+
 #define UBOOTENV_DV_ENABLE              "ubootenv.var.dv_enable"
 #define UBOOTENV_FRAC_RATE_POLICY       "ubootenv.var.frac_rate_policy"
 #define UBOOTENV_HDR_PRIORITY           "ubootenv.var.hdr_priority"
 #define UBOOTENV_SDR2HDR                "ubootenv.var.sdr2hdr"
+
 #define PROP_DEEPCOLOR_CTL              "persist.sys.open.deepcolor" // 8, 10, 12
 #define PROP_PIXFMT                     "persist.sys.open.pixfmt" // rgb, ycbcr
 #define PROP_VMX                        "persist.vendor.sys.vmx"
@@ -287,6 +295,7 @@ private:
     void getHdrStrategy(char* value);
     int32_t setHdrPriority(int32_t type);
     int32_t getHdrPriority();
+    void gethdrforcemode(char* value);
     bool isDolbyVisionEnable();
     bool isTvDolbyVisionEnable();
     bool isMboxSupportDolbyVision();

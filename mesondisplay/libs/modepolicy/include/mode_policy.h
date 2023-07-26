@@ -68,6 +68,15 @@ typedef enum meson_hdr_policy {
     MESON_HDR_POLICY_FORCE = 2,
 } meson_hdr_policy_e;
 
+typedef enum meson_hdr_force_mode {
+    MESON_HDR_FORCE_MODE_INVALID    = 0,
+    MESON_HDR_FORCE_MODE_SDR        = 1,
+    MESON_HDR_FORCE_MODE_DV         = 2,
+    MESON_HDR_FORCE_MODE_HDR10      = 3,
+    MESON_HDR_FORCE_MODE_HDR10PLUS  = 4,  //need to do
+    MESON_HDR_FORCE_MODE_HLG        = 5,
+} meson_hdr_force_mode_e;
+
 typedef enum meson_connector_type {
     MESON_MODE_HDMI = 0,
     MESON_MODE_PANEL = 1,
@@ -95,7 +104,8 @@ typedef struct meson_hdr_info {
     char dv_max_mode[MESON_MODE_LEN];            /* tv dolby vision max support resolution */
     char dv_deepcolor[MESON_DV_MODE_LEN];   /* tv dolby vision deepcolor */
     meson_hdr_priority_e hdr_priority;      /* dynamic range fromat preference,0:dolby vision,1:hdr,2:sdr */
-    meson_hdr_policy_e hdr_policy;          /* dynamic range policy,0 :follow sink, 1: match content */
+    meson_hdr_policy_e hdr_policy;          /* dynamic range policy,0 :follow sink, 1: match content, 2:hdr force mode */
+    meson_hdr_force_mode_e hdr_force_mode;  /* hdr force mode,1 :force sdr, 2: force dv, 3: force hdr10, 5:force hlg*/
 } meson_hdr_info_t;
 
 typedef struct meson_connector_info {

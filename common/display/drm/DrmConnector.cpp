@@ -381,6 +381,7 @@ int32_t DrmConnector::initConversionCaps() {
     mDrmHdrConversionCaps.clear();
     if (mHdrConversionCaps) {
         uint32_t value = mHdrConversionCaps->getValue();
+        MESON_LOGD("%s mHdrCoversionCaps:0x%x",__func__, value);
         if (value & (1 << 0))
             mDrmHdrConversionCaps.push_back({DRM_INVALID, DRM_HDR10, 0});
         if (value & (1 << 1))

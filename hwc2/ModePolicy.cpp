@@ -95,12 +95,6 @@ static const char* DV_MODE_TYPE[] = {
     "LL_RGB_444_10BIT"
 };
 
-static const char* HDR_PRIORITY_TYPE[] = {
-    "0",
-    "1",
-    "2"
-};
-
 static const char* ALLM_MODE_CAP[] = {
     "0",
     "1",
@@ -414,14 +408,9 @@ int32_t ModePolicy::setHdrPriority(int32_t type) {
     getHdrUserInfo(&mConData.hdr_info);
     getDisplayMode(mCurrentMode);
     mConData.hdr_info.hdr_priority = (meson_hdr_priority_e)type;
-    setDisplayAttribute(DISPLAY_HDR_PRIORITY, HDR_PRIORITY_TYPE[type]);
 
     if (!meson_mode_support_mode(mModeConType, type, mCurrentMode)) {
         std::string value = std::to_string(type);
-        setBootEnv(UBOOTENV_HDR_PRIORITY, value.c_str());
-        if (type == MESON_DOLBY_VISION_PRIORITY) {
-            setBootEnv(UBOOTENV_DV_TYPE, mConData.hdr_info.ubootenv_dv_type);
-        }
 
         setSourceOutputMode(mCurrentMode, true);
 
@@ -473,6 +462,26 @@ int32_t ModePolicy::getHdrPriority() {
 
     MESON_LOGI("get uboot HdrPriority is [%s]", meson_hdrPriorityToString(value));
     return (int32_t)value;
+}
+
+void ModePolicy::gethdrforcemode(char* value) {
+    if (!value) {
+        MESON_LOGE("%s value is NULL\n", __FUNCTION__);
+        return;
+    }
+
+    bool ret = false;
+    char hdr_force_mode[MESON_MODE_LEN] = {0};
+
+    memset(hdr_force_mode, 0, MESON_MODE_LEN);
+    ret = getBootEnv(UBOOTENV_HDR_FORCE_MODE, hdr_force_mode);
+    if (ret) {
+        strcpy(value, hdr_force_mode);
+    } else {
+        strcpy(value, FORCE_DV);
+    }
+
+    MESON_LOGI("get hdr force mode is [%s]", value);
 }
 
 bool ModePolicy::isTvDolbyVisionEnable() {
@@ -579,15 +588,20 @@ void ModePolicy::getHdrUserInfo(meson_hdr_info_t *data) {
         return;
     }
 
+    char hdr_force_mode[MESON_MODE_LEN] = {0};
+    gethdrforcemode(hdr_force_mode);
+    data->hdr_force_mode = (meson_hdr_force_mode_e)atoi(hdr_force_mode);
+
     char hdr_policy[MESON_MODE_LEN] = {0};
     getHdrStrategy(hdr_policy);
     data->hdr_policy = (meson_hdr_policy_e)atoi(hdr_policy);
 
     data->hdr_priority = (meson_hdr_priority_e)getHdrPriority();
 
-    MESON_LOGI("hdr_policy:%d, hdr_priority :%d\n",
+    MESON_LOGI("hdr_policy:%d, hdr_priority :%d, hdr_force_mode:%d\n",
             data->hdr_policy,
-            data->hdr_priority);
+            data->hdr_priority,
+            data->hdr_force_mode);
 
     data->is_enable_dv = isDolbyVisionEnable();
     data->is_tv_supportDv = isTvSupportDolbyVision();
@@ -597,7 +611,7 @@ void ModePolicy::getHdrUserInfo(meson_hdr_info_t *data) {
 
 
     char ubootenv_dv_type[MESON_MODE_LEN];
-    bool ret = getBootEnv(UBOOTENV_DV_TYPE, ubootenv_dv_type);
+    bool ret = getBootEnv(UBOOTENV_USER_DV_TYPE, ubootenv_dv_type);
     if (ret) {
         strcpy(data->ubootenv_dv_type, ubootenv_dv_type);
     } else if (isMboxSupportDolbyVision()) {
@@ -1290,10 +1304,6 @@ void ModePolicy::saveHdmiParamToEnv() {
             setBootEnv(UBOOTENV_OUTPUTMODE, (char *)outputMode);
         }
 
-        if (strstr(outputMode, "hz") != NULL) {
-            setBootEnv(UBOOTENV_HDMIMODE, (char *)outputMode);
-        }
-
         // 2.3 save amdolby status/dv_type
         // In follow sink mode: 0:disable 1:STD(or enable dv) 2:LL YUV 3: LL RGB
         // In follow source mode: dv is disable  in uboot.
@@ -1305,9 +1315,6 @@ void ModePolicy::saveHdmiParamToEnv() {
                 sprintf(dvstatus, "%d", mSceneOutInfo.dv_type);
             }
             setBootEnv(UBOOTENV_DOLBYSTATUS, dvstatus);
-
-            sprintf(dv_type, "%d", mSceneOutInfo.dv_type);
-            setBootEnv(UBOOTENV_DV_TYPE, dv_type);
 
             setBootEnv(UBOOTENV_DV_ENABLE, mDvInfo.dv_enable);
 
@@ -1375,8 +1382,6 @@ void ModePolicy::enableDolbyVision(int DvMode) {
                 setDisplayAttribute(DISPLAY_DOLBY_VISION_POLICY, HDR_POLICY_SOURCE);
             }
         }
-
-        //setDisplayAttribute(DISPLAY_DOLBY_VISION_HDR_10_POLICY, DV_HDR_SINK_PROCESS);
     }
 
     usleep(100000);//100ms
@@ -1773,7 +1778,7 @@ void ModePolicy::setDolbyVisionEnable(int state,  output_mode_state mode_state _
         }
 
         //Save user prefer dv mode only user change dv through UI
-        setBootEnv(UBOOTENV_DV_TYPE, mConData.hdr_info.ubootenv_dv_type);
+        setBootEnv(UBOOTENV_USER_DV_TYPE, mConData.hdr_info.ubootenv_dv_type);
         setBootEnv(UBOOTENV_DV_ENABLE, mDvInfo.dv_enable);
 
         sprintf(dvstatus, "%d", state);
@@ -1933,56 +1938,57 @@ int32_t ModePolicy::setHdrConversionPolicy(bool passthrough, int32_t forceType) 
     MESON_LOGD("%s passthrough %d forceType %s",
             __func__, passthrough, hdrConversionTypeToString(forceType));
 
-    drm_hdr_capabilities_t hdrCaps;
-    mConnector->getHdrCapabilities(&hdrCaps);
-
     if (passthrough) {
-        /*follow source*/
-       if (!hdrCaps.DolbyVisionSupported) {
-           setDisplayAttribute(DISPLAY_HDR_POLICY, HDR_POLICY_SOURCE);
-           setDisplayAttribute(DISPLAY_DOLBY_VISION_POLICY, HDR_POLICY_SINK);
-       } else {
-           setDisplayAttribute(DISPLAY_DOLBY_VISION_POLICY, HDR_POLICY_SOURCE);
-           if (mConnector->supportSinkLed()) {
-               setDisplayAttribute(DISPLAY_DOLBY_VISION_LL_POLICY, DV_SINK_LED);
-           } else if (mConnector->supportSourceLed()) {
-               setDisplayAttribute(DISPLAY_DOLBY_VISION_LL_POLICY, DV_SOURCE_LED);
-           }
-       }
         setBootEnv(UBOOTENV_HDR_POLICY, HDR_POLICY_SOURCE);
+        // set current hdmi mode
+        getHdrUserInfo(&mConData.hdr_info);
+        meson_mode_set_policy_input(mModeConType, &mConData);
+        getDisplayMode(mCurrentMode);
+        setSourceOutputMode(mCurrentMode, true);
     } else {
         /*force mode need set attr before switch policy */
+        std::string type = FORCE_DV;
+        meson_hdr_priority_e priority = MESON_DOLBY_VISION_PRIORITY;
         switch (forceType) {
             case DRM_DOLBY_VISION: {
-                ret = setHdrPriority(MESON_DOLBY_VISION_PRIORITY);
+                priority = MESON_DOLBY_VISION_PRIORITY;
+                type = FORCE_DV;
                 break;
             }
-            case DRM_HDR10: {
-                if (!isMboxSupportDolbyVision()) {
-                    ret = setHdrStrategy(MESON_HDR_POLICY_FORCE, FORCE_HDR10);
-                } else {
-                    ret = setHdrPriority(MESON_HDR10_PRIORITY);
-                }
-
+            case DRM_HDR10:{
+                priority = MESON_HDR10_PRIORITY;
+                type = FORCE_HDR10;
                 break;
             }
-            case DRM_HLG: {
-                ret = setHdrStrategy(MESON_HDR_POLICY_FORCE, FORCE_HLG);
+            case DRM_HLG:{
+                priority = MESON_HDR10_PRIORITY;
+                type = FORCE_HLG;
                 break;
             }
             case DRM_INVALID: {
-                if (!isMboxSupportDolbyVision()) {
-                    ret = setHdrStrategy(MESON_HDR_POLICY_FORCE, DV_DISABLE_FORCE_SDR);
-                } else {
-                    ret = setHdrPriority(MESON_SDR_PRIORITY);
-                }
+                priority = MESON_SDR_PRIORITY;
+                type = DV_DISABLE_FORCE_SDR;
                 break;
             }
             default:
                 MESON_LOGE("setHdrConversionStrategy: error type[%d]", forceType);
                 ret = HWC2_ERROR_UNSUPPORTED;
                 break;
-        }
+            }
+
+            if (!ret) {
+                getDisplayMode(mCurrentMode);
+                meson_mode_set_policy_input(mModeConType, &mConData);
+                if (!meson_mode_support_mode(mModeConType, priority, mCurrentMode)) {
+                    setBootEnv(UBOOTENV_HDR_FORCE_MODE, type.c_str());
+                    setBootEnv(UBOOTENV_HDR_POLICY, HDR_POLICY_FORCE);
+                    getHdrUserInfo(&mConData.hdr_info);
+                    setSourceOutputMode(mCurrentMode, true);
+                } else {
+                    MESON_LOGW("%s mode check failed\n", __func__);
+                    ret = -EINVAL;
+                }
+            }
     }
 
     return ret;
@@ -2078,25 +2084,7 @@ void ModePolicy::applyDisplaySetting(bool force) {
 
     if (strstr(cur_hdr_policy.c_str(), hdr_policy) == NULL) {
         MESON_LOGI("set hdr policy from:%s to %s\n", cur_hdr_policy.c_str(), hdr_policy);
-        //hdr_policy_change = true;
-    }
-
-    if (!cvbsMode && (isMboxSupportDolbyVision() == false)) {
-        if (sys_get_bool_prop(PROP_DOLBY_VISION_FEATURE, false)) {
-            if (strstr(hdr_policy, HDR_POLICY_SINK)) {
-                setDisplayAttribute(DISPLAY_HDR_POLICY, HDR_POLICY_SINK);
-            } else if (strstr(hdr_policy, HDR_POLICY_SOURCE)) {
-                setDisplayAttribute(DISPLAY_HDR_POLICY, HDR_POLICY_SOURCE);
-            } else if (strstr(hdr_policy, HDR_POLICY_FORCE)) {
-                char hdr_force_mode[MESON_MODE_LEN] = {0};
-                memset(hdr_force_mode, 0, MESON_MODE_LEN);
-                getBootEnv(UBOOTENV_HDR_FORCE_MODE, hdr_force_mode);
-                setDisplayAttribute(DISPLAY_HDR_POLICY, HDR_POLICY_FORCE);
-                setDisplayAttribute(DISPLAY_FORCE_HDR_MODE, hdr_force_mode);
-            }
-        } else {
-            initHdrSdrMode();
-        }
+        hdr_policy_change = true;
     }
 
     // 4. check amdolby vision
@@ -2195,25 +2183,48 @@ void ModePolicy::applyDisplaySetting(bool force) {
 
         //apply hdr policy to driver sysfs
         if (hdr_policy_change) {
-            if (strstr(hdr_policy, HDR_POLICY_SINK)) {
-                setDisplayAttribute(DISPLAY_HDR_POLICY, HDR_POLICY_SINK);
-                if (isDolbyVisionEnable()) {
-                    setDisplayAttribute(DISPLAY_DOLBY_VISION_POLICY, HDR_POLICY_SINK);
+            //box not support dv or dv disable
+            if (!cvbsMode && (isDolbyVisionEnable() == false)) {
+                if (strstr(hdr_policy, HDR_POLICY_SINK)) {
+                    setDisplayAttribute(DISPLAY_HDR_POLICY, HDR_POLICY_SINK);
+                } else if (strstr(hdr_policy, HDR_POLICY_SOURCE)) {
+                    setDisplayAttribute(DISPLAY_HDR_POLICY, HDR_POLICY_SOURCE);
+                } else if (strstr(hdr_policy, HDR_POLICY_FORCE)) {
+                    char hdr_force_mode[MESON_MODE_LEN] = {0};
+                    memset(hdr_force_mode, 0, MESON_MODE_LEN);
+                    getBootEnv(UBOOTENV_HDR_FORCE_MODE, hdr_force_mode);
+                    setDisplayAttribute(DISPLAY_HDR_POLICY, HDR_POLICY_FORCE);
+                    setDisplayAttribute(DISPLAY_FORCE_HDR_MODE, hdr_force_mode);
                 }
-            } else if (strstr(hdr_policy, HDR_POLICY_SOURCE)) {
-                setDisplayAttribute(DISPLAY_HDR_POLICY, HDR_POLICY_SOURCE);
-                if (isDolbyVisionEnable()) {
+            } else if (!cvbsMode) {
+                if (strstr(hdr_policy, HDR_POLICY_SINK)) {
+                    setDisplayAttribute(DISPLAY_DOLBY_VISION_POLICY, HDR_POLICY_SINK);
+                } else if (strstr(hdr_policy, HDR_POLICY_SOURCE)) {
                     setDisplayAttribute(DISPLAY_DOLBY_VISION_POLICY, HDR_POLICY_SOURCE);
+                } else if (strstr(hdr_policy, HDR_POLICY_FORCE)) {
+                    char hdr_force_mode[MESON_MODE_LEN] = {0};
+                    memset(hdr_force_mode, 0, MESON_MODE_LEN);
+                    getBootEnv(UBOOTENV_HDR_FORCE_MODE, hdr_force_mode);
+                    if (strstr(hdr_force_mode, FORCE_DV)) {
+                        setDisplayAttribute(DISPLAY_DOLBY_VISION_POLICY, HDR_POLICY_FORCE);
+                        setDisplayAttribute(DISPLAY_DOLBY_VISION_MODE, FORCE_DV);
+                    } else if (strstr(hdr_force_mode, FORCE_HDR10)) {
+                        setDisplayAttribute(DISPLAY_DOLBY_VISION_POLICY, HDR_POLICY_FORCE);
+                        setDisplayAttribute(DISPLAY_DOLBY_VISION_MODE, FORCE_HDR10);
+                    } else if (strstr(hdr_force_mode, DV_DISABLE_FORCE_SDR)) {
+                        setDisplayAttribute(DISPLAY_DOLBY_VISION_POLICY, HDR_POLICY_FORCE);
+                        // 8bit or not
+                        std::string cur_ColorAttribute;
+                        getDisplayAttribute(DISPLAY_HDMI_COLOR_ATTR, cur_ColorAttribute);
+                        if (cur_ColorAttribute.find("8bit", 0) != std::string::npos) {
+                            setDisplayAttribute(DISPLAY_DOLBY_VISION_MODE, DV_ENABLE_FORCE_SDR_8BIT);
+                        } else {
+                            setDisplayAttribute(DISPLAY_DOLBY_VISION_MODE, DV_ENABLE_FORCE_SDR_10BIT);
+                        }
+                    }
                 }
             }
         }
-
-#if 0
-        //apply hdr priority to driver sysfs
-        if (hdr_priority_change) {
-            setDisplayAttribute(DISPLAY_HDR_PRIORITY, HDR_PRIORITY_TYPE[hdr_priority]);
-        }
-#endif
 
         //set hdmi mode
         setDisplayMode(final_displaymode);
@@ -2289,10 +2300,7 @@ void ModePolicy::applyDisplaySetting(bool force) {
     getBootEnv(UBOOTENV_DIGITAUDIO, value);
     setDigitalMode(value);
 
-    if ((mState == OUTPUT_MODE_STATE_INIT) ||
-         (mState == OUTPUT_MODE_STATE_POWER)) {
-        saveHdmiParamToEnv();
-    }
+    saveHdmiParamToEnv();
 }
 
 int32_t ModePolicy::initialize() {
@@ -2612,7 +2620,7 @@ void ModePolicy::getConnectorUserData(struct meson_policy_in* data, hdmi_dv_info
     MESON_LOGI("dv_enable:%s\n", dinfo->dv_enable);
 
     char ubootenv_dv_type[MESON_MODE_LEN];
-    ret = getBootEnv(UBOOTENV_DV_TYPE, ubootenv_dv_type);
+    ret = getBootEnv(UBOOTENV_USER_DV_TYPE, ubootenv_dv_type);
     if (ret) {
         strcpy(dinfo->ubootenv_dv_type, ubootenv_dv_type);
     } else if (isMboxSupportDolbyVision()) {
