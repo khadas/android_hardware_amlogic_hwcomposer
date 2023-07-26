@@ -601,6 +601,12 @@ int32_t DrmConnector::setAutoLowLatencyMode(bool on) {
         return HWC2_ERROR_UNSUPPORTED;
     }
     if (isTvSupportALLM()) {
+        if (on) {
+            sysfs_set_string(LOW_LATENCY, LOW_LATENCY_ENABLE);
+        } else {
+            sysfs_set_string(LOW_LATENCY, LOW_LATENCY_DISABLE);
+        }
+
         return sc_set_hdmi_allm(on);
     } else {
         return HWC2_ERROR_UNSUPPORTED;

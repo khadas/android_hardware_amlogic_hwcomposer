@@ -19,6 +19,9 @@
 #include <BasicTypes.h>
 
 #define DEFAULT_DISPLAY_DPI 160
+#define LOW_LATENCY         "/sys/module/aml_media/parameters/use_low_latency"
+#define LOW_LATENCY_DISABLE           "0"
+#define LOW_LATENCY_ENABLE            "1"
 
 class HwDisplayCrtc;
 

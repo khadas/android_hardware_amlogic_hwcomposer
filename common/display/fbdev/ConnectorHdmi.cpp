@@ -261,10 +261,16 @@ bool ConnectorHdmi::checkFracMode(const drm_mode_info_t & mode) {
 }
 
 int32_t ConnectorHdmi::setAutoLowLatencyMode(bool on) {
-    if (isTvSupportALLM())
+    if (isTvSupportALLM()) {
+        if (on) {
+            sysfs_set_string(LOW_LATENCY, LOW_LATENCY_ENABLE);
+        } else {
+            sysfs_set_string(LOW_LATENCY, LOW_LATENCY_DISABLE);
+        }
         return sc_set_hdmi_allm(on);
-    else
+    } else {
         return HWC2_ERROR_UNSUPPORTED;
+    }
 }
 
 std::string ConnectorHdmi::getCurrentHdrType() {

@@ -1779,6 +1779,11 @@ int32_t ModePolicy::setAutoLowLatencyMode(bool enabled) {
             return HWC2_ERROR_UNSUPPORTED;
         }
 
+        if (enabled) {
+            sysfs_set_string(LOW_LATENCY, LOW_LATENCY_ENABLE);
+        } else {
+            sysfs_set_string(LOW_LATENCY, LOW_LATENCY_DISABLE);
+        }
         setALLMMode(enabled);
         return HWC2_ERROR_NONE;
     }
