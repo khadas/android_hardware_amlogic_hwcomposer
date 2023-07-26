@@ -1679,6 +1679,12 @@ int MultiplanesWithHRComposition::commit() {
             bool bDumpPlane = true;
             bool hasVtBuffer = false;
             for (auto it = mDIComposerFbs.begin(); it != mDIComposerFbs.end(); ++it) {
+                if ((*it)->isVtNeedClearFrameOrShowColorBuffer()) {
+                    MESON_LOGV("%s, layerId(%" PRIu64 ") will blank plane", __func__, fb->mId);
+                    plane->setPlane(fb, presentZorder, BLANK_FOR_NO_CONTENT);
+                    continue;
+                }
+
                 if ((*it)->isVtBuffer())
                     hasVtBuffer = true;
 
