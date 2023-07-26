@@ -41,8 +41,8 @@ static const char* DISPLAY_MODE_LIST[] = {
     "576cvbs",      // MODE_576CVBS
     "720p50hz",     // MODE_720P50HZ
     "720p60hz",     // MODE_720P
-    "720p100hz",    // MODE_720P100HZ
-    "720p120hz",    // MODE_720P120HZ
+    "1280x720p100hz",    // MODE_720P100HZ
+    "1280x720p120hz",    // MODE_720P120HZ
     "768p50hz",     // MODE_768P50HZ
     "768p60hz",     // MODE_768P60HZ
     "1080p24hz",    // MODE_1080P24HZ
@@ -52,8 +52,8 @@ static const char* DISPLAY_MODE_LIST[] = {
     "1080p50hz",    // MODE_1080P50HZ
     "1080p59hz",    // MODE_1080P59HZ
     "1080p60hz",    // MODE_1080P
-    "1080p100hz",   // MODE_1080P_100HZ
-    "1080p120hz",   // MODE_1080P_120HZ
+    "1920x1080p100hz",   // MODE_1080P_100HZ
+    "1920x1080p120hz",   // MODE_1080P_120HZ
     "3840x1080p100hz", // MODE_4K1K100HZ
     "3840x1080p119hz", // MODE_4K1K119HZ
     "3840x1080p120hz", // MODE_4K1K120HZ
@@ -64,8 +64,10 @@ static const char* DISPLAY_MODE_LIST[] = {
     "2160p50hz",    // MODE_4K2K50HZ
     "2160p59hz",    // MODE_4K2K59HZ
     "2160p60hz",    // MODE_4K2K60HZ
-    "2160p100hz",   // MODE_4K2K100HZ
-    "2160p120hz",   // MODE_4K2K120HZ
+    "3840x2160p100hz",   // MODE_4K2K100HZ
+    "3840x2160p119hz",   // MODE_4K2K119HZ
+    "3840x2160p120hz",   // MODE_4K2K120HZ
+    "3840x2160p144hz",   // MODE_4K2K144HZ
     "smpte24hz",    // MODE_4K2KSMPTE
     "smpte30hz",    // MODE_4K2KSMPTE30HZ
     "smpte50hz",    // MODE_4K2KSMPTE50HZ

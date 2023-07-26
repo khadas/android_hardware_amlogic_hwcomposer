@@ -98,6 +98,7 @@ static struct vmode_match_s vmode_match_table[] = {
 	{"smpte120hz",    VMODE_4K2K_SMPTE_120HZ},
 	{"4k2k5g",        VMODE_4K2K_FAKE_5G},
 	{"2160p60hz420",  VMODE_4K2K_60HZ_Y420},
+	{"3840x2160p144hz",    VMODE_4K2K_144HZ},
 	{"3840x2160p120hz",    VMODE_4K2K_120HZ},
 	{"3840x2160p100hz",    VMODE_4K2K_100HZ},
 	{"2160p60hz",     VMODE_4K2K_60HZ},
@@ -719,7 +720,20 @@ static const struct vinfo_s tv_info[] = {
 	},
 #endif
 	{ /* VMODE_4K2K_120HZ */
-		.name              = "2160p120hz",
+		.name              = "3840x2160p144hz",
+		.mode              = VMODE_4K2K_144HZ,
+		.width             = 3840,
+		.height            = 2160,
+		.field_height      = 2160,
+		.aspect_ratio_num  = 16,
+		.aspect_ratio_den  = 9,
+		.sync_duration_num = 144,
+		.sync_duration_den = 1,
+		.video_clk         = 594000000,
+		.viu_color_fmt     = TVIN_YUV444,
+	},
+	{ /* VMODE_4K2K_120HZ */
+		.name              = "3840x2160p120hz",
 		.mode              = VMODE_4K2K_120HZ,
 		.width             = 3840,
 		.height            = 2160,
@@ -732,7 +746,7 @@ static const struct vinfo_s tv_info[] = {
 		.viu_color_fmt     = TVIN_YUV444,
 	},
 	{ /* VMODE_4K2K_100HZ */
-		.name              = "2160p100hz",
+		.name              = "3840x2160p100hz",
 		.mode              = VMODE_4K2K_100HZ,
 		.width             = 3840,
 		.height            = 2160,
@@ -1298,6 +1312,7 @@ int want_hdmi_mode(enum vmode_e mode)
 	    || (mode == VMODE_4K2K_60HZ_Y420)
 	    || (mode == VMODE_4K2K_100HZ)
 	    || (mode == VMODE_4K2K_120HZ)
+	    || (mode == VMODE_4K2K_144HZ)
 	    || (mode == VMODE_8K4K_24HZ)
 	    || (mode == VMODE_8K4K_25HZ)
 	    || (mode == VMODE_8K4K_30HZ)
