@@ -151,6 +151,11 @@ int32_t VideoComposerDev::setFrames(
                 mDrvFd, fb->mId, fb->mZorder, drmFbTypeToString(fbType), vFrameInfo->fd,
                 vFrameInfo->buffer_w, vFrameInfo->buffer_h,
                 vFrameInfo->stride_in_pixel, vFrameInfo->aligned_height, vFrameInfo->bufferFormat);
+
+        String8 layerInfo;
+        layerInfo.appendFormat("layerInfo(%" PRIu64 " %s %u)",
+                fb->mId, drmFbTypeToString(fbType), fb->getVideoTimestamp());
+        ATRACE_NAME(layerInfo.string());
     }
 
     if (mVideoFramesInfo.frame_count == 0) {

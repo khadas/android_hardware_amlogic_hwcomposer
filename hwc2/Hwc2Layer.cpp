@@ -188,7 +188,7 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
         if (bufFd >= 0) {
             mPreUvmBufferFd = dup(bufFd);
             attachUvmBuffer(mPreUvmBufferFd);
-            setVideoType(bufFd);
+            getVideoInfoFromUVM(bufFd);
         }
     } else if (am_gralloc_is_omx_metadata_buffer(buffer)) {
         int tunnel = 0;
@@ -543,7 +543,7 @@ void Hwc2Layer::updateVtBuffer() {
     mVtUpdate = true;
     mVtBufferFd = mQueueItems[0].mVtBufferFd;
     mTimestamp = mQueueItems[0].mTimeStamp;
-    bool isVideoTypeChange = setVideoType(mVtBufferFd);
+    bool isVideoTypeChange = getVideoInfoFromUVM(mVtBufferFd);
 
     diffAdded = mTimestamp - mPreviousTimestamp;
     mPreviousTimestamp = mTimestamp;
@@ -1079,37 +1079,40 @@ void Hwc2Layer::onNeedShowTempBufferWithStatus(
 }
 
 /*
- * get video type from uvm driver
+ * get video info from uvm driver
  *
  * @param fd     [in] buffer fd
  *
  * return ture means video type change
  * */
-bool Hwc2Layer::setVideoType(int fd) {
+bool Hwc2Layer::getVideoInfoFromUVM(int fd) {
     /* this function is called after attachUvmBuffer*/
     bool ret = false;
-    int bufFd = -1;
     int prvAMVideoType = mAMVideoType;
+    struct uvm_fd_info videoInfo;
+    String8 layerInfo;
 
-    if (fd >= 0) {
-        bufFd = dup(fd);
-        if (bufFd >=0 && mUvmDettach) {
-            mAMVideoType = mUvmDettach->getVideoType(bufFd);
-            MESON_LOGV("[%s] [%" PRIu64 "] videoType:0x%x",
-                    __func__, mId, mAMVideoType);
+    if (fd >= 0 && mUvmDettach) {
+        memset(&videoInfo, 0, sizeof(videoInfo));
+        videoInfo.fd = fd;
 
-            if (prvAMVideoType != mAMVideoType)
-                ret = true;
-        }
-        close(bufFd);
+        mUvmDettach->getVideoInfo(videoInfo);
+        MESON_LOGV("[%s] [%" PRIu64 "] videoType:0x%x, videoTimestamp:%" PRId64,
+                __func__, mId, videoInfo.type, videoInfo.timestamp);
+
+        mAMVideoType = videoInfo.type;
+        mVideoDecTimestamp = (uint32_t)(videoInfo.timestamp / 1e9);
+
+        if (prvAMVideoType != mAMVideoType)
+            ret = true;
      }
 
+    layerInfo.appendFormat("layerInfo(%" PRIu64 " %s %u)",
+            mId, drmFbTypeToString(mFbType), mVideoDecTimestamp);
+    ATRACE_NAME(layerInfo.string());
     return ret;
 }
 
-int Hwc2Layer::getVideoType() {
-    return mAMVideoType;
-}
 /* ========================================================================= */
 
 /* ================ content change listener for videotunnel ================ */

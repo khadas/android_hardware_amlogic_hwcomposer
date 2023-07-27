@@ -36,6 +36,13 @@ enum uvm_hook_mod_type {
     PROCESS_INVALID,
 };
 
+/*get video info from uvm vframe */
+struct uvm_fd_info {
+    int fd;
+    int type;
+    uint64_t timestamp;
+};
+
 struct uvm_fd_data {
     int fd;
     int data;
@@ -58,7 +65,7 @@ public:
     int commitDisplay(const int fd, const int commit);
     int dettachBuffer(const int fd);
     int attachBuffer(const int fd);
-    int getVideoType(const int fd);
+    int getVideoInfo(struct uvm_fd_info & videoInfo);
 
 private:
     int mDrvFd;

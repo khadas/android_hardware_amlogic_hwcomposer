@@ -20,7 +20,7 @@
 #define UVM_IOC_SET_FD _IOWR(UVM_IOC_MAGIC, 3, struct uvm_fd_data)
 #define UVM_IOC_SET_INFO _IOWR(UVM_IOC_MAGIC, 7, struct uvm_hook_data)
 #define UVM_IOC_DETACH _IOWR(UVM_IOC_MAGIC, 8, struct uvm_hook_data)
-#define UVM_IOC_GET_TYPE _IOWR(UVM_IOC_MAGIC, 11, struct uvm_fd_data)
+#define UVM_IOC_GET_VIDEO_INFO _IOWR(UVM_IOC_MAGIC, 11, struct uvm_fd_info)
 
 ANDROID_SINGLETON_STATIC_INSTANCE(UvmDev)
 
@@ -90,15 +90,11 @@ int UvmDev::attachBuffer(const int fd) {
     return 0;
 }
 
-int UvmDev::getVideoType(const int fd) {
-    struct uvm_fd_data fd_data;
-    fd_data.fd = fd;
-    fd_data.data = 0;
-
-    if (ioctl(mDrvFd, UVM_IOC_GET_TYPE, &fd_data) != 0) {
-        MESON_LOGV("get %d video type failed: %s", fd, strerror(errno));
-        return 0;
+/* fd is must be video buffer fd */
+int UvmDev::getVideoInfo(struct uvm_fd_info & videoInfo) {
+    if (ioctl(mDrvFd, UVM_IOC_GET_VIDEO_INFO, &videoInfo) != 0) {
+        MESON_LOGV("get %d video info failed: %s", videoInfo.fd, strerror(errno));
+        return -1;
     }
-
-    return fd_data.data;
+    return 0;
 }

@@ -48,6 +48,7 @@ public:
     bool isRotated();
     bool isSidebandBuffer() {return mIsSidebandBuffer;}
     virtual int getVideoType() {return 0;};
+    virtual uint32_t getVideoTimestamp() {return 0;}
 
     virtual bool isFbUpdated() {return (mUpdated || mFbHandleUpdated);}
     bool isUpdated() {return mUpdated;}

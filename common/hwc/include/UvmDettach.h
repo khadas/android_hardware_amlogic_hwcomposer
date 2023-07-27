@@ -15,6 +15,8 @@
 
 #include <DrmSync.h>
 
+#include "UvmDev.h"
+
 class UvmDettach {
 public:
     UvmDettach(hwc2_layer_t layerId);
@@ -25,7 +27,7 @@ public:
     int32_t dettachUvmBuffer();
     int32_t collectUvmBuffer(const int fd, const int fence);
     int32_t releaseUvmResource();
-    int32_t getVideoType(int bufferFd);
+    int32_t getVideoInfo(struct uvm_fd_info & videoInfo);
 
     char *getDebugName() {return mName;};
 

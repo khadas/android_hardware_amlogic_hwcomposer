@@ -72,7 +72,9 @@ public:
     void clearUpdateFlag();
 
     void setLayerUpdate(bool update);
-    int getVideoType();
+    bool getVideoInfoFromUVM(int fb);
+    int getVideoType() {return mAMVideoType;}
+    uint32_t getVideoTimestamp() {return mVideoDecTimestamp;}
 
     /* video tunnel api */
     bool isVtBuffer() override;
@@ -102,7 +104,6 @@ public:
     void onNeedShowTempBuffer(vt_video_color_t colorType);
     void onNeedShowTempBufferWithStatus(
             vt_video_color_t colorType, vt_video_status_t status);
-    bool setVideoType(int fb);
     void handleDisplayDisconnect(bool connect);
 
     void adjustDisplayFrame(display_zoom_info_t & calibrateInfo);
@@ -166,6 +167,7 @@ protected:
     int mSolidColorBufferfd;
     int mPreVtBufferFd;
     int mAMVideoType;
+    uint32_t mVideoDecTimestamp;
     uint32_t mDisplayId;
     int32_t mQueuedFrames;
     int64_t mTimestamp;

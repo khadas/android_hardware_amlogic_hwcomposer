@@ -11,7 +11,6 @@
 #define UVM_DETTACH_HOLD_MAX_BUFFER (8)
 
 #include <MesonLog.h>
-#include "UvmDev.h"
 #include "UvmDettach.h"
 #include "HwcConfig.h"
 
@@ -29,8 +28,8 @@ UvmDettach::~UvmDettach() {
     releaseUvmResource();
 }
 
-int32_t UvmDettach::getVideoType(int bufferFd) {
-    return UvmDev::getInstance().getVideoType(bufferFd);
+int32_t UvmDettach::getVideoInfo(struct uvm_fd_info & videoInfo) {
+    return UvmDev::getInstance().getVideoInfo(videoInfo);
 }
 
 int32_t UvmDettach::attachUvmBuffer(int bufferFd) {
