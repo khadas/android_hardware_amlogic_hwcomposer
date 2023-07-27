@@ -20,25 +20,19 @@
 using meson::DisplayAdapter;
 using std::unique_ptr;
 
-static const char* short_option = "";
+static const char* short_option = "lc:g:s:r:G:S:F:dvw:bf:h:P:p:R:t:m:";
 static const struct option long_option[] = {
     {"list-modes", no_argument, 0, 'l'},
     {"chang-mode", required_argument, 0, 'c'},
     {"get-property", required_argument, 0, 'g'},
     {"set-property", required_argument, 0, 's'},
     {"raw-cmd", required_argument, 0, 'r'},
-    {"G", required_argument, 0, 'G'},
-    {"S", required_argument, 0, 'S'},
-    {"F", required_argument, 0, 'F'},
     {"dump-display-attribute", no_argument, 0, 'd'},
     {"vsync-timestamp", no_argument, 0, 'v'},
-    {"w",required_argument,0,'w'},
-    {"b",no_argument,0,'b'},
-    {"f",required_argument,0,'f'},
-    {"h",required_argument,0,'h'},
     {"sync-protection",required_argument,0,'P'},
     {"disable-sideband",required_argument,0,'p'},
-    {"R", required_argument, 0, 'R'},
+    {"change-type", required_argument, 0, 't'},
+    {"perferred-mode", required_argument, 0, 'm'},
     {0, 0, 0, 0}
 };
 
@@ -63,6 +57,12 @@ static void print_usage(const char* name) {
             "       -p,--disable-sideband  \t  disable [false|true]side band \n "
             "       -P,--sync Protection control \t  sync Protection control\n "
             "       -R,--set-hdr-conversionstrategy \tset [strategy] [fource type]\n"
+            "       -t,--change-type TYPE  \tchange connector type, TYPE could be 0|1|2|3, like:\n"
+            "                              \t\t0    ----DUMMY\n"
+            "                              \t\t1    ----HDMI\n"
+            "                              \t\t2    ----PANEL\n"
+            "                              \t\t3    ----CVBS\n"
+            "       -m,--perferred-mode MODE\tchange perferred mode, MODE format like:%%dx%%d@%%d width,height,refresh\n"
             "       -r,--raw-cmd           \tsend raw cmd\n", name);
 }
 
@@ -84,7 +84,7 @@ int main(int argc, char* argv[]) {
 
 
     int opt;
-    while ((opt = getopt_long_only(argc, argv, short_option, long_option, NULL)) != -1) {
+    while ((opt = getopt_long(argc, argv, short_option, long_option, NULL)) != -1) {
         switch (opt) {
             case 'l':
                 if (client->getSupportDisplayModes(displayModeList, type)) {
@@ -259,6 +259,38 @@ int main(int argc, char* argv[]) {
                       client->setHdrConversionStrategy(atoi(optarg),atoi(argv[optind]));
                       printf("setHdrConversionStrategy %s %s \n", optarg, argv[optind]);
                   }
+                break;
+            case 't':
+                if (strspn(optarg, "0123456789") != strlen(optarg))
+                {
+                    print_usage(argv[0]);
+                    break;
+                }
+                switch (atoi(optarg)) {
+                    case DisplayAdapter::CONN_TYPE_DUMMY:
+                        type = DisplayAdapter::CONN_TYPE_DUMMY;
+                        printf("Connector type changed to CONN_TYPE_DUMMY: %d\n", type);
+                        break;
+                    case DisplayAdapter::CONN_TYPE_HDMI:
+                        type = DisplayAdapter::CONN_TYPE_HDMI;
+                        printf("Connector type changed to CONN_TYPE_HDMI: %d\n", type);
+                        break;
+                    case DisplayAdapter::CONN_TYPE_PANEL:
+                        type = DisplayAdapter::CONN_TYPE_PANEL;
+                        printf("Connector type changed to CONN_TYPE_PANEL: %d\n", type);
+                        break;
+                    case DisplayAdapter::CONN_TYPE_CVBS:
+                        type = DisplayAdapter::CONN_TYPE_CVBS;
+                        printf("Connector type changed to CONN_TYPE_CVBS: %d\n", type);
+                        break;
+                    default:
+                        print_usage(argv[0]);
+                        break;
+                }
+                break;
+            case 'm':
+                client->setPerferredMode(optarg, type);
+                printf("Set perferred mode to %s\n", optarg);
                 break;
             default:
                 print_usage(argv[0]);
