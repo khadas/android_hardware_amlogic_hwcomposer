@@ -98,9 +98,7 @@
 
 #define DEFAULT_EDID_CRCHEAD            "checkvalue: "
 
-#define UBOOTENV_BESTCOLORSPACE         "ubootenv.var.bestcolorspace"
 #define UBOOTENV_DIGITAUDIO             "ubootenv.var.digitaudiooutput"
-#define UBOOTENV_HDMIMODE               "ubootenv.var.hdmimode"
 #define UBOOTENV_TESTMODE               "ubootenv.var.testmode"
 #define UBOOTENV_CVBSMODE               "ubootenv.var.cvbsmode"
 #define UBOOTENV_OUTPUTMODE             "ubootenv.var.outputmode"
@@ -269,6 +267,11 @@ public:
     void onHotplug(bool connected) override;
     void setActiveConfig(std::string mode);
 
+    //user change display settings by UI
+    int32_t clearUserDisplayConfig();
+    int32_t setColorSpace(const char* colorspace);
+    int32_t setDvMode(int dv_mode);
+
     int32_t getPreferredBootConfig(std::string &config);
     int32_t setBootConfig(std::string &config);
     int32_t clearBootConfig();
@@ -318,9 +321,6 @@ private:
     void filterHdmiDispcap(meson_connector_info* data);
     /* color deep attr */
     bool isModeSupportDeepColorAttr(const char *mode, const char * color);
-    void getBestHdmiDeepColorAttr(const char *outputmode, char* colorAttribute);
-    void getHdmiColorAttribute(const char* outputmode, char* colorAttribute, int state);
-    void getProperHdmiColorAttribute(const char* outputmode, char* colorAttribute);
 
     bool isFrameratePriority();
     bool isSupport4K();
@@ -331,7 +331,6 @@ private:
     void getConnectorUserData(struct meson_policy_in* data, hdmi_dv_info_t *dinfo);
 
     void initHdrSdrMode();
-    void initDolbyVision(output_mode_state state);
     int updateDolbyVisionType(void);
     bool checkDolbyVisionDeepColorChanged(int state);
     bool getCurDolbyVisionState(int state, output_mode_state mode_state);
@@ -374,7 +373,6 @@ private:
     void setSinkOutputMode(const char* outputmode, bool initState);
 
     void saveDeepColorAttr(const char* mode, const char* dcValue);
-    void setDolbyVisionEnable(int state,  output_mode_state mode_state);
     void setTvDolbyVisionEnable(void);
     void setTvDolbyVisionDisable(void);
     int getDolbyVisionType();

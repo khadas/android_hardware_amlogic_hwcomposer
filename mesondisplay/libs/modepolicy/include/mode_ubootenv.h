@@ -14,6 +14,18 @@ extern "C" {
 #endif
 
 /*
+ * save user set hdmi output resolution
+ * default value is "none"
+ */
+#define UBOOTENV_HDMIMODE               "ubootenv.var.hdmimode"
+
+/*
+ * save user prefer color format
+ * default value is "none"
+ */
+#define UBOOTENV_USER_COLORATTRIBUTE   "ubootenv.var.user_colorattribute"
+
+/*
  * save user prefer hdr policy
  * 0:always hdr(output signal base TV)
  * 1:adaptive hdr(output signal base tv and play content)

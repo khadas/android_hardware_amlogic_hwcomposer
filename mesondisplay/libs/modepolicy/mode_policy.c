@@ -202,9 +202,10 @@ static int32_t find_resolution_index(const char *mode, int flag) {
 
 static bool is_dv_support_mode(char *mode) {
     bool validMode = false;
-    if (strlen(mode) != 0) {
-        if (strstr(mode, "hz") != NULL
-        && ((strstr(mode, "480p") == NULL) && (strstr(mode, "576p") == NULL))) {
+    if (strlen(mode) != 0 && strstr(mode, "hz") != NULL) {
+        if ((strstr(mode, "480p") == NULL) && (strstr(mode, "576p") == NULL)
+        && (strstr(mode, "smpte") == NULL) && (strstr(mode, "4096") == NULL)
+        && (strstr(mode, "i") == NULL)) {
             validMode = true;
         }
     }
@@ -562,41 +563,120 @@ static void get_best_deepcolor(struct meson_policy_in *input,
      */
 }
 
-static void hdr_scene_process(struct meson_policy_in *input,
+static bool hdr_scene_process(struct meson_policy_in *input,
                               struct meson_policy_out *output_info,
                               enum meson_mode_policy policy) {
     bool find = false;
-    SYS_LOGI(" policy:%d isBestColor:%d state:%d", policy, input->con_info.is_bestcolorspace, input->state);
-    if (policy == MESON_POLICY_BEST && input->con_info.is_bestcolorspace &&
-            ((input->state == MESON_SCENE_STATE_INIT) || (input->state == MESON_SCENE_STATE_POWER))) {
-         /*
-          * best policy enable case
-          * and except from third apk or framework set mode.
-          */
 
-         find = find_hdr_prefer_mode(input, output_info);
-#if 0
-         if (find) {
-             strcpy(mScene_output_info.final_deepcolor, Scene_output_info.final_deepcolor);
-             strcpy(mScene_output_info.final_displaymode, Scene_output_info.final_displaymode);
-         } else {
-             SYS_LOGE("%s not find hdr support mode\n", __FUNCTION__);
-         }
-#endif
+    SYS_LOGI("policy:%d isBestColor:%d state:%d", policy, input->con_info.is_bestcolorspace, input->state);
+
+    if ((input->state == MESON_SCENE_STATE_INIT) ||
+        (input->state == MESON_SCENE_STATE_POWER)) {
+        if (policy == MESON_POLICY_BEST && input->con_info.is_bestcolorspace) {
+            /*
+             * best policy enable case
+             * and except from third apk or framework set mode.
+             */
+            find = find_hdr_prefer_mode(input, output_info);
+        } else if (policy == MESON_POLICY_BEST || policy == MESON_POLICY_RESOLUTION || policy == MESON_POLICY_FRAMERATE) {
+            const char **resolutionList = NULL;
+            int resolutionList_length   = 0;
+            if (policy == MESON_POLICY_BEST) {
+                resolutionList        = MODE_FRAMERATE_FIRST;
+                resolutionList_length = ARRAY_SIZE(MODE_FRAMERATE_FIRST);
+            } else {
+                resolutionList        = MODE_RESOLUTION_FIRST;
+                resolutionList_length = ARRAY_SIZE(MODE_RESOLUTION_FIRST);
+            }
+
+            for (int j = resolutionList_length - 1; j >= 0 ; j--) {
+                /* if current mode support,use current mode */
+                meson_mode_info_t *modes_ptr = input->con_info.modes;
+
+                for (int i = 0; i < input->con_info.modes_size; i ++) {
+                    meson_mode_info_t *it = &modes_ptr[i];
+
+                    if (!strcmp(it->name, resolutionList[j])) {
+                        if (mode_support_check(resolutionList[j], input->con_info.ubootenv_colorattr)) {
+                            SYS_LOGI("%s mode:[%s], deep color:[%s]\n", __FUNCTION__, resolutionList[j], input->con_info.ubootenv_colorattr);
+                            strcpy(output_info->deepcolor, input->con_info.ubootenv_colorattr);
+                            strcpy(output_info->displaymode, resolutionList[j]);
+                            find = true;
+                            break;
+                        }
+                    }
+                }
+            }
+        } else if (input->con_info.is_bestcolorspace) {
+            const char **colorList = NULL;
+            int colorList_length   = 0;
+
+            if (!strcmp(input->cur_displaymode, MODE_4K2K60HZ) || !strcmp(input->cur_displaymode, MODE_4K2K50HZ)
+            || !strcmp(input->cur_displaymode, MODE_4K2KSMPTE60HZ) || !strcmp(input->cur_displaymode, MODE_4K2KSMPTE50HZ)
+            || !strcmp(input->cur_displaymode, MODE_4K2K100HZ) || !strcmp(input->cur_displaymode, MODE_4K2K120HZ)
+            || !strcmp(input->cur_displaymode, MODE_8K4K60HZ) || !strcmp(input->cur_displaymode, MODE_8K4K50HZ)
+            || !strcmp(input->cur_displaymode, MODE_8K4K48HZ) || !strcmp(input->cur_displaymode, MODE_8K4K30HZ)
+            || !strcmp(input->cur_displaymode, MODE_8K4K25HZ) || !strcmp(input->cur_displaymode, MODE_8K4K24HZ)) {
+                //2160p50hz 2160p60hz 3840x2160p60hz 3840x2160p50hz case
+                //use 4k color format table
+                colorList        = COLOR_ATTRIBUTE_LIST1;
+                colorList_length = ARRAY_SIZE(COLOR_ATTRIBUTE_LIST1);
+            } else {
+                //except 2160p60hz 2160p50hz 3840x2160p60hz 3840x2160p60hz case
+                //use non 4k color format table
+                colorList        = COLOR_ATTRIBUTE_LIST2;
+                colorList_length = ARRAY_SIZE(COLOR_ATTRIBUTE_LIST2);
+            }
+
+            for (int j = 0; j < colorList_length; j++) {
+                if (strstr(input->con_info.dc_cap, colorList[j]) != NULL) {
+                    if (mode_support_check(input->cur_displaymode, colorList[j])) {
+                        SYS_LOGI("%s mode:[%s], deep color:[%s]\n", __FUNCTION__, input->cur_displaymode, colorList[j]);
+                        strcpy(output_info->deepcolor, colorList[j]);
+                        strcpy(output_info->displaymode, input->cur_displaymode);
+                        find = true;
+                        break;
+                   }
+              }
+            }
+        } else {
+            //1.check mode+color format support or not
+            if (mode_support_check(input->cur_displaymode, input->con_info.ubootenv_colorattr)) {
+                SYS_LOGI("support current mode:[%s], deep color:[%s]\n", input->cur_displaymode, input->con_info.ubootenv_colorattr);
+                strcpy(output_info->deepcolor, input->con_info.ubootenv_colorattr);
+                strcpy(output_info->displaymode, input->cur_displaymode);
+                find = true;
+            } else if (is_support_HdmiMode(input, input->cur_displaymode)) {
+                SYS_LOGI("support current mode:[%s]\n", input->cur_displaymode);
+                /*
+                 * 2.check cur_displaymode support or not
+                 * if displaymode support ,and find best color format base mode.
+                 */
+                char color_attribute[MESON_MODE_LEN] = {0};
+                get_best_deepcolor(input, input->cur_displaymode, color_attribute);
+                strcpy(output_info->deepcolor, color_attribute);
+                strcpy(output_info->displaymode, input->cur_displaymode);
+                find = true;
+            }
+        }
+
+        //not find support mode and colorspace and try best policy
+        if (!find && !(policy == MESON_POLICY_BEST && input->con_info.is_bestcolorspace)) {
+            //best policy case
+            find = find_hdr_prefer_mode(input, output_info);
+        }
      } else {
-         /*
-          * best policy disable case
-          * 1.check cur_displaymode + ubootenv.var.colorattribute support or not
-          *   and except from third apk or framework set mode.
-          */
-         if (mode_support_check(input->cur_displaymode, input->con_info.ubootenv_colorattr) &&
-                 !((input->state == MESON_SCENE_STATE_SWITCH) && input->con_info.is_bestcolorspace)) {
-             SYS_LOGI("support current mode:[%s], deep color:[%s]\n",
-                     input->cur_displaymode, input->con_info.ubootenv_colorattr);
+         //switch UI case
+         //1.check cur_displaymode + ubootenv.var.colorattribute support or not
+         // and except from third apk or framework set mode.
+         if (mode_support_check(input->cur_displaymode, input->con_info.ubootenv_colorattr)
+             && !input->con_info.is_bestcolorspace) {
+             SYS_LOGI("support current mode:[%s], deep color:[%s]\n", input->cur_displaymode, input->con_info.ubootenv_colorattr);
              strcpy(output_info->deepcolor, input->con_info.ubootenv_colorattr);
              strcpy(output_info->displaymode, input->cur_displaymode);
              find = true;
          } else if (is_support_HdmiMode(input, input->cur_displaymode)) {
+             SYS_LOGI("support current mode:[%s]\n", input->cur_displaymode);
              /*
               * 2.check cur_displaymode support or not
               * if displaymode support ,and find best color format base mode.
@@ -607,22 +687,12 @@ static void hdr_scene_process(struct meson_policy_in *input,
              strcpy(output_info->displaymode, input->cur_displaymode);
              find = true;
          } else {
-             /*
-              * 3.find best hdr prefer mode
-              */
+             //3.find best hdr prefer mode
              find = find_hdr_prefer_mode(input, output_info);
-#if 0
-             if (find) {
-                 strcpy(output_info->deepcolor, Scene_output_info.final_deepcolor);
-                 strcpy(output_info->displaymode, Scene_output_info.final_displaymode);
-             } else {
-                 SYS_LOGE("%s not find hdr support mode\n", __FUNCTION__);
-             }
-#endif
          }
     }
 
-    /* TODO: not find */
+    return find;
 }
 
 
