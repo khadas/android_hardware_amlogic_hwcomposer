@@ -1284,7 +1284,6 @@ void ModePolicy::saveHdmiParamToEnv() {
         char colorDepth[MESON_MODE_LEN] = {0};
         char colorSpace[MESON_MODE_LEN] = {0};
         char dvstatus[MESON_MODE_LEN]   = {0};
-        char dv_type[MESON_MODE_LEN]    = {0};
         char hdr_policy[MESON_MODE_LEN] = {0};
         // 2.1 save color attr
         getDisplayAttribute(DISPLAY_HDMI_COLOR_ATTR, colorAttr);
@@ -1318,8 +1317,8 @@ void ModePolicy::saveHdmiParamToEnv() {
 
             setBootEnv(UBOOTENV_DV_ENABLE, mDvInfo.dv_enable);
 
-            MESON_LOGI("dvstatus %s dv_type %s dv_enable %s\n",
-                dvstatus, dv_type, mDvInfo.dv_enable);
+            MESON_LOGI("dvstatus %s dv_type %d dv_enable %s\n",
+                dvstatus, mSceneOutInfo.dv_type, mDvInfo.dv_enable);
 
         } else {
             MESON_LOGI("MBOX is not support dv, dvstatus %s dv_type %d dv_enable %s\n",
