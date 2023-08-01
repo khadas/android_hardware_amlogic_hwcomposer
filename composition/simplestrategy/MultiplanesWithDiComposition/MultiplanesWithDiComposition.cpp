@@ -17,12 +17,13 @@
 #include <MesonLog.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
+#include <ui/Fence.h>
 #include "HwcVideoPlane.h"
 #include "am_gralloc_ext.h"
 #include <DebugHelper.h>
 #include <HwcConfig.h>
 #include "UvmDev.h"
-#include <ui/Fence.h>
+#include "FrcDev.h"
 
 #define OSD_OUTPUT_ONE_CHANNEL         1
 
@@ -65,6 +66,7 @@ void MultiplanesWithDiComposition::init() {
     mHaveClient          = false;
     mInsideVideoFbsFlag  = false;
     mIsSideBandDisable = false;
+    mIsDisablePostProcessor = false;
 
     /*crtc scale info.*/
     mDisplayRefFb.reset();
@@ -256,9 +258,16 @@ void MultiplanesWithDiComposition::checkLayerValidate(std::shared_ptr<DrmFramebu
     }
 }
 
+bool MultiplanesWithDiComposition::handleLLM(const bool enable) {
+    // LLM need disable FRC
+    FrcDev::getInstance().enableFrc(!enable);
+    return true;
+}
+
 int MultiplanesWithDiComposition::setUpProcessor() {
-    if (DebugHelper::getInstance().disableAISRAIPQ())
+    if (DebugHelper::getInstance().disableAISRAIPQ() || mIsDisablePostProcessor)
         return 0;
+
     if (HwcConfig::AiSrProcessorEnabled()) {
         // setup AiSrprocessor
         if (!mSrProcessor.get()) {
@@ -446,7 +455,7 @@ int MultiplanesWithDiComposition::processVideoFbs() {
         else
                 isAiProcess120Enable = true;
 #endif
-        if (videoFbNum == 0 ||
+    if (videoFbNum == 0 ||
             videoFbNum - sidebandFbs.size() != 1 ||
             !isAiProcess120Enable) {
         /* Video Processor: only support one video now,
@@ -1409,6 +1418,12 @@ void MultiplanesWithDiComposition::setup(
     if (reqFlag & COMPOSE_DISABLE_SIDEBAND) {
         mIsSideBandDisable = true;
     }
+
+    if (reqFlag & COMPOSE_DISABLE_POSTPROCESSOR) {
+        mIsDisablePostProcessor = true;
+    }
+
+    handleLLM(mIsDisablePostProcessor);
 
     mCrtc = crtc;
 

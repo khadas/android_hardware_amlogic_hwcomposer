@@ -645,6 +645,9 @@ bool DrmConnector::isConnected() {
 }
 
 bool DrmConnector:: isTvSupportALLM() {
+    if (isTvType())
+        return true;
+
     return sysfs_get_int(HDMI_TX_ALLM_MODE, 0) == 1 ? true : false;
 }
 
@@ -824,9 +827,8 @@ void DrmConnector::updateHdrCaps() {
 #endif
     }
     /* for TV product*/
-    if (mType == DRM_MODE_CONNECTOR_MESON_LVDS_A || mType == DRM_MODE_CONNECTOR_MESON_LVDS_B ||
-            mType == DRM_MODE_CONNECTOR_MESON_LVDS_C || mType == DRM_MODE_CONNECTOR_MESON_VBYONE_A ||
-            mType == DRM_MODE_CONNECTOR_MESON_VBYONE_B || mType == DRM_MODE_CONNECTOR_LVDS) {
+
+    if (isTvType()) {
         constexpr int sDefaultMinLumiance = 0;
         constexpr int sDefaultMaxLumiance = 500;
 

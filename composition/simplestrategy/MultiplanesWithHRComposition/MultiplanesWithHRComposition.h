@@ -64,6 +64,7 @@ protected:
         std::shared_ptr<DrmFramebuffer> & fb, uint32_t z);
     int chooseOneVideoFb(std::shared_ptr<DrmFramebuffer> & videoFb);
     bool checkAndHandle4Mosaic(uint32_t videoZorder);
+    bool handleLLM(const bool enable);
 
     struct DisplayPair {
         uint32_t din;                           // 0: din0, 1: din1, 2:din2, 3:video1, 4:video2
@@ -134,6 +135,8 @@ protected:
     std::shared_ptr<FbProcessor> mPqProcessor;
     std::shared_ptr<FbProcessor> mColorProcessor;
     std::vector<std::shared_ptr<FbProcessor>> mProcessors;
+    bool mIsDisablePostProcessor = false;
+
     /* for 2*2 mosaic feature */
     bool m4Mosaic;
     drm_mode_info_t mDisplayMode;

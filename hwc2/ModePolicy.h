@@ -359,6 +359,7 @@ private:
     bool getGameContentTypeSupport();
     bool getSupportALLMContentTypeList(std::vector<std::string> *supportModes);
     void setALLMMode(int state);
+    bool isTvConnector();
 
     void applyDisplaySetting(bool force = false);
 

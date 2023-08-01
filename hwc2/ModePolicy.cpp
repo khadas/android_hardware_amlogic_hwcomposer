@@ -1705,6 +1705,17 @@ void ModePolicy::setALLMMode(int state) {
     }
 }
 
+bool ModePolicy::isTvConnector() {
+    auto type = mConnector->getType();
+    if (type == DRM_MODE_CONNECTOR_MESON_LVDS_A || type == DRM_MODE_CONNECTOR_MESON_LVDS_B ||
+            type == DRM_MODE_CONNECTOR_MESON_LVDS_C || type == DRM_MODE_CONNECTOR_MESON_VBYONE_A ||
+            type == DRM_MODE_CONNECTOR_MESON_VBYONE_B || type == DRM_MODE_CONNECTOR_LVDS ||
+            type == LEGACY_NON_DRM_CONNECTOR_PANEL)
+        return true;
+
+    return false;
+}
+
 /* *
  * @Description: get Current State DolbyVision State
  *
@@ -1762,15 +1773,21 @@ int ModePolicy::getDolbyVisionType() {
 }
 
 int32_t ModePolicy::setAutoLowLatencyMode(bool enabled) {
-    if (mConnector->getType() != DRM_MODE_CONNECTOR_HDMIA) {
-        return HWC2_ERROR_UNSUPPORTED;
-    }
-    if (isTvSupportALLM()) {
+    auto type = mConnector->getType();
+    if (type == DRM_MODE_CONNECTOR_HDMIA) {
+        if (!isTvSupportALLM()) {
+            return HWC2_ERROR_UNSUPPORTED;
+        }
+
         setALLMMode(enabled);
         return HWC2_ERROR_NONE;
-    } else {
-        return HWC2_ERROR_UNSUPPORTED;
     }
+
+    // do nothing for tv
+    if (isTvConnector())
+        return HWC2_ERROR_NONE;
+
+    return HWC2_ERROR_UNSUPPORTED;
 }
 
 int32_t ModePolicy::setHdrConversionPolicy(bool passthrough, int32_t forceType) {

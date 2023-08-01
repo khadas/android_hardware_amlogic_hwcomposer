@@ -345,6 +345,8 @@ protected:
     int32_t mBootConfig = -1;
     // for mode  policy
     std::shared_ptr<IModePolicy> mModePolicy;
+    // for allm
+    bool mIsDisablePostProcessor = false;
 };
 
 #endif/*HWC2_DISPLAY_H*/

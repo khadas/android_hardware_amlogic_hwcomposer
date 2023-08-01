@@ -87,6 +87,7 @@ meson_hwc_display_cc_defaults {
         "VideoComposerDev.cpp",
         "UvmDev.cpp",
         "AmVecmDev.cpp",
+        "FrcDev.cpp",
     ],
 }
 

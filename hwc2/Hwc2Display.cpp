@@ -80,6 +80,7 @@ Hwc2Display::Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer, uint32_t
     mBootConfig = -1;
     wbHnd = nullptr;
     mExpectedPresentTime = -1;
+    mIsDisablePostProcessor = false;
     memset(&mDisplayMode, 0, sizeof(mDisplayMode));
     memset(&mCalibrateInfo, 0, sizeof(mCalibrateInfo));
 }
@@ -1201,6 +1202,10 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
         compositionFlags |= COMPOSE_DISABLE_SIDEBAND;
     }
 
+    if (mIsDisablePostProcessor) {
+        compositionFlags |= COMPOSE_DISABLE_POSTPROCESSOR;
+    }
+
     /*check power mode*/
     if (mPowerMode->needBlankScreen(mPresentLayers.size())) {
         /*set all layers to dummy*/
@@ -1918,6 +1923,10 @@ hwc2_error_t Hwc2Display::setAutoLowLatencyMode(bool enabled) {
     if (mConnector->isConnected() == false) {
         return HWC2_ERROR_UNSUPPORTED;
     } else {
+        // disable post processor and trigger validate display
+        MESON_LOGD("%s = %d", __func__, enabled);
+        mIsDisablePostProcessor = enabled;
+        mOutsideChanged = true;
         if (mModePolicy) {
             return (hwc2_error_t)mModePolicy->setAutoLowLatencyMode(enabled);
         }

@@ -64,6 +64,7 @@ protected:
         std::shared_ptr<DrmFramebuffer> & fb, uint32_t z);
     int chooseOneVideoFb(std::shared_ptr<DrmFramebuffer> & videoFb);
     void checkLayerValidate(std::shared_ptr<DrmFramebuffer> & fb);
+    bool handleLLM(const bool enable);
 
     struct DisplayPair {
         uint32_t din;                           // 0: din0, 1: din1, 2:din2, 3:video1, 4:video2
@@ -135,6 +136,7 @@ protected:
     std::shared_ptr<FbProcessor> mPqProcessor;
     std::shared_ptr<FbProcessor> mColorProcessor;
     std::vector<std::shared_ptr<FbProcessor>> mProcessors;
+    bool mIsDisablePostProcessor = false;
 
     //For White board
     bool mWhiteBoardMode = false;

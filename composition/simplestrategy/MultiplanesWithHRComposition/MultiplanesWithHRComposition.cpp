@@ -22,6 +22,7 @@
 #include <DebugHelper.h>
 #include <HwcConfig.h>
 #include "UvmDev.h"
+#include "FrcDev.h"
 
 #define OSD_OUTPUT_ONE_CHANNEL         1
 
@@ -70,6 +71,7 @@ void MultiplanesWithHRComposition::init() {
     mInsideVideoFbsFlag  = false;
     mVsyncOverDefault = false;
     m4Mosaic = false;
+    mIsDisablePostProcessor = false;
 
     /*crtc scale info.*/
     mDisplayRefFb.reset();
@@ -346,10 +348,16 @@ bool MultiplanesWithHRComposition::checkAndHandle4Mosaic(uint32_t videoZorder) {
     return true;
 }
 
+bool MultiplanesWithHRComposition::handleLLM(const bool enable) {
+    // LLM need disable FRC
+    FrcDev::getInstance().enableFrc(!enable);
+    return true;
+}
 
 int MultiplanesWithHRComposition::setUpProcessor() {
-    if (DebugHelper::getInstance().disableAISRAIPQ())
+    if (DebugHelper::getInstance().disableAISRAIPQ() || mIsDisablePostProcessor)
         return 0;
+
     if (HwcConfig::AiSrProcessorEnabled()) {
         // setup AiSrprocessor
         if (!mSrProcessor.get()) {
