@@ -1076,7 +1076,8 @@ int32_t meson_mode_support_mode(int32_t connector, int32_t type, char *mode) {
 
             if (!strcmp(it->name, dv_displaymode)) {
                 max_dv_ptr = it;
-            } else if (!strcmp(it->name, mode)) {
+            }
+            if (!strcmp(it->name, mode)) {
                 current_ptr =it;
             }
         }
