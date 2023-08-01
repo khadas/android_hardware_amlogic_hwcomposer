@@ -606,6 +606,10 @@ static bool hdr_scene_process(struct meson_policy_in *input,
                         }
                     }
                 }
+
+                if (find) {
+                    break;
+                }
             }
         } else if (input->con_info.is_bestcolorspace) {
             const char **colorList = NULL;
