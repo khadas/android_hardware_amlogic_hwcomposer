@@ -105,31 +105,38 @@ void MesonHwc2::dump(uint32_t* outSize, char* outBuffer) {
     strncpy(outBuffer, dumpstr.string(), dumpstr.size() > DUMP_STR_LEN ? DUMP_STR_LEN : dumpstr.size());
 }
 
-void MesonHwc2::getCapabilities(uint32_t* outCount,
-    int32_t* outCapabilities) {
+// TODO: refactor when android t branch out
+void MesonHwc2::getCapabilities(uint32_t* outCount, int32_t* outCapabilities) {
+    *outCount = 2;
+
 #ifdef ENABLE_AIDL
+#if (PLATFORM_SDK_VERSION >= 34)
+    auto connectorType = HwcConfig::getConnectorType(0);
     //TODO: enable boot display config when G support it for dual display
     if (HwcConfig::getDisplayNum() == 1) {
-        *outCount = 3;
+        // panel does not support hdr output control
+        if (connectorType == HWC_HDMI_CVBS || connectorType == DRM_MODE_CONNECTOR_HDMIA) {
+            *outCount = 3;
+        }
+    } else {
+        *outCount = 1;
     }
-    else {
-        *outCount = 2;
-    }
-#else
-    *outCount = 2;
+#endif
 #endif
 
     if (outCapabilities) {
         outCapabilities[0] = HWC2_CAPABILITY_SIDEBAND_STREAM;
-        outCapabilities[1] = HWC2_CAPABILITY_SKIP_VALIDATE;
+        if (*outCount >= 2)
+            outCapabilities[1] = HWC2_CAPABILITY_SKIP_VALIDATE;
 #ifdef ENABLE_AIDL
         if (HwcConfig::getDisplayNum() == 1) {
-            outCapabilities[2] = HWC3_CAPABILITY_BOOT_DISPLAY_CONFIG;
+            outCapabilities[1] = HWC3_CAPABILITY_BOOT_DISPLAY_CONFIG;
 #if (PLATFORM_SDK_VERSION >= 34)
-            outCapabilities[1] = HWC3_HDR_OUTPUT_CONVERSION_CONFIG;
+            if (connectorType == HWC_HDMI_CVBS || connectorType == DRM_MODE_CONNECTOR_HDMIA) {
+                outCapabilities[2] = HWC3_HDR_OUTPUT_CONVERSION_CONFIG;
+            }
 #endif
         }
-
 #endif
     }
 }
