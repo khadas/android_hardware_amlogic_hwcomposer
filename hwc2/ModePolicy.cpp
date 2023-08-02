@@ -1102,8 +1102,12 @@ void ModePolicy::saveHdmiParamToEnv() {
         // In follow sink mode: 0:disable 1:STD(or enable dv) 2:LL YUV 3: LL RGB
         // In follow source mode: dv is disable  in uboot.
         if (isMboxSupportDolbyVision()) {
+            char hdr_force_mode[MESON_MODE_LEN] = {0};
+            memset(hdr_force_mode, 0, MESON_MODE_LEN);
+            getBootEnv(UBOOTENV_HDR_FORCE_MODE, hdr_force_mode);
             getHdrStrategy(hdr_policy);
-            if (!strcmp(hdr_policy, HDR_POLICY_SOURCE)) {
+            if (!strcmp(hdr_policy, HDR_POLICY_SOURCE) ||
+                   (!strcmp(hdr_policy, HDR_POLICY_FORCE) && !strcmp(hdr_force_mode, FORCE_HDR10))) {
                 sprintf(dvstatus, "%d", 0);
             } else {
                 sprintf(dvstatus, "%d", mSceneOutInfo.dv_type);
@@ -1112,8 +1116,8 @@ void ModePolicy::saveHdmiParamToEnv() {
 
             setBootEnv(UBOOTENV_DV_ENABLE, mDvInfo.dv_enable);
 
-            MESON_LOGI("dvstatus %s dv_type %d dv_enable %s\n",
-                dvstatus, mSceneOutInfo.dv_type, mDvInfo.dv_enable);
+            MESON_LOGI("dvstatus %s dv_type %d dv_enable %s hdr_policy %s hdr_force_mode %s \n",
+                dvstatus, mSceneOutInfo.dv_type, mDvInfo.dv_enable, hdr_policy, hdr_force_mode);
 
         } else {
             MESON_LOGI("MBOX is not support dv, dvstatus %s dv_type %d dv_enable %s\n",
