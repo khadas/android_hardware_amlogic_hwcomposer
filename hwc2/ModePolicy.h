@@ -139,13 +139,12 @@
 #define DV_ENABLE_FORCE_SDR_10BIT       "4"
 #define DV_ENABLE_FORCE_SDR_8BIT        "5"
 
-#define DV_DISABLE_FORCE_SDR            "1"
-
 #define DV_SINK_LED                     "0"
 #define DV_SOURCE_LED                   "1"
 #define FORCE_DV                        "2"
 #define FORCE_HDR10                     "3"
 #define FORCE_HLG                       "5"
+#define DV_DISABLE_FORCE_SDR            "1"
 
 #define MODE_480I                       "480i60hz"
 #define MODE_480P                       "480p60hz"
