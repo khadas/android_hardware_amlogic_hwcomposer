@@ -96,6 +96,35 @@ bool DisplayAdapterRemote::setPerferredMode(const string& mode, ConnectorType di
     return true;
 }
 
+bool DisplayAdapterRemote::setColorSpace(const string& colorspace, ConnectorType displayType) {
+    Json::Value cmd;
+    IF_SERVER_NOT_READY_RETURN(false);
+    cmd["cmd"] = "setColorSpace";
+    cmd["p_colorspace"] = colorspace;
+    cmd["p_displayType"] = displayType;
+    ipc->send_request(cmd);
+    return true;
+}
+
+bool DisplayAdapterRemote::clearUserDisplayConfig(ConnectorType displayType) {
+    Json::Value cmd;
+    IF_SERVER_NOT_READY_RETURN(false);
+    cmd["cmd"] = "clearUserDisplayConfig";
+    cmd["p_displayType"] = displayType;
+    ipc->send_request(cmd);
+    return true;
+}
+
+bool DisplayAdapterRemote::setDvMode(const string& dv_mode, ConnectorType displayType) {
+    Json::Value cmd;
+    IF_SERVER_NOT_READY_RETURN(false);
+    cmd["cmd"] = "setDvMode";
+    cmd["p_dv_mode"] = dv_mode;
+    cmd["p_displayType"] = displayType;
+    ipc->send_request(cmd);
+    return true;
+}
+
 bool DisplayAdapterRemote::captureDisplayScreen(const native_handle_t **outBufferHandle) {
     IF_SERVER_NOT_READY_RETURN(false);
     return ipc->captureDisplayScreen(outBufferHandle);

@@ -44,6 +44,9 @@ public:
     bool enableSyncProtection(bool mode) override;
     bool disableSidebandStream(bool isDisable) override;
     bool setPerferredMode(const string& mode, ConnectorType displayType) override;
+    bool setColorSpace(const string& colorspace, ConnectorType displayType) override;
+    bool clearUserDisplayConfig(ConnectorType displayType) override;
+    bool setDvMode(const string& dv_mode, ConnectorType displayType) override;
 
     static std::unique_ptr<DisplayAdapter> create();
     DisplayAdapterRemote();

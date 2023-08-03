@@ -125,6 +125,26 @@ public:
         return false;
     };
 
+    virtual bool setColorSpace(const string& colorspace, ConnectorType displayType) {
+        UNUSED(colorspace);
+        UNUSED(displayType);
+        NOTIMPLEMENTED;
+        return false;
+    };
+
+    virtual bool clearUserDisplayConfig(ConnectorType displayType) {
+        UNUSED(displayType);
+        NOTIMPLEMENTED;
+        return false;
+    };
+
+    virtual bool setDvMode(const string& dv_mode, ConnectorType displayType) {
+        UNUSED(dv_mode);
+        UNUSED(displayType);
+        NOTIMPLEMENTED;
+        return false;
+    };
+
     virtual bool captureDisplayScreen(const native_handle_t **outBufferHandle) = 0;
 
     virtual bool getWhiteBoardHanle(const native_handle_t **outBufferHandle, int& fd) = 0;

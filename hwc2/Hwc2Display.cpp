@@ -1732,6 +1732,36 @@ hwc2_error_t Hwc2Display::setPerferredMode(std::string mode) {
     }
 }
 
+hwc2_error_t Hwc2Display::setColorSpace(std::string colorspace) {
+    if (mModePolicy != NULL) {
+        return (hwc2_error_t)mModePolicy->setColorSpace(colorspace);
+    } else {
+        MESON_LOGE("Hwc2Display (%s) setColorSpace miss valid DisplayConfigure.",
+            getName());
+        return HWC2_ERROR_BAD_DISPLAY;
+    }
+}
+
+hwc2_error_t Hwc2Display::clearUserDisplayConfig() {
+    if (mModePolicy != NULL) {
+        return (hwc2_error_t)mModePolicy->clearUserDisplayConfig();
+    } else {
+        MESON_LOGE("Hwc2Display (%s) clearUserDisplayConfig miss valid DisplayConfigure.",
+            getName());
+        return HWC2_ERROR_BAD_DISPLAY;
+    }
+}
+
+hwc2_error_t Hwc2Display::setDvMode(std::string dv_mode) {
+    if (mModePolicy != NULL) {
+        return (hwc2_error_t)mModePolicy->setDvMode(dv_mode);
+    } else {
+        MESON_LOGE("Hwc2Display (%s) setDvMode miss valid DisplayConfigure.",
+            getName());
+        return HWC2_ERROR_BAD_DISPLAY;
+    }
+}
+
 bool Hwc2Display::isLayerHideForDebug(hwc2_layer_t id) {
     if (DebugHelper::getInstance().disableRefresh())
         return true;

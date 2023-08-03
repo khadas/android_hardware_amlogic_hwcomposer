@@ -856,6 +856,21 @@ int32_t MesonHwc2::setPerferredMode(std::string mode) {
     return hwcDisplay->setPerferredMode(mode);
 }
 
+int32_t MesonHwc2::setColorSpace(std::string colorspace) {
+    GET_HWC_DISPLAY(0);
+    return hwcDisplay->setColorSpace(colorspace);
+}
+
+int32_t MesonHwc2::clearUserDisplayConfig() {
+    GET_HWC_DISPLAY(0);
+    return hwcDisplay->clearUserDisplayConfig();
+}
+
+int32_t MesonHwc2::setDvMode(std::string dv_mode) {
+    GET_HWC_DISPLAY(0);
+    return hwcDisplay->setDvMode(dv_mode);
+}
+
 /**********************Internal Implement********************/
 
 class MesonHwc2Observer

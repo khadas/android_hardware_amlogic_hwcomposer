@@ -804,12 +804,12 @@ int32_t ModePolicy::clearUserDisplayConfig() {
     return 0;
 }
 
-int32_t ModePolicy::setColorSpace(const char* colorspace) {
-    SYS_LOGI("user change color space to %s\n", colorspace);
-    setBootEnv(UBOOTENV_USER_COLORATTRIBUTE, colorspace);
+int32_t ModePolicy::setColorSpace(std::string &colorspace) {
+    SYS_LOGI("user change color space to %s\n", colorspace.c_str());
+    setBootEnv(UBOOTENV_USER_COLORATTRIBUTE, colorspace.c_str());
 
     getDisplayMode(mCurrentMode);
-    saveDeepColorAttr(mCurrentMode, colorspace);
+    saveDeepColorAttr(mCurrentMode, colorspace.c_str());
 
     //2. set hdmi mode for trigger setting
     setSourceOutputMode(mCurrentMode);
@@ -1558,38 +1558,29 @@ void ModePolicy::setTvDolbyVisionDisable() {
 }
 
 
-int32_t ModePolicy::setDvMode(int dv_mode) {
-    MESON_LOGI("%s dv mode:%d", __FUNCTION__, dv_mode);
+int32_t ModePolicy::setDvMode(std::string &dv_mode) {
+    MESON_LOGI("%s dv mode:%s", __FUNCTION__, dv_mode.c_str());
 
     if (DISPLAY_TYPE_TV == mDisplayType) {
         //1. update prop
-        char tmp[10];
-        sprintf(tmp, "%d", dv_mode);
-        strcpy(mConData.hdr_info.ubootenv_dv_type, tmp);
+        strcpy(mConData.hdr_info.ubootenv_dv_type, dv_mode.c_str());
 
-        if (dv_mode == DOLBY_VISION_SET_DISABLE) {
+        //2. apply to driver
+        if (strstr(dv_mode.c_str(), "0")) {
             strcpy(mDvInfo.dv_enable, "0");
-        } else {
-            strcpy(mDvInfo.dv_enable, "1");
-        }
-
-        if (dv_mode == DOLBY_VISION_SET_DISABLE) {
             setTvDolbyVisionDisable();
         } else {
+            strcpy(mDvInfo.dv_enable, "1");
             setTvDolbyVisionEnable();
         }
 
-        //save env
+        //3. save env
         setBootEnv(UBOOTENV_DV_ENABLE, mDvInfo.dv_enable);
     } else {
         //1. update dv env
-        char tmp[10];
-        char dvstatus[MESON_MODE_LEN]   = {0};
+        strcpy(mConData.hdr_info.ubootenv_dv_type, dv_mode.c_str());
 
-        sprintf(tmp, "%d", dv_mode);
-        strcpy(mConData.hdr_info.ubootenv_dv_type, tmp);
-
-        if (dv_mode == DOLBY_VISION_SET_DISABLE) {
+        if (strstr(dv_mode.c_str(), "0")) {
             strcpy(mDvInfo.dv_enable, "0");
         } else {
             strcpy(mDvInfo.dv_enable, "1");
@@ -1598,9 +1589,10 @@ int32_t ModePolicy::setDvMode(int dv_mode) {
         //Save user prefer dv mode only user change dv through UI
         setBootEnv(UBOOTENV_USER_DV_TYPE, mConData.hdr_info.ubootenv_dv_type);
         setBootEnv(UBOOTENV_DV_ENABLE, mDvInfo.dv_enable);
+        setBootEnv(UBOOTENV_DOLBYSTATUS, dv_mode.c_str());
 
-        sprintf(dvstatus, "%d", dv_mode);
-        setBootEnv(UBOOTENV_DOLBYSTATUS, dvstatus);
+        //2. set hdmi mode for trigger setting
+        setSourceOutputMode(mCurrentMode);
     }
 
     return 0;

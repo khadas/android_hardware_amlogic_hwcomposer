@@ -70,6 +70,9 @@ public:
         uint32_t* outNumElements, hwc2_layer_t* outLayers, int32_t*  outTypes);
     int32_t setCalibrateInfo(hwc2_display_t display);
     int32_t setPerferredMode(std::string mode);
+    int32_t setColorSpace(std::string colorspace);
+    int32_t clearUserDisplayConfig();
+    int32_t setDvMode(std::string dv_mode);
 
     /*layer functions*/
     int32_t createLayer(hwc2_display_t display, hwc2_layer_t* outLayer);

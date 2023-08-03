@@ -23,6 +23,11 @@ public:
     virtual int32_t initialize() = 0;
     virtual void onHotplug(bool connected) = 0;
 
+    //user change display settings by UI
+    virtual int32_t clearUserDisplayConfig() = 0;
+    virtual int32_t setColorSpace(std::string &colorspace) = 0;
+    virtual int32_t setDvMode(std::string &dv_mode) = 0;
+
     //TODO: refactor it
     virtual void setActiveConfig(std::string mode) = 0;
 

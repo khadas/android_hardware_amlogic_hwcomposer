@@ -300,6 +300,29 @@ bool DisplayAdapterLocal::setPerferredMode(const string& mode, ConnectorType dis
     return ret;
 }
 
+bool DisplayAdapterLocal::setColorSpace(const string& colorspace, ConnectorType displayType) {
+    bool ret = false;
+    UNUSED(colorspace);
+    UNUSED(displayType);
+    NOTIMPLEMENTED;
+    return ret;
+}
+
+bool DisplayAdapterLocal::clearUserDisplayConfig(ConnectorType displayType) {
+    bool ret = false;
+    UNUSED(displayType);
+    NOTIMPLEMENTED;
+    return ret;
+}
+
+bool DisplayAdapterLocal::setDvMode(const string& dv_mode, ConnectorType displayType) {
+    bool ret = false;
+    UNUSED(dv_mode);
+    UNUSED(displayType);
+    NOTIMPLEMENTED;
+    return ret;
+}
+
 bool DisplayAdapterLocal::captureDisplayScreen(const native_handle_t **outBufferHandle) {
     *outBufferHandle = nullptr;
     return true;

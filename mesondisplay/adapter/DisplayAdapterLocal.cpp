@@ -260,6 +260,32 @@ bool DisplayAdapterLocal::setPerferredMode(
     return ret == 1 ? true : false;
 }
 
+bool DisplayAdapterLocal::setColorSpace(
+    const string& colorspace,
+    ConnectorType displayType) {
+    UNUSED(displayType);
+    MESON_LOGD("setColorSpace: %s", colorspace.c_str());
+    int32_t ret = MesonHwc2::getInstance().setColorSpace(colorspace);
+    return ret == 1 ? true : false;
+}
+
+bool DisplayAdapterLocal::clearUserDisplayConfig(
+    ConnectorType displayType) {
+    UNUSED(displayType);
+    MESON_LOGD("clearUserDisplayConfig");
+    int32_t ret = MesonHwc2::getInstance().clearUserDisplayConfig();
+    return ret == 1 ? true : false;
+}
+
+bool DisplayAdapterLocal::setDvMode(
+    const string& dv_mode,
+    ConnectorType displayType) {
+    UNUSED(displayType);
+    MESON_LOGD("setDvMode : %s", dv_mode.c_str());
+    int32_t ret = MesonHwc2::getInstance().setDvMode(dv_mode);
+    return ret == 1 ? true : false;
+}
+
 bool DisplayAdapterLocal::captureDisplayScreen(const native_handle_t **outBufferHandle) {
     // get framebuffer width and height
     uint32_t fbW = 1290;

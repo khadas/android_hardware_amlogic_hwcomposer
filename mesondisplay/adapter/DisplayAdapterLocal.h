@@ -82,6 +82,9 @@ public:
     bool disableSidebandStream(bool isDisable) override;
     bool setHdrConversionStrategy(uint32_t passThrough, uint32_t forceMode) override;
     bool setPerferredMode(const string& mode, ConnectorType displayType) override;
+    bool setColorSpace(const string& colorspace, ConnectorType displayType) override;
+    bool clearUserDisplayConfig(ConnectorType displayType) override;
+    bool setDvMode(const string& dv_mode, ConnectorType displayType) override;
 
     static std::shared_ptr<DisplayAdapter> create(DisplayAdapter::BackendType type);
     DisplayAdapterLocal();

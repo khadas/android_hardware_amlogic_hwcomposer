@@ -268,8 +268,8 @@ public:
 
     //user change display settings by UI
     int32_t clearUserDisplayConfig();
-    int32_t setColorSpace(const char* colorspace);
-    int32_t setDvMode(int dv_mode);
+    int32_t setColorSpace(std::string &colorspace);
+    int32_t setDvMode(std::string &dv_mode);
 
     int32_t getPreferredBootConfig(std::string &config);
     int32_t setBootConfig(std::string &config);
