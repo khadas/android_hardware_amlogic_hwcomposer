@@ -114,7 +114,7 @@ Hwc2Display::~Hwc2Display() {
 }
 
 void Hwc2Display::handleWBThread() {
-    if (mWhiteBoardMode) {
+    if (mWhiteBoardMode || mEnableCallBack) {
         if (!mWBDisplayThread) {
             mWBDisplayThread = std::make_shared<WBDisplayThread>(this);
         }
@@ -2663,4 +2663,18 @@ void Hwc2Display::refreshVtLayers() {
         if (layer->isVtBuffer())
             layer->vtRefresh();
     }
+}
+
+void Hwc2Display::createCallbackThread(bool mode) {
+    mEnableCallBack = mode;
+
+    //Create thread for virtualdisplay
+    if (!mInitWBDisplayThread) {
+        handleWBThread();
+        mInitWBDisplayThread = true;
+    }
+
+    mWBVsync->setEnabled(mode);
+    mObserver->refresh();
+    return;
 }

@@ -37,6 +37,7 @@ cc_library_static {
         "MesonHwc2.cpp",
         "VtDisplayThread.cpp",
         "WBDisplayThread.cpp",
+        "VirtualDisplay.cpp",
     ],
 
     // !!! static lib sequence is serious, donot change it.

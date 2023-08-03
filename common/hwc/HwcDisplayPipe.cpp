@@ -7,6 +7,9 @@
  * Description:
  */
 
+#define ATRACE_TAG ATRACE_TAG_GRAPHICS
+#include <utils/Trace.h>
+
 #include "HwcDisplayPipe.h"
 #include "FixedDisplayPipe.h"
 #include "LoopbackDisplayPipe.h"
@@ -481,3 +484,13 @@ std::shared_ptr<HwcDisplayPipe> createDisplayPipe(hwc_pipe_policy_t pipet) {
     return NULL;
 }
 
+void HwcDisplayPipe::addVirtualDisplay(std::shared_ptr<HwcDisplay> disp __unused) {
+    std::lock_guard<std::mutex> lock(mMutex);
+    for (auto statIt : mPipeStats) {
+        if (statIt.second->hwcId == 0) {
+            statIt.second->hwcVirtualDisplay = disp;
+            getPostProcessor(VDIN_POST_PROCESSOR, statIt.second->hwcVIRPostProcessor);
+            statIt.second->hwcVirtualDisplay->setPostProcessor(statIt.second->hwcVIRPostProcessor);
+        }
+    }
+}

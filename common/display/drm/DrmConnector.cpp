@@ -21,7 +21,7 @@
 #include <misc.h>
 #include <systemcontrol.h>
 
-#include "../fbdev/AmVinfo.h"
+#include "../include/AmVinfo.h"
 #include "Dv.h"
 #include "mode_ubootenv.h"
 

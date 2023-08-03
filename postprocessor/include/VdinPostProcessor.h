@@ -21,6 +21,7 @@
 #include <HwcPostProcessor.h>
 #include <FbProcessor.h>
 #include <BasicTypes.h>
+#include <Vdin.h>
 
 /*
 read back data from vdin, do processor, and repost to another
@@ -43,6 +44,11 @@ public:
     bool running();
 
     int32_t present(int flags, int32_t fence);
+    void setType(int type);
+    void setScreenSize(int w, int h);
+    void createScreenRecordProcessor();
+    void destroyScreenRecordProcessor();
+    bool getLatestcapFb(std::shared_ptr<DrmFramebuffer> & capFb);
 
 protected:
     static void * threadMain(void * data);
@@ -109,6 +115,11 @@ protected:
     bool crcvalStatus = true;
     unsigned int crcVal = 0;
 
+    int mLastIndex = -1;
+    int mType = PROCESSOR_FOR_LOOPBACK;
+
+    std::mutex mLock;
+    std::condition_variable mCondition;
 };
 
 #endif

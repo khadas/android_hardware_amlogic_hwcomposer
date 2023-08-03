@@ -7,15 +7,18 @@
  * Description:
  */
 
+#define ATRACE_TAG ATRACE_TAG_GRAPHICS
+#include <utils/Trace.h>
+
 #include <MesonLog.h>
 #include <BasicTypes.h>
 #include "VirtualDisplay.h"
 
-VirtualDisplay::VirtualDisplay(uint32_t width, uint32_t height)
-    : Hwc2Display(MESON_DUMMY_DISPLAY_ID, NULL) {
+VirtualDisplay::VirtualDisplay(uint32_t width, uint32_t height, hwc2_display_t id)
+    : Hwc2Display(NULL, id) {
     mWidth = width;
     mHeight = height;
-
+    mDisplayId = id;
     mOutputFence.reset();
     mClientFence.reset();
 }
@@ -23,7 +26,71 @@ VirtualDisplay::VirtualDisplay(uint32_t width, uint32_t height)
 VirtualDisplay::~VirtualDisplay() {
 }
 
+#define MAX_HWC_LAYERS (256)
+#define LAYER_SLOT_BITS (8)
+
+void VirtualDisplay::initLayerIdGenerator() {
+    mLayersBitmap = std::make_shared<BitsMap>(MAX_HWC_LAYERS);
+    mLayerSeq = 0;
+}
+
+hwc2_layer_t VirtualDisplay::createLayerId() {
+    hwc2_layer_t layerId = 0;
+    int idx = mLayersBitmap->getZeroBit();
+    MESON_ASSERT(idx >= 0, "Bitmap getZeroBit failed");
+    mLayersBitmap->setBit(idx);
+
+    mLayerSeq++;
+    mLayerSeq %= MAX_HWC_LAYERS;
+
+    layerId = ((idx & (MAX_HWC_LAYERS - 1)) << LAYER_SLOT_BITS) |mLayerSeq;
+    return layerId;
+}
+
+void VirtualDisplay::destroyLayerId(hwc2_layer_t id) {
+    int slotIdx = id >> LAYER_SLOT_BITS;
+    mLayersBitmap->clearBit(slotIdx);
+}
+
+hwc2_error_t VirtualDisplay::createLayer(hwc2_layer_t * outLayer __unused) {
+
+    std::shared_ptr<Hwc2Layer> layer = std::make_shared<Hwc2Layer>(mDisplayId);
+    uint32_t idx = createLayerId();
+    *outLayer = idx;
+    layer->setUniqueId(*outLayer);
+    mLayers.emplace(*outLayer, layer);
+    MESON_LOGV("%s displayId:%d, layerId:%u", __func__, mDisplayId, idx);
+
+    return HWC2_ERROR_NONE;
+}
+
+hwc2_error_t VirtualDisplay::destroyLayer(hwc2_layer_t  inLayer) {
+    //std::lock_guard<std::mutex> lock(mMutex);
+    auto layerit = mLayers.find(inLayer);
+    if (layerit == mLayers.end())
+        return HWC2_ERROR_BAD_LAYER;
+
+    std::shared_ptr<Hwc2Layer> layer = layerit->second;
+    DebugHelper::getInstance().removeDebugLayer((int)inLayer);
+    mLayers.erase(inLayer);
+
+    destroyLayerId(inLayer);
+    return HWC2_ERROR_NONE;
+}
+
+std::shared_ptr<Hwc2Layer> VirtualDisplay::getLayerById(hwc2_layer_t id) {
+    //std::lock_guard<std::mutex> lock(mMutex);
+    std::unordered_map<hwc2_layer_t, std::shared_ptr<Hwc2Layer>>::iterator it =
+    mLayers.find(id);
+
+    if (it != mLayers.end())
+        return it->second;
+
+    return NULL;
+}
+
 int32_t VirtualDisplay::initialize() {
+    initLayerIdGenerator();
     return 0;
 }
 
@@ -66,20 +133,38 @@ hwc2_error_t VirtualDisplay::setFormat(int32_t* format) {
     return HWC2_ERROR_NONE;
 }
 
-hwc2_error_t VirtualDisplay::setOutputBuffer(
-    buffer_handle_t buffer, int32_t releaseFence) {
-    /*
-    * For virtual display not support hwc, we don't save the
-    * output buffer.
-    */
-    UNUSED(buffer);
+int32_t VirtualDisplay::setPostProcessor(
+    std::shared_ptr<HwcPostProcessor> processor) {
+    ATRACE_NAME("VirtualDisplay::setPostProcessor");
+    mPostProcessor = processor;
+    mPostProcessor->start();
+    mPostProcessor->createScreenRecordProcessor();
+    mPostProcessor->setScreenSize(mWidth,mHeight);
+    mPostProcessor->present(PRESENT_CAPSCREEN,-1);
+    return 0;
+}
 
+void VirtualDisplay::stopVdin() {
+    mPostProcessor->stop();
+    mPostProcessor->destroyScreenRecordProcessor();
+}
+
+hwc2_error_t VirtualDisplay::setOutputBuffer(
+    buffer_handle_t hnd, int32_t releaseFence) {
+    ATRACE_NAME("VirtualDisplay::setOutputBuffer");
+    std::shared_ptr<DrmFramebuffer> capBuffer;
+    if (mPostProcessor && hnd) {
+        capBuffer = std::make_shared<DrmFramebuffer>(hnd, -1);
+        mPostProcessor->getLatestcapFb(capBuffer);
+    }
     mOutputFence.reset(new DrmFence(releaseFence));
+    capBuffer.reset();
     return HWC2_ERROR_NONE;
 }
 
 hwc2_error_t VirtualDisplay::validateDisplay(uint32_t* outNumTypes,
     uint32_t* outNumRequests) {
+    ATRACE_NAME("VirtualDisplay::validateDisplay");
     mChangedLayers.clear();
 
     std::unordered_map<hwc2_layer_t, std::shared_ptr<Hwc2Layer>>::iterator it;
@@ -96,10 +181,12 @@ hwc2_error_t VirtualDisplay::validateDisplay(uint32_t* outNumTypes,
     return HWC2_ERROR_NONE;
 }
 
-hwc2_error_t VirtualDisplay::presentDisplay(int32_t* outPresentFence) {
-    std::shared_ptr<DrmFence> fence = DrmFence::merge("virtual-present",
-        mOutputFence, mClientFence);
-    *outPresentFence = fence->dup();
+hwc2_error_t VirtualDisplay::presentDisplay(int32_t* outPresentFence __unused) {
+    ATRACE_NAME("VirtualDisplay::presentDisplay");
+
+    if (mPostProcessor != NULL) {
+        mPostProcessor->present(PRESENT_CAPSCREEN,-1);
+    }
     return HWC2_ERROR_NONE;
 }
 

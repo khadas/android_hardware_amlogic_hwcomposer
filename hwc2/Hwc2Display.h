@@ -204,6 +204,8 @@ public:
     bool mHideVideo = false;
     buffer_handle_t wbHnd = nullptr;
     std::shared_ptr<Hwc2DisplayObserver> mObserver;
+    virtual void createCallbackThread(bool mode);
+    bool mEnableCallBack = false;
 
 /* meson display ddk */
 public:

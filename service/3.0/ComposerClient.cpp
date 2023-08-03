@@ -330,8 +330,8 @@ ndk::ScopedAStatus ComposerClient::createVirtualDisplay(
 
     // todo create VirtualDisplay
     //*display = static_cast<VirtualDisplay *>(displayId);
-    display = nullptr;
 
+    display->display = displayId;
     return ToBinderStatus(HWC3::Error::None);
 }
 
@@ -365,7 +365,7 @@ ndk::ScopedAStatus ComposerClient::destroyVirtualDisplay(int64_t displayId) {
         mResources->removeDisplay(displayId);
     }
 
-    return ToBinderStatus(HWC3::Error::None);
+    return ToBinderStatus(err);
 }
 
 ndk::ScopedAStatus ComposerClient::executeCommands(

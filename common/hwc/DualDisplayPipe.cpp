@@ -11,6 +11,7 @@
 #include <HwcConfig.h>
 #include <MesonLog.h>
 #include <systemcontrol.h>
+#include <HwDisplayManager.h>
 
 #define DRM_DISPLAY_MODE_PANEL ("panel")
 #define DRM_DISPLAY_MODE_DEFAULT ("1080p60hz")
@@ -26,6 +27,7 @@ DualDisplayPipe::DualDisplayPipe()
 }
 
 DualDisplayPipe::~DualDisplayPipe() {
+    mVdinPostProcessor.reset();
 }
 
 int32_t DualDisplayPipe::init(
@@ -304,4 +306,19 @@ void DualDisplayPipe::handleEvent(drm_display_event event, int val) {
     } else {
         HwcDisplayPipe::handleEvent(event, val);
     }
+}
+
+int32_t DualDisplayPipe::getPostProcessor(
+    hwc_post_processor_t type,
+    std::shared_ptr<HwcPostProcessor> & processor) {
+    MESON_ASSERT(type == VDIN_POST_PROCESSOR,
+        "only support VDIN_POST_PROCESSOR.");
+
+    if (!mVdinPostProcessor) {
+        mVdinPostProcessor = std::make_shared<VdinPostProcessor>();
+        mVdinPostProcessor->setType(PROCESSOR_FOR_SCREENRECORD);
+    }
+
+    processor = std::dynamic_pointer_cast<HwcPostProcessor>(mVdinPostProcessor);
+    return 0;
 }

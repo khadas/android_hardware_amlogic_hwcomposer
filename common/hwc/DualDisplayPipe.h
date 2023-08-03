@@ -25,6 +25,10 @@ public:
     void handleEvent(drm_display_event event, int val);
 
     int32_t mEventState = DRM_EVENT_INVALID;
+
+    int32_t getPostProcessor(
+        hwc_post_processor_t type, std::shared_ptr<HwcPostProcessor> & processor);
+
 };
 
 #endif

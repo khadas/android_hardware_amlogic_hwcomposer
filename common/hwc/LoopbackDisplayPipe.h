@@ -28,7 +28,6 @@ protected:
 
 protected:
     bool mPostProcessor;
-    std::shared_ptr<VdinPostProcessor> mVdinPostProcessor;
 };
 
 #endif

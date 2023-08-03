@@ -13,6 +13,7 @@
 #include <misc.h>
 #include <HwDisplayCrtc.h>
 #include "systemcontrol.h"
+#include <HwDisplayManager.h>
 
 #define HDMI_HAS_USED_STATE "/sys/class/amhdmitx/amhdmitx0/hdmi_used"
 
@@ -21,6 +22,22 @@ FixedDisplayPipe::FixedDisplayPipe()
 }
 
 FixedDisplayPipe::~FixedDisplayPipe() {
+    mVdinPostProcessor.reset();
+}
+
+int32_t FixedDisplayPipe::getPostProcessor(
+    hwc_post_processor_t type,
+    std::shared_ptr<HwcPostProcessor> & processor) {
+    MESON_ASSERT(type == VDIN_POST_PROCESSOR,
+        "only support VDIN_POST_PROCESSOR.");
+
+    if (!mVdinPostProcessor) {
+        mVdinPostProcessor = std::make_shared<VdinPostProcessor>();
+        mVdinPostProcessor->setType(PROCESSOR_FOR_SCREENRECORD);
+    }
+
+    processor = std::dynamic_pointer_cast<HwcPostProcessor>(mVdinPostProcessor);
+    return 0;
 }
 
 int32_t FixedDisplayPipe::init(

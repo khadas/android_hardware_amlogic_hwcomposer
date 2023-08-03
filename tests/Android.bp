@@ -31,10 +31,14 @@ cc_binary {
     shared_libs: [
         "liblog",
         "libcutils",
-        "libion",
+        "libui",
+        "libamgralloc_ext",
     ],
 
-    include_dirs: ["system/memory/libion"],
+    static_libs: [
+        "hwc.utils_static",
+    ],
+    include_dirs: ["hardware/amlogic/gralloc/amlogic"],
 
     srcs: ["display_vdin1.cpp"],
 

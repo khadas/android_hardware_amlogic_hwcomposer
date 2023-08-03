@@ -35,6 +35,11 @@ public:
 
     virtual bool getScreencapFb(std::shared_ptr<DrmFramebuffer> & capFb) = 0;
     virtual int32_t present(int32_t flags, int32_t fence) = 0;
+    virtual void setType(int type) = 0;
+    virtual void setScreenSize(int w, int h) = 0;
+    virtual void createScreenRecordProcessor() = 0;
+    virtual void destroyScreenRecordProcessor() = 0;
+    virtual bool getLatestcapFb(std::shared_ptr<DrmFramebuffer> & capFb) = 0;
 };
 
 #endif

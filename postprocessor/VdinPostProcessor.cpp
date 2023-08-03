@@ -12,7 +12,6 @@
 #include <DrmTypes.h>
 #include <BasicTypes.h>
 #include <MesonLog.h>
-#include <Vdin.h>
 #include "VdinPostProcessor.h"
 #include <utils/Trace.h>
 
@@ -45,6 +44,15 @@ VdinPostProcessor::~VdinPostProcessor() {
 void VdinPostProcessor::reset() {
     crcvalStatus = true;
     crcVal = 0;
+}
+
+void VdinPostProcessor::setType(int type) {
+    mType = type;
+    Vdin::getInstance().setType(type);
+}
+
+void VdinPostProcessor::setScreenSize(int w, int h) {
+    Vdin::getInstance().setScreenSize(w, h);
 }
 
 int32_t VdinPostProcessor::setVout(
@@ -157,6 +165,7 @@ int32_t VdinPostProcessor::stopVdin() {
         mVdinQueue.pop();
     }
     mVdinBufOnScreen = -1;
+    mLastIndex = -1;
     return 0;
 }
 
@@ -179,6 +188,48 @@ int32_t VdinPostProcessor::setFbProcessor(
     }
 
     return 0;
+}
+
+void VdinPostProcessor::createScreenRecordProcessor() {
+    createFbProcessor(FB_COPY_PROCESSOR, mSCapProcessor);
+}
+
+void VdinPostProcessor::destroyScreenRecordProcessor() {
+    if (mSCapProcessor != NULL) {
+        mSCapProcessor->teardown();
+        mSCapProcessor.reset();
+    }
+}
+
+bool VdinPostProcessor::getLatestcapFb(std::shared_ptr<DrmFramebuffer> & capFb) {
+    ATRACE_NAME("VdinPostProcessor::getLatestcapFb");
+    std::shared_ptr<DrmFramebuffer> infb;
+    bool ret = false;
+    int copyStatus = -1;
+    scapfb = capFb;
+
+    if (mLastIndex >= 0 && mLastIndex < mVdinFbs.size()) {
+        infb = mVdinFbs[mLastIndex];
+    }
+
+    if (infb == NULL) {
+        std::unique_lock<std::mutex> stateLock(mLock);
+        mCondition.wait_for(stateLock, std::chrono::milliseconds(500));
+        infb = mVdinFbs[mLastIndex];
+    }
+
+    if (mSCapProcessor != NULL && scapfb != NULL && infb != NULL) {
+        ATRACE_BEGIN("process");
+        copyStatus = mSCapProcessor->process(infb,scapfb);
+        ATRACE_END();
+    }
+
+    scapfb.reset();
+
+    if (copyStatus == 0) {
+        ret = true;
+    }
+    return ret;
 }
 
 bool VdinPostProcessor::getScreencapFb(
@@ -214,14 +265,18 @@ int32_t VdinPostProcessor::start() {
     if (mStat == PROCESSOR_START)
         return 0;
 
-    if (mVoutHnds.size() == 0) {
-        for (int i = 0;i < VOUT_BUF_CNT;i ++) {
-            buffer_handle_t hnd = gralloc_alloc_dma_buf(
-                mVoutW, mVoutH, HAL_PIXEL_FORMAT_RGB_888, true, false);
-            mVoutHnds.push_back(hnd);
+    if (mType == PROCESSOR_FOR_LOOPBACK) {
+        if (mVoutHnds.size() == 0) {
+            for (int i = 0;i < VOUT_BUF_CNT;i ++) {
+                buffer_handle_t hnd = gralloc_alloc_dma_buf(
+                    mVoutW, mVoutH, HAL_PIXEL_FORMAT_RGB_888, true, false);
+                MESON_ASSERT(hnd != NULL && am_gralloc_get_buffer_fd(hnd) >= 0,
+                    "alloc vout buf failed.");
+                mVoutHnds.push_back(hnd);
 
-            auto buf = std::make_shared<DrmFramebuffer>(hnd, -1);
-            mVoutQueue.push(buf);
+                auto buf = std::make_shared<DrmFramebuffer>(hnd, -1);
+                mVoutQueue.push(buf);
+            }
         }
     }
 
@@ -318,7 +373,9 @@ void * VdinPostProcessor::threadMain(void * data) {
     pThis->stopVdin();
 
     /*blank vout, for we will read the buffer on screen.*/
-    pThis->postVout(NULL);
+    if (pThis->mType == PROCESSOR_FOR_LOOPBACK) {
+        pThis->postVout(NULL);
+    }
 
     if (pThis->mFbProcessor)
         pThis->mFbProcessor->teardown();
@@ -352,6 +409,7 @@ int32_t VdinPostProcessor::process() {
             }
             mReqFbProcessor.pop();
         } else if ( cmd & PRESENT_CAPSCREEN) {
+            mCapStatus = 1;
             mSCapProcessor->setup() ;
             mProcessMode = PROCESS_ONCE;
             capCnt = VDIN_CAP_CNT;
@@ -432,7 +490,11 @@ int32_t VdinPostProcessor::process() {
             }
             crcVal = vdinCrc.crc;
             vdinIdx = vdinCrc.index;
-            MESON_ASSERT(vdinIdx >= 0 && !mVoutQueue.empty(), "idx always >= 0.");
+            mLastIndex = vdinCrc.index;
+            mCondition.notify_all();
+            if (mType == PROCESSOR_FOR_LOOPBACK) {
+                MESON_ASSERT(vdinIdx >= 0 && !mVoutQueue.empty(), "idx always >= 0.");
+            }
 #ifdef PROCESS_DEBUG
             MESON_LOGE("Vdin::dequeue %d", vdinIdx);
 #endif
@@ -444,7 +506,7 @@ int32_t VdinPostProcessor::process() {
                     nsecs_t elapse_time = systemTime(CLOCK_MONOTONIC) - track_start;
                     float fps = (float)frames * 1000000000.0/elapse_time;
                     MESON_LOGE("VdinPostProcessor: FPS (%f)=(%d, %d)/(%lld)",
-                        fps, frames, skip_frames, elapse_time);
+                        fps, frames, skip_frames, (long long)elapse_time);
                 }
                 track_start = 0;
                 skip_frames = frames = 0 ;
@@ -454,10 +516,12 @@ int32_t VdinPostProcessor::process() {
             if (vdinIdx >= 0 && vdinIdx < mVdinFbs.size())
                 infb = mVdinFbs[vdinIdx];
 
-            if (mSCapProcessor != NULL) {
-                mCapStatus = mSCapProcessor->process(infb,scapfb);
-                mSCapProcessor->teardown();
-                mSCapProcessor.reset();
+            if (mType == PROCESSOR_FOR_LOOPBACK) {
+                if (mSCapProcessor != NULL && (mCapStatus == 1) && scapfb != NULL) {
+                    mCapStatus = mSCapProcessor->process(infb,scapfb);
+                    mSCapProcessor->teardown();
+                    mSCapProcessor.reset();
+                }
             }
 
             if (mFbProcessor != NULL) {
@@ -492,7 +556,9 @@ int32_t VdinPostProcessor::process() {
                 mVdinQueue.push(vdinIdx);
             } else {
                 /*null procesor, post vdin buf to vout directly.*/
-                postVout(infb);
+                if (mType == PROCESSOR_FOR_LOOPBACK) {
+                    postVout(infb);
+                }
                 /*push back last displayed buf*/
                 if (mVdinBufOnScreen >= 0) {
                     mVdinQueue.push(mVdinBufOnScreen);

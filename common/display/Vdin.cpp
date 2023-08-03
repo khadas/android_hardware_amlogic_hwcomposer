@@ -51,6 +51,17 @@ Vdin::~Vdin() {
     close(mDev);
 }
 
+//set the vdin1 loopback size
+void Vdin::setScreenSize(int w, int h) {
+    mRecordHeight = h;
+    mRecordWidth = w;
+}
+
+//setting the loopback purpose
+void Vdin::setType(int type) {
+    mVdinType = type;
+}
+
 int32_t Vdin::getStreamInfo(int & width, int & height, int & format) {
     /*read current */
     drm_mode_info_t modeInfo;
@@ -64,13 +75,23 @@ int32_t Vdin::getStreamInfo(int & width, int & height, int & format) {
     } else {
         mCapParams.width = modeInfo.pixelW;
         mCapParams.height = modeInfo.pixelH;
+        if (mVdinType == PROCESSOR_FOR_SCREENRECORD) {
+            mCapParams.dst_width = mRecordWidth;
+            mCapParams.dst_height = mRecordHeight;
+        }
         mCapParams.fps = (int)modeInfo.refreshRate;
         /*force use RGB888*/
         mDefFormat = HAL_PIXEL_FORMAT_RGB_888;
     }
 
-    width = mCapParams.width;
-    height = mCapParams.height;
+    if (mVdinType == PROCESSOR_FOR_LOOPBACK) {
+        width = mCapParams.width;
+        height = mCapParams.height;
+    } else if (mVdinType == PROCESSOR_FOR_SCREENRECORD) {
+        width = mRecordWidth;
+        height = mRecordHeight;
+    }
+
     format = mDefFormat;
     return 0;
 }
@@ -176,8 +197,10 @@ int32_t Vdin::start() {
     }
 
     /*all fd passed to drv, reset to -1.*/
-    for (int i = 0;i < mCanvasCnt; i++)
-        mCanvas[i].fd = -1;
+    if (mVdinType == PROCESSOR_FOR_LOOPBACK) {
+        for (int i = 0;i < mCanvasCnt; i++)
+            mCanvas[i].fd = -1;
+    }
 
     if (ioctl(mDev, TVIN_IOC_S_VDIN_V4L2START, &mCapParams) < 0) {
         int rtn = -errno;

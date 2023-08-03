@@ -59,13 +59,23 @@ public:
     hwc2_error_t setOutputBuffer(buffer_handle_t buffer,
         int32_t releaseFence);
 
+    hwc2_error_t createLayer(hwc2_layer_t * outLayer);
+    /*Layer id sequence no.*/
+    void initLayerIdGenerator();
+    hwc2_layer_t createLayerId();
+    hwc2_error_t destroyLayer(hwc2_layer_t inLayer);
+    void destroyLayerId(hwc2_layer_t id);
+    virtual std::shared_ptr<Hwc2Layer> getLayerById(hwc2_layer_t id);
+    virtual int32_t setPostProcessor(
+    std::shared_ptr<HwcPostProcessor> processor);
 /*Additional interfaces.*/
 public:
-    VirtualDisplay(uint32_t width, uint32_t height);
+    VirtualDisplay(uint32_t width, uint32_t height, hwc2_display_t id);
     ~VirtualDisplay();
 
     int32_t initialize();
     void dump(String8 & dumpstr);
+    void stopVdin();
 
 protected:
     uint mWidth;
@@ -73,6 +83,12 @@ protected:
 
     std::shared_ptr<DrmFence> mOutputFence;
     std::shared_ptr<DrmFence> mClientFence;
+
+    std::shared_ptr<HwcPostProcessor> mPostProcessor;
+
+    std::unordered_map<hwc2_layer_t, std::shared_ptr<Hwc2Layer>> mLayers;
+    uint32_t mDisplayId;
+    std::shared_ptr<BitsMap> mLayersBitmap;
 };
 
 

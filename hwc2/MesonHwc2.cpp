@@ -358,27 +358,37 @@ int32_t  MesonHwc2::getDisplayAttribute(hwc2_display_t display,
 /*************Virtual display api below*************/
 int32_t MesonHwc2::createVirtualDisplay(uint32_t width, uint32_t height,
     int32_t* format, hwc2_display_t* outDisplay) {
-    MESON_LOG_EMPTY_FUN();
-    UNUSED(width);
-    UNUSED(height);
-    UNUSED(format);
-    UNUSED(outDisplay);
+    hwc2_display_t id = getVirtualDisplayId();
+    std::shared_ptr<VirtualDisplay> disp = std::make_shared<VirtualDisplay>(width, height, id);
+    disp->initialize();
+    disp->setFormat(format);
+    mDisplays.emplace(id, disp);
+    mDisplayPipe->addVirtualDisplay(disp);
+    *outDisplay = id;
+    GET_HWC_DISPLAY(0);
+    hwcDisplay->createCallbackThread(true);
     return HWC2_ERROR_NONE;
 }
 
 int32_t MesonHwc2::destroyVirtualDisplay(hwc2_display_t display) {
-    MESON_LOG_EMPTY_FUN();
-    UNUSED(display);
+    GET_HWC_DISPLAY(display);
+    CHECK_DISPLAY_VALID(display);
+    VirtualDisplay * disp = (VirtualDisplay *)hwcDisplay.get();
+    disp->stopVdin();
+    mDisplays.erase(display);
+    freeVirtualDisplayId(display);
+    {
+        GET_HWC_DISPLAY(0);
+        hwcDisplay->createCallbackThread(false);
+    }
     return HWC2_ERROR_NONE;
 }
 
 int32_t MesonHwc2::setOutputBuffer(hwc2_display_t display,
     buffer_handle_t buffer, int32_t releaseFence) {
-    MESON_LOG_EMPTY_FUN();
-    UNUSED(display);
-    UNUSED(buffer);
-    UNUSED(releaseFence);
-    return HWC2_ERROR_NONE;
+    GET_HWC_DISPLAY(display);
+    VirtualDisplay * disp = (VirtualDisplay *)hwcDisplay.get();
+    return disp->setOutputBuffer(buffer, releaseFence);
 }
 
 uint32_t MesonHwc2::getMaxVirtualDisplayCount() {
@@ -524,6 +534,9 @@ int32_t MesonHwc2::setLayerSidebandStream(hwc2_display_t display,
     int32_t ret;
     GET_HWC_DISPLAY(display);
     GET_HWC_LAYER(hwcDisplay, layer);
+    if (display == MESON_VIRTUAL_DISPLAY_ID_START) {
+        return HWC2_ERROR_NONE;
+    }
     ret = hwcLayer->setSidebandStream(stream, hwcDisplay);
     std::unordered_map<hwc2_layer_t, std::shared_ptr<Hwc2Layer>> bLayers = hwcDisplay->getAllLayers();
     for (auto it = bLayers.begin(); it != bLayers.end(); it++) {

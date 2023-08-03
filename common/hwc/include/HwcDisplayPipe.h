@@ -21,6 +21,7 @@
 
 #include <MesonLog.h>
 #include <unordered_map>
+#include <VdinPostProcessor.h>
 
 typedef enum {
     /*primary:
@@ -81,6 +82,8 @@ public:
     virtual void dump(String8 & dumpstr);
     virtual void lateInit(){};
     bool hasDummyConnector();
+    virtual void addVirtualDisplay(std::shared_ptr<HwcDisplay> disp __unused);
+    std::shared_ptr<VdinPostProcessor> mVdinPostProcessor;
 
 protected:
     class PipeCfg {
@@ -102,6 +105,7 @@ protected:
         PipeCfg cfg;
 
         std::shared_ptr<HwcDisplay> hwcDisplay;
+        std::shared_ptr<HwcDisplay> hwcVirtualDisplay;
         std::shared_ptr<HwDisplayCrtc> hwcCrtc;
         std::vector<std::shared_ptr<HwDisplayPlane>> hwcPlanes;
         std::shared_ptr<HwDisplayConnector> hwcConnector;
@@ -109,6 +113,7 @@ protected:
         // for videotunnel thread
         std::shared_ptr<HwcVsync> hwcVtVsync;
         std::shared_ptr<HwcPostProcessor> hwcPostProcessor;
+        std::shared_ptr<HwcPostProcessor> hwcVIRPostProcessor;
         std::shared_ptr<HwcVsync> hwcWBVsync;
 
         std::shared_ptr<HwcModeMgr> modeMgr;

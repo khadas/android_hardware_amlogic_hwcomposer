@@ -15,12 +15,32 @@
 #include <utils/threads.h>
 #include <DrmFramebuffer.h>
 
+#include <AmVinfo.h>
+
+//Used to set the type post processor
+enum {
+    PROCESSOR_FOR_LOOPBACK = 0,
+    PROCESSOR_FOR_SCREENRECORD,
+};
+
+enum port_mode {
+    capture_osd_plus_video = 0,
+    capture_only_video,
+};
+
 #define VDIN_CANVAS_MAX_CNT	 9
 
 struct vdin_v4l2_param_s {
     int width;
     int height;
     int fps;
+    enum tvin_color_fmt_e dst_fmt;
+    int dst_width;  /* H scaling down */
+    int dst_height; /* v scaling down */
+    unsigned int bit_order; /* raw data bit order(0:none std, 1: std)*/
+    enum port_mode mode;    /*0:osd + video 1:video only*/
+    int bit_dep;
+    bool secure_memory_en; /* 0:not secure memory 1:secure memory */
 };
 
 struct vdin_set_canvas_s {
@@ -60,6 +80,9 @@ public:
     int32_t pause();
     /*stop capture, and clear info. Need setStreamInfo again before start.*/
     int32_t stop();
+    //For screenrecord loopback
+    void setScreenSize(int width, int height);
+    void setType(int type);
 
 protected:
     void createCanvas(int bufCnt);
@@ -81,6 +104,11 @@ protected:
 
     int mCanvasCnt;
     struct vdin_set_canvas_s mCanvas[VDIN_CANVAS_MAX_CNT];
+
+    //For screenrecord loopback
+    int mRecordWidth = 0;
+    int mRecordHeight = 0;
+    int mVdinType = PROCESSOR_FOR_LOOPBACK;
 };
 
 #endif
