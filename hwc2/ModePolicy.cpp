@@ -145,7 +145,7 @@ ModePolicy::ModePolicy() {
 ModePolicy::ModePolicy(std::shared_ptr<meson::DisplayAdapter> adapter, const uint32_t displayId) {
     mAdapter = adapter;
     mDisplayType = DISPLAY_TYPE_MBOX;
-    mPolicy = MESON_POLICY_INVALID;
+    mPolicy = MESON_POLICY_BEST;
     mReason = OUTPUT_CHANGE_BY_INIT;
     mDisplayId = displayId;
     memset(&mConnectorType, 0, sizeof(mConnectorType));
@@ -735,7 +735,9 @@ void ModePolicy::onHotplug(bool connected) {
 void ModePolicy::setActiveConfig(std::string mode) {
     mReason = OUTPUT_CHANGE_BY_HWC;
     MESON_LOGI("setDisplayed by hwc %s", mode.c_str());
+    meson_mode_set_policy(mModeConType, MESON_POLICY_INVALID);
     setSourceOutputMode(mode.c_str());
+    meson_mode_set_policy(mModeConType, mPolicy);
     mReason = OUTPUT_CHANGE_BY_INIT;
 }
 
@@ -772,6 +774,7 @@ int32_t ModePolicy::setBootConfig(std::string &config) {
     setBootEnv(UBOOTENV_ISBESTMODE, "false");
     setBootEnv(UBOOTENV_HDMIMODE, config.c_str());
     mPolicy = MESON_POLICY_INVALID;
+    meson_mode_set_policy(mModeConType, mPolicy);
 
     return 0;
 }
@@ -780,6 +783,7 @@ int32_t ModePolicy::clearBootConfig() {
     MESON_LOGI("clear boot display \n");
     setBootEnv(UBOOTENV_ISBESTMODE, "true");
     mPolicy = MESON_POLICY_BEST;
+    meson_mode_set_policy(mModeConType, mPolicy);
 
     //save hdmi resolution to env
     setBootEnv(UBOOTENV_HDMIMODE, "none");
@@ -2423,7 +2427,6 @@ void ModePolicy::setSourceOutputMode(const char* outputmode, bool force) {
         mConData.state = static_cast<meson_mode_state>(mState);
 
         strcpy(mConData.cur_displaymode, outputmode);
-        //meson_mode_set_policy(mModeConType, mPolicy);
         meson_mode_set_policy_input(mModeConType, &mConData);
         meson_mode_get_policy_output(mModeConType, &mSceneOutInfo);
 
