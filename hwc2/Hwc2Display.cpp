@@ -1254,6 +1254,8 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
 
     adjustVsyncMode();
 
+    refreshVtLayersLocked();
+
     /*dump at end of validate, for we need check by some composition info.*/
     bool dumpLayers = false;
     if (DebugHelper::getInstance().logCompositionDetail()) {
@@ -2677,7 +2679,10 @@ bool Hwc2Display::newGameBuffer() {
 void Hwc2Display::refreshVtLayers() {
     ATRACE_CALL();
     std::lock_guard<std::mutex> vtLock(mVtMutex);
+    refreshVtLayersLocked();
+}
 
+void Hwc2Display::refreshVtLayersLocked() {
     for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
         auto layer = it->second;
         if (layer->isVtBuffer())

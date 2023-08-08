@@ -81,6 +81,7 @@ public:
     int32_t getDiProcessorFence();
     int32_t getBufferFd() override;
 
+    bool haveValidBuffer() override;
     /* video tunnel api */
     bool isVtBuffer() override;
     bool isFbUpdated() override;
@@ -164,6 +165,7 @@ protected:
     bool mUpdateZorder;
     bool mVtRefreshed;
 
+    bool mFirstVtBuffer;
     bool mGameMode;
     bool mVtUpdate;
     bool mNeedReleaseVtResource;

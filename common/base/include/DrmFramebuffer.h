@@ -60,6 +60,7 @@ public:
     drm_rect_t getDisplayFrame();
 
     // Virtuals for video tunnel
+    virtual bool haveValidBuffer() {return true;};
     virtual int32_t getBufferFd() { return -EINVAL; }
     virtual bool isVtBuffer() { return false;}
     virtual bool isVtNeedClearFrameOrShowColorBuffer() { return false; }

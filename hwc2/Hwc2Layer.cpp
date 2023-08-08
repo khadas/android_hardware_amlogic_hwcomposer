@@ -33,6 +33,7 @@ Hwc2Layer::Hwc2Layer(uint32_t dispId) : DrmFramebuffer(){
     mPreVtBufferFd = -1;
     mSolidColorBufferfd = -1;
     mDifd = -1;
+    mFirstVtBuffer = false;
     mVtUpdate      =  false;
     mNeedReleaseVtResource = false;
     mTimestamp     = -1;
@@ -42,7 +43,7 @@ Hwc2Layer::Hwc2Layer(uint32_t dispId) : DrmFramebuffer(){
     mTunnelId = -1;
     mGameMode = false;
     mVideoDisplayStatus = VT_VIDEO_STATUS_SHOW;
-    mAMVideoType = 0;
+    mAMVideoType = -1;
     mVtRefreshed = false;
     mQueueItems.clear();
 
@@ -495,6 +496,14 @@ int32_t Hwc2Layer::getDiProcessorFence() {
     return -1;
 }
 
+bool Hwc2Layer::haveValidBuffer() {
+    std::lock_guard<std::mutex> lock(mMutex);
+    if (isVtBufferLocked())
+        return mFirstVtBuffer;
+    else
+        return true;
+}
+
 int32_t Hwc2Layer::getBufferFd() {
     std::lock_guard<std::mutex> lock(mMutex);
     int32_t fd = -1;
@@ -520,6 +529,7 @@ int32_t Hwc2Layer::getBufferFd() {
 void Hwc2Layer::updateVtBuffer() {
     ATRACE_CALL();
     mMutex.lock();
+    bool isVideoTypeChange = false;
     int expiredItemCount = 0;
     int dropCount = 0;
     nsecs_t diffAdded = 0;
@@ -573,7 +583,11 @@ void Hwc2Layer::updateVtBuffer() {
     mVtUpdate = true;
     mVtBufferFd = mQueueItems[0].mVtBufferFd;
     mTimestamp = mQueueItems[0].mTimeStamp;
-    bool isVideoTypeChange = getVideoInfoFromUVM(mVtBufferFd);
+
+    if (shouldPresentNow(mTimestamp)) {
+        isVideoTypeChange = getVideoInfoFromUVM(mVtBufferFd);
+        mFirstVtBuffer = true;
+    }
 
     diffAdded = mTimestamp - mPreviousTimestamp;
     mPreviousTimestamp = mTimestamp;
@@ -1109,7 +1123,8 @@ bool Hwc2Layer::haveSolidColorBuffer() {
 }
 
 void Hwc2Layer::onNeedShowTempBuffer(vt_video_color_t colorType) {
-    std::lock_guard<std::mutex> lock(mMutex);
+    bool needAskSFRefresh = false;
+    mMutex.lock();
     if (mSolidColorBufferfd < 0) {
         if (!mAllocSolidColorBufferHandle)
             mAllocSolidColorBufferHandle = std::make_shared<VtAllocSolidColorBuffer>();
@@ -1119,8 +1134,18 @@ void Hwc2Layer::onNeedShowTempBuffer(vt_video_color_t colorType) {
             mSolidColorBufferfd = dup(bufFd);
     }
 
-    if (mSolidColorBufferfd >= 0)
+    if (mSolidColorBufferfd >= 0) {
         mVtUpdate = true;
+        if (!mFirstVtBuffer) {
+            needAskSFRefresh = true;
+            mFirstVtBuffer = true;
+        }
+    }
+
+    mMutex.unlock();
+
+    if (needAskSFRefresh)
+        mDisplayObserver->askSurfaceFlingerRefresh();
 }
 
 void Hwc2Layer::onNeedShowTempBufferWithStatus(

@@ -636,8 +636,11 @@ int MultiplanesWithHRComposition::processVideoFbs() {
             case DRM_FB_VIDEO_TUNNEL_SIDEBAND:
                 if (bSideband) {
                     sidebandFbs.push_back(fb);
-                } else {
+                } else if (fb->haveValidBuffer()) {
                     mDIComposerFbs.push_back(fb);
+                } else {
+                    fb->mCompositionType == MESON_COMPOSITION_DUMMY;
+                    continue;
                 }
                 videoFbNum++;
                 if (minVideoZ == INVALID_ZORDER || fb->mZorder < minVideoZ)
@@ -1586,6 +1589,7 @@ int MultiplanesWithHRComposition::commit() {
     ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
     bool setPlaneSuccess = true;
+    bool bHaveVTBuffer = false;
     int ret = -1;
 
     if (mCrtc == nullptr) {
@@ -1628,7 +1632,7 @@ int MultiplanesWithHRComposition::commit() {
             fb = composerOutput;
         } else  if (fb->mCompositionType == MESON_COMPOSITION_DI) {
             bool bDumpPlane = true;
-            bool hasVtBuffer = false;
+            bool bDoDiCompose = false;
             for (auto it = mDIComposerFbs.begin(); it != mDIComposerFbs.end(); ++it) {
                 if ((*it)->isVtNeedClearFrameOrShowColorBuffer()) {
                     MESON_LOGV("%s, layerId(%" PRIu64 ") will blank plane", __func__, fb->mId);
@@ -1637,7 +1641,7 @@ int MultiplanesWithHRComposition::commit() {
                 }
 
                 if ((*it)->isVtBuffer())
-                    hasVtBuffer = true;
+                    bHaveVTBuffer = bDoDiCompose = true;
 
                 MESON_LOGV("meet composer pair %d", (*it)->mCompositionType);
                 if (bDumpPlane) {
@@ -1648,7 +1652,7 @@ int MultiplanesWithHRComposition::commit() {
                 }
             }
             /* make sure SF donot refresh VtLayer and VT only refresh VtLayer*/
-            if (!hasVtBuffer)
+            if (!bDoDiCompose)
                 mDiComposer->start(m4Mosaic ? 0 : mVideoPlaneNum - 1);
 
             continue;
@@ -1657,6 +1661,8 @@ int MultiplanesWithHRComposition::commit() {
         }
 
         if (fb->isVtBuffer()) {
+            bHaveVTBuffer = true;
+
             if (fb->isVtNeedClearFrameOrShowColorBuffer() ||
                 (fb->getBufferFd() < 0 && !fb->haveSolidColorBuffer())) {
                 if (mVideoProcessorsMgr.get())
@@ -1710,8 +1716,14 @@ int MultiplanesWithHRComposition::commit() {
 
     planeIt = mOtherPlanes.begin();
     for (; planeIt != mOtherPlanes.end(); ++planeIt) {
-        (*planeIt)->setPlane(NULL, HWC_PLANE_FAKE_ZORDER, BLANK_FOR_NO_CONTENT);
         dumpUnusedPlane(*planeIt, BLANK_FOR_NO_CONTENT);
+
+        if (bHaveVTBuffer && ((*planeIt)->getType() == HWC_VIDEO_PLANE)) {
+            /* need disable Video Plane in VideoTunnel Thread
+             * when have videotunnel buffers */
+            continue;
+        }
+        (*planeIt)->setPlane(NULL, HWC_PLANE_FAKE_ZORDER, BLANK_FOR_NO_CONTENT);
     }
 
     if (!setPlaneSuccess)
@@ -1765,7 +1777,15 @@ int MultiplanesWithHRComposition::commitTunnelVideo() {
             continue;
 
         if (fb->mCompositionType == MESON_COMPOSITION_DI) {
-            mDiComposer->start(m4Mosaic ? 0 : mVideoPlaneNum - 1);
+            bool doDiCompose = false;
+            auto it = mDIComposerFbs.begin();
+            for (; it != mDIComposerFbs.end(); ++it) {
+                if ((*it)->isVtBuffer())
+                    doDiCompose = true;
+            }
+
+            if (doDiCompose)
+                mDiComposer->start(m4Mosaic ? 0 : mVideoPlaneNum - 1);
             continue;
         }
 
@@ -1805,6 +1825,12 @@ int MultiplanesWithHRComposition::commitTunnelVideo() {
                 return ret;
             }
         }
+    }
+
+    /* disable no used video plane*/
+    auto planeIt = mHwcVideoPlanes.begin();
+    for (; planeIt != mHwcVideoPlanes.end(); ++planeIt) {
+        (*planeIt)->setPlane(NULL, HWC_PLANE_FAKE_ZORDER, BLANK_FOR_NO_CONTENT);
     }
 
     return 0;
