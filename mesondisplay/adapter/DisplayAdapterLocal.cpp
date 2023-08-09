@@ -187,7 +187,6 @@ DisplayAdapterLocal::DisplayAdapterLocal() {
     DA_SET_READ_ONLY(HDR_CAP);
 #define DA_SET_WRITE_ONLY(ID) \
     display_attrs[DA_##ID].is_write_only= true
-    DA_SET_WRITE_ONLY(DOLBY_VISION_MODE);
 }
 
 DisplayAdapter::BackendType DisplayAdapterLocal::displayType() {

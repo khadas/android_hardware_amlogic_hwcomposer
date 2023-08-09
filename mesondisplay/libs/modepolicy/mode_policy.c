@@ -1154,3 +1154,18 @@ const char *meson_hdrPolicyToString(int32_t type) {
     }
     return typeStr;
 }
+
+const char *meson_dvModeTypeToString(const char *dvMode) {
+    const char * typeStr;
+    if (strstr(dvMode, "current dv_mode = HDR10")) {
+        typeStr = MESON_FORCE_MODE_TYPE[MESON_HDR_FORCE_MODE_HDR10];
+    } else if (strstr(dvMode, "current dv_mode = IPT_TUNNEL")) {
+        typeStr = MESON_FORCE_MODE_TYPE[MESON_HDR_FORCE_MODE_DV];
+    } else if (strstr(dvMode, "current dv_mode = SDR8") ||
+                  strstr(dvMode, "current dv_mode = SDR10")) {
+        typeStr = MESON_FORCE_MODE_TYPE[MESON_HDR_FORCE_MODE_SDR];
+    } else {
+        typeStr = MESON_FORCE_MODE_TYPE[MESON_HDR_FORCE_MODE_INVALID];
+    }
+    return typeStr;
+}

@@ -77,6 +77,23 @@ typedef enum meson_hdr_force_mode {
     MESON_HDR_FORCE_MODE_HLG        = 5,
 } meson_hdr_force_mode_e;
 
+/* foce mode type in uboot env
+ * 0: invalid type
+ * 1: force sdr
+ * 2: force dv
+ * 3: force hdr10
+ * 4: force hdr10plus (need to do)
+ * 5: force hlg
+ * */
+static const char* MESON_FORCE_MODE_TYPE[] = {
+    "0",
+    "1",
+    "2",
+    "3",
+    "4",
+    "5"
+};
+
 typedef enum meson_connector_type {
     MESON_MODE_HDMI = 0,
     MESON_MODE_PANEL = 1,
@@ -164,6 +181,11 @@ void meson_mode_set_test_mode(const bool enable);
  * check mode support or not under type
  */
 int32_t meson_mode_support_mode(int32_t connector, int32_t type, char *mode);
+
+/*
+ * for parse dv mode type
+ */
+const char *meson_dvModeTypeToString(const char *dvmode);
 
 /*
  * debug help function

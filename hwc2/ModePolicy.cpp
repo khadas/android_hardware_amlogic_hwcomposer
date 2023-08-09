@@ -1940,22 +1940,34 @@ void ModePolicy::applyDisplaySetting(bool force) {
     getDisplayAttribute(DISPLAY_DOLBY_VISION_MODE, cur_dv_mode);
     MESON_LOGI("cur dv mode:%s\n", cur_dv_mode.c_str());
 
+    std::string cur_dv_policy;
+    getDisplayAttribute(DISPLAY_DOLBY_VISION_POLICY, cur_dv_policy);
+    MESON_LOGI("cur dv policy:%s\n", cur_dv_policy.c_str());
+
     char hdr_force_mode[MESON_MODE_LEN] = {0};
     gethdrforcemode(hdr_force_mode);
 
     char hdr_policy[MESON_MODE_LEN] = {0};
     getHdrStrategy(hdr_policy);
 
-    if (strstr(cur_hdr_policy.c_str(), hdr_policy) == NULL) {
-        MESON_LOGI("set hdr policy from:%s to %s\n", cur_hdr_policy.c_str(), hdr_policy);
-        hdr_policy_change = true;
-    } else if (!strcmp(hdr_policy, HDR_POLICY_FORCE) && (strstr(cur_hdr_force_mode.c_str(), hdr_force_mode) == NULL)) {
-        MESON_LOGI("set hdr force mode from:%s to %s\n", cur_hdr_force_mode.c_str(), hdr_force_mode);
-        hdr_policy_change = true;
-    } else if ((mSceneOutInfo.dv_type != DOLBY_VISION_SET_DISABLE)
-        && (!strcmp(hdr_policy, HDR_POLICY_FORCE) && (strstr(cur_dv_mode.c_str(), hdr_force_mode) == NULL))) {
-        MESON_LOGI("set dv force mode from:%s to %s\n", cur_dv_mode.c_str(), hdr_force_mode);
-        hdr_policy_change = true;
+    if (!isDolbyVisionEnable()) {
+        if (strstr(cur_hdr_policy.c_str(), hdr_policy) == NULL) {
+            MESON_LOGI("set hdr policy from:%s to %s\n", cur_hdr_policy.c_str(), hdr_policy);
+            hdr_policy_change = true;
+        } else if (!strcmp(hdr_policy, HDR_POLICY_FORCE) && (strstr(cur_hdr_force_mode.c_str(), hdr_force_mode) == NULL)) {
+            MESON_LOGI("set hdr force mode from:%s to %s\n", cur_hdr_force_mode.c_str(), hdr_force_mode);
+            hdr_policy_change = true;
+        }
+    } else {
+        if (strstr(cur_dv_policy.c_str(), hdr_policy) == NULL) {
+            MESON_LOGI("set dv policy from:%s to %s\n", cur_dv_policy.c_str(), hdr_policy);
+            hdr_policy_change = true;
+        } else if ((mSceneOutInfo.dv_type != DOLBY_VISION_SET_DISABLE)
+                && (!strcmp(hdr_policy, HDR_POLICY_FORCE)
+                    && (strstr(meson_dvModeTypeToString(cur_dv_mode.c_str()), hdr_force_mode) == NULL))) {
+            MESON_LOGI("set dv force mode from:%s to %s\n", meson_dvModeTypeToString(cur_dv_mode.c_str()), hdr_force_mode);
+            hdr_policy_change = true;
+        }
     }
 
     // 4. check amdolby vision
