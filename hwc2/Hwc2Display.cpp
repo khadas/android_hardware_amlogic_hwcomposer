@@ -2057,9 +2057,9 @@ hwc2_error_t Hwc2Display::getHdrConversionCapabilities(uint32_t* outNumCapabilit
 }
 
 hwc2_error_t Hwc2Display::setHdrConversionStrategy(bool passThrough, uint32_t numElements,
-                uint32_t* autoAllowedHdrTypes, uint32_t* preferredHdrOutputType) {
+             bool isAuto, uint32_t* autoAllowedHdrTypes, uint32_t* preferredHdrOutputType) {
     std::lock_guard<std::mutex> lock(mMutex);
-    MESON_LOGD("%s passThrough %d ",__func__, passThrough);
+    MESON_LOGD("%s passThrough %d isAuto %d ",__func__, passThrough, isAuto);
 
     auto forceType = -1;
     /* DV enable support DV and HDR10
@@ -2094,6 +2094,10 @@ hwc2_error_t Hwc2Display::setHdrConversionStrategy(bool passThrough, uint32_t nu
                 forceType = HAL_HDR_HLG;
             if (!containHDR10Type && !containHLGType && containSDRType)
                 forceType = DRM_INVALID;
+        }
+        // force SDR when autoAllowedHdrTypes are empty
+        if (isAuto && HdrTypes.empty()) {
+            forceType = DRM_INVALID;
         }
         if (forceType == -1) {
             if (mModePolicy) {

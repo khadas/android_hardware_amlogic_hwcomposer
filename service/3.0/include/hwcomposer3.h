@@ -210,7 +210,7 @@ typedef int32_t (*HWC3_PFN_GET_HDR_CONVERSION_CAPABILITIES)(hwc2_device_t* devic
  * @exception EX_UNSUPPORTED when autoAllowedHdrTypes not supported by the underlying HAL
  * */
 typedef int32_t (*HWC3_PFN_SET_HDR_CONVERSION_STRATEGY)(hwc2_device_t* device,
-        bool passthrough, uint32_t numElements, uint32_t* autoAllowedHdrTypes,
+        bool passthrough, uint32_t numElements, bool isAuto, uint32_t* autoAllowedHdrTypes,
         uint32_t* preferredHdrOutputType);
 
 /* getOverlaySupport(..., combinations)

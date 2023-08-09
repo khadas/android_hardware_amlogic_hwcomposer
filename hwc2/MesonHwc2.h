@@ -148,7 +148,7 @@ public:
     /* hwc3.2*/
     int32_t getHdrConversionCapabilities(uint32_t* outNumCapability,
                 drm_hdr_conversion_capability_t* outConversionCapability);
-    int32_t setHdrConversionStrategy(bool passThrough, uint32_t numElements,
+    int32_t setHdrConversionStrategy(bool passThrough, uint32_t numElements, bool isAuto,
                 uint32_t* autoAllowedHdrTypes, uint32_t* preferredHdrOutputType);
     int32_t getOverlaySupport(uint32_t* numElements,
                 uint32_t* pixelFormats);

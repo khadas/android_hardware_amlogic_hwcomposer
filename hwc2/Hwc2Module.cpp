@@ -481,11 +481,11 @@ int32_t getHdrConversionCapabilities(hwc2_device_t* device,
 }
 
 int32_t setHdrConversionStrategy(hwc2_device_t* device,
-        bool passThrough, uint32_t numElements, uint32_t* autoAllowedHdrTypes,
+        bool passThrough, uint32_t numElements, bool isAuto, uint32_t* autoAllowedHdrTypes,
         uint32_t* preferredHdrOutputType) {
     GET_MESON_HWC();
     return mesonhwc->setHdrConversionStrategy(passThrough,
-               numElements, autoAllowedHdrTypes, preferredHdrOutputType);
+               numElements, isAuto, autoAllowedHdrTypes, preferredHdrOutputType);
 }
 
 int32_t getOverlaySupport(hwc2_device_t* device,

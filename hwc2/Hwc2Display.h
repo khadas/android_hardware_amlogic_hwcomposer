@@ -137,7 +137,7 @@ public:
     /* hwc 3.2 interface*/
     virtual hwc2_error_t getHdrConversionCapabilities(uint32_t* outNumCapability,
                 drm_hdr_conversion_capability* outConversionCapability);
-    virtual hwc2_error_t setHdrConversionStrategy(bool passThrough, uint32_t numElements,
+    virtual hwc2_error_t setHdrConversionStrategy(bool passThrough, uint32_t numElements, bool isAuto,
                 uint32_t* autoAllowedHdrTypes, uint32_t* preferredHdrOutputType);
     virtual hwc2_error_t getOverlaySupport(uint32_t* numElements,
                 uint32_t* pixelFormats);

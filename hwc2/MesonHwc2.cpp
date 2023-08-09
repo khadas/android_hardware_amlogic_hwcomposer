@@ -752,10 +752,10 @@ int32_t MesonHwc2::getHdrConversionCapabilities(uint32_t* outNumCapability,
     return hwcDisplay->getHdrConversionCapabilities(outNumCapability,outConversionCapability);
 }
 
-int32_t MesonHwc2::setHdrConversionStrategy(bool passThrough, uint32_t numElements,
+int32_t MesonHwc2::setHdrConversionStrategy(bool passThrough, uint32_t numElements, bool isAuto,
             uint32_t* autoAllowedHdrTypes, uint32_t* preferredHdrOutputType) {
     GET_HWC_DISPLAY(0);
-    return hwcDisplay->setHdrConversionStrategy(passThrough, numElements,
+    return hwcDisplay->setHdrConversionStrategy(passThrough, numElements, isAuto,
                                                     autoAllowedHdrTypes, preferredHdrOutputType);
 }
 

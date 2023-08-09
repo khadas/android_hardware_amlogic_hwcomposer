@@ -350,7 +350,7 @@ bool DisplayAdapterLocal::hideVideoLayer(bool hide){
 
 bool DisplayAdapterLocal::setHdrConversionStrategy(uint32_t passThrough, uint32_t forceMode) {
     uint32_t preferredHdrOutputType = -1;
-    MesonHwc2::getInstance().setHdrConversionStrategy(passThrough, 1, &forceMode, &preferredHdrOutputType);
+    MesonHwc2::getInstance().setHdrConversionStrategy(passThrough, 1, false, &forceMode, &preferredHdrOutputType);
     return true;
 }
 

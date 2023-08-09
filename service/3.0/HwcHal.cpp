@@ -1028,7 +1028,7 @@ HWC3::Error HwcHal::setHdrConversionStrategy(
                     conversionStrategy.get<HdrConversionStrategyTag::passthrough>();
             int32_t error =
                         mDispatch.setHdrConversionStrategy(mDevice, passthrough,
-                                                           0, nullptr, nullptr);
+                                                           0, false /*isAuto*/, nullptr, nullptr);
             *preferredHdrOutputType = common::Hdr::INVALID;
             if (error != HWC2_ERROR_NONE) {
                 return static_cast<HWC3::Error>(error);
@@ -1047,7 +1047,7 @@ HWC3::Error HwcHal::setHdrConversionStrategy(
                         static_cast<uint32_t>(type));
             }
             int32_t error = mDispatch.setHdrConversionStrategy(mDevice,
-                        false, (uint32_t)autoHdrTypes.size(), hwcAutoHdrTypes.data(),
+                        false, (uint32_t)autoHdrTypes.size(), true /*isAuto*/, hwcAutoHdrTypes.data(),
                         reinterpret_cast<uint32_t *>(preferredHdrOutputType));
             if (error != HWC2_ERROR_NONE) {
                     return static_cast<HWC3::Error>(error);
@@ -1060,7 +1060,7 @@ HWC3::Error HwcHal::setHdrConversionStrategy(
                      static_cast<uint32_t >(conversionStrategy
                             .get<HdrConversionStrategyTag::forceHdrConversion>());
             int32_t error =
-                        mDispatch.setHdrConversionStrategy(mDevice, false, 1, &forceHdrConversion,
+                        mDispatch.setHdrConversionStrategy(mDevice, false, 1, false /*isAuto*/, &forceHdrConversion,
                             reinterpret_cast<uint32_t *>(preferredHdrOutputType));
 
             *preferredHdrOutputType = common::Hdr::INVALID;
