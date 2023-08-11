@@ -61,9 +61,25 @@ protected:
     int handleOsdCompositionWithVideo();
     int32_t compareFbScale(drm_rect_t & aSrc, drm_rect_t & aDst, drm_rect_t & bSrc, drm_rect_t & bDst);
     int handleUVM();
+
     int allocateDiOutputFb(
         std::shared_ptr<DrmFramebuffer> & fb, uint32_t z);
-    int chooseOneVideoFb(std::shared_ptr<DrmFramebuffer> & videoFb);
+    int deleteFbFromeVectorFbs(
+            std::vector<std::shared_ptr<DrmFramebuffer>> & inputFbs,
+            std::shared_ptr<DrmFramebuffer> & Fb);
+    int chooseVideoFbsBaseNoOverlap(
+            std::vector<std::shared_ptr<DrmFramebuffer>> & inputVideoFbs,
+            std::vector<std::shared_ptr<DrmFramebuffer>> & outputVideoFbs);
+    int chooseOneVideoFbBaseBiggestWindow(
+            std::vector<std::shared_ptr<DrmFramebuffer>> & inputVideoFbs,
+            std::shared_ptr<DrmFramebuffer> & outputVideoFb);
+    int chooseOneVideoFbBaseVideoType(
+            std::vector<std::shared_ptr<DrmFramebuffer>> & inputVideoFbs,
+            std::shared_ptr<DrmFramebuffer> & outputVideoFb);
+    int chooseOneVideoFb(
+            std::shared_ptr<DrmFramebuffer> & outputVideoFb,
+            bool bVideoCompose);
+
     void checkLayerValidate(std::shared_ptr<DrmFramebuffer> & fb);
     bool handleLLM(const bool enable);
 

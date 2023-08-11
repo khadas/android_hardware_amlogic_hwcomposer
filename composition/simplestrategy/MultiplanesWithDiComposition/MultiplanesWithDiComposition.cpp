@@ -111,90 +111,42 @@ int MultiplanesWithDiComposition::allocateDiOutputFb(
     return 0;
 }
 
-int MultiplanesWithDiComposition::chooseOneVideoFb(std::shared_ptr<DrmFramebuffer> & videoFb) {
-    int video_type;
-    std::vector<std::shared_ptr<DrmFramebuffer>> fbs;
+int MultiplanesWithDiComposition::deleteFbFromeVectorFbs(
+        std::vector<std::shared_ptr<DrmFramebuffer>> & inputFbs,
+        std::shared_ptr<DrmFramebuffer> & fb) {
     std::vector<std::shared_ptr<DrmFramebuffer>>::iterator itErase;
 
-    videoFb.reset();
-    // no Video Fbs
-    if (mDIComposerFbs.empty())
-        return -EINVAL;
+    if (!fb.get())
+        return 0;
 
-    {
-        std::vector<int> video_types {AM_VIDEO_DI_POST, AM_VIDEO_SECURE,
-            AM_VIDEO_DV, AM_VIDEO_4K, AM_VIDEO_AFBC, AM_VIDEO_HDR,
-            AM_VIDEO_HDR10_PLUS, AM_VIDEO_HLG};
-
-        for (auto it = mDIComposerFbs.begin(); it != mDIComposerFbs.end(); it++) {
-            video_type = (*it)->getVideoType();
-            if (video_type > 0) fbs.push_back(*it);
-
-            MESON_LOGV("[%s] fbId:%" PRIu64 " videoType:%x",
-                    __func__, (*it)->getUniqueId(), video_type);
-        }
-
-        if (!fbs.empty()) {
-            auto type_it = video_types.begin();
-            for (; type_it != video_types.end(); type_it++) {
-                bool have_type = false;
-                for (auto fbIt = fbs.begin(); fbIt != fbs.end(); fbIt++) {
-                    video_type = (*fbIt)->getVideoType();
-                    if ((video_type & *type_it) == *type_it) {
-                        have_type = true;
-                        break;
-                    }
-                }
-
-                if (have_type) {
-                    for (auto fbIt = fbs.begin(); fbIt != fbs.end();) {
-                        video_type = (*fbIt)->getVideoType();
-                        if ((video_type & *type_it) == *type_it)
-                            fbIt++;
-                        else
-                            fbs.erase(fbIt);
-                    }
-                }
-
-                if (fbs.size() == 1)
-                    break;
-            }
-        }
-
-        if (!fbs.empty()) {
-            videoFb = *(fbs.begin());
-
-            itErase = std::find(mDIComposerFbs.begin(), mDIComposerFbs.end(), videoFb);
-            if (itErase != mDIComposerFbs.end())
-                mDIComposerFbs.erase(itErase);
-
-            if (videoFb)
-                return 0;
-        }
+    /* remove from list */
+    itErase = std::find(inputFbs.begin(), inputFbs.end(), fb);
+    if (itErase != inputFbs.end()) {
+        inputFbs.erase(itErase);
+        return 0;
     }
+    return 1;
+}
 
-    /* find the biggest window and it can't overlap with other window.
-     * if no success, find one that can't overlap to others and post it
-     * to video_composer.0, post others to video_composer.1
-     */
+int MultiplanesWithDiComposition::chooseVideoFbsBaseNoOverlap(
+        std::vector<std::shared_ptr<DrmFramebuffer>> & inputVideoFbs,
+        std::vector<std::shared_ptr<DrmFramebuffer>> & outputVideoFbs) {
     drm_rect_t dispFrame, dispFrame1;
     bool is_overlap;
-    std::shared_ptr<DrmFramebuffer> fb, fb1, large_fb, no_overlap_fb;
-    int region = 0, max_region = 0, no_overlap_fb_region = 0;
-    for (auto it = mDIComposerFbs.begin(); it != mDIComposerFbs.end(); it++) {
+    std::shared_ptr<DrmFramebuffer> fb, fb1;
+
+    for (auto it = inputVideoFbs.begin(); it != inputVideoFbs.end(); it++) {
         fb = *it;
         is_overlap = false;
 
-        if (!large_fb)
-            large_fb = fb;
-
         /* find one that did not overlap with others */
         dispFrame = fb->getDisplayFrame();
-        for (auto it1 = mDIComposerFbs.begin(); it1 != mDIComposerFbs.end(); it1++) {
+        for (auto it1 = it; it1 != inputVideoFbs.end(); it1++) {
             fb1 = *it1;
-            dispFrame1 = fb1->getDisplayFrame();
             if (fb == fb1)
                 continue;
+
+            dispFrame1 = fb1->getDisplayFrame();
             if (std::max(0, std::min(dispFrame.right, dispFrame1.right) -
                 std::max(dispFrame.left, dispFrame1.left)) *
                 std::max(0, std::min(dispFrame.bottom, dispFrame1.bottom) -
@@ -204,15 +156,40 @@ int MultiplanesWithDiComposition::chooseOneVideoFb(std::shared_ptr<DrmFramebuffe
             }
         }
 
-        region = (dispFrame.right - dispFrame.left) * (dispFrame.bottom - dispFrame.top);
         if (!is_overlap) {
-            if (!no_overlap_fb || region > no_overlap_fb_region) {
-                no_overlap_fb = fb;
-                no_overlap_fb_region = region;
-            } else if ( region == no_overlap_fb_region) {
-                if (fb->mZorder >= no_overlap_fb->mZorder )
-                    no_overlap_fb = fb;
-            }
+            MESON_LOGV("[%s] LayerId:%" PRIu64 " buffer is not overlap with others",
+                    __func__, fb->getUniqueId());
+            outputVideoFbs.push_back(fb);
+        }
+    }
+
+    return 0;
+}
+
+int MultiplanesWithDiComposition::chooseOneVideoFbBaseBiggestWindow(
+        std::vector<std::shared_ptr<DrmFramebuffer>> & inputVideoFbs,
+        std::shared_ptr<DrmFramebuffer> & outputVideoFb) {
+    drm_rect_t dispFrame;
+    std::shared_ptr<DrmFramebuffer> fb = nullptr;
+    std::shared_ptr<DrmFramebuffer> large_fb = nullptr;
+    int region = 0, max_region = 0;
+
+    outputVideoFb.reset();
+
+    if (inputVideoFbs.empty())
+        return 0;
+
+    for (auto it = inputVideoFbs.begin(); it != inputVideoFbs.end(); it++) {
+        fb = *it;
+
+        /* find one that did not overlap with others */
+        dispFrame = fb->getDisplayFrame();
+        region = (dispFrame.right - dispFrame.left) * (dispFrame.bottom - dispFrame.top);
+
+        if (!large_fb) {
+            large_fb = fb;
+            max_region = region;
+            continue;
         }
 
         /* find the largest the frame */
@@ -225,15 +202,117 @@ int MultiplanesWithDiComposition::chooseOneVideoFb(std::shared_ptr<DrmFramebuffe
         }
     }
 
-    if (no_overlap_fb)
-        videoFb = no_overlap_fb;
-    else if (large_fb)
-        videoFb = large_fb;
+    outputVideoFb = large_fb;
+    dispFrame = large_fb->getDisplayFrame();
+    MESON_LOGV("[%s] LayerId:%" PRIu64 " return large region buffer (%d %d %d %d)",
+            __func__, large_fb->getUniqueId(),
+            dispFrame.left, dispFrame.top, dispFrame.right, dispFrame.bottom);
 
-    /*remove from list*/
-    itErase = std::find(mDIComposerFbs.begin(), mDIComposerFbs.end(), videoFb);
-    if (itErase != mDIComposerFbs.end())
-        mDIComposerFbs.erase(itErase);
+    return 0;
+}
+
+int MultiplanesWithDiComposition::chooseOneVideoFbBaseVideoType(
+        std::vector<std::shared_ptr<DrmFramebuffer>> & inputVideoFbs,
+        std::shared_ptr<DrmFramebuffer> & outputVideoFb) {
+    int video_type;
+    std::vector<std::shared_ptr<DrmFramebuffer>> fbs;
+
+    std::vector<int> video_types {AM_VIDEO_DI_POST, AM_VIDEO_SECURE,
+        AM_VIDEO_DV, AM_VIDEO_4K, AM_VIDEO_AFBC, AM_VIDEO_HDR,
+        AM_VIDEO_HDR10_PLUS, AM_VIDEO_HLG};
+
+    for (auto it = inputVideoFbs.begin(); it != inputVideoFbs.end(); it++) {
+        video_type = (*it)->getVideoType();
+        if (video_type > 0) fbs.push_back(*it);
+
+        MESON_LOGV("[%s] LayerId:%" PRIu64 " videoType:0x%x",
+                __func__, (*it)->getUniqueId(), video_type);
+    }
+
+    if (!fbs.empty()) {
+        auto type_it = video_types.begin();
+        for (; type_it != video_types.end(); type_it++) {
+            bool have_type = false;
+            for (auto fbIt = fbs.begin(); fbIt != fbs.end(); fbIt++) {
+                video_type = (*fbIt)->getVideoType();
+                if ((video_type & *type_it) == *type_it) {
+                    have_type = true;
+                    break;
+                }
+            }
+
+            if (have_type) {
+                for (auto fbIt = fbs.begin(); fbIt != fbs.end();) {
+                    video_type = (*fbIt)->getVideoType();
+                    if ((video_type & *type_it) == *type_it)
+                        fbIt++;
+                    else
+                        fbs.erase(fbIt);
+                }
+            }
+
+            if (fbs.size() == 1)
+                break;
+        }
+    }
+
+    outputVideoFb.reset();
+
+    if (!fbs.empty()) {
+        auto it = fbs.begin();
+        outputVideoFb = *it;
+        for (; it != fbs.end(); it++) {
+            if (outputVideoFb->mZorder <= (*it)->mZorder)
+                outputVideoFb = *it;
+        }
+    }
+
+    if (outputVideoFb.get())
+        MESON_LOGV("[%s] choose the fb, LayerId:%" PRIu64 " videoType:%x",
+                __func__, outputVideoFb->getUniqueId(), outputVideoFb->getVideoType());
+
+    return 0;
+}
+
+int MultiplanesWithDiComposition::chooseOneVideoFb(
+        std::shared_ptr<DrmFramebuffer> & outputVideoFb,
+        bool bVideoCompose) {
+    std::vector<std::shared_ptr<DrmFramebuffer>> noOverlayFbs;
+    outputVideoFb.reset();
+
+    // no Video Fbs
+    if (mDIComposerFbs.empty())
+        return -EINVAL;
+
+    if (!bVideoCompose) {
+        chooseOneVideoFbBaseVideoType(mDIComposerFbs, outputVideoFb);
+        if (!outputVideoFb.get()) {
+            chooseVideoFbsBaseNoOverlap(mDIComposerFbs, noOverlayFbs);
+            /* at least one buffer in noOverlayFbs vector */
+
+            if (noOverlayFbs.size() == 1)
+                outputVideoFb = *noOverlayFbs.begin();
+            else
+                chooseOneVideoFbBaseBiggestWindow(noOverlayFbs, outputVideoFb);
+        }
+    } else {
+        chooseVideoFbsBaseNoOverlap(mDIComposerFbs, noOverlayFbs);
+        /* at least one buffer in noOverlayFbs vector */
+
+        if (noOverlayFbs.size() == 1) {
+            outputVideoFb = *noOverlayFbs.begin();
+        } else {
+            chooseOneVideoFbBaseVideoType(noOverlayFbs, outputVideoFb);
+            if (!outputVideoFb.get()) {
+                chooseOneVideoFbBaseBiggestWindow(noOverlayFbs, outputVideoFb);
+            }
+        }
+    }
+
+    if (outputVideoFb.get()) {
+        MESON_LOGV("[%s]: choose the fb, LayerId:%" PRIu64, __func__, outputVideoFb->getUniqueId());
+        deleteFbFromeVectorFbs(mDIComposerFbs, outputVideoFb);
+    }
 
     return 0;
 }
@@ -364,7 +443,7 @@ int MultiplanesWithDiComposition::processVideoFbs() {
             fb->mCompositionType = MESON_COMPOSITION_DUMMY;
             if (mDIComposerFbs.size() > 0) {
                 fb.reset();
-                chooseOneVideoFb(fb);
+                chooseOneVideoFb(fb, false);
                 fb->mCompositionType = MESON_COMPOSITION_PLANE_HWCVIDEO;
             }
         } else {
@@ -393,12 +472,10 @@ int MultiplanesWithDiComposition::processVideoFbs() {
             mHwcVideoInputFbs = mDIComposerFbs;
             if (mHwcVideoInputFbs.size() > 0) {
                 if (bVideoCompose) {
-                    videoZ = maxVideoZ;
-                    for (auto it = mHwcVideoInputFbs.begin(); it != mHwcVideoInputFbs.end(); it++) {
+                    /* make sure Z-Order of the last VD is the minimum */
+                    videoZ = minVideoZ;
+                    for (auto it = mHwcVideoInputFbs.begin(); it != mHwcVideoInputFbs.end(); it++)
                         (*it)->mCompositionType = MESON_COMPOSITION_DI;
-                        if ((*it)->mZorder < videoZ)
-                            videoZ = (*it)->mZorder;
-                    }
 
                     /*set dicomposer and get output video.*/
                     std::vector<std::shared_ptr<DrmFramebuffer>> nofbs;
@@ -436,13 +513,20 @@ int MultiplanesWithDiComposition::processVideoFbs() {
         }
 
         if (!fb)
-            chooseOneVideoFb(fb);
+            chooseOneVideoFb(fb, bVideoCompose);
 
         MESON_LOGV("[%s] id:%" PRIu64 ", setTo video %d ", __func__, fb->getUniqueId(), i);
         fb->mCompositionType = MESON_COMPOSITION_PLANE_HWCVIDEO;
 
+        if (bVideoCompose) {
+            /* make sure Z-Order of the last VD is the minimum */
+            videoZ = fb->mZorder + 1;
+        } else {
+            videoZ = fb->mZorder;
+        }
+
         mDisplayPairs.push_back(DisplayPair{
-                (uint32_t)mOsdPlaneNum + i, fb->mZorder, fb, mHwcVideoPlanes[i]});
+                (uint32_t)mOsdPlaneNum + i, videoZ, fb, mHwcVideoPlanes[i]});
         fb.reset();
     }
 
