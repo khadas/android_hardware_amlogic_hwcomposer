@@ -1386,9 +1386,14 @@ void ComposerClient::executeLayerCommandSetLayerColorTransform(
 void ComposerClient::executeLayerCommandSetLayerPerFrameMetadataBlobs(
       int64_t display __unused, int64_t layerId __unused,
       const std::vector<std::optional<PerFrameMetadataBlob>>&
-          perFrameMetadataBlob __unused) {
+          perFrameMetadataBlob) {
     DEBUG_LOG("%s", __FUNCTION__);
-    mCommandResults->addError(HWC3::Error::Unsupported);
+    if (perFrameMetadataBlob.empty()) {
+        mCommandResults->addError(HWC3::Error::None);
+    } else {
+        // TODO: implement when support
+        mCommandResults->addError(HWC3::Error::Unsupported);
+    }
 }
 
 void ComposerClient::executeLayerCommandSetLayerBrightness(
