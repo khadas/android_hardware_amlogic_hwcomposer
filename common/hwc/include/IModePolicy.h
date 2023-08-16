@@ -36,7 +36,7 @@ public:
     virtual int32_t setBootConfig(std::string &config) = 0;
     virtual int32_t clearBootConfig() = 0;
 
-    virtual int32_t setHdrConversionPolicy(bool passthrough, int32_t forceType) = 0;
+    virtual int32_t setHdrConversionPolicy(bool passthrough, int32_t forceType, bool overWriteEnv = true) = 0;
     // ALLM supported
     virtual int32_t setAutoLowLatencyMode(bool enabled) = 0;
 

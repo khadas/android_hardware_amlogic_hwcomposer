@@ -52,6 +52,8 @@ public:
     int32_t setPendingMode();
     void closeLogoDisplay();
 
+    int32_t getConversionCaps(std::vector<drm_hdr_conversion_capability>&
+                    hdrconversionCaps);
     int32_t getPixelFormats(std::vector<uint32_t>& pixelFormats);
 
     void dump(String8 & dumpstr);
@@ -64,6 +66,7 @@ public:
 
 protected:
     int32_t loadProperties();
+    int32_t initConversionCaps();
     int32_t setModeLocked(drm_mode_info_t & mode, bool seamless = false);
 
 protected:
@@ -84,12 +87,15 @@ protected:
     std::shared_ptr<DrmProperty> mVrrEnabled;
     std::shared_ptr<DrmProperty> mVideoPixelFormat;
     std::shared_ptr<DrmProperty> mOsdPixelFormat;
+    std::shared_ptr<DrmProperty> mHdrConversionCaps;
 
     drmModeAtomicReqPtr mReq;
 
     std::mutex mMutex;
     uint32_t mConnectorId;
     std::vector<drm_mode_info> mPendingModes;
+
+    std::vector<drm_hdr_conversion_capability> mDrmHdrConversionCaps;
 
     /* uboot logo closed */
     bool mLogoClosed;

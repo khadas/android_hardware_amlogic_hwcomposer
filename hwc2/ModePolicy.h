@@ -275,7 +275,7 @@ public:
     int32_t setBootConfig(std::string &config);
     int32_t clearBootConfig();
 
-    int32_t setHdrConversionPolicy(bool passthrough, int32_t forceType);
+    int32_t setHdrConversionPolicy(bool passthrough, int32_t forceType, bool overWriteEnv = true);
     int32_t setAutoLowLatencyMode(bool enabled);
 
     void dump(String8 &dumpstr) override;

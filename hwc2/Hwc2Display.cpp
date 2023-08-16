@@ -2044,7 +2044,7 @@ hwc2_error_t Hwc2Display::getHdrConversionCapabilities(uint32_t* outNumCapabilit
                 drm_hdr_conversion_capability_t* outConversionCapability) {
     MESON_LOGD(" %s ",__func__);
 
-    mConnector->getConversionCaps(mHdrConversionCaps);
+    mCrtc->getConversionCaps(mHdrConversionCaps);
     *outNumCapability = mHdrConversionCaps.size();
 
     if (outConversionCapability != NULL) {
@@ -2101,9 +2101,9 @@ hwc2_error_t Hwc2Display::setHdrConversionStrategy(bool passThrough, uint32_t nu
         }
         if (forceType == -1) {
             if (mModePolicy) {
-                mModePolicy->setHdrConversionPolicy(true, forceType);
+                mModePolicy->setHdrConversionPolicy(true, forceType, false);
             } else {
-                mConnector->setHdrConversionStrategy(true, forceType);
+                MESON_LOGD("ModePolicy is NULL");
             }
             return HWC2_ERROR_UNSUPPORTED;
         }
@@ -2114,7 +2114,7 @@ hwc2_error_t Hwc2Display::setHdrConversionStrategy(bool passThrough, uint32_t nu
     if (mModePolicy)
         ret = mModePolicy->setHdrConversionPolicy(passThrough, forceType);
     else {
-        ret = mConnector->setHdrConversionStrategy(passThrough,forceType);
+        MESON_LOGD("ModePolicy is NULL");
     }
 
     return ret != 0 ? HWC2_ERROR_UNSUPPORTED : HWC2_ERROR_NONE;

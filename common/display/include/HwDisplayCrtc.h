@@ -52,9 +52,13 @@ public:
     virtual int32_t readCurDisplayMode(std::string & dispmode) = 0;
     virtual int32_t writeCurDisplayAttr(std::string & dispattr) = 0;
     virtual int32_t setPendingMode() = 0;
+
+    virtual int32_t getPixelFormats(std::vector<uint32_t>& pixelFormats) = 0;
+    virtual int32_t getConversionCaps(std::vector<drm_hdr_conversion_capability>&
+                    hdrconversionCaps) = 0;
+
     virtual void dump(String8 & dumpstr __unused) {}
     virtual void closeLogoDisplay();
-    virtual int32_t getPixelFormats(std::vector<uint32_t>& pixelFormats) = 0;
 
     /* for hotplug */
     enum class HotplugStatus {

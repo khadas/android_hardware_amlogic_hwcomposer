@@ -29,27 +29,6 @@
 #define HDMI_FRAC_RATE_POLICY "/sys/class/amhdmitx/amhdmitx0/frac_rate_policy"
 #define HDMI_TX_ALLM_MODE   "/sys/class/amhdmitx/amhdmitx0/allm_cap"
 
-#define HDR_POLICY          "/sys/module/aml_media/parameters/hdr_policy"
-#define DV_POLICY           "/sys/module/aml_media/parameters/dolby_vision_policy"
-#define DV_LL_POLICY        "/sys/module/aml_media/parameters/dolby_vision_ll_policy"
-#define FORCE_DV_MODE       "sys/class/amdolby_vision/dv_mode"
-#define FORCE_HDR_MODE      "/sys/module/aml_media/parameters/force_output"
-#define HDMI_ATTR           "/sys/class/amhdmitx/amhdmitx0/attr"
-
-#define HDR_POLICY_SINK               "0"
-#define HDR_POLICY_SOURCE             "1"
-#define HDR_POLICY_FORCE              "2"
-
-#define FORCE_DV                 "2"
-#define FORCE_HDR10              "3"
-#define FORCE_HLG                "5"
-
-#define DV_SINK_LED                   "0"
-#define DV_SOURCE_LED                 "1"
-
-#define DV_DISABLE_FORCE_SDR         "1"
-#define DV_ENABLE_FORCE_SDR          "5"
-
 static const u8 default_1080p_edid[EDID_MIN_LEN] = {
 0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00,
 0x31, 0xd8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -85,7 +64,6 @@ DrmConnector::DrmConnector(int drmFd, drmModeConnectorPtr p)
 
     mFracMode = HWC_HDMI_FRAC_MODE;
     loadConnectorInfo(p);
-    initConversionCaps();
 }
 
 DrmConnector::~DrmConnector() {
@@ -110,8 +88,6 @@ int32_t DrmConnector::loadProperties(drmModeConnectorPtr p __unused) {
         {DRM_HDMI_PROP_CONTENT_TYPE, &mContentType},
         {DRM_HDMI_PROP_HDMI_AV_MUTE, &mAVMute},
         {DRM_HDMI_PROP_DV_CAP, &mDvCaps},
-        {DRM_CONNECTOR_PROP_CONVERSION_CAP, &mHdrConversionCaps},
-        {DRM_CONNECTOR_PROP_FORCE_MODE, &mHdrForceMode}
     };
     const int connectorPropsNum = sizeof(connectorProps)/sizeof(connectorProps[0]);
 
@@ -355,191 +331,6 @@ bool DrmConnector::supportSinkLed() {
         return true;
     else
         return false;
-}
-
-/* bit0: SDR->HDR10 */
-/* bit1: SDR->HLG */
-/* bit2: HDR10->SDR */
-/* bit3: HDR10->HLG */
-/* bit4: HLG->SDR */
-/* bit5: HLG->HDR10 */
-/* bit6: HDR10_PLUS->HDR10 */
-/* bit7: HDR10_PLUS->SDR */
-/* bit8: HDR10_PLUS->HLG */
-/* bit9: CUVA_HDR->SDR */
-/* bit10: CUVA_HDR->HDR10 */
-/* bit11: CUVA_HDR->HLG */
-/* bit12: CUVA_HLG->SDR */
-/* bit13: CUVA_HLG->HDR10 */
-/* bit14: CUVA_HLG->HLG */
-/* bit15: DOLBY_VISION->SDR */
-/* bit16: SDR->DOLBY_VISION */
-/* bit17: DOLBY_VISION->HDR10*/
-/* bit18: HDR10->DOLBY_VISION */
-/* bit19: HLG->DOLBY_VISION */
-int32_t DrmConnector::initConversionCaps() {
-    mDrmHdrConversionCaps.clear();
-    if (mHdrConversionCaps) {
-        uint32_t value = mHdrConversionCaps->getValue();
-        MESON_LOGD("%s mHdrCoversionCaps:0x%x",__func__, value);
-        if (value & (1 << 0))
-            mDrmHdrConversionCaps.push_back({DRM_INVALID, DRM_HDR10, 0});
-        if (value & (1 << 1))
-            mDrmHdrConversionCaps.push_back({DRM_INVALID, DRM_HLG, 0});
-        if (value & (1 << 2))
-            mDrmHdrConversionCaps.push_back({DRM_HDR10, DRM_INVALID, 0});
-        if (value & (1 << 3))
-            mDrmHdrConversionCaps.push_back({DRM_HDR10, DRM_HLG, 0});
-        if (value & (1 << 4))
-            mDrmHdrConversionCaps.push_back({DRM_HLG, DRM_INVALID, 0});
-        if (value & (1 << 5))
-            mDrmHdrConversionCaps.push_back({DRM_HLG, DRM_HDR10, 0});
-        if (value & (1 << 6))
-            mDrmHdrConversionCaps.push_back({DRM_HDR10_PLUS, DRM_HDR10, 0});
-        if (value & (1 << 7))
-            mDrmHdrConversionCaps.push_back({DRM_HDR10_PLUS, DRM_INVALID, 0});
-        if (value & (1 << 8))
-            mDrmHdrConversionCaps.push_back({DRM_HDR10_PLUS, DRM_HLG, 0});
-        if (value & (1 << 15))
-            mDrmHdrConversionCaps.push_back({DRM_DOLBY_VISION, DRM_INVALID, 0});
-        if (value & (1 << 16))
-            mDrmHdrConversionCaps.push_back({DRM_INVALID, DRM_DOLBY_VISION, 0});
-        if (value & (1 << 17))
-            mDrmHdrConversionCaps.push_back({DRM_DOLBY_VISION, DRM_HDR10, 0});
-        if (value & (1 << 18))
-            mDrmHdrConversionCaps.push_back({DRM_HDR10, DRM_DOLBY_VISION, 0});
-        if (value & (1 << 19))
-            mDrmHdrConversionCaps.push_back({DRM_HLG, DRM_DOLBY_VISION, 0});
-    }
-    return 0;
-}
-
-int32_t DrmConnector::getConversionCaps(std::vector<drm_hdr_conversion_capability>& hdrconversionCaps) {
-    hdrconversionCaps.assign(mDrmHdrConversionCaps.begin(), mDrmHdrConversionCaps.end());
-    return 0;
-}
-
-int32_t DrmConnector::setHdrConversionStrategy (bool passthrough, int32_t forceType) {
-    int32_t ret = 0;
-    MESON_LOGD("%s passthrough %d forceType %d ", __func__, passthrough, forceType);
-
-    if (passthrough) {
-        /*follow source*/
-       if (!mSupportDv) {
-           sysfs_set_string(HDR_POLICY, HDR_POLICY_SOURCE);
-           sysfs_set_string(DV_POLICY, HDR_POLICY_SINK);
-       } else {
-           sysfs_set_string(DV_POLICY, HDR_POLICY_SOURCE);
-           if (supportSinkLed()) {
-               sysfs_set_string(DV_LL_POLICY, DV_SINK_LED);
-           } else if (supportSourceLed()) {
-               sysfs_set_string(DV_LL_POLICY, DV_SOURCE_LED);
-           }
-       }
-        meson_mode_set_ubootenv(UBOOTENV_HDR_POLICY, HDR_POLICY_SOURCE);
-    } else {
-        /*force mode need set attr before switch policy */
-        switch (forceType) {
-            case DRM_DOLBY_VISION: {
-                if (supportSinkLed()) {
-                    /*444,8bit*/
-                    sysfs_set_string(HDMI_ATTR, "444,8bit");
-                } else {
-                    /*422,12bit*/
-                    sysfs_set_string(HDMI_ATTR, "422,12bit");
-                }
-                sysfs_set_string(DV_POLICY, HDR_POLICY_FORCE);
-                sysfs_set_string(FORCE_DV_MODE, FORCE_DV);
-                break;
-            }
-            case DRM_HDR10: {
-                /*enable dv force HDR10 need ColorDepth >= 10 bit*/
-                if (mSupportDv && mColorSpace && mColorDepth && mColorDepth->getValue() < 10) {
-                    sysfs_set_string(HDMI_ATTR, "420,10bit");
-                }
-
-                if (!mSupportDv) {
-                    sysfs_set_string(HDR_POLICY, HDR_POLICY_FORCE);
-                    sysfs_set_string(FORCE_HDR_MODE, FORCE_HDR10);
-                }
-                else {
-                    sysfs_set_string(DV_POLICY, HDR_POLICY_FORCE);
-                    sysfs_set_string(FORCE_DV_MODE, FORCE_HDR10);
-                }
-                break;
-            }
-            case DRM_HLG: {
-                sysfs_set_string(HDR_POLICY, HDR_POLICY_FORCE);
-                sysfs_set_string(FORCE_HDR_MODE, FORCE_HLG);
-                break;
-            }
-            case DRM_INVALID: {
-                if (!mSupportDv) {
-                    sysfs_set_string(HDR_POLICY, HDR_POLICY_FORCE);
-                    sysfs_set_string(FORCE_HDR_MODE, DV_DISABLE_FORCE_SDR);
-                }
-                else {
-                    sysfs_set_string(DV_POLICY, HDR_POLICY_FORCE);
-                    sysfs_set_string(FORCE_DV_MODE, DV_ENABLE_FORCE_SDR);
-                }
-                break;
-            }
-            default:
-                MESON_LOGE("setHdrConversionStrategy: error type[%d]", forceType);
-                ret = HWC2_ERROR_UNSUPPORTED;
-                break;
-        }
-
-        if (!mSupportDv && !ret)
-            meson_mode_set_ubootenv(UBOOTENV_HDR_POLICY, HDR_POLICY_FORCE);
-    }
-    return ret;
-}
-
-
-/* use Drmproperty for forcemode
- * ToDo*/
-int32_t DrmConnector::setForceMode(uint32_t value) {
-    int ret = -1;
-    if (mHdrForceMode)
-        ret = mHdrForceMode->setValue(value);
-    if (ret != 0)
-        return -EINVAL;
-    else
-        return 0;
-}
-
-/* use Drmproperty for attr
- * ToDo*/
-int32_t DrmConnector::setAttrForDV(uint32_t color_space_value, uint32_t color_depth_value) {
-    int ret = -1;
-    int rtn = -1;
-    if (mColorSpace && mColorDepth) {
-        if (mColorSpace->getValue() == color_space_value
-                && mColorDepth->getValue() == color_depth_value) {
-            return 0;
-        }
-        ret = mColorSpace->setValue(color_space_value);
-        rtn = mColorDepth->setValue(color_depth_value);
-    }
-    if (ret == 0 && rtn == 0 && mCrtcId) {
-        std::shared_ptr<HwDisplayCrtc> displayCrtc;
-        displayCrtc = getDrmDevice()->getCrtcById(mCrtcId->getValue());
-        if (displayCrtc) {
-            DrmCrtc * crtc = (DrmCrtc *)displayCrtc.get();
-            crtc->prePageFlip();
-            drmModeAtomicReqPtr req = crtc->getAtomicReq();
-            mColorSpace->apply(req);
-            mColorDepth->apply(req);
-            crtc->updatePropertyValue();
-            return 0;
-        } else {
-           return -EINVAL;
-        }
-    }
-    else {
-        return -EINVAL;
-    }
 }
 
 uint32_t DrmConnector::getId() {

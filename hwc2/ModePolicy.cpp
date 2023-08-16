@@ -1790,16 +1790,25 @@ int32_t ModePolicy::setAutoLowLatencyMode(bool enabled) {
     return HWC2_ERROR_UNSUPPORTED;
 }
 
-int32_t ModePolicy::setHdrConversionPolicy(bool passthrough, int32_t forceType) {
+int32_t ModePolicy::setHdrConversionPolicy(bool passthrough, int32_t forceType, bool overWriteEnv) {
     int32_t ret = 0;
-    MESON_LOGD("%s passthrough %d forceType %s",
-            __func__, passthrough, hdrConversionTypeToString(forceType));
+    MESON_LOGD("%s passthrough %d overWriteEnv %d forceType %s",
+            __func__, passthrough, overWriteEnv, hdrConversionTypeToString(forceType));
 
     if (passthrough) {
+        char pre_hdr_policy[MESON_MODE_LEN] = {0};
+        memset(pre_hdr_policy, 0, MESON_MODE_LEN);
+        getBootEnv(UBOOTENV_HDR_POLICY, pre_hdr_policy);
+
         setBootEnv(UBOOTENV_HDR_POLICY, HDR_POLICY_SOURCE);
         // set current hdmi mode
         getDisplayMode(mCurrentMode);
         setSourceOutputMode(mCurrentMode);
+
+        // reset previous hdr_policy
+        if (!overWriteEnv) {
+            setBootEnv(UBOOTENV_HDR_POLICY, pre_hdr_policy);
+        }
     } else {
         /*force mode need set attr before switch policy */
         std::string type = FORCE_DV;

@@ -34,6 +34,7 @@ DrmCrtc::DrmCrtc(int drmFd, drmModeCrtcPtr p, uint32_t pipe)
     mLogoClosed(false) {
     loadProperties();
     MESON_ASSERT(p->mode_valid == mActive->getValue(), "valid mode info mismatch.");
+    initConversionCaps();
 
     if (p->mode_valid) {
         memcpy(&mDrmMode, &p->mode, sizeof(drmModeModeInfo));
@@ -63,6 +64,7 @@ int32_t DrmCrtc::loadProperties() {
         {DRM_CRTC_PROP_VRR_ENABLED, &mVrrEnabled},
         {DRM_CRTC_PROP_VIDEO_PIXEL_FORMAT, &mVideoPixelFormat},
         {DRM_CRTC_PROP_OSD_PIXEL_FORMAT, &mOsdPixelFormat},
+        {DRM_CONNECTOR_PROP_CONVERSION_CAP, &mHdrConversionCaps},
     };
     const int crtcPropsNum = sizeof(crtcProps)/sizeof(crtcProps[0]);
     int initedProps = 0;
@@ -147,6 +149,68 @@ int32_t DrmCrtc::getMode(drm_mode_info_t & mode) {
 
     MESON_LOGV("Crtc [%d] getmode %" PRIu64 ":[%dx%d-%f].",
         mId, mModeBlobId->getValue(), mode.pixelW, mode.pixelH, mode.refreshRate);
+    return 0;
+}
+
+/* bit0: SDR->HDR10 */
+/* bit1: SDR->HLG */
+/* bit2: HDR10->SDR */
+/* bit3: HDR10->HLG */
+/* bit4: HLG->SDR */
+/* bit5: HLG->HDR10 */
+/* bit6: HDR10_PLUS->HDR10 */
+/* bit7: HDR10_PLUS->SDR */
+/* bit8: HDR10_PLUS->HLG */
+/* bit9: CUVA_HDR->SDR */
+/* bit10: CUVA_HDR->HDR10 */
+/* bit11: CUVA_HDR->HLG */
+/* bit12: CUVA_HLG->SDR */
+/* bit13: CUVA_HLG->HDR10 */
+/* bit14: CUVA_HLG->HLG */
+/* bit15: DOLBY_VISION->SDR */
+/* bit16: SDR->DOLBY_VISION */
+/* bit17: DOLBY_VISION->HDR10*/
+/* bit18: HDR10->DOLBY_VISION */
+/* bit19: HLG->DOLBY_VISION */
+int32_t DrmCrtc::initConversionCaps() {
+    mDrmHdrConversionCaps.clear();
+    if (mHdrConversionCaps) {
+        uint32_t value = mHdrConversionCaps->getValue();
+        MESON_LOGD("%s mHdrCoversionCaps:0x%x",__func__, value);
+        if (value & (1 << 0))
+            mDrmHdrConversionCaps.push_back({DRM_INVALID, DRM_HDR10, 0});
+        if (value & (1 << 1))
+            mDrmHdrConversionCaps.push_back({DRM_INVALID, DRM_HLG, 0});
+        if (value & (1 << 2))
+            mDrmHdrConversionCaps.push_back({DRM_HDR10, DRM_INVALID, 0});
+        if (value & (1 << 3))
+            mDrmHdrConversionCaps.push_back({DRM_HDR10, DRM_HLG, 0});
+        if (value & (1 << 4))
+            mDrmHdrConversionCaps.push_back({DRM_HLG, DRM_INVALID, 0});
+        if (value & (1 << 5))
+            mDrmHdrConversionCaps.push_back({DRM_HLG, DRM_HDR10, 0});
+        if (value & (1 << 6))
+            mDrmHdrConversionCaps.push_back({DRM_HDR10_PLUS, DRM_HDR10, 0});
+        if (value & (1 << 7))
+            mDrmHdrConversionCaps.push_back({DRM_HDR10_PLUS, DRM_INVALID, 0});
+        if (value & (1 << 8))
+            mDrmHdrConversionCaps.push_back({DRM_HDR10_PLUS, DRM_HLG, 0});
+        if (value & (1 << 15))
+            mDrmHdrConversionCaps.push_back({DRM_DOLBY_VISION, DRM_INVALID, 0});
+        if (value & (1 << 16))
+            mDrmHdrConversionCaps.push_back({DRM_INVALID, DRM_DOLBY_VISION, 0});
+        if (value & (1 << 17))
+            mDrmHdrConversionCaps.push_back({DRM_DOLBY_VISION, DRM_HDR10, 0});
+        if (value & (1 << 18))
+            mDrmHdrConversionCaps.push_back({DRM_HDR10, DRM_DOLBY_VISION, 0});
+        if (value & (1 << 19))
+            mDrmHdrConversionCaps.push_back({DRM_HLG, DRM_DOLBY_VISION, 0});
+    }
+    return 0;
+}
+
+int32_t DrmCrtc::getConversionCaps(std::vector<drm_hdr_conversion_capability>& hdrconversionCaps) {
+    hdrconversionCaps.assign(mDrmHdrConversionCaps.begin(), mDrmHdrConversionCaps.end());
     return 0;
 }
 

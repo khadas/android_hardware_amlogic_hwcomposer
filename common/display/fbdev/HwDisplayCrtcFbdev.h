@@ -60,6 +60,8 @@ public:
     void closeLogoDisplay();
 
     int32_t getPixelFormats(std::vector<uint32_t>& pixelFormats __unused) { return 0; };
+    int32_t getConversionCaps(std::vector<drm_hdr_conversion_capability>&
+                    hdrconversionCaps __unused);
 
 protected:
     int32_t writeCurDisplayMode(std::string & dispmode);

@@ -63,16 +63,6 @@ int32_t HwDisplayConnectorFbdev::setAutoLowLatencyMode(bool on) {
         return HWC2_ERROR_UNSUPPORTED;
 }
 
-int32_t HwDisplayConnectorFbdev::setHdrConversionStrategy(bool passthrough __unused,
-        int32_t type __unused) {
-    return -EOPNOTSUPP;
-}
-
-int32_t HwDisplayConnectorFbdev::getConversionCaps(std::vector<drm_hdr_conversion_capability>&
-        hdrconversionCaps __unused) {
-    return -EOPNOTSUPP;
-}
-
 int32_t HwDisplayConnectorFbdev::setContentType(uint32_t contentType) {
     switch (contentType) {
         case CONTENT_TYPE_NONE:

@@ -199,6 +199,11 @@ int32_t HwDisplayCrtcFbdev::setDisplayFrame(display_zoom_info_t & info) {
     return 0;
 }
 
+int32_t HwDisplayCrtcFbdev::getConversionCaps(std::vector<drm_hdr_conversion_capability>&
+        hdrconversionCaps __unused) {
+    return -EOPNOTSUPP;
+}
+
 int32_t HwDisplayCrtcFbdev::prePageFlip() {
     /*nothing to do*/
     return 0;
