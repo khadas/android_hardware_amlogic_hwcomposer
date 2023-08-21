@@ -108,5 +108,27 @@ private:
     std::unique_ptr<::android::hardware::graphics::composer::V2_2::hal::ComposerResources> mImpl;
 };
 
+class HandleWrapper {
+
+public:
+    HandleWrapper(native_handle_t* handle) {
+        mHandle = handle;
+    }
+    HandleWrapper(const native_handle_t* handle) {
+        mHandle = handle;
+    }
+    const native_handle_t *getNativeHandle() const {
+        return mHandle;
+    }
+    ~HandleWrapper() {
+        if (mHandle != nullptr) {
+            native_handle_delete(const_cast<native_handle_t*>(mHandle));
+        }
+    }
+
+private:
+    const native_handle_t*  mHandle;
+};
+
 }
 }  // namespace aidl::android::hardware::graphics::composer3::impl

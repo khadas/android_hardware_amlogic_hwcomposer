@@ -169,8 +169,8 @@ HWC3::Error ComposerResources::getDisplayReadbackBuffer(
     ::android::hardware::graphics::composer::V2_1::Display display =
         toHwc2Display(displayId);
     return toHwc3Error(mImpl->getDisplayReadbackBuffer(
-                display, ::android::makeFromAidl(handle), outHandle,
-                releaser->getReplacedHandle()));
+                display, HandleWrapper(::android::makeFromAidl(handle)).
+                getNativeHandle(), outHandle,releaser->getReplacedHandle()));
 }
 
 HWC3::Error ComposerResources::getDisplayClientTarget(
@@ -185,10 +185,9 @@ HWC3::Error ComposerResources::getDisplayClientTarget(
     if (buffer.handle.has_value()) {
         bufferHandle = ::android::makeFromAidl(*buffer.handle);
     }
-
     return toHwc3Error(mImpl->getDisplayClientTarget(
-                display, (uint32_t)buffer.slot, useCache, bufferHandle, outHandle,
-                releaser->getReplacedHandle()));
+            display, (uint32_t)buffer.slot, useCache, HandleWrapper(bufferHandle)
+            .getNativeHandle(), outHandle, releaser->getReplacedHandle()));
 }
 
 HWC3::Error ComposerResources::getDisplayClientTarget(
@@ -216,10 +215,9 @@ HWC3::Error ComposerResources::getDisplayOutputBuffer(
     if (buffer.handle.has_value()) {
         bufferHandle = ::android::makeFromAidl(*buffer.handle);
     }
-
     return toHwc3Error(mImpl->getDisplayOutputBuffer(
-                display, (uint32_t)buffer.slot, useCache, bufferHandle, outHandle,
-                releaser->getReplacedHandle()));
+            display, (uint32_t)buffer.slot, useCache, HandleWrapper(bufferHandle).
+            getNativeHandle(), outHandle, releaser->getReplacedHandle()));
 }
 
 HWC3::Error ComposerResources::getDisplayOutputBuffer(
@@ -255,13 +253,9 @@ HWC3::Error ComposerResources::getLayerBuffer(
 
     DEBUG_LOG("%s fromCache:%s buffer slot:%u",
             __FUNCTION__, (useCache ? "yes" : "no"), (uint32_t) buffer.slot);
-    auto result = toHwc3Error(mImpl->getLayerBuffer(display, layer, (uint32_t)buffer.slot,
-                useCache, bufferHandle, outHandle,
+    return toHwc3Error(mImpl->getLayerBuffer(display, layer, (uint32_t)buffer.slot,
+                useCache, HandleWrapper(bufferHandle).getNativeHandle(), outHandle,
                 releaser->getReplacedHandle()));
-    if (bufferHandle) {
-        native_handle_delete(const_cast<native_handle_t*>(bufferHandle));
-    }
-    return result;
 }
 
 HWC3::Error ComposerResources::setLayerBufferSlotsToClear(
@@ -291,8 +285,8 @@ HWC3::Error ComposerResources::getLayerSidebandStream(
     ::android::hardware::graphics::composer::V2_1::Layer layer =
         toHwc2Layer(layerId);
     return toHwc3Error(mImpl->getLayerSidebandStream(
-                display, layer, ::android::makeFromAidl(handle), outHandle,
-                releaser->getReplacedHandle()));
+                display, layer, HandleWrapper(::android::makeFromAidl(handle)).
+                getNativeHandle(), outHandle, releaser->getReplacedHandle()));
 }
 
 }
