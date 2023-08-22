@@ -11,6 +11,9 @@
 #include <HwcConfig.h>
 #include <HwDisplayManager.h>
 #include <MesonLog.h>
+#include <AmVinfo.h>
+
+#define DEFAULT_3D_UI_REFRESH_RATE 30
 
 LoopbackDisplayPipe::LoopbackDisplayPipe()
     : HwcDisplayPipe() {
@@ -18,6 +21,7 @@ LoopbackDisplayPipe::LoopbackDisplayPipe()
         mPostProcessor = true;
     else
         mPostProcessor = false;
+    mFlags = 0;
 }
 
 LoopbackDisplayPipe::~LoopbackDisplayPipe() {
@@ -56,7 +60,7 @@ int32_t LoopbackDisplayPipe::init(
 int32_t LoopbackDisplayPipe::getPipeCfg(uint32_t hwcid, PipeCfg & cfg) {
     MESON_ASSERT(hwcid == 0, "Only one display for this policy.");
     drm_connector_type_t  connector = getConnectorCfg(hwcid);
-    MESON_ASSERT(connector == DRM_MODE_CONNECTOR_LVDS, "unsupported connector config");
+    MESON_ASSERT(connector == LEGACY_NON_DRM_CONNECTOR_PANEL, "unsupported connector config");
 
     if (mPostProcessor) {
         cfg.hwcPipeIdx = DRM_PIPE_VOUT1;
@@ -76,8 +80,10 @@ int32_t LoopbackDisplayPipe::getPipeCfg(uint32_t hwcid, PipeCfg & cfg) {
 int32_t LoopbackDisplayPipe::getPostProcessor(
     hwc_post_processor_t type,
     std::shared_ptr<HwcPostProcessor> & processor) {
-    MESON_ASSERT(type == VDIN_POST_PROCESSOR,
-        "only support VDIN_POST_PROCESSOR.");
+    if (type != VDIN_POST_PROCESSOR) {
+        processor = NULL;
+        return 0;
+    }
 
     if (!mVdinPostProcessor) {
         mVdinPostProcessor = std::make_shared<VdinPostProcessor>();
@@ -97,8 +103,13 @@ int32_t LoopbackDisplayPipe::getPostProcessor(
 }
 
 int32_t LoopbackDisplayPipe::handleRequest(uint32_t flags) {
+    if (flags == 0 && mFlags == 0) {
+        return 0;
+    }
+
     MESON_LOGD("LoopbackDisplayPipe::handleRequest %x", flags);
     std::lock_guard<std::mutex> lock(mMutex);
+    flags |= mFlags;
 
     std::shared_ptr<PipeStat> stat = mPipeStats.find(0)->second;
     if ((flags & rPostProcessorStart) || (flags & rPostProcessorStop)) {
@@ -112,6 +123,11 @@ int32_t LoopbackDisplayPipe::handleRequest(uint32_t flags) {
             }
 
             /*reset vout displaymode, for we need do pipeline switch*/
+            static drm_mode_info_t nullMode = {
+                DRM_DISPLAY_MODE_NULL, 0, 0,0, 0, 60.0, 0};
+            stat->hwcCrtc->setMode(nullMode);
+            stat->modeCrtc->setMode(nullMode);
+
             getHwDisplayManager()->unbind(stat->hwcCrtc);
             getHwDisplayManager()->unbind(stat->modeCrtc);
             /*update display pipe.*/
@@ -144,6 +160,49 @@ int32_t LoopbackDisplayPipe::handleRequest(uint32_t flags) {
         }
     }
 
+    /* switch vsync after pipe update */
+    if ((flags & r3DModeDisable) || (flags & r3DModeEnable)) {
+        bool bEnable = flags & r3DModeEnable ? true : false;
+        MESON_LOGV("Postprocessor enable event (%d)", bEnable);
+        if (bEnable) {
+            /* 3D Mode is Enable, enable software vsync and set vsync to 30 fps */
+            stat->hwcVsync->setPeriod(1e9 / DEFAULT_3D_UI_REFRESH_RATE);
+            stat->hwcVsync->setSoftwareMode();
+        } else {
+            /* switch back to hardware vsync */
+            drm_mode_info_t mode;
+            if (stat->modeMgr->getDisplayMode(mode) == 0) {
+                stat->hwcVsync->setPeriod(1e9 / mode.refreshRate);
+            }
+            stat->hwcVsync->setHwMode(stat->modeCrtc);
+        }
+    }
+
+    if (mPostProcessor) {
+        /* restart vdinPostProcess when viu2 mode changed */
+        if (flags & rPostProcessorRestart) {
+            MESON_LOGD("LoopbackDisplayPipe restart postProcessor");
+            int width = 1920;
+            int height = 1080;
+
+            /*
+            drm_mode_info_t viu2Mode;
+            if (stat->modeCrtc->getMode(viu2Mode) == 0) {
+                width = viu2Mode.pixelW > width ? width : viu2Mode.pixelW;
+                height = viu2Mode.pixelH > height ? height : viu2Mode.pixelH;
+            }
+            */
+
+            struct vinfo_base_s info;
+            if (read_vout_info(DRM_PIPE_VOUT2, &info) == 0) {
+                width = info.width;
+                height = info.height;
+            }
+
+            stat->hwcPostProcessor->restart(width, height);
+        }
+    }
+
     if (mPostProcessor) {
         if ((flags & rKeystoneEnable) || (flags & rKeystoneDisable)) {
             bool bSetKeystone = flags & rKeystoneEnable ? true : false;
@@ -164,7 +223,20 @@ int32_t LoopbackDisplayPipe::handleRequest(uint32_t flags) {
         }
     }
 
+    /* reset mFlags */
+    mFlags = 0;
     return 0;
 }
 
+void LoopbackDisplayPipe::handleEvent(drm_display_event event, int val) {
+    HwcDisplayPipe::handleEvent(event, val);
 
+    if (event == DRM_EVENT_VOUT2_MODE_CHANGED) {
+        /* VIU2 mode changed */
+        if (val == 1) {
+            std::lock_guard<std::mutex> lock(mMutex);
+            MESON_LOGD("LoopbackDisplayPipe::handleEvent VIU2 mode change complete");
+            mFlags = rPostProcessorRestart;
+        }
+    }
+}

@@ -53,9 +53,12 @@ HwcDisplayPipe::HwcDisplayPipe() {
      */
     int pipeidx = 0;
     std::shared_ptr<HwDisplayPlane> plane;
+    int dispNum = HwcConfig::getDisplayNum();
+    if (HwcConfig::getPipeline() == HWC_PIPE_LOOPBACK)
+        dispNum += 1;
 
     /*hwcvideo/osd/legacy video/osd/primary from fbdev have dedicate crtc mask.*/
-    for (pipeidx = 0; pipeidx < HwcConfig::getDisplayNum(); pipeidx ++) {
+    for (pipeidx = 0; pipeidx < dispNum; pipeidx ++) {
         for (auto planeIt = planes.begin(); planeIt != planes.end(); ) {
             plane = *planeIt;
             if (plane->getPossibleCrtcs() == (1 << pipeidx)) {
@@ -68,7 +71,7 @@ HwcDisplayPipe::HwcDisplayPipe() {
 
     /*default policy: assign osd plane N + 1 + 1*/
     if (planes.size() > 0) {
-        pipeidx = HwcConfig::getDisplayNum() - 1;
+        pipeidx = dispNum - 1;
         for (auto planeIt = planes.rbegin(); planeIt != planes.rend(); planeIt ++) {
             plane = *planeIt;
             if (plane->getPossibleCrtcs() & (1 << pipeidx)) {
@@ -78,11 +81,11 @@ HwcDisplayPipe::HwcDisplayPipe() {
             }
         }
 
-        MESON_ASSERT(mPlanesForPipe.size() >= HwcConfig::getDisplayNum(),
-            "planes-%zu < pipe-%d\n", mPlanesForPipe.size(), HwcConfig::getDisplayNum());
+        MESON_ASSERT(mPlanesForPipe.size() >= dispNum,
+            "planes-%zu < pipe-%d\n", mPlanesForPipe.size(), dispNum);
     }
 
-    for (pipeidx = 0; pipeidx < HwcConfig::getDisplayNum(); pipeidx ++) {
+    for (pipeidx = 0; pipeidx < dispNum; pipeidx ++) {
         int count = 0;
         auto plane_range = mPlanesForPipe.equal_range(pipeidx);
         for (auto it = plane_range.first; it != plane_range.second; ++it) {

@@ -92,7 +92,7 @@ int32_t VdinPostProcessor::postVout(std::shared_ptr<DrmFramebuffer> fb) {
         mVout->setDisplayFrame(osdDisplayFrame);
 
         fb->mFbType = DRM_FB_SCANOUT;
-        fb->mBlendMode = DRM_BLEND_MODE_PREMULTIPLIED;
+        fb->mBlendMode = DRM_BLEND_MODE_COVERAGE;
         fb->mPlaneAlpha = 1.0f;
         fb->mTransform = 0;
         mDisplayPlane->setPlane(fb, DEFAULT_FB_ZORDER, UNBLANK);
@@ -319,6 +319,23 @@ int32_t VdinPostProcessor::stop() {
     return 0;
 }
 
+/*
+ * need restart vdinPostProcessor if vout mode changed
+ */
+int32_t VdinPostProcessor::restart(int w, int h) {
+    MESON_LOGD("VdinPostProcessor::restart (%d,%d)", w, h);
+    if (mVoutW != w || mVoutH !=h) {
+        std::shared_ptr<FbProcessor> backProcessor = mFbProcessor;
+        mVoutW = w;
+        mVoutH = h;
+        stop();
+        start();
+        setFbProcessor(backProcessor);
+    }
+
+    return 0;
+}
+
 bool VdinPostProcessor::running() {
     return mStat == PROCESSOR_START;
 }
@@ -394,8 +411,10 @@ int32_t VdinPostProcessor::process() {
     ATRACE_BEGIN("PostProcess");
     std::unique_lock<std::mutex> lock(mMutex);
     static int capCnt = 0;
+    static int preCmd = -1;
     if (mCmdQ.size() > 0) {
         int cmd = mCmdQ.front();
+        preCmd = cmd;
         mCmdQ.pop();
         if (cmd & PRESENT_SIDEBAND) {
             mProcessMode = PROCESS_ALWAYS;
@@ -417,7 +436,13 @@ int32_t VdinPostProcessor::process() {
             mProcessMode = PROCESS_ONCE;
             capCnt = VDIN_CAP_CNT;
         }
+    } else {
+        if (mProcessMode == PROCESS_ONCE && (preCmd & PRESENT_CAPSCREEN)) {
+            mProcessMode = PROCESS_ALWAYS;
+            preCmd = -1;
+        }
     }
+
     if (mProcessMode == PROCESS_IDLE) {
         //wait new present cmd.
         MESON_LOGD("In idle, waiting new cmd.");
@@ -579,3 +604,12 @@ int32_t VdinPostProcessor::process() {
     return 0;
 }
 
+void VdinPostProcessor::dumpPlane(String8 & dumpstr) {
+    mDisplayPlane->dump(dumpstr);
+}
+
+void VdinPostProcessor::dump(String8 & dumpstr) {
+    dumpstr.append("VdinPostProcessor:\n");
+    dumpstr.appendFormat("    mVoutW=%d, mVoutH=%d\n", mVoutW, mVoutH);
+    Vdin::getInstance().dump(dumpstr);
+}

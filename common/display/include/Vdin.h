@@ -83,7 +83,7 @@ public:
     //For screenrecord loopback
     void setScreenSize(int width, int height);
     void setType(int type);
-
+    void dump(String8 & dumpstr);
 protected:
     void createCanvas(int bufCnt);
     void releaseCanvas();

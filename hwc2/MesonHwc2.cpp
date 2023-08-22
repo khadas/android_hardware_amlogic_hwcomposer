@@ -64,7 +64,15 @@
 
 #ifdef GET_REQUEST_FROM_PROP
 static bool m3DMode = false;
+static bool mVdinPostMode = false;
 static bool mKeyStoneMode = false;
+#define DEFAULT_CROD(keystoneW, keystoneH)    \
+    std::string w = std::to_string(keystoneW);\
+    std::string h = std::to_string(keystoneH);\
+    std::string defaultCord = "0.0,0.0,"+ w +".0,0.0,"+ w +".0," + h + ".0,0.0,"+ h +".0";\
+    char keystoneProp[PROP_VALUE_LEN_MAX];\
+    strcpy(keystoneProp, defaultCord.c_str());\
+
 #endif
 
 ANDROID_SINGLETON_STATIC_INSTANCE(MesonHwc2)
@@ -97,6 +105,12 @@ void MesonHwc2::dump(uint32_t* outSize, char* outBuffer) {
     std::map<hwc2_display_t, std::shared_ptr<Hwc2Display>>::iterator it;
     for (it = mDisplays.begin(); it != mDisplays.end(); it++) {
         it->second->dump(dumpstr);
+    }
+
+    if (HwcConfig::getPipeline() == HWC_PIPE_LOOPBACK) {
+        dumpstr.appendFormat("m3DMode:%d\n", m3DMode);
+        dumpstr.appendFormat("mVdinPostMode:%d, mKeyStoneMode:%d\n",
+                mVdinPostMode, mKeyStoneMode);
     }
 
     DebugHelper::getInstance().dump(dumpstr);
@@ -441,12 +455,7 @@ int32_t MesonHwc2::getReleaseFences(hwc2_display_t display,
 int32_t MesonHwc2::validateDisplay(hwc2_display_t display,
     uint32_t* outNumTypes, uint32_t* outNumRequests) {
     GET_HWC_DISPLAY(display);
-    /*handle display request*/
-    uint32_t request = getDisplayRequest();
     setCalibrateInfo(display);
-    if (request != 0) {
-        handleDisplayRequest(request);
-    }
 
     return hwcDisplay->validateDisplay(outNumTypes,
         outNumRequests);
@@ -455,6 +464,12 @@ int32_t MesonHwc2::validateDisplay(hwc2_display_t display,
 int32_t MesonHwc2::presentDisplay(hwc2_display_t display,
     int32_t* outPresentFence) {
     GET_HWC_DISPLAY(display);
+    /*handle display request*/
+    uint32_t request = getDisplayRequest();
+    handleDisplayRequest(request);
+    if (request != 0) {
+        hwcDisplay->outsideChanged();
+    }
     return hwcDisplay->presentDisplay(outPresentFence);
 }
 
@@ -782,28 +797,26 @@ int32_t MesonHwc2::setCalibrateInfo(hwc2_display_t display){
     caliW = mDispMode.pixelW;
     caliH = mDispMode.pixelH;
 
-    if (HwcConfig::getPipeline() == HWC_PIPE_LOOPBACK) {
-#ifdef GET_REQUEST_FROM_PROP
-        if (mKeyStoneMode) {
-            caliX = 1;
-            caliY = 1;
-            caliW = mDispMode.pixelW - 2;
-            caliH = mDispMode.pixelH - 2;
-        }
-#endif
-    } else {
-        if (!HwcConfig::preDisplayCalibrateEnabled() &&
-            !strstr(mDispMode.name, "panel") &&
-            mViewPort.x >= 0 &&mViewPort.y >= 0 &&
-            mViewPort.w > 0 && mViewPort.h > 0 &&
-            mViewPort.x + mViewPort.w <= mDispMode.pixelW &&
-            mViewPort.y + mViewPort.h <= mDispMode.pixelH) {
-            caliX = mViewPort.x;
-            caliY = mViewPort.y;
-            caliW = mViewPort.w;
-            caliH = mViewPort.h;
-        }
+    if (!HwcConfig::preDisplayCalibrateEnabled() &&
+        !strstr(mDispMode.name, "panel") &&
+        mViewPort.x >= 0 &&mViewPort.y >= 0 &&
+        mViewPort.w > 0 && mViewPort.h > 0 &&
+        mViewPort.x + mViewPort.w <= mDispMode.pixelW &&
+        mViewPort.y + mViewPort.h <= mDispMode.pixelH) {
+        caliX = mViewPort.x;
+        caliY = mViewPort.y;
+        caliW = mViewPort.w;
+        caliH = mViewPort.h;
     }
+
+#ifdef GET_REQUEST_FROM_PROP
+    if (mKeyStoneMode) {
+        caliX += 1;
+        caliY += 1;
+        caliW -= 2;
+        caliH -= 2;
+    }
+#endif
 
     return hwcDisplay->setCalibrateInfo(caliX,caliY,caliW,caliH);
 }
@@ -815,27 +828,36 @@ uint32_t MesonHwc2::getDisplayRequest() {
         char val[PROP_VALUE_LEN_MAX];
         bool bVal = false;
 
+        /*get 3dmode status*/
+        bVal = sys_get_bool_prop("vendor.hwc.3dmode", false);
+        if (m3DMode != bVal) {
+            mDisplayRequests |= bVal ? r3DModeEnable : r3DModeDisable;
+            m3DMode = bVal;
+        }
+
         if (HwcConfig::alwaysVdinLoopback()) {
-            /*get 3dmode status*/
-            bVal = !sys_get_bool_prop("vendor.hwc.postprocessor", true);
-            if (m3DMode != bVal) {
-                mDisplayRequests |= bVal ? rPostProcessorStop : rPostProcessorStart;
-                m3DMode = bVal;
-                if (m3DMode)
-                    mKeyStoneMode = false;
+            bVal = sys_get_bool_prop("vendor.hwc.postprocessor", true);
+            if (mVdinPostMode != bVal) {
+                mDisplayRequests |= bVal ? rPostProcessorStart : rPostProcessorStop;
+                mVdinPostMode  = bVal;
             }
 
-            if (!m3DMode) {
+            if (mVdinPostMode) {
                 /*get keystone status*/
+                uint32_t width,height;
+                HwcConfig::getFramebufferSize(0, width, height);
+                DEFAULT_CROD(width, height);
                 bVal = false;
                 if (sys_get_string_prop("persist.vendor.hwc.keystone", val) > 0 &&
-                    strcmp(val, "0") != 0) {
+                    strcmp(val, "0") != 0 && strcmp(val, keystoneProp) != 0) {
                     bVal = true;
                 }
                 if (mKeyStoneMode != bVal) {
                     mDisplayRequests |= bVal ? rKeystoneEnable : rKeystoneDisable;
                     mKeyStoneMode = bVal;
                 }
+            } else {
+                mKeyStoneMode = false;
             }
         } else {
             bVal = false;

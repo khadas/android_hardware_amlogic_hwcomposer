@@ -31,6 +31,7 @@ public:
 
     virtual int32_t start() = 0;
     virtual int32_t stop() = 0;
+    virtual int32_t restart(int w, int h) = 0;
     virtual bool running() = 0;
 
     virtual bool getScreencapFb(std::shared_ptr<DrmFramebuffer> & capFb) = 0;
@@ -40,6 +41,8 @@ public:
     virtual void createScreenRecordProcessor() = 0;
     virtual void destroyScreenRecordProcessor() = 0;
     virtual bool getLatestcapFb(std::shared_ptr<DrmFramebuffer> & capFb) = 0;
+    virtual void dump(String8 & dumpstr) = 0;
+    virtual void dumpPlane(String8 & dumpstr) = 0;
 };
 
 #endif

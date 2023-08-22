@@ -65,16 +65,18 @@ void Vdin::setType(int type) {
 int32_t Vdin::getStreamInfo(int & width, int & height, int & format) {
     /*read current */
     drm_mode_info_t modeInfo;
-    auto crtc = getHwDisplayManager()->getCrtcByPipe(DRM_PIPE_VOUT1);
+    auto crtc = getHwDisplayManager()->getCrtcByPipe(DRM_PIPE_VOUT2);
     if (crtc->getMode(modeInfo) != 0) {
         MESON_LOGE("getStreamInfo failed.");
         mCapParams.width = 1920;
         mCapParams.height = 1080;
         mCapParams.fps = 60;
+        mCapParams.bit_dep = 8;
         mDefFormat = HAL_PIXEL_FORMAT_RGB_888;
     } else {
         mCapParams.width = modeInfo.pixelW;
         mCapParams.height = modeInfo.pixelH;
+        mCapParams.bit_dep = 8;
         if (mVdinType == PROCESSOR_FOR_SCREENRECORD) {
             mCapParams.dst_width = mRecordWidth;
             mCapParams.dst_height = mRecordHeight;
@@ -92,6 +94,7 @@ int32_t Vdin::getStreamInfo(int & width, int & height, int & format) {
         height = mRecordHeight;
     }
 
+    mCapParams.bit_order = 1;
     format = mDefFormat;
     return 0;
 }
@@ -236,3 +239,7 @@ int32_t Vdin::stop() {
     return 0;
 }
 
+void Vdin::dump(String8 & dumpstr) {
+    dumpstr.appendFormat("    Vdin mCapParam width=%d, height=%d\n",
+            mCapParams.width, mCapParams.height);
+}
