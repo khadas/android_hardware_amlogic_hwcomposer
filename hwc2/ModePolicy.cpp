@@ -2445,6 +2445,8 @@ void ModePolicy::setSourceDisplay(output_mode_state state) {
     // TOD sceneProcess
     if (isBestPolicy()) {
         mPolicy = MESON_POLICY_BEST;
+    } else {
+        mPolicy = MESON_POLICY_INVALID;
     }
 
     meson_mode_set_policy(mModeConType, mPolicy);
