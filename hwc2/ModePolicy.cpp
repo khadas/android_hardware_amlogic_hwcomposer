@@ -330,6 +330,8 @@ void ModePolicy::getHdrStrategy(char* value) {
         strcpy(value, HDR_POLICY_SINK);
     } else if (strstr(hdr_policy, HDR_POLICY_FORCE)) {
         strcpy(value, HDR_POLICY_FORCE);
+    } else if (strstr(hdr_policy, DV_POLICY_FORCE_MODE)) {
+       strcpy(value, DV_POLICY_FORCE_MODE);
     }
     MESON_LOGI("get uboot HdrStrategy is [%s]", value);
 }
@@ -1111,7 +1113,7 @@ void ModePolicy::saveHdmiParamToEnv() {
             getBootEnv(UBOOTENV_HDR_FORCE_MODE, hdr_force_mode);
             getHdrStrategy(hdr_policy);
             if (!strcmp(hdr_policy, HDR_POLICY_SOURCE) ||
-                   (!strcmp(hdr_policy, HDR_POLICY_FORCE) && !strcmp(hdr_force_mode, FORCE_HDR10))) {
+                   (!strcmp(hdr_policy, DV_POLICY_FORCE_MODE) && !strcmp(hdr_force_mode, FORCE_HDR10))) {
                 sprintf(dvstatus, "%d", 0);
             } else {
                 sprintf(dvstatus, "%d", mSceneOutInfo.dv_type);
@@ -1183,17 +1185,17 @@ void ModePolicy::enableDolbyVision(int DvMode) {
             if (isDolbyVisionEnable()) {
                 setDisplayAttribute(DISPLAY_DOLBY_VISION_POLICY, HDR_POLICY_SOURCE);
             }
-        } else if (strstr(hdr_policy, HDR_POLICY_FORCE)) {
+        } else if (strstr(hdr_policy, DV_POLICY_FORCE_MODE)) {
             setDisplayAttribute(DISPLAY_HDR_POLICY, HDR_POLICY_FORCE);
             if (isDolbyVisionEnable()) {
-                setDisplayAttribute(DISPLAY_DOLBY_VISION_POLICY, HDR_POLICY_FORCE);
+                setDisplayAttribute(DISPLAY_DOLBY_VISION_POLICY, DV_POLICY_FORCE_MODE);
             }
         }
     }
 
     usleep(100000);//100ms
     setDisplayAttribute(DISPLAY_DOLBY_VISION_ENABLE, DV_ENABLE);
-    if (strstr(hdr_policy, HDR_POLICY_FORCE)) {
+    if (strstr(hdr_policy, DV_POLICY_FORCE_MODE)) {
         char hdr_force_mode[MESON_MODE_LEN] = {0};
         gethdrforcemode(hdr_force_mode);
         if (strstr(hdr_force_mode, FORCE_DV)) {
@@ -1850,7 +1852,10 @@ int32_t ModePolicy::setHdrConversionPolicy(bool passthrough, int32_t forceType, 
                 meson_mode_set_policy_input(mModeConType, &mConData);
                 if (!meson_mode_support_mode(mModeConType, priority, mCurrentMode)) {
                     setBootEnv(UBOOTENV_HDR_FORCE_MODE, type.c_str());
-                    setBootEnv(UBOOTENV_HDR_POLICY, HDR_POLICY_FORCE);
+                    if (isMboxSupportDolbyVision())
+                        setBootEnv(UBOOTENV_HDR_POLICY, DV_POLICY_FORCE_MODE);
+                    else
+                        setBootEnv(UBOOTENV_HDR_POLICY, HDR_POLICY_FORCE);
                     setSourceOutputMode(mCurrentMode);
                 } else {
                     MESON_LOGW("%s mode check failed\n", __func__);
@@ -1977,7 +1982,7 @@ void ModePolicy::applyDisplaySetting(bool force) {
             MESON_LOGI("set dv policy from:%s to %s\n", cur_dv_policy.c_str(), hdr_policy);
             hdr_policy_change = true;
         } else if ((mSceneOutInfo.dv_type != DOLBY_VISION_SET_DISABLE)
-                && (!strcmp(hdr_policy, HDR_POLICY_FORCE)
+                && (!strcmp(hdr_policy, DV_POLICY_FORCE_MODE)
                     && (strstr(meson_dvModeTypeToString(cur_dv_mode.c_str()), hdr_force_mode) == NULL))) {
             MESON_LOGI("set dv force mode from:%s to %s\n", meson_dvModeTypeToString(cur_dv_mode.c_str()), hdr_force_mode);
             hdr_policy_change = true;
@@ -2083,13 +2088,13 @@ void ModePolicy::applyDisplaySetting(bool force) {
                 if (isDolbyVisionEnable()) {
                     setDisplayAttribute(DISPLAY_DOLBY_VISION_POLICY, HDR_POLICY_SOURCE);
                 }
-            } else if (strstr(hdr_policy, HDR_POLICY_FORCE)) {
+            } else if (strstr(hdr_policy, HDR_POLICY_FORCE) || strstr(hdr_policy, DV_POLICY_FORCE_MODE)) {
                 char hdr_force_mode[MESON_MODE_LEN] = {0};
                 gethdrforcemode(hdr_force_mode);
                 setDisplayAttribute(DISPLAY_FORCE_HDR_MODE, hdr_force_mode);
                 setDisplayAttribute(DISPLAY_HDR_POLICY, HDR_POLICY_FORCE);
                 if (isDolbyVisionEnable()) {
-                    setDisplayAttribute(DISPLAY_DOLBY_VISION_POLICY, HDR_POLICY_FORCE);
+                    setDisplayAttribute(DISPLAY_DOLBY_VISION_POLICY, DV_POLICY_FORCE_MODE);
                     if (strstr(hdr_force_mode, FORCE_DV)) {
                         setDisplayAttribute(DISPLAY_DOLBY_VISION_MODE, FORCE_DV);
                     } else if (strstr(hdr_force_mode, FORCE_HDR10)) {

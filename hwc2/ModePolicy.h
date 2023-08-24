@@ -130,7 +130,7 @@
 
 #define HDR_POLICY_SINK                 "0"
 #define HDR_POLICY_SOURCE               "1"
-#define HDR_POLICY_FORCE                "2"
+#define HDR_POLICY_FORCE                "4"
 
 #define DV_HDR_SINK_SOURCE_BYPASS       "0"
 #define DV_HDR_SINK_PROCESS             "1"

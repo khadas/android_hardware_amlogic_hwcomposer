@@ -64,7 +64,7 @@ int32_t DrmCrtc::loadProperties() {
         {DRM_CRTC_PROP_VRR_ENABLED, &mVrrEnabled},
         {DRM_CRTC_PROP_VIDEO_PIXEL_FORMAT, &mVideoPixelFormat},
         {DRM_CRTC_PROP_OSD_PIXEL_FORMAT, &mOsdPixelFormat},
-        {DRM_CONNECTOR_PROP_CONVERSION_CAP, &mHdrConversionCaps},
+        {DRM_CRTC_PROP_HDR_CONVERSION_CAP, &mHdrConversionCaps},
     };
     const int crtcPropsNum = sizeof(crtcProps)/sizeof(crtcProps[0]);
     int initedProps = 0;

@@ -19,6 +19,7 @@
 #define DRM_CRTC_PROP_VRR_ENABLED  "VRR_ENABLED"
 #define DRM_CRTC_PROP_VIDEO_PIXEL_FORMAT "video_pixelformat"
 #define DRM_CRTC_PROP_OSD_PIXEL_FORMAT "osd_pixelformat"
+#define DRM_CRTC_PROP_HDR_CONVERSION_CAP  "hdr_conversion_cap"
 
 /*CTM*/
 #define DRM_CRTC_PROP_DEGAMMA  "DEGAMMA_LUT"
@@ -56,7 +57,6 @@
 #define DRM_CONNECTOR_PROP_CRTCID  DRM_MODE_PROP_CRTCID
 #define DRM_CONNECTOR_PROP_EDID "EDID"
 #define DRM_CONNECTOR_PROP_VRRCAP  "vrr_capable"
-#define DRM_CONNECTOR_PROP_CONVERSION_CAP  "hdr_conversion_cap"
 
 #define DRM_HDMI_PROP_COLORSPACE    "color_space"
 #define DRM_HDMI_PROP_COLORDEPTH    "color_depth"
