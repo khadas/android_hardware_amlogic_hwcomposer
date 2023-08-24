@@ -144,6 +144,7 @@ cc_library_static {
         "hwc.utils_static",
         "hwc.base_static",
         "hwc.display_static",
+        "hwc.uvm_static",
     ],
 
     export_include_dirs: [

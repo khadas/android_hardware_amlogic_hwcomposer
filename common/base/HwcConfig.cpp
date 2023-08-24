@@ -13,7 +13,6 @@
 #include <systemcontrol.h>
 #include <misc.h>
 #include <DrmTypes.h>
-
 #include "mode_ubootenv.h"
 
 #define UBOOTENV_PRIMARY_CONNECTOR_TYPE "ubootenv.var.connector_type"
@@ -161,6 +160,7 @@ hwc_pipe_policy_t HwcConfig::getPipeline() {
         pipeStr = HWC_PIPELINE;
 #endif
     }
+
     if (strcasecmp(pipeStr, "default") == 0) {
         return HWC_PIPE_DEFAULT;
     } else if (strcasecmp(pipeStr, "dual") == 0) {
@@ -384,8 +384,8 @@ bool HwcConfig::mosaicEnabled() {
 #endif
 }
 
-bool HwcConfig::UvmDettachEnabled() {
-#ifdef HWC_UVM_DETTACH
+bool HwcConfig::UvmDetachEnabled() {
+#ifdef HWC_UVM_DETACH
     return true;
 #else
     return false;
@@ -429,7 +429,7 @@ void HwcConfig::dump(String8 & dumpstr) {
             dumpstr.append("\n");
             dumpstr.appendFormat("\t AiColorProcessor: %s", AiColorProcessorEnabled() ? "Y" : "N");
             dumpstr.append("\n");
-            dumpstr.appendFormat("\t UvmDettach: %s", UvmDettachEnabled() ? "Y" : "N");
+            dumpstr.appendFormat("\t UvmDetach: %s", UvmDetachEnabled() ? "Y" : "N");
             dumpstr.append("\n");
         }
     }

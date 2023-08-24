@@ -56,6 +56,10 @@ ifndef HWC_ENFORCES_MAX_REFRESH_RATE
 HWC_ENFORCES_MAX_REFRESH_RATE := 0
 endif
 
+ifndef HWC_ENABLE_FULL_ACTIVE_MODE
+HWC_ENABLE_FULL_ACTIVE_MODE := false
+endif
+
 ifndef HWC_ENABLE_ACTIVE_MODE
 HWC_ENABLE_ACTIVE_MODE := false
 endif
@@ -113,7 +117,7 @@ HWC_VT_HW_VSYNC := false
 endif
 
 ifndef HWC_UVM_DETTACH
-HWC_UVM_DETTACH := false
+HWC_UVM_DETACH := false
 endif
 
 ifndef HWC_FILTER_16_9MODE
@@ -157,6 +161,7 @@ $(call soong_config_set,meson_hwc,enable_ge2d_composition,$(HWC_ENABLE_GE2D_COMP
 $(call soong_config_set,meson_hwc,enable_display_mode_management,$(HWC_ENABLE_DISPLAY_MODE_MANAGEMENT))
 $(call soong_config_set,meson_hwc,hdmi_frac_mode,$(HWC_HDMI_FRAC_MODE))
 $(call soong_config_set,meson_hwc,hwc_pipeline,$(HWC_PIPELINE))
+$(call soong_config_set,meson_hwc,enable_full_active_mode,$(HWC_ENABLE_FULL_ACTIVE_MODE))
 $(call soong_config_set,meson_hwc,enable_active_mode,$(HWC_ENABLE_ACTIVE_MODE))
 $(call soong_config_set,meson_hwc,enable_real_mode,$(HWC_ENABLE_REAL_MODE))
 $(call soong_config_set,meson_hwc,enable_pre_display_calibrate,$(HWC_ENABLE_PRE_DISPLAY_CALIBRATE))
@@ -165,14 +170,14 @@ $(call soong_config_set,meson_hwc,pipe_viu1vdinviu2_always_loopback,$(HWC_PIPE_V
 $(call soong_config_set,meson_hwc,dynamic_switch_connector,$(HWC_DYNAMIC_SWITCH_CONNECTOR))
 $(call soong_config_set,meson_hwc,dynamic_switch_viu,$(HWC_DYNAMIC_SWITCH_VIU))
 $(call soong_config_set,meson_hwc,enable_aidl,$(HWC_ENABLE_AIDL))
-$(call soong_config_set,meson_hwc,enable_video_aisr,$(HWC_VIDEO_AISR))
 $(call soong_config_set,meson_hwc,enable_vt_hwVsync,$(HWC_VT_HW_VSYNC))
+$(call soong_config_set,meson_hwc,enable_video_aisr,$(HWC_VIDEO_AISR))
 $(call soong_config_set,meson_hwc,enable_video_aipq,$(HWC_VIDEO_AIPQ))
 $(call soong_config_set,meson_hwc,enable_video_aipq_gpu,$(HWC_VIDEO_AIPQ_GPU))
 $(call soong_config_set,meson_hwc,enable_video_aiface,$(HWC_VIDEO_AIFACE))
 $(call soong_config_set,meson_hwc,enable_video_aicolor,$(HWC_VIDEO_AICOLOR))
 $(call soong_config_set,meson_hwc,enable_video_di,$(HWC_VIDEO_DI))
-$(call soong_config_set,meson_hwc,enable_uvm_dettach,$(HWC_UVM_DETTACH))
+$(call soong_config_set,meson_hwc,enable_uvm_detach,$(HWC_UVM_DETACH))
 $(call soong_config_set,meson_hwc,filter_16_9mode,$(HWC_FILTER_16_9MODE))
 $(call soong_config_set,meson_hwc,android_platform_sdk_extension_version,$(PLATFORM_SDK_EXTENSION_VERSION))
 $(call soong_config_set,meson_hwc,enable_virtual_layer,$(HWC_ENABLE_VIRTUAL_LAYER))

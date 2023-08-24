@@ -139,6 +139,7 @@ cc_library_static {
         "hwc.base_static",
         "hwc.composer_static",
         "omxutil.static",
+        "hwc.uvm_static",
     ],
 
 

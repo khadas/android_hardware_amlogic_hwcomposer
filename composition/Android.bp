@@ -85,6 +85,7 @@ cc_library_static {
         "hwc.display_static",
         "hwc.common_static",
         "hwc.postprocessor_static",
+        "hwc.uvm_static",
     ],
 
     export_include_dirs: ["include", "videoprocessorsmanager"],

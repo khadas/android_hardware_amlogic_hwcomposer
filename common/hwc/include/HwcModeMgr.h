@@ -13,18 +13,12 @@
 #include <BasicTypes.h>
 #include <HwDisplayConnector.h>
 #include <HwDisplayCrtc.h>
+#include <HwcConfig.h>
 #include "IModePolicy.h"
 #include "mode_ubootenv.h"
 
 #define UBOOTENV_HDMIMODE               "ubootenv.var.hdmimode"
 #define UBOOTENV_OUTPUTMODE             "ubootenv.var.outputmode"
-
-typedef enum {
-    FIXED_SIZE_POLICY = 0,
-    FULL_ACTIVE_POLICY = 1,
-    ACTIVE_MODE_POLICY,
-    REAL_MODE_POLICY,
-} hwc_modes_policy_t;
 
 enum {
     CALL_FROM_SF = 0,

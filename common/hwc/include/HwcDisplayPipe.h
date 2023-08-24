@@ -18,32 +18,11 @@
 #include <HwcVsync.h>
 #include <HwcPostProcessor.h>
 #include <HwcModeMgr.h>
+#include <HwcConfig.h>
 
 #include <MesonLog.h>
 #include <unordered_map>
 #include <VdinPostProcessor.h>
-
-typedef enum {
-    /*primary:
-    viu1 + connector from config*/
-    HWC_PIPE_DEFAULT = 0,
-
-    /* two display:
-    viu1 + connector from config
-    extend:
-    viu2 + connector from config*/
-    HWC_PIPE_DUAL,
-
-    /*primary:
-        when postprocessor disable: viu1 -> connector
-        when postprocessor enable: viu1->vdin->viu2->connector
-    extend:
-        NONE*/
-    HWC_PIPE_LOOPBACK,
-
-    HWC_PIPE_MULTI,
-
-} hwc_pipe_policy_t;
 
 /*requests*/
 enum {

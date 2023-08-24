@@ -15,7 +15,7 @@
 
 #include <BasicTypes.h>
 #include <DrmFramebuffer.h>
-#include <UvmDettach.h>
+#include <UvmDetach.h>
 #include <VtConsumer.h>
 #include <VtAllocSolidColorBuffer.h>
 
@@ -156,7 +156,7 @@ protected:
 
     /* for NR */
     int32_t attachUvmBuffer(const int bufferFd);
-    int32_t dettachUvmBuffer();
+    int32_t detachUvmBuffer();
     int32_t collectUvmBuffer(const int bufferFd, const int fence);
     int32_t releaseUvmResource();
     int32_t releaseUvmResourceLock();
@@ -193,7 +193,7 @@ protected:
     std::shared_ptr<VtDisplayObserver> mDisplayObserver;
     std::shared_ptr<VtAllocSolidColorBuffer> mAllocSolidColorBufferHandle;
 
-    std::shared_ptr<UvmDettach> mUvmDettach;
+    std::shared_ptr<UvmDetach> mUvmDetach;
     int mPreUvmBufferFd;
 
     float mBrightness;

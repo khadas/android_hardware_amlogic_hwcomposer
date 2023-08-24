@@ -25,14 +25,283 @@ package {
     default_applicable_licenses: ["hardware_amlogic_hwcomposer_license"],
 }
 
+soong_config_module_type {
+    name: "meson_common_base_cc_defaults",
+    module_type: "cc_defaults",
+    config_namespace: "meson_hwc",
+    value_variables: [
+        "display_num",
+        "hwc_pipeline",
+        "primary_fb_width",
+        "primary_fb_height",
+        "extend_fb_width",
+        "extend_fb_height",
+        "primary_connector_type",
+        "extend_connector_type",
+        "enforces_max_refresh_rate",
+    ],
+    bool_variables: [
+        "enable_headless_mode",
+        "enable_full_active_mode",
+        "enable_active_mode",
+        "enable_real_mode",
+        "filter_16_9mode",
+        "enable_pre_display_calibrate",
+        "enable_software_vsync",
+        "enable_primary_hotplug",
+        "enable_secure_layer_process",
+        "disable_cursor_plane",
+        "target_use_default_hdr_property",
+        "pipe_viu1vdinviu2_always_loopback",
+        "dynamic_switch_connector",
+        "dynamic_switch_viu",
+        "enable_vt_hwVsync",
+        "enable_video_aicolor",
+        "enable_video_aiface",
+        "enable_video_aipq",
+        "enable_video_aisr",
+        "enable_video_di",
+        "enable_video_mosaic",
+        "enable_uvm_detach",
+    ],
+
+    properties: [
+        "cflags",
+    ],
+}
+
+soong_config_bool_variable {
+    name: "enable_headless_mode",
+}
+
+soong_config_bool_variable {
+    name: "enable_full_active_mode",
+}
+
+soong_config_bool_variable {
+    name: "enable_active_mode",
+}
+
+soong_config_bool_variable {
+    name: "enable_real_mode",
+}
+
+soong_config_bool_variable {
+    name: "filter_16_9mode"
+}
+soong_config_bool_variable {
+    name: "enable_pre_display_calibrate",
+}
+
+soong_config_bool_variable {
+    name: "enable_software_vsync",
+}
+
+soong_config_bool_variable {
+    name: "enable_primary_hotplug",
+}
+
+soong_config_bool_variable {
+    name: "enable_secure_layer_process",
+}
+
+soong_config_bool_variable {
+    name: "disable_cursor_plane",
+}
+
+soong_config_bool_variable {
+    name: "target_use_default_hdr_property",
+}
+
+soong_config_bool_variable {
+    name: "pipe_viu1vdinviu2_always_loopback",
+}
+
+soong_config_bool_variable {
+    name: "dynamic_switch_connector",
+}
+
+soong_config_bool_variable {
+    name: "dynamic_switch_viu",
+}
+
+soong_config_bool_variable {
+    name: "enable_vt_hwVsync",
+}
+
+soong_config_bool_variable {
+    name: "enable_video_aicolor",
+}
+
+soong_config_bool_variable {
+    name: "enable_video_aiface",
+}
+
+soong_config_bool_variable {
+    name: "enable_video_aipq",
+}
+
+soong_config_bool_variable {
+    name: "enable_video_aisr",
+}
+
+soong_config_bool_variable {
+    name: "enable_video_di",
+}
+
+soong_config_bool_variable {
+    name: "enable_video_mosaic",
+}
+
+soong_config_bool_variable {
+    name: "enable_uvm_detach",
+}
+
+meson_common_base_cc_defaults {
+    name: "hwcomposer_common_base_cc_defaults",
+    defaults: [
+        "hwcomposer_cc_defaults",
+    ],
+
+    soong_config_variables: {
+        display_num: {
+            cflags: ["-DHWC_DISPLAY_NUM=%s"],
+        },
+
+        hwc_pipeline: {
+            cflags: ["-DHWC_PIPELINE=\"%s\""],
+        },
+
+        primary_fb_width: {
+            cflags: ["-DHWC_PRIMARY_FRAMEBUFFER_WIDTH=%s"],
+        },
+
+        primary_fb_height: {
+            cflags: ["-DHWC_PRIMARY_FRAMEBUFFER_HEIGHT=%s"],
+        },
+
+        extend_fb_width: {
+            cflags: ["-DHWC_EXTEND_FRAMEBUFFER_WIDTH=%s"],
+        },
+
+        extend_fb_height: {
+            cflags: ["-DHWC_EXTEND_FRAMEBUFFER_HEIGHT=%s"],
+        },
+
+        primary_connector_type: {
+            cflags: ["-DHWC_PRIMARY_CONNECTOR_TYPE=\"%s\""],
+        },
+
+        extend_connector_type: {
+            cflags: ["-DHWC_EXTEND_CONNECTOR_TYPE=\"%s\""],
+        },
+
+        enable_headless_mode: {
+            cflags: [
+                "-DHWC_ENABLE_HEADLESS_MODE",
+                "-DHWC_HEADLESS_REFRESHRATE=5",
+            ],
+        },
+
+        enforces_max_refresh_rate: {
+            cflags: ["-DHWC_ENFORCES_MAX_REFRESH_RATE=%s"],
+        },
+
+        // bool variables
+        enable_full_active_mode: {
+            cflags: ["-DHWC_ENABLE_FULL_ACTIVE_MODE"],
+        },
+
+        enable_active_mode: {
+            cflags: ["-DHWC_ENABLE_ACTIVE_MODE"],
+        },
+
+        enable_real_mode: {
+            cflags: ["-DHWC_ENABLE_REAL_MODE"],
+        },
+
+        filter_16_9mode: {
+            cflags: ["-DHWC_FILTER_16_9_MODE"],
+        },
+
+        enable_pre_display_calibrate: {
+            cflags: ["-DHWC_ENABLE_PRE_DISPLAY_CALIBRATE"],
+        },
+
+        enable_software_vsync: {
+            cflags: ["-DHWC_ENABLE_SOFTWARE_VSYNC"],
+        },
+
+        enable_primary_hotplug: {
+            cflags: ["-DHWC_ENABLE_PRIMARY_HOTPLUG"],
+        },
+
+        enable_secure_layer_process: {
+            cflags: ["-DHWC_ENABLE_SECURE_LAYER_PROCESS"],
+        },
+
+        disable_cursor_plane: {
+            cflags: ["-DHWC_DISABLE_CURSOR_PLANE"],
+        },
+
+        target_use_default_hdr_property: {
+            cflags: ["-DHWC_ENABLE_DEFAULT_HDR_CAPABILITIES"],
+        },
+
+        pipe_viu1vdinviu2_always_loopback: {
+            cflags: ["-DHWC_PIPE_VIU1VDINVIU2_ALWAYS_LOOPBACK"],
+        },
+
+        dynamic_switch_connector: {
+            cflags: ["-DHWC_DYNAMIC_SWITCH_CONNECTOR"],
+        },
+
+        dynamic_switch_viu: {
+            cflags: ["-DHWC_DYNAMIC_SWITCH_VIU"],
+        },
+
+        enable_vt_hwVsync: {
+            cflags: ["-DHWC_VT_HW_VSYNC"],
+        },
+
+        enable_video_aisr:{
+            cflags: ["-DENABLE_VIDEO_AISR"],
+        },
+
+        enable_video_aipq:{
+            cflags: ["-DENABLE_VIDEO_AOPQ"],
+        },
+
+        enable_video_aiface:{
+            cflags: ["-DENABLE_VIDEO_AIFACE"],
+        },
+
+        enable_video_aicolor:{
+            cflags: ["-DENABLE_VIDEO_AICOLOR"],
+        },
+
+        enable_video_di:{
+            cflags: ["-DENABLE_VIDEO_DI"],
+        },
+
+        enable_video_mosaic: {
+            cflags: ["-DENABLE_VIDEO_MOSAIC"],
+        },
+
+        enable_uvm_detach:{
+            cflags: ["-DENABLE_UVM_DETACH"],
+        },
+    },
+}
 
 cc_library_static {
     name: "hwc.base_static",
-    defaults: ["hwcomposer_cc_defaults"],
+    defaults: ["hwcomposer_common_base_cc_defaults"],
     vendor: true,
 
     srcs: [
         "DrmSync.cpp",
+        "HwcConfig.cpp",
         "DrmFramebuffer.cpp",
     ],
 

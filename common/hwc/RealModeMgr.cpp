@@ -480,7 +480,7 @@ int32_t RealModeMgr::setPerferredMode(std::string mode) {
     MESON_LOGD("curMode %s %d %d  desiredMode %s %d %d", curMode.name, curMode.pixelW, curMode.pixelH, desiredMode.name,
     desiredMode.pixelW, desiredMode.pixelH);
     if (desiredMode.pixelW == curMode.pixelW && desiredMode.pixelH == curMode.pixelH
-        && std::abs(desiredMode.refreshRate - curMode.refreshRate) < 0.001) {
+        && abs(desiredMode.refreshRate - curMode.refreshRate) < 0.001) {
         setActiveConfigLocked(mActiveConfigId);
     }
 
@@ -515,7 +515,7 @@ void RealModeMgr::dynamicMapMode(std::string mode) {
         }
         for (auto iterConnector : connecterModeList) {
             std::string connectorModeName(iterConnector.second.name);
-            if (std::abs(itmode.refreshRate - iterConnector.second.refreshRate) < 0.001 &&
+            if (abs(itmode.refreshRate - iterConnector.second.refreshRate) < 0.001 &&
                     itmode.pixelW == iterConnector.second.pixelW &&
                     itmode.pixelH == iterConnector.second.pixelH &&
                     connectorModeName.find(dst) != -1 ) {
@@ -597,7 +597,7 @@ int32_t RealModeMgr::setBootConfig(int32_t config) {
         }
 
         //TODO: remove it when ModePolicy move to hwc
-        if (fabs(cfg.refreshRate - std::floor(cfg.refreshRate)) > 1e-2) {
+        if (fabs(cfg.refreshRate - floor(cfg.refreshRate)) > 1e-2) {
             meson_mode_set_ubootenv(UBOOTENV_FRAC_RATE_POLICY, "1");
         } else {
             meson_mode_set_ubootenv(UBOOTENV_FRAC_RATE_POLICY, "0");
@@ -655,7 +655,7 @@ int32_t RealModeMgr::setModeLocked(drm_mode_info_t & mode) {
 #ifndef ENABLE_AIDL
     mConnector->setMode(mode);
 #else
-    if (fabs(mode.refreshRate - std::floor(mode.refreshRate)) > 1e-2) {
+    if (fabs(mode.refreshRate - floor(mode.refreshRate)) > 1e-2) {
         sc_set_property(FRC_POLICY_PROP, "1");
     } else {
         sc_set_property(FRC_POLICY_PROP, "0");
