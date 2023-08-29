@@ -58,7 +58,7 @@ static const char gFragmentShader[] = "#extension GL_OES_EGL_image_external : re
     "    if (yuvTexCoords.x > posx  && yuvTexCoords.y > posy) {\n"
     "        vec2 wbcoords = vec2(yuvTexCoords.x - posx, yuvTexCoords.y - posy);\n"
     "        baseColor1 = texture2D(WBTexSampler, wbcoords);\n"
-    "        baseColor2 = texture2D(yuvTexSampler, wbcoords);\n"
+    "        baseColor2 = texture2D(yuvTexSampler, yuvTexCoords);\n"
     "        target = mix(baseColor2, baseColor1, baseColor1.a);\n"
     "        gl_FragColor = vec4(target.r, target.g, target.b, (1.0 - (1.0 - baseColor2.a)*(1.0 - baseColor1.a)));\n"
     "    } else {\n"
