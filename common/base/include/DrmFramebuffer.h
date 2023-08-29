@@ -61,7 +61,6 @@ public:
 
     // Virtuals for video tunnel
     virtual int32_t getBufferFd() { return -EINVAL; }
-    virtual int32_t releaseVtBuffer() { return 0; }
     virtual bool isVtBuffer() { return false;}
     virtual bool isVtNeedClearFrameOrShowColorBuffer() { return false; }
     virtual int32_t getSolidColorBuffer() { return -EINVAL; }

@@ -465,6 +465,7 @@ bool Hwc2Layer::isFbUpdated() {
     std::lock_guard<std::mutex> lock(mMutex);
     if (mSolidColorBufferfd >= 0)
         return true;
+
     if (isVtBufferLocked()) {
         return (shouldPresentNow(mTimestamp) && mVtUpdate) || mVtRefreshed;
     } else {
@@ -872,6 +873,9 @@ bool Hwc2Layer::isVtNeedClearFrameOrShowColorBuffer() {
     std::lock_guard<std::mutex> lock(mMutex);
     bool ret = false;
 
+    if (!isVtBufferLocked())
+        return false;
+
     switch (mVideoDisplayStatus) {
         case VT_VIDEO_STATUS_BLANK:
             mVideoDisplayStatus = VT_VIDEO_STATUS_SHOW;
@@ -883,7 +887,11 @@ bool Hwc2Layer::isVtNeedClearFrameOrShowColorBuffer() {
             ret = true;
             break;
         case VT_VIDEO_STATUS_COLOR_ONCE:
-            mVideoDisplayStatus = VT_VIDEO_STATUS_SHOW;
+            /* reset status flag to SHOW if get a valid,
+             * or keep the status in order to support refresh
+             * temp buffer */
+            if (getBufferFd() >= 0)
+                mVideoDisplayStatus = VT_VIDEO_STATUS_SHOW;
             [[fallthrough]];
         case VT_VIDEO_STATUS_COLOR_ALWAYS:
             releaseVtResourceLocked(false);
@@ -1070,11 +1078,25 @@ void Hwc2Layer::freeSolidColorBuffer() {
     freeSolidColorBufferLocked();
 }
 
+/* this function is called after getBufferFd and
+ * an invalid bufferFd was returned from getBufferFd */
 int32_t Hwc2Layer::getSolidColorBuffer() {
     std::lock_guard<std::mutex> lock(mMutex);
     if (!isVtBufferLocked())
         return -EINVAL;
 
+    if (mSolidColorBufferfd < 0 &&
+        (mAllocSolidColorBufferHandle.get() && mVtRefreshed) &&
+        (mVideoDisplayStatus == VT_VIDEO_STATUS_COLOR_ONCE ||
+         mVideoDisplayStatus == VT_VIDEO_STATUS_COLOR_ALWAYS)) {
+        /* need refresh temporary buffer to VC */
+        int fd = mAllocSolidColorBufferHandle->getPreBuffer();
+        if (fd >= 0)
+            mSolidColorBufferfd = dup(fd);
+    }
+
+    MESON_LOGV("[%s] [%d] [%" PRIu64 "] return fd:%d",
+            __func__, mDisplayId, mId, mSolidColorBufferfd);
     return mSolidColorBufferfd;
 }
 

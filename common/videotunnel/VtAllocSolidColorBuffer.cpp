@@ -96,6 +96,10 @@ int VtAllocSolidColorBuffer::allocBuffer(vt_video_color_t colorType) {
     return mBufferFd;
 }
 
+int VtAllocSolidColorBuffer::getPreBuffer() {
+    return mBufferFd;
+}
+
 void VtAllocSolidColorBuffer::freeBuffer() {
     if (mSolidColorHandle) {
         static GraphicBufferAllocator & allocService = GraphicBufferAllocator::get();

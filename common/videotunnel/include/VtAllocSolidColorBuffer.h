@@ -21,9 +21,10 @@ public:
     virtual ~VtAllocSolidColorBuffer();
 
     int allocBuffer(vt_video_color_t colorType);
+    int getPreBuffer();
+private:
     void freeBuffer();
 
-private:
    int mBufferFd;
    vt_video_color_t mColorType;
    buffer_handle_t mSolidColorHandle;
