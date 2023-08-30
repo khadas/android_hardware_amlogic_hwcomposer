@@ -11,6 +11,7 @@
 #define COPY_PROCESSOR_H
 
 #include <FbProcessor.h>
+#include "common/Ge2dHelper.h"
 
 class CopyProcessor : public FbProcessor {
 public:
@@ -32,6 +33,9 @@ public:
     int32_t teardown();
 
     meson_fb_processor_t getFbProcessorType() {return FB_COPY_PROCESSOR;};
+
+private:
+    std::shared_ptr<Ge2dHelper> mGe2dHelper;
 };
 
 #endif

@@ -203,7 +203,7 @@ meson_hwc_cc_defaults {
         "libion",
         "libhardware",
         "libhidlbase",
-        "libge2d",
+        "libge2d-2.0",
         "libvideotunnel",
         "libEGL",
         "libGLESv1_CM",

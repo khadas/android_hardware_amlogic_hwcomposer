@@ -73,3 +73,38 @@ cc_binary {
     ],
     srcs: ["Composition_test.cpp"],
 }
+
+
+
+cc_binary {
+    name: "ge2d_test",
+    vendor: true,
+    // !!! static lib sequence is serious, donot change it.
+    static_libs: [
+        "hwc.utils_static",
+
+    ],
+    shared_libs: [
+        "liblog",
+        "libcutils",
+        "libion",
+        "libui",
+        "libpng",
+        "libz",
+        "libge2d-2.0",
+        "libamgralloc_ext",
+    ],
+    include_dirs: [
+        "vendor/amlogic/common/system/libge2d/v2/include",
+        "hardware/amlogic/gralloc/amlogic",
+    ],
+    srcs: ["ge2d_test.cpp"],
+    cflags: [
+        "-Wno-deprecated-declarations",
+        "-Wno-unused-parameter",
+        "-Wno-format",
+        "-Wno-c++20-extensions",
+        "-Wno-format-extra-args",
+        "-Wno-error=unused-parameter",
+    ],
+}

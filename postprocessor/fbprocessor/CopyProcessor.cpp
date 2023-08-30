@@ -15,6 +15,7 @@
 #include <ui/PixelFormat.h>
 
 CopyProcessor::CopyProcessor() {
+    mGe2dHelper = std::make_shared<Ge2dHelper>();
 }
 
 CopyProcessor::~CopyProcessor() {
@@ -40,51 +41,21 @@ int32_t CopyProcessor::onBufferDisplayed(
 int32_t CopyProcessor::process(
     std::shared_ptr<DrmFramebuffer> & inputfb,
     std::shared_ptr<DrmFramebuffer> & outfb) {
-    void * inmem = NULL, * outmem = NULL;
     int infmt = am_gralloc_get_format (inputfb->mBufferHandle);
     int outfmt = am_gralloc_get_format (outfb->mBufferHandle);
     int w = am_gralloc_get_width(inputfb->mBufferHandle);
     int h = am_gralloc_get_height(inputfb->mBufferHandle);
     int instride = am_gralloc_get_stride_in_pixel(inputfb->mBufferHandle);
     int outstride = am_gralloc_get_stride_in_pixel(outfb->mBufferHandle);
-
+    int srcFd = am_gralloc_get_buffer_fd(inputfb->mBufferHandle);
+    int dstFd = am_gralloc_get_buffer_fd(outfb->mBufferHandle);
     MESON_LOGV("CopyProcessor %dx%d stride (%d,%d), fmt %d, %d",
         w, h, instride, outstride, infmt, outfmt);
-
-    if (inputfb->lock(&inmem) == 0 && outfb->lock(&outmem) == 0) {
-        char * src =  (char *)inmem;
-        char * dst =  (char *)outmem;
+    {
         ATRACE_BEGIN("CopyProcessor::copy");
-
-        if (infmt == outfmt) {
-            int32_t bytes = bytesPerPixel(infmt);
-            for (int ir = 0; ir < h; ir++) {
-                memcpy(dst, src, w * bytes);
-                src += instride * bytes;
-                dst += outstride * bytes;
-            }
-        } else if (infmt == HAL_PIXEL_FORMAT_RGB_888 && outfmt == HAL_PIXEL_FORMAT_RGBA_8888) {
-            int32_t bytes = bytesPerPixel(outfmt);
-            for (int ir = 0; ir < h; ir++) {
-                for (int k = 0; k < w; k++) {
-                    dst[k * 4] = src[k * 3];
-                    dst[k * 4 + 1] = src[k * 3 + 1];
-                    dst[k * 4 + 2] = src[k * 3 + 2];
-                    dst[k * 4 + 3] = 0xFF;
-                }
-                src += instride * 3;
-                dst += outstride * bytes;
-            }
-        } else {
-            MESON_LOGE("infmt doesn't match outfmt, don't copy infmt = %d, outfmt = %d", infmt, outfmt);
-            return -1;
-        }
-
+        mGe2dHelper->ge2DFmtConvert(dstFd, outfmt, w, h, srcFd, infmt, w, h);
         ATRACE_END();
-        inputfb->unlock();
-        outfb->unlock();
     }
-
     return 0;
 }
 
