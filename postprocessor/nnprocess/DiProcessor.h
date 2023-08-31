@@ -71,6 +71,7 @@ public:
     int mHandler;
     struct di_out_t mDi_Out[DI_OUT_BUF_COUNT];
     int32_t mBuf_index;
+    mutable std::mutex mMutex;
     std::queue<int> mBuf_index_q;
     int32_t mLastFd;
     int32_t mLastFenceFd;

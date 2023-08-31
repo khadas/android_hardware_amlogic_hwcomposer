@@ -194,6 +194,7 @@ int32_t DiProcessor::asyncProcess(
     struct frame_info_t frame_info;
     int ret;
     int i;
+    int disp_q_size;
 
     log_level = PropGetInt("vendor.hwc.di_log", 0);
 
@@ -282,7 +283,11 @@ int32_t DiProcessor::asyncProcess(
                 mDi_Out[i].is_i = true;
                 mDi_Out[i].fence = mLastFenceFd;
                 mDi_Out[i].status = DI_OUT_FENCE;
-                mBuf_index_q.push(i);
+                {
+                    std::lock_guard<std::mutex> lock(mMutex);
+                    mBuf_index_q.push(i);
+                }
+
                 ALOGD("I to P:  push the last I to list for recycle");
             }
             outfb->setDiProcessorFd(frame_info.out_fd);
@@ -323,7 +328,11 @@ int32_t DiProcessor::asyncProcess(
                 mDi_Out[i].is_i = frame_info.is_i;
                 mDi_Out[i].fence = mLastFenceFd;
                 mDi_Out[i].status = DI_OUT_FENCE;
-                mBuf_index_q.push(i);
+                {
+                    std::lock_guard<std::mutex> lock(mMutex);
+                    mBuf_index_q.push(i);
+                }
+
             } else {
                 if (mLastFd >= 0) {
                     close(mLastFd);
@@ -375,8 +384,12 @@ int32_t DiProcessor::asyncProcess(
     mDi_Out[i].is_i = frame_info.is_i;
     mBuf_index_Last = mBuf_index;
     mBuf_index = i;
+    {
+        std::lock_guard<std::mutex> lock(mMutex);
+        disp_q_size = mBuf_index_q.size();
+    }
     ALOGD_IF(di_check_D(), "%s: mDi_Out[i].fd=%d, i=%d, is_i=%d, disp_q_size=%d",
-        __FUNCTION__, mDi_Out[i].fd, i, mDi_Out[i].is_i, mBuf_index_q.size());
+        __FUNCTION__, mDi_Out[i].fd, i, mDi_Out[i].is_i, disp_q_size);
 
     return 0;
 }
@@ -384,8 +397,8 @@ int32_t DiProcessor::asyncProcess(
 int32_t DiProcessor::onBufferDisplayed(
         std::shared_ptr<DrmFramebuffer> & outfb __unused,
         int releaseFence) {
-
     int index = mBuf_index;
+    int disp_size;
 
     mDisplayedCount++;
 
@@ -406,11 +419,19 @@ int32_t DiProcessor::onBufferDisplayed(
 
     mDi_Out[index].fence = releaseFence;
     mDi_Out[index].status = DI_OUT_FENCE;
-    mBuf_index_q.push(index);
+    {
+        std::lock_guard<std::mutex> lock(mMutex);
+        mBuf_index_q.push(index);
+    }
+
     ALOGD_IF(di_check_D(), "push i=%d to list", index);
 
     while (1) {
-        int disp_size = mBuf_index_q.size();
+        {
+            std::lock_guard<std::mutex> lock(mMutex);
+            disp_size = mBuf_index_q.size();
+        }
+
         if (disp_size > 4) {
             usleep(2*1000);
             ALOGE("too many buf need di process, wait: disp_size=%d", disp_size);
@@ -432,13 +453,20 @@ void DiProcessor::threadProcess() {
     int ret;
     int fd;
 
-    size = mBuf_index_q.size();
+    {
+        std::lock_guard<std::mutex> lock(mMutex);
+        size = mBuf_index_q.size();
+    }
+
     if (size < 2) {
         usleep(2 * 1000);
         return;
     }
 
-    buf_index = mBuf_index_q.front();
+    {
+        std::lock_guard<std::mutex> lock(mMutex);
+        buf_index = mBuf_index_q.front();
+    }
 
     if (mDi_Out[buf_index].status != DI_OUT_FENCE)
         ALOGE("%s: status err %d", __FUNCTION__, mDi_Out[mBuf_index].status);
@@ -475,8 +503,10 @@ void DiProcessor::threadProcess() {
     mDi_Out[buf_index].fd = -1;
     mDi_Out[buf_index].status = DI_OUT_INVALID;
     mDi_Out[buf_index].used = false; /*must at the last line*/
-
-    mBuf_index_q.pop();
+    {
+        std::lock_guard<std::mutex> lock(mMutex);
+        mBuf_index_q.pop();
+    }
 
     return;
 }
