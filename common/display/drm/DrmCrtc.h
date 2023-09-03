@@ -39,6 +39,7 @@ public:
     int32_t prePageFlip();
     int32_t pageFlip(int32_t & out_fence);
     int32_t updatePropertyValue();
+    int32_t atomicClearMode();
 
     /*TODO:should refact*/
     int32_t readCurDisplayMode(std::string & dispmode);

@@ -60,7 +60,6 @@ int32_t LoopbackDisplayPipe::init(
 int32_t LoopbackDisplayPipe::getPipeCfg(uint32_t hwcid, PipeCfg & cfg) {
     MESON_ASSERT(hwcid == 0, "Only one display for this policy.");
     drm_connector_type_t  connector = getConnectorCfg(hwcid);
-    MESON_ASSERT(connector == LEGACY_NON_DRM_CONNECTOR_PANEL, "unsupported connector config");
 
     if (mPostProcessor) {
         cfg.hwcPipeIdx = DRM_PIPE_VOUT1;
@@ -123,10 +122,15 @@ int32_t LoopbackDisplayPipe::handleRequest(uint32_t flags) {
             }
 
             /*reset vout displaymode, for we need do pipeline switch*/
-            static drm_mode_info_t nullMode = {
-                DRM_DISPLAY_MODE_NULL, 0, 0,0, 0, 60.0, 0};
-            stat->hwcCrtc->setMode(nullMode);
-            stat->modeCrtc->setMode(nullMode);
+            if (access("/dev/dri/card0", R_OK | W_OK) == 0) {
+                stat->hwcCrtc->atomicClearMode();
+                stat->modeCrtc->atomicClearMode();
+            } else {
+                static drm_mode_info_t nullMode = {
+                    DRM_DISPLAY_MODE_NULL, 0, 0,0, 0, 60.0, 0};
+                stat->hwcCrtc->setMode(nullMode);
+                stat->modeCrtc->setMode(nullMode);
+            }
 
             getHwDisplayManager()->unbind(stat->hwcCrtc);
             getHwDisplayManager()->unbind(stat->modeCrtc);

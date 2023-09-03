@@ -19,7 +19,7 @@
 //#define POST_FRAME_DEBUG 1
 //#define VDIN_CAP_ALWAYS_ON 1
 
-#define DEFAULT_FB_ZORDER (1)
+#define DEFAULT_FB_ZORDER (1 + 65)
 
 #define VDIN_BUF_CNT (6)
 #define VOUT_BUF_CNT (3)
@@ -145,6 +145,7 @@ int32_t VdinPostProcessor::startVdin() {
         MESON_ASSERT(hnd != NULL && am_gralloc_get_buffer_fd(hnd) >= 0,
             "alloc vdin buf failed.");
         std::shared_ptr<DrmFramebuffer> buf = std::make_shared<DrmFramebuffer>(hnd, -1);
+        buf->setUniqueId(i);
         /*queue buf before start streaming.*/
         Vdin::getInstance().queueBuffer(buf, i);
         mVdinFbs.push_back(buf);
@@ -275,6 +276,7 @@ int32_t VdinPostProcessor::start() {
                 mVoutHnds.push_back(hnd);
 
                 auto buf = std::make_shared<DrmFramebuffer>(hnd, -1);
+                buf->setUniqueId(i);
                 mVoutQueue.push(buf);
             }
         }

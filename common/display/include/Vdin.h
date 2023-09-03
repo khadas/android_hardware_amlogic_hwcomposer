@@ -104,7 +104,7 @@ protected:
 
     int mCanvasCnt;
     struct vdin_set_canvas_s mCanvas[VDIN_CANVAS_MAX_CNT];
-
+    bool mNeedDupFd = false;
     //For screenrecord loopback
     int mRecordWidth = 0;
     int mRecordHeight = 0;

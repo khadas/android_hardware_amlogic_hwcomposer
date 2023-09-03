@@ -337,7 +337,7 @@ int32_t DrmCrtc::setModeLocked(drm_mode_info_t & mode, bool seamless __unused) {
 }
 
 int32_t DrmCrtc::waitVBlank(nsecs_t & timestamp) {
-    static uint32_t reqType = DRM_VBLANK_RELATIVE | (mPipe == 0 ? 0 : (1 << mPipe));
+    uint32_t reqType = DRM_VBLANK_RELATIVE | (mPipe == 0 ? 0 : (1 << mPipe));
 
     drmVBlank vbl;
     vbl.request.type = (drmVBlankSeqType)reqType;
@@ -369,6 +369,36 @@ int32_t DrmCrtc::prePageFlip() {
     }
 
     return 0;
+}
+
+int32_t DrmCrtc::atomicClearMode() {
+    std::shared_ptr<DrmProperty> crtcid;
+    drmModeAtomicReqPtr req = drmModeAtomicAlloc();
+    auto connectorIt = getDrmDevice()->getConnectorById(mConnectorId);
+    DrmConnector * connector = (DrmConnector *)connectorIt.get();
+    connector->getCrtcProp(crtcid);
+
+    mActive->setValue(0);
+    crtcid->setValue(0);
+    mModeBlobId->setValue(0);
+    crtcid->apply(req);
+    mActive->apply(req);
+    mModeBlobId->apply(req);
+
+    uint32_t flag = DRM_MODE_ATOMIC_ALLOW_MODESET;
+    int32_t ret = drmModeAtomicCommit(
+        mDrmFd,
+        req,
+        flag,
+        NULL);
+    if (ret) {
+        MESON_LOGE("atomicClearMode-%d:atomic commit ret (%d)", getId(), ret);
+    }
+    drmModeAtomicFree(req);
+    req = NULL;
+
+    return ret;
+
 }
 
 int32_t DrmCrtc::updatePropertyValue() {

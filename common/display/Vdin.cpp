@@ -12,6 +12,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
+#include <sys/utsname.h>
 #include <fcntl.h>
 #include <poll.h>
 #include <stdlib.h>
@@ -43,6 +44,23 @@ Vdin::Vdin() {
     mDefFormat = 0;
     memset(&mCapParams, 0, sizeof(mCapParams));
     memset(&mCanvas, 0, sizeof(mCanvas));
+
+    struct utsname buf;
+    int major = 0;
+    int minor = 0;
+    if (!uname(&buf)) {
+        if (sscanf(buf.release, "%d.%d", &major, &minor) != 2) {
+            major = 0;
+        }
+    }
+    if (major == 0) {
+        MESON_LOGV("Can't determine kernel version for access sysfs!");
+    }
+
+   mNeedDupFd = true;
+   if (major >= 5 && minor >= 15) {
+       mNeedDupFd = false;
+   }
 }
 
 Vdin::~Vdin() {
@@ -142,7 +160,11 @@ int32_t Vdin::queueBuffer(std::shared_ptr<DrmFramebuffer> & fb, int idx) {
         mCanvas[idx].index = idx;
         int bufFd = am_gralloc_get_buffer_fd(fb->mBufferHandle);
         if ( bufFd >= 0) {
-            mCanvas[idx].fd = ::dup(bufFd);
+            if (mNeedDupFd) {
+                mCanvas[idx].fd = ::dup(bufFd);
+            } else {
+                mCanvas[idx].fd = bufFd;
+            }
         }
         MESON_LOGD("Vdin::queue new Buffer %d - %d", idx, mCanvas[idx].fd);
     } else {

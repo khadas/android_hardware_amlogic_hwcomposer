@@ -269,8 +269,10 @@ int32_t HwcDisplayPipe::updatePipe(std::shared_ptr<PipeStat> & stat) {
                 getHwDisplayManager()->bind(stat->modeCrtc, stat->modeConnector, planes);
             stat->modeCrtc->update();
             stat->modeConnector->update();
-            if (access("/dev/dri/card0", R_OK | W_OK) == 0)
+            if (access("/dev/dri/card0", R_OK | W_OK) == 0) {
+                getHwDisplayManager()->unbind(stat->modeCrtc);
                 getHwDisplayManager()->bind(stat->modeCrtc, stat->modeConnector, planes);
+            }
         }
 
         stat->modeMgr->setDisplayResources(stat->modeCrtc, stat->modeConnector);

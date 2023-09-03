@@ -26,8 +26,8 @@ public:
     DrmFramebuffer(const native_handle_t * bufferhnd, int32_t acquireFence);
     virtual ~DrmFramebuffer();
 
-    void setUniqueId(hwc2_layer_t id);
-    hwc2_layer_t getUniqueId();
+    virtual void setUniqueId(hwc2_layer_t id);
+    virtual hwc2_layer_t getUniqueId();
 
     int32_t setAcquireFence(int32_t fenceFd);
     std::shared_ptr<DrmFence> getAcquireFence();

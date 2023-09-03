@@ -28,6 +28,7 @@ public:
 
     /*update informations, current display mode now.*/
     virtual int32_t update() = 0;
+    virtual int32_t atomicClearMode() { return 0;};
 
     /*for hdr metadata.*/
     virtual int32_t getHdrMetadataKeys(std::vector<drm_hdr_metadata_t> & keys) = 0;
