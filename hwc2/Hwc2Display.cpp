@@ -2060,7 +2060,8 @@ hwc2_error_t Hwc2Display::setHdrConversionStrategy(bool passThrough, uint32_t nu
     std::lock_guard<std::mutex> lock(mMutex);
     MESON_LOGD("%s passThrough %d isAuto %d ",__func__, passThrough, isAuto);
 
-    auto forceType = -1;
+    auto outHdrConversionType = -1;
+    uint32_t userHdrType = 0;
     /* DV enable support DV and HDR10
      * DV disable support HDR10 and HLG */
     if (!passThrough && preferredHdrOutputType) {
@@ -2068,6 +2069,7 @@ hwc2_error_t Hwc2Display::setHdrConversionStrategy(bool passThrough, uint32_t nu
         for (std::vector<uint32_t>::const_iterator iter = HdrTypes.begin(); iter != HdrTypes.end(); ++iter) {
             MESON_LOGD("%s HdrTypes %d \n",__func__, *iter);
         }
+
         bool containDVType =
                  std::find(HdrTypes.begin(), HdrTypes.end(), HAL_HDR_DOLBY_VISION) != HdrTypes.end();
         bool containHDR10Type =
@@ -2076,42 +2078,35 @@ hwc2_error_t Hwc2Display::setHdrConversionStrategy(bool passThrough, uint32_t nu
                  std::find(HdrTypes.begin(), HdrTypes.end(), HAL_HDR_HLG) != HdrTypes.end();
         bool containSDRType =
                  std::find(HdrTypes.begin(), HdrTypes.end(), DRM_INVALID) != HdrTypes.end();
-        if (mHdrCaps.DolbyVisionSupported) {
-            if (containDVType)
-                forceType = HAL_HDR_DOLBY_VISION;
-            if (mHdrCaps.HDR10Supported && containHDR10Type && !containDVType)
-                forceType = HAL_HDR_HDR10;
-            // TODO: enable it whe dv support convert to HLG output
-            //if (mHdrCaps.HLGSupported && !containHDR10Type && containHLGType)
-            //    forceType = HAL_HDR_HLG;
-            if (!containHDR10Type && !containDVType && containSDRType)
-                forceType = DRM_INVALID;
-        } else {
-            if (mHdrCaps.HDR10Supported && containHDR10Type)
-                forceType = HAL_HDR_HDR10;
-            if (mHdrCaps.HLGSupported && !containHDR10Type && containHLGType)
-                forceType = HAL_HDR_HLG;
-            if (!containHDR10Type && !containHLGType && containSDRType)
-                forceType = DRM_INVALID;
-        }
-        // force SDR when autoAllowedHdrTypes are empty
-        if (isAuto && HdrTypes.empty()) {
-            forceType = DRM_INVALID;
-        }
-        if (forceType == -1) {
+
+        userHdrType = userHdrType | (containDVType << HAL_HDR_DOLBY_VISION);
+        userHdrType = userHdrType | (containHDR10Type << HAL_HDR_HDR10);
+        userHdrType = userHdrType | (containHLGType << HAL_HDR_HLG);
+        userHdrType = userHdrType | (containSDRType << DRM_INVALID);
+
+        mModePolicy->setAllowedHdrTypes(userHdrType, isAuto, passThrough);
+        outHdrConversionType = mModePolicy->getPreferredHdrConversionType();
+
+        if (outHdrConversionType == -1) {
             if (mModePolicy) {
-                mModePolicy->setHdrConversionPolicy(true, forceType, false);
+                mModePolicy->setHdrConversionPolicy(passThrough, outHdrConversionType);
             } else {
                 MESON_LOGD("ModePolicy is NULL");
             }
             return HWC2_ERROR_UNSUPPORTED;
         }
-        *preferredHdrOutputType = forceType;
+        *preferredHdrOutputType = outHdrConversionType;
+    } else {
+        userHdrType = userHdrType | (1 << HAL_HDR_DOLBY_VISION);
+        userHdrType = userHdrType | (1 << HAL_HDR_HDR10);
+        userHdrType = userHdrType | (1 << HAL_HDR_HLG);
+        userHdrType = userHdrType | (1 << DRM_INVALID);
+        mModePolicy->setAllowedHdrTypes(userHdrType, isAuto, passThrough);
     }
 
     int32_t ret = -1;
     if (mModePolicy)
-        ret = mModePolicy->setHdrConversionPolicy(passThrough, forceType);
+        ret = mModePolicy->setHdrConversionPolicy(passThrough, outHdrConversionType);
     else {
         MESON_LOGD("ModePolicy is NULL");
     }

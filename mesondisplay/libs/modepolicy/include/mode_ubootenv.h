@@ -43,6 +43,23 @@ extern "C" {
  */
 #define UBOOTENV_HDR_FORCE_MODE         "ubootenv.var.hdr_force_mode"
 
+/*
+ * save user preferred hdr type
+ * bit0: invalid
+ * bit1: 1 → disable dv, 0 → enable dv
+ * bit2: 1 → disable hdr10/hdr10+, 0 → enable hdr10/hdr10+
+ * bit3: 1 → disable hlg, 0 → enable hlg
+ */
+#define UBOOTENV_USER_PREFERRED_HDR_TYPE         "ubootenv.var.user_hdr_type"
+
+/*
+ * save user preferred hdr policy
+ * "0":System-preferred conversion
+ * "1":Match content Dynamic range
+ * "2":Force conversion
+ */
+#define UBOOTENV_HDR_PREFERRED_POLICY         "ubootenv.var.hdr_preferred_policy"
+
 int meson_mode_init_ubootenv();
 
 const char *meson_mode_get_ubootenv(const char * key);

@@ -61,9 +61,6 @@
 #define SUFFIX_14BIT                    "14bit"
 #define SUFFIX_RGB                      "rgb"
 
-#define DEFAULT_DEEP_COLOR_ATTR         "444,8bit"
-#define DEFAULT_420_DEEP_COLOR_ATTR     "420,8bit"
-
 #define DEFAULT_EDID_CRCHEAD            "checkvalue: "
 
 #define UBOOTENV_DIGITAUDIO             "ubootenv.var.digitaudiooutput"
@@ -95,10 +92,6 @@
 #define PROP_VMX                        "persist.vendor.sys.vmx"
 
 #define SYS_DISPLAY_RESOLUTION          "/sys/class/video/device_resolution"
-
-#define HDR_POLICY_SINK                 "0"
-#define HDR_POLICY_SOURCE               "1"
-#define HDR_POLICY_FORCE                "4"
 
 #define DV_HDR_SINK_SOURCE_BYPASS       "0"
 #define DV_HDR_SINK_PROCESS             "1"
@@ -243,7 +236,9 @@ public:
     int32_t setBootConfig(std::string &config);
     int32_t clearBootConfig();
 
-    int32_t setHdrConversionPolicy(bool passthrough, int32_t forceType, bool overWriteEnv = true);
+    void setAllowedHdrTypes(uint32_t allowedHdrTypes, bool isAuto, bool passThrough);
+    int32_t getPreferredHdrConversionType(void);
+    int32_t setHdrConversionPolicy(bool passthrough, int32_t forceType);
     int32_t setAutoLowLatencyMode(bool enabled);
 
     void dump(String8 &dumpstr) override;
@@ -265,6 +260,7 @@ private:
     void getHdrStrategy(char* value);
     int32_t setHdrPriority(int32_t type);
     int32_t getHdrPriority();
+    int32_t getCurrentHdrPriority(void);
     void gethdrforcemode(char* value);
     bool isDolbyVisionEnable();
     bool isTvDolbyVisionEnable();
@@ -298,9 +294,6 @@ private:
     void getConnectorUserData(struct meson_policy_in* data, hdmi_dv_info_t *dinfo);
 
     void initHdrSdrMode();
-    int updateDolbyVisionType(void);
-    bool checkDolbyVisionDeepColorChanged(int state);
-    bool getCurDolbyVisionState(int state, output_mode_state mode_state);
     void setHdrMode(const char* mode);
     void setSdrMode(const char* mode);
     bool checkDolbyVisionStatusChanged(int state);
@@ -343,7 +336,6 @@ private:
     void saveDeepColorAttr(const char* mode, const char* dcValue);
     void setTvDolbyVisionEnable(void);
     void setTvDolbyVisionDisable(void);
-    int getDolbyVisionType();
     bool isHdmiEdidParseOK(void);
     bool isBestPolicy();
     bool isBestColorSpace();
@@ -369,6 +361,8 @@ private:
     output_change_reason mReason;
     output_mode_state mState;
     hdmi_dv_info_t mDvInfo;
+    meson_hdr_policy_e mHdr_policy   = MESON_HDR_POLICY_SINK;
+    meson_hdr_priority_e mHdr_priority = MESON_DOLBY_VISION_PRIORITY;
 
     std::map<int, std::string> mFilterEdid;
 

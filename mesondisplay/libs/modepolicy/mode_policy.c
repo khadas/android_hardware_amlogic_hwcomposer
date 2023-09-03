@@ -33,8 +33,12 @@ static bool is_dv_prefer(struct meson_policy_in *input) {
     struct meson_hdr_info *hdr_ptr = &input->hdr_info;
 
     /* not dv priority */
-    if (hdr_ptr->hdr_priority != MESON_DOLBY_VISION_PRIORITY) {
-        SYS_LOGI("not prefer dv, hdr_priority:%d", hdr_ptr->hdr_priority);
+    if (hdr_ptr->hdr_priority != MESON_DOLBY_VISION_PRIORITY
+        && hdr_ptr->hdr_priority != MESON_G_DV_HDR10_HLG
+        && hdr_ptr->hdr_priority != MESON_G_DV_HDR10
+        && hdr_ptr->hdr_priority != MESON_G_DV_HLG
+        && hdr_ptr->hdr_priority != MESON_G_DV) {
+        SYS_LOGI("not prefer dv, hdr_priority:%x", hdr_ptr->hdr_priority);
         return false;
     }
 
@@ -72,10 +76,10 @@ static int32_t is_hdr_prefer(struct meson_policy_in *input) {
         return 0;
     }
 
-    /* hdr is enable and policy is also hdr */
+    /* policy is prefer dv or hdr and tv support hdr*/
     if (hdr_ptr->is_tv_supportHDR &&
-            ((hdr_ptr->hdr_priority == MESON_DOLBY_VISION_PRIORITY) ||
-             (hdr_ptr->hdr_priority == MESON_HDR10_PRIORITY)))
+        ((hdr_ptr->hdr_priority != MESON_SDR_PRIORITY)
+        && (hdr_ptr->hdr_priority != MESON_G_SDR)))
         return 1;
 
     return 0;
@@ -1129,7 +1133,31 @@ const char *meson_hdrPriorityToString(int32_t type) {
         case MESON_SDR_PRIORITY:
             typeStr = "SDR priority";
             break;
-        default:
+        case MESON_G_DV_HDR10_HLG:
+            typeStr = "DV_HDR10_HLG priority";
+            break;
+        case MESON_G_DV_HDR10:
+            typeStr = "DV_HDR10 priority";
+            break;
+        case MESON_G_DV_HLG:
+            typeStr = "DV_HLG priority";
+            break;
+        case MESON_G_HDR10_HLG:
+            typeStr = "HDR10_HLG priority";
+            break;
+        case MESON_G_DV:
+            typeStr = "DV priority";
+            break;
+        case MESON_G_HDR10:
+            typeStr = "HDR10 priority";
+            break;
+        case MESON_G_HLG:
+            typeStr = "HLG priority";
+            break;
+        case MESON_G_SDR:
+            typeStr = "SDR priority";
+            break;
+        default :
             typeStr = "INVALID";
             break;
     }

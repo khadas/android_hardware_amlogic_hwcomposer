@@ -50,23 +50,78 @@ typedef enum meson_mode_state {
 } meson_mode_state_e;
 
 typedef enum meson_sink_type {
-    MESON_SINK_TYPE_NONE = 0,                /* hdmi plug out,use cvbs */
-    MESON_SINK_TYPE_SINK = 1,                /* hdmi sink */
+    MESON_SINK_TYPE_NONE     = 0,            /* hdmi plug out,use cvbs */
+    MESON_SINK_TYPE_SINK     = 1,            /* hdmi sink */
     MESON_SINK_TYPE_REPEATER = 2,            /* repeater sink */
-    MESON_SINK_TYPE_RESERVE = 3
+    MESON_SINK_TYPE_RESERVE  = 3
 } meson_sink_type_e;
 
+/*
+ * bit0-bit3 for hdr strategy1
+ * 0 → original cap
+ * 1 → disable dolby vision cap
+ * 2 → disable dolby vision  and hdr cap
+ * bit4-bit7 for hdr strategy2
+ * bit4: 1 → disable dv, 0 → enable dv
+ * bit5: 1 → disable hdr10/hdr10+, 0 → enable hdr10/hdr10+
+ * bit6: 1 → disable hlg,  0 → enable hlg
+ * bit7-bit27:reverse
+ * bit28-bit31 choose strategy
+ * 0：strategy1
+ * 1：strategy2
+*/
 typedef enum meson_hdr_priority {
-    MESON_DOLBY_VISION_PRIORITY = 0,
-    MESON_HDR10_PRIORITY = 1,
-    MESON_SDR_PRIORITY = 2,
+    MESON_DOLBY_VISION_PRIORITY = 0x0,
+    MESON_HDR10_PRIORITY        = 0x1,
+    MESON_SDR_PRIORITY          = 0x2,
+    MESON_G_DV_HDR10_HLG        = 0x10000000,
+    MESON_G_DV_HDR10            = 0x10000040,
+    MESON_G_DV_HLG              = 0x10000020,
+    MESON_G_HDR10_HLG           = 0x10000010,
+    MESON_G_DV                  = 0x10000060,
+    MESON_G_HDR10               = 0x10000050,
+    MESON_G_HLG                 = 0x10000030,
+    MESON_G_SDR                 = 0x10000070,
 } meson_hdr_priority_e;
 
 typedef enum meson_hdr_policy {
-    MESON_HDR_POLICY_SINK = 0,
+    MESON_HDR_POLICY_SINK   = 0,
     MESON_HDR_POLICY_SOURCE = 1,
-    MESON_HDR_POLICY_FORCE = 2,
+    MESON_HDR_POLICY_FORCE  = 4,
 } meson_hdr_policy_e;
+
+/*
+ * save user hdr policy
+ * "0":follow sink
+ * "1":follow source
+ * "2""3":hdr vivid
+ * "4":force
+ */
+static const char* MESON_HDR_POLICY[] = {
+    "0",
+    "1",
+    "2",
+    "3",
+    "4"
+};
+
+typedef enum meson_hdr_preferred_policy {
+    MESON_HDR_SYSTEM_PREFERRED = 0,
+    MESON_HDR_MATCH_CONTENT    = 1,
+    MESON_HDR_FORCE            = 2,
+} meson_hdr_preferred_policy_e;
+
+/*
+ * save user preferred hdr policy
+ * "0":System-preferred conversion
+ * "1":Match content Dynamic range
+ * "2":Force conversion
+ */
+static const char* MESON_HDR_PREFERRED_POLICY[] = {
+    "0",
+    "1",
+    "2"
+};
 
 typedef enum meson_hdr_force_mode {
     MESON_HDR_FORCE_MODE_INVALID    = 0,
