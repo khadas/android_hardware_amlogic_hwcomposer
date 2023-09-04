@@ -175,8 +175,8 @@ void * HwcVsync::vsyncThread(void * data) {
             if (ret != 0) {
                 MESON_LOGE("wait for hw vsync error:%d", ret);
                 // wait vblank error we may in a mode switch
-                // sleep 5 ms and then try again
-                usleep(5000);
+                // sleep 16 ms and then try again
+                usleep(16000);
             }
         }
     }
