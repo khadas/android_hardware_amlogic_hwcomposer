@@ -110,6 +110,7 @@ int32_t DiProcessor::setup() {
     mLastFenceOutFd = -1;
     mAsyncCount = 0;
     mDisplayedCount = 0;
+    mReceiveCount = 0;
 
     for (i = 0; i < DI_OUT_BUF_COUNT; i++) {
         mDi_Out[i].index  = -i;
@@ -179,6 +180,33 @@ int32_t DiProcessor::teardown() {
     return 0;
 }
 
+int32_t DiProcessor::reset() {
+    int ret = 0;
+
+    ALOGD("reset");
+    ret = teardown();
+    if (ret)
+        ALOGE("teardown err: ret =%d", ret);
+
+    if (mHandler >= 0) {
+        close(mHandler);
+        mHandler = -1;
+    }
+
+    mHandler = open("/dev/di_process.0", O_RDWR | O_NONBLOCK);
+    if (mHandler < 0) {
+        ALOGE("can not open /dev/di_process.0");
+        mHandler = open("/dev/di_process.1", O_RDWR | O_NONBLOCK);
+        if (mHandler < 0) {
+            ALOGE("can not open /dev/di_process.1");
+        }
+    }
+    ret = setup();
+    if (ret)
+        ALOGE("setup err: ret =%d", ret);
+    return ret;
+}
+
 int32_t DiProcessor::process(
     std::shared_ptr<DrmFramebuffer> & inputfb __unused,
     std::shared_ptr<DrmFramebuffer> & outfb __unused) {
@@ -221,13 +249,21 @@ int32_t DiProcessor::asyncProcess(
     mReceiveCount++;
 
     ret = ioctl(mHandler, DI_PROCESS_IOCTL_SET_FRAME, &frame_info);
+    if (ret == 1) {
+        ALOGD("need reinit di for tvp");
+        reset();
+        mAsyncCount++;
+        mReceiveCount++;
+        ret = ioctl(mHandler, DI_PROCESS_IOCTL_SET_FRAME, &frame_info);
+    }
     if (ret != 0) {
         ALOGE("set frame err: ret =%d", ret);
         return -1;
     }
 
-    ALOGD_IF(di_check_D(), "%s: input_fd =%d, outfd=%d, is_repeat=%d, fence_fd=%d, omx_index=%d, mReceiveCount=%d,bypass=%d",
-        __FUNCTION__, input_fd, frame_info.out_fd, frame_info.is_repeat, frame_info.out_fence_fd, frame_info.omx_index, mReceiveCount, frame_info.need_bypass);
+    ALOGD_IF(di_check_D(), "%s: input_fd =%d, outfd=%d, is_repeat=%d, fence_fd=%d, omx_index=%d, mReceiveCount=%d,bypass=%d, tvp=%d",
+        __FUNCTION__, input_fd, frame_info.out_fd, frame_info.is_repeat, frame_info.out_fence_fd,
+        frame_info.omx_index, mReceiveCount, frame_info.need_bypass, frame_info.is_tvp);
 
     if (frame_info.need_bypass) {
         mNeed_fence = false;

@@ -23,7 +23,8 @@ struct frame_info_t {
     int32_t is_i;
     int32_t omx_index;
     int32_t need_bypass;
-    int32_t reserved[15];
+    int32_t is_tvp;
+    int32_t reserved[14];
 };
 
 enum out_status_e {
@@ -67,6 +68,7 @@ public:
     bool mNeed_fence;
     int PropGetInt(const char* str, int def);
     int di_check_D();
+    int reset();
     static int log_level;
     int mHandler;
     struct di_out_t mDi_Out[DI_OUT_BUF_COUNT];
