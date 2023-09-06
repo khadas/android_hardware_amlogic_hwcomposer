@@ -2249,8 +2249,7 @@ void Hwc2Display::dump(String8 & dumpstr) {
                 mConnector->getCurrentHdrType().c_str());
     /* max supported DV mode */
     std::string mode;
-    bool unused;
-    sc_sink_support_dv(mode, unused);
+    mConnector->getDvCap(mode);
     if (!mode.empty())
         dumpstr.appendFormat("Max supported DV mode: %s\n", mode.c_str());
 

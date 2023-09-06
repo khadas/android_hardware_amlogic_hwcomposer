@@ -85,10 +85,9 @@ int32_t ActiveModeMgr::update() {
 
     if (mConnector->isConnected()) {
         // detect the Dobly vision support status
-        bool unused = false;
         std::string highestModeForDv;
-        sc_sink_support_dv(highestModeForDv, unused);
-        mDvEnabled = sc_is_dolby_version_enable();
+        mConnector->getDvCap(highestModeForDv);
+        mDvEnabled = mConnector->isDvEnable();
         MESON_LOGD("ActiveModeMgr::update mDvEnabled(%d), highestModeForDv:%s",
                 mDvEnabled, highestModeForDv.c_str());
 

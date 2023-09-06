@@ -29,6 +29,8 @@ public:
     virtual void updateHdrCaps();
     virtual void getHdrCapabilities(drm_hdr_capabilities * caps);
     virtual std::string getCurrentHdrType();
+    virtual bool getDvCap(std::string & dv_cap);
+    virtual bool isDvEnable();
 
     virtual void dump(String8& dumpstr);
 
@@ -48,7 +50,6 @@ protected:
     int32_t loadDisplayModes();
     int32_t loadSupportedContentTypes();
 
-    void getDvSupportStatus();
     /*parse hdr info.*/
     virtual void parseEDID();
 

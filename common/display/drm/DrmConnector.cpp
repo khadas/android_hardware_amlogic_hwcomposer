@@ -51,6 +51,7 @@ static const u8 default_1080p_edid[EDID_MIN_LEN] = {
 /*TODO: re-use legacy hdmi sysfs.*/
 extern int32_t parseHdmiHdrCapabilities(drm_hdr_capabilities & hdrCaps);
 extern bool loadHdmiCurrentHdrType(std::string & hdrType);
+extern bool loadHdmiDvCap(std::string & dv_cap);
 extern int32_t loadHdmiSupportedContentTypes(std::vector<uint32_t> & supportedContentTypes);
 extern int32_t setHdmiContentType(uint32_t contentType);
 extern int32_t switchRatePolicy(bool fracRatePolicy);
@@ -702,6 +703,18 @@ int32_t DrmConnector::setAVMute(uint32_t mute)
         return -EINVAL;
     }
 }
+
+bool DrmConnector::getDvCap(std::string & dv_cap)
+{
+    bool ret = loadHdmiDvCap(dv_cap);
+    return ret;
+}
+
+bool DrmConnector::isDvEnable() {
+    bool ret = getDvSupportStatus();
+    return ret;
+}
+
 bool DrmConnector::getHdrType(std::string & hdrType)
 {
     bool ret = true;

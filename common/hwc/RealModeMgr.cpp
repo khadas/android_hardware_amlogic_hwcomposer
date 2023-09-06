@@ -276,7 +276,7 @@ int32_t RealModeMgr::update() {
     /* reset ModeList */
     reset();
     if (mConnector->isConnected()) {
-        mDvEnabled = sc_is_dolby_version_enable();
+        mDvEnabled = mConnector->isDvEnable();
         MESON_LOGD("RealModeMgr::update mDvEnabled(%d)", mDvEnabled);
         mConnector->getModes(connectorModeList);
         int ret = mCrtc->getMode(realMode);

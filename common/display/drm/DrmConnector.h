@@ -45,6 +45,8 @@ public:
     void updateHdrCaps();
     void getHdrCapabilities(drm_hdr_capabilities * caps);
     std::string getCurrentHdrType();
+    bool getDvCap(std::string & dv_cap);
+    bool isDvEnable();
     int32_t setContentType(uint32_t contentType);
     void getSupportedContentTypes(std::vector<uint32_t> & supportedContentTypesOut);
     int32_t setAutoLowLatencyMode(bool on);

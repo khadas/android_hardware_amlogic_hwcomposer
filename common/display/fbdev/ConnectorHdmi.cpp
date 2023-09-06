@@ -26,6 +26,7 @@
 
 int32_t parseHdmiHdrCapabilities(drm_hdr_capabilities & hdrCaps);
 bool loadHdmiCurrentHdrType(std::string & hdrType);
+bool loadHdmiDvCap(std::string & dv_cap);
 int32_t loadHdmiSupportedContentTypes(std::vector<uint32_t> & supportedContentTypes);
 int32_t setHdmiContentType(uint32_t contentType);
 int32_t switchRatePolicy(bool fracRatePolicy);
@@ -276,6 +277,16 @@ int32_t ConnectorHdmi::setAutoLowLatencyMode(bool on) {
 std::string ConnectorHdmi::getCurrentHdrType() {
     loadHdmiCurrentHdrType(mCurrentHdrType);
     return mCurrentHdrType;
+}
+
+bool ConnectorHdmi::getDvCap(std::string & dv_cap) {
+    bool ret = loadHdmiDvCap(dv_cap);
+    return ret;
+}
+
+bool ConnectorHdmi::isDvEnable() {
+    bool ret = getDvSupportStatus();
+    return ret;
 }
 
 void ConnectorHdmi::dump(String8 & dumpstr) {
@@ -560,6 +571,20 @@ bool loadHdmiCurrentHdrType(std::string & hdrType) {
     if (read_sysfs(HDR_STATUS, hdrType) != 0) {
         // default set to sdr
         hdrType = "sdr";
+        return false;
+    }
+
+    return true;
+}
+
+/*
+* cat /sys/class/amhdmitx/amhdmitx0/dv_cap2
+* output is tv dv capability
+*/
+bool loadHdmiDvCap(std::string & dv_cap) {
+    const char *DV_PATH = "/sys/class/amhdmitx/amhdmitx0/dv_cap2";
+
+    if (read_sysfs(DV_PATH, dv_cap) != 0) {
         return false;
     }
 
