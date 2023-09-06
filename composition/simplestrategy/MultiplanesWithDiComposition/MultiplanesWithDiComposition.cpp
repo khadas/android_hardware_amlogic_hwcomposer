@@ -182,7 +182,6 @@ int MultiplanesWithDiComposition::chooseOneVideoFbBaseBiggestWindow(
     for (auto it = inputVideoFbs.begin(); it != inputVideoFbs.end(); it++) {
         fb = *it;
 
-        /* find one that did not overlap with others */
         dispFrame = fb->getDisplayFrame();
         region = (dispFrame.right - dispFrame.left) * (dispFrame.bottom - dispFrame.top);
 
@@ -286,15 +285,8 @@ int MultiplanesWithDiComposition::chooseOneVideoFb(
 
     if (!bVideoCompose) {
         chooseOneVideoFbBaseVideoType(mDIComposerFbs, outputVideoFb);
-        if (!outputVideoFb.get()) {
-            chooseVideoFbsBaseNoOverlap(mDIComposerFbs, noOverlayFbs);
-            /* at least one buffer in noOverlayFbs vector */
-
-            if (noOverlayFbs.size() == 1)
-                outputVideoFb = *noOverlayFbs.begin();
-            else
-                chooseOneVideoFbBaseBiggestWindow(noOverlayFbs, outputVideoFb);
-        }
+        if (!outputVideoFb.get())
+            chooseOneVideoFbBaseBiggestWindow(mDIComposerFbs, outputVideoFb);
     } else {
         chooseVideoFbsBaseNoOverlap(mDIComposerFbs, noOverlayFbs);
         /* at least one buffer in noOverlayFbs vector */
@@ -536,7 +528,6 @@ int MultiplanesWithDiComposition::processVideoFbs() {
     /* removed used planes from mHwcVideoPlanes */
     for (uint32_t i = 0; i < usedPlanes; i++)
         mHwcVideoPlanes.erase(mHwcVideoPlanes.begin());
-
 
     return 0;
 }
