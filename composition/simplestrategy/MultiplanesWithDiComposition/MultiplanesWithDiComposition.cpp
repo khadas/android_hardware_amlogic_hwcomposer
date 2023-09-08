@@ -369,7 +369,7 @@ int MultiplanesWithDiComposition::processVideoFbs() {
                 } else if (fb->haveValidBuffer()) {
                     mDIComposerFbs.push_back(fb);
                 } else {
-                    fb->mCompositionType == MESON_COMPOSITION_DUMMY;
+                    fb->mCompositionType = MESON_COMPOSITION_DUMMY;
                     continue;
                 }
                 videoFbNum++;
