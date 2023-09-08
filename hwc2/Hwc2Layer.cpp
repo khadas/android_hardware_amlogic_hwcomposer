@@ -506,6 +506,10 @@ bool Hwc2Layer::haveValidBuffer() {
 
 int32_t Hwc2Layer::getBufferFd() {
     std::lock_guard<std::mutex> lock(mMutex);
+    return getBufferFdLocked();
+}
+
+int32_t Hwc2Layer::getBufferFdLocked() {
     int32_t fd = -1;
 
     if (mDifd >= 0 ) {
@@ -904,7 +908,7 @@ bool Hwc2Layer::isVtNeedClearFrameOrShowColorBuffer() {
             /* reset status flag to SHOW if get a valid,
              * or keep the status in order to support refresh
              * temp buffer */
-            if (getBufferFd() >= 0)
+            if (getBufferFdLocked() >= 0)
                 mVideoDisplayStatus = VT_VIDEO_STATUS_SHOW;
             [[fallthrough]];
         case VT_VIDEO_STATUS_COLOR_ALWAYS:

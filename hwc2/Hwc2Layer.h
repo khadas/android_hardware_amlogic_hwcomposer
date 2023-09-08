@@ -148,6 +148,7 @@ protected:
     int32_t releaseVtResourceLocked(bool needDisconnect);
     int32_t releaseVtResourceLocked(bool needDisconnect, bool needKeepLastFrame);
     bool isVtBufferLocked() override;
+    int32_t getBufferFdLocked();
 
     /* for NR */
     int32_t attachUvmBuffer(const int bufferFd);
