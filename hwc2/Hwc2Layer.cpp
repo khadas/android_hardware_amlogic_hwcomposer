@@ -1088,6 +1088,10 @@ void Hwc2Layer::freeSolidColorBufferLocked() {
         close(mSolidColorBufferfd);
         mSolidColorBufferfd = -1;
         mVtUpdate = false;
+
+        /* ignore temporary buffer's release fence */
+        mVtRefreshed = false;
+        setCurReleaseFence(-1);
     }
 }
 
