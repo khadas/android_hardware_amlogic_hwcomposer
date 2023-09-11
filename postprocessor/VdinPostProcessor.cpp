@@ -510,7 +510,7 @@ int32_t VdinPostProcessor::process() {
 
         /*read vdin and process.*/
         if (Vdin::getInstance().dequeueBuffer(vdinCrc) == 0) {
-            if (crcVal == vdinCrc.crc) {
+            if (crcVal == vdinCrc.crc && vdinCrc.crc != 0) {
                 crcvalStatus = false;
             } else {
                 crcvalStatus = true;
@@ -583,7 +583,7 @@ int32_t VdinPostProcessor::process() {
                 mVdinQueue.push(vdinIdx);
             } else {
                 /*null procesor, post vdin buf to vout directly.*/
-                if (mType == PROCESSOR_FOR_LOOPBACK) {
+                if (mType == PROCESSOR_FOR_LOOPBACK && crcvalStatus) {
                     postVout(infb);
                 }
                 /*push back last displayed buf*/
