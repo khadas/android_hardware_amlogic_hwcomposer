@@ -282,7 +282,8 @@ void DualDisplayPipe::handleEvent(drm_display_event event, int val) {
 
                     MESON_LOGD("HDMI SET display mode %s.", displayMode.name);
                     //strcpy(displayModeTemp.name, prefdisplayMode.c_str());
-                    statIt.second->modeCrtc->setMode(displayMode);
+                    std::string dispmode = std::string(displayMode.name);
+                    sc_set_display_mode(dispmode);
                 } else {
                     statIt.second->modeConnector->update();
                     statIt.second->hwcDisplay->onHotplug(connected);
