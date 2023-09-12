@@ -66,6 +66,8 @@ public:
 
     int32_t getHdrPriority(uint32_t & hdrPriority);
     int32_t setHdrPriority(uint32_t value);
+    int32_t setColorAttribute(const std::string & hdmiColorAttr);
+    int32_t applyConnectorProps(drmModeAtomicReqPtr &req);
 
     /*drm package internal use.*/
 public:

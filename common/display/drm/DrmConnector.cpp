@@ -667,7 +667,7 @@ int32_t DrmConnector::getHdrPriority(uint32_t & hdrPriority) {
 }
 
 int32_t DrmConnector::setHdrPriority(uint32_t value) {
-    MESON_LOGD("%s value %d ",__func__, value);
+    MESON_LOGD("%s value %d ", __func__, value);
     int ret = -1;
     if (mHdrPriority) {
         if (mHdrPriority->getValue() == value) {
@@ -703,6 +703,55 @@ int32_t DrmConnector::setHDMIContentType(uint32_t contentType)
         return -EINVAL;
     }
 }
+
+int32_t DrmConnector::setColorAttribute(const std::string & hdmiColorAttr) {
+
+    MESON_LOGD("%s hdmiColorAttr: %s ", __func__, hdmiColorAttr.c_str());
+    uint32_t color_depth_value = 0;
+    uint32_t color_space_value = 0;
+
+    if (strstr(hdmiColorAttr.c_str(), "rgb")) {
+        color_space_value = 0;
+    } else if (strstr(hdmiColorAttr.c_str(), "422")) {
+        color_space_value = 1;
+    } else if (strstr(hdmiColorAttr.c_str(), "444")) {
+        color_space_value = 2;
+    } else if (strstr(hdmiColorAttr.c_str(), "420")) {
+        color_space_value = 3;
+    }
+
+    if (strstr(hdmiColorAttr.c_str(), "8bit")) {
+        color_depth_value = 8;
+    } else if (strstr(hdmiColorAttr.c_str(), "10bit")) {
+        color_depth_value = 10;
+    } else if (strstr(hdmiColorAttr.c_str(), "12bit")) {
+        color_depth_value = 12;
+    }
+
+    int32_t ret = -1;
+    int32_t rtn = -1;
+    if (mColorSpace && mColorDepth) {
+        if (mColorSpace->getValue() == color_space_value
+                && mColorDepth->getValue() == color_depth_value) {
+            return 0;
+        }
+        ret = mColorSpace->setValue(color_space_value);
+        rtn = mColorDepth->setValue(color_depth_value);
+    } else {
+        return -EINVAL;
+    }
+    return 0;
+}
+
+int32_t DrmConnector::applyConnectorProps(drmModeAtomicReqPtr &req) {
+     if (mColorSpace && mColorDepth && mHdrPriority) {
+         mColorSpace->apply(req);
+         mColorDepth->apply(req);
+         mHdrPriority->apply(req);
+     }
+     return 0;
+}
+
 int32_t DrmConnector::setAVMute(uint32_t mute)
 {
     MESON_LOGI("setAVMute (%d)", mute);

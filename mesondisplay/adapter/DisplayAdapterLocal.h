@@ -41,6 +41,14 @@ enum UpdateType {
     UT_UPSATE_TYPE__COUNT
 };
 
+enum _ENUM_HDMI_COLOR_SPACE {
+   HDMI_COLOR_SPACE_RGB      = 0,
+   HDMI_COLOR_SPACE_422,
+   HDMI_COLOR_SPACE_444,
+   HDMI_COLOR_SPACE_420,
+   HDMI_COLOR_SPACE_RESERVED,
+};
+
 struct _DisplayAttributeInfo;
 typedef bool (update_fun)(struct _DisplayAttributeInfo& info, const string& in, string& out, UpdateType type);
 
@@ -93,6 +101,7 @@ private:
     DisplayAttributeInfo* getDisplayAttributeInfo(const string& name, ConnectorType displayType);
     DisplayAttributeInfo display_attrs[DA_DISPLAY_ATTRIBUTE__COUNT];
 
+    std::string getDisplayColorAttr(uint32_t colorSpace, uint32_t colorDepth);
     DISALLOW_COPY_AND_ASSIGN(DisplayAdapterLocal);
 };
 

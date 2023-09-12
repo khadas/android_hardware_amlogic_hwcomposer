@@ -92,6 +92,10 @@ public:
 
     virtual int32_t getHdrPriority(uint32_t & hdrPriority __unused) {return 0; }
     virtual int32_t setHdrPriority(uint32_t value __unused) {return 0; }
+    virtual int32_t setColorAttribute(const std::string & hdmiColorAttr __unused) {return 0; };
+    virtual int32_t applyConnectorProps(drmModeAtomicReqPtr &req __unused) {return 0; }
+    virtual int32_t getColorDepth(uint32_t & colorDepth __unused) {return 0; };
+    virtual ENUM_HDMI_COLOR_SPACE getColorSpace() {return ENUM_HDMI_COLOR_SPACE(0); };
 
 };
 

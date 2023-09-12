@@ -294,6 +294,8 @@ int32_t DrmCrtc::setModeLocked(drm_mode_info_t & mode, bool seamless __unused) {
             plane->setCrtcProps(req, mDrmMode);
     }
 
+    connector->applyConnectorProps(req);
+
     /*set prop value*/
     MESON_ASSERT(crtcid->getValue() == mId, "crtc/connector NOT bind?!");
     mActive->setValue(1);

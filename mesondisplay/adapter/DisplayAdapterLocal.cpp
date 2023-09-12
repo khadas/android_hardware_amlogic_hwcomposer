@@ -140,10 +140,8 @@ DisplayAdapterLocal::DisplayAdapterLocal() {
     DA_DEFINE(HDR_POLICY, "0", update_sys_node);
     DA_DEFINE(HDR_MODE, "0", update_sys_node);
     DA_DEFINE(SDR_MODE, "0", update_sys_node);
-    DA_DEFINE(HDMI_COLOR_ATTR, "0", update_sys_node);
     DA_DEFINE(HDMI_AVMUTE, "0", update_sys_node);
     DA_DEFINE(FR_HINT, "0", update_sys_node);
-    DA_DEFINE(HDR_PRIORITY, "0", update_sys_node);
     DA_DEFINE(FORCE_HDR_MODE, "0", update_sys_node);
 
 #define DA_SET_NODE(ID, NODE) \
@@ -173,10 +171,8 @@ DisplayAdapterLocal::DisplayAdapterLocal() {
     DA_SET_NODE(DOLBY_VISION_CAP2 ,"/sys/class/amhdmitx/amhdmitx0/dv_cap2");
     DA_SET_NODE(DOLBY_VISION_MODE ,"/sys/class/amdolby_vision/dv_mode");
     DA_SET_NODE(HDR_CAP ,"/sys/class/amhdmitx/amhdmitx0/hdr_cap");
-    DA_SET_NODE(HDMI_COLOR_ATTR ,"/sys/class/amhdmitx/amhdmitx0/attr");
     DA_SET_NODE(HDMI_AVMUTE ,"/sys/devices/virtual/amhdmitx/amhdmitx0/avmute");
     DA_SET_NODE(FR_HINT, "/sys/class/display/fr_hint");
-    DA_SET_NODE(HDR_PRIORITY, "/sys/class/amhdmitx/amhdmitx0/hdr_priority_mode");
     DA_SET_NODE(FORCE_HDR_MODE, "/sys/module/aml_media/parameters/force_output");
 
 #define DA_SET_READ_ONLY(ID) \
@@ -433,8 +429,10 @@ DisplayAttributeInfo* DisplayAdapterLocal::getDisplayAttributeInfo(const string&
     UNUSED(displayType);
     int i = 0;
     for (i = 0; i < DA_DISPLAY_ATTRIBUTE__COUNT; i++) {
-        if (display_attrs[i].name == name) {
-            return &(display_attrs[i]);
+        if (display_attrs[i].name) {
+            if (display_attrs[i].name == name) {
+                return &(display_attrs[i]);
+            }
         }
     }
     MESON_LOGV("Access invalid display attribute named \"%s\"", name.c_str());
@@ -452,16 +450,19 @@ bool DisplayAdapterLocal::setDisplayAttribute(
     DisplayTypeConv(type, displayType);
     if (DRM_MODE_CONNECTOR_INVALID_TYPE == type)
         return false;
-    GET_CRTC_BY_CONNECTOR(type);
-    DisplayAttributeInfo* info = getDisplayAttributeInfo(name, displayType);
 
+    GET_CRTC_BY_CONNECTOR(type);
     if (connector) {
         if (!name.compare(DISPLAY_HDR_PRIORITY)) {
             uint32_t hdr_priority = static_cast<uint32_t>(atoi(value.c_str()));
             return connector->setHdrPriority(hdr_priority) ? false : true;
         }
+        if (!name.compare(DISPLAY_HDMI_COLOR_ATTR)) {
+            return connector->setColorAttribute(value) ? false : true;
+        }
     }
 
+    DisplayAttributeInfo* info = getDisplayAttributeInfo(name, displayType);
     if (info && info->update_fun) {
         ret = info->update_fun(*info, value, out, UT_SET_VALUE);
         if (!name.compare(DISPLAY_FR_HINT)) {
@@ -487,6 +488,32 @@ int32_t DisplayAdapterLocal::setFrameRate(float frameRate) {
     }
 }
 
+std::string DisplayAdapterLocal::getDisplayColorAttr(uint32_t colorSpace, uint32_t colorDepth) {
+   std::string outColorAttr;
+   std::string colorSpace_str;
+   std::string colorDepth_str = std::to_string(colorDepth);
+   switch (colorSpace) {
+       case HDMI_COLOR_SPACE_RGB:
+            colorSpace_str = "rgb";
+            break;
+       case HDMI_COLOR_SPACE_422:
+            colorSpace_str = "422";
+            break;
+       case HDMI_COLOR_SPACE_444:
+            colorSpace_str = "444";
+            break;
+       case HDMI_COLOR_SPACE_420:
+            colorSpace_str = "420";
+            break;
+       default:
+            MESON_LOGE(" invalid colorSpace:%d", colorSpace);
+            break;
+   }
+   outColorAttr = colorSpace_str + "," + colorDepth_str + "bit";
+
+   return outColorAttr;
+}
+
 bool DisplayAdapterLocal::getDisplayAttribute(
         const string& name, string& value,
         ConnectorType displayType) {
@@ -497,6 +524,22 @@ bool DisplayAdapterLocal::getDisplayAttribute(
     if (DRM_MODE_CONNECTOR_INVALID_TYPE == type)
         return false;
 
+    GET_CRTC_BY_CONNECTOR(type);
+    if (connector) {
+        if (!name.compare(DISPLAY_HDR_PRIORITY)) {
+            uint32_t hdr_priority;
+            ret = connector->getHdrPriority(hdr_priority) ? false : true;
+            value = std::to_string(hdr_priority);
+        }
+        if (!name.compare(DISPLAY_HDMI_COLOR_ATTR)) {
+            uint32_t colorSpace = connector->getColorSpace();
+            uint32_t colorDepth;
+            ret = connector->getColorDepth(colorDepth) ? false : true;
+            if (ret) {
+                value = getDisplayColorAttr(colorSpace, colorDepth);
+            }
+        }
+    }
     DisplayAttributeInfo* info = getDisplayAttributeInfo(name, displayType);
     if (info && info->update_fun) {
        if (info->update_fun(*info, "", out, UT_GET_VALUE)) {
