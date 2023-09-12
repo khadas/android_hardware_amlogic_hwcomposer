@@ -90,6 +90,9 @@ public:
     virtual bool supportSourceLed() { return false; };
     virtual bool supportSinkLed() { return false; };
 
+    virtual int32_t getHdrPriority(uint32_t & hdrPriority __unused) {return 0; }
+    virtual int32_t setHdrPriority(uint32_t value __unused) {return 0; }
+
 };
 
 #endif/*HW_DISPLAY_CONNECTOR_H*/

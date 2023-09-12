@@ -82,6 +82,7 @@ int32_t DrmConnector::loadProperties(drmModeConnectorPtr p __unused) {
         {DRM_CONNECTOR_PROP_UPDATE, &mUpdate},
         {DRM_CONNECTOR_PROP_MESON_TYPE, &mMesonConnectorType},
         {DRM_CONNECTOR_PROP_VRRCAP, &mVrrCap},
+        {DRM_CONNECTOR_PROP_HDR_PRIORITY, &mHdrPriority},
         {DRM_HDMI_PROP_COLORSPACE, &mColorSpace},
         {DRM_HDMI_PROP_COLORDEPTH, &mColorDepth},
 //        {DRM_HDMI_PROP_HDRCAP, &mHdrCaps},
@@ -656,6 +657,29 @@ void DrmConnector::getHdrCapabilities(drm_hdr_capabilities * caps) {
         *caps = mHdrCapabilities;
     }
 }
+
+int32_t DrmConnector::getHdrPriority(uint32_t & hdrPriority) {
+    if (mHdrPriority)
+        hdrPriority = mHdrPriority->getValue();
+    else
+        return -ENOENT;
+    return 0;
+}
+
+int32_t DrmConnector::setHdrPriority(uint32_t value) {
+    MESON_LOGD("%s value %d ",__func__, value);
+    int ret = -1;
+    if (mHdrPriority) {
+        if (mHdrPriority->getValue() == value) {
+            return 0;
+        }
+        ret = mHdrPriority->setValue(value);
+    } else {
+      return -EINVAL;
+    }
+    return 0;
+}
+
 int32_t DrmConnector::setHDMIContentType(uint32_t contentType)
 {
     if ( contentType >= HDMI_CONTENT_TYPE_MAX || (!mContentType))

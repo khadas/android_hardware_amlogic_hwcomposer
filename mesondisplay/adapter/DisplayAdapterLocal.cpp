@@ -452,8 +452,16 @@ bool DisplayAdapterLocal::setDisplayAttribute(
     DisplayTypeConv(type, displayType);
     if (DRM_MODE_CONNECTOR_INVALID_TYPE == type)
         return false;
-
+    GET_CRTC_BY_CONNECTOR(type);
     DisplayAttributeInfo* info = getDisplayAttributeInfo(name, displayType);
+
+    if (connector) {
+        if (!name.compare(DISPLAY_HDR_PRIORITY)) {
+            uint32_t hdr_priority = static_cast<uint32_t>(atoi(value.c_str()));
+            return connector->setHdrPriority(hdr_priority) ? false : true;
+        }
+    }
+
     if (info && info->update_fun) {
         ret = info->update_fun(*info, value, out, UT_SET_VALUE);
         if (!name.compare(DISPLAY_FR_HINT)) {

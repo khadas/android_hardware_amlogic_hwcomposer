@@ -57,6 +57,7 @@
 #define DRM_CONNECTOR_PROP_CRTCID  DRM_MODE_PROP_CRTCID
 #define DRM_CONNECTOR_PROP_EDID "EDID"
 #define DRM_CONNECTOR_PROP_VRRCAP  "vrr_capable"
+#define DRM_CONNECTOR_PROP_HDR_PRIORITY "hdr_priority"
 
 #define DRM_HDMI_PROP_COLORSPACE    "color_space"
 #define DRM_HDMI_PROP_COLORDEPTH    "color_depth"

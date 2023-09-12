@@ -64,6 +64,9 @@ public:
     bool supportSinkLed();
     int32_t setAVMute(uint32_t mute);
 
+    int32_t getHdrPriority(uint32_t & hdrPriority);
+    int32_t setHdrPriority(uint32_t value);
+
     /*drm package internal use.*/
 public:
     uint32_t getEncoderId() {return mEncoderId;}
@@ -122,6 +125,8 @@ protected:
     std::shared_ptr<DrmProperty> mMesonConnectorType;
     /* for vrr */
     std::shared_ptr<DrmProperty> mVrrCap;
+    /*for mask hdr */
+    std::shared_ptr<DrmProperty> mHdrPriority;
 
     /*TODO:should convert to prop.*/
     drm_hdr_capabilities mHdrCapabilities;
