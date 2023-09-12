@@ -23,5 +23,5 @@ package {
 
 hidl_package_root {
     name: "vendor.amlogic.display",
-    path: "hardware/amlogic/hwcomposer/mesondisplay/service/interfaces",
+    path: "hardware/amlogic/hwcomposer/service/mesondisplay/service/interfaces",
 }
