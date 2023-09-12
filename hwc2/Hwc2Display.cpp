@@ -1518,8 +1518,11 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
         }
 
         /*Start to compose, set up plane info.*/
-        if (mPresentCompositionStg->commit() != 0) {
-            return HWC2_ERROR_NONE;
+        {
+            std::lock_guard<std::mutex> vtLock(mVtMutex);
+            if (mPresentCompositionStg->commit() != 0) {
+                return HWC2_ERROR_NONE;
+            }
         }
         /*set hdr metadata info.*/
         for (auto it = mPresentLayers.begin() ; it != mPresentLayers.end(); it++) {
