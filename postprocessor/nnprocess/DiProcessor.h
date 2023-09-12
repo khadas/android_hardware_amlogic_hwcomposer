@@ -79,6 +79,7 @@ public:
     int32_t mLastFenceFd;
     int32_t mLastFenceOutFd;
     bool mLastFrameIsI;
+    bool mFirstI;
     int32_t mBuf_index_Last;
     int32_t mReceiveCount;
     int32_t mAsyncCount;

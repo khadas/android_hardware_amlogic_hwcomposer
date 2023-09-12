@@ -246,14 +246,12 @@ int32_t DiProcessor::asyncProcess(
     }
 
     frame_info.in_fd = input_fd;
-    mReceiveCount++;
 
     ret = ioctl(mHandler, DI_PROCESS_IOCTL_SET_FRAME, &frame_info);
     if (ret == 1) {
         ALOGD("need reinit di for tvp");
         reset();
         mAsyncCount++;
-        mReceiveCount++;
         ret = ioctl(mHandler, DI_PROCESS_IOCTL_SET_FRAME, &frame_info);
     }
     if (ret != 0) {
@@ -261,21 +259,23 @@ int32_t DiProcessor::asyncProcess(
         return -1;
     }
 
+    mReceiveCount++;
+
     ALOGD_IF(di_check_D(), "%s: input_fd =%d, outfd=%d, is_repeat=%d, fence_fd=%d, omx_index=%d, mReceiveCount=%d,bypass=%d, tvp=%d",
         __FUNCTION__, input_fd, frame_info.out_fd, frame_info.is_repeat, frame_info.out_fence_fd,
         frame_info.omx_index, mReceiveCount, frame_info.need_bypass, frame_info.is_tvp);
 
     if (frame_info.need_bypass) {
-        mNeed_fence = false;
-        outfb->setDiProcessorFd(-2);
-        output_fd = -2;
-        processFence = -1;
-        return 0;
+        mLastFrameIsI = false;
+        frame_info.out_fd = -1;
+        frame_info.out_fence_fd = -1;
+        goto USE_ORG;
     }
     if (frame_info.is_repeat == 0) {
         mNeed_fence = true;
         if (frame_info.is_i) {
             if (mLastFrameIsI) {
+                mFirstI = false;
                 outfb->setDiProcessorFd(mLastFd);
                 output_fd = mLastFd;
                 processFence = mLastFenceFd;
@@ -284,23 +284,10 @@ int32_t DiProcessor::asyncProcess(
                 mLastFd = frame_info.out_fd;
                 mLastFenceFd = frame_info.out_fence_fd;
             } else {
-                mNeed_fence = false;
-                outfb->setDiProcessorFd(-2);
-                output_fd = -2;
-                processFence = -1;
-                if (mLastFd >= 0) {
-                    close(mLastFd);
-                    mLastFd = -1;
-                }
-                if (mLastFenceFd >= 0) {
-                    close(mLastFenceFd);
-                    mLastFenceFd = -1;
-                }
-                mLastFd = frame_info.out_fd;
-                mLastFenceFd = frame_info.out_fence_fd;
                 mLastFrameIsI = frame_info.is_i;
+                mFirstI = true;
                 ALOGD_IF(di_check_D(), "%s: repeat 0; P->I: outfd=-2, outfencefd=-1", __FUNCTION__);
-                return 0;
+                goto USE_ORG;
             }
         } else {
             if (mLastFrameIsI) {
@@ -336,14 +323,42 @@ int32_t DiProcessor::asyncProcess(
         }
     } else {
         if (frame_info.is_i) {
-            output_fd = dup(mDi_Out[mBuf_index].fd);
-            outfb->setDiProcessorFd(output_fd);
-            processFence = -1;
-            if (frame_info.out_fd >= 0) {
-                close(frame_info.out_fd);
-            }
-            if (frame_info.out_fence_fd >= 0) {
-                close(frame_info.out_fence_fd);
+            /*case1:P I0 I0 I0: first I0 bypass; second I0 not bypass, need return I0 to vc*/
+            /*first I0 bypass,  mLastFrameIsI is false*/
+            /*case2:P I0 I0 I1 I1 I2: two I0 bypass, I1 disp, two I1 need use_org*/
+            if (!mLastFrameIsI || mFirstI) {
+                ALOGD("need org2: mLastFrameIsI=%d, mFirstI=%d", mLastFrameIsI, mFirstI);
+                mNeed_fence = false;
+                outfb->setDiProcessorFd(-2);
+                output_fd = -2;
+                processFence = -1;
+                if (mLastFd >= 0) {
+                    close(mLastFd);
+                    mLastFd = -1;
+                }
+                if (!mLastFrameIsI) {
+                    if (mLastFenceFd >= 0) {
+                        close(mLastFenceFd);
+                        mLastFenceFd = -1;
+                    }
+                    mLastFenceFd = frame_info.out_fence_fd;
+                }
+                mLastFrameIsI = true;
+                mLastFd = frame_info.out_fd;
+                ALOGD("use org2: processFence=%d, omx_index=%d,bypass=%d, tvp=%d, mFirstI=%d",
+                    processFence, frame_info.omx_index,
+                    frame_info.need_bypass, frame_info.is_tvp, mFirstI);
+                return 0;
+            } else {
+                output_fd = dup(mDi_Out[mBuf_index].fd);
+                outfb->setDiProcessorFd(output_fd);
+                processFence = -1;
+                if (frame_info.out_fd >= 0) {
+                    close(frame_info.out_fd);
+                }
+                if (frame_info.out_fence_fd >= 0) {
+                    close(frame_info.out_fence_fd);
+                }
             }
             ALOGD_IF(di_check_D(), "%s: repeat 1; last I, cur I", __FUNCTION__);
         } else {
@@ -427,6 +442,26 @@ int32_t DiProcessor::asyncProcess(
     ALOGD_IF(di_check_D(), "%s: mDi_Out[i].fd=%d, i=%d, is_i=%d, disp_q_size=%d",
         __FUNCTION__, mDi_Out[i].fd, i, mDi_Out[i].is_i, disp_q_size);
 
+    return 0;
+
+USE_ORG:
+    mNeed_fence = false;
+    outfb->setDiProcessorFd(-2);
+    output_fd = -2;
+    processFence = -1;
+    if (mLastFd >= 0) {
+        close(mLastFd);
+        mLastFd = -1;
+    }
+    if (mLastFenceFd >= 0) {
+        close(mLastFenceFd);
+        mLastFenceFd = -1;
+    }
+    mLastFd = frame_info.out_fd;
+    mLastFenceFd = frame_info.out_fence_fd;
+    ALOGD("use org:is_repeat=%d, omx_index=%d,bypass=%d, tvp=%d, mFirstI=%d",
+        frame_info.is_repeat, frame_info.omx_index,
+        frame_info.need_bypass, frame_info.is_tvp, mFirstI);
     return 0;
 }
 
