@@ -847,7 +847,6 @@ int32_t AipqProcessor::ai_pq_process(int cache_index) {
     int dump_index;
     img_classify_out_t *nn_out = NULL;
     int input_fd  = mAipqIndex[cache_index].shared_fd;
-    bool update_pq_value = false;
     int next_index;
 
     struct uvm_hook_data hook_data;
@@ -919,24 +918,6 @@ int32_t AipqProcessor::ai_pq_process(int cache_index) {
         next_index = 0;
     else
         next_index = cache_index + 1;
-
-    if (mAipqIndex[next_index].buf_index > mAipqIndex[next_index].pq_value_index + 1
-        && mAipqIndex[next_index].buf_index > mAipqIndex[cache_index].buf_index) {
-        update_pq_value = true;
-        aipq_info->nn_value[AI_PQ_TOP - 1].maxclass = mAipqIndex[next_index].buf_index;
-        ALOGD("update_pq_value: %d, %d, new=%d",
-            mAipqIndex[next_index].buf_index,
-            mAipqIndex[next_index].pq_value_index,
-            mNn_Index);
-    }
-
-    if (update_pq_value) {
-        ret = ioctl(mUvmHandler, UVM_IOC_SET_INFO, &hook_data);
-        if (ret < 0) {
-            ALOGE("UVM_IOC_SET_HF_OUTPUT fail =%d.\n", ret);
-        }
-    }
-
     if ((mNn_Index % 3000) == 0) {
             if (mTime.count > 0) {
                 mTime.avg_time = mTime.total_time / mTime.count;
