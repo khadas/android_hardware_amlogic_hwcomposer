@@ -1655,6 +1655,7 @@ void ModePolicy::setALLMMode(int state) {
     char ubootenv_dv_enable[MESON_MODE_LEN] = {0};
     std::string cur_ColorAttribute;
     char ubootenv_dv_type[MESON_MODE_LEN] = {0};
+    bool ret = false;
 
     switch (state) {
         case -1:
@@ -1670,22 +1671,36 @@ void ModePolicy::setALLMMode(int state) {
             //2.3 get current hdmi output color space
             getDisplayAttribute(DISPLAY_HDMI_COLOR_ATTR, cur_ColorAttribute);
             //2.4 get dv type before enable allm
-            getBootEnv(UBOOTENV_USER_DV_TYPE, ubootenv_dv_type);
+            ret = getBootEnv(UBOOTENV_USER_DV_TYPE, ubootenv_dv_type);
             //3 enable dv
             //when TV and current resolution support dv and dv is enable before enable allm
             if (isTVSupportDV
                 && !strcmp(ubootenv_dv_enable, "1")
-                && (meson_mode_support_mode(mModeConType, MESON_DOLBY_VISION_PRIORITY, mCurrentMode))) {
+                && !(meson_mode_support_mode(mModeConType, MESON_DOLBY_VISION_PRIORITY, mCurrentMode))) {
                 sysfs_set_string(DISPLAY_HDMI_AVMUTE_SYSFS, "1");
                 // restore doblyvision when set -1/0 to ALLM
-                if (!strcmp(ubootenv_dv_type, "2") && strstr(cur_ColorAttribute.c_str(), "422,12bit") != NULL) {
+                if (!ret) {
+                    //best dv policy:sink-led -->source led
+                    if (strstr(mConData.hdr_info.dv_deepcolor, "DV_RGB_444_8BIT") != NULL
+                        && strstr(cur_ColorAttribute.c_str(), "444,8bit") != NULL) {
+                        enableDolbyVision(DOLBY_VISION_SET_ENABLE);
+                        mSceneOutInfo.dv_type = DOLBY_VISION_SET_ENABLE;
+                    } else if (strstr(mConData.hdr_info.dv_deepcolor, "LL_YCbCr_422_12BIT") != NULL
+                            && strstr(cur_ColorAttribute.c_str(), "422,12bit") != NULL) {
+                        enableDolbyVision(DOLBY_VISION_SET_ENABLE_LL_YUV);
+                        mSceneOutInfo.dv_type = DOLBY_VISION_SET_ENABLE_LL_YUV;
+                    } else {
+                        SYS_LOGI("can't enable dv for dv_deepcolor: %s and curColorAttribute: %s\n",
+                            mConData.hdr_info.dv_deepcolor, cur_ColorAttribute.c_str());
+                    }
+                } else if (!strcmp(ubootenv_dv_type, "2") && strstr(cur_ColorAttribute.c_str(), "422,12bit") != NULL) {
                     enableDolbyVision(DOLBY_VISION_SET_ENABLE_LL_YUV);
                     mSceneOutInfo.dv_type = DOLBY_VISION_SET_ENABLE_LL_YUV;
                 } else if (!strcmp(ubootenv_dv_type, "1") && strstr(cur_ColorAttribute.c_str(), "444,8bit") != NULL) {
                     enableDolbyVision(DOLBY_VISION_SET_ENABLE);
                     mSceneOutInfo.dv_type = DOLBY_VISION_SET_ENABLE;
                 } else {
-                    SYS_LOGE("can't enable dv for curColorAttribute: %s\n", cur_ColorAttribute.c_str());
+                    SYS_LOGI("can't enable dv for curColorAttribute: %s\n", cur_ColorAttribute.c_str());
                 }
                 sysfs_set_string(DISPLAY_HDMI_AVMUTE_SYSFS, "-1");
             }
