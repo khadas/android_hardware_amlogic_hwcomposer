@@ -50,6 +50,7 @@ cc_binary {
     defaults: ["hwcomposer_cc_defaults"],
     // !!! static lib sequence is serious, donot change it.
     static_libs: [
+        "mesondisplay.common_static",
         "libjsoncpp",
         "meson_display.adapter_local_static",
         "hwc.composer_static",
@@ -60,7 +61,6 @@ cc_binary {
         "hwc.display_static",
         "hwc.base_static",
         "hwc.utils_static",
-        "hwc.debug_static",
         "omxutil.static",
     ],
     shared_libs: [

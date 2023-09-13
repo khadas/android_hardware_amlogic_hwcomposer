@@ -11,8 +11,6 @@
 #define DRM_TYPES_H
 
 #include <stdint.h>
-#include <sys/cdefs.h>
-#include <system/graphics-base.h>
 #include <drm/drm_mode.h>
 #include <xf86drm.h>
 #include <xf86drmMode.h>
@@ -340,7 +338,7 @@ typedef struct drm_meson_present_fence {
         uint32_t fd;
 } drm_meson_present_fence_t;
 
-/*the invalid zorder value defination.*/
+/*the invalid zorder value definition.*/
 #define INVALID_ZORDER 0xFFFFFFFF
 #define FB_SIZE_1080P_W 1920
 #define FB_SIZE_1080P_H 1080

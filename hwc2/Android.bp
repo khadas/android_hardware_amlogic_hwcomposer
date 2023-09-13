@@ -69,6 +69,7 @@ cc_library_static {
 
     // !!! static lib sequence is serious, donot change it.
     static_libs: [
+        "mesondisplay.common_static",
         "hwc.common_static",
         "hwc.composition_static",
         "hwc.postprocessor_static",
@@ -76,7 +77,6 @@ cc_library_static {
         "hwc.display_static",
         "hwc.base_static",
         "hwc.utils_static",
-        "hwc.debug_static",
         "omxutil.static",
     ],
 
@@ -106,6 +106,7 @@ cc_library_shared {
 
     // !!! static lib sequence is serious, donot change it.
     static_libs: [
+        "mesondisplay.common_static",
         "meson_mode_util_static",
         "meson_hdcp_auth_static",
         "libjsoncpp",
@@ -118,7 +119,6 @@ cc_library_shared {
         "hwc.display_static",
         "hwc.base_static",
         "hwc.utils_static",
-        "hwc.debug_static",
         "omxutil.static",
     ],
 

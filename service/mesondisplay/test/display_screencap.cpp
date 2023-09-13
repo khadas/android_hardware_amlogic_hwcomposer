@@ -30,8 +30,8 @@
 
 #include "DisplayAdapter.h"
 #include "am_gralloc_ext.h"
-//#include "misc.h"
 
+#ifdef SKIA
 // TODO: Fix Skia.
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -39,6 +39,7 @@
 #include <SkData.h>
 #include <SkColorSpace.h>
 #pragma GCC diagnostic pop
+#endif
 
 using namespace android;
 
@@ -53,6 +54,7 @@ static void usage(const char* pname) {
             pname);
 }
 
+#ifdef SKIA
 static SkColorType flinger2skia(PixelFormat f) {
     switch (f) {
         case PIXEL_FORMAT_RGB_565:
@@ -61,6 +63,7 @@ static SkColorType flinger2skia(PixelFormat f) {
             return kN32_SkColorType;
     }
 }
+#endif
 
 static int32_t gralloc_unref_dma_buf(native_handle_t * hnd) {
     static GraphicBufferMapper & maper = GraphicBufferMapper::get();
@@ -191,6 +194,7 @@ int main(int argc, char **argv) {
     }
     fprintf(stderr, "start screencap size=%u\n", size);
 
+#ifdef SKIA
     if (rawData == false) {
         const SkImageInfo info =
            SkImageInfo::Make(width, height, flinger2skia(format), kPremul_SkAlphaType, nullptr);
@@ -210,12 +214,15 @@ int main(int argc, char **argv) {
         } fdStream(fd);
         (void)SkEncodeImage(&fdStream, pixmap, SkEncodedImageFormat::kPNG, 100);
     } else {
+#endif
         size_t Bpp = bytesPerPixel(format);
         for (size_t y = 0 ; y < height ; y++) {
             write(fd, mapBase, width*Bpp);
             mapBase = (void *)((char *)mapBase + stride*Bpp);
         }
+#ifdef SKIA
     }
+#endif
 
     close(fd);
     // after use, need unlock and free native handle

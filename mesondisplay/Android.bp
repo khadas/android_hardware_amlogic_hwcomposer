@@ -1,3 +1,4 @@
+
 // Copyright (C) 2008 The Android Open Source Project
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,23 +26,42 @@ package {
     default_applicable_licenses: ["hardware_amlogic_hwcomposer_license"],
 }
 
-cc_library_static {
-    name: "hwc.utils_static",
-    defaults: ["hwcomposer_cc_defaults"],
+soong_config_module_type {
+    name: "meson_display_cc_defaults",
+    module_type: "cc_defaults",
+    config_namespace: "meson_display",
+
+    bool_variables: [
+        "hwc_release",
+    ],
+
+    properties: [
+        "cflags",
+        "srcs",
+        "shared_libs",
+    ],
+}
+
+soong_config_bool_variable {
+    name: "hwc_release",
+}
+
+meson_display_cc_defaults {
+    name: "mesondisplay_cc_defaults",
     vendor: true,
 
-    srcs: [
-        "BitsMap.cpp",
-        "misc.cpp",
-        "systemcontrol.cpp",
-    ],
+    soong_config_variables: {
+        hwc_release: {
+            cflags: ["-DHWC_RELEASE=1"],
+        },
+    },
 
-    static_libs: [
-        "mesondisplay.common_static",
-    ],
-
-    export_include_dirs: [
-//        "include/log",
-        "include",
+    shared_libs: [
+        "libdrm",
+        "libbase",
+        "liblog",
+        "libutils",
+        "libcutils",
+        "libamgralloc_ext",
     ],
 }

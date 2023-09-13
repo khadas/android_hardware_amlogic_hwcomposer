@@ -12,6 +12,7 @@
 
 #include <MesonLog.h>
 #include <BasicTypes.h>
+#include <DebugHelper.h>
 #include "VirtualDisplay.h"
 
 VirtualDisplay::VirtualDisplay(uint32_t width, uint32_t height, hwc2_display_t id)

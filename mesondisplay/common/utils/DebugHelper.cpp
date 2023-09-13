@@ -8,14 +8,15 @@
  */
 #include <unistd.h>
 #include <getopt.h>
+
+#ifdef __ANDROID__
 #include <cutils/properties.h>
 #include <log/log.h>
+#include <android-base/stringprintf.h>
+using android::base::StringAppendF;
+#endif
 
 #include <DebugHelper.h>
-
-#ifndef LOG_TAG
-#define LOG_TAG "MesonHwc"
-#endif
 
 ANDROID_SINGLETON_STATIC_INSTANCE(DebugHelper)
 
@@ -157,6 +158,7 @@ void DebugHelper::resolveCmd() {
 #ifdef HWC_RELEASE
     return;
 #else
+#ifdef __ANDROID__
     clearOnePassCmd();
     mEnabled = property_get_bool(DEBUG_HELPER_ENABLE_PROP, false);
 
@@ -386,13 +388,20 @@ void DebugHelper::resolveCmd() {
         }
     }
 #endif
+#endif
 }
 
 bool DebugHelper::isEnabled() {
 #ifdef HWC_RELEASE
     return false;
 #else
+
+#ifdef __ANDROID__
     return property_get_bool(DEBUG_HELPER_ENABLE_PROP, false);
+#else
+    return false;
+#endif
+
 #endif
 }
 
@@ -412,10 +421,11 @@ void DebugHelper::removeDebugLayer(int id __unused) {
     #endif
 }
 
-void DebugHelper::dump(String8 & dumpstr) {
+void DebugHelper::dump(std::string & dumpstr) {
 #ifdef HWC_RELEASE
     (void)dumpstr;
 #else
+#ifdef __ANDROID__
     if (!mEnabled)
         return;
 
@@ -448,41 +458,43 @@ void DebugHelper::dump(String8 & dumpstr) {
         dumpstr.append("\n");
     } else {
         dumpstr.append("Debug Command:\n");
-        dumpstr.appendFormat(COMMAND_NOHWC " (%d)\n", mDisableUiHwc);
-        dumpstr.appendFormat(COMMAND_NOREFRESH " (%d)\n", mDisableRefresh);
-        dumpstr.appendFormat(COMMAND_DUMP_DETAIL " (%d)\n", mDumpDetail);
-        dumpstr.appendFormat(COMMAND_ENABLE_VSYNC_DETAIL " (%d)\n", mEnableVsyncDetail);
-        dumpstr.appendFormat(COMMAND_IN_FENCE " (%d)\n", mDiscardInFence);
-        dumpstr.appendFormat(COMMAND_OUT_FENCE " (%d)\n", mDiscardOutFence);
-        dumpstr.appendFormat(COMMAND_LOG_COMPOSITION_DETAIL " (%d)\n", mLogCompositionDetail);
-        dumpstr.appendFormat(COMMAND_LOG_VERBOSE " (%d)\n", mLogVerbose);
-        dumpstr.appendFormat(COMMAND_LOG_FPS " (%d)\n", mLogFps);
-        dumpstr.appendFormat(COMMAND_MONITOR_DEVICE_COMPOSITION " (%d)\n", mMonitorDeviceComposition);
-        dumpstr.appendFormat(COMMAND_DEVICE_COMPOSITION_THRESHOLD " (%d)\n", mDeviceCompositionThreshold);
-        dumpstr.appendFormat(COMMAND_SCALE_LIMIT " (%.2f)\n", mScaleLimit);
-        dumpstr.appendFormat(COMMAND_DRM_BLOCK_MODE " (%d)\n", mDrmBlockMode);
-        dumpstr.appendFormat(COMMAND_DISABLE_AISR_AIPQ " (%d)\n", mDisableAisrAipq);
-        dumpstr.appendFormat(COMMAND_DISABLE_DI " (%d)\n", mDisableDi);
+        StringAppendF(&dumpstr, COMMAND_NOHWC " (%d)\n", mDisableUiHwc);
+        StringAppendF(&dumpstr, COMMAND_NOREFRESH " (%d)\n", mDisableRefresh);
+        StringAppendF(&dumpstr, COMMAND_DUMP_DETAIL " (%d)\n", mDumpDetail);
+        StringAppendF(&dumpstr, COMMAND_ENABLE_VSYNC_DETAIL " (%d)\n", mEnableVsyncDetail);
+        StringAppendF(&dumpstr, COMMAND_IN_FENCE " (%d)\n", mDiscardInFence);
+        StringAppendF(&dumpstr, COMMAND_OUT_FENCE " (%d)\n", mDiscardOutFence);
+        StringAppendF(&dumpstr, COMMAND_LOG_COMPOSITION_DETAIL " (%d)\n", mLogCompositionDetail);
+        StringAppendF(&dumpstr, COMMAND_LOG_VERBOSE " (%d)\n", mLogVerbose);
+        StringAppendF(&dumpstr, COMMAND_LOG_FPS " (%d)\n", mLogFps);
+        StringAppendF(&dumpstr, COMMAND_MONITOR_DEVICE_COMPOSITION " (%d)\n", mMonitorDeviceComposition);
+        StringAppendF(&dumpstr, COMMAND_DEVICE_COMPOSITION_THRESHOLD " (%d)\n", mDeviceCompositionThreshold);
+        StringAppendF(&dumpstr, COMMAND_SCALE_LIMIT " (%.2f)\n", mScaleLimit);
+        StringAppendF(&dumpstr, COMMAND_DRM_BLOCK_MODE " (%d)\n", mDrmBlockMode);
+        StringAppendF(&dumpstr, COMMAND_DISABLE_AISR_AIPQ " (%d)\n", mDisableAisrAipq);
+        StringAppendF(&dumpstr, COMMAND_DISABLE_DI " (%d)\n", mDisableDi);
+
 
         dumpstr.append(COMMAND_HIDE_PLANE "/" COMMAND_SHOW_PATTERN_ON_PLANE " (");
 
         for (auto planeFlag = mPlanesDebugFlag.begin(); planeFlag != mPlanesDebugFlag.end(); planeFlag++) {
-            dumpstr.appendFormat("%d-%d   ", planeFlag->first, planeFlag->second);
+            StringAppendF(&dumpstr, "%d-%d   ", planeFlag->first, planeFlag->second);
         }
         dumpstr.append(")\n");
 
         dumpstr.append(COMMAND_HIDE_LAYER " (");
         for (auto it = mHideLayers.begin(); it < mHideLayers.end(); it++) {
-            dumpstr.appendFormat("%d    ", *it);
+            StringAppendF(&dumpstr, "%d    ", *it);
         }
         dumpstr.append(")\n");
 
         dumpstr.append(COMMAND_SAVE_LAYER " (");
         for (auto it = mSaveLayers.begin(); it < mSaveLayers.end(); it++) {
-            dumpstr.appendFormat("%d    ", *it);
+            StringAppendF(&dumpstr, "%d    ", *it);
         }
         dumpstr.append(")\n");
     }
+#endif
 #endif
 }
 

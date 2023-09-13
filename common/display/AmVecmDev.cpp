@@ -12,6 +12,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <MesonLog.h>
+#include <utils/String8.h>
 #include "AmVecmDev.h"
 
 #define AMVECM_DEV_PATH "/dev/amvecm"

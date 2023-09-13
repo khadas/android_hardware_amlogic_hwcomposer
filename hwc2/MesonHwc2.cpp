@@ -113,7 +113,9 @@ void MesonHwc2::dump(uint32_t* outSize, char* outBuffer) {
                 mVdinPostMode, mKeyStoneMode);
     }
 
-    DebugHelper::getInstance().dump(dumpstr);
+    std::string result;
+    DebugHelper::getInstance().dump(result);
+    dumpstr.append(result.c_str());
     dumpstr.append("\n");
 
     strncpy(outBuffer, dumpstr.c_str(), dumpstr.size() > DUMP_STR_LEN ? DUMP_STR_LEN : dumpstr.size());

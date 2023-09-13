@@ -10,8 +10,7 @@
 #ifndef DEBUG_HELPER_H
 #define DEBUG_HELPER_H
 
-#include <utils/Singleton.h>
-#include <utils/String8.h>
+#include <Singleton.h>
 using namespace android;
 
 #include <map>
@@ -22,7 +21,7 @@ public:
     DebugHelper();
     ~DebugHelper();
 
-    void dump(String8 & dumpstr);
+    void dump(std::string & dumpstr);
 
     void resolveCmd();
 

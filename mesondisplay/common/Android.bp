@@ -25,12 +25,19 @@ package {
     default_applicable_licenses: ["hardware_amlogic_hwcomposer_license"],
 }
 
+
 cc_library_static {
-    name: "hwc.debug_static",
-    defaults: ["hwcomposer_cc_defaults"],
+    name: "mesondisplay.common_static",
+    defaults: ["mesondisplay_cc_defaults"],
     vendor: true,
 
-    srcs: ["DebugHelper.cpp"],
+    srcs: [
+        "base/DrmTypes.cpp",
+        "utils/DebugHelper.cpp",
+    ],
 
-    export_include_dirs: ["include"],
+    export_include_dirs: [
+        "base/include",
+        "utils/include",
+    ],
 }

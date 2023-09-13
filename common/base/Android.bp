@@ -32,13 +32,12 @@ cc_library_static {
     vendor: true,
 
     srcs: [
-        "DrmTypes.cpp",
         "DrmSync.cpp",
         "DrmFramebuffer.cpp",
     ],
 
     static_libs: [
-        "hwc.debug_static",
+        "mesondisplay.common_static",
         "hwc.utils_static",
     ],
 

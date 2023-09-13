@@ -97,9 +97,9 @@ cc_library_static {
     vendor: true,
 
     static_libs: [
+        "mesondisplay.common_static",
         "hwc.utils_static",
         "hwc.base_static",
-        "hwc.debug_static",
         "omxutil.static",
         "hwc.vt_static",
     ],

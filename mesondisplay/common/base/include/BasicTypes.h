@@ -10,10 +10,12 @@
 #ifndef BASIC_TYPES_H
 #define BASIC_TYPES_H
 
+#ifdef __ANDROID__
 #include <utils/NativeHandle.h>
 #include <utils/Singleton.h>
 #include <utils/String8.h>
 using namespace android;
+#endif
 
 #include <mutex>
 #include <map>
