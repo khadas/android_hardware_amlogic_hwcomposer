@@ -292,12 +292,13 @@ static void get_vnn_scenes_data()
         return;
     }
     fseek(fp, 0, SEEK_SET);
-    tmp = (char *)malloc(file_size * sizeof(char));
+    tmp = (char *)malloc((file_size + 1) * sizeof(char));
+    tmp[file_size * sizeof(char)] = '\0';
     if (!tmp) {
         ALOGE("malloc tmp buffer err\n");
         return;
     }
-    fread(tmp, file_size , sizeof(char), fp);
+    fread(tmp, sizeof(char), file_size, fp);
     free_scenes_buffer(NN_SCENE_DATA);
     scenens_num = 0;
     scenens_data = NULL;
