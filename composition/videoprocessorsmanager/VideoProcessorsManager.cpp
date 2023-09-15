@@ -305,6 +305,10 @@ bool VideoProcessorsManager::resetProcessors (
     for (auto it = search->second.begin(); it != search->second.end(); it++) {
         if ((*it).get()) {
             (*it)->teardown();
+            if ((*it)->getFbProcessorType() == FB_DI_PROCESSOR) {
+                fb->setDiProcessorFence(-1);
+                fb->setDiProcessorFd(-1);
+            }
             (*it)->setup();
         }
     }

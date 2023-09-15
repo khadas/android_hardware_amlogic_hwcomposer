@@ -82,7 +82,6 @@ int32_t VideoComposerDev::setFrames(
 
         vFrameInfo->sideband_type = 0;
         vFrameInfo->fd = fb->getBufferFd();
-        vFrameInfo->disp_fen_fd = fb->getDiProcessorFence();
         if (fbType == DRM_FB_VIDEO_UVM_DMA ) {
             if (am_gralloc_get_format(buf) == HAL_PIXEL_FORMAT_YCBCR_444_888) {
                 vFrameInfo->bufferFormat = YUV444;
@@ -120,6 +119,8 @@ int32_t VideoComposerDev::setFrames(
             MESON_LOGW("vframe get invalid buffer fd");
             continue;
         }
+
+        vFrameInfo->disp_fen_fd = fb->getDiProcessorFence();
         mVideoFramesInfo.frame_count++;
 
         bool isSidebandBuffer = fb->isSidebandBuffer();
