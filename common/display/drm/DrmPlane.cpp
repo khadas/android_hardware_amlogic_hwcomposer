@@ -210,7 +210,7 @@ bool DrmPlane::isAvailable() {
 
 
 #define OSD_INPUT_MIN_WIDTH (128)
-#define OSD_INPUT_MIN_HEIGHT (128)
+#define OSD_INPUT_MIN_HEIGHT (160)
 bool DrmPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
     if (fb->isRotated())
          return false;
