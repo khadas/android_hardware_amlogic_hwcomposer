@@ -1685,8 +1685,12 @@ int MultiplanesWithHRComposition::commit() {
             /* make sure SF donot refresh VtLayer
              * and VT thread only refresh VtLayer when layer have a valid buffer
              */
-            if (!videoPcrMgr)
+            if (!videoPcrMgr) {
                 ret = plane->setPlane(fb, presentZorder, blankFlag);
+            } else {
+                // have processors and return success
+                ret = 0;
+            }
 
             fb->clearFbHandleFlag();
             if (ret != 0) {
