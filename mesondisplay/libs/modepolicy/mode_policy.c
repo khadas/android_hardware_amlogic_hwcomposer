@@ -768,7 +768,7 @@ static void get_hdmi_outputmode(struct meson_policy_in *input,
 
             if (!strcmp(it->name, input->cur_displaymode)) {
                 strcpy(mode, input->cur_displaymode);
-                return;;
+                return;
             }
         }
          /* if current mode not support,find best prefer resolution base driver edid */

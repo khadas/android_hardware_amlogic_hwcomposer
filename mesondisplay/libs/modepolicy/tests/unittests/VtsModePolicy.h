@@ -67,7 +67,7 @@ public:
     void setEdidParsing(const std::string parsing) {strncpy(mIn.con_info.edid_parsing, parsing.c_str(), MESON_MODE_LEN);};
     void setSinkType(const meson_sink_type type) {mIn.con_info.sink_type = type;};
     void setDeepColorMode(bool enable) {mIn.con_info.is_deepcolor = enable;};
-
+    void setBestColorSpace(bool enable) {mIn.con_info.is_bestcolorspace = enable;};
     void setSupport4k(bool support) {mIn.con_info.is_support4k = support;};
     void setCurMode(const std::string mode) {strncpy(mIn.cur_displaymode, mode.c_str(), MESON_MODE_LEN);};
     void setDvColor(const std::string color) {strncpy(mIn.hdr_info.dv_deepcolor, color.c_str(), MESON_MODE_LEN);};

@@ -242,6 +242,7 @@ TEST_F(ModePolicyTest, 720P60HZ_SDR)
 // HDR cases 4k60hz
 TEST_F(ModePolicyTest, 4K60HZ_HDR)
 {
+    // case 1-4 init or hotplug
     // case 1: output best policy under init state
     mModePolicy->setModePolicy(MESON_POLICY_BEST);
     mModePolicy->setEdidInfoPath("/data/4K60HZ_HDR.json");
@@ -250,26 +251,47 @@ TEST_F(ModePolicyTest, 4K60HZ_HDR)
     struct meson_policy_out out;
     mModePolicy->getModePolicyOut(out);
     EXPECT_TRUE(!strcmp(out.displaymode, "2160p60hz"));
-    EXPECT_TRUE(!strcmp(out.deepcolor, COLOR_YCBCR422_12BIT));
+    EXPECT_TRUE(!strcmp(out.deepcolor, COLOR_YCBCR420_10BIT));
     mModePolicy->setSupport4k(false);
     mModePolicy->sceneProcess();
     mModePolicy->getModePolicyOut(out);
     EXPECT_TRUE(!strcmp(out.displaymode, "1080p60hz"));
     EXPECT_TRUE(!strcmp(out.deepcolor, COLOR_YCBCR422_12BIT));
 
-    // case 2: none policy
+    // case 2:User set color format
+    mModePolicy->setBestColorSpace(false);
+    mModePolicy->sceneProcess();
+    mModePolicy->getModePolicyOut(out);
+    EXPECT_TRUE(!strcmp(out.displaymode, "2160p60hz"));
+    EXPECT_TRUE(!strcmp(out.deepcolor, mModePolicy->getUenvColor()));
+
+    // case 3: none policy
     mModePolicy->setModePolicy(MESON_POLICY_INVALID);
+    mModePolicy->setBestColorSpace(true);
+    mModePolicy->sceneProcess();
+    mModePolicy->getModePolicyOut(out);
+    EXPECT_TRUE(!strcmp(out.displaymode, mModePolicy->getCurMode()));
+    EXPECT_TRUE(!strcmp(out.deepcolor, COLOR_YCBCR422_12BIT));
+
+    // case 4: none policy, bestcolorspace false
+    mModePolicy->setBestColorSpace(false);
     mModePolicy->sceneProcess();
     mModePolicy->getModePolicyOut(out);
     EXPECT_TRUE(!strcmp(out.displaymode, mModePolicy->getCurMode()));
     EXPECT_TRUE(!strcmp(out.deepcolor, mModePolicy->getUenvColor()));
 
-    // case 3: switch
+    // case 5: switch, bestcolorspace false
     mModePolicy->setModeState(MESON_SCENE_STATE_SWITCH);
-    mModePolicy->getModePolicyOut(out);
     mModePolicy->sceneProcess();
+    mModePolicy->getModePolicyOut(out);
     EXPECT_TRUE(!strcmp(out.displaymode, mModePolicy->getCurMode()));
     EXPECT_TRUE(!strcmp(out.deepcolor, mModePolicy->getUenvColor()));
+    // case 6: switch, bestcolorspace true
+    mModePolicy->setBestColorSpace(true);
+    mModePolicy->sceneProcess();
+    mModePolicy->getModePolicyOut(out);
+    EXPECT_TRUE(!strcmp(out.displaymode, mModePolicy->getCurMode()));
+    EXPECT_TRUE(!strcmp(out.deepcolor, COLOR_YCBCR422_12BIT));
 
 #if 0
     // case 3.1 swith but current not find
@@ -315,7 +337,21 @@ TEST_F(ModePolicyTest, 4K60HZ_DV)
     EXPECT_EQ(out.dv_type, DOLBY_VISION_LL_RGB);
     EXPECT_TRUE(!strcmp(out.deepcolor, COLOR_YCBCR444_12BIT));
 
-    // case4: resolution policy
+    // case 4: color deep STD
+    mModePolicy->setDvMaxMode("2160p60hz");
+    mModePolicy->setDvColor("DV_RGB_444_8BIT");
+    mModePolicy->setUenvDvType("1");
+    mModePolicy->sceneProcess();
+    mModePolicy->getModePolicyOut(out);
+//#ifdef DEBUG
+    mModePolicy->dump();
+    ALOGD("line:%d outmode:%s outcolor:%s", __LINE__, out.displaymode, out.deepcolor);
+//#endif
+    EXPECT_TRUE(!strcmp(out.displaymode, "2160p60hz"));
+    EXPECT_EQ(out.dv_type, DOLBY_VISION_STD_ENABLE);
+    EXPECT_TRUE(!strcmp(out.deepcolor, COLOR_YCBCR444_8BIT));
+
+    // case5: resolution policy
     mModePolicy->setDvMaxMode("720p60hz");
     mModePolicy->setModePolicy(MESON_POLICY_BEST);
     mModePolicy->sceneProcess();

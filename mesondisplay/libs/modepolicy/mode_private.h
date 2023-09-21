@@ -89,8 +89,8 @@
 #define COLOR_RGB_8BIT                   "rgb,8bit"
 
 static const char* DV_MODE_LIST[DV_MODE_LIST_SIZE] = {
-    DV_MODE_720P,
     DV_MODE_720P50HZ,
+    DV_MODE_720P,
     DV_MODE_1080P24HZ,
     DV_MODE_1080P50HZ,
     DV_MODE_1080P,

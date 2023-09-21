@@ -54,8 +54,8 @@ int32_t meson_mode_read_sys(const char *path, char *val, bool original, int valS
                 SYS_LOGD("read buffer index:%d is a 0x0, replace to spacing \n", i);
             }
 
-            /* delete all the character of '\n' */
-            if (0x0a != buf[i]) {
+            /* delete all the character of '\n' and '\r'*/
+            if (0x0a != buf[i] && 0x0d != buf[i]) {
                 buf[j++] = buf[i];
             }
         }
