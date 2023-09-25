@@ -352,7 +352,7 @@ int32_t DiProcessor::asyncProcess(
             } else {
                 output_fd = dup(mDi_Out[mBuf_index].fd);
                 outfb->setDiProcessorFd(output_fd);
-                processFence = -1;
+                processFence = dup(mLastFenceOutFd);
                 if (frame_info.out_fd >= 0) {
                     close(frame_info.out_fd);
                 }
@@ -396,7 +396,13 @@ int32_t DiProcessor::asyncProcess(
             }
             outfb->setDiProcessorFd(frame_info.out_fd);
             output_fd = frame_info.out_fd;
-            processFence = frame_info.out_fence_fd;
+
+            processFence = dup(mLastFenceOutFd);
+            if (frame_info.out_fence_fd >= 0) {
+                ALOGE("P: repert, out_fence_fd =%d", frame_info.out_fence_fd);
+                close(frame_info.out_fence_fd);
+            }
+
             mLastFd = -1;
             mLastFenceFd = -1;
             ALOGD_IF(di_check_D(), "%s: repeat 1; last P, cur P", __FUNCTION__);
