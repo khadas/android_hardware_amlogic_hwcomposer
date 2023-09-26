@@ -1628,7 +1628,7 @@ int MultiplanesWithDiComposition::commit() {
                 fb->clearBufferInfo();
                 fb->setBufferInfo(outfb->mBufferHandle, -1, false);
 
-                ret = plane->setPlane(outfb, presentZorder, blankFlag);
+                ret = plane->setPlane(fb, presentZorder, blankFlag);
                 for (auto buf = mWBQueue.begin();buf != mWBQueue.end(); ++buf) {
                     showfb = *buf;
                     if (showfb->mBufferState == DrmFramebuffer::MODE_FRONT) {
