@@ -787,6 +787,7 @@ int32_t ModePolicy::getPreferredBootConfig(std::string &config) {
     }
 
     MESON_LOGI("getPreferredDisplayConfig [%s]", config.c_str());
+    meson_mode_set_policy(mModeConType, mPolicy);
     return 0;
 }
 
