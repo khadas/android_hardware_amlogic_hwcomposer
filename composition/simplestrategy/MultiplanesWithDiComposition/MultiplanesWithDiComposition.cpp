@@ -1558,8 +1558,6 @@ int MultiplanesWithDiComposition::commit() {
             /* make sure SF donot refresh VtLayer and VT only refresh VtLayer*/
             if (!bDoDiCompose)
                 mDiComposer->start(mVideoPlaneNum - 1);
-
-            continue;
         } else {
             dumpFbAndPlane(fb, plane, presentZorder, blankFlag);
         }
@@ -1591,7 +1589,7 @@ int MultiplanesWithDiComposition::commit() {
             }
         } else {
             bool videoPcrMgr = false;
-            if (mVideoProcessorsMgr.get())
+            if (mVideoProcessorsMgr.get() && (fb->mCompositionType != MESON_COMPOSITION_DI))
                 videoPcrMgr = mVideoProcessorsMgr->runProcessors(fb, plane, presentZorder, blankFlag);
 
             if (videoPcrMgr)
