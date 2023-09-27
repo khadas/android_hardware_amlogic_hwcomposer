@@ -52,7 +52,7 @@ int AmVecmDev::setColorTransform(const float *matrix,  const bool on) {
     }
     matrixDump.append("-------------------------------------------------\n");
 
-    MESON_LOGD("%s matrix:%s  enable:%d", __func__,  matrixDump.string(), on);
+    MESON_LOGD("%s matrix:%s  enable:%d", __func__,  matrixDump.c_str(), on);
 
     if (ioctl(mDrvFd, AMVECM_IOC_S_EYE_PROT, &data) != 0) {
         MESON_LOGD("set AmVECM eye prot failed: %s", strerror(errno));

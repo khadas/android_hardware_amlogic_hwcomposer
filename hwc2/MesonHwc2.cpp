@@ -116,7 +116,7 @@ void MesonHwc2::dump(uint32_t* outSize, char* outBuffer) {
     DebugHelper::getInstance().dump(dumpstr);
     dumpstr.append("\n");
 
-    strncpy(outBuffer, dumpstr.string(), dumpstr.size() > DUMP_STR_LEN ? DUMP_STR_LEN : dumpstr.size());
+    strncpy(outBuffer, dumpstr.c_str(), dumpstr.size() > DUMP_STR_LEN ? DUMP_STR_LEN : dumpstr.size());
 }
 
 // TODO: refactor when android t branch out

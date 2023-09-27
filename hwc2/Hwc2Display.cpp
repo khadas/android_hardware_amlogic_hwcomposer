@@ -811,7 +811,7 @@ hwc2_error_t Hwc2Display::setColorTransform(const float* matrix,
     matrixDump.append("-------------------------------------------------\n");
 
     MESON_LOGV("%s hint %d color matrix:%s",
-            __func__, hint, matrixDump.string());
+            __func__, hint, matrixDump.c_str());
 
     if (mConnector && (mConnector->getType() == DRM_MODE_CONNECTOR_HDMIA ||
                        mConnector->getType() == DRM_MODE_CONNECTOR_TV)) {
@@ -1265,7 +1265,7 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
     if (dumpLayers) {
         String8 layersDump;
         dumpPresentLayers(layersDump);
-        MESON_LOGE("%s", layersDump.string());
+        MESON_LOGE("%s", layersDump.c_str());
     }
     return ret;
 }
@@ -1483,7 +1483,7 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
         if (dumpLayers) {
             String8 layersDump;
             dumpPresentLayers(layersDump);
-            MESON_LOGE("%s", layersDump.string());
+            MESON_LOGE("%s", layersDump.c_str());
         }
     }
     mValidateDisplay = false;
@@ -1569,7 +1569,7 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
     if (dumpComposition) {
         String8 compDump;
         mPresentCompositionStg->dump(compDump);
-        MESON_LOGE("%s", compDump.string());
+        MESON_LOGE("%s", compDump.c_str());
         if (mClientTarget.get()) {
             MESON_LOGD("clientTarget dispFrame:(%d,%d,%d,%d)",
                     mClientTarget->mDisplayFrame.left,
@@ -2566,7 +2566,7 @@ hwc2_error_t Hwc2Display::presentVtVideo(int32_t* outPresentFence) {
         if (dumpComposition) {
             String8 compDump;
             mPresentCompositionStg->dump(compDump);
-            MESON_LOGE("%s", compDump.string());
+            MESON_LOGE("%s", compDump.c_str());
         }
     }
     return HWC2_ERROR_NONE;
