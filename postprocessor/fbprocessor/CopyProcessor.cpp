@@ -45,12 +45,9 @@ int32_t CopyProcessor::process(
     int outfmt = am_gralloc_get_format (outfb->mBufferHandle);
     int w = am_gralloc_get_width(inputfb->mBufferHandle);
     int h = am_gralloc_get_height(inputfb->mBufferHandle);
-    int instride = am_gralloc_get_stride_in_pixel(inputfb->mBufferHandle);
-    int outstride = am_gralloc_get_stride_in_pixel(outfb->mBufferHandle);
     int srcFd = am_gralloc_get_buffer_fd(inputfb->mBufferHandle);
     int dstFd = am_gralloc_get_buffer_fd(outfb->mBufferHandle);
-    MESON_LOGV("CopyProcessor %dx%d stride (%d,%d), fmt %d, %d",
-        w, h, instride, outstride, infmt, outfmt);
+    MESON_LOGV("CopyProcessor %dx%d, fmt %d, %d", w, h, infmt, outfmt);
     {
         ATRACE_BEGIN("CopyProcessor::copy");
         mGe2dHelper->ge2DFmtConvert(dstFd, outfmt, w, h, srcFd, infmt, w, h);
