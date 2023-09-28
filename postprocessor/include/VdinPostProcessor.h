@@ -52,6 +52,7 @@ public:
     bool getLatestcapFb(std::shared_ptr<DrmFramebuffer> & capFb);
     void dump(String8 & dumpstr);
     void dumpPlane(String8 & dumpstr);
+    void setKeystoneConfigs(std::string params);
 
 protected:
     static void * threadMain(void * data);
@@ -123,6 +124,8 @@ protected:
 
     std::mutex mLock;
     std::condition_variable mCondition;
+
+    std::string mKeystoneConfigs;
 };
 
 #endif

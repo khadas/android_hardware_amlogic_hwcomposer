@@ -184,6 +184,8 @@ public:
         return false;
     };
     virtual bool disableSidebandStream(bool isDisable) = 0;
+    virtual bool setKeystoneCorrection(const string& params) = 0;
+    virtual bool setReverseMode(int type) = 0;
 
     virtual ~DisplayAdapter() = default;
     DisplayAdapter() = default;

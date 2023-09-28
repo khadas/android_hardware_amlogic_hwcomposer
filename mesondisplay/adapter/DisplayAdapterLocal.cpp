@@ -562,6 +562,14 @@ bool DisplayAdapterLocal::getDisplayVsyncAndPeriod(int64_t& timestamp, int32_t& 
     return true;
 }
 
+bool DisplayAdapterLocal::setKeystoneCorrection(const string& params) {
+    return MesonHwc2::getInstance().setKeystoneCorrection(params);
+}
+
+bool DisplayAdapterLocal::setReverseMode(int type) {
+    return MesonHwc2::getInstance().setReverseMode(type);
+}
+
 std::shared_ptr<DisplayAdapter> DisplayAdapterLocal::create(DisplayAdapter::BackendType type) {
     switch (type) {
         case BackendType::DISPLAY_TYPE_DRM:

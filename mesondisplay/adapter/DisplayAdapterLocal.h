@@ -93,6 +93,8 @@ public:
     bool setColorSpace(const string& colorspace, ConnectorType displayType) override;
     bool clearUserDisplayConfig(ConnectorType displayType) override;
     bool setDvMode(const string& dv_mode, ConnectorType displayType) override;
+    bool setKeystoneCorrection(const string& params) override;
+    bool setReverseMode(int type) override;
 
     static std::shared_ptr<DisplayAdapter> create(DisplayAdapter::BackendType type);
     DisplayAdapterLocal();

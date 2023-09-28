@@ -74,4 +74,10 @@
 #define DRM_PLANE_PROP_OCCUPY "meson.plane.occupied"
 
 #define DRM_PLANE_PROP_SECURE "SEC_EN"
+#define DRM_PLANE_PROP_REVERSE "rotation_reflect"
+#define DRM_PLANE_PROP_REVERSE_NONE "reflect-0"
+#define DRM_PLANE_PROP_REVERSE_X "reflect-x"
+#define DRM_PLANE_PROP_REVERSE_Y "reflect-y"
+#define DRM_PLANE_PROP_REVERSE_ALL "reflect-all"
+
 #endif

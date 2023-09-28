@@ -185,6 +185,8 @@ public:
     bool setViewPort(const drm_rect_wh_t viewPort);
     void getViewPort(drm_rect_wh_t& viewPort);
     bool setFrameRateHint(std::string value);
+    bool setKeystoneCorrection(std::string params);
+    bool setReverseMode(int type);
     int32_t getDisplays(std::map<hwc2_display_t, shared_ptr<Hwc2Display>> & displays);
     int32_t setFrameRate(float value);
     std::shared_ptr<HwcDisplayPipe> mDisplayPipe;
@@ -200,6 +202,7 @@ protected:
 
     uint32_t getVirtualDisplayId();
     void freeVirtualDisplayId(uint32_t id);
+    std::string mKeystoneConfigs = "0";
 
 protected:
     std::map<hwc2_display_t, std::shared_ptr<Hwc2Display>> mDisplays;

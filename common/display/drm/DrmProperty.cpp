@@ -88,12 +88,6 @@ int DrmProperty::setValue(uint64_t val) {
         if (signedVal < minVal || signedVal > maxVal) {
             return -EINVAL;
         }
-    } else if (mType == DRM_MODE_PROP_ENUM) {
-        if (val >= mPropRes.count_enums) {
-            MESON_LOGE("[%s] ENUM IDX ERROR (%" PRId64 ") -> (%d)",
-                mPropRes.name, val, mPropRes.count_enums);
-            return -EINVAL;
-        }
     }
 
     if (mValue != val) {

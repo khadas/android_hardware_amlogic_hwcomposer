@@ -47,7 +47,7 @@ public:
         std::shared_ptr<DrmFramebuffer> & inputfb,
         std::shared_ptr<DrmFramebuffer> & outfb) = 0;
     virtual int32_t teardown() = 0;
-    virtual bool updateProcess() { return false;};
+    virtual bool updateProcess(std::string params) { UNUSED(params); return false;};
     virtual int32_t composite(
         std::shared_ptr<DrmFramebuffer> & inputUIfb __unused, std::shared_ptr<DrmFramebuffer> & inputWBfb __unused,
         std::shared_ptr<DrmFramebuffer> & outfb __unused) {

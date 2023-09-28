@@ -264,6 +264,14 @@ void DisplayServer::message_handle(Json::Value& in, Json::Value& out) {
         if (!in.isMember("p_dv_mode") || !in.isMember("p_displayType"))
             goto OUT;
         mAdapter->setDvMode(in["p_dv_mode"].asString(), (ConnectorType)in["p_displayType"].asUInt());
+    } else if (cmd == "setKeystoneCorrection") {
+        if (!in.isMember("params"))
+            goto OUT;
+        mAdapter->setKeystoneCorrection(in["params"].asString());
+    } else if (cmd == "setReverseMode") {
+        if (!in.isMember("value"))
+            goto OUT;
+        mAdapter->setReverseMode(in["value"].asUInt());
     } else {
         MESON_LOGE("CMD not implement!");
     }

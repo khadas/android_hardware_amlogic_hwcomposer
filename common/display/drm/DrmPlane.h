@@ -47,6 +47,8 @@ public:
 
     void setDebugFlag(int dbgFlag);
 
+    void setReverseMode(int type);
+
     void dump(String8 & dumpstr);
 
 protected:
@@ -89,6 +91,8 @@ protected:
     std::shared_ptr<DrmProperty> mMesonOccupy;
 
     std::shared_ptr<DrmProperty> mSecureEnable;
+    std::shared_ptr<DrmProperty> mReverse;
+
 
     bool mBlank;
 
@@ -105,6 +109,8 @@ protected:
     uint32_t mOsdInputMaxHeight;
 
     drm_mode_info_t mDispMode;
+
+    int mReverseType = -1;
 
     std::mutex mMutex;
 };

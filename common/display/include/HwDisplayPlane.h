@@ -48,6 +48,7 @@ public:
         PLANE_DBG_PATTERN = 1 << 1,
     };
     virtual void setDebugFlag(int dbgFlag) = 0;
+    virtual void setReverseMode(int type __unused) {return;}
 
     virtual void dump(String8 & dumpstr) = 0;
 };

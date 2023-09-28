@@ -28,6 +28,13 @@ typedef enum {
     DRM_BLEND_MODE_COVERAGE = 3,
 } drm_blend_mode_t;
 
+typedef enum {
+    DRM_REVERSE_MODE_NONE = 0,
+    DRM_REVERSE_MODE_X = 1,
+    DRM_REVERSE_MODE_Y = 2,
+    DRM_REVERSE_MODE_ALL = 3,
+} drm_reverse_mode_t;
+
 typedef struct drm_rect {
     int32_t left;
     int32_t top;

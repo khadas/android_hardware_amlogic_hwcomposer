@@ -318,6 +318,24 @@ bool DisplayAdapterRemote::enableSyncProtection(bool mode) {
     return true;
 }
 
+bool DisplayAdapterRemote::setKeystoneCorrection(const string& params) {
+    Json::Value cmd;
+    IF_SERVER_NOT_READY_RETURN(false);
+    cmd["cmd"] = "setKeystoneCorrection";
+    cmd["params"] = params.c_str();
+    ipc->send_request(cmd);
+    return true;
+}
+
+bool DisplayAdapterRemote::setReverseMode(int type) {
+    Json::Value cmd;
+    IF_SERVER_NOT_READY_RETURN(false);
+    cmd["cmd"] = "setReverseMode";
+    cmd["value"] = type;
+    ipc->send_request(cmd);
+    return true;
+}
+
 std::unique_ptr<DisplayAdapter> DisplayAdapterRemote::create() {
     return static_cast<std::unique_ptr<DisplayAdapter>>(std::make_unique<DisplayAdapterRemote>());
 }

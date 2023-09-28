@@ -342,6 +342,10 @@ bool VdinPostProcessor::running() {
     return mStat == PROCESSOR_START;
 }
 
+void VdinPostProcessor::setKeystoneConfigs(std::string params) {
+    mKeystoneConfigs = params;
+}
+
 int32_t VdinPostProcessor::present(int flags, int32_t fence) {
     if (fence >= 0)
         close(fence);
@@ -553,7 +557,7 @@ int32_t VdinPostProcessor::process() {
 
             if (mFbProcessor != NULL) {
                 /*get output buf, and wait it ready.*/
-                bool mKeystoneCoordUpdated = mFbProcessor->updateProcess();
+                bool mKeystoneCoordUpdated = mFbProcessor->updateProcess(mKeystoneConfigs);
                 if (crcvalStatus || mKeystoneCoordUpdated == true) {
                     outfb = mVoutQueue.front();
                     int releaseFence = outfb->getPrevReleaseFence();

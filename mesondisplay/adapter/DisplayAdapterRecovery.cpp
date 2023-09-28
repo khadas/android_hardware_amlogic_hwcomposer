@@ -478,6 +478,18 @@ bool DisplayAdapterLocal::dumpDisplayAttribute(Json::Value& json, ConnectorType 
     return true;
 };
 
+bool DisplayAdapterLocal::setKeystoneCorrection(const string& params) {
+    UNUSED(params);
+    NOTIMPLEMENTED;
+    return false;
+}
+
+bool DisplayAdapterLocal::setReverseMode(int type) {
+    UNUSED(type);
+    NOTIMPLEMENTED;
+    return false;
+}
+
 std::shared_ptr<DisplayAdapter> DisplayAdapterLocal::create(DisplayAdapter::BackendType type) {
     switch (type) {
         case BackendType::DISPLAY_TYPE_DRM:

@@ -33,6 +33,8 @@ static const struct option long_option[] = {
     {"disable-sideband",required_argument,0,'p'},
     {"change-type", required_argument, 0, 't'},
     {"perferred-mode", required_argument, 0, 'm'},
+    {"keystone-configs",required_argument,0,'k'},
+    {"reverse-display",required_argument,0,'V'},
     {0, 0, 0, 0}
 };
 
@@ -63,6 +65,8 @@ static void print_usage(const char* name) {
             "                              \t\t2    ----PANEL\n"
             "                              \t\t3    ----CVBS\n"
             "       -m,--perferred-mode MODE\tchange perferred mode, MODE format like:%%dx%%d@%%d width,height,refresh\n"
+            "       -k,--set-Keystone Correction \t  params is the position\n "
+            "       -V,--enable kesytone reverse  \t  params is the reverse type\n "
             "       -r,--raw-cmd           \tsend raw cmd\n", name);
 }
 
@@ -291,6 +295,22 @@ int main(int argc, char* argv[]) {
             case 'm':
                 client->setPerferredMode(optarg, type);
                 printf("Set perferred mode to %s\n", optarg);
+                break;
+            case 'k':
+                 if (optarg == NULL)
+                     break;
+                  {
+                      printf("set the keystone params (%s)\n", optarg);
+                      client->setKeystoneCorrection(optarg);
+                  }
+                break;
+            case 'V':
+                 if (optarg == NULL)
+                     break;
+                  {
+                      printf("set the reverse type to  (%d)\n", atoi(optarg));
+                      client->setReverseMode(atoi(optarg));
+                  }
                 break;
             default:
                 print_usage(argv[0]);

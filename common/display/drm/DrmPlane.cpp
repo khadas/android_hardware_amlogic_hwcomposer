@@ -82,6 +82,7 @@ void DrmPlane::loadProperties() {
         {DRM_PLANE_PROP_MAX_FB_SIZE, &mMaxFbSize},
         {DRM_PLANE_PROP_OCCUPY, &mMesonOccupy},
         {DRM_PLANE_PROP_SECURE, &mSecureEnable},
+        {DRM_PLANE_PROP_REVERSE, &mReverse},
     };
     const int planePropsNum = sizeof(planeProps)/sizeof(planeProps[0]);
     int initedProps = 0;
@@ -390,8 +391,35 @@ int32_t DrmPlane::setPlane(
            // MESON_LOGE("No alpha supported in driver.");
         }
 
+
         if (mDrmBo->secureEnable != mSecureEnable->getValue()) {
             mSecureEnable->setValue(mDrmBo->secureEnable);
+            bUpdate = true;
+        }
+
+        if (mReverse.get() && mReverseType >= 0 ) {
+            uint64_t reverseMode = 0;
+            const char * reverseModeStr = NULL;
+            switch (mReverseType) {
+                case DRM_REVERSE_MODE_NONE:
+                        reverseModeStr = DRM_PLANE_PROP_REVERSE_NONE;
+                        break;
+                case DRM_REVERSE_MODE_X:
+                        reverseModeStr = DRM_PLANE_PROP_REVERSE_X;
+                        break;
+                case DRM_REVERSE_MODE_Y:
+                        reverseModeStr = DRM_PLANE_PROP_REVERSE_Y;
+                        break;
+                case DRM_REVERSE_MODE_ALL:
+                        reverseModeStr = DRM_PLANE_PROP_REVERSE_ALL;
+                        break;
+                default:
+                        reverseModeStr = DRM_PLANE_PROP_REVERSE_NONE;
+                        MESON_LOGE("Unknown reverse mode.");
+                    break;
+            };
+            mReverse->getEnumValueWithName(reverseModeStr, reverseMode);
+            mReverse->setValue(reverseMode);
             bUpdate = true;
         }
 
@@ -417,6 +445,8 @@ int32_t DrmPlane::setPlane(
                 mBlendMode->apply(req);
             if (mAlpha.get())
                 mAlpha->apply(req);
+            if (mReverse.get() && mReverseType >= 0)
+                mReverse->apply(req);
         }
     }
 
@@ -527,6 +557,12 @@ int32_t DrmPlane::setCrtcProps(drmModeAtomicReqPtr &req, drmModeModeInfo &mode) 
     mCrtcH->apply(req);
 
     return 0;
+}
+
+void DrmPlane::setReverseMode(int type) {
+    MESON_LOGV("%s plane Id [%d] reversetype (%d)", __func__, mId, type);
+    mReverseType = type;
+    return;
 }
 
 void DrmPlane::dump(String8 & dumpstr) {

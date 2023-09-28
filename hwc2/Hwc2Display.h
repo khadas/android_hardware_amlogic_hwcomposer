@@ -41,6 +41,12 @@ enum {
     DISPLAY_TYPE_EXTERNAL = 1,
 };
 
+#define VIDEO_REVERSE "/sys/class/video/mirror"
+#define AML_MEDIA_REVERSE "/sys/module/aml_media/parameters/reverse"
+#define REVERSE_CTL "ubootenv.var.reverse_ctrl"
+#define UBOOT_OSD_REVERSE "ubootenv.var.osd_reverse"
+#define UBOOT_VIDEO_REVERSE "ubootenv.var.video_reverse"
+
 class Hwc2DisplayObserver  {
 public:
     Hwc2DisplayObserver(){};
@@ -222,6 +228,8 @@ public:
     int32_t getFrameRateConfigId(int32_t &config, const float frameRate);
     int32_t setFrameRate(float value);
     int32_t setModePolicy(std::shared_ptr<IModePolicy> policy);
+    void setKeystoneCorrection(std::string params);
+    void setReverseMode(int type);
 
 protected:
     /* For compose. */
@@ -313,6 +321,8 @@ protected:
 
     bool mVsyncState;
     float mScaleValue;
+
+    std::string mKeystoneConfigs;
 
     /* vsync timestamp */
     nsecs_t mVsyncTimestamp;

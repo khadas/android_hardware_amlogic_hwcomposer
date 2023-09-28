@@ -23,6 +23,7 @@
 #include "Hwc2Base.h"
 #include "VtDisplayThread.h"
 #include "WBDisplayThread.h"
+#include "mode_ubootenv.h"
 
 /*For round corner*/
 #include <png.h>
@@ -120,6 +121,12 @@ void Hwc2Display::handleWBThread() {
             mWBDisplayThread = std::make_shared<WBDisplayThread>(this);
         }
     }
+}
+
+void Hwc2Display::setKeystoneCorrection(std::string params) {
+    mKeystoneConfigs = params;
+    mObserver->refresh();
+    return;
 }
 
 int32_t Hwc2Display::setModeMgr(std::shared_ptr<HwcModeMgr> & mgr) {
@@ -1544,6 +1551,7 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
 
         if (mPostProcessor != NULL) {
             int32_t displayFence = ::dup(mPresentFence);
+            mPostProcessor->setKeystoneConfigs(mKeystoneConfigs);
             mPostProcessor->present(mProcessorFlags, displayFence);
             mProcessorFlags = 0;
         }
@@ -2712,3 +2720,47 @@ void Hwc2Display::createCallbackThread(bool mode) {
     mObserver->refresh();
     return;
 }
+
+void Hwc2Display::setReverseMode(int type) {
+    std::lock_guard<std::mutex> lock(mMutex);
+    for (auto it = mPlanes.begin(); it != mPlanes.end(); ++ it) {
+        if ((*it)->getType() == OSD_PLANE) {
+            (*it)->setReverseMode(type);
+        }
+    }
+
+    meson_mode_set_ubootenv(REVERSE_CTL, "1");
+    std::string uboot_osd_reverse;
+    std::string uboot_video_reverse;
+
+    //clear the history
+    sysfs_set_string(AML_MEDIA_REVERSE, "0");
+    switch (type) {
+        case DRM_REVERSE_MODE_NONE:
+            meson_mode_set_ubootenv(UBOOT_OSD_REVERSE, "0");
+            meson_mode_set_ubootenv(UBOOT_VIDEO_REVERSE, "0");
+            sysfs_set_string(VIDEO_REVERSE, "0");
+            break;
+        case DRM_REVERSE_MODE_X:
+            meson_mode_set_ubootenv(UBOOT_OSD_REVERSE, "osd0,x_rev");
+            meson_mode_set_ubootenv(UBOOT_VIDEO_REVERSE, "2");
+            sysfs_set_string(VIDEO_REVERSE, "1");
+            break;
+        case DRM_REVERSE_MODE_Y:
+            meson_mode_set_ubootenv(UBOOT_OSD_REVERSE, "osd0,y_rev");
+            meson_mode_set_ubootenv(UBOOT_VIDEO_REVERSE, "3");
+            sysfs_set_string(VIDEO_REVERSE, "2");
+            break;
+        case DRM_REVERSE_MODE_ALL:
+            meson_mode_set_ubootenv(UBOOT_OSD_REVERSE, "osd0,true");
+            meson_mode_set_ubootenv(UBOOT_VIDEO_REVERSE, "1");
+            sysfs_set_string(AML_MEDIA_REVERSE, "1");
+            break;
+        default:
+            MESON_LOGE("Unknown reverse type(%d)", type);
+            break;
+    }
+    mObserver->refresh();
+    return;
+}
+

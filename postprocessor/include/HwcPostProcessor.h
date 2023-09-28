@@ -43,6 +43,7 @@ public:
     virtual bool getLatestcapFb(std::shared_ptr<DrmFramebuffer> & capFb) = 0;
     virtual void dump(String8 & dumpstr) = 0;
     virtual void dumpPlane(String8 & dumpstr) = 0;
+    virtual void setKeystoneConfigs(std::string params) = 0;
 };
 
 #endif
