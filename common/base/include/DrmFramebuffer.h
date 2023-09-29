@@ -121,6 +121,7 @@ protected:
 
     void * mMapBase;
     std::mutex mMutex;
+    std::mutex mPFenceMutex;
 };
 
 #endif/*DRM_FRAMEBUFFER_H*/
