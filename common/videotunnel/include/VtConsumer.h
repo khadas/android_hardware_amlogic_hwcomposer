@@ -83,6 +83,9 @@ public:
         virtual void onNeedShowTempBuffer(vt_video_color_t colorType __unused) {};
         virtual void onNeedShowTempBufferWithStatus(
                 vt_video_color_t colorType, vt_video_status_t status);
+
+        virtual void onSetupClient(void* layer __unused) {};
+        virtual void onDisconnectedLocked() {};
     };
 
     /*register VtInstance callback */
