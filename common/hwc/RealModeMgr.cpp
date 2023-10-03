@@ -264,10 +264,12 @@ int32_t RealModeMgr::update() {
     std::map<uint32_t, drm_mode_info_t> connectorModeList;
     int largestUsedModeId = -1;
 
-    for (auto it = mModes.begin(); it != mModes.end(); ++it) {
-        int configId = static_cast<int>(it->first);
-        if (configId > largestUsedModeId)
-            largestUsedModeId = configId;
+    if (HwcConfig::primaryHotplugEnabled()) {
+        for (auto it = mModes.begin(); it != mModes.end(); ++it) {
+            int configId = static_cast<int>(it->first);
+            if (configId > largestUsedModeId)
+                largestUsedModeId = configId;
+            }
     }
 
     // if mode changed by setActiveConfig then mode Id not changed
