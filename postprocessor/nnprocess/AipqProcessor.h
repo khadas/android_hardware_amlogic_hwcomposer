@@ -26,6 +26,7 @@
 #define AIPQ_NB_PATH            "/vendor/bin/nn/PQNet.nb"
 #define AIPQ_SCENE_DATA_PATH    "/vendor/etc/scenes_data.txt"
 #define AIPQ_SKIP_FRAME_HEIGHT    1088
+#define SC_TH 512
 
 struct aipq_buffer_t {
     int fd;
@@ -68,6 +69,12 @@ struct uvm_aipq_info {
     int32_t dw_height;
     int32_t nn_input_frame_width;
     int32_t nn_input_frame_height;
+    int32_t is_nn_doing;   /*0:not 1:yes*/
+    int32_t omx_index;
+    int32_t is_start_first_vf;
+    int32_t is_open_first_vf;
+    int32_t nn_do_aipq_type;   /*0:hardware 1:gpu*/
+    int32_t reserved[5];
 };
 
 struct uvm_aipq_info_t {
@@ -125,6 +132,7 @@ public:
     void dump_nn_info();
     int PropGetInt(const char* str, int def);
     int check_D();
+    bool is_do_aipq(int *hist, int num);
     pthread_mutex_t m_waitMutex;
     pthread_cond_t m_waitCond;
     int mUvmHandler;
@@ -148,6 +156,9 @@ public:
     struct aipq_index_value_t mAipqIndex[AIPQ_MAX_CACHE_COUNT];
     int mCacheIndex;
     int mBuf_index;
+    bool mIsStartFirstVf;
+    bool mIsOpenFirstVf;
+    int mPreHist[64];
 };
 
 #endif

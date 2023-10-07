@@ -23,6 +23,7 @@
 #include <cutils/properties.h>
 #include <ui/GraphicBufferAllocator.h>
 #include <hardware/gralloc1.h>
+#include <math.h>
 
 #define FENCE_TIMEOUT_MS 1000
 
@@ -34,6 +35,9 @@
                 struct uvm_hook_data)
 #define UVM_IOC_SET_INFO _IOWR(UVM_IOC_MAGIC, 7, \
                 struct uvm_hook_data)
+
+#define NN_USE_HARDWARE 0
+#define NN_USE_GPU 1
 
 int AipqProcessor::mInstanceID = 0;
 int64_t AipqProcessor::mTotalDupCount = 0;
@@ -312,6 +316,7 @@ static void get_vnn_scenes_data()
     if (ret == 0)
         ALOGD("get vnn scenes data successful\n");
     free(tmp);
+    fclose(fp);
 }
 
 AipqProcessor::AipqProcessor() {
@@ -339,6 +344,10 @@ AipqProcessor::AipqProcessor() {
     mBuf_index = 0;
     mThread = 0;
 
+#ifdef ENABLE_VIDEO_AIPQ_GPU
+    mIsStartFirstVf = true;
+#endif
+
     if (mInstanceID == 0) {
         mTime.count = 0;
         mTime.max_time = 0;
@@ -347,15 +356,13 @@ AipqProcessor::AipqProcessor() {
         mTime.avg_time = 0;
         mNn_qcontext = NULL;
         mModelLoaded = false;
-    }
-
-    if (mInstanceID == 0) {
         isPqInterfaceImplement();
     }
 
+#ifndef ENABLE_VIDEO_AIPQ_GPU
     if (!mModelLoaded)
         LoadNNModel();
-
+#endif
     mUvmHandler = open("/dev/uvm", O_RDWR | O_NONBLOCK);
     if (mUvmHandler < 0) {
         ALOGE("can not open uvm");
@@ -364,6 +371,9 @@ AipqProcessor::AipqProcessor() {
     mInstanceID++;
     mDupCount = 0;
     mCloseCount = 0;
+#ifdef ENABLE_VIDEO_AIPQ_GPU
+    mModelLoaded = false;
+#endif
 
     for (int i = 0; i < AI_PQ_TOP; i++) {
         mLastNnValue[i].maxclass = 0;
@@ -479,6 +489,10 @@ int32_t AipqProcessor::asyncProcess(
         goto bypass;
     }
 
+#ifdef ENABLE_VIDEO_AIPQ_GPU
+    if (!mModelLoaded)
+        goto bypass;
+#endif
 
     if (!mUvmHandler) {
         ALOGD_IF(check_D(), "%s: mUvmHandler is null.", __FUNCTION__);
@@ -497,6 +511,18 @@ int32_t AipqProcessor::asyncProcess(
     aipq_info->repeat_frame = 0;
     aipq_info->nn_input_frame_height = mNnInputVframeHeight;
     aipq_info->nn_input_frame_width = mNnInputVframeWidth;
+
+#ifdef ENABLE_VIDEO_AIPQ_GPU
+    if (mNnDoing || mIsStartFirstVf)
+        aipq_info->is_nn_doing = true;
+    else
+        aipq_info->is_nn_doing = false;
+    if (mIsStartFirstVf)
+        aipq_info->is_start_first_vf = true;
+    aipq_info->nn_do_aipq_type = NN_USE_GPU;
+#else
+    aipq_info->nn_do_aipq_type = NN_USE_HARDWARE;
+#endif
 
     {
         std::lock_guard<std::mutex> lock(mMutex_index);
@@ -556,16 +582,34 @@ int32_t AipqProcessor::asyncProcess(
     ALOGD_IF(check_D(), "dup_fd =%d, mBuf_index=%d, pq_index=%d, diff=%d",
         dup_fd, mBuf_index, pq_value_index, mBuf_index - pq_value_index);
 
-    {
-        std::lock_guard<std::mutex> lock(mMutex);
-        mBuf_fd_q.push(mCacheIndex);
+#ifdef ENABLE_VIDEO_AIPQ_GPU
+    if (!mNnDoing) {
+        if (aipq_info->is_open_first_vf)
+            mIsOpenFirstVf = true;
+        {
+            std::lock_guard<std::mutex> lock(mMutex);
+            mBuf_fd_q.push(mCacheIndex);
+        }
+        mBuf_index++;
+        mCacheIndex++;
+        if (mCacheIndex == AIPQ_MAX_CACHE_COUNT)
+            mCacheIndex = 0;
+        triggerEvent();
+    } else {
+        close(dup_fd);
     }
-    mBuf_index++;
-    mCacheIndex++;
-    if (mCacheIndex == AIPQ_MAX_CACHE_COUNT)
-        mCacheIndex = 0;
+#else
+    {
+         std::lock_guard<std::mutex> lock(mMutex);
+         mBuf_fd_q.push(mCacheIndex);
+    }
+     mBuf_index++;
+     mCacheIndex++;
+     if (mCacheIndex == AIPQ_MAX_CACHE_COUNT)
+         mCacheIndex = 0;
 
-    triggerEvent();
+     triggerEvent();
+#endif
     while (1) {
         ready_size = mBuf_fd_q.size();
         if (ready_size >= AIPQ_MAX_CACHE_COUNT) {
@@ -621,6 +665,10 @@ int32_t AipqProcessor::teardown() {
     freeDmaBuffers();
     mBuf_Alloced = false;
     mInited = false;
+
+#ifdef ENABLE_VIDEO_AIPQ_GPU
+    mIsStartFirstVf = false;
+#endif
     return 0;
 }
 
@@ -645,7 +693,7 @@ void AipqProcessor::threadProcess() {
     shared_fd = mAipqIndex[cache_index].shared_fd;
 
     ai_pq_process(cache_index);
-
+#ifndef ENABLE_VIDEO_AIPQ_GPU
     {
         std::lock_guard<std::mutex> lock(mMutex);
         mBuf_fd_q.pop();
@@ -654,6 +702,7 @@ void AipqProcessor::threadProcess() {
     close(shared_fd);
     mCloseCount++;
     mTotalCloseCount++;
+#endif
     return;
 }
 
@@ -666,11 +715,19 @@ void * AipqProcessor::threadMain(void * data) {
         ALOGE("%s: Couldn't set SCHED_FIFO: %d.\n", __FUNCTION__, errno);
     }
 
+#ifdef ENABLE_VIDEO_AIPQ_GPU
+    pThis->LoadNNModel();
+#endif
+
     MESON_ASSERT(data, "AipqProcessor data should not be NULL.\n");
 
     while (!pThis->mExitThread) {
         pThis->threadProcess();
     }
+#ifdef ENABLE_VIDEO_AIPQ_GPU
+    uninit(pThis->mNn_qcontext);
+    pThis->mNn_qcontext = NULL;
+#endif
 
     ALOGD("%s exit.\n", __FUNCTION__);
     pthread_exit(0);
@@ -834,6 +891,61 @@ void AipqProcessor::nn_value_reorder(img_classify_out_t *nn_out, struct nn_value
               aipq_scenes_data[scenes[i].maxclass]);
 }
 
+bool AipqProcessor::is_do_aipq(int *hist, int num) {
+    int sum = 0;
+    int diff;
+    int hist_diff;
+    int ret = 0;
+    int sumshft;
+    int norm14;
+
+    hist_diff = 0;
+    for (int i = 0; i < num; i++) {
+        sum += hist[i];
+        diff = (hist[i] > mPreHist[i]) ? (hist[i] - mPreHist[i]) : (mPreHist[i] - hist[i]);
+        hist_diff += diff;
+    }
+    if (sum == 0)
+        return ret;
+    ALOGD_IF(check_D(),"hist_diff = %d\n", hist_diff);
+
+    sumshft =
+        (sum >= (1 << 24)) ? 8 :
+        (sum >= (1 << 22)) ? 6 :
+        (sum >= (1 << 20)) ? 4 :
+        (sum >= (1 << 18)) ? 2 :
+        (sum >= (1 << 16)) ? 0 :
+        (sum >= (1 << 14)) ? -2 :
+        (sum >= (1 << 12)) ? -4 :
+        (sum >= (1 << 10)) ? -6 :
+        (sum >= (1 << 8)) ? -8 :
+        (sum >= (1 << 6)) ? -10 :
+        (sum >= (1 << 4)) ? -12 : -16;
+
+    if (sumshft >= 0)
+        norm14 = (1 << 30) / (sum >> sumshft);
+    else if (sumshft > -16)
+        norm14 = (1 << (30 + sumshft)) / sum;
+    else
+        norm14 = 1 << 14;
+    if (sumshft >= 0) {
+        hist_diff = ((hist_diff >> sumshft) * norm14 +
+            (1 << 13)) >> 14;
+    } else {
+        hist_diff = (((hist_diff << (-sumshft)) * norm14) + (1 << 13)) >> 14;
+    }
+
+    /*normalize to 10bit*/
+    hist_diff >>= 6;
+    if (hist_diff > SC_TH) {
+        for (int i = 0; i< num; i++)
+            mPreHist[i] = hist[i];
+        ALOGD_IF(check_D(),"need do aipq again!\n");
+        ret = 1;
+    }
+
+    return ret;
+}
 
 int32_t AipqProcessor::ai_pq_process(int cache_index) {
     int ret;
@@ -849,6 +961,17 @@ int32_t AipqProcessor::ai_pq_process(int cache_index) {
     img_classify_out_t *nn_out = NULL;
     int input_fd  = mAipqIndex[cache_index].shared_fd;
     int next_index;
+
+#ifdef ENABLE_VIDEO_AIPQ_GPU
+    struct timespec tm_3;
+    uint64_t mTime_3;
+    uint64_t get_y_time;
+    int hist[64];
+    int y_data;
+    unsigned char * vir_addr = (unsigned char *)mAipq_Buf.fd_ptr;
+    bool do_aipq = 0;
+    int other_catch_index;
+#endif
 
     struct uvm_hook_data hook_data;
     struct uvm_aipq_info_t *uvm_info;
@@ -866,6 +989,112 @@ int32_t AipqProcessor::ai_pq_process(int cache_index) {
     aipq_info->nn_input_frame_height = mNnInputVframeHeight;
     aipq_info->nn_input_frame_width = mNnInputVframeWidth;
 
+#ifdef ENABLE_VIDEO_AIPQ_GPU
+    aipq_info->nn_do_aipq_type = NN_USE_GPU;
+    aipq_info->is_nn_doing = false;
+    ALOGD_IF(check_D(),"pq thread fd=%d\n", input_fd);
+
+    clock_gettime(CLOCK_MONOTONIC, &tm_0);
+    ret = ioctl(mUvmHandler, UVM_IOC_GET_INFO, &hook_data);
+    if (ret < 0) {
+        ALOGD_IF(check_D(),"UVM_IOC_GET_HF_INFO fail =%d.\n", ret);
+        return ret;
+    }
+
+    clock_gettime(CLOCK_MONOTONIC, &tm_1);
+    for (int i = 0; i < mNnInputVframeHeight * mNnInputVframeWidth; i += 3) {
+        y_data = round(vir_addr[i] * 0.299 + vir_addr[i + 1] * 0.587 + vir_addr[i + 2] * 0.114);
+        hist[y_data / 4]++;
+    }
+
+    if (mIsStartFirstVf || mIsOpenFirstVf) {
+        for (int i = 0; i < sizeof(hist) / sizeof(int); i++)
+            mPreHist[i] = hist[i];
+        mIsStartFirstVf = false;
+        mIsOpenFirstVf = false;
+        do_aipq = true;
+    } else {
+        do_aipq = is_do_aipq(hist, sizeof(hist) / sizeof(int));
+    }
+
+    clock_gettime(CLOCK_MONOTONIC, &tm_2);
+    mTime_0 = tm_0.tv_sec * 1000000LL + tm_0.tv_nsec / 1000;
+    mTime_1 = tm_1.tv_sec * 1000000LL + tm_1.tv_nsec / 1000;
+    mTime_2 = tm_2.tv_sec * 1000000LL + tm_2.tv_nsec / 1000;
+    ge2d_time = mTime_1 - mTime_0;
+    get_y_time = mTime_2 - mTime_1;
+
+    if (ge2d_time + get_y_time > 20000) {
+        ALOGE("ge2d_time and get_y_time too long %" PRId64"ms\n", ge2d_time + get_y_time);
+        return -1;
+    }
+
+    if (do_aipq) {
+        aipq_info->is_nn_doing = true;
+        ret = ioctl(mUvmHandler, UVM_IOC_SET_INFO, &hook_data);
+
+        if (ret < 0) {
+            ALOGD_IF(check_D(),"UVM_IOC_SET_HF_INFO fail =%d.\n", ret);
+            return ret;
+        }
+
+        ALOGD_IF(check_D(),"do aipq: omx_index=%d\n", aipq_info->omx_index);
+        for (int i = 0; i < sizeof(hist) / sizeof(int); i++)
+            ALOGD_IF(check_D(),"do aipq: hist[%d]=%d\n", i, hist[i]);
+
+        mNnDoing = true;
+        nn_out = (img_classify_out_t *)process_network(mNn_qcontext, (unsigned char *)mAipq_Buf.fd_ptr);
+        {
+            std::lock_guard<std::mutex> lock(mMutex);
+            mBuf_fd_q.pop();
+            close(mAipqIndex[cache_index].shared_fd);
+            mCloseCount++;
+            mTotalCloseCount++;
+        }
+        while (mBuf_fd_q.size() > 0) {
+            std::lock_guard<std::mutex> lock(mMutex);
+            other_catch_index = mBuf_fd_q.front();
+            mBuf_fd_q.pop();
+            close(mAipqIndex[other_catch_index].shared_fd);
+            mCloseCount++;
+            mTotalCloseCount++;
+        }
+        mNnDoing = false;
+        if (nn_out == NULL) {
+            ALOGE("nn_process_network: err: ret=%d.\n", ret);
+            return 0;
+        }
+    } else {
+        ALOGD_IF(check_D(), "needn't do aipq\n");
+        {
+            std::lock_guard<std::mutex> lock(mMutex);
+            mBuf_fd_q.pop();
+            close(mAipqIndex[cache_index].shared_fd);
+            mCloseCount++;
+            mTotalCloseCount++;
+            while (mBuf_fd_q.size() > 0) {
+                other_catch_index = mBuf_fd_q.front();
+                mBuf_fd_q.pop();
+                close(mAipqIndex[other_catch_index].shared_fd);
+                mCloseCount++;
+                mTotalCloseCount++;
+            }
+        }
+        return -1;
+    }
+
+    clock_gettime(CLOCK_MONOTONIC, &tm_3);
+
+    mTime_3 = tm_3.tv_sec * 1000000LL + tm_3.tv_nsec / 1000;
+    nn_time = mTime_3 - mTime_2;
+    ALOGD_IF(check_D(), "aipq_process ge2d %" PRId64", get_y_time %" PRId64", nn %" PRId64", total %" PRId64" mNn_Index=%d\n",
+        ge2d_time, get_y_time, nn_time, ge2d_time + get_y_time + nn_time, mNn_Index);
+    if (nn_time > 20000)
+        ALOGE("nn time too long %" PRId64".\n", nn_time);
+    mTime.total_time += nn_time;
+    mTime.count++;
+#else
+    aipq_info->nn_do_aipq_type = NN_USE_HARDWARE;
     clock_gettime(CLOCK_MONOTONIC, &tm_0);
     ret = ioctl(mUvmHandler, UVM_IOC_GET_INFO, &hook_data);
     if (ret < 0) {
@@ -884,12 +1113,6 @@ int32_t AipqProcessor::ai_pq_process(int cache_index) {
         ALOGE("nn_process_network: err: ret=%d.\n", ret);
         return 0;
     } else {
-        dump_index = PropGetInt("vendor.hwc.aipq_dump", 0);
-        if (dump_index != mDumpIndex) {
-            mDumpIndex = dump_index;
-            dump_nn_info();
-        }
-
         mTime_0 = tm_0.tv_sec * 1000000LL + tm_0.tv_nsec / 1000;
         mTime_1 = tm_1.tv_sec * 1000000LL + tm_1.tv_nsec / 1000;
         mTime_2 = tm_2.tv_sec * 1000000LL + tm_2.tv_nsec / 1000;
@@ -901,6 +1124,13 @@ int32_t AipqProcessor::ai_pq_process(int cache_index) {
             ALOGE("nn time too long %" PRId64".\n", nn_time);
         mTime.total_time += nn_time;
         mTime.count++;
+    }
+#endif
+
+    dump_index = PropGetInt("vendor.hwc.aipq_dump", 0);
+    if (dump_index != mDumpIndex) {
+        mDumpIndex = dump_index;
+        dump_nn_info();
     }
 
     nn_value_reorder(nn_out, aipq_info->nn_value);
@@ -929,7 +1159,6 @@ int32_t AipqProcessor::ai_pq_process(int cache_index) {
                 mTime.min_time,
                 mTime.avg_time);
     }
-
     mNn_Index++;
 
     return ret;

@@ -112,12 +112,10 @@ void* init(const char *path, int model_type, int inputWidth, int inputHeight) {
         config.nbgType = NN_NBG_FILE;
         config.modelType = (amlnn_model_type)model_type;
         qcontext = func_create(&config);
-
         if (qcontext == NULL) {
             ALOGE("amlnn_init is fail\n");
             return NULL;
         }
-
         inData.input_index = 0;
         inData.size = inputWidth * inputHeight * 3;
         inData.input_type = BINARY_RAW_DATA;
@@ -136,10 +134,12 @@ void* uninit(void* context) {
     else
         ALOGE("%s:interface don't implement.\n", __FUNCTION__);
 
+#ifndef ENABLE_VIDEO_AIPQ_GPU
     if (mSdkHandle != NULL) {
         dlclose(mSdkHandle);
         mSdkHandle = NULL;
     }
+#endif
 
     return NULL;
 }

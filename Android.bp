@@ -77,6 +77,7 @@ soong_config_module_type {
         "enable_keystone_correction",
         "enable_video_aisr",
         "enable_video_aipq",
+        "enable_video_aipq_gpu",
         "enable_video_aiface",
         "enable_video_aicolor",
         "enable_aidl",
@@ -117,6 +118,10 @@ soong_config_bool_variable {
 }
 
 soong_config_bool_variable {
+    name: "enable_video_aipq_gpu",
+}
+
+soong_config_bool_variable {
     name: "enable_video_aiface",
 }
 
@@ -154,6 +159,10 @@ meson_hwc_cc_defaults {
 
         enable_video_aipq: {
             cflags: ["-DENABLE_VIDEO_AIPQ"],
+        },
+
+        enable_video_aipq_gpu: {
+            cflags: ["-DENABLE_VIDEO_AIPQ_GPU"],
         },
 
         enable_video_aiface: {
