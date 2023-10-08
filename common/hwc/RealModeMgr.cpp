@@ -602,9 +602,9 @@ int32_t RealModeMgr::setBootConfig(int32_t config) {
 
         //TODO: remove it when ModePolicy move to hwc
         if (fabs(cfg.refreshRate - std::floor(cfg.refreshRate)) > 1e-2) {
-            sc_set_bootenv(UBOOTENV_FRAC_RATE_POLICY, "1");
+            meson_mode_set_ubootenv(UBOOTENV_FRAC_RATE_POLICY, "1");
         } else {
-            sc_set_bootenv(UBOOTENV_FRAC_RATE_POLICY, "0");
+            meson_mode_set_ubootenv(UBOOTENV_FRAC_RATE_POLICY, "0");
         }
     } else {
         MESON_LOGE("set invalid boot config (%d)", config);
@@ -673,18 +673,6 @@ int32_t RealModeMgr::setModeLocked(drm_mode_info_t & mode) {
         // seamless mode switch, only vsync period change
         mCrtc->setMode(mode, seamless);
     }  else {
-        std::string bestDolbyVision;
-        bool needRecoveryBestDV = false;
-        if (mDvEnabled) {
-            if (!sc_read_bootenv(UBOOTENV_BESTDOLBYVISION, bestDolbyVision)) {
-                if (bestDolbyVision.empty()|| bestDolbyVision == "true") {
-                    MESON_LOGD("RealModeMgr set BestDVPolicy: false");
-                    sc_set_bootenv(UBOOTENV_BESTDOLBYVISION, "false");
-                    needRecoveryBestDV = true;
-                }
-            }
-        }
-
         // set the display mode through systemControl
         // As it will need update the colorspace/colordepth too.
         std::string dispmode(mode.name);
@@ -692,12 +680,6 @@ int32_t RealModeMgr::setModeLocked(drm_mode_info_t & mode) {
             mModePolicy->setActiveConfig(dispmode);
         else
             sc_set_display_mode(dispmode);
-
-        // If we need recovery best dobly vision policy, then recovery it.
-        if (mDvEnabled && needRecoveryBestDV) {
-            MESON_LOGD("RealModeMgr recovery BestDVPolicy: true");
-            sc_set_bootenv(UBOOTENV_BESTDOLBYVISION, "true");
-        }
     }
     return 0;
 }

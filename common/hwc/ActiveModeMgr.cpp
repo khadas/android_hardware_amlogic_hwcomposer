@@ -353,30 +353,11 @@ int32_t ActiveModeMgr::setModeLocked(uint32_t & configId, drm_mode_info_t & mode
     if (seamless) {
         mCrtc->setMode(mode);
     } else {
-        // Disable auto best DolbyVision mode selection policy
-        // So that when we update the display mode,
-        // SystemContrl doesn't change to some other mode.
-        std::string bestDolbyVision;
-        bool needRecoveryBestDV = false;
-        if (mDvEnabled) {
-            if (!sc_read_bootenv(UBOOTENV_BESTDOLBYVISION, bestDolbyVision)) {
-                if (bestDolbyVision.empty()|| bestDolbyVision == "true") {
-                    sc_set_bootenv(UBOOTENV_BESTDOLBYVISION, "false");
-                    needRecoveryBestDV = true;
-                }
-            }
-        }
-
         // set the display mode through systemControl
         // As it will need update the colorspace/colordepth too.
         MESON_LOGD("RealModeMgr::setActiveConfig setMode: %s", mode.name);
         std::string dispmode(mode.name);
         sc_set_display_mode(dispmode);
-
-        // If we need recovery best dobly vision policy, then recovery it.
-        if (mDvEnabled && needRecoveryBestDV) {
-            sc_set_bootenv(UBOOTENV_BESTDOLBYVISION, "true");
-        }
     }
 
     return 0;

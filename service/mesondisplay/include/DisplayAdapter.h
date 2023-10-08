@@ -170,6 +170,9 @@ public:
         return false;
     };
 
+    virtual bool setUbootenv(const string& key, const string& value) = 0;
+    virtual bool getUbootenv(const string& key, string& value) = 0;
+
     virtual bool setDisplayAttribute(const string& name, const string& value, ConnectorType displayType) = 0;
     virtual bool getDisplayAttribute(const string& name, string& value, ConnectorType displayType) = 0;
     //for AFR

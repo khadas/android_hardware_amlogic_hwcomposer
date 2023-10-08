@@ -29,6 +29,8 @@ public:
     bool captureDisplayScreen(const native_handle_t **outBufferHandle) override;
     bool setDisplayRect(const Rect rect, ConnectorType displayType);
     bool getDisplayRect(Rect& rect, ConnectorType displayType);
+    bool setUbootenv(const string & key, const string & value) override;
+    bool getUbootenv(const string & key, string & value) override;
     bool setDisplayAttribute(const string& name, const string& value, ConnectorType displayType) override;
     bool getDisplayAttribute(const string& name, string& value, ConnectorType displayType) override;
     bool getDisplayVsyncAndPeriod(int64_t& vsyncTimestamp, int32_t& vsyncPeriodNanos) override;

@@ -18,6 +18,7 @@
 #include "MesonLog.h"
 #include <sys/utsname.h>
 #include <limits>
+#include "mode_ubootenv.h"
 
 #define SYSFS_DISPLAY_MODE              "/sys/class/display/mode"
 #define MAX_TRY_COUNT                   5
@@ -423,6 +424,26 @@ bool DisplayAdapterLocal::disableSidebandStream(bool isDisable){
     MESON_LOGD("disableSidebandStream set value:%s", isDisable ? "true" : "false");
     return true;
 
+}
+
+bool DisplayAdapterLocal::setUbootenv(
+        const string & key,
+        const string & value) {
+    MESON_LOGD("setUbootenv[%s] attr to \"%s\"", key.c_str(), value.c_str());
+    int result = meson_mode_set_ubootenv(key.c_str(), value.c_str());
+    if (result != 0) {
+        MESON_LOGV("setUbootenv \"%s\" fail", key.c_str());
+    }
+    return true;
+}
+
+bool DisplayAdapterLocal::getUbootenv(
+        const string & key,
+        string & value) {
+
+    value = meson_mode_get_ubootenv(key.c_str());
+    MESON_LOGD("getUbootenv %s", value.c_str());
+    return true;
 }
 
 DisplayAttributeInfo* DisplayAdapterLocal::getDisplayAttributeInfo(const string& name, ConnectorType displayType) {

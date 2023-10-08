@@ -231,6 +231,36 @@ int32_t DisplayAdapterRemote::setFrameRate(float frameRate) {
     return -EINVAL;
 }
 
+bool DisplayAdapterRemote::setUbootenv(
+        const string& key, const string& value) {
+    Json::Value cmd;
+    if (key.empty())
+        return false;
+    IF_SERVER_NOT_READY_RETURN(false);
+    cmd["cmd"] = "setUbootenv";
+    cmd["path"] = key.c_str();
+    cmd["value"] = value.c_str();
+    ipc->send_request(cmd);
+    return true;
+}
+
+bool DisplayAdapterRemote::getUbootenv(
+        const string& key, string& value) {
+    Json::Value cmd, ret;
+    if (key.empty())
+        return false;
+    IF_SERVER_NOT_READY_RETURN(false);
+    cmd["cmd"] = "getUbootenv";
+    cmd["path"] = key.c_str();
+    ipc->send_request_wait_reply(cmd, ret);
+    if (ret.isMember("ret") && ret["ret"]["value"].isString()) {
+        value = ret["ret"]["value"].asString();
+        return true;
+    } else {
+        return false;
+    }
+}
+
 bool DisplayAdapterRemote::setDisplayAttribute(
         const string& name, const string& value,
         ConnectorType displayType) {

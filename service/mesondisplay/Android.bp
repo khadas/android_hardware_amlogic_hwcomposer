@@ -129,6 +129,7 @@ cc_library_static {
         "libdrm",
         "libion",
         "libvideotunnel",
+        "libmeson_mode_policy",
     ],
 
     header_libs: [

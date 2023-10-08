@@ -400,6 +400,22 @@ int32_t DisplayAdapterLocal::setFrameRate(float frameRate) {
     return 0;
 }
 
+bool DisplayAdapterLocal::setUbootenv(const string & key, const string & value) {
+    bool ret = false;
+    UNUSED(key);
+    UNUSED(value);
+    NOTIMPLEMENTED;
+    return ret;
+}
+
+bool DisplayAdapterLocal::getUbootenv(const string & key, string & value) {
+    bool ret = false;
+    UNUSED(key);
+    UNUSED(value);
+    NOTIMPLEMENTED;
+    return ret;
+}
+
 DisplayAttributeInfo* DisplayAdapterLocal::getDisplayAttributeInfo(const string& name, ConnectorType displayType) {
     UNUSED(displayType);
     int i = 0;
