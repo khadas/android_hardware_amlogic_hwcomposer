@@ -892,16 +892,18 @@ bool Hwc2Layer::isVtNeedClearFrameOrShowColorBuffer() {
     bool ret = false;
 
     if (!isVtBufferLocked())
-        return false;
+        return ret;
 
     switch (mVideoDisplayStatus) {
         case VT_VIDEO_STATUS_BLANK:
             mVideoDisplayStatus = VT_VIDEO_STATUS_SHOW;
             /* need do disable video composer once */
+            releaseVtResourceLocked(false);
             ret = true;
             break;
         case VT_VIDEO_STATUS_HIDE:
-            setPrevReleaseFence(-1);
+            releaseVtResourceLocked(false);
+            setCurReleaseFence(-1);
             ret = true;
             break;
         case VT_VIDEO_STATUS_COLOR_ONCE:
@@ -925,9 +927,6 @@ bool Hwc2Layer::isVtNeedClearFrameOrShowColorBuffer() {
             // nothing to do;
             break;
     }
-
-    if (ret)
-        releaseVtResourceLocked(false);
 
     return ret;
 }
