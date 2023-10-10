@@ -35,6 +35,7 @@ public:
     int32_t setNonBlockMode();
     int32_t pollGameModeBuffer();
     int32_t pollCmds();
+    int32_t askRefresh(int tunnelId, bool flag);
     VtPollStatus pollBufferAndCmds();
 
     int32_t setDisplayVsyncInfo(uint64_t timestamp, uint32_t vsyncPeriodNanos);

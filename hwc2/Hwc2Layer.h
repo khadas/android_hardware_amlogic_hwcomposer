@@ -113,6 +113,7 @@ public:
 
     void adjustDisplayFrame(display_zoom_info_t & calibrateInfo);
     void adjustDisplayFrameLocked();
+    void setNeedAskRefresh(bool needRefresh);
 
 public:
     android_dataspace_t mDataSpace;
@@ -165,6 +166,7 @@ protected:
     void freeSolidColorBufferLocked();
     void freeSolidColorBuffer();
     void setVtPrevReleaseFence();
+    void askVtRefresh(bool flag);
 
 protected:
     bool mUpdateZorder;
@@ -199,6 +201,7 @@ protected:
     float mBrightness;
 
     display_zoom_info_t mCalibrateInfo;
+    bool mNeedAskRefresh;
 };
 
 #endif/*HWC2_LAYER_H*/

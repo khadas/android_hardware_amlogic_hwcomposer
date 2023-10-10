@@ -137,6 +137,8 @@ int meson_vt_set_solid_color(int fd, int tunnel_id, enum vt_color_cmd cmd, enum 
 
 //int meson_vt_reply_cmd(int fd, enum vt_cmd cmd, int cmd_data, int client_id);
 
+int meson_vt_ask_refresh(int fd, int tunnel_id, bool flag);
+
 #ifdef __cplusplus
 }
 #endif

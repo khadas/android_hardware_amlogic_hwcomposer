@@ -84,6 +84,10 @@ int32_t VideoTunnelDev::pollCmds() {
     return meson_vt_poll_cmd(mDrvFd, VT_POLL_TIMEOUT);
 }
 
+int32_t VideoTunnelDev::askRefresh(int tunnelId, bool flag) {
+    return meson_vt_ask_refresh(mDrvFd, tunnelId, flag);
+}
+
 VideoTunnelDev::VtPollStatus VideoTunnelDev::pollBufferAndCmds() {
     struct pollfd pfd;
     pfd.fd = mDrvFd;

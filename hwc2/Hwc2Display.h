@@ -193,7 +193,7 @@ public:
     virtual void onFrameAvailable();
 
     virtual void refreshVtLayers();
-    virtual void refreshVtLayersLocked();
+    virtual void refreshVtLayersLocked(bool needAskRefresh = false);
     virtual void askSurfaceFlingerRefresh();
 
 /*White board*/

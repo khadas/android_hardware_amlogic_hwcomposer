@@ -562,6 +562,16 @@ int meson_vt_set_solid_color(int fd, int tunnel_id, enum vt_color_cmd cmd, enum 
     return meson_vt_ioctl(fd, VT_IOC_CTRL, &data);
 }
 
+int meson_vt_ask_refresh(int fd, int tunnel_id, bool flag) {
+    struct vt_ctrl_data data = {
+        .tunnel_id = tunnel_id,
+        .ctrl_cmd = VT_CTRL_REFRESH,
+        .video_cmd_data = (flag ? 1 : 0),
+    };
+
+    return meson_vt_ioctl(fd, VT_IOC_CTRL, &data);
+}
+
 #ifdef __cplusplus
 }
 #endif

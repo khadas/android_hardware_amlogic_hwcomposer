@@ -508,8 +508,11 @@ void Hwc2Display::cleanupBeforeDestroy() {
         MESON_LOGD("%s displayId:%d, clear layers", __func__, mDisplayId);
         for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
             std::shared_ptr<Hwc2Layer> layer = it->second;
-            if (layer && layer->isVtBuffer())
+            if (layer && layer->isVtBuffer()) {
+                if (HwcConfig::getDisplayNum() == 1)
+                    layer->setNeedAskRefresh(true);
                 layer->releaseVtResource();
+            }
         }
 
         mLayers.clear();
@@ -875,6 +878,7 @@ hwc2_error_t Hwc2Display::setPowerMode(int32_t mode) {
     /* need blank display when power off */
     if (mode == HWC2_POWER_MODE_OFF) {
         blankDisplayLocked();
+        refreshVtLayersLocked(true);
     }
     return (hwc2_error_t) ret;
 }
@@ -2763,11 +2767,17 @@ void Hwc2Display::refreshVtLayers() {
     refreshVtLayersLocked();
 }
 
-void Hwc2Display::refreshVtLayersLocked() {
+void Hwc2Display::refreshVtLayersLocked(bool needAskRefresh) {
     for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
         auto layer = it->second;
-        if (layer->isVtBuffer())
-            layer->vtRefresh();
+        if (layer->isVtBuffer()) {
+            if (needAskRefresh) {
+                if (HwcConfig::getDisplayNum() == 1)
+                    layer->setNeedAskRefresh(true);
+            } else {
+                layer->vtRefresh();
+            }
+        }
     }
 }
 

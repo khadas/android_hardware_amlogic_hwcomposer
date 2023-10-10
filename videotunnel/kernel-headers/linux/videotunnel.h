@@ -27,6 +27,7 @@ enum vt_ctrl_cmd_e {
 	VT_CTRL_REPLY_CMD,
 	VT_CTRL_POLL_CMD,
 	VT_CTRL_CANCEL_BUFFER,
+	VT_CTRL_REFRESH,
 };
 
 enum vt_video_cmd_e {
@@ -39,6 +40,11 @@ enum vt_video_cmd_e {
 	VT_VIDEO_SET_COLOR_BLUE,
 	VT_VIDEO_SET_COLOR_GREEN,
 	VT_VIDEO_SET_DISPLAY_FRAME,
+	VT_VIDEO_CMD_INVALID,
+};
+
+enum vt_video_type_e {
+	VT_VIDEO_TV = 0,
 };
 
 struct vt_alloc_id_data {
