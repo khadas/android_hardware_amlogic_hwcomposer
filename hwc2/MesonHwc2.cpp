@@ -349,7 +349,7 @@ int32_t MesonHwc2::setPowerMode(hwc2_display_t display,
         /*
          * need switch connector
          */
-        if (mode == HWC2_POWER_MODE_OFF) {
+        if (mode == HWC2_POWER_MODE_OFF && mAidlCilentIsSF) {
             mDisplayPipe->handleEvent(DRM_EVENT_HDMITX_HOTPLUG, DRM_EVENT_SUSPEND);
         }
     }
@@ -769,6 +769,20 @@ int32_t MesonHwc2::setLayerBrightness(hwc2_display_t display,
 
 int32_t MesonHwc2::setAidlClientPid(int32_t pid) {
     GET_HWC_DISPLAY(0);
+    char path[32] = {0x0};
+    char name[32] = {0x0};
+    snprintf(path, sizeof(path), "/proc/%d/comm", pid);
+    FILE* f = fopen(path, "r");
+    if (f == NULL) {
+        mAidlCilentIsSF = false;
+    } else {
+        if (fgets(name, sizeof(name), f) != NULL && strstr(name, "surfaceflinger")) {
+            mAidlCilentIsSF = true;
+        } else {
+            mAidlCilentIsSF = false;
+        }
+        fclose(f);
+    }
     return hwcDisplay->setAidlClientPid(pid);
 }
 
@@ -981,6 +995,7 @@ MesonHwc2::MesonHwc2() {
     mDisplayRequests = 0;
     memset(&mViewPort, 0, sizeof(mViewPort));
     mChangedViewPort = false;
+    mAidlCilentIsSF = true;
     initialize();
 }
 
