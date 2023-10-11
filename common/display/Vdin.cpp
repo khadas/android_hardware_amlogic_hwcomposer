@@ -83,7 +83,8 @@ void Vdin::setType(int type) {
 int32_t Vdin::getStreamInfo(int & width, int & height, int & format) {
     /*read current */
     drm_mode_info_t modeInfo;
-    auto crtc = getHwDisplayManager()->getCrtcByPipe(DRM_PIPE_VOUT2);
+    uint32_t pipeIdx = mVdinType == PROCESSOR_FOR_SCREENRECORD ? DRM_PIPE_VOUT1 : DRM_PIPE_VOUT2;
+    auto crtc = getHwDisplayManager()->getCrtcByPipe(pipeIdx);
     if (crtc->getMode(modeInfo) != 0) {
         MESON_LOGE("getStreamInfo failed.");
         mCapParams.width = 1920;
