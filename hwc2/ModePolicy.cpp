@@ -2130,7 +2130,7 @@ void ModePolicy::applyDisplaySetting(bool force) {
     strcpy(final_displaymode, mSceneOutInfo.displaymode);
     MESON_LOGI("curMode:[%s] ,final_displaymode[%s]\n", curDisplayMode, final_displaymode);
 
-    if (!isMatchMode(curDisplayMode, final_displaymode)) {
+    if (!isMatchMode(curDisplayMode, final_displaymode) || (mConnector && !mConnector->isReady())) {
         modeChange = true;
     } else {
         MESON_LOGI("cur mode is equals\n");

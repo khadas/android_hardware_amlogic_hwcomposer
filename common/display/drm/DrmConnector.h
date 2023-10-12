@@ -69,6 +69,8 @@ public:
     int32_t setColorAttribute(const std::string & hdmiColorAttr);
     int32_t applyConnectorProps(drmModeAtomicReqPtr &req);
 
+    bool isReady();
+
     /*drm package internal use.*/
 public:
     uint32_t getEncoderId() {return mEncoderId;}
@@ -123,6 +125,7 @@ protected:
     std::shared_ptr<DrmProperty> mContentType;
     std::shared_ptr<DrmProperty> mAVMute;
     std::shared_ptr<DrmProperty> mDvCaps;
+    std::shared_ptr<DrmProperty> mReady;
     /*for lcd now*/
     std::shared_ptr<DrmProperty> mMesonConnectorType;
     /* for vrr */

@@ -85,6 +85,7 @@ int32_t DrmConnector::loadProperties(drmModeConnectorPtr p __unused) {
         {DRM_CONNECTOR_PROP_HDR_PRIORITY, &mHdrPriority},
         {DRM_HDMI_PROP_COLORSPACE, &mColorSpace},
         {DRM_HDMI_PROP_COLORDEPTH, &mColorDepth},
+        {DRM_HDMI_PROP_READY, &mReady},
 //        {DRM_HDMI_PROP_HDRCAP, &mHdrCaps},
         {DRM_HDMI_PROP_HDR_STATUS, &mHdrStatus},
         {DRM_HDMI_PROP_CONTENT_TYPE, &mContentType},
@@ -786,6 +787,13 @@ bool DrmConnector::getDvCap(std::string & dv_cap)
 bool DrmConnector::isDvEnable() {
     bool ret = getDvSupportStatus();
     return ret;
+}
+
+bool DrmConnector::isReady() {
+    if (mReady && mReady->getValue() == 0)
+        return false;
+    else
+        return true;
 }
 
 bool DrmConnector::getHdrType(std::string & hdrType)
