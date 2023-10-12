@@ -540,6 +540,10 @@ bool DisplayAdapterLocal::getDisplayAttribute(
             }
         }
     }
+    if (ret) {
+        MESON_LOGD("use connector getDisplayAttribute \"%s\": \"%s\"", name.c_str(), value.c_str());
+        return ret;
+    }
     DisplayAttributeInfo* info = getDisplayAttributeInfo(name, displayType);
     if (info && info->update_fun) {
        if (info->update_fun(*info, "", out, UT_GET_VALUE)) {

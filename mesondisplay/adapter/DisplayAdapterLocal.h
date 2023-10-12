@@ -53,7 +53,7 @@ struct _DisplayAttributeInfo;
 typedef bool (update_fun)(struct _DisplayAttributeInfo& info, const string& in, string& out, UpdateType type);
 
 typedef struct _DisplayAttributeInfo {
-    const char* name;
+    const char* name = nullptr;
     uint32_t attr_id;
     string current_value;
     string new_value;
