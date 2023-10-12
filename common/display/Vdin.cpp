@@ -113,7 +113,6 @@ int32_t Vdin::getStreamInfo(int & width, int & height, int & format) {
         height = mRecordHeight;
     }
 
-    mCapParams.secure_memory_en = 1;
     mCapParams.bit_order = 1;
     format = mDefFormat;
     return 0;
