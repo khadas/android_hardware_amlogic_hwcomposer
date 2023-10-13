@@ -161,6 +161,8 @@ void DrmFramebuffer::clearBufferInfo() {
     * 2. CureRelease move to PrevRelease, it can be returned in next loop.
     */
     mAcquireFence.reset();
+    mAcquireFence = DrmFence::NO_FENCE;
+
     // not reset prevReleaseFence for sidebandBuffer, as vt sidebanbuffer use it later
     if (!isVtBufferLocked()) {
         mPrevReleaseFence = mCurReleaseFence;
@@ -174,6 +176,7 @@ void DrmFramebuffer::clearBufferInfo() {
     {
         std::lock_guard<std::mutex> lock(mPFenceMutex);
         mProcessFence.reset();
+        mProcessFence = DrmFence::NO_FENCE;
     }
 
     mFbType        = DRM_FB_RENDER;
