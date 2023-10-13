@@ -228,6 +228,8 @@ bool DisplayAdapterLocal::getDisplayMode(string& mode, ConnectorType displayType
 bool DisplayAdapterLocal::setDisplayMode(const string& mode, ConnectorType displayType) {
     drm_connector_type_t type;
     drm_mode_info_t mock;
+    map<uint32_t, drm_mode_info_t> modes;
+
     strncpy(mock.name, mode.c_str(), DRM_DISPLAY_MODE_LEN - 1);
     DisplayTypeConv(type, displayType);
     if (DRM_MODE_CONNECTOR_INVALID_TYPE == type)
@@ -237,7 +239,23 @@ bool DisplayAdapterLocal::setDisplayMode(const string& mode, ConnectorType displ
             (displayType == DisplayAdapter::CONN_TYPE_PANEL ? "TV":"CVBS"), mode.c_str());
 
     GET_CRTC_BY_CONNECTOR(type);
-    if (crtc) {
+    if (crtc && connector) {
+        bool valid = false;
+        connector->getModes(modes);
+        for (auto it : modes) {
+            if (strncmp(mock.name, it.second.name, DRM_DISPLAY_MODE_LEN) == 0) {
+                valid = true;
+                break;
+            }
+        }
+
+        if (!valid) {
+            MESON_LOGE("Mode invalid for current pipe [%s]", mode.c_str());
+            return false;
+        }
+
+        // need blank display before set mode
+        MesonHwc2::getInstance().blankDisplay();
         crtc->setMode(mock);
     } else {
         sysfs_set_string(SYSFS_DISPLAY_MODE, mode.c_str());

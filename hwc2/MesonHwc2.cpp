@@ -1162,6 +1162,11 @@ int32_t MesonHwc2::getDisplays(std::map<hwc2_display_t, shared_ptr<Hwc2Display>>
     return 0;
 }
 
+int32_t MesonHwc2::blankDisplay() {
+    GET_HWC_DISPLAY(0);
+    return hwcDisplay->blankDisplay();
+}
+
 int32_t MesonHwc2::initialize() {
     std::map<uint32_t, std::shared_ptr<HwcDisplay>> mhwcDisps;
     mDisplayPipe = createDisplayPipe(HwcConfig::getPipeline());

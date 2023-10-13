@@ -281,6 +281,21 @@ int32_t Hwc2Display::setVsync(std::shared_ptr<HwcVsync> vsync) {
 }
 
 /*
+ * BeCareful!!: Need avoid setplane conflict, we should hold mMutex or
+ * setConnectorStatus(false) && mSkipComposition = true;
+ */
+int32_t Hwc2Display::blankDisplay() {
+    ATRACE_CALL();
+    std::lock_guard<std::mutex> lock(mMutex);
+    mPowerMode->setConnectorStatus(false);
+    mSkipComposition = true;
+
+    blankDisplayLocked();
+
+    return 0;
+}
+
+/*
  * Make sure all display planes are blank (since there is no layer)
  *
  * If composer service died, surfaceflinger will restart and frameBufferSurface will
@@ -288,55 +303,31 @@ int32_t Hwc2Display::setVsync(std::shared_ptr<HwcVsync> vsync) {
  * only configed to triple size of FrameBuffer, there will be one non continuous FrameBuffer
  * and lead to messed display.
  */
-int32_t Hwc2Display::blankDisplay(bool resetLayers) {
-    MESON_LOGD("%s displayId:%d, blank all display planes", __func__, mDisplayId);
+int32_t Hwc2Display::blankDisplayLocked(bool blockMode) {
+    ATRACE_CALL();
+    MESON_LOGD("displayId:%d, blank all display planes", mDisplayId);
 
     if (!mCrtc)
-            return 0;
+        return 0;
 
     mCrtc->prePageFlip();
 
-    for (auto it = mPlanes.begin(); it != mPlanes.end(); ++ it) {
-        (*it)->setPlane(NULL, HWC_PLANE_FAKE_ZORDER, BLANK_FOR_NO_CONTENT);
-    }
-
-    int32_t fence = -1;
-    if (mCrtc->pageFlip(fence) == 0) {
-        std::shared_ptr<DrmFence> outfence =
-            std::make_shared<DrmFence>(fence);
-        outfence->wait(3000);
-    }
-
-    /* we need release all cache handles */
-    for (auto it = mPlanes.begin(); it != mPlanes.end(); ++ it) {
-        (*it)->clearPlaneResources();
-    }
-
-    if (resetLayers) {
-        std::lock_guard<std::mutex> vtLock(mVtMutex);
-        MESON_LOGD("%s displayId:%d, clear layers", __func__, mDisplayId);
-        for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
-            std::shared_ptr<Hwc2Layer> layer = it->second;
-            if (layer && layer->isVtBuffer())
-                layer->releaseVtResource();
+    {
+        ATRACE_NAME("setPlane-blank");
+        for (auto it = mPlanes.begin(); it != mPlanes.end(); ++ it) {
+            (*it)->setPlane(NULL, HWC_PLANE_FAKE_ZORDER, BLANK_FOR_NO_CONTENT);
         }
+    }
 
-        mLayers.clear();
-        mChangedLayers.clear();
-        // For round corner,mVirtualLayer should not be cleared
-#ifdef ENABLE_VIRTUAL_LAYER
-        if (mVirtualLayer) {
-            mLayers.emplace(mVirtualLayer->getUniqueId(), mVirtualLayer);
-        }
-#endif
-        mPresentLayers.clear();
-        mCompositionStrategy->updateComposition();
-        mPresentCompositionStg->setup(mPresentLayers,
-            mPresentComposers, mPresentPlanes, mCrtc, 0, 0, mDisplayMode);
-
-        // reset bitmap
-        mLayersBitmap->reset();
-        handleVtThread();
+    int32_t fenceFd = -1;
+    if (mCrtc->pageFlip(fenceFd) == 0) {
+        ATRACE_NAME("pageFlip");
+        if (blockMode) {
+            std::shared_ptr<DrmFence> outfence =
+                std::make_shared<DrmFence>(fenceFd);
+            outfence->wait(3000);
+        } else
+            close(fenceFd);
     }
 
     return 0;
@@ -416,6 +407,8 @@ hwc2_error_t Hwc2Display::setVsyncEnable(hwc2_vsync_t enabled) {
 // shall wait for SystemControl before it can update its state and notify FWK
 // accordingly.
 void Hwc2Display::onHotplug(bool connected) {
+    ATRACE_CALL();
+
     bool bSendPlugOut = false;
     MESON_LOGD("displayID:%d, On hot plug: [%s]",
             mDisplayId, connected == true ? "Plug in" : "Plug out");
@@ -449,12 +442,14 @@ void Hwc2Display::onHotplug(bool connected) {
         }
 
         mPowerMode->setConnectorStatus(false);
-        blankDisplay();
         mSkipComposition = true;
         if (mObserver != NULL ) {
             bSendPlugOut = true;
         }
+
+        blankDisplayLocked(mDisplayId == HWC_DISPLAY_PRIMARY ? true : false);
     }
+
     /* call hotplug out of lock, SF may call some hwc function to cause deadlock.*/
     /* switch to software vsync when hdmi plug out and no cvbs mode */
     /* when hdmi plugout, send CONNECT message for "hdmi-only" */
@@ -463,6 +458,7 @@ void Hwc2Display::onHotplug(bool connected) {
         mVsync->setSoftwareMode();
         mModeMgr->update();
         if (bSendPlugOut) {
+            cleanupBeforeDestroy();
             mObserver->onHotplug(connected);
         }
     }
@@ -487,17 +483,54 @@ void Hwc2Display::onVsyncPeriodTimingChanged(hwc_vsync_period_change_timeline_t*
  * Or framebuffer may allocate fail when do plug in/out quickly.
  */
 void Hwc2Display::cleanupBeforeDestroy() {
+    ATRACE_CALL();
     std::lock_guard<std::mutex> lock(mMutex);
     /*clear framebuffer reference by gpu composer*/
-    std::shared_ptr<IComposer> clientComposer = mComposers.find(MESON_CLIENT_COMPOSER)->second;
-    clientComposer->prepare();
-    // TODO: workaround to clear CLIENT_COMPOSER's clientTarget
-    hwc_region_t damage = {0, 0};
-    std::shared_ptr<DrmFramebuffer> fb = nullptr;
-    clientComposer->setOutput(fb, damage);
+    auto itComposer = mComposers.find(MESON_CLIENT_COMPOSER);
+    if (itComposer != mComposers.end()) {
+        std::shared_ptr<IComposer> clientComposer = itComposer->second;
+        clientComposer->prepare();
+        // TODO: workaround to clear CLIENT_COMPOSER's clientTarget
+        hwc_region_t damage = {0, 0};
+        std::shared_ptr<DrmFramebuffer> fb = nullptr;
+        clientComposer->setOutput(fb, damage);
+    }
 
-    /*clear framebuffer reference by driver*/
-    blankDisplay();
+    /* we need release all cache handles */
+    for (auto it = mPlanes.begin(); it != mPlanes.end(); ++ it) {
+        (*it)->clearPlaneResources();
+    }
+
+    {
+        ATRACE_NAME("resetLayers");
+        std::lock_guard<std::mutex> vtLock(mVtMutex);
+        MESON_LOGD("%s displayId:%d, clear layers", __func__, mDisplayId);
+        for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
+            std::shared_ptr<Hwc2Layer> layer = it->second;
+            if (layer && layer->isVtBuffer())
+                layer->releaseVtResource();
+        }
+
+        mLayers.clear();
+        mChangedLayers.clear();
+        mPresentLayers.clear();
+        // For round corner,mVirtualLayer should not be cleared
+#ifdef ENABLE_VIRTUAL_LAYER
+        if (mVirtualLayer) {
+            mLayers.emplace(mVirtualLayer->getUniqueId(), mVirtualLayer);
+        }
+#endif
+        if (mCompositionStrategy) {
+            mCompositionStrategy->updateComposition();
+            mCompositionStrategy->setup(mPresentLayers,
+                    mPresentComposers, mPresentPlanes, mCrtc, 0, 0, mDisplayMode);
+        }
+
+        // reset bitmap
+        if (mLayersBitmap)
+            mLayersBitmap->reset();
+        handleVtThread();
+    }
 }
 
 void Hwc2Display::onUpdate(bool bHdcp) {
@@ -545,6 +578,7 @@ void Hwc2Display::onModeChanged(int stage) {
     bool bSendPlugIn = false;
     bool hdrCapsChanged = false;
     bool bNotifySC = false;
+    ATRACE_CALL();
 
     {
         std::lock_guard<std::mutex> lock(mMutex);
@@ -592,19 +626,8 @@ void Hwc2Display::onModeChanged(int stage) {
         } else {
             /* begin change mode, need blank once */
             mPowerMode->setConnectorStatus(false);
-            if (!mFirstPresent) {
-                // only clear layers when we can send hotplug event
-                // as the framework display will recreate when it receive hotplug event
-                if (HwcConfig::primaryHotplugEnabled() && mModeMgr->needCallHotPlug())
-                    blankDisplay(true);
-
-                //TODO: remove it when panel driver support leftship
-                if (mConnector->getType() == DRM_MODE_CONNECTOR_LVDS) {
-                    blankDisplay();
-                }
-            }
-
             mSkipComposition = true;
+
             return;
         }
     }
@@ -612,6 +635,11 @@ void Hwc2Display::onModeChanged(int stage) {
     /*call hotplug out of lock, SF may call some hwc function to cause deadlock.*/
     if (bSendPlugIn && (mModeMgr->needCallHotPlug() || hdrCapsChanged)) {
         MESON_LOGD("onModeChanged mObserver->onHotplug(true) hdrCapsChanged:%d", hdrCapsChanged);
+        // only clear layers when we can send hotplug event
+        // as the framework display will recreate when it receive hotplug event
+        if (!mFirstPresent) {
+            cleanupBeforeDestroy();
+        }
         mObserver->onHotplug(true);
         if (bNotifySC)
             sc_notify_hdmi_plugin();
@@ -844,9 +872,7 @@ hwc2_error_t Hwc2Display::setPowerMode(int32_t mode) {
 
     /* need blank display when power off */
     if (mode == HWC2_POWER_MODE_OFF) {
-        if (mConnector->getType() != DRM_MODE_CONNECTOR_HDMIA) {
-            blankDisplay();
-        }
+        blankDisplayLocked();
     }
     return (hwc2_error_t) ret;
 }
@@ -1719,6 +1745,10 @@ hwc2_error_t Hwc2Display::setActiveConfig(hwc2_config_t config) {
         mSeamlessSwitch = mModeMgr->isSeamlessSwitch(config);
         std::unique_lock<std::mutex> stateLock(mStateLock);
         mModeChanged = true;
+        /*  need first blank display then change mode for nonseamless switch */
+        if (!mSeamlessSwitch) {
+            blankDisplayLocked();
+        }
         int ret = mModeMgr->setActiveConfig(config);
 
         /*
@@ -1883,6 +1913,11 @@ hwc2_error_t Hwc2Display::setActiveConfigWithConstraints(hwc2_config_t config,
     if (activeConfig != config) {
         std::unique_lock<std::mutex> stateLock(mStateLock);
         mModeChanged = true;
+        /*  need first blank display then change mode for nonseamless switch */
+        if (!mSeamlessSwitch) {
+            blankDisplayLocked();
+        }
+
         int ret = mModeMgr->setActiveConfig(config);
         /*
          * seamless mode swith has no mode change uevent
@@ -2078,7 +2113,11 @@ hwc2_error_t Hwc2Display::getHdrConversionCapabilities(uint32_t* outNumCapabilit
 
 hwc2_error_t Hwc2Display::setHdrConversionStrategy(bool passThrough, uint32_t numElements,
              bool isAuto, uint32_t* autoAllowedHdrTypes, uint32_t* preferredHdrOutputType) {
-    std::lock_guard<std::mutex> lock(mMutex);
+    // Hdr conversion strategy switch need change display mode. During the mode change,
+    // we will first blank display then change display mode. As blank display will hold mMutes,
+    // so we don't hold mMutex here
+    // TODO: during HDR conver should not send hotplug event to framework.
+
     MESON_LOGD("%s passThrough %d isAuto %d ",__func__, passThrough, isAuto);
 
     auto outHdrConversionType = -1;

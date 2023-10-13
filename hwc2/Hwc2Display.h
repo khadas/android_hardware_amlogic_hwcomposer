@@ -161,7 +161,8 @@ public:
     virtual int32_t setPostProcessor(
         std::shared_ptr<HwcPostProcessor> processor);
     virtual int32_t setVsync(std::shared_ptr<HwcVsync> vsync);
-    virtual int32_t blankDisplay(bool restLayers = false);
+    virtual int32_t blankDisplayLocked(bool blockMode = true);
+    virtual int32_t blankDisplay();
 
     virtual void onVsync(int64_t timestamp, uint32_t vsyncPeriodNanos, int vsyncType = 0);
     virtual void onHotplug(bool connected);

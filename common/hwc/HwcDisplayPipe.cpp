@@ -132,9 +132,8 @@ int32_t HwcDisplayPipe::init(std::map<uint32_t, std::shared_ptr<HwcDisplay>> & h
         /* in case of composer service restart */
         if (sys_get_bool_prop(HWC_BOOTED_PROP, false)) {
             MESON_LOGD("composer service has restarted, need blank display");
-            stat->hwcDisplay->blankDisplay();
+            stat->hwcDisplay->blankDisplayLocked();
         }
-
     }
 
     return 0;
