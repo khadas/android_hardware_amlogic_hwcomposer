@@ -92,6 +92,10 @@ int32_t DiProcessor::setup() {
         return -1;
     }
 
+    while (!mBuf_index_q.empty()) {
+        mBuf_index_q.pop();
+    }
+
     if (mExitThread == true) {
         mExitThread = false;
         int ret = pthread_create(&mThread,
