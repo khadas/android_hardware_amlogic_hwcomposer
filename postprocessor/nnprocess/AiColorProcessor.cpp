@@ -103,14 +103,14 @@ AiColorProcessor::AiColorProcessor() {
 }
 
 AiColorProcessor::~AiColorProcessor() {
-    ALOGD("%s: mDupCount =%lld, mCloseCount =%lld, total %lld %lld",
+    ALOGD("%s: mDupCount =%" PRIo64 ", mCloseCount =%" PRIo64 ", total %" PRIo64 " %" PRIo64 "",
         __FUNCTION__, mDupCount, mCloseCount, mTotalDupCount, mTotalCloseCount);
 
     if (mDupCount != mCloseCount)
-        ALOGE("%s: count err: %lld %lld", __FUNCTION__, mDupCount, mCloseCount);
+        ALOGE("%s: count err: %" PRIo64 " %" PRIo64 "", __FUNCTION__, mDupCount, mCloseCount);
 
     if (mTotalDupCount != mTotalCloseCount)
-        ALOGE("%s: total count err: %lld %lld",
+        ALOGE("%s: total count err: %" PRIo64 " %" PRIo64 "",
              __FUNCTION__,mTotalDupCount, mTotalCloseCount);
 
     if (mInited)
@@ -119,12 +119,12 @@ AiColorProcessor::~AiColorProcessor() {
     if (mTime.count > 0) {
         mTime.avg_time = mTime.total_time / mTime.count;
     }
-    ALOGD("%s: time: count=%lld, max=%lld, min=%lld, avg=%lld",
+    ALOGD("%s: time: count=%" PRIo64 ", max=%" PRIu64 ", min=%" PRIu64 ", avg=%" PRIu64 "",
         __FUNCTION__, mTime.count, mTime.max_time, mTime.min_time, mTime.avg_time);
 
     if (mUvmHandler) {
         close(mUvmHandler);
-        mUvmHandler = NULL;
+        mUvmHandler = -1;
     }
 }
 
@@ -452,7 +452,7 @@ int AiColorProcessor::LoadNNModel() {
         ret = 0;
     } else {
         mModelLoaded = true;
-        ALOGD("%s: load NN model spend %lld ns.\n", __FUNCTION__, totalTime);
+        ALOGD("%s: load NN model spend %" PRIu64 " ns.\n", __FUNCTION__, totalTime);
     }
     return ret;
 }
@@ -533,10 +533,10 @@ int32_t AiColorProcessor::ai_color_process(int cache_index) {
         mTime_2 = tm_2.tv_sec * 1000000LL + tm_2.tv_nsec / 1000;
         ge2d_time = mTime_1 - mTime_0;
         nn_time = mTime_2 - mTime_1;
-        ALOGD_IF(check_D(), "aicolor_process ge2d %lld, nn %lld, total %lld mNn_Index=%d\n",
-            ge2d_time, nn_time, ge2d_time + nn_time, mNn_Index);
+        ALOGD_IF(check_D(), "aicolor_process ge2d %" PRIu64 ", nn %" PRIu64 ", total %" PRIu64 ""
+                            " mNn_Index=%d\n", ge2d_time, nn_time, ge2d_time + nn_time, mNn_Index);
         if (nn_time > 20000)
-            ALOGE("nn time too long %lld.\n", nn_time);
+            ALOGE("nn time too long %" PRIu64 ".\n", nn_time);
         mTime.total_time += nn_time;
         mTime.count++;
     }
@@ -552,7 +552,8 @@ int32_t AiColorProcessor::ai_color_process(int cache_index) {
             if (mTime.count > 0) {
                 mTime.avg_time = mTime.total_time / mTime.count;
             }
-            ALOGD("AiColorProcessor: time1: count=%lld, max=%lld, min=%lld, avg=%lld",
+            ALOGD("AiColorProcessor: time1: count=%" PRIo64 ", max=%" PRIu64 ","
+                          "min=%" PRIu64 ", avg=%" PRIu64 "",
                 mTime.count,
                 mTime.max_time,
                 mTime.min_time,
