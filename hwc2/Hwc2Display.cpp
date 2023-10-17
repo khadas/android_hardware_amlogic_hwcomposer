@@ -1090,6 +1090,15 @@ int32_t Hwc2Display::getDisplayIdentificationData(uint32_t &outPort,
     return ret;
 }
 
+drm_connector_type_t Hwc2Display::getConnectorType() {
+    std::lock_guard<std::mutex> lock(mMutex);
+    if (mConnector != nullptr) {
+        return mConnector->getType();
+    } else {
+        return DRM_MODE_CONNECTOR_INVALID_TYPE;
+    }
+}
+
 int32_t Hwc2Display::loadCalibrateInfo() {
     hwc2_config_t config;
     int32_t configWidth;

@@ -182,8 +182,8 @@ public:
     bool getWriteBoardMode(bool& mode);
     bool setWBDisplayFrame(int x, int y);
     bool hideVideoLayer(bool hide);
-    bool setViewPort(const drm_rect_wh_t viewPort);
-    void getViewPort(drm_rect_wh_t& viewPort);
+    bool setViewPort(const drm_rect_wh_t viewPort, drm_connector_type_t);
+    bool getViewPort(drm_rect_wh_t& viewPort, drm_connector_type_t);
     bool setFrameRateHint(std::string value);
     bool setKeystoneCorrection(std::string params);
     bool setReverseMode(int type);
@@ -206,7 +206,7 @@ protected:
 
 protected:
     std::map<hwc2_display_t, std::shared_ptr<Hwc2Display>> mDisplays;
-
+    std::map<int, drm_rect_wh_t> mViewPorts;
     HWC2_PFN_HOTPLUG mHotplugFn;
     hwc2_callback_data_t mHotplugData;
     HWC2_PFN_REFRESH mRefreshFn;
@@ -222,10 +222,12 @@ protected:
 
     uint32_t mDisplayRequests;
     /* meson display */
-    drm_rect_wh_t mViewPort;
     bool mChangedViewPort;
     bool mAidlCilentIsSF;
     std::shared_ptr<IModePolicy> mModePolicy;
+
+private:
+    std::mutex mViewPortMutex;
 };
 
 #endif/*MESON_HWC2_H*/

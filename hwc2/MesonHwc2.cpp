@@ -821,16 +821,18 @@ int32_t MesonHwc2::setCalibrateInfo(hwc2_display_t display){
     caliX = caliY = 0;
     caliW = mDispMode.pixelW;
     caliH = mDispMode.pixelH;
+    drm_rect_wh_t viewPort;
+    getViewPort(viewPort, hwcDisplay->getConnectorType());
 
     if (!HwcConfig::preDisplayCalibrateEnabled() &&
-        mViewPort.x >= 0 &&mViewPort.y >= 0 &&
-        mViewPort.w > 0 && mViewPort.h > 0 &&
-        mViewPort.x + mViewPort.w <= mDispMode.pixelW &&
-        mViewPort.y + mViewPort.h <= mDispMode.pixelH) {
-        caliX = mViewPort.x;
-        caliY = mViewPort.y;
-        caliW = mViewPort.w;
-        caliH = mViewPort.h;
+            viewPort.x >= 0 &&viewPort.y >= 0 &&
+            viewPort.w > 0 && viewPort.h > 0 &&
+            viewPort.x + viewPort.w <= mDispMode.pixelW &&
+            viewPort.y + viewPort.h <= mDispMode.pixelH) {
+        caliX = viewPort.x;
+        caliY = viewPort.y;
+        caliW = viewPort.w;
+        caliH = viewPort.h;
     }
 
 #ifdef GET_REQUEST_FROM_PROP
@@ -993,7 +995,6 @@ MesonHwc2::MesonHwc2() {
     mVsyncPeriodTimingChangedFn = NULL;
     mVsyncPeriodData = NULL;
     mDisplayRequests = 0;
-    memset(&mViewPort, 0, sizeof(mViewPort));
     mChangedViewPort = false;
     mAidlCilentIsSF = true;
     initialize();
@@ -1119,15 +1120,21 @@ bool MesonHwc2::hideVideoLayer(bool hide) {
     return true;
 }
 
-bool MesonHwc2::setViewPort(const drm_rect_wh_t viewPort) {
+bool MesonHwc2::setViewPort(const drm_rect_wh_t viewPort, drm_connector_type_t type) {
+    std::lock_guard<std::mutex> lock(mViewPortMutex);
     GET_HWC_DISPLAY(0);
-    mViewPort = viewPort;
+    mViewPorts.insert_or_assign(type, viewPort);
     hwcDisplay->outsideChanged();
     return true;
 }
 
-void MesonHwc2::getViewPort(drm_rect_wh_t & viewPort) {
-    viewPort = mViewPort;
+bool MesonHwc2::getViewPort(drm_rect_wh_t & viewPort, drm_connector_type_t type) {
+    auto it = mViewPorts.find(type);
+    if (it != mViewPorts.end()) {
+        viewPort = it -> second;
+        return true;
+    }
+    return false;
 }
 
 bool MesonHwc2::disableSideband(bool isDisable) {

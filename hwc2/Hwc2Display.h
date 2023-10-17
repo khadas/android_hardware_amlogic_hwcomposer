@@ -75,6 +75,7 @@ public:
     virtual hwc2_error_t getFrameMetadataKeys (
         uint32_t* outNumKeys, int32_t* outKeys);
 
+    virtual drm_connector_type_t getConnectorType();
     /*Vsync*/
     virtual hwc2_error_t setVsyncEnable(hwc2_vsync_t enabled);
 
