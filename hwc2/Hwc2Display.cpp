@@ -2673,11 +2673,11 @@ bool Hwc2Display::handleVtDisplayConnection() {
         displayState = false;
     }
 
+    MESON_LOGV("%s: displayId:%d displayState:%d",
+            __func__, mDisplayId, displayState);
     for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
         layer = it->second;
         if (layer->isVtBuffer()) {
-            MESON_LOGV("%s: displayId:%d layerId:%" PRIu64 " displayState:%d",
-                    __func__, mDisplayId, layer->getUniqueId(), displayState);
             layer->handleDisplayDisconnect(displayState);
         }
     }

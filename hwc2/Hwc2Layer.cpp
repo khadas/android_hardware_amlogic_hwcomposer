@@ -480,10 +480,6 @@ void Hwc2Layer::setDiProcessorFd(int32_t fd) {
         close(mDifd);
 
     mDifd = fd;
-
-    if (mDifd < 0)
-        MESON_LOGV("[%s] [%d] [%" PRIu64 "] Di buffer id is invalid",
-                __func__, mDisplayId, mId);
 }
 
 void Hwc2Layer::setDiProcessorFence(int32_t fenceFd) {
@@ -544,7 +540,7 @@ void Hwc2Layer::updateVtBuffer() {
     }
 
      /*
-     * getVtBuffer might drop the some buffers at the head of the queue
+     * getBufferFd might drop the some buffers at the head of the queue
      * if there is a buffer behind them which is timely to be presented.
      */
     if (mQueueItems.empty()) {
@@ -749,7 +745,6 @@ int32_t Hwc2Layer::releaseVtResourceLocked(bool needDisconnect,
 }
 
 void Hwc2Layer::handleDisplayDisconnect(bool connect) {
-    MESON_LOGV("[%s] [%d] [%" PRIu64 "] connect:%d", __func__, mDisplayId, mId, connect);
     if (connect) {
         registerConsumer();
     } else {
@@ -937,8 +932,6 @@ int32_t Hwc2Layer::onVtFrameDisplayed(int bufferFd, int fenceFd) {
     int32_t ret = -1;
     if (!mVtConsumer)
         return ret;
-    MESON_LOGV("[%s] [%d] [%" PRIu64 "] mTunnelId %d, release vtBuffer(%d), fenceFd(%d)",
-            __func__, mDisplayId, mId, mTunnelId, bufferFd, fenceFd);
     ret = mVtConsumer->onVtFrameDisplayed(bufferFd, fenceFd);
     if (ret) {
         MESON_LOGV("[%s] [%d] [%" PRIu64 "] release vt buffer error, "
@@ -1090,6 +1083,8 @@ void Hwc2Layer::adjustDisplayFrameLocked() {
 
 void Hwc2Layer::freeSolidColorBufferLocked() {
     if (mSolidColorBufferfd >= 0) {
+        MESON_LOGV("[%s] [%d] [%" PRIu64 "] close solid color buffer:%d",
+                __func__, mDisplayId, mId, mSolidColorBufferfd);
         close(mSolidColorBufferfd);
         mSolidColorBufferfd = -1;
         mVtUpdate = false;
@@ -1163,7 +1158,10 @@ void Hwc2Layer::onNeedShowTempBuffer(vt_video_color_t colorType) {
 
 void Hwc2Layer::onNeedShowTempBufferWithStatus(
         vt_video_color_t colorType, vt_video_status_t status) {
-    onNeedShowTempBuffer(colorType);
+    if (status == VT_VIDEO_STATUS_COLOR_ONCE ||
+        status == VT_VIDEO_STATUS_COLOR_ALWAYS)
+        onNeedShowTempBuffer(colorType);
+
     onVtVideoStatus(status);
 }
 
@@ -1186,8 +1184,6 @@ bool Hwc2Layer::getVideoInfoFromUVM(int fd) {
         videoInfo.fd = fd;
 
         mUvmDettach->getVideoInfo(videoInfo);
-        MESON_LOGV("[%s] [%" PRIu64 "] videoType:0x%x, videoTimestamp:%" PRId64,
-                __func__, mId, videoInfo.type, videoInfo.timestamp);
 
         mAMVideoType = videoInfo.type;
         mVideoDecTimestamp = (uint32_t)(videoInfo.timestamp / 1e9);

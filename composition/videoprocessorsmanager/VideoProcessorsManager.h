@@ -46,17 +46,18 @@ public:
             uint32_t z);
 
 protected:
+    void destroyUnusedProcessor(
+            std::vector<std::shared_ptr<FbProcessor>> & processors);
+
+protected:
     int32_t mVideoFbsNum;
-    int32_t mSrCount;
-    int32_t mPqCount;
-    int32_t mColorCount;
-    int32_t mDiCount;
+
+    std::vector<std::shared_ptr<DrmFramebuffer>> mVideoFbs;
 
     std::vector<std::shared_ptr<FbProcessor>> mSrProcessors;
     std::vector<std::shared_ptr<FbProcessor>> mPqProcessors;
     std::vector<std::shared_ptr<FbProcessor>> mColorProcessors;
     std::vector<std::shared_ptr<FbProcessor>> mDiProcessors;
-    std::vector<std::shared_ptr<FbProcessor>> mProcessors;
 
     std::map<hwc2_layer_t, std::vector<std::shared_ptr<FbProcessor>>> mFbProcessorsPairs;
     std::map<hwc2_layer_t, bool> mResetFlagPairs;

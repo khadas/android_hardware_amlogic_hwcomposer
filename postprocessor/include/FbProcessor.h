@@ -59,6 +59,12 @@ public:
     virtual void enableSyncProtection(bool mode __unused) {return;};
 
     virtual meson_fb_processor_t getFbProcessorType() = 0;
+
+    virtual void setUseLayerId(hwc2_layer_t & id) {mUseLayerId = id;};
+    virtual hwc2_layer_t getUseLayerId() {return mUseLayerId;};
+
+private:
+    hwc2_layer_t mUseLayerId = 0;
 };
 
 int32_t createFbProcessor(meson_fb_processor_t type, std::shared_ptr<FbProcessor> & processor);

@@ -130,8 +130,6 @@ int32_t VtConsumer::onVtCmds(vt_cmd_t & cmd, vt_cmd_data_t & cmdData) {
 }
 
 int32_t VtConsumer::onVtFrameDisplayed(int bufferFd, int fenceFd) {
-    MESON_LOGV("[%s] [%s] bufferFd=%d, fenceFd=%d",
-            __func__, mName, bufferFd, fenceFd);
     if (mReleaseListener) {
         return mReleaseListener->onFrameDisplayed(bufferFd, fenceFd);
     } else {
@@ -141,8 +139,6 @@ int32_t VtConsumer::onVtFrameDisplayed(int bufferFd, int fenceFd) {
 
 int32_t VtConsumer::onFrameAvailable(
         std::vector<std::shared_ptr<VtBufferItem>> & items) {
-    MESON_LOGV("[%s] [%s] items.size=%zu",
-            __func__, mName, items.size());
     if (mContentListener && mContentListener.get()) {
         return mContentListener->onFrameAvailable(items);
     } else {

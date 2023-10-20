@@ -8,6 +8,7 @@
  */
 #define LOG_NDEBUG 1
 
+#include <utils/Trace.h>
 #include <MesonLog.h>
 #include <DebugHelper.h>
 #include <HwcConfig.h>
@@ -15,10 +16,6 @@
 #include "VideoProcessorsManager.h"
 
 VideoProcessorsManager::VideoProcessorsManager() {
-    mSrCount = 0;
-    mPqCount = 0;
-    mColorCount = 0;
-    mDiCount = 0;
     mSrProcessors.clear();
     mPqProcessors.clear();
     mColorProcessors.clear();
@@ -31,16 +28,49 @@ VideoProcessorsManager::~VideoProcessorsManager() {
     tearDownAllProcessors();
 }
 
+void VideoProcessorsManager::destroyUnusedProcessor(
+        std::vector<std::shared_ptr<FbProcessor>> & processors) {
+    bool bRemove = true;
+
+    if (processors.empty())
+        return;
+
+    for (auto prIt = processors.begin(); prIt != processors.end(); ) {
+        bRemove = true;
+
+        for (auto fbIt = mVideoFbs.begin(); fbIt != mVideoFbs.end(); fbIt++) {
+            if ((*fbIt)->getUniqueId() == (*prIt)->getUseLayerId()) {
+                bRemove = false;
+                break;
+            }
+        }
+
+        if (bRemove) {
+            MESON_LOGV("%s, teardown processor(%d) for layerId %" PRIu64,
+                    __FUNCTION__, (*prIt)->getFbProcessorType(),
+                    (*prIt)->getUseLayerId());
+            (*prIt)->teardown();
+            prIt = processors.erase(prIt);
+        } else {
+            prIt++;
+        }
+    }
+}
+
 // need to be called before setup processor
 void VideoProcessorsManager::prepare(
         std::vector<std::shared_ptr<DrmFramebuffer>> & fbs) {
+    mVideoFbs.clear();
+    mVideoFbs = fbs;
     mVideoFbsNum = fbs.size();
-    mSrCount = 0;
-    mPqCount = 0;
-    mColorCount = 0;
-    mDiCount = 0;
 
     mFbProcessorsPairs.clear();
+
+    // remove processor for destroy layer
+    destroyUnusedProcessor(mDiProcessors);
+    destroyUnusedProcessor(mSrProcessors);
+    destroyUnusedProcessor(mPqProcessors);
+    destroyUnusedProcessor(mColorProcessors);
 
     for (auto search = mResetFlagPairs.begin();
             search != mResetFlagPairs.end(); ) {
@@ -68,7 +98,10 @@ void VideoProcessorsManager::prepare(
 
 int VideoProcessorsManager::setUpAiSrProcessor() {
     std::shared_ptr<FbProcessor> processor;
+    std::vector<hwc2_layer_t> layerIds;
+    hwc2_layer_t id;
     int i, num, needMaxNum, supportChannelNum;
+    bool bFlag = false;
 
     if (mVideoFbsNum != 1) {
         /* TODO: currently only support one channel video for Aisr.
@@ -80,26 +113,46 @@ int VideoProcessorsManager::setUpAiSrProcessor() {
 
     if (!DebugHelper::getInstance().disableAISRAIPQ() &&
         HwcConfig::AiSrProcessorEnabled()) {
+        for (auto fbIt = mVideoFbs.begin(); fbIt != mVideoFbs.end(); fbIt++) {
+            id = (*fbIt)->getUniqueId();
+            bFlag = false;
+
+            auto prIt = mSrProcessors.begin();
+            for (; prIt != mSrProcessors.end(); prIt++) {
+                if (id == (*prIt)->getUseLayerId()) {
+                    bFlag = true;
+                    break;
+                }
+            }
+
+            if (!bFlag) layerIds.push_back(id);
+        }
+
         // setup AiSrprocessor
         supportChannelNum = HwcConfig::getSupportAiSrChannelNumber();
         needMaxNum =
             mVideoFbsNum > supportChannelNum ? supportChannelNum : mVideoFbsNum;
 
-        MESON_LOGV("%s: create %d channel AISR processor", __FUNCTION__, needMaxNum);
+        MESON_LOGV("%s: create %d channel AISR processor",
+                __FUNCTION__, needMaxNum);
         if (mSrProcessors.size() < needMaxNum) {
             num = needMaxNum - mSrProcessors.size();
+            if (num > layerIds.size()) {
+                MESON_LOGE("%s, setup AISR processor failed", __FUNCTION__);
+                return 0;
+            }
+
             for (i = 0; i < num; i++) {
+                MESON_LOGV("%s: create AISR processor for layerID:%" PRIu64,
+                        __FUNCTION__, (*layerIds.begin()));
                 createFbProcessor(FB_AISR_PROCESSOR, processor);
                 processor->setup();
+                processor->setUseLayerId(*layerIds.begin());
+                layerIds.erase(layerIds.begin());
                 mSrProcessors.push_back(processor);
             }
         } else if (mSrProcessors.size() > needMaxNum) {
-            num = mSrProcessors.size() - needMaxNum;
-            for (i = 0; i < num; i++) {
-                MESON_LOGV("%s: teardown one AISR processor", __FUNCTION__);
-                (*mSrProcessors.begin())->teardown();
-                mSrProcessors.erase(mSrProcessors.begin());
-            }
+            MESON_LOGW("%s: AISR, that should be impossible", __FUNCTION__);
         }
     }
 
@@ -108,7 +161,10 @@ int VideoProcessorsManager::setUpAiSrProcessor() {
 
 int VideoProcessorsManager::setUpAiPqProcessor() {
     std::shared_ptr<FbProcessor> processor;
+    std::vector<hwc2_layer_t> layerIds;
+    hwc2_layer_t id;
     int i, num, needMaxNum, supportChannelNum;
+    bool bFlag = false;
 
     if (mVideoFbsNum != 1) {
         /* TODO: currently only support one channel video for Aipq.
@@ -120,26 +176,46 @@ int VideoProcessorsManager::setUpAiPqProcessor() {
 
     if (!DebugHelper::getInstance().disableAISRAIPQ() &&
         HwcConfig::AiPqProcessorEnabled()) {
+        for (auto fbIt = mVideoFbs.begin(); fbIt != mVideoFbs.end(); fbIt++) {
+            id = (*fbIt)->getUniqueId();
+            bFlag = false;
+
+            auto prIt = mPqProcessors.begin();
+            for (; prIt != mPqProcessors.end(); prIt++) {
+                if (id == (*prIt)->getUseLayerId()) {
+                    bFlag = true;
+                    break;
+                }
+            }
+
+            if (!bFlag) layerIds.push_back(id);
+        }
+
         // setup AiPqprocessor
         supportChannelNum = HwcConfig::getSupportAiPqChannelNumber();
         needMaxNum =
             mVideoFbsNum > supportChannelNum ? supportChannelNum : mVideoFbsNum;
 
-        MESON_LOGV("%s: create %d channel AIPQ processor", __FUNCTION__, needMaxNum);
+        MESON_LOGV("%s: create %d channel AIPQ processor",
+                __FUNCTION__, needMaxNum);
         if (mPqProcessors.size() < needMaxNum) {
             num = needMaxNum - mPqProcessors.size();
+            if (num > layerIds.size()) {
+                MESON_LOGW("%s, setup AIPQ processor failed", __FUNCTION__);
+                return 0;
+            }
+
             for (i = 0; i < num; i++) {
+                MESON_LOGV("%s: create AIPQ processor for layerID:%" PRIu64,
+                        __FUNCTION__, (*layerIds.begin()));
                 createFbProcessor(FB_AIPQ_PROCESSOR, processor);
                 processor->setup();
+                processor->setUseLayerId(*layerIds.begin());
+                layerIds.erase(layerIds.begin());
                 mPqProcessors.push_back(processor);
             }
         } else if (mPqProcessors.size() > needMaxNum) {
-            num = mPqProcessors.size() - needMaxNum;
-            for (i = 0; i < num; i++) {
-                MESON_LOGV("%s: teardown one AIPQ processor", __FUNCTION__);
-                (*mPqProcessors.begin())->teardown();
-                mPqProcessors.erase(mPqProcessors.begin());
-            }
+            MESON_LOGW("%s: AIPQ, that should be impossible", __FUNCTION__);
         }
     }
 
@@ -148,7 +224,10 @@ int VideoProcessorsManager::setUpAiPqProcessor() {
 
 int VideoProcessorsManager::setUpAiColorProcessor() {
     std::shared_ptr<FbProcessor> processor;
+    std::vector<hwc2_layer_t> layerIds;
+    hwc2_layer_t id;
     int i, num, needMaxNum, supportChannelNum;
+    bool bFlag = false;
 
     if (mVideoFbsNum != 1) {
         /* TODO: currently only support one channel video for Aisr.
@@ -160,26 +239,46 @@ int VideoProcessorsManager::setUpAiColorProcessor() {
 
     if (!DebugHelper::getInstance().disableAISRAIPQ() &&
         HwcConfig::AiColorProcessorEnabled()) {
+        for (auto fbIt = mVideoFbs.begin(); fbIt != mVideoFbs.end(); fbIt++) {
+            id = (*fbIt)->getUniqueId();
+            bFlag = false;
+
+            auto prIt = mColorProcessors.begin();
+            for (; prIt != mColorProcessors.end(); prIt++) {
+                if (id == (*prIt)->getUseLayerId()) {
+                    bFlag = true;
+                    break;
+                }
+            }
+
+            if (!bFlag) layerIds.push_back(id);
+        }
+
         // setup AiSrprocessor
         supportChannelNum = HwcConfig::getSupportAiColorChannelNumber();
         needMaxNum =
             mVideoFbsNum > supportChannelNum ? supportChannelNum : mVideoFbsNum;
 
-        MESON_LOGV("%s: create %d channel AICOLOR processor", __FUNCTION__, needMaxNum);
+        MESON_LOGV("%s: create %d channel AICOLOR processor",
+                __FUNCTION__, needMaxNum);
         if (mColorProcessors.size() < needMaxNum) {
-            num = needMaxNum - mSrProcessors.size();
+            num = needMaxNum - mColorProcessors.size();
+            if (num > layerIds.size()) {
+                MESON_LOGE("%s, setup AICOLOR processor failed", __FUNCTION__);
+                return 0;
+            }
+
             for (i = 0; i < num; i++) {
+                MESON_LOGV("%s: create AICOLOR processor for layerID:%" PRIu64,
+                        __FUNCTION__, (*layerIds.begin()));
                 createFbProcessor(FB_AICOLOR_PROCESSOR, processor);
                 processor->setup();
+                processor->setUseLayerId(*layerIds.begin());
+                layerIds.erase(layerIds.begin());
                 mColorProcessors.push_back(processor);
             }
         } else if (mColorProcessors.size() > needMaxNum) {
-            num = mColorProcessors.size() - needMaxNum;
-            for (i = 0; i < num; i++) {
-                MESON_LOGV("%s: teardown one AICOLOR processor", __FUNCTION__);
-                (*mColorProcessors.begin())->teardown();
-                mColorProcessors.erase(mColorProcessors.begin());
-            }
+            MESON_LOGW("%s: AICOLOR, that should be impossible", __FUNCTION__);
         }
     }
 
@@ -188,31 +287,50 @@ int VideoProcessorsManager::setUpAiColorProcessor() {
 
 int VideoProcessorsManager::setUpDiProcessor() {
     std::shared_ptr<FbProcessor> processor;
+    std::vector<hwc2_layer_t> layerIds;
+    hwc2_layer_t id;
     int i, num, needMaxNum, supportChannelNum;
+    bool bFlag = false;
 
     if (!DebugHelper::getInstance().disableDi() &&
         HwcConfig::DiProcessorEnabled()) {
+        for (auto fbIt = mVideoFbs.begin(); fbIt != mVideoFbs.end(); fbIt++) {
+            id = (*fbIt)->getUniqueId();
+            bFlag = false;
+
+            auto prIt = mDiProcessors.begin();
+            for (; prIt != mDiProcessors.end(); prIt++) {
+                if (id == (*prIt)->getUseLayerId()) {
+                    bFlag = true;
+                    break;
+                }
+            }
+
+            if (!bFlag) layerIds.push_back(id);
+        }
+
         supportChannelNum = HwcConfig::getSupportDiChannelNumber();
         needMaxNum =
             mVideoFbsNum > supportChannelNum ? supportChannelNum : mVideoFbsNum;
 
-        MESON_LOGV("%s: create %d channel DI processor", __FUNCTION__, needMaxNum);
         if (mDiProcessors.size() < needMaxNum) {
             num = needMaxNum - mDiProcessors.size();
+            if (num > layerIds.size()) {
+                MESON_LOGE("%s, setup DI processor failed", __FUNCTION__);
+                return 0;
+            }
+
             for (i = 0; i < num; i++) {
+                MESON_LOGV("%s: create DI processor for layerID:%" PRIu64,
+                        __FUNCTION__, (*layerIds.begin()));
                 createFbProcessor(FB_DI_PROCESSOR, processor);
                 processor->setup();
+                processor->setUseLayerId(*layerIds.begin());
+                layerIds.erase(layerIds.begin());
                 mDiProcessors.push_back(processor);
-                MESON_LOGD("%s: create one DI processor, DI processors count:%" PRIuFAST16,
-                        __FUNCTION__, mDiProcessors.size());
             }
         } else if (mDiProcessors.size() > needMaxNum) {
-            num = mDiProcessors.size() - needMaxNum;
-            for (i = 0; i < num; i++) {
-                MESON_LOGV("%s: teardown one DI processor", __FUNCTION__);
-                (*mDiProcessors.begin())->teardown();
-                mDiProcessors.erase(mDiProcessors.begin());
-            }
+            MESON_LOGW("%s: AISR, that should be impossible", __FUNCTION__);
         }
     }
 
@@ -222,6 +340,7 @@ int VideoProcessorsManager::setUpDiProcessor() {
 int VideoProcessorsManager::setUpAllProcessors() {
     setUpAiSrProcessor();
     setUpAiPqProcessor();
+    setUpAiColorProcessor();
     setUpDiProcessor();
 
     return 0;
@@ -280,6 +399,7 @@ void VideoProcessorsManager::tearDownAllProcessors() {
 
 bool VideoProcessorsManager::resetProcessors (
         std::shared_ptr<DrmFramebuffer> & fb){
+    ATRACE_INT64("resetProcessors", fb->getUniqueId());
     //fb is not update
     if (!fb.get())
         return false;
@@ -300,7 +420,7 @@ bool VideoProcessorsManager::resetProcessors (
             return true;
     }
 
-    MESON_LOGD("%s, reset processors for layerId:%" PRIu64,
+    MESON_LOGV("%s, reset processors for layerId:%" PRIu64,
             __FUNCTION__, fb->getUniqueId());
     for (auto it = search->second.begin(); it != search->second.end(); it++) {
         if ((*it).get()) {
@@ -357,42 +477,34 @@ int VideoProcessorsManager::resetAllProcessors() {
 
 void VideoProcessorsManager::setProcessors(
         std::shared_ptr<DrmFramebuffer>& fb) {
+    hwc2_layer_t layerId = fb->getUniqueId();
 
-    std::vector<std::shared_ptr<FbProcessor>> processors;
-    if (mDiCount < mDiProcessors.size()) {
-        MESON_LOGV("%s: add DI processor(%d) for fbId: %" PRIu64,
-                __FUNCTION__, mDiCount, fb->getUniqueId());
-        /* DI Processor need top of the list */
-        processors.push_back(mDiProcessors[mDiCount]);
-        mDiCount++;
+    std::vector<std::shared_ptr<FbProcessor>> vProcessors;
+
+    std::vector<std::vector<std::shared_ptr<FbProcessor>>> allProcessors = {
+        mDiProcessors, mSrProcessors, mPqProcessors, mColorProcessors,
+    };
+
+    // remove processor for destroy layer
+    auto prIts = allProcessors.begin();
+    for (; prIts != allProcessors.end(); prIts++) {
+        std::vector<std::shared_ptr<FbProcessor>> prs = (*prIts);
+        for (auto prIt = prs.begin(); prIt != prs.end(); prIt++) {
+            if (layerId == (*prIt)->getUseLayerId()) {
+                MESON_LOGV("%s: add processor(%d) for fbId: %" PRIu64,
+                        __FUNCTION__, (*prIt)->getFbProcessorType(), layerId);
+                vProcessors.push_back(*prIt);
+                break;
+            }
+        }
     }
 
-    if (mSrCount < mSrProcessors.size()) {
-        MESON_LOGV("%s: add AISR processor(%d) for fbId: %" PRIu64,
-                __FUNCTION__, mSrCount, fb->getUniqueId());
-        processors.push_back(mSrProcessors[mSrCount]);
-        mSrCount++;
-    }
-
-    if (mPqCount < mPqProcessors.size()) {
-        MESON_LOGV("%s: add AIPQ processor(%d) for fbId: %" PRIu64,
-                __FUNCTION__, mPqCount, fb->getUniqueId());
-        processors.push_back(mPqProcessors[mPqCount]);
-        mPqCount++;
-    }
-
-    if (mColorCount < mColorProcessors.size()) {
-        MESON_LOGV("%s: add AIPQ processor(%d) for fbId: %" PRIu64,
-                __FUNCTION__, mColorCount, fb->getUniqueId());
-        processors.push_back(mColorProcessors[mColorCount]);
-        mColorCount++;
-    }
-
-    mFbProcessorsPairs.emplace(fb->getUniqueId(), processors);
+    mFbProcessorsPairs.emplace(layerId, vProcessors);
 }
 
 void VideoProcessorsManager::setup(
         std::vector<std::shared_ptr<DrmFramebuffer>> & fbs) {
+    ATRACE_CALL();
     prepare(fbs);
     setUpAllProcessors();
 
@@ -406,6 +518,7 @@ bool VideoProcessorsManager::runProcessors(
         std::shared_ptr<HwDisplayPlane> & plane,
         uint32_t presentZorder,
         int blankFlag) {
+    ATRACE_CALL();
     bool hasProcessor = false;
     bool hasDiProcessor = false;
     int processFence = -1;
@@ -441,8 +554,6 @@ bool VideoProcessorsManager::runProcessors(
             }
 
             (*it)->asyncProcess(inFb, outFb, processFence);
-            MESON_LOGV("%s, processor:%d return fence:%d",
-                    __func__, (*it)->getFbProcessorType(), processFence);
 
             outFb->setProcessFence((processFence >= 0) ? dup(processFence) : -1);
             inFb = outFb;
@@ -502,6 +613,7 @@ bool VideoProcessorsManager::runProcessors(
         std::vector<std::shared_ptr<DrmFramebuffer>> & fbs,
         std::shared_ptr<VideoComposerDev> dev,
         uint32_t z) {
+    ATRACE_CALL();
     bool hasProcessor = false;
     bool hasDiProcessor = false;
     int processFence = -1;

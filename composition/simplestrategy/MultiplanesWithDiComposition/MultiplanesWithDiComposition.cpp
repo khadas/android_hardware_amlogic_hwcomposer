@@ -267,7 +267,7 @@ int MultiplanesWithDiComposition::chooseOneVideoFbBaseVideoType(
     }
 
     if (outputVideoFb.get())
-        MESON_LOGV("[%s] choose the fb, LayerId:%" PRIu64 " videoType:%x",
+        MESON_LOGV("[%s] choose the fb, LayerId:%" PRIu64 " videoType:0x%x",
                 __func__, outputVideoFb->getUniqueId(), outputVideoFb->getVideoType());
 
     return 0;
