@@ -284,18 +284,6 @@ int32_t ModePolicy::setHdrStrategy(int32_t policy, const char *type) {
     std::string value = std::to_string(policy);
     setBootEnv(UBOOTENV_HDR_POLICY, value.c_str());
 
-    if (policy == MESON_HDR_POLICY_SOURCE) {
-        if (isDolbyVisionEnable()) {
-            setBootEnv(UBOOTENV_DOLBYSTATUS, "0");
-        }
-    } else {
-        char dvstatus[MESON_MODE_LEN] = {0};
-        if (isDolbyVisionEnable()) {
-            sprintf(dvstatus, "%d", mSceneOutInfo.dv_type);
-            setBootEnv(UBOOTENV_DOLBYSTATUS, dvstatus);
-        }
-    }
-
     int32_t priority = MESON_HDR10_PRIORITY;
     value = std::to_string(MESON_HDR10_PRIORITY);
     if (strstr(type, DV_DISABLE_FORCE_SDR)) {
@@ -1025,14 +1013,16 @@ void ModePolicy::saveHdmiParamToEnv() {
     }
 
     // 2. save coloattr/hdmimode to bootenv if mode is not null or dummy_l
-    if (strstr(outputMode, "cvbs") != NULL) {
+    if (strstr(outputMode, "cvbs") != NULL
+        || strstr(outputMode, "pal") != NULL
+        || strstr(outputMode, "ntsc") != NULL) {
         setBootEnv(UBOOTENV_CVBSMODE, (char *)outputMode);
     } else if (strcmp(outputMode, "null") && strcmp(outputMode, "dummy_l")) {
         std::string colorAttr;
         char colorDepth[MESON_MODE_LEN] = {0};
         char colorSpace[MESON_MODE_LEN] = {0};
         char dvstatus[MESON_MODE_LEN]   = {0};
-        char hdr_policy[MESON_MODE_LEN] = {0};
+
         // 2.1 save color attr
         getDisplayAttribute(DISPLAY_HDMI_COLOR_ATTR, colorAttr);
         saveDeepColorAttr(outputMode, colorAttr.c_str());
@@ -1055,22 +1045,12 @@ void ModePolicy::saveHdmiParamToEnv() {
         // In follow sink mode: 0:disable 1:STD(or enable dv) 2:LL YUV 3: LL RGB
         // In follow source mode: dv is disable  in uboot.
         if (isMboxSupportDolbyVision()) {
-            char hdr_force_mode[MESON_MODE_LEN] = {0};
-            memset(hdr_force_mode, 0, MESON_MODE_LEN);
-            getBootEnv(UBOOTENV_HDR_FORCE_MODE, hdr_force_mode);
-            getHdrStrategy(hdr_policy);
-            if (!strcmp(hdr_policy, MESON_HDR_POLICY[MESON_HDR_POLICY_SOURCE]) ||
-                   (!strcmp(hdr_policy, DV_POLICY_FORCE_MODE) && !strcmp(hdr_force_mode, FORCE_HDR10))) {
-                sprintf(dvstatus, "%d", 0);
-            } else {
-                sprintf(dvstatus, "%d", mSceneOutInfo.dv_type);
-            }
+            sprintf(dvstatus, "%d", mSceneOutInfo.dv_type);
             setBootEnv(UBOOTENV_DOLBYSTATUS, dvstatus);
-
             setBootEnv(UBOOTENV_DV_ENABLE, mDvInfo.dv_enable);
 
-            MESON_LOGI("dvstatus %s dv_type %d dv_enable %s hdr_policy %s hdr_force_mode %s \n",
-                dvstatus, mSceneOutInfo.dv_type, mDvInfo.dv_enable, hdr_policy, hdr_force_mode);
+            MESON_LOGI("dvstatus %s dv_type %d dv_enable %s\n",
+                dvstatus, mSceneOutInfo.dv_type, mDvInfo.dv_enable);
 
         } else {
             MESON_LOGI("MBOX is not support dv, dvstatus %s dv_type %d dv_enable %s\n",

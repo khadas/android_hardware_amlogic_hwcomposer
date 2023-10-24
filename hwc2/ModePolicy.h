@@ -72,17 +72,7 @@
 #define UBOOTENV_EDIDCRCVALUE           "ubootenv.var.hdmichecksum"
 #define UBOOTENV_HDMICOLORSPACE         "ubootenv.var.hdmi_colorspace"
 #define UBOOTENV_HDMICOLORDEPTH         "ubootenv.var.hdmi_colordepth"
-#define UBOOTENV_DOLBYSTATUS            "ubootenv.var.dolby_status"
-/*
- * save user set dv mode
- * systemcontrol output dv signal base this value
- * 0:disable dv
- * 1:sink-led
- * 2:source-led
- */
-#define UBOOTENV_USER_DV_TYPE                "ubootenv.var.user_prefer_dv_type"
 
-#define UBOOTENV_DV_ENABLE              "ubootenv.var.dv_enable"
 #define UBOOTENV_FRAC_RATE_POLICY       "ubootenv.var.frac_rate_policy"
 #define UBOOTENV_HDR_PRIORITY           "ubootenv.var.hdr_priority"
 #define UBOOTENV_SDR2HDR                "ubootenv.var.sdr2hdr"

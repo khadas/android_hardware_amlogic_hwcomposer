@@ -26,12 +26,38 @@ extern "C" {
 #define UBOOTENV_USER_COLORATTRIBUTE   "ubootenv.var.user_colorattribute"
 
 /*
+ * save hdmi output dv mode
+ * uboot output dv signal base this value
+ * 0:dv disable
+ * 1:sink-led
+ * 2:source-led
+ */
+#define UBOOTENV_DOLBYSTATUS            "ubootenv.var.dolby_status"
+
+/*
+ * save user set dv mode
+ * hdmi output dv signal base this value
+ * 0:disable dv
+ * 1:sink-led
+ * 2:source-led
+ */
+#define UBOOTENV_USER_DV_TYPE                "ubootenv.var.user_prefer_dv_type"
+
+/*
+ * save user prefer dv enable or disable
+ * 0:disable
+ * 1:enable
+ */
+#define UBOOTENV_DV_ENABLE              "ubootenv.var.dv_enable"
+
+/*
  * save user prefer hdr policy
  * 0:always hdr(output signal base TV)
  * 1:adaptive hdr(output signal base tv and play content)
  * 2:force hdr(output signal base hdr_force_mode)
  */
 #define UBOOTENV_HDR_POLICY             "ubootenv.var.hdr_policy"
+
 /*
  * save user force hdr mode
  * 0:invalid hdr mode
