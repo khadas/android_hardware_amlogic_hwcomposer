@@ -177,7 +177,7 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
         mPreUvmBufferFd = -1;
     }
 
-    if (buffer == NULL) {
+    if (buffer == NULL || mBufferHandle == NULL) {
         MESON_LOGE("Receive null buffer, it is impossible.");
         mFbType = DRM_FB_UNDEFINED;
         return HWC2_ERROR_NONE;
@@ -186,30 +186,30 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
     /*set mFbType by usage of GraphicBuffer.*/
     if (mHwcCompositionType == HWC2_COMPOSITION_CURSOR) {
         mFbType = DRM_FB_CURSOR;
-    } else if (am_gralloc_is_uvm_dma_buffer(buffer)) {
+    } else if (am_gralloc_is_uvm_dma_buffer(mBufferHandle)) {
         mFbType = DRM_FB_VIDEO_UVM_DMA;
-        int bufFd = am_gralloc_get_buffer_fd(buffer);
+        int bufFd = am_gralloc_get_buffer_fd(mBufferHandle);
         if (bufFd >= 0) {
             mPreUvmBufferFd = dup(bufFd);
             attachUvmBuffer(mPreUvmBufferFd);
             getVideoInfoFromUVM(bufFd);
         }
-    } else if (am_gralloc_is_omx_metadata_buffer(buffer)) {
+    } else if (am_gralloc_is_omx_metadata_buffer(mBufferHandle)) {
         int tunnel = 0;
-        int ret = am_gralloc_get_omx_metadata_tunnel(buffer, &tunnel);
+        int ret = am_gralloc_get_omx_metadata_tunnel(mBufferHandle, &tunnel);
         if (ret != 0)
             return HWC2_ERROR_BAD_LAYER;
         if (tunnel == 0)
             mFbType = DRM_FB_VIDEO_OMX_PTS;
         else
             mFbType = DRM_FB_VIDEO_OMX_PTS_SECOND;
-    } else if (am_gralloc_is_overlay_buffer(buffer)) {
+    } else if (am_gralloc_is_overlay_buffer(mBufferHandle)) {
         mFbType = DRM_FB_VIDEO_OVERLAY;
-    } else if (am_gralloc_get_width(buffer) <= 1 && am_gralloc_get_height(buffer) <= 1) {
+    } else if (am_gralloc_get_width(mBufferHandle) <= 1 && am_gralloc_get_height(mBufferHandle) <= 1) {
         //For the buffer which size is 1x1, we treat it as a dim layer.
-        handleDimLayer(buffer);
-    } else if (am_gralloc_is_coherent_buffer(buffer)) {
-        if (am_gralloc_get_format(buffer) == HAL_PIXEL_FORMAT_YCrCb_420_SP)
+        handleDimLayer(mBufferHandle);
+    } else if (am_gralloc_is_coherent_buffer(mBufferHandle)) {
+        if (am_gralloc_get_format(mBufferHandle) == HAL_PIXEL_FORMAT_YCrCb_420_SP)
             mFbType = DRM_FB_VIDEO_DMABUF;
         else
             mFbType = DRM_FB_SCANOUT;
