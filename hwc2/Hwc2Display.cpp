@@ -986,6 +986,7 @@ hwc2_error_t Hwc2Display::setCalibrateInfo(int32_t caliX,int32_t caliY,int32_t c
 void Hwc2Display::outsideChanged(){
     /*outside hwc has changes need do validate first*/
     mOutsideChanged= true;
+    mObserver->refresh();
 }
 
 void Hwc2Display::createVirtualLayer() {
