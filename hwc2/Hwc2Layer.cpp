@@ -643,14 +643,17 @@ int32_t Hwc2Layer::releaseVtBuffer() {
     }
 
     // remove it from the queueItems
-    mQueueItems.pop_front();
+    if (mVtBufferFd >= 0)
+        mQueueItems.pop_front();
 
     // First release vt buffer, save to the previous
     if (mPreVtBufferFd < 0) {
-        mPreVtBufferFd = mVtBufferFd;
-        mVtUpdate = false;
-        mVtBufferFd = -1;
-        setVtPrevReleaseFence();
+        if (mVtBufferFd >= 0) {
+            mPreVtBufferFd = mVtBufferFd;
+            mVtUpdate = false;
+            mVtBufferFd = -1;
+            setVtPrevReleaseFence();
+        }
         return 0;
     }
 
