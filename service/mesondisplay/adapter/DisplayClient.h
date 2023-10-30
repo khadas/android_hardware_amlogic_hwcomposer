@@ -34,6 +34,7 @@ using IMapper_4_0 = ::android::hardware::graphics::mapper::V4_0::IMapper;
 class DisplayClient {
 public:
     ~DisplayClient() = default;
+    bool reconnect();
     bool tryGetService();
     int32_t send_request_wait_reply(Json::Value& data, Json::Value& out);
     int32_t send_request(Json::Value& data);
@@ -54,6 +55,18 @@ private:
     bool importBuffer(hidl_handle &rawHandle, const native_handle_t** outBufferHandle);
 
     bool mMapper_ready;
+
+    struct DisplayServerDeathRecipient : public android::hardware::hidl_death_recipient {
+        DisplayServerDeathRecipient(DisplayClient *client): mClient(client) {};
+
+        // hidl_death_recipient interface
+        virtual void serviceDied(uint64_t cookie,
+            const ::android::wp<::android::hidl::base::V1_0::IBase>& who) override;
+        private:
+            DisplayClient *mClient;
+    };
+
+    sp<DisplayServerDeathRecipient> mDisplayServerDeathRecipient = NULL;
 
     static std::mutex sLock;
     static DisplayClient *sInstance;

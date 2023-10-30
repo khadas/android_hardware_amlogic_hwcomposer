@@ -69,7 +69,28 @@ bool DisplayClient::tryGetService() {
     else
         is_ready = false;
 
+    if (meson_ipc_client) {
+        mDisplayServerDeathRecipient = new DisplayServerDeathRecipient(this);
+        Return<bool> linked = meson_ipc_client->linkToDeath(mDisplayServerDeathRecipient, /*cookie*/ 0);
+        if (!linked.isOk()) {
+            MESON_LOGE("Transaction error in linking to display server death: %s", linked.description().c_str());
+        } else if (!linked) {
+            MESON_LOGE("Unable to link to display server death notifications");
+        } else {
+            MESON_LOGD("Link to display server death notification successful");
+        }
+    } else {
+        MESON_LOGE("get display server fail");
+    }
+
     return is_ready;
+}
+
+bool DisplayClient::reconnect() {
+    meson_ipc_client = nullptr;
+    is_ready = false;
+
+    return tryGetService();
 }
 
 int32_t DisplayClient::send_request_wait_reply(Json::Value& data, Json::Value& out) {
@@ -207,6 +228,15 @@ bool DisplayClient::importBuffer(hidl_handle &rawHandle, const native_handle_t**
 
     *outBufferHandle = bufferHandle;
     return true;
+}
+
+void DisplayClient::DisplayServerDeathRecipient::serviceDied(uint64_t cookie,
+    const ::android::wp<::android::hidl::base::V1_0::IBase>& who) {
+    UNUSED(cookie);
+    UNUSED(who);
+
+    MESON_LOGE("Display Server died.");
+    mClient->reconnect();
 }
 
 } // meson
