@@ -308,6 +308,19 @@ ndk::ScopedAStatus ComposerClient::createLayer(int64_t displayId,
         // Note: We do not destroy the layer on this error as the hotplug
         // disconnect invalidates the display id. The implementation should
         // ensure all layers for the display are destroyed.
+         error = mHal->destroyLayer(displayId, *layerId);
+         if (error != HWC3::Error::None) {
+                 ALOGE("%s: display:%" PRIu64 " failed to destroy layer:%" PRIu64,
+                       __FUNCTION__, displayId, *layerId);
+                  return ToBinderStatus(error);
+         }
+
+         error = mResources->removeLayer(displayId, *layerId);
+         if (error != HWC3::Error::None) {
+                 ALOGE("%s: display:%" PRIu64 " resources failed to destroy layer:%" PRIu64,
+                       __FUNCTION__, displayId, *layerId);
+                 return ToBinderStatus(error);
+         }
          *layerId = 0;
          return ToBinderStatus(error);
     }
