@@ -238,7 +238,7 @@ bool DisplayAdapterRemote::setUbootenv(
         return false;
     IF_SERVER_NOT_READY_RETURN(false);
     cmd["cmd"] = "setUbootenv";
-    cmd["path"] = key.c_str();
+    cmd["key"] = key.c_str();
     cmd["value"] = value.c_str();
     ipc->send_request(cmd);
     return true;
@@ -251,7 +251,7 @@ bool DisplayAdapterRemote::getUbootenv(
         return false;
     IF_SERVER_NOT_READY_RETURN(false);
     cmd["cmd"] = "getUbootenv";
-    cmd["path"] = key.c_str();
+    cmd["key"] = key.c_str();
     ipc->send_request_wait_reply(cmd, ret);
     if (ret.isMember("ret") && ret["ret"]["value"].isString()) {
         value = ret["ret"]["value"].asString();

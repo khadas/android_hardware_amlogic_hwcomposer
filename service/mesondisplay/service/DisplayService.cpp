@@ -230,7 +230,17 @@ void DisplayServer::message_handle(Json::Value& in, Json::Value& out) {
         if (in["value"].asString() == "true" )
             mode = true;
         mAdapter->hideVideoLayer(mode);
-    } else if (cmd == "disableSidebandStream") {
+    } else if (cmd == "setUbootenv"){
+        if (!in.isMember("key") || !in.isMember("value"))
+            goto OUT;
+        mAdapter->setUbootenv(in["key"].asString(), in["value"].asString());
+    } else if (cmd == "getUbootenv") {
+        std::string value;
+        if (!in.isMember("key"))
+            goto OUT;
+        mAdapter->getUbootenv(in["key"].asString(),value);
+        ret["value"] = value;
+    }else if (cmd == "disableSidebandStream") {
         if (!in.isMember("value"))
             goto OUT;
         bool isDisable = false;
