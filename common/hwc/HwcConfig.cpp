@@ -58,7 +58,17 @@ int32_t HwcConfig::getFramebufferSize(int disp, uint32_t & width, uint32_t & hei
 }
 
 uint32_t HwcConfig::getDisplayNum() {
-    return HWC_DISPLAY_NUM;
+    static uint32_t displayNum = -1;
+    if (displayNum  == -1 ) {
+        char prop[PROPERTY_VALUE_MAX] = {0};
+        if (sys_get_string_prop("persist.vendor.hwc.display_number", prop) > 0) {
+            displayNum = atoi(prop);
+        } else {
+            displayNum = HWC_DISPLAY_NUM;
+        }
+        MESON_LOGD("displayNum %d",displayNum);
+    }
+    return displayNum;
 }
 
 uint32_t HwcConfig::getConnectorType(int disp) {
@@ -142,10 +152,15 @@ uint32_t HwcConfig::getConnectorType(int disp) {
 
 hwc_pipe_policy_t HwcConfig::getPipeline() {
     const char * pipeStr = "default";
+    char prop[PROPERTY_VALUE_MAX] = {0};
+    if (sys_get_string_prop("persist.vendor.hwc.pipeline", prop) > 0) {
+        pipeStr = prop;
+        MESON_LOGD("pipeStr %s", pipeStr);
+    } else {
 #ifdef HWC_PIPELINE
-    pipeStr = HWC_PIPELINE;
+        pipeStr = HWC_PIPELINE;
 #endif
-
+    }
     if (strcasecmp(pipeStr, "default") == 0) {
         return HWC_PIPE_DEFAULT;
     } else if (strcasecmp(pipeStr, "dual") == 0) {
