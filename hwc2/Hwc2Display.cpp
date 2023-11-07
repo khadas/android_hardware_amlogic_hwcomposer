@@ -2283,7 +2283,8 @@ void Hwc2Display::dump(String8 & dumpstr) {
             mObserver->refresh();
         }
     }
-
+    if (mModePolicy)
+        mModePolicy->dump(dumpstr);
     /*dump*/
     dumpstr.append("---------------------------------------------------------"
         "-----------------------------\n");

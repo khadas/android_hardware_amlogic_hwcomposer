@@ -9,6 +9,7 @@
 #include <hardware/hwcomposer2.h>
 #include <cutils/properties.h>
 #include <MesonLog.h>
+#include <DebugHelper.h>
 
 #include "Dv.h"
 #include "ModePolicy.h"
@@ -703,7 +704,7 @@ bool ModePolicy::setPolicy(int32_t policy) {
         case static_cast<int>(MESON_POLICY_BEST):
         case static_cast<int>(MESON_POLICY_RESOLUTION):
         case static_cast<int>(MESON_POLICY_FRAMERATE):
-        case static_cast<int>(MESON_POLICY_DOLBY_VISION):
+        case static_cast<int>(MESON_POLICY_DV):
             mPolicy = static_cast<meson_mode_policy>(policy);
             break;
         default:
@@ -832,27 +833,49 @@ int32_t ModePolicy::setColorSpace(std::string &colorspace) {
 }
 
 void ModePolicy::dump(String8 &dumpstr) {
-    dumpstr.append("ModePolicy support modes:\n");
-    dumpstr.append("-----------------------------------------------------------"
-        "------------------\n");
-    dumpstr.append("|  CONFIG   |   VSYNC_PERIOD   |   WIDTH   |   HEIGHT   |"
-        "   NAME      |\n");
-    dumpstr.append("+-----------+------------------+-----------+------------+"
-        "----------------+\n");
+    dumpstr.append("---------------------------------------------------------"
+        "-----------------------------\n");
+    dumpstr.append("ModePolicy :\n");
+    dumpstr.appendFormat("MesonModePolicy: %s \n", meson_modePolicyToString(mPolicy));
+    dumpstr.appendFormat("MesonHdrPriority: %s \n", meson_hdrPriorityToString(mHdr_priority));
+    dumpstr.appendFormat("MesonHdrPolicy: %s \n", meson_hdrPolicyToString(mHdr_policy));
+    dumpstr.appendFormat("DV enable: %s \n", mDvInfo.dv_enable);
+    dumpstr.appendFormat("Policy Out :displaymode: %s, deepcolor: %s, dv_type: %d\n",
+        mSceneOutInfo.displaymode, mSceneOutInfo.deepcolor, mSceneOutInfo.dv_type);
 
-    auto conPtr = &mConData.con_info;
-    for (int i = 0; i < conPtr->modes_size; i++) {
-        auto config = conPtr->modes[i];
-        dumpstr.appendFormat(" %2d     |      %.3f      |   %5d   |   %5d    |"
-            " %14s |\n",
-            i,
-            config.refresh_rate,
-            config.pixel_w,
-            config.pixel_h,
-            config.name);
+    /* dump detail policy in info*/
+    if (DebugHelper::getInstance().dumpDetailInfo()) {
+        dumpstr.append("\nPolicy In :\n    HDR info: \n");
+        dumpstr.appendFormat("\t enable dv: %s \n", mConData.hdr_info.is_enable_dv ? "Y" : "N");
+        dumpstr.appendFormat("\t TV support HDR: %s \n", mConData.hdr_info.is_tv_supportHDR ? "Y" : "N");
+        dumpstr.appendFormat("\t TV support Dv: %s \n", mConData.hdr_info.is_tv_supportDv ? "Y" : "N");
+        dumpstr.appendFormat("\t HDR Resolution Priority: %s \n", mConData.hdr_info.is_hdr_resolution_priority ? "Y" : "N");
+        dumpstr.appendFormat(
+            "\t ubootenv dv type: %s \n"
+            "\t tv dv cap: %s \n"
+            "\t tv dv max supported resolution: %s \n"
+            "\t dv deepcolor: %s \n"
+            "\t HdrPriority: %s \n"
+            "\t HdrPolicy: %s \n"
+            "\t HdrForceMode: %d \n \n",
+            mConData.hdr_info.ubootenv_dv_type, mConData.hdr_info.dv_cap,
+            mConData.hdr_info.dv_max_mode, mConData.hdr_info.dv_deepcolor,
+            meson_hdrPriorityToString(mConData.hdr_info.hdr_priority),
+            meson_hdrPolicyToString(mConData.hdr_info.hdr_policy),
+            mConData.hdr_info.hdr_force_mode);
+        dumpstr.append("    Connector info: \n");
+        dumpstr.appendFormat("\t bestcolorspace: %s \n", mConData.con_info.is_bestcolorspace ? "Y" : "N");
+        dumpstr.appendFormat("\t support4k: %s \n", mConData.con_info.is_support4k ? "Y" : "N");
+        dumpstr.appendFormat("\t support4k30HZ: %s \n", mConData.con_info.is_support4k30HZ ? "Y" : "N");
+        dumpstr.appendFormat("\t deepcolor: %s \n", mConData.con_info.is_deepcolor ? "Y" : "N");
+        dumpstr.appendFormat(
+            "\t ubootenv cvbsmode: %s \n"
+            "\t ubootenv hdmimode: %s \n"
+            "\t ubootenv colorattr: %s \n"
+            "device colorspace cap:\n%s \n",
+            mConData.con_info.ubootenv_cvbsmode, mConData.con_info.ubootenv_hdmimode,
+            mConData.con_info.ubootenv_colorattr, mConData.con_info.dc_cap);
     }
-    dumpstr.append("-----------------------------------------------------------"
-        "---------------\n");
 }
 
 int32_t ModePolicy::bindConnector(std::shared_ptr<HwDisplayConnector> & connector) {
