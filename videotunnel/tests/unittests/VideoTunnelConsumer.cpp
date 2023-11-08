@@ -85,3 +85,7 @@ int VideoTunnelConsumer::setBlockMode(bool block) {
     return meson_vt_set_mode(mDevFd, (block ? 1 : 0));
 }
 
+int VideoTunnelConsumer::askRefresh() {
+    return meson_vt_ask_refresh(mDevFd, mTunnelId, true);
+}
+

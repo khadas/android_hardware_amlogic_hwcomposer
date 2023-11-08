@@ -32,6 +32,7 @@ public:
 
     int handleCmd();
     int getReleaseFence() { return mReleaseFence; }
+    int askRefresh();
 
 protected:
     int mDevFd;

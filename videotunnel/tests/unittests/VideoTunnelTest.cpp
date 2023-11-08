@@ -360,3 +360,32 @@ TEST_F(VideoTunnelTest, set_displayFrame_cmd)
     EXPECT_TRUE(compareRect(rect, dataRecv.rect));
     EXPECT_EQ(OK, mConsumer->consumerDisconnect());
 }
+
+TEST_F(VideoTunnelTest, ask_refresh_cmd)
+{
+    VTBufferItem queueItem;
+    queueItem.allocateBuffer();
+
+    EXPECT_EQ(OK, mProducer->producerConnect());
+    EXPECT_EQ(OK, mProducer->queueBuffer(queueItem));
+
+    VTBufferItem acquireItem;
+    EXPECT_EQ(OK, mConsumer->consumerConnect());
+    EXPECT_EQ(OK, mConsumer->acquireBuffer(acquireItem));
+    EXPECT_GE(acquireItem.getBufferFd(), 0);
+
+    EXPECT_EQ(OK, mConsumer->askRefresh());
+    EXPECT_EQ(OK, mConsumer->releaseBuffer(acquireItem));
+    EXPECT_EQ(OK, mConsumer->consumerDisconnect());
+
+    VTBufferItem acquireItemRefresh;
+    EXPECT_EQ(OK, mConsumer->consumerConnect());
+    EXPECT_EQ(OK, mConsumer->acquireBuffer(acquireItemRefresh));
+
+    EXPECT_EQ(acquireItem.getBufferFd(), acquireItemRefresh.getBufferFd());
+    EXPECT_EQ(OK, mConsumer->consumerDisconnect());
+    EXPECT_EQ(OK, mProducer->producerDisconnect());
+
+    queueItem.releaseBuffer(true);
+}
+
