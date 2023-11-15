@@ -340,11 +340,15 @@ int MultiplanesWithDiComposition::processVideoFbs() {
     bool isAiProcess120Enable = false;
     for (auto fbIt = mFramebuffers.begin(); fbIt != mFramebuffers.end(); ++fbIt) {
         bool bSideband = false;
+        bool bForceClientCompostion = false;
         fb = fbIt->second;
 
         /* skip dummy */
         if (fb->mCompositionType == MESON_COMPOSITION_DUMMY)
             continue;
+
+        if (fb->mCompositionType == MESON_COMPOSITION_CLIENT)
+            bForceClientCompostion = true;
 
         drm_fb_type_t fbType = fb->getFbType();
         switch (fbType) {
@@ -353,12 +357,17 @@ int MultiplanesWithDiComposition::processVideoFbs() {
             case DRM_FB_VIDEO_SIDEBAND_TV:
                 bSideband = true;
                 [[clang::fallthrough]];
+            case DRM_FB_VIDEO_TUNNEL_SIDEBAND:
+                /*sideband type cannot support CLIENT Composition*/
+                bForceClientCompostion = false;
+                [[clang::fallthrough]];
             case DRM_FB_VIDEO_DMABUF:
             case DRM_FB_VIDEO_UVM_DMA:
-            case DRM_FB_VIDEO_TUNNEL_SIDEBAND:
                 if (bSideband) {
                     sidebandFbs.push_back(fb);
                 } else if (fb->haveValidBuffer()) {
+                    if (bForceClientCompostion)
+                        continue;
                     mDIComposerFbs.push_back(fb);
                 } else {
                     fb->mCompositionType = MESON_COMPOSITION_DUMMY;

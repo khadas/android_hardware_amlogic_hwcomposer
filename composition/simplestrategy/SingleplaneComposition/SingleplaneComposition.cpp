@@ -221,6 +221,14 @@ int SingleplaneComposition::processFbsOfExplicitComposition() {
         for (int i = 0;i < pairSize; i++) {
             if (fb->mFbType == planeCompPairs[i].srcFb) {
                 destComp = planeCompPairs[i].destComp;
+                if (fb->mFbType == DRM_FB_VIDEO_OMX_PTS ||
+                    fb->mFbType == DRM_FB_VIDEO_DMABUF ||
+                    fb->mFbType == DRM_FB_VIDEO_UVM_DMA) {
+                    if (fb->mCompositionType == MESON_COMPOSITION_CLIENT) {
+                        continue;
+                    }
+                }
+
                 if (planeCompPairs[i].destPlane == LEGACY_VIDEO_PLANE) {
                     if (mLegacyVideoPlane.get() && mLegacyVideoPlane) {
                         mDisplayPairs.push_back(DisplayPair{fb, mLegacyVideoPlane});
