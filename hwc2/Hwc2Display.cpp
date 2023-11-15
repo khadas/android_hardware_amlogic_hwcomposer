@@ -2690,10 +2690,10 @@ bool Hwc2Display::handleVtDisplayConnection() {
  */
 bool Hwc2Display::newGameBuffer() {
     ATRACE_CALL();
-
+    std::lock_guard<std::mutex> vtLock(mVtMutex);
     for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
         auto layer = it->second;
-        if (layer->newGameBuffer())
+        if (layer && layer->newGameBuffer())
             return true;
     }
 
