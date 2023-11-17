@@ -29,7 +29,7 @@ VtInstanceMgr::~VtInstanceMgr() {
 
 /* call from consumer */
 int32_t VtInstanceMgr::connectInstance(int tunnelId,
-        std::shared_ptr<VtConsumer> & consumer) {
+        std::shared_ptr<VtConsumer> consumer) {
     std::lock_guard<std::mutex> lock(mMutex);
     std::shared_ptr<VtInstance> ptrInstance;
     int32_t ret = -1;
@@ -71,7 +71,7 @@ int32_t VtInstanceMgr::connectInstance(int tunnelId,
 
 /* call from consumer */
 int32_t VtInstanceMgr::disconnectInstance(int tunnelId,
-        std::shared_ptr<VtConsumer> & consumer) {
+        std::shared_ptr<VtConsumer> consumer) {
     int ret = -1;
     std::shared_ptr<VtInstance> ptrInstance;
 

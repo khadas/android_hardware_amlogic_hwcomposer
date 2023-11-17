@@ -91,7 +91,7 @@ public:
     /*register VtInstance callback */
     int32_t setReleaseListener(VtReleaseListener* listener);
     /* register Hwc2Layer callback */
-    int32_t setVtContentListener(std::shared_ptr<VtContentListener> &listener);
+    int32_t setVtContentListener(std::shared_ptr<VtContentListener> listener);
 
     int32_t onVtCmds(vt_cmd & cmd, vt_cmd_data_t & cmdData);
     int32_t onVtFrameDisplayed(int bufferFd, int fenceFd);

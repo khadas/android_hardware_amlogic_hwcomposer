@@ -23,8 +23,8 @@ public:
     VtInstance(int tunnelId);
     virtual ~VtInstance();
 
-    int32_t registerVtConsumer(std::shared_ptr<VtConsumer> & consumer);
-    int32_t unregisterVtConsumer(std::shared_ptr<VtConsumer> & consumer);
+    int32_t registerVtConsumer(std::shared_ptr<VtConsumer> consumer);
+    int32_t unregisterVtConsumer(std::shared_ptr<VtConsumer> consumer);
 
     int32_t connect();
     void disconnect();

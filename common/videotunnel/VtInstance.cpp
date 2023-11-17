@@ -79,11 +79,11 @@ int32_t VtInstance::onFrameDisplayed(int bufferFd, int fenceFd) {
 }
 
 int32_t VtInstance::registerVtConsumer(
-        std::shared_ptr<VtConsumer> & consumer) {
+        std::shared_ptr<VtConsumer> consumer) {
     /* only Hwc2Layer will call this api when have
      * an videotunnel layer create
      */
-    if (!consumer) {
+    if (!consumer || !consumer.get()) {
         MESON_LOGE("[%s] [%s] consumer is null", __func__, mName);
         return -1;
     }
@@ -93,13 +93,13 @@ int32_t VtInstance::registerVtConsumer(
 }
 
 int32_t VtInstance::unregisterVtConsumer(
-        std::shared_ptr<VtConsumer> & consumer) {
+        std::shared_ptr<VtConsumer> consumer) {
     /* only Hwc2Layer will call this api when videotunnel layer destroy.
      * and Hwc2Layer will release all buffer Fd before call this api
      */
     int32_t ret = -1;
 
-    if (!consumer) {
+    if (!consumer || !consumer.get()) {
         MESON_LOGE("[%s] [%s] consumer is null", __func__, mName);
         return ret;
     }

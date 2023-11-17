@@ -20,6 +20,7 @@ VtConsumer::VtConsumer(int tunnelId, uint32_t dispId, uint32_t layerId) {
 }
 
 VtConsumer::~VtConsumer() {
+    mContentListener.reset();
 }
 
 int32_t VtConsumer::setReleaseListener(VtReleaseListener *listener) {
@@ -33,7 +34,7 @@ int32_t VtConsumer::setReleaseListener(VtReleaseListener *listener) {
 }
 
 int32_t VtConsumer::setVtContentListener(
-        std::shared_ptr<VtContentListener> &listener) {
+        std::shared_ptr<VtContentListener> listener) {
     if (!listener || !listener.get()) {
         MESON_LOGE("[%s] [%s] set content listener is null",
                 __func__, mName);
