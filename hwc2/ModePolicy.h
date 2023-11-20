@@ -312,10 +312,10 @@ private:
     void setALLMMode(int state);
     bool isTvConnector();
 
-    void applyDisplaySetting(bool force = false);
+    bool applyDisplaySetting(bool force = false);
 
     void setSourceDisplay(output_mode_state state);
-    void setSourceOutputMode(const char* outputmode, bool force = false);
+    bool setSourceOutputMode(const char* outputmode, bool force = false);
     bool isVMXCertification();
     bool isConnected();
     bool isHdmiUsed(void);

@@ -48,7 +48,6 @@ public:
         std::shared_ptr<HwDisplayCrtc> & crtc,
         std::shared_ptr<HwDisplayConnector> & connector) = 0;
     virtual int32_t update() = 0;
-    virtual bool needCallHotPlug() = 0;
     virtual int32_t getDisplayMode(drm_mode_info_t & mode) = 0;
 
     virtual int32_t  getDisplayConfigs(
@@ -69,12 +68,17 @@ public:
     virtual int32_t clearBootConfig() = 0;
     virtual void setModePolicy(std::shared_ptr<IModePolicy> /* policy*/) {};
 
-    virtual void resetTags() = 0;
     virtual void dump(String8 & dumpstr) = 0;
 
     // for filter 16:9 mode
     virtual bool is16_9Mode(drm_mode_info_t mode) = 0;
     virtual int32_t setPerferredMode(std::string mode) = 0;
+
+    bool needCallHotPlug() { return mCallOnHotPlug; };
+    void resetTags(bool hotplugTag = true) { mCallOnHotPlug = hotplugTag; };
+
+public:
+    bool mCallOnHotPlug = true;
 };
 
 std::shared_ptr<HwcModeMgr> createModeMgr(hwc_modes_policy_t policy);

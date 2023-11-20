@@ -31,7 +31,6 @@ public:
     void setDisplayResources(std::shared_ptr<HwDisplayCrtc> & crtc,
         std::shared_ptr<HwDisplayConnector> & connector);
     int32_t update();
-    bool needCallHotPlug() { return mCallOnHotPlug; };
     int32_t getDisplayMode(drm_mode_info_t & mode);
 
     int32_t getDisplayConfigs(uint32_t * outNumConfigs, uint32_t * outConfigs);
@@ -48,7 +47,6 @@ public:
     int32_t clearBootConfig();
     void setModePolicy(std::shared_ptr<IModePolicy> policy);
 
-    void resetTags();
     void dump(String8 & dumpstr);
 
     // for filter 16:9 mode
@@ -88,7 +86,6 @@ protected:
     // Dolby Vision enabled or not
     bool mDvEnabled;
 
-    bool mCallOnHotPlug;
     bool mIsFakeSizeMode;
 };
 

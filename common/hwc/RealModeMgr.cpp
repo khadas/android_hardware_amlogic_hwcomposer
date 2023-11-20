@@ -154,10 +154,6 @@ void RealModeMgr::reset() {
     mIsFakeSizeMode = false;
 }
 
-void RealModeMgr::resetTags() {
-    mCallOnHotPlug = true;
-};
-
 bool RealModeMgr::isFakeSizeMode() {
     return mIsFakeSizeMode;
 }

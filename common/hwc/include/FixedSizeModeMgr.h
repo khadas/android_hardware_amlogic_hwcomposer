@@ -32,7 +32,6 @@ public:
     std::shared_ptr<HwDisplayCrtc> & crtc,
     std::shared_ptr<HwDisplayConnector> & connector);
     int32_t update();
-    bool needCallHotPlug(){return true;};
     int32_t getDisplayMode(drm_mode_info_t & mode);
 
     int32_t  getDisplayConfigs(
@@ -47,7 +46,6 @@ public:
     int32_t setBootConfig(int32_t config);
     int32_t clearBootConfig();
 
-    void resetTags(){};
     void dump(String8 & dumpstr);
     bool is16_9Mode(drm_mode_info_t mode __unused) {return false;}
     int32_t setPerferredMode(std::string mode) {

@@ -617,12 +617,6 @@ void Hwc2Display::onModeChanged(int stage) {
             } else {
                 MESON_LOGE("No display observe register to display (%s)", getName());
             }
-
-            /* wake up the setActiveConfig */
-            std::unique_lock<std::mutex> stateLock(mStateLock);
-            mModeChanged = false;
-            stateLock.unlock();
-            mStateCondition.notify_all();
         } else {
             /* begin change mode, need blank once */
             mPowerMode->setConnectorStatus(false);
@@ -647,6 +641,13 @@ void Hwc2Display::onModeChanged(int stage) {
         MESON_LOGD("mModeMgr->resetTags");
         mModeMgr->resetTags();
     }
+
+    /* wake up the setActiveConfig */
+    std::unique_lock<std::mutex> stateLock(mStateLock);
+    mModeChanged = false;
+    stateLock.unlock();
+    mStateCondition.notify_all();
+
     /*last call refresh*/
     mObserver->refresh();
 }
@@ -2165,13 +2166,19 @@ hwc2_error_t Hwc2Display::setHdrConversionStrategy(bool passThrough, uint32_t nu
     }
 
     int32_t ret = -1;
-    if (mModePolicy)
+    if (mModePolicy) {
+        std::unique_lock<std::mutex> stateLock(mStateLock);
+        mModeMgr->resetTags(false);
         ret = mModePolicy->setHdrConversionPolicy(passThrough, outHdrConversionType);
-    else {
+        if (ret == 0) {
+            mStateCondition.wait_for(stateLock, std::chrono::seconds(1));
+        }
+        mModeMgr->resetTags(true);
+    } else {
         MESON_LOGD("ModePolicy is NULL");
     }
 
-    return ret != 0 ? HWC2_ERROR_UNSUPPORTED : HWC2_ERROR_NONE;
+    return ret > 0 ? HWC2_ERROR_UNSUPPORTED : HWC2_ERROR_NONE;
 }
 
 bool Hwc2Display::hasVideoLayerPresent() {

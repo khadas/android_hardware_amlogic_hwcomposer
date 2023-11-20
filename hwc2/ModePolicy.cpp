@@ -864,6 +864,7 @@ void ModePolicy::dump(String8 &dumpstr) {
             meson_hdrPolicyToString(mConData.hdr_info.hdr_policy),
             mConData.hdr_info.hdr_force_mode);
         dumpstr.append("    Connector info: \n");
+        dumpstr.appendFormat("\t mConnectType:%d\n", mConnectorType);
         dumpstr.appendFormat("\t bestcolorspace: %s \n", mConData.con_info.is_bestcolorspace ? "Y" : "N");
         dumpstr.appendFormat("\t support4k: %s \n", mConData.con_info.is_support4k ? "Y" : "N");
         dumpstr.appendFormat("\t support4k30HZ: %s \n", mConData.con_info.is_support4k30HZ ? "Y" : "N");
@@ -906,6 +907,11 @@ int32_t ModePolicy::bindConnector(std::shared_ptr<HwDisplayConnector> & connecto
         case DRM_MODE_CONNECTOR_TV:
             mDisplayType = DISPLAY_TYPE_MBOX;
             mConnectorType = ConnectorType::CONN_TYPE_CVBS;
+            mModeConType = MESON_MODE_HDMI;
+            break;
+        case DRM_MODE_CONNECTOR_VIRTUAL:
+            mDisplayType = DISPLAY_TYPE_MBOX;
+            mConnectorType = ConnectorType::CONN_TYPE_DUMMY;
             mModeConType = MESON_MODE_HDMI;
             break;
         default:
@@ -1897,8 +1903,12 @@ int32_t ModePolicy::getPreferredHdrConversionType(void) {
     return outHdrConversionType;
 }
 
+/*
+ * return value bigger than 0 means error happened
+ */
 int32_t ModePolicy::setHdrConversionPolicy(bool passthrough, int32_t forceType) {
-    int32_t ret = 0;
+    int32_t ret = HWC2_ERROR_NONE;
+    bool modeChanged = false;
     MESON_LOGD("%s passthrough %d forceType %s",
             __func__, passthrough, hdrConversionTypeToString(forceType));
 
@@ -1910,7 +1920,7 @@ int32_t ModePolicy::setHdrConversionPolicy(bool passthrough, int32_t forceType) 
         setBootEnv(UBOOTENV_HDR_PRIORITY, hdr_priority);
         // set current hdmi mode
         getDisplayMode(mCurrentMode);
-        setSourceOutputMode(mCurrentMode);
+        modeChanged = setSourceOutputMode(mCurrentMode);
     } else {
         std::string type = FORCE_DV;
         meson_hdr_priority_e priority = MESON_DOLBY_VISION_PRIORITY;
@@ -1953,12 +1963,16 @@ int32_t ModePolicy::setHdrConversionPolicy(bool passthrough, int32_t forceType) 
                 sprintf(hdr_priority, "%d", mHdr_priority);
                 setBootEnv(UBOOTENV_HDR_PRIORITY, hdr_priority);
 
-                setSourceOutputMode(mCurrentMode);
+                modeChanged = setSourceOutputMode(mCurrentMode);
             } else {
                 MESON_LOGW("%s mode check failed\n", __func__);
-                ret = -EINVAL;
+                ret = HWC2_ERROR_UNSUPPORTED;
             }
         }
+    }
+
+    if (!modeChanged) {
+        ret = -EEXIST;
     }
 
     return ret;
@@ -1967,14 +1981,14 @@ int32_t ModePolicy::setHdrConversionPolicy(bool passthrough, int32_t forceType) 
 /*
 * apply setting
 */
-void ModePolicy::applyDisplaySetting(bool force) {
+bool ModePolicy::applyDisplaySetting(bool force) {
     //quiescent boot need not output
     bool quiescent = sys_get_bool_prop("ro.boot.quiescent", false);
 
     MESON_LOGI("quiescent_mode is %d\n", quiescent);
     if (quiescent  && (mState == OUTPUT_MODE_STATE_INIT)) {
         MESON_LOGI("don't need to setting hdmi when quiescent mode\n");
-        return;
+        return false;
     }
 
     //check cvbs mode
@@ -2302,6 +2316,8 @@ void ModePolicy::applyDisplaySetting(bool force) {
     setDigitalMode(value);
 
     saveHdmiParamToEnv();
+
+    return isNeedChange;
 }
 
 int32_t ModePolicy::initialize() {
@@ -2596,8 +2612,9 @@ void ModePolicy::setSourceDisplay(output_mode_state state) {
     applyDisplaySetting();
 }
 
-void ModePolicy::setSourceOutputMode(const char* outputmode, bool force) {
+bool ModePolicy::setSourceOutputMode(const char* outputmode, bool force) {
     std::lock_guard<std::mutex> lock(mMutex);
+    bool ret = true;
 
     if (DISPLAY_TYPE_TV == mDisplayType) {
         setSinkOutputMode(outputmode, false);
@@ -2614,8 +2631,10 @@ void ModePolicy::setSourceOutputMode(const char* outputmode, bool force) {
         meson_mode_set_policy_input(mModeConType, &mConData);
         meson_mode_get_policy_output(mModeConType, &mSceneOutInfo);
 
-        applyDisplaySetting(force);
+        ret = applyDisplaySetting(force);
     }
+
+    return ret;
 }
 
 void ModePolicy::getConnectorUserData(struct meson_policy_in* data, hdmi_dv_info_t *dinfo) {

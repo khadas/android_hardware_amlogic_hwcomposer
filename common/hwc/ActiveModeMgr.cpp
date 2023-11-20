@@ -30,8 +30,7 @@ static const drm_mode_info_t fakeInitialMode = {
 };
 
 ActiveModeMgr::ActiveModeMgr()
-    : mCallOnHotPlug(true),
-      mLastActiveMode(fakeInitialMode),
+    : mLastActiveMode(fakeInitialMode),
       mDvEnabled(false) {
     mFbWidth =0;
     mFbHeight = 0;
@@ -335,10 +334,6 @@ void ActiveModeMgr::reset() {
     mSfActiveModes.clear();
     mSfActiveConfigId = mHwcActiveConfigId = -1;
 }
-
-void ActiveModeMgr::resetTags() {
-    mCallOnHotPlug = true;
-};
 
 int32_t ActiveModeMgr::setModeLocked(uint32_t & configId, drm_mode_info_t & mode) {
     bool seamless = (mode.groupId == mLastActiveMode.groupId);
