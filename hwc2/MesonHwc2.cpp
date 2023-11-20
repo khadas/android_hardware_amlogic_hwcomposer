@@ -26,6 +26,7 @@
 #include <HwcDisplayPipe.h>
 #include <misc.h>
 #include <systemcontrol.h>
+#include <am_gralloc_ext.h>
 
 #include "MesonHwc2Defs.h"
 #include "MesonHwc2.h"
@@ -95,6 +96,9 @@ void MesonHwc2::dump(uint32_t* outSize, char* outBuffer) {
 #else
     dumpstr.append("\nMesonHwc2 state(DEBUG):\n");
 #endif
+    if (DebugHelper::getInstance().enableGrallocCallback()) {
+        am_gralloc_dumpsys_callback();
+    }
 
     if (DebugHelper::getInstance().dumpDetailInfo()) {
         mDisplayPipe->dump(dumpstr);
