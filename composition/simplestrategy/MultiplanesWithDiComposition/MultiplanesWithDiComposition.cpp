@@ -1130,23 +1130,28 @@ void MultiplanesWithDiComposition::handleVPULimit(bool video) {
         OSD_SCALER_INPUT_MAX_WIDTH, OSD_SCALER_INPUT_MAX_HEIGHT};
     drm_rect_t scaleOutput = {0, 0, compositionTargetW, compositionTargetH};
 
-    /*choose the scale > targetW/MAX_INPUT*/
-    for (auto it = mFramebuffers.begin(); it != mFramebuffers.end(); it++) {
-        std::shared_ptr<DrmFramebuffer> fb = it->second;
-        drm_rect_t dispFrame = fb->getDisplayFrame();
-        drm_rect_t refDispFrame;
-        int32_t ret = compareFbScale(fb->mSourceCrop, dispFrame, scaleInput, scaleOutput);
-        if (0 == ret) {
-            mDisplayRefFb = fb;
-            break;
-        } else if (1 == ret) {
-            if (!mDisplayRefFb)
+    if (1 == mFramebuffers.size()) {
+        if (!mDisplayRefFb)
+            mDisplayRefFb = mFramebuffers.begin()->second;
+    } else {
+        /*choose the scale > targetW/MAX_INPUT*/
+        for (auto it = mFramebuffers.begin(); it != mFramebuffers.end(); it++) {
+            std::shared_ptr<DrmFramebuffer> fb = it->second;
+            drm_rect_t dispFrame = fb->getDisplayFrame();
+            drm_rect_t refDispFrame;
+            int32_t ret = compareFbScale(fb->mSourceCrop, dispFrame, scaleInput, scaleOutput);
+            if (0 == ret) {
                 mDisplayRefFb = fb;
-            else {
-                refDispFrame = mDisplayRefFb->getDisplayFrame();
-                if (-1 == compareFbScale(fb->mSourceCrop, dispFrame,
-                    mDisplayRefFb->mSourceCrop, refDispFrame)) {
+                break;
+            } else if (1 == ret) {
+                if (!mDisplayRefFb)
                     mDisplayRefFb = fb;
+                else {
+                    refDispFrame = mDisplayRefFb->getDisplayFrame();
+                    if (-1 == compareFbScale(fb->mSourceCrop, dispFrame,
+                        mDisplayRefFb->mSourceCrop, refDispFrame)) {
+                        mDisplayRefFb = fb;
+                    }
                 }
             }
         }
