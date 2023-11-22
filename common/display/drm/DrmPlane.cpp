@@ -18,6 +18,8 @@
 
 #define VPU_FREQ (666*pow(10,6))
 #define kValue (1.1)
+#define GET_DRM_FORMAT_MOD_ARM_TYPE(value) \
+    (value >> 52 & 0xf)
 
 DrmPlane::DrmPlane(int drmFd, drmModePlanePtr p)
     : HwDisplayPlane(),
@@ -170,6 +172,12 @@ uint32_t DrmPlane::getCapabilities() {
         caps |= PLANE_SUPPORT_ZORDER;
     }
 
+    for (uint32_t i = 0; i < mModifierCnt; i++) {
+        if (GET_DRM_FORMAT_MOD_ARM_TYPE(mModifiers[i].modifier) == DRM_FORMAT_MOD_ARM_TYPE_AFBC) {
+            caps |= PLANE_SUPPORT_AFBC;
+            break;
+        }
+    }
 
     if (mMaxFbSize.get()) {
         max_fb_size = mMaxFbSize->getValue();

@@ -193,9 +193,13 @@ int32_t Hwc2Display::setDisplayResource(
     uint32_t strategyFlags = 0;
     int osdPlanes = 0;
     bool videoPlanesSupportHighResolution = false;
+    std::shared_ptr<HwDisplayPlane> primaryPlane;
     for (auto it = mPlanes.begin(); it != mPlanes.end(); ++ it) {
         if ((*it)->getType() == OSD_PLANE) {
-            osdPlanes ++;
+            if ((*it)->getCapabilities() & PLANE_PRIMARY) {
+                primaryPlane = *it;
+            }
+            osdPlanes++;
         }
 
         if ((*it)->getType() == HWC_VIDEO_PLANE &&
@@ -212,6 +216,30 @@ int32_t Hwc2Display::setDisplayResource(
 
         (*it)->setDisplayMode(mDisplayMode);
     }
+
+    /*
+     * osd plan afbc caps check.
+     * For some SoCs, the primary plane supports AFBC,
+     * but the external plane does not support AFBC.
+     * The external plane needs to be removed.
+     */
+    auto planeIt = mPlanes.begin();
+    while (planeIt != mPlanes.end()) {
+        if (!primaryPlane)
+            break;
+
+        if ((*planeIt)->getType() == OSD_PLANE) {
+            if ((primaryPlane->getCapabilities() & PLANE_SUPPORT_AFBC) !=
+                    ((*planeIt)->getCapabilities() & PLANE_SUPPORT_AFBC)) {
+                planeIt = mPlanes.erase(planeIt);
+            } else {
+                planeIt++;
+            }
+        } else {
+            planeIt++;
+        }
+    }
+
     MESON_ASSERT(osdPlanes > 0, "No Osd plane assigned to %d", mDisplayId);
 
     auto newCompositionStrategy =
