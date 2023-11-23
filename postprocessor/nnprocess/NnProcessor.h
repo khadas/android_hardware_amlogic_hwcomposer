@@ -144,7 +144,7 @@ public:
     int input_fd,
     struct sr_buffer_t *sr_buf,
     int nn_bypass);
-    void dump_nn_out(struct sr_buffer_t *sr_buf);
+    void dump_nn_out(struct sr_buffer_t *sr_buf, int num);
     int PropGetInt(const char* str, int def);
     int nn_check_D();
     pthread_mutex_t m_waitMutex;

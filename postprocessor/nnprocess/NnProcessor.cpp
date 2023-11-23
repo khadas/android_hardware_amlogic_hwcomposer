@@ -911,9 +911,16 @@ int32_t NnProcessor::ai_sr_process(
         ALOGE("nn_process_network: err: ret=%d.\n", ret);
     else {
         dump_debug = PropGetInt("vendor.hwc.nn_dump", 0);
-        if (dump_debug != mDumpHf)
-            dump_nn_out(sr_buf);
-        mDumpHf = dump_debug;
+        if (dump_debug) {
+            if (mDumpHf < dump_debug) {
+                dump_nn_out(sr_buf, mDumpHf + 1);
+                mDumpHf++;
+            } else {
+                ALOGE("finish dump %d vframe.\n", dump_debug);
+                property_set("vendor.hwc.nn_dump", "0");
+                mDumpHf = 0;
+            }
+        }
         mTime_1 = tm_1.tv_sec * 1000000LL + tm_1.tv_nsec / 1000;
         mTime_2 = tm_2.tv_sec * 1000000LL + tm_2.tv_nsec / 1000;
         nn_time = mTime_2 - mTime_1;
@@ -978,8 +985,8 @@ bypass:
     return 0;
 }
 
-void NnProcessor::dump_nn_out(struct sr_buffer_t *sr_buf) {
-    const char* dump_path = "/data/nn_out.yuv";
+void NnProcessor::dump_nn_out(struct sr_buffer_t *sr_buf, int num) {
+    char dump_path[32];
     FILE * dump_file = NULL;
 
     ALOGD("%s: fd_ptr=%p, phy=%" PRId64", size=%d",
@@ -987,7 +994,7 @@ void NnProcessor::dump_nn_out(struct sr_buffer_t *sr_buf) {
         sr_buf->fd_ptr,
         sr_buf->phy,
         sr_buf->size);
-
+    snprintf(dump_path, sizeof(dump_path), "/data/nn_out_%d.yuv", num);
     dump_file = fopen(dump_path, "wb");
     if (dump_file != NULL) {
         fwrite(sr_buf->fd_ptr, sr_buf->size, 1, dump_file);

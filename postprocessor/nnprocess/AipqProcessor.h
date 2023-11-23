@@ -129,7 +129,7 @@ public:
     bool mInited;
     int32_t ai_pq_process(int input_fd);
     void nn_value_reorder(img_classify_out_t *nn_out, struct nn_value_t *scenes);
-    void dump_nn_info();
+    void dump_nn_info(int num);
     int PropGetInt(const char* str, int def);
     int check_D();
     bool is_do_aipq(int *hist, int num);

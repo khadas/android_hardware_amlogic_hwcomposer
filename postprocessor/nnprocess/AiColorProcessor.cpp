@@ -515,9 +515,15 @@ int32_t AiColorProcessor::ai_color_process(int cache_index) {
         return 0;
     } else {
         dump_index = PropGetInt("vendor.hwc.aicolor_dump", 0);
-        if (dump_index != mDumpIndex) {
-            mDumpIndex = dump_index;
-            dump_nn_info();
+        if (dump_index) {
+            if (mDumpIndex < dump_index) {
+                dump_nn_info(mDumpIndex + 1);
+                mDumpIndex++;
+            } else {
+                ALOGE("finish dump %d vframe.\n", dump_index);
+                property_set("vendor.hwc.aicolor_dump", "0");
+                mDumpIndex = 0;
+            }
         }
 
         for (i = 0; i < MAX_AICOLOR_COUNT; i++) {
@@ -565,8 +571,8 @@ int32_t AiColorProcessor::ai_color_process(int cache_index) {
     return ret;
 }
 
-void AiColorProcessor::dump_nn_info() {
-    const char* dump_path = "/data/aicolor_in.rgb";
+void AiColorProcessor::dump_nn_info(int num) {
+    char dump_path[32];
     FILE * dump_file = NULL;
 
     ALOGD("%s: fd_ptr=%p, size=%d",
@@ -574,6 +580,7 @@ void AiColorProcessor::dump_nn_info() {
         mAiColor_Buf.fd_ptr,
         mAiColor_Buf.size);
 
+    snprintf(dump_path, sizeof(dump_path), "/data/aicolor_in_%d.rgb", num);
     dump_file = fopen(dump_path, "wb");
     if (dump_file != NULL) {
         fwrite(mAiColor_Buf.fd_ptr, mAiColor_Buf.size, 1, dump_file);

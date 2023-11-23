@@ -1142,9 +1142,15 @@ int32_t AipqProcessor::ai_pq_process(int cache_index) {
 #endif
 
     dump_index = PropGetInt("vendor.hwc.aipq_dump", 0);
-    if (dump_index != mDumpIndex) {
-        mDumpIndex = dump_index;
-        dump_nn_info();
+    if (dump_index) {
+        if (mDumpIndex < dump_index) {
+            dump_nn_info(mDumpIndex + 1);
+            mDumpIndex++;
+        } else {
+            ALOGE("finish dump %d vframe.\n", dump_index);
+            property_set("vendor.hwc.aipq_dump", "0");
+            mDumpIndex = 0;
+        }
     }
 
     nn_value_reorder(nn_out, aipq_info->nn_value);
@@ -1178,8 +1184,8 @@ int32_t AipqProcessor::ai_pq_process(int cache_index) {
     return ret;
 }
 
-void AipqProcessor::dump_nn_info() {
-    const char* dump_path = "/data/tmp/nn_in.rgb";
+void AipqProcessor::dump_nn_info(int num) {
+    char dump_path[32];
     FILE * dump_file = NULL;
 
     ALOGD("%s: fd_ptr=%p, size=%d",
@@ -1187,6 +1193,7 @@ void AipqProcessor::dump_nn_info() {
         mAipq_Buf.fd_ptr,
         mAipq_Buf.size);
 
+    snprintf(dump_path, sizeof(dump_path), "/data/nn_in_%d.rgb", num);
     dump_file = fopen(dump_path, "wb");
     if (dump_file != NULL) {
         fwrite(mAipq_Buf.fd_ptr, mAipq_Buf.size, 1, dump_file);

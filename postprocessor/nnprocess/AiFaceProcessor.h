@@ -127,7 +127,7 @@ public:
     bool mExitThread;
     bool mInited;
     int32_t ai_face_process(int input_fd);
-    void dump_nn_info();
+    void dump_nn_info(int num);
     int PropGetInt(const char* str, int def);
     int check_D();
     pthread_mutex_t m_waitMutex;

@@ -535,11 +535,16 @@ int32_t AiFaceProcessor::ai_face_process(int cache_index) {
         return 0;
     } else {
         dump_index = PropGetInt("vendor.hwc.aiface_dump", 0);
-        if (dump_index != mDumpIndex) {
-            mDumpIndex = dump_index;
-            dump_nn_info();
+        if (dump_index) {
+            if (mDumpIndex < dump_index) {
+                dump_nn_info(mDumpIndex + 1);
+                mDumpIndex++;
+            } else {
+                ALOGE("finish dump %d vframe.\n", dump_index);
+                property_set("vendor.hwc.aiface_dump", "0");
+                mDumpIndex = 0;
+            }
         }
-
         ALOGD_IF(check_D(), "nn out_count = %d.\n", nn_out->detNum);
         if (nn_out->detNum >= MAX_FACE_COUNT)
                 nn_out->detNum = MAX_FACE_COUNT;
@@ -596,8 +601,8 @@ int32_t AiFaceProcessor::ai_face_process(int cache_index) {
     return ret;
 }
 
-void AiFaceProcessor::dump_nn_info() {
-    const char* dump_path = "/data/aiface_in.rgb";
+void AiFaceProcessor::dump_nn_info(int num) {
+    char dump_path[32];
     FILE * dump_file = NULL;
 
     ALOGD("%s: fd_ptr=%p, size=%d",
@@ -605,6 +610,7 @@ void AiFaceProcessor::dump_nn_info() {
         mAiFace_Buf.fd_ptr,
         mAiFace_Buf.size);
 
+    snprintf(dump_path, sizeof(dump_path), "/data/aiface_in_%d.rgb", num);
     dump_file = fopen(dump_path, "wb");
     if (dump_file != NULL) {
         fwrite(mAiFace_Buf.fd_ptr, mAiFace_Buf.size, 1, dump_file);
