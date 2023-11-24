@@ -1026,6 +1026,20 @@ int32_t AipqProcessor::ai_pq_process(int cache_index) {
 
     if (ge2d_time + get_y_time > 20000) {
         ALOGE("ge2d_time and get_y_time too long %" PRId64"ms\n", ge2d_time + get_y_time);
+        {
+            std::lock_guard<std::mutex> lock(mMutex);
+            mBuf_fd_q.pop();
+            close(mAipqIndex[cache_index].shared_fd);
+            mCloseCount++;
+            mTotalCloseCount++;
+            while (mBuf_fd_q.size() > 0) {
+                other_catch_index = mBuf_fd_q.front();
+                mBuf_fd_q.pop();
+                close(mAipqIndex[other_catch_index].shared_fd);
+                mCloseCount++;
+                mTotalCloseCount++;
+            }
+        }
         return -1;
     }
 
