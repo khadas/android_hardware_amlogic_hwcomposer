@@ -1166,9 +1166,15 @@ int32_t MesonHwc2::getDisplays(std::map<hwc2_display_t, shared_ptr<Hwc2Display>>
     return 0;
 }
 
-int32_t MesonHwc2::blankDisplay() {
-    GET_HWC_DISPLAY(0);
-    return hwcDisplay->blankDisplay();
+int32_t MesonHwc2::blankDisplay(drm_connector_type_t connectorType) {
+    std::map<hwc2_display_t, std::shared_ptr<Hwc2Display>>::iterator it;
+    for (it = mDisplays.begin(); it != mDisplays.end(); it++) {
+        if (it->second->getConnectorType() == connectorType) {
+            MESON_LOGD("blankDisplay connectorType:%d", connectorType);
+            it->second->blankDisplay();
+        }
+    }
+    return 0;
 }
 
 int32_t MesonHwc2::initialize() {

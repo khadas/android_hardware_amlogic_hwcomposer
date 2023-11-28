@@ -255,7 +255,7 @@ bool DisplayAdapterLocal::setDisplayMode(const string& mode, ConnectorType displ
         }
 
         // need blank display before set mode
-        MesonHwc2::getInstance().blankDisplay();
+        MesonHwc2::getInstance().blankDisplay(type);
         crtc->setMode(mock);
     } else {
         sysfs_set_string(SYSFS_DISPLAY_MODE, mode.c_str());

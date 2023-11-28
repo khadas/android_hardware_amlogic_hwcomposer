@@ -192,7 +192,7 @@ public:
     std::shared_ptr<HwcDisplayPipe> mDisplayPipe;
     bool enableSyncProtection(bool mode);
     bool disableSideband(bool isDisable);
-    int32_t blankDisplay();
+    int32_t blankDisplay(drm_connector_type_t);
 
     int mCallingPid = -1;
     bool mWhiteBoardMode = false;
