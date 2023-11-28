@@ -62,7 +62,7 @@ public:
     //TODO: refactor it
     virtual void setActiveConfig(std::string mode) = 0;
 
-    // defaut boot config
+    // default boot config
     virtual int32_t getPreferredBootConfig(std::string &config) = 0;
     virtual int32_t setBootConfig(std::string &config) = 0;
     virtual int32_t clearBootConfig() = 0;

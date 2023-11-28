@@ -655,7 +655,7 @@ void Hwc2Display::onModeChanged(int stage) {
  * LayerId is 16bits.
  * Higher 8 Bits: now is 256 layer slot, the higher 8 bits is the slot index.
  * Lower 8 Bits: a sequence no, used to distinguish layers have same slot index (
- * which may happended a layer destroyed and at the same time a new layer created.)
+ * which may happened a layer destroyed and at the same time a new layer created.)
  */
 #define MAX_HWC_LAYERS (256)
 #define LAYER_SLOT_BITS (8)
