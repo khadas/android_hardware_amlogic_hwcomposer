@@ -427,7 +427,7 @@ int SingleplaneComposition::commit() {
     for (; displayIt != mDisplayPairs.end(); ++displayIt) {
         std::shared_ptr<DrmFramebuffer> fb = (*displayIt).fb;
         std::shared_ptr<HwDisplayPlane> plane = (*displayIt).plane;
-        bool blankFlag = (mHideSecureLayer && fb->mSecure) ?
+        drm_plane_blank_t blankFlag = (mHideSecureLayer && fb->mSecure) ?
                 BLANK_FOR_SECURE_CONTENT : UNBLANK;
         /*
         * SingleplaneComposition handle fixed-zorder planes.
@@ -480,13 +480,18 @@ int SingleplaneComposition::commit() {
 
         /*set display info*/
         if (fb->isVtBuffer()) {
-            if (fb->isVtNeedClearFrameOrShowColorBuffer())
-                blankFlag = BLANK_FOR_NO_CONTENT;
-            else
-                continue;
+            if (fb->interruptVtProcess(blankFlag)) {
+                if (blankFlag == BLANK_FOR_NO_CONTENT)
+                    MESON_LOGV("%s, layerId(%" PRIu64 ") will blank plane",
+                            __func__, fb->mId);
 
-            plane->setPlane(fb, z, blankFlag);
-            fb->freeSolidColorBuffer();
+                plane->setPlane(fb, z, blankFlag);
+
+                if (blankFlag != BLANK_FOR_NO_CONTENT)
+                    fb->freeSolidColorBuffer();
+
+                continue;
+            }
         } else {
             plane->setPlane(fb, z, blankFlag);
         }
@@ -526,7 +531,7 @@ int SingleplaneComposition::commitTunnelVideo() {
         if (!fb->isVtBuffer())
             continue;
 
-        bool blankFlag = (mHideSecureLayer && fb->mSecure) ?
+        drm_plane_blank_t blankFlag = (mHideSecureLayer && fb->mSecure) ?
                 BLANK_FOR_SECURE_CONTENT : UNBLANK;
         /*
         * SingleplaneCompositon handle fixed-zorder planes.
@@ -536,10 +541,15 @@ int SingleplaneComposition::commitTunnelVideo() {
         if (z == INVALID_ZORDER) z = VIDEO_PLANE_FIXED_ZORDER;
 
 
-        if (fb->isVtNeedClearFrameOrShowColorBuffer()) {
-            blankFlag = BLANK_FOR_NO_CONTENT;
+        if (fb->interruptVtProcess(blankFlag)) {
+            if (blankFlag == BLANK_FOR_NO_CONTENT)
+                MESON_LOGV("%s, layerId(%" PRIu64 ") will blank plane",
+                        __func__, fb->mId);
+
             plane->setPlane(fb, z, blankFlag);
-            fb->freeSolidColorBuffer();
+
+            if (blankFlag != BLANK_FOR_NO_CONTENT)
+                fb->freeSolidColorBuffer();
         } else {
             plane->setPlane(fb, z, blankFlag);
         }

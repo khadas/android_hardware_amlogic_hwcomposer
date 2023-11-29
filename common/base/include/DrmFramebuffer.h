@@ -68,10 +68,9 @@ public:
     virtual bool haveValidBuffer() {return true;};
     virtual int32_t getBufferFd() { return -EINVAL; }
     virtual bool isVtBuffer() { return false;}
-    virtual bool isVtNeedClearFrameOrShowColorBuffer() { return false; }
+    virtual bool interruptVtProcess(drm_plane_blank_t & flag __unused) {return false;}
     virtual int32_t getSolidColorBuffer() { return -EINVAL; }
     virtual void freeSolidColorBuffer() {};
-    virtual bool haveSolidColorBuffer() { return false; }
 
     // for video processor
     virtual void setDiProcessorFd(int32_t fd __unused) {};

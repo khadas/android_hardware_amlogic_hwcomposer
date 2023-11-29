@@ -1614,7 +1614,7 @@ int MultiplanesWithHRComposition::commit() {
         uint32_t presentZorder = displayIt->presentZorder;
         std::shared_ptr<DrmFramebuffer> fb = displayIt->fb;
         std::shared_ptr<HwDisplayPlane> plane = displayIt->plane;
-        int blankFlag = (mHideSecureLayer && fb->mSecure) ?
+        drm_plane_blank_t blankFlag = (mHideSecureLayer && fb->mSecure) ?
             BLANK_FOR_SECURE_CONTENT : UNBLANK;
 
         if (composerOutput.get() &&
@@ -1635,12 +1635,6 @@ int MultiplanesWithHRComposition::commit() {
             bool bDumpPlane = true;
             bool bDoDiCompose = false;
             for (auto it = mDIComposerFbs.begin(); it != mDIComposerFbs.end(); ++it) {
-                if ((*it)->isVtNeedClearFrameOrShowColorBuffer()) {
-                    MESON_LOGV("%s, layerId(%" PRIu64 ") will blank plane", __func__, fb->mId);
-                    plane->setPlane(fb, presentZorder, BLANK_FOR_NO_CONTENT);
-                    continue;
-                }
-
                 if ((*it)->isVtBuffer())
                     bHaveVTBuffer = bDoDiCompose = true;
 
@@ -1662,25 +1656,19 @@ int MultiplanesWithHRComposition::commit() {
         if (fb->isVtBuffer()) {
             bHaveVTBuffer = true;
 
-            if (fb->isVtNeedClearFrameOrShowColorBuffer() ||
-                (fb->getBufferFd() < 0 && !fb->haveSolidColorBuffer())) {
+            if (fb->interruptVtProcess(blankFlag)) {
                 if (mVideoProcessorsMgr.get())
                     mVideoProcessorsMgr->resetProcessors(fb);
 
-                /* need blank video plane:
-                 * 1, received a clear last frame cmd
-                 * 2, buffer is invalid */
-                MESON_LOGV("%s, layerId(%" PRIu64 ") will blank plane", __func__, fb->mId);
-                plane->setPlane(fb, presentZorder, BLANK_FOR_NO_CONTENT);
-                continue;
-            }
-
-            if (fb->getBufferFd() < 0 && fb->haveSolidColorBuffer()) {
-                if (mVideoProcessorsMgr.get())
-                    mVideoProcessorsMgr->resetProcessors(fb);
+                if (blankFlag == BLANK_FOR_NO_CONTENT)
+                    MESON_LOGV("%s, layerId(%" PRIu64 ") will blank plane",
+                            __func__, fb->mId);
 
                 plane->setPlane(fb, presentZorder, blankFlag);
-                fb->freeSolidColorBuffer();
+
+                if (blankFlag != BLANK_FOR_NO_CONTENT)
+                    fb->freeSolidColorBuffer();
+
                 continue;
             }
         } else {
@@ -1773,7 +1761,7 @@ int MultiplanesWithHRComposition::commitTunnelVideo() {
         uint32_t presentZorder = displayIt->presentZorder;
         std::shared_ptr<DrmFramebuffer> fb = displayIt->fb;
         std::shared_ptr<HwDisplayPlane> plane = displayIt->plane;
-        int blankFlag = (mHideSecureLayer && fb->mSecure) ?
+        drm_plane_blank_t blankFlag = (mHideSecureLayer && fb->mSecure) ?
             BLANK_FOR_SECURE_CONTENT : UNBLANK;
 
         if (!fb->isVtBuffer() && fb->mCompositionType != MESON_COMPOSITION_DI)
@@ -1792,25 +1780,19 @@ int MultiplanesWithHRComposition::commitTunnelVideo() {
             continue;
         }
 
-        if (fb->isVtNeedClearFrameOrShowColorBuffer() ||
-            (fb->getBufferFd() < 0 && !fb->haveSolidColorBuffer())) {
+        if (fb->interruptVtProcess(blankFlag)) {
             if (mVideoProcessorsMgr.get())
                 mVideoProcessorsMgr->resetProcessors(fb);
 
-            /* need blank video plane:
-             * 1, received a clear last frame cmd
-             * 2, buffer is invalid */
-            MESON_LOGV("%s, layerId(%" PRIu64 ") will blank plane", __func__, fb->mId);
-            plane->setPlane(fb, presentZorder, BLANK_FOR_NO_CONTENT);
-            continue;
-        }
-
-        if (fb->getBufferFd() < 0 && fb->haveSolidColorBuffer()) {
-            if (mVideoProcessorsMgr.get())
-                mVideoProcessorsMgr->resetProcessors(fb);
+            if (blankFlag == BLANK_FOR_NO_CONTENT)
+                MESON_LOGV("%s, layerId(%" PRIu64 ") will blank plane",
+                        __func__, fb->mId);
 
             plane->setPlane(fb, presentZorder, blankFlag);
-            fb->freeSolidColorBuffer();
+
+            if (blankFlag != BLANK_FOR_NO_CONTENT)
+                fb->freeSolidColorBuffer();
+
             continue;
         }
 

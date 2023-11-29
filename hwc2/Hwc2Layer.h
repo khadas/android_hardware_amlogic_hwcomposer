@@ -92,13 +92,11 @@ public:
     bool shouldPresentNow(nsecs_t timestamp);
     bool newGameBuffer();
     int32_t getSolidColorBuffer();
-    virtual bool haveSolidColorBuffer();
     void vtRefresh();
     int getVideoTunnelId();
 
     int32_t registerConsumer();
     int32_t unregisterConsumer();
-    bool isVtNeedClearFrameOrShowColorBuffer();
     int32_t onVtFrameAvailable(std::vector<std::shared_ptr<VtBufferItem>> & items);
     int32_t onVtFrameDisplayed(int bufferFd, int fenceFd);
     void onVtVideoStatus(vt_video_status_t status);
@@ -106,6 +104,8 @@ public:
     int32_t getVtVideoStatus();
     void setVtSourceCrop(drm_rect_t & crop);
     void setVtDisplayFrame(drm_rect_t & frame);
+    bool isVtNeedClearFrameOrShowColorBuffer();
+    bool interruptVtProcess(drm_plane_blank_t & flag) override;
     void onNeedShowTempBuffer(vt_video_color_t colorType);
     void onNeedShowTempBufferWithStatus(
             vt_video_color_t colorType, vt_video_status_t status);
@@ -176,6 +176,7 @@ protected:
     bool mGameMode;
     bool mVtUpdate;
     bool mNeedReleaseVtResource;
+    bool mTunnelIdUpdate;  /*use to keep last frame when tunnel ID changed*/
     int mTunnelId;
     int mVtBufferFd;
     int mSolidColorBufferfd;

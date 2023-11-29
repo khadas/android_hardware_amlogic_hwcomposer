@@ -41,6 +41,7 @@ Hwc2Layer::Hwc2Layer(uint32_t dispId) : DrmFramebuffer(){
     mPreviousTimestamp = 0;
     mQueuedFrames = 0;
     mTunnelId = -1;
+    mTunnelIdUpdate = false;
     mGameMode = false;
     mVideoDisplayStatus = VT_VIDEO_STATUS_SHOW;
     mAMVideoType = -1;
@@ -265,6 +266,7 @@ hwc2_error_t Hwc2Layer::setSidebandStream(const native_handle_t* stream,
                         __func__, mId, channel_id);
                 mQueuedFrames = 0;
                 mQueueItems.clear();
+                mTunnelIdUpdate = true;
             } else {
                 MESON_LOGE("%s [%" PRId64 "] register consumer for videotunnel %d failed, error %d",
                         __func__, mId, channel_id, ret);
@@ -589,6 +591,7 @@ void Hwc2Layer::updateVtBuffer() {
     if (shouldPresentNow(mTimestamp)) {
         isVideoTypeChange = getVideoInfoFromUVM(mVtBufferFd);
         mFirstVtBuffer = true;
+        mTunnelIdUpdate = false;
     }
 
     diffAdded = mTimestamp - mPreviousTimestamp;
@@ -915,49 +918,6 @@ int32_t Hwc2Layer::unregisterConsumer() {
     return ret;
 }
 
-bool Hwc2Layer::isVtNeedClearFrameOrShowColorBuffer() {
-    std::lock_guard<std::mutex> lock(mMutex);
-    bool ret = false;
-
-    if (!isVtBufferLocked())
-        return ret;
-
-    switch (mVideoDisplayStatus) {
-        case VT_VIDEO_STATUS_BLANK:
-            mVideoDisplayStatus = VT_VIDEO_STATUS_SHOW;
-            /* need do disable video composer once */
-            releaseVtResourceLocked(false);
-            ret = true;
-            break;
-        case VT_VIDEO_STATUS_HIDE:
-            releaseVtResourceLocked(false);
-            setCurReleaseFence(-1);
-            ret = true;
-            break;
-        case VT_VIDEO_STATUS_COLOR_ONCE:
-            /* reset status flag to SHOW if get a valid,
-             * or keep the status in order to support refresh
-             * temp buffer */
-            if (getBufferFdLocked() >= 0)
-                mVideoDisplayStatus = VT_VIDEO_STATUS_SHOW;
-            [[fallthrough]];
-        case VT_VIDEO_STATUS_COLOR_ALWAYS:
-            releaseVtResourceLocked(false);
-            break;
-        case VT_VIDEO_STATUS_COLOR_DISABLE:
-            mVideoDisplayStatus = VT_VIDEO_STATUS_SHOW;
-            freeSolidColorBufferLocked();
-            break;
-        case VT_VIDEO_STATUS_HOLD_FRAME:
-            releaseVtResourceLocked(false, true);
-            break;
-        default:
-            // nothing to do;
-            break;
-    }
-
-    return ret;
-}
 
 int32_t Hwc2Layer::onVtFrameDisplayed(int bufferFd, int fenceFd) {
     ATRACE_CALL();
@@ -1155,12 +1115,76 @@ int32_t Hwc2Layer::getSolidColorBuffer() {
     return mSolidColorBufferfd;
 }
 
-bool Hwc2Layer::haveSolidColorBuffer() {
+bool Hwc2Layer::isVtNeedClearFrameOrShowColorBuffer() {
+    bool ret = false;
+
+    switch (mVideoDisplayStatus) {
+        case VT_VIDEO_STATUS_BLANK:
+            mVideoDisplayStatus = VT_VIDEO_STATUS_SHOW;
+            /* need do disable video composer once */
+            releaseVtResourceLocked(false);
+            ret = true;
+            break;
+        case VT_VIDEO_STATUS_HIDE:
+            releaseVtResourceLocked(false);
+            setCurReleaseFence(-1);
+            ret = true;
+            break;
+        case VT_VIDEO_STATUS_COLOR_ONCE:
+            /* reset status flag to SHOW if get a valid,
+             * or keep the status in order to support refresh
+             * temp buffer */
+            if (getBufferFdLocked() >= 0 || !mQueueItems.empty())
+                mVideoDisplayStatus = VT_VIDEO_STATUS_SHOW;
+            [[fallthrough]];
+        case VT_VIDEO_STATUS_COLOR_ALWAYS:
+            releaseVtResourceLocked(false);
+            break;
+        case VT_VIDEO_STATUS_COLOR_DISABLE:
+            mVideoDisplayStatus = VT_VIDEO_STATUS_SHOW;
+            freeSolidColorBufferLocked();
+            break;
+        case VT_VIDEO_STATUS_HOLD_FRAME:
+            releaseVtResourceLocked(false, true);
+            break;
+        default:
+            // nothing to do;
+            break;
+    }
+
+    return ret;
+}
+
+bool Hwc2Layer::interruptVtProcess(drm_plane_blank_t & flag) {
+    /* 1, handle VtCmds
+     * 2, show solid color buffer
+     * 3, tunnelID changed, do not disable VideoComposer
+     * */
     std::lock_guard<std::mutex> lock(mMutex);
-    if (!mAllocSolidColorBufferHandle)
+    if (!isVtBufferLocked())
         return false;
 
-    return true;
+    if (isVtNeedClearFrameOrShowColorBuffer()) {
+        /* VT cmd need clear last frame, so disable VC */
+        flag = BLANK_FOR_NO_CONTENT;
+        return true;
+    }
+
+    if (getBufferFdLocked() < 0 &&
+        !mAllocSolidColorBufferHandle &&
+        !mTunnelIdUpdate ) {
+        /* no buffer to VideoComposer and tunnel ID not changed,
+         * need disable VC */
+        flag = BLANK_FOR_NO_CONTENT;
+        return true;
+    }
+
+    if (getBufferFdLocked() < 0 && mAllocSolidColorBufferHandle) {
+        /* need show solid color buffer */
+        return true;
+    }
+
+    return false;
 }
 
 void Hwc2Layer::onNeedShowTempBuffer(vt_video_color_t colorType) {
