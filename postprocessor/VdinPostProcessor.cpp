@@ -123,7 +123,12 @@ int32_t VdinPostProcessor::postVout(std::shared_ptr<DrmFramebuffer> fb) {
         if (post_time >= 18.0f)
             MESON_LOGE("last present fence timeout  (%d)(%f)!", fencefd, post_time);
 #else
-        close(fencefd);
+        if (fb.get() == NULL) {
+            DrmFence fence(fencefd);
+            fence.waitForever("vout2");
+        } else {
+            close(fencefd);
+        }
 #endif
         fencefd = -1;
     }
@@ -161,6 +166,11 @@ int32_t VdinPostProcessor::stopVdin() {
         gralloc_free_dma_buf((native_handle_t * )*it);
     }
     mVdinHnds.clear();
+
+    for (auto it = mVoutHnds.begin(); it != mVoutHnds.end(); it ++) {
+        gralloc_free_dma_buf((native_handle_t * )*it);
+    }
+    mVoutHnds.clear();
 
     while (!mVdinQueue.empty()) {
         mVdinQueue.pop();
@@ -313,10 +323,6 @@ int32_t VdinPostProcessor::stop() {
     while (!mVoutQueue.empty()) {
         mVoutQueue.pop();
     }
-    for (auto it = mVoutHnds.begin(); it != mVoutHnds.end(); it ++) {
-        gralloc_free_dma_buf((native_handle_t * )*it);
-    }
-    mVoutHnds.clear();
 
     return 0;
 }
@@ -393,7 +399,7 @@ void * VdinPostProcessor::threadMain(void * data) {
     while (!pThis->mExitThread) {
         pThis->process();
     }
-    pThis->stopVdin();
+
 
     /*blank vout, for we will read the buffer on screen.*/
     if (pThis->mType == PROCESSOR_FOR_LOOPBACK) {
@@ -402,6 +408,8 @@ void * VdinPostProcessor::threadMain(void * data) {
 
     if (pThis->mFbProcessor)
         pThis->mFbProcessor->teardown();
+
+    pThis->stopVdin();
 
     pthread_exit(0);
     return NULL;
