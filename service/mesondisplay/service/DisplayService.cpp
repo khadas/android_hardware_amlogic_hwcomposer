@@ -262,15 +262,21 @@ void DisplayServer::message_handle(Json::Value& in, Json::Value& out) {
         if (!in.isMember("p_mode") || !in.isMember("p_displayType"))
             goto OUT;
         mAdapter->setPerferredMode(in["p_mode"].asString(), (ConnectorType)in["p_displayType"].asUInt());
-    } else  if (cmd == "setColorSpace") {
+    } else if (cmd == "getCurrentSupportDeepColor") {
+        std::string deepColor;
+        if (!in.isMember("p_displayType"))
+            goto OUT;
+        mAdapter->getCurrentSupportDeepColor(deepColor, (ConnectorType)in["p_displayType"].asUInt());
+        ret["deepColor"] = deepColor;
+    } else if (cmd == "setColorSpace") {
         if (!in.isMember("p_colorspace") || !in.isMember("p_displayType"))
             goto OUT;
         mAdapter->setColorSpace(in["p_colorspace"].asString(), (ConnectorType)in["p_displayType"].asUInt());
-    } else  if (cmd == "clearUserDisplayConfig") {
+    } else if (cmd == "clearUserDisplayConfig") {
         if (!in.isMember("p_displayType"))
             goto OUT;
         mAdapter->clearUserDisplayConfig((ConnectorType)in["p_displayType"].asUInt());
-    } else  if (cmd == "setDvMode") {
+    } else if (cmd == "setDvMode") {
         if (!in.isMember("p_dv_mode") || !in.isMember("p_displayType"))
             goto OUT;
         mAdapter->setDvMode(in["p_dv_mode"].asString(), (ConnectorType)in["p_displayType"].asUInt());

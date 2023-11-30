@@ -819,6 +819,18 @@ int32_t ModePolicy::clearUserDisplayConfig() {
     return 0;
 }
 
+int32_t ModePolicy::getCurrentSupportDeepColor(std::string& color) {
+    int ret = 0;
+    char dc_cap[MESON_MAX_STR_LEN] = {0};
+
+    getDisplayMode(mCurrentMode);
+    ret = meson_mode_get_support_color(mModeConType, mCurrentMode, dc_cap);
+    color = dc_cap;
+
+    SYS_LOGI("%s current mode: %s supported color: %s", __func__, mCurrentMode, dc_cap);
+    return ret;
+}
+
 int32_t ModePolicy::setColorSpace(std::string &colorspace) {
     SYS_LOGI("user change color space to %s\n", colorspace.c_str());
     setBootEnv(UBOOTENV_USER_COLORATTRIBUTE, colorspace.c_str());

@@ -96,6 +96,20 @@ bool DisplayAdapterRemote::setPerferredMode(const string& mode, ConnectorType di
     return true;
 }
 
+bool DisplayAdapterRemote::getCurrentSupportDeepColor(string &color, ConnectorType displayType) {
+    Json::Value cmd, ret;
+    IF_SERVER_NOT_READY_RETURN(false);
+    cmd["cmd"] = "getCurrentSupportDeepColor";
+    cmd["p_displayType"] = displayType;
+    ipc->send_request_wait_reply(cmd, ret);
+    if (ret.isMember("ret") && ret["ret"]["deepColor"].isString()) {
+        color = ret["ret"]["deepColor"].asString();
+        return true;
+    }
+
+    return false;
+}
+
 bool DisplayAdapterRemote::setColorSpace(const string& colorspace, ConnectorType displayType) {
     Json::Value cmd;
     IF_SERVER_NOT_READY_RETURN(false);

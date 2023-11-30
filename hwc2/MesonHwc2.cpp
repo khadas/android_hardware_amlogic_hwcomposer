@@ -933,6 +933,19 @@ int32_t MesonHwc2::setPerferredMode(std::string mode) {
     return hwcDisplay->setPerferredMode(mode);
 }
 
+int32_t MesonHwc2::getCurrentSupportDeepColor(std::string& color, drm_connector_type_t type) {
+    int ret = 0;
+    std::map<hwc2_display_t, std::shared_ptr<Hwc2Display>>::iterator it;
+    for (it = mDisplays.begin(); it != mDisplays.end(); it++) {
+        if (it->second->getConnectorType() == type) {
+            ret = it->second->getCurrentSupportDeepColor(color);
+            MESON_LOGD("get current mode support deep color:%s", color.c_str());
+        }
+    }
+
+    return ret;
+}
+
 int32_t MesonHwc2::setColorSpace(std::string colorspace) {
     GET_HWC_DISPLAY(0);
     return hwcDisplay->setColorSpace(colorspace);

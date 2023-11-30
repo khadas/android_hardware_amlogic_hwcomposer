@@ -274,6 +274,13 @@ bool DisplayAdapterLocal::setPerferredMode(
     return ret == 1 ? true : false;
 }
 
+bool DisplayAdapterLocal::getCurrentSupportDeepColor(string &color, ConnectorType displayType) {
+    drm_connector_type_t type;
+    DisplayTypeConv(type, displayType);
+    int32_t ret = MesonHwc2::getInstance().getCurrentSupportDeepColor(color, type);
+    return ret == 0 ? true : false;
+}
+
 bool DisplayAdapterLocal::setColorSpace(
     const string& colorspace,
     ConnectorType displayType) {

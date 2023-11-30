@@ -129,6 +129,7 @@ public:
     virtual hwc2_error_t getSupportedContentTypes(uint32_t* outNum, uint32_t* outSupportedContentTypes);
     virtual hwc2_error_t setContentType(uint32_t contentType);
     virtual hwc2_error_t setPerferredMode(std::string mode);
+    virtual hwc2_error_t getCurrentSupportDeepColor(std::string& color);
     virtual hwc2_error_t setColorSpace(std::string colorspace);
     virtual hwc2_error_t clearUserDisplayConfig();
     virtual hwc2_error_t setDvMode(std::string dv_mode);

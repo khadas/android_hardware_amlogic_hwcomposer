@@ -56,6 +56,7 @@ public:
 
     //user change display settings by UI
     virtual int32_t clearUserDisplayConfig() = 0;
+    virtual int32_t getCurrentSupportDeepColor(std::string &color) = 0;
     virtual int32_t setColorSpace(std::string &colorspace) = 0;
     virtual int32_t setDvMode(std::string &dv_mode) = 0;
 

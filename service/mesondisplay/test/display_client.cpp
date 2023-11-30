@@ -20,7 +20,7 @@
 using meson::DisplayAdapter;
 using std::unique_ptr;
 
-static const char* short_option = "lc:g:s:r:G:S:F:dvw:bf:h:P:p:R:t:m:";
+static const char* short_option = "lc:g:s:r:G:S:F:dDvw:bf:h:P:p:R:t:m:";
 static const struct option long_option[] = {
     {"list-modes", no_argument, 0, 'l'},
     {"chang-mode", required_argument, 0, 'c'},
@@ -35,6 +35,7 @@ static const struct option long_option[] = {
     {"perferred-mode", required_argument, 0, 'm'},
     {"keystone-configs",required_argument,0,'k'},
     {"reverse-display",required_argument,0,'V'},
+    {"get-supported-deepcolor",required_argument,0,'D'},
     {0, 0, 0, 0}
 };
 
@@ -45,6 +46,7 @@ static void print_usage(const char* name) {
             "       -l,--list-modes        \tlist connector support modes\n"
             "       -c,--change-mode MODE  \tchange connector current mode, MODE format like:%%dx%%d@%%d width,height,refresh\n"
             "       -d,--dump-display-attribute \tdump all display attribute\n"
+            "       -D,--get-supported-deepcolor\t get the supported deep color under current mode\n"
             "       -g,--get-display-attribute  \"ATTRI_NAME\"\tget display attribute\n"
             "       -s,--set-display-attribute  \"ATTRI_NAME\"=value\tset display attribute\n"
             "       -G \"[ui-rect|display-mode]\"\tget [logic ui rect|display mode]\n"
@@ -205,6 +207,13 @@ int main(int argc, char* argv[]) {
                     Json::Value json;
                     client->dumpDisplayAttribute(json, type);
                     printf("Dump display attribute:\n%s", meson::JsonValue2String(json).c_str());
+                }
+                break;
+            case 'D':
+                {
+                    std::string color;
+                    client->getCurrentSupportDeepColor(color, type);
+                    printf("current supported deepColor:%s\n", color.c_str());
                 }
                 break;
             case 'w':

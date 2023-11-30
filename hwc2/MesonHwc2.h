@@ -70,6 +70,7 @@ public:
         uint32_t* outNumElements, hwc2_layer_t* outLayers, int32_t*  outTypes);
     int32_t setCalibrateInfo(hwc2_display_t display);
     int32_t setPerferredMode(std::string mode);
+    int32_t getCurrentSupportDeepColor(std::string& color, drm_connector_type_t type);
     int32_t setColorSpace(std::string colorspace);
     int32_t clearUserDisplayConfig();
     int32_t setDvMode(std::string dv_mode);

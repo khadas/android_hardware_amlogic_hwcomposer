@@ -1788,6 +1788,16 @@ hwc2_error_t Hwc2Display::setPerferredMode(std::string mode) {
     }
 }
 
+hwc2_error_t Hwc2Display::getCurrentSupportDeepColor(std::string& color) {
+    if (mModePolicy != NULL) {
+        return (hwc2_error_t)mModePolicy->getCurrentSupportDeepColor(color);
+    } else {
+        MESON_LOGE("Display (%s) get current support deep color, but miss mode policy",
+                getName());
+        return HWC2_ERROR_BAD_DISPLAY;
+    }
+}
+
 hwc2_error_t Hwc2Display::setColorSpace(std::string colorspace) {
     if (mModePolicy != NULL) {
         return (hwc2_error_t)mModePolicy->setColorSpace(colorspace);

@@ -300,6 +300,14 @@ bool DisplayAdapterLocal::setPerferredMode(const string& mode, ConnectorType dis
     return ret;
 }
 
+bool DisplayAdapterLocal::getCurrentSupportDeepColor(string &color, ConnectorType displayType) {
+    bool ret = false;
+    UNUSED(color);
+    UNUSED(displayType);
+    NOTIMPLEMENTED;
+    return ret;
+}
+
 bool DisplayAdapterLocal::setColorSpace(const string& colorspace, ConnectorType displayType) {
     bool ret = false;
     UNUSED(colorspace);

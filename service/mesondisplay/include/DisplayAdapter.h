@@ -125,6 +125,8 @@ public:
         return false;
     };
 
+    virtual bool getCurrentSupportDeepColor(string &color, ConnectorType displayType) = 0;
+
     virtual bool setColorSpace(const string& colorspace, ConnectorType displayType) {
         UNUSED(colorspace);
         UNUSED(displayType);
