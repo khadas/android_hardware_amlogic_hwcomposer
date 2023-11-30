@@ -21,6 +21,7 @@
 
 #define MESON_DRM_DRIVER_NAME "meson"
 #define MAX_PLANE_LIMIT 4
+#define MAX_CHECK_COUNT 20
 
 std::shared_ptr<DrmDevice> DrmDevice::mInstance = NULL;
 
@@ -29,9 +30,13 @@ std::shared_ptr<DrmDevice> & getDrmDevice() {
 }
 
 std::shared_ptr<DrmDevice> & DrmDevice::getInstance() {
+    int32_t ret;
     if (!mInstance) {
         mInstance = std::make_shared<DrmDevice>();
         /*MUST do after construct.*/
+        ret = mInstance->openDrmDevice();
+        MESON_ASSERT(ret == 0, "Open drm device %s failed.", MESON_DRM_DRIVER_NAME);
+
         mInstance->loadResources();
         mInstance->loadPipe();
     }
@@ -44,8 +49,7 @@ void DrmDevice::destroyInstance() {
 
 DrmDevice::DrmDevice()
     : HwDisplayManager() {
-    mDrmFd = drmOpen(MESON_DRM_DRIVER_NAME, NULL);
-    MESON_ASSERT(mDrmFd >= 0, "Open drm device %s failed.", MESON_DRM_DRIVER_NAME);
+    mDrmFd = -1;
 }
 
 DrmDevice::~DrmDevice() {
@@ -198,6 +202,31 @@ HwDisplayPlane *DrmDevice::getPrimaryPlane(int pipeId) {
     }
 
     return nullptr;
+}
+
+int32_t DrmDevice::openDrmDevice() {
+    int32_t count = 1;
+
+    if (mDrmFd >= 0)
+        return 0;
+
+    while (count <= MAX_CHECK_COUNT) {
+        mDrmFd = drmOpen(MESON_DRM_DRIVER_NAME, NULL);
+        MESON_ASSERT(mDrmFd >= 0, "Open drm device %s failed.", MESON_DRM_DRIVER_NAME);
+
+        drmSetMaster(mDrmFd);
+        if (drmIsMaster(mDrmFd) == 0) {
+            MESON_LOGW("DRM/KMS master access required failed: %d", count);
+            usleep(500*1000); //sleep 500ms wait for get master access
+            count ++;
+            close(mDrmFd);
+        } else {
+            MESON_LOGD("DRM/KMS master access required succeed");
+            return 0;
+        }
+    }
+
+    return -EACCES;
 }
 
 void DrmDevice::loadPipe() {

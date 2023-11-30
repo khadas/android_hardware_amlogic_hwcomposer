@@ -55,6 +55,7 @@ public:
     HwDisplayPlane* getPrimaryPlane(int pipeId);
 
 protected:
+    int32_t openDrmDevice();
     void loadResources();
     void loadPipe();
     int32_t freeResources();
