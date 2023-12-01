@@ -150,9 +150,9 @@ void DisplayServer::message_handle(Json::Value& in, Json::Value& out) {
             goto OUT;
         mAdapter->getSupportDisplayModes(displayModeList, (ConnectorType)in["p_displayType"].asUInt());
         int index = 0;
-        for (auto i : displayModeList) {
+        for (auto it = displayModeList.begin(); it != displayModeList.end(); it++) {
             Json::Value mode;
-            if (true == DisplayMode2Json(i, mode)) {
+            if (true == DisplayMode2Json((*it), mode)) {
                 list[index++] = mode;
             }
         }

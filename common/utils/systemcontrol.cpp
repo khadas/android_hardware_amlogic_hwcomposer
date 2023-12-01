@@ -381,6 +381,8 @@ bool  sc_get_pref_display_mode(std::string & dispmode) {
 static bool get_hdmi_edid_data(char *data, uint32_t len) {
     char sinkType[MODE_LEN] = {0};
     char edidParsing[MODE_LEN] = {0};
+    sinkType[MODE_LEN - 1] = '\0';
+    edidParsing[MODE_LEN - 1] = '\0';
 
     //three sink types: sink, repeater, none
     sysfs_get_string_original(DISPLAY_HDMI_SINK_TYPE, sinkType, MODE_LEN);
@@ -429,6 +431,7 @@ int32_t get_hdmitx_mode_list(std::vector<std::string>& edidlist) {
 
 int32_t get_hdmitx_hdcp_state(bool & val) {
     char auth[MODE_LEN] = {0};
+    auth[MODE_LEN - 1] = '\0';
     sysfs_get_string(DISPLAY_HDMI_HDCP_AUTH, auth, MODE_LEN);
     if (strstr(auth, "1"))
         val = true;

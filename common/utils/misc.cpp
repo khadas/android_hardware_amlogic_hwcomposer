@@ -114,6 +114,7 @@ int32_t sysfs_get_string_ex(const char* path, char *str, int32_t size,
 int32_t sysfs_get_string(const char* path, char *str, int32_t len) {
     char * buf = new char[len];
     int32_t ret = sysfs_get_string_ex(path, (char*)buf, len, false);
+    buf[len-1] = '\0';
     strncpy(str, buf, len);
     delete[] buf;
 

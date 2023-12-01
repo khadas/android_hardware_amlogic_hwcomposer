@@ -32,8 +32,10 @@ int32_t LoopbackDisplayPipe::init(
     std::map<uint32_t, std::shared_ptr<HwcDisplay>> & hwcDisps) {
     HwcDisplayPipe::init(hwcDisps);
 
-
-    std::shared_ptr<PipeStat> stat = mPipeStats.find(0)->second;
+    auto statIt = mPipeStats.find(0);
+    if (statIt == mPipeStats.end())
+        return -1;
+    std::shared_ptr<PipeStat> stat = statIt->second;
 
     std::map<uint32_t, drm_mode_info_t> viu2modes;
     stat->modeConnector->getModes(viu2modes);
@@ -211,19 +213,22 @@ int32_t LoopbackDisplayPipe::handleRequest(uint32_t flags) {
         if ((flags & rKeystoneEnable) || (flags & rKeystoneDisable)) {
             bool bSetKeystone = flags & rKeystoneEnable ? true : false;
             MESON_LOGV("Keystone enable event (%d)", bSetKeystone);
-            std::shared_ptr<PipeStat> stat = mPipeStats.find(0)->second;
-            VdinPostProcessor * vdinProcessor =
-                (VdinPostProcessor *)stat->hwcPostProcessor.get();
-            MESON_ASSERT(vdinProcessor != NULL, "vdinProcessor should not NULL.");
+            auto pipeStatIt = mPipeStats.find(0);
+            if (pipeStatIt != mPipeStats.end()) {
+                std::shared_ptr<PipeStat> stat = pipeStatIt->second;
+                VdinPostProcessor * vdinProcessor =
+                    (VdinPostProcessor *)stat->hwcPostProcessor.get();
+                MESON_ASSERT(vdinProcessor != NULL, "vdinProcessor should not NULL.");
 
-            static std::shared_ptr<FbProcessor> keystoneprocessor = NULL;
-            std::shared_ptr<FbProcessor> fbprocessor = NULL;
-            if (bSetKeystone) {
-                if (keystoneprocessor == NULL)
-                    createFbProcessor(FB_KEYSTONE_PROCESSOR, keystoneprocessor);
-                fbprocessor = keystoneprocessor;
+                static std::shared_ptr<FbProcessor> keystoneprocessor = NULL;
+                std::shared_ptr<FbProcessor> fbprocessor = NULL;
+                if (bSetKeystone) {
+                    if (keystoneprocessor == NULL)
+                        createFbProcessor(FB_KEYSTONE_PROCESSOR, keystoneprocessor);
+                    fbprocessor = keystoneprocessor;
+              }
+              vdinProcessor->setFbProcessor(fbprocessor);
             }
-            vdinProcessor->setFbProcessor(fbprocessor);
         }
     }
 
