@@ -152,6 +152,7 @@ ModePolicy::ModePolicy() {
     mDisplayWidth = 0;
     mDisplayHeight = 0;
     mThread = 0;
+    mInitialized = false;
 }
 
 ModePolicy::ModePolicy(std::shared_ptr<meson::DisplayAdapter> adapter, const uint32_t displayId) {
@@ -168,6 +169,7 @@ ModePolicy::ModePolicy(std::shared_ptr<meson::DisplayAdapter> adapter, const uin
     memset(&mDvInfo, 0, sizeof(mDvInfo));
     mDisplayWidth = 0;
     mDisplayHeight = 0;
+    mInitialized = false;
 }
 
 ModePolicy::~ModePolicy() {
@@ -768,13 +770,6 @@ int32_t ModePolicy::getPreferredBootConfig(std::string &config) {
         getDisplayMode(curMode);
         config = curMode;
     } else {
-#if 0
-        //1. get hdmi data
-        hdmi_data_t data;
-
-        memset(&data, 0, sizeof(hdmi_data_t));
-        getHdmiData(&data);
-#endif
         mConData.state = static_cast<meson_mode_state>(OUTPUT_MODE_STATE_INIT);
         mConData.con_info.is_bestcolorspace = true;
 
@@ -791,12 +786,20 @@ int32_t ModePolicy::getPreferredBootConfig(std::string &config) {
     return 0;
 }
 
-int32_t ModePolicy::setBootConfig(std::string &config) {
-    MESON_LOGI("set boot display config to %s\n", config.c_str());
+
+
+int32_t ModePolicy::setBootConfig(drm_mode_info_t & config) {
+    MESON_LOGI("set boot display config to %s\n", config.name);
     setBootEnv(UBOOTENV_ISBESTMODE, "false");
-    setBootEnv(UBOOTENV_HDMIMODE, config.c_str());
+    setBootEnv(UBOOTENV_HDMIMODE, config.name);
     mPolicy = MESON_POLICY_INVALID;
     meson_mode_set_policy(mModeConType, mPolicy);
+
+    if (fabs(config.refreshRate - std::floor(config.refreshRate)) > 1e-2) {
+        setBootEnv(UBOOTENV_FRAC_RATE_POLICY, "1");
+    } else {
+        setBootEnv(UBOOTENV_FRAC_RATE_POLICY, "0");
+    }
 
     return 0;
 }
@@ -1049,8 +1052,16 @@ bool ModePolicy::isEdidChange() {
 }
 
 void ModePolicy::saveDeepColorAttr(const char* mode, const char* dcValue) {
-    char ubootvar[100] = {0};
-    sprintf(ubootvar, "ubootenv.var.%s_deepcolor", mode);
+    char ubootvar[256] = {0};
+    char outputMode[MESON_MODE_LEN] = {0};
+    strcpy(outputMode, mode);
+
+    drm_mode_info_t brrMode;
+    if (findBrrMode(mode, brrMode)) {
+        strcpy(outputMode, brrMode.name);
+    }
+
+    sprintf(ubootvar, "ubootenv.var.%s_deepcolor", outputMode);
     setBootEnv(ubootvar, (char *)dcValue);
 }
 
@@ -1998,6 +2009,7 @@ int32_t ModePolicy::setHdrConversionPolicy(bool passthrough, int32_t forceType) 
         ret = -EEXIST;
     }
 
+    mInitialized = true;
     return ret;
 }
 
@@ -2039,6 +2051,7 @@ bool ModePolicy::applyDisplaySetting(bool force) {
     if (mReason != OUTPUT_CHANGE_BY_HWC) {
         sysfs_get_string(HDMI_TX_FRAMERATE_POLICY, cur_frac_rate_policy, MESON_MODE_LEN);
         getBootEnv(UBOOTENV_FRAC_RATE_POLICY, frac_rate_policy);
+        MESON_LOGI("get uenv frc policy is %s and current value is %s\n",frac_rate_policy, cur_frac_rate_policy);
         if (strstr(frac_rate_policy, cur_frac_rate_policy) == NULL) {
             sysfs_set_string(HDMI_TX_FRAMERATE_POLICY, frac_rate_policy);
             frac_rate_policy_change = true;
@@ -2170,16 +2183,40 @@ bool ModePolicy::applyDisplaySetting(bool force) {
     strcpy(final_displaymode, mSceneOutInfo.displaymode);
     MESON_LOGI("curMode:[%s] ,final_displaymode[%s]\n", curDisplayMode, final_displaymode);
 
-    if (!isMatchMode(curDisplayMode, final_displaymode) || (mConnector && !mConnector->isReady())) {
+    if (!isMatchMode(curDisplayMode, final_displaymode)) {
         modeChange = true;
     } else {
         MESON_LOGI("cur mode is equals\n");
     }
 
+    // 5.1 check connector ready
+    bool connectorReady = true;
+    if (mConnector && !mConnector->isReady()) {
+        connectorReady = false;
+        MESON_LOGI("connector not ready");
+    }
+
+    // if support qms, don't apply changes if only refrsh rate change during initialization
+    // let framework handle it
+    if (mConnector->supportVrr() && !mInitialized) {
+        MESON_LOGI("QMS initialized, attr_change:%d, hdr policy:%d, priority:%d, ready:%d, modechange:%d, frac:%d",
+                attr_change, hdr_policy_change,
+                hdr_priority_change, connectorReady,
+                modeChange, frac_rate_policy_change);
+
+        if (!attr_change && !hdr_policy_change && !hdr_priority_change && connectorReady) {
+            if ((!modeChange && frac_rate_policy_change) ||
+                    (modeChange && isSameGroup(curDisplayMode, final_displaymode))) {
+                    MESON_LOGD("support qms and initialized, let framework handle it");
+                    return false;
+            }
+        }
+    }
+
     //6. check any change
     bool isNeedChange = false;
 
-    if (modeChange || attr_change || frac_rate_policy_change || hdr_policy_change || hdr_priority_change) {
+    if (modeChange || attr_change || frac_rate_policy_change || hdr_policy_change || hdr_priority_change || !connectorReady) {
         isNeedChange = true;
     } else if (force) {
         isNeedChange = true;
@@ -2796,5 +2833,76 @@ bool ModePolicy::isModeSupported(drm_mode_info_t mode) {
     }
 
     return ret;
+}
+
+bool ModePolicy::findBrrMode(drm_mode_info_t &currentMode, drm_mode_info_t &brrMode) {
+    brrMode = currentMode;
+
+    if (mConnector->supportVrr() == false)
+        return false;
+
+    for (auto it = mModes.begin(); it != mModes.end(); it++) {
+        auto cfg = it->second;
+        if (cfg.groupId == brrMode.groupId) {
+            if (cfg.refreshRate > brrMode.refreshRate) {
+                brrMode = cfg;
+            }
+        }
+    }
+
+    return true;
+}
+
+bool ModePolicy::findBrrMode(const char *currentMode, drm_mode_info_t &brrMode) {
+    if (!currentMode) {
+        return false;
+    }
+
+    if (mConnector->supportVrr() == false)
+        return false;
+
+    /* find current drm mode */
+    std::map<uint32_t, drm_mode_info_t>::iterator curIt = mModes.end();
+    for (auto it = mModes.begin(); it != mModes.end(); it++) {
+        auto cfg = it->second;
+        if (!strcmp(cfg.name, currentMode)) {
+            curIt = it;
+            break;
+        }
+    }
+
+    if (curIt == mModes.end()) {
+        return false;
+    }
+
+    return findBrrMode(curIt->second, brrMode);
+}
+
+bool ModePolicy::isSameGroup(const char *curDisplayMode, const char *finalDisplayMode) {
+    if (!curDisplayMode || !finalDisplayMode) {
+        return false;
+    }
+
+    std::map<uint32_t, drm_mode_info_t>::iterator curIt = mModes.end();
+    std::map<uint32_t, drm_mode_info_t>::iterator finalIt = mModes.end();
+    for (auto it = mModes.begin(); it != mModes.end(); it++) {
+        auto cfg = it->second;
+        if (!strcmp(cfg.name, curDisplayMode)) {
+            curIt = it;
+        }
+        if (!strcmp(cfg.name, finalDisplayMode)) {
+            finalIt = it;
+        }
+    }
+
+    if (curIt == mModes.end() || finalIt == mModes.end()) {
+        return false;
+    }
+
+    if (curIt->second.groupId == finalIt->second.groupId) {
+        return true;
+    }
+
+    return false;
 }
 

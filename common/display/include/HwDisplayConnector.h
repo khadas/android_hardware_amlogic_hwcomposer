@@ -97,7 +97,8 @@ public:
     virtual int32_t getColorDepth(uint32_t & colorDepth __unused) {return 0; };
     virtual ENUM_HDMI_COLOR_SPACE getColorSpace() {return ENUM_HDMI_COLOR_SPACE(0); };
 
-    virtual bool isReady() {return true; }
+    virtual bool isReady() {return true;};
+    virtual bool supportVrr() {return false;};
 
 };
 

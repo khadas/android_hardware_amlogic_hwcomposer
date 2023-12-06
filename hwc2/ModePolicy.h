@@ -240,7 +240,7 @@ public:
     int32_t setDvMode(std::string &dv_mode);
 
     int32_t getPreferredBootConfig(std::string &config);
-    int32_t setBootConfig(std::string &config);
+    int32_t setBootConfig(drm_mode_info_t & config);
     int32_t clearBootConfig();
 
     void setAllowedHdrTypes(uint32_t allowedHdrTypes, bool isAuto, bool passThrough);
@@ -353,6 +353,11 @@ private:
     void getSupportedModes();
     bool isModeSupported(drm_mode_info_t mode);
 
+    // QMS
+    bool findBrrMode(drm_mode_info_t &currentMode, drm_mode_info_t &brrMode);
+    bool findBrrMode(const char *currentMode, drm_mode_info_t &brrMode);
+    bool isSameGroup(const char *curDisplayMode, const char *finalDisplayMode);
+
 protected:
     static void * threadMain(void * data);
 
@@ -387,6 +392,7 @@ private:
     // a thread to handle uevent
     pthread_t mThread;
     uint32_t mDisplayId;
+    bool mInitialized;
 
     std::map<uint32_t, drm_mode_info_t> mModes;
     std::shared_ptr<HDCPTxAuth> mTxAuth;

@@ -11,6 +11,7 @@
 
 #include <stdlib.h>
 #include <string>
+#include "DrmTypes.h"
 
 #define DISPLAY_HPD_STATE               "/sys/class/amhdmitx/amhdmitx0/hpd_state"
 //#define DISPLAY_HDMI_DISP_CAP           "/sys/class/amhdmitx/amhdmitx0/disp_cap"//RX support display mode
@@ -65,7 +66,7 @@ public:
 
     // default boot config
     virtual int32_t getPreferredBootConfig(std::string &config) = 0;
-    virtual int32_t setBootConfig(std::string &config) = 0;
+    virtual int32_t setBootConfig(drm_mode_info_t & config) = 0;
     virtual int32_t clearBootConfig() = 0;
 
     //hdr strategy

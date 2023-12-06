@@ -592,16 +592,15 @@ int32_t RealModeMgr::setBootConfig(int32_t config) {
         std::string dispmode(cfg.name);
 
         if (mModePolicy.get()) {
-            mModePolicy->setBootConfig(dispmode);
+            mModePolicy->setBootConfig(cfg);
         } else {
             sc_setBootDisplayConfig(HWC_DISPLAY_PRIMARY, dispmode);
-        }
 
-        //TODO: remove it when ModePolicy move to hwc
-        if (fabs(cfg.refreshRate - floor(cfg.refreshRate)) > 1e-2) {
-            meson_mode_set_ubootenv(UBOOTENV_FRAC_RATE_POLICY, "1");
-        } else {
-            meson_mode_set_ubootenv(UBOOTENV_FRAC_RATE_POLICY, "0");
+            if (fabs(cfg.refreshRate - floor(cfg.refreshRate)) > 1e-2) {
+                meson_mode_set_ubootenv(UBOOTENV_FRAC_RATE_POLICY, "1");
+            } else {
+                meson_mode_set_ubootenv(UBOOTENV_FRAC_RATE_POLICY, "0");
+            }
         }
     } else {
         MESON_LOGE("set invalid boot config (%d)", config);
@@ -644,31 +643,27 @@ bool RealModeMgr::isSupportModeForCurrentDevice(drm_mode_info_t mode) {
 
 int32_t RealModeMgr::setModeLocked(drm_mode_info_t & mode) {
     bool seamless = (mode.groupId == mLatestRealMode.groupId);
-
     mLatestRealMode = mode;
 
     MESON_LOGD("RealModeMgr::setActiveConfig setMode: %s, seamless:%d",
             mode.name, seamless);
     updateActiveConfig(mode);
 
-#ifndef ENABLE_AIDL
-    mConnector->setMode(mode);
-#else
-    if (fabs(mode.refreshRate - floor(mode.refreshRate)) > 1e-2) {
-        sc_set_property(FRC_POLICY_PROP, "1");
-    } else {
-        sc_set_property(FRC_POLICY_PROP, "0");
-    }
-#endif
-
     //todo: replace the displayid for dualDisplay
     sc_update_density(HWC_DISPLAY_PRIMARY, mLatestRealMode.pixelW, mLatestRealMode.pixelH);
 
     if (seamless) {
+        mConnector->setMode(mode);
         // seamless mode switch, only vsync period change
         mCrtc->setMode(mode, seamless);
     }  else {
         mCallOnHotPlug = false;
+        if (fabs(mode.refreshRate - floor(mode.refreshRate)) > 1e-2) {
+            sc_set_property(FRC_POLICY_PROP, "1");
+        } else {
+            sc_set_property(FRC_POLICY_PROP, "0");
+        }
+
         // set the display mode through systemControl
         // As it will need update the colorspace/colordepth too.
         std::string dispmode(mode.name);

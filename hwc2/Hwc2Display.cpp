@@ -2177,6 +2177,7 @@ hwc2_error_t Hwc2Display::setHdrConversionStrategy(bool passThrough, uint32_t nu
         userHdrType = userHdrType | (1 << HAL_HDR_HLG);
         userHdrType = userHdrType | (1 << DRM_INVALID);
         mModePolicy->setAllowedHdrTypes(userHdrType, isAuto, passThrough);
+        outHdrConversionType = mModePolicy->getPreferredHdrConversionType();
     }
 
     int32_t ret = -1;

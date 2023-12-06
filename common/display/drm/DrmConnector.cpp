@@ -464,13 +464,7 @@ bool DrmConnector::checkFracMode(const drm_mode_info_t & mode) {
             std::find(mFracRefreshRates.begin(), mFracRefreshRates.end(),
                     mode.refreshRate) != mFracRefreshRates.end();
 
-#ifndef ENABLE_AIDL
         return (currentIsFrac && modeIsFrac) || (!currentIsFrac && !modeIsFrac);
-#else
-        // TODO:refactor it when mode policy move to hwc
-        // for boot config, preferred is frac policy
-        return modeIsFrac;
-#endif
     }
 
     return true;

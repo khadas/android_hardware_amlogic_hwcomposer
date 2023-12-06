@@ -69,7 +69,8 @@ public:
     int32_t setColorAttribute(const std::string & hdmiColorAttr);
     int32_t applyConnectorProps(drmModeAtomicReqPtr &req);
 
-    bool isReady();
+    bool isReady() override;
+    bool supportVrr() override;
 
     /*drm package internal use.*/
 public:
@@ -81,7 +82,6 @@ public:
 
     int DrmMode2Mode(drmModeModeInfo & drmmode, drm_mode_info_t & mode);
     bool isTvType();
-    bool supportVrr();
 
     std::mutex mMutex;
     bool getHdrType(std::string & hdrType);
