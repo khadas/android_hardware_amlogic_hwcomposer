@@ -20,6 +20,10 @@
 #define DRM_IOCTL_MESON_CREAT_PRESENT_FENCE    DRM_IOWR(DRM_COMMAND_BASE + \
                0x20, drm_meson_present_fence_t)
 
+/*hdmitx relatde*/
+#define DRM_IOCTL_MESON_GET_VRR_RANGE DRM_IOWR(DRM_COMMAND_BASE + \
+               0x13, drm_meson_vrr_mode_groups_t)
+
 class DrmCrtc : public HwDisplayCrtc {
 public:
     DrmCrtc(int drmFd, drmModeCrtcPtr p, uint32_t pipe);

@@ -7,6 +7,7 @@
  */
 #define ATRACE_TAG ATRACE_TAG_GRAPHICS
 
+#include <math.h>
 #include <utils/Trace.h>
 #include <MesonLog.h>
 #include "DrmConnector.h"
@@ -211,6 +212,36 @@ bool DrmConnector::supportVrr() {
     return false;
 }
 
+
+/* check vrr range for seamless switch
+ * */
+bool DrmConnector::isSeamlessMode(const drm_mode_info_t & mode) {
+    for (int32_t i = 0; i < mVrrModeGroup.num; i++) {
+        if (mVrrModeGroup.gropus[i].width == mode.pixelW && mVrrModeGroup.gropus[i].height == mode.pixelH) {
+            if (((mode.refreshRate - mVrrModeGroup.gropus[i].vrr_min) >= 0
+                    //frac refresh rate
+                    || std::abs(mode.refreshRate - (mVrrModeGroup.gropus[i].vrr_min * 1000) / (float)1001) < 0.001)
+                        && (mode.refreshRate - mVrrModeGroup.gropus[i].vrr_max <= 0))
+                return true;
+            else
+                return false;
+        }
+    }
+    return false;
+}
+
+int32_t DrmConnector::loadVrrModeGroups() {
+    if (!supportVrr())
+        return 0;
+
+    auto ret = ioctl(mDrmFd, DRM_IOCTL_MESON_GET_VRR_RANGE, &mVrrModeGroup);
+    if (ret) {
+        MESON_LOGE("DRM_IOCTL_MESON_GET_VRR_RANGE error ret %d  %s(%d)", ret, strerror(errno), errno);
+        return -EINVAL;
+    }
+    return 0;
+}
+
 /*
  * If the connector support seamless mode swith,
  * Then the modes with the same resolution can switch seamless to each other
@@ -245,7 +276,8 @@ int32_t DrmConnector::groupDisplayModes() {
             if (!itGroupModes.empty()) {
                 /* only need check the first item*/
                 drm_mode_info_t *gmodePtr = itGroupModes[0];
-                if (gmodePtr->pixelW == itMode.pixelW && gmodePtr->pixelH == itMode.pixelH) {
+                if (gmodePtr->pixelW == itMode.pixelW && gmodePtr->pixelH == itMode.pixelH
+                            && isSeamlessMode(itMode)) {
                     itMode.groupId = groupId;
                     itGroupModes.push_back(&itMode);
                     needRegroup = false;
@@ -291,6 +323,7 @@ int32_t DrmConnector::loadConnectorInfo(drmModeConnectorPtr metadata) {
 
         updateHdrCaps();
         loadDisplayModes(metadata);
+        loadVrrModeGroups();
         groupDisplayModes();
     } else {
         MESON_LOGE("DrmConnector[%s] still DISCONNECTED.", getName());

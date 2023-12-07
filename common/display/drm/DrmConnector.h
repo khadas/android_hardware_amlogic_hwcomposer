@@ -94,6 +94,8 @@ protected:
 
     int32_t parseHdrCapabilities();
     int32_t groupDisplayModes();
+    int32_t loadVrrModeGroups();
+    bool isSeamlessMode(const drm_mode_info_t & mode);
 
 protected:
     int mDrmFd;
@@ -139,6 +141,8 @@ protected:
     /* support VRR or not */
     bool mSupportVrr = false;
     bool mSupportDv = false;
+
+    drm_meson_vrr_mode_groups_t mVrrModeGroup;
 };
 
 #endif/*DRM_CONNECTOR_H*/
