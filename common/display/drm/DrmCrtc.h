@@ -93,6 +93,7 @@ protected:
     std::shared_ptr<DrmProperty> mVideoPixelFormat;
     std::shared_ptr<DrmProperty> mOsdPixelFormat;
     std::shared_ptr<DrmProperty> mHdrConversionCaps;
+    std::shared_ptr<DrmProperty> mBrrUpdate;
 
     drmModeAtomicReqPtr mReq;
 

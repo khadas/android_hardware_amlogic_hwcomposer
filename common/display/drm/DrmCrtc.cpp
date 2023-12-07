@@ -65,6 +65,7 @@ int32_t DrmCrtc::loadProperties() {
         {DRM_CRTC_PROP_VIDEO_PIXEL_FORMAT, &mVideoPixelFormat},
         {DRM_CRTC_PROP_OSD_PIXEL_FORMAT, &mOsdPixelFormat},
         {DRM_CRTC_PROP_HDR_CONVERSION_CAP, &mHdrConversionCaps},
+        {DRM_CRTC_PROP_BRR_UPDATE, &mBrrUpdate},
     };
     const int crtcPropsNum = sizeof(crtcProps)/sizeof(crtcProps[0]);
     int initedProps = 0;
@@ -306,12 +307,17 @@ int32_t DrmCrtc::setModeLocked(drm_mode_info_t & mode, bool seamless __unused) {
     mModeBlobId->apply(req);
 
     int enableVrr = 0;
+    int updateBrr = seamless ? 0 : 1;
     // Currently always enable vrr, let drm has chance to
     // select BRR mode if connector support it.
     // TODO: support disable it when have UI switch
     // TODO: remove single display limit when dual display support boot conifg
-    if (connector->supportVrr() && HWC_DISPLAY_NUM == 1)
+    if (connector->supportVrr() && HWC_DISPLAY_NUM == 1) {
         enableVrr = 1;
+
+        mBrrUpdate->setValue(updateBrr);
+        mBrrUpdate->apply(req);
+    }
 
     mVrrEnabled->setValue(enableVrr);
     mVrrEnabled->apply(req);

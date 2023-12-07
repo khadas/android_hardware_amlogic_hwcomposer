@@ -20,6 +20,7 @@
 #define DRM_CRTC_PROP_VIDEO_PIXEL_FORMAT "video_pixelformat"
 #define DRM_CRTC_PROP_OSD_PIXEL_FORMAT "osd_pixelformat"
 #define DRM_CRTC_PROP_HDR_CONVERSION_CAP  "hdr_conversion_cap"
+#define DRM_CRTC_PROP_BRR_UPDATE  "brr_update"
 
 /*CTM*/
 #define DRM_CRTC_PROP_DEGAMMA  "DEGAMMA_LUT"
