@@ -261,8 +261,11 @@ int32_t DiProcessor::asyncProcess(
     frame_info.in_fd = input_fd;
 
     ret = ioctl(mHandler, DI_PROCESS_IOCTL_SET_FRAME, &frame_info);
-    if (ret == 1) {
-        ALOGD("need reinit di for tvp");
+    if (ret == 1 || ret == 2) {
+        if (ret == 1)
+            ALOGD("need reinit di for tvp");
+        else if (ret == 2)
+            ALOGD("need reinit di for I/P switch");
         reset();
         mAsyncCount++;
         ret = ioctl(mHandler, DI_PROCESS_IOCTL_SET_FRAME, &frame_info);
