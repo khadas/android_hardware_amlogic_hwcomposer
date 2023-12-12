@@ -18,6 +18,8 @@ namespace meson{
 //For recovery mode for temporary.
 #define SYSFS_DISPLAY_MODE              "/sys/class/display/mode"
 #define SYSFS_DISPLAY_MODE2             "/sys/class/display2/mode"
+#define SYSFS_DISPLAY_DEBUG             "/sys/class/display/debug"
+
 #define MAX_BUFFER_LEN_EDID             4096
 #define READ_BUFFER_LEN 64
 #define FORMAT_DISPLAY_HDMI_EDID        "/sys/class/amhdmitx/amhdmitx0/disp_cap"//RX support display mode
@@ -148,6 +150,9 @@ DisplayAdapterLocal::DisplayAdapterLocal() {
     DA_DEFINE(SDR_MODE, "0", update_sys_node);
     DA_DEFINE(HDMI_COLOR_ATTR, "0", update_sys_node);
     DA_DEFINE(HDMI_AVMUTE, "0", update_sys_node);
+    DA_DEFINE(FR_HINT, "0", update_sys_node);
+    DA_DEFINE(HDR_PRIORITY, "0", update_sys_node);
+    DA_DEFINE(FORCE_HDR_MODE, "0", update_sys_node);
 
 #define DA_SET_NODE(ID, NODE) \
     display_attrs[DA_##ID].sysfs_node = NODE
@@ -178,6 +183,9 @@ DisplayAdapterLocal::DisplayAdapterLocal() {
     DA_SET_NODE(HDR_CAP ,"/sys/class/amhdmitx/amhdmitx0/hdr_cap");
     DA_SET_NODE(HDMI_COLOR_ATTR ,"/sys/class/amhdmitx/amhdmitx0/attr");
     DA_SET_NODE(HDMI_AVMUTE ,"/sys/devices/virtual/amhdmitx/amhdmitx0/avmute");
+    DA_SET_NODE(FR_HINT, "/sys/class/display/fr_hint");
+    DA_SET_NODE(HDR_PRIORITY, "/sys/class/amhdmitx/amhdmitx0/hdr_priority_mode");
+    DA_SET_NODE(FORCE_HDR_MODE, "/sys/module/aml_media/parameters/force_output");
 
 #define DA_SET_READ_ONLY(ID) \
     display_attrs[DA_##ID].is_read_only = true
@@ -284,6 +292,9 @@ bool DisplayAdapterLocal::setDisplayMode(const string& mode, ConnectorType displ
         assert(0);
         return false;
     }
+
+    //need to set "1" to debug for set mode
+    FS_WRITE(SYSFS_DISPLAY_DEBUG, "1", 1);
 
     FS_WRITE(path, mode.c_str(), mode.length());
 
