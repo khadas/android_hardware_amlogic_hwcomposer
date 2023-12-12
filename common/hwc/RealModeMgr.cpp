@@ -645,8 +645,6 @@ bool RealModeMgr::isSupportModeForCurrentDevice(drm_mode_info_t mode) {
 int32_t RealModeMgr::setModeLocked(drm_mode_info_t & mode) {
     bool seamless = (mode.groupId == mLatestRealMode.groupId);
 
-    mCallOnHotPlug = false;
-
     mLatestRealMode = mode;
 
     MESON_LOGD("RealModeMgr::setActiveConfig setMode: %s, seamless:%d",
@@ -670,6 +668,7 @@ int32_t RealModeMgr::setModeLocked(drm_mode_info_t & mode) {
         // seamless mode switch, only vsync period change
         mCrtc->setMode(mode, seamless);
     }  else {
+        mCallOnHotPlug = false;
         // set the display mode through systemControl
         // As it will need update the colorspace/colordepth too.
         std::string dispmode(mode.name);
