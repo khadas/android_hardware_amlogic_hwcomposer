@@ -2564,15 +2564,29 @@ void ModePolicy::setSourceDisplay(output_mode_state state) {
 
     //1. hdmi used and hpd = 0
     //set dummy_l mode
-    if ((isHdmiUsed() == true) && (isConnected() == false)) {
-        MESON_LOGD("hdmi usd, set dummy_l");
-        if (isVMXCertification()) {
-            setDisplayMode("576cvbs");
-        } else {
+    char curDisplayMode[MESON_MODE_LEN]    = {0};
+    getDisplayMode(curDisplayMode);
+    if (mConnector->getType() == DRM_MODE_CONNECTOR_VIRTUAL) {
+        if (strcmp(curDisplayMode, "dummy_l") != 0 || !mConnector->isReady()) {
             setDisplayMode("dummy_l");
         }
-
-        MESON_LOGI("hdmi used but plugout when boot\n");
+        return;
+    } else if ((isHdmiUsed() == true) && (isConnected() == false)) {
+        if (isVMXCertification()) {
+           setDisplayMode("576cvbs");
+        } else {
+           setDisplayMode("dummy_l");
+        }
+        return;
+    } else if (mConnector->getType() == DRM_MODE_CONNECTOR_TV){
+        char cvbsOutmode[MESON_MODE_LEN] = {0};
+        if (getBootEnv(UBOOTENV_CVBSMODE, cvbsOutmode)) {
+            if (strcmp(cvbsOutmode, curDisplayMode) != 0) {
+                setDisplayMode(cvbsOutmode);
+            }
+        } else {
+            setDisplayMode("576cvbs");
+        }
         return;
     }
 
