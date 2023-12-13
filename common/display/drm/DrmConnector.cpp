@@ -27,6 +27,7 @@
 #include "mode_ubootenv.h"
 
 #define EDID_MIN_LEN (128)
+#define REFRESH_RATE_30 (30)
 #define HDMI_FRAC_RATE_POLICY "/sys/class/amhdmitx/amhdmitx0/frac_rate_policy"
 #define HDMI_TX_ALLM_MODE   "/sys/class/amhdmitx/amhdmitx0/allm_cap"
 
@@ -213,9 +214,22 @@ bool DrmConnector::supportVrr() {
 }
 
 
-/* check vrr range for seamless switch
- * */
-bool DrmConnector::isSeamlessMode(const drm_mode_info_t & mode) {
+/*
+ * 1. check 4k30 DV mode
+ * 2. check vrr range for seamless switch
+ */
+bool DrmConnector::isSeamlessMode(const drm_mode_info_t & mode, const drm_mode_info_t &groupMode) {
+    if (mHdrCapabilities.DOLBY_VISION_4K30_Supported == 1) {
+        if (mode.pixelW == FB_SIZE_4K_W && mode.pixelH == FB_SIZE_4K_H) {
+            auto refreshA = ceilf(mode.refreshRate);
+            auto refreshB = ceilf(groupMode.refreshRate);
+            if ((refreshA > REFRESH_RATE_30 && refreshB <= REFRESH_RATE_30) ||
+                    (refreshA <= REFRESH_RATE_30 && refreshB > REFRESH_RATE_30)) {
+                return false;
+            }
+        }
+    }
+
     for (int32_t i = 0; i < mVrrModeGroup.num; i++) {
         if (mVrrModeGroup.gropus[i].width == mode.pixelW && mVrrModeGroup.gropus[i].height == mode.pixelH) {
             if (((mode.refreshRate - mVrrModeGroup.gropus[i].vrr_min) >= 0
@@ -277,7 +291,7 @@ int32_t DrmConnector::groupDisplayModes() {
                 /* only need check the first item*/
                 drm_mode_info_t *gmodePtr = itGroupModes[0];
                 if (gmodePtr->pixelW == itMode.pixelW && gmodePtr->pixelH == itMode.pixelH
-                            && isSeamlessMode(itMode)) {
+                            && isSeamlessMode(itMode, *gmodePtr)) {
                     itMode.groupId = groupId;
                     itGroupModes.push_back(&itMode);
                     needRegroup = false;

@@ -95,7 +95,7 @@ protected:
     int32_t parseHdrCapabilities();
     int32_t groupDisplayModes();
     int32_t loadVrrModeGroups();
-    bool isSeamlessMode(const drm_mode_info_t & mode);
+    bool isSeamlessMode(const drm_mode_info_t & mode, const drm_mode_info_t &groupMode);
 
 protected:
     int mDrmFd;
