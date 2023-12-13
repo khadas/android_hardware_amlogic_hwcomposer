@@ -286,12 +286,12 @@ int32_t Hwc2Display::setVsync(std::shared_ptr<HwcVsync> vsync) {
  */
 int32_t Hwc2Display::blankDisplay() {
     ATRACE_CALL();
-    std::lock_guard<std::mutex> lock(mMutex);
+    mMutex.try_lock();
     mPowerMode->setConnectorStatus(false);
     mSkipComposition = true;
 
     blankDisplayLocked();
-
+    mMutex.unlock();
     return 0;
 }
 
@@ -631,7 +631,7 @@ void Hwc2Display::onModeChanged(int stage) {
         MESON_LOGD("onModeChanged mObserver->onHotplug(true) hdrCapsChanged:%d", hdrCapsChanged);
         // only clear layers when we can send hotplug event
         // as the framework display will recreate when it receive hotplug event
-        if (!mFirstPresent) {
+        if (!mFirstPresent && HwcConfig::primaryHotplugEnabled()) {
             cleanupBeforeDestroy();
         }
         mObserver->onHotplug(true);

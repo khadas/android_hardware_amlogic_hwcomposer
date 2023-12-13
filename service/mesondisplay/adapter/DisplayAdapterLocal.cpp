@@ -249,6 +249,9 @@ bool DisplayAdapterLocal::setDisplayMode(const string& mode, ConnectorType displ
             }
         }
 
+        if (connector->getType() == LEGACY_NON_DRM_CONNECTOR_PANEL)
+            valid = true;
+
         if (!valid) {
             MESON_LOGE("Mode invalid for current pipe [%s]", mode.c_str());
             return false;
