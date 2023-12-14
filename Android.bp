@@ -84,6 +84,7 @@ soong_config_module_type {
         "enable_virtual_layer",
         "enable_ai_process_120",
         "enable_video_di",
+        "enable_hal_virtualdisplay",
     ],
 
     value_variables: [
@@ -191,6 +192,10 @@ meson_hwc_cc_defaults {
 
         enable_ai_process_120: {
             cflags: ["-DENABLE_AIPROCESS_120"],
+        },
+
+        enable_hal_virtualdisplay: {
+            cflags: ["-DENABLE_HAL_VIRTUALDISPLAY"],
         },
     },
 

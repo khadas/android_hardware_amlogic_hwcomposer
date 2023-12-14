@@ -396,6 +396,7 @@ int32_t  MesonHwc2::getDisplayAttribute(hwc2_display_t display,
 /*************Virtual display api below*************/
 int32_t MesonHwc2::createVirtualDisplay(uint32_t width, uint32_t height,
     int32_t* format, hwc2_display_t* outDisplay) {
+#ifdef ENABLE_HAL_VIRTUALDISPLAY
     hwc2_display_t id = getVirtualDisplayId();
     std::shared_ptr<VirtualDisplay> disp = std::make_shared<VirtualDisplay>(width, height, id);
     disp->initialize();
@@ -405,10 +406,18 @@ int32_t MesonHwc2::createVirtualDisplay(uint32_t width, uint32_t height,
     *outDisplay = id;
     GET_HWC_DISPLAY(0);
     hwcDisplay->createCallbackThread(true);
+#else
+    MESON_LOG_EMPTY_FUN();
+    UNUSED(width);
+    UNUSED(height);
+    UNUSED(format);
+    UNUSED(outDisplay);
+#endif
     return HWC2_ERROR_NONE;
 }
 
 int32_t MesonHwc2::destroyVirtualDisplay(hwc2_display_t display) {
+#ifdef ENABLE_HAL_VIRTUALDISPLAY
     GET_HWC_DISPLAY(display);
     CHECK_DISPLAY_VALID(display);
     VirtualDisplay * disp = (VirtualDisplay *)hwcDisplay.get();
@@ -419,18 +428,34 @@ int32_t MesonHwc2::destroyVirtualDisplay(hwc2_display_t display) {
         GET_HWC_DISPLAY(0);
         hwcDisplay->createCallbackThread(false);
     }
+#else
+    MESON_LOG_EMPTY_FUN();
+    UNUSED(display);
+#endif
     return HWC2_ERROR_NONE;
 }
 
 int32_t MesonHwc2::setOutputBuffer(hwc2_display_t display,
     buffer_handle_t buffer, int32_t releaseFence) {
+#ifdef ENABLE_HAL_VIRTUALDISPLAY
     GET_HWC_DISPLAY(display);
     VirtualDisplay * disp = (VirtualDisplay *)hwcDisplay.get();
     return disp->setOutputBuffer(buffer, releaseFence);
+#else
+    MESON_LOG_EMPTY_FUN();
+    UNUSED(display);
+    UNUSED(buffer);
+    UNUSED(releaseFence);
+    return HWC2_ERROR_NONE;
+#endif
 }
 
 uint32_t MesonHwc2::getMaxVirtualDisplayCount() {
+#ifdef ENABLE_HAL_VIRTUALDISPLAY
     return MESON_VIRTUAL_DISPLAY_MAX_COUNT;
+#else
+    return 0;
+#endif
 }
 
 /*************Compose api below*************/

@@ -131,6 +131,11 @@ endif
 ifndef HWC_VIDEO_AIPROCESS_120
 HWC_VIDEO_AIPROCESS_120 := false
 endif
+
+ifndef HWC_ENABLE_HAL_VIRTUALDISPLAY
+HWC_ENABLE_HAL_VIRTUALDISPLAY := false
+endif
+
 # Setup configuration in Soong namespace
 #
 $(call soong_config_set,meson_hwc,hwc_release,$(HWC_RELEASE))
@@ -173,5 +178,6 @@ $(call soong_config_set,meson_hwc,android_platform_sdk_extension_version,$(PLATF
 $(call soong_config_set,meson_hwc,enable_virtual_layer,$(HWC_ENABLE_VIRTUAL_LAYER))
 $(call soong_config_set,meson_hwc,enable_video_mosaic,$(HWC_VIDEO_MOSAIC))
 $(call soong_config_set,meson_hwc,enable_ai_process_120,$(HWC_VIDEO_AIPROCESS_120))
+$(call soong_config_set,meson_hwc,enable_hal_virtualdisplay,$(HWC_ENABLE_HAL_VIRTUALDISPLAY))
 
 #$(warning "the value of aidl: $(HWC_ENABLE_AIDL)")
