@@ -20,7 +20,7 @@ int nn_process_network(void *qcontext,
                              unsigned char *out_addr);
 int nn_uninit(void* context);
 int isInterfaceImplement();
-
+int nn_flushBuffer(void *context, void *mem_config, void *mem_data);
 #ifdef __cplusplus
 } //extern "C"
 #endif

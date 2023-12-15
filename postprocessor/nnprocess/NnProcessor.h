@@ -156,6 +156,7 @@ public:
     int mUvmHandler;
     int mNn_Index;
     int mNn_mode;
+    int mNn_mode_index;
     int mDumpHf;
     buffer_handle_t mLast_buf;
     static struct time_info_t mTime[NN_MODE_COUNT];

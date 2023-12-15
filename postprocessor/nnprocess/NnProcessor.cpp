@@ -143,6 +143,7 @@ NnProcessor::NnProcessor() {
     mIsModelInterfaceExist = true;
     mUvmHandler = -1;
     mNn_Index = 0;
+    mNn_mode_index = 0;
     mDumpHf = 0;
     mLast_buf = NULL;
     mVInfo_width = 0;
@@ -605,6 +606,8 @@ int32_t NnProcessor::teardown() {
 
     mBufferAllocDone = false;
 
+    nn_flushBuffer(mNn_qcontext[mNn_mode_index], NULL, NULL);
+
     freeDmaBuffers();
 
     for (i = 0; i < SR_OUT_BUF_COUNT; i++) {
@@ -782,7 +785,6 @@ int32_t NnProcessor::ai_sr_process(
     int need_nn_mode;
     int dump_debug;
     bool hf_info_err = false;
-    int nn_mode_index;
     bool mode_changed = false;
     int i;
 
@@ -886,9 +888,9 @@ int32_t NnProcessor::ai_sr_process(
 
     if ((mNeed_check_interlace && (mNn_interlace_flag == 1)) ||
         !mNeed_check_interlace)
-        nn_mode_index = NN_MODE_COUNT - mNn_mode;//interlace
+        mNn_mode_index = NN_MODE_COUNT - mNn_mode;//interlace
     else
-        nn_mode_index = NN_MODE_COUNT - mNn_mode - 3;
+        mNn_mode_index = NN_MODE_COUNT - mNn_mode - 3;
 
     ai_sr_info->nn_mode = mNn_mode;
     ai_sr_info->nn_status = NN_START_DOING;
@@ -901,7 +903,7 @@ int32_t NnProcessor::ai_sr_process(
     clock_gettime(CLOCK_MONOTONIC, &tm_1);
 
     if (!nn_bypass)
-        ret = nn_process_network(mNn_qcontext[nn_mode_index],
+        ret = nn_process_network(mNn_qcontext[mNn_mode_index],
                                  (unsigned char *)ai_sr_info->hf_phy_addr,
                                  (unsigned char *)ai_sr_info->nn_out_phy_addr);
 
@@ -925,28 +927,28 @@ int32_t NnProcessor::ai_sr_process(
         mTime_2 = tm_2.tv_sec * 1000000LL + tm_2.tv_nsec / 1000;
         nn_time = mTime_2 - mTime_1;
         ALOGD_IF(nn_check_D(),
-            "nn process %" PRId64" index=%d, mNn_mode=%d nn_mode_index=%d\n",
+            "nn process %" PRId64" index=%d, mNn_mode=%d mNn_mode_index=%d\n",
             nn_time,
             ai_sr_info->nn_index,
             mNn_mode,
-            nn_mode_index);
+            mNn_mode_index);
         if (nn_time > 14000)
             ALOGE("nn time too long %" PRId64" index=%d, mNn_mode=%d.\n",
                 nn_time,
                 ai_sr_info->nn_index,
                 mNn_mode);
         if (mode_changed == false) {
-            if (mTime[nn_mode_index].count == 0) {
-                mTime[nn_mode_index].max_time = nn_time;
-                mTime[nn_mode_index].min_time = nn_time;
+            if (mTime[mNn_mode_index].count == 0) {
+                mTime[mNn_mode_index].max_time = nn_time;
+                mTime[mNn_mode_index].min_time = nn_time;
             }
-            mTime[nn_mode_index].count++;
-            if (nn_time > mTime[nn_mode_index].max_time)
-                mTime[nn_mode_index].max_time = nn_time;
-            else if (nn_time < mTime[nn_mode_index].min_time)
-                mTime[nn_mode_index].min_time = nn_time;
+            mTime[mNn_mode_index].count++;
+            if (nn_time > mTime[mNn_mode_index].max_time)
+                mTime[mNn_mode_index].max_time = nn_time;
+            else if (nn_time < mTime[mNn_mode_index].min_time)
+                mTime[mNn_mode_index].min_time = nn_time;
 
-            mTime[nn_mode_index].total_time += nn_time;
+            mTime[mNn_mode_index].total_time += nn_time;
         } else
             ALOGD("nn process mode changed.\n");
     }

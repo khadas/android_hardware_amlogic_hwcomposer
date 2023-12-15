@@ -23,6 +23,7 @@ static int (*func_switchOutputBuffer)(void *, void *, unsigned int);
 static void* (*func_outputGet)(void *, aml_output_config_t);
 static void* (*func_create)(aml_config*);
 static int (*func_destroy)(void*);
+static int (*func_flushBuffer)(void*, aml_memory_config_t*, aml_memory_data_t*);
 
 int nn_process_network(void *qcontext,
                              unsigned char *in_addr,
@@ -90,6 +91,16 @@ int nn_uninit(void* context) {
     return ret;
 }
 
+int nn_flushBuffer(void *qcontext, void *mem_config, void *mem_data)
+{
+        ALOGD("enter %s.\n", __FUNCTION__);
+        int ret = 0;
+
+        ret = func_flushBuffer(qcontext,
+                (aml_memory_config_t *)mem_config, (aml_memory_data_t *)mem_data);
+        return ret;
+}
+
 int isInterfaceImplement() {
     ALOGD("enter %s.\n", __FUNCTION__);
 
@@ -124,17 +135,22 @@ int isInterfaceImplement() {
         if (func_destroy == NULL)
             ALOGD("func_destroy don't implement.\n");
 
+        func_flushBuffer = (int(*)(void*, aml_memory_config_t*, aml_memory_data_t*))
+            dlsym(mHandle, "aml_util_flushBuffer");
+        if (func_flushBuffer == NULL)
+            ALOGD("func_flushBuffer don't implement.\n");
+
         if ((func_switchInputBuffer == NULL)
             || (func_switchOutputBuffer == NULL)
             || (func_outputGet == NULL)
             || (func_create == NULL)
-            || (func_destroy == NULL)) {
+            || (func_destroy == NULL)
+            || (func_flushBuffer == NULL)) {
             ALOGE("NN interface don't implement in libnnsdk.so.\n");
         } else {
             ALOGD("NN interface is implement in libnnsdk.so.\n");
             ret = 1;
         }
-
     }
 
     return ret;
