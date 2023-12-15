@@ -2494,9 +2494,15 @@ bool ModePolicy::isHdmiEdidParseOK() {
 
 bool ModePolicy::isBestPolicy() {
     char isBestMode[MESON_MODE_LEN] = {0};
+    char hdmimode[MESON_MODE_LEN] = {0};
 
     if (DISPLAY_TYPE_TV == mDisplayType) {
         return false;
+    }
+
+    if (!getBootEnv(UBOOTENV_HDMIMODE, hdmimode) || (strstr(hdmimode, "hz") == NULL)) {
+        //if hdmimode is empty or no resolution is saved to enable the auto to best strategy
+        return true;
     }
 
     return !getBootEnv(UBOOTENV_ISBESTMODE, isBestMode) || strcmp(isBestMode, "true") == 0;
