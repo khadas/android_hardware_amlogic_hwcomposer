@@ -462,6 +462,7 @@ int32_t RealModeMgr::setPerferredMode(std::string mode) {
 
     //2. setActiveConfig for same resolution and refreshrate mode
     drm_mode_info_t curMode;
+    curMode.refreshRate = DEFAULT_REFRESH_RATE;
     mCrtc->getMode(curMode);
     drm_mode_info_t desiredMode;
     for (auto it : mModes) {

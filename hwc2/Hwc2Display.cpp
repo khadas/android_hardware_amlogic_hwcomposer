@@ -1958,7 +1958,8 @@ hwc2_error_t Hwc2Display::setActiveConfigWithConstraints(hwc2_config_t config,
         nsecs_t vsyncPeriod;
         /* wait 3 vblank to confirm vsync have updated successfully */
         for (int i = 0; i < 3; i++) {
-            mVsync->waitVsync(vsyncTimestamp, vsyncPeriod);
+            if (mVsync)
+                mVsync->waitVsync(vsyncTimestamp, vsyncPeriod);
             /* vsync in a reasonable value 0.5 ms */
             if (abs(vsyncPeriod - configPeriod) < 500 * 1000)
                 break;
@@ -2156,7 +2157,9 @@ hwc2_error_t Hwc2Display::setHdrConversionStrategy(bool passThrough, uint32_t nu
         userHdrType = userHdrType | (containHLGType << HAL_HDR_HLG);
         userHdrType = userHdrType | (containSDRType << DRM_INVALID);
 
-        mModePolicy->setAllowedHdrTypes(userHdrType, isAuto, passThrough);
+        if (mModePolicy)
+            mModePolicy->setAllowedHdrTypes(userHdrType, isAuto, passThrough);
+
         outHdrConversionType = mModePolicy->getPreferredHdrConversionType();
 
         if (outHdrConversionType == -1) {
@@ -2322,7 +2325,8 @@ void Hwc2Display::dump(String8 & dumpstr) {
                 mConnector->getCurrentHdrType().c_str());
     /* max supported DV mode */
     std::string mode;
-    mConnector->getDvCap(mode);
+    if (mConnector)
+        mConnector->getDvCap(mode);
     if (!mode.empty())
         dumpstr.appendFormat("Max supported DV mode: %s\n", mode.c_str());
 
@@ -2420,7 +2424,7 @@ bool Hwc2Display::getDisplayVsyncAndPeriod(int64_t& timestamp, int32_t& vsyncPer
 }
 
 bool Hwc2Display::isDisplayConnected() {
-    if (mConnector->getType() == DRM_MODE_CONNECTOR_VIRTUAL)
+    if (mConnector && mConnector->getType() == DRM_MODE_CONNECTOR_VIRTUAL)
         return false;
 
     return mConnector ? mConnector->isConnected() : false;
@@ -2715,8 +2719,8 @@ void Hwc2Display::releaseVtLayers() {
         if (layer->isVtBuffer()) {
             ret = layer->releaseVtBuffer();
             if (ret != 0 && ret != -EAGAIN) {
-                MESON_LOGE("%s, release layer id=%" PRIu64 " failed, ret=%s",
-                        __func__, layer->getUniqueId(), strerror(ret));
+                MESON_LOGE("%s, release layer id=%" PRIu64 " failed, ret=%d",
+                        __func__, layer->getUniqueId(), ret);
             }
         }
     }

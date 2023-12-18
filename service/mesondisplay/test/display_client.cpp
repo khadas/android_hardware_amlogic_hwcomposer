@@ -100,6 +100,8 @@ int main(int argc, char* argv[]) {
                 }
                 break;
             case 'c':
+                if (optarg == NULL)
+                    break;
                 client->setDisplayMode(optarg, type);
                 break;
             case 'g':

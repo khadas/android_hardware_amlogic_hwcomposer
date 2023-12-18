@@ -141,6 +141,7 @@ ModePolicy::ModePolicy() {
     memset(&mDvInfo, 0, sizeof(mDvInfo));
     mDisplayWidth = 0;
     mDisplayHeight = 0;
+    mThread = 0;
 }
 
 ModePolicy::ModePolicy(std::shared_ptr<meson::DisplayAdapter> adapter, const uint32_t displayId) {
@@ -1249,7 +1250,7 @@ void ModePolicy::getPosition(const char* curMode, int *position) {
            0
         };
 
-    if (mConnector->isConnected()) {
+    if (mConnector && mConnector->isConnected()) {
         mConnector->getModes(connecterModeList);
 
         for (auto it = connecterModeList.begin(); it != connecterModeList.end(); it++) {

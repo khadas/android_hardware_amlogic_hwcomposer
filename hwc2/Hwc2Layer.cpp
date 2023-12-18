@@ -55,6 +55,7 @@ Hwc2Layer::Hwc2Layer(uint32_t dispId) : DrmFramebuffer(){
     mDisplayId = dispId;
     mHwcCompositionType = HWC2_COMPOSITION_INVALID;
     mBrightness = -1;
+    mVideoDecTimestamp = -1;
     memset(&mVisibleRegion, 0, sizeof(mVisibleRegion));
     memset(&mDamageRegion, 0, sizeof(mDamageRegion));
     memset(&mBackupDisplayFrame, 0, sizeof(mBackupDisplayFrame));

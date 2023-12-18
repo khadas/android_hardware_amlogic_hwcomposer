@@ -122,7 +122,9 @@ std::shared_ptr<HwDisplayCrtc> DrmDevice::getCrtcByPipe(uint32_t pipeIdx) {
 
 std::shared_ptr<HwDisplayConnector> DrmDevice::getConnectorById(uint32_t connectorid) {
     auto connectorIt = mConnectors.find(connectorid);
-    return connectorIt->second;
+    if (connectorIt != mConnectors.end())
+        return connectorIt->second;
+    return NULL;
 }
 
 int32_t DrmDevice::getPipeCfg(uint32_t pipeIdx, HwDisplayPipe & pipecfg) {

@@ -393,7 +393,7 @@ int32_t CompositionProcessor::composite(
 
     eglDestroySyncKHR(eglGetCurrentDisplay(), sync);
 
-    outfb->setAcquireFence(dup(fenceFd));
+    outfb->setAcquireFence((fenceFd >= 0) ? dup(fenceFd) : -1);
 
     ATRACE_BEGIN("waiting for GPU completion");
     mBufferLock.try_lock();

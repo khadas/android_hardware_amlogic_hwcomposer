@@ -34,6 +34,15 @@ DiProcessor::DiProcessor() {
     mLastFd = -1;
     mLastFenceFd = -1;
     mReceiveCount = 0;
+    mNeed_fence = false;
+    memset(&mDi_Out, 0, sizeof(mDi_Out));
+    mBuf_index = -1;
+    mLastFenceOutFd = -1;
+    mLastFrameIsI = false;
+    mFirstI = false;
+    mBuf_index_Last = -1;
+    mAsyncCount =-1;
+    mDisplayedCount = -1;
 
     mHandler = open("/dev/di_process.0", O_RDWR | O_NONBLOCK);
     if (mHandler < 0) {

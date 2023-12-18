@@ -22,6 +22,7 @@ VideoProcessorsManager::VideoProcessorsManager() {
     mDiProcessors.clear();
     mFbProcessorsPairs.clear();
     mResetFlagPairs.clear();
+    mVideoFbsNum = -1;
 }
 
 VideoProcessorsManager::~VideoProcessorsManager() {
@@ -523,7 +524,8 @@ bool VideoProcessorsManager::runProcessors(
     bool hasDiProcessor = false;
     int processFence = -1;
     int releaseFence = -1;
-    int diFence = -1;
+    /*diFence removed*/
+    // int diFence = -1;
     std::shared_ptr<FbProcessor> processor;
     std::shared_ptr<DrmFramebuffer> inFb;
     std::shared_ptr<DrmFramebuffer> outFb;
@@ -585,15 +587,17 @@ bool VideoProcessorsManager::runProcessors(
                 (*it)->onBufferDisplayed(outFb, (releaseFence >= 0) ? dup(releaseFence) : -1);
         }
 
-        if (hasDiProcessor && diFence >= 0) {
-            /* need reset release fence after setPlane() */
+        /*Logically dead code,the condition diFence >= 0 cannot be true
+         *if (hasDiProcessor && diFence >= 0) {
+         * need reset release fence after setPlane()
             fb->setCurReleaseFence(diFence);
 
             if (releaseFence >= 0)
                 close(releaseFence);
 
-        } else
-            fb->onLayerDisplayed(releaseFence, (processFence >= 0) ? dup(processFence) : -1);
+            } else
+        */
+        fb->onLayerDisplayed(releaseFence, (processFence >= 0) ? dup(processFence) : -1);
 
         if (processFence >= 0)
             close(processFence);
