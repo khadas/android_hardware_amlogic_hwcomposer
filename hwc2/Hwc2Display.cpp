@@ -43,6 +43,7 @@
 #include <systemcontrol.h>
 #include <am_gralloc_ext.h>
 #include <HwDisplayManager.h>
+#include <HwcConfig.h>
 #include <misc.h>
 #include <UvmDev.h>
 #include <AmVecmDev.h>
@@ -1851,19 +1852,19 @@ bool Hwc2Display::isLayerHideForDebug(hwc2_layer_t id) {
 
 hwc2_error_t Hwc2Display::getDisplayCapabilities(
             uint32_t* outNumCapabilities, uint32_t* outCapabilities) {
+    hwc_pipe_policy_t pipe = HwcConfig::getPipeline();
     if (outCapabilities == nullptr) {
-        if (mConnector->isConnected() && mConnector->isTvSupportALLM())
+        if ((mConnector->isConnected() && mConnector->isTvSupportALLM()) && pipe == HWC_PIPE_DEFAULT)
             *outNumCapabilities = 2;
         else
             *outNumCapabilities = 1;
     } else {
-        if ((mConnector->isConnected() && mConnector->isTvSupportALLM())) {
+        if ((mConnector->isConnected() && mConnector->isTvSupportALLM()) && pipe == HWC_PIPE_DEFAULT) {
             outCapabilities[0] = HWC2_DISPLAY_CAPABILITY_SKIP_CLIENT_COLOR_TRANSFORM;
             outCapabilities[1] = HWC2_DISPLAY_CAPABILITY_AUTO_LOW_LATENCY_MODE;
-        } else if (!mConnector->isConnected()) {
+        } else if (!mConnector->isConnected() || pipe != HWC_PIPE_DEFAULT) {
             outCapabilities[0] = HWC2_DISPLAY_CAPABILITY_INVALID;
-        }
-        else {
+        } else {
             outCapabilities[0] = HWC2_DISPLAY_CAPABILITY_SKIP_CLIENT_COLOR_TRANSFORM;
         }
     }
