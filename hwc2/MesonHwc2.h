@@ -179,8 +179,8 @@ public:
 public:
     int32_t captureDisplayScreen(buffer_handle_t hnd);
     int32_t getWhiteBoardHanle(native_handle_t** hnd);
-    bool setWriteBoardMode(bool mode, int callingPid);
-    bool getWriteBoardMode(bool& mode);
+    bool setWhiteBoardMode(bool mode, int callingPid);
+    bool getWhiteBoardMode(bool& mode);
     bool setWBDisplayFrame(int x, int y);
     bool hideVideoLayer(bool hide);
     bool setViewPort(const drm_rect_wh_t viewPort, drm_connector_type_t);

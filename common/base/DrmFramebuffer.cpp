@@ -233,3 +233,17 @@ drm_rect_t DrmFramebuffer::getDisplayFrame() {
     return mDisplayFrame;
 }
 
+hwc2_error_t DrmFramebuffer::setSourceCrop(hwc_frect_t crop) {
+    mSourceCrop.left = (int) ceilf(crop.left);
+    mSourceCrop.top = (int) ceilf(crop.top);
+    mSourceCrop.right = (int) floorf(crop.right);
+    mSourceCrop.bottom = (int) floorf(crop.bottom);
+    return HWC2_ERROR_NONE;
+}
+hwc2_error_t DrmFramebuffer::setDisplayFrame(hwc_rect_t frame) {
+    mDisplayFrame.left = frame.left;
+    mDisplayFrame.top = frame.top;
+    mDisplayFrame.right = frame.right;
+    mDisplayFrame.bottom = frame.bottom;
+    return HWC2_ERROR_NONE;
+}

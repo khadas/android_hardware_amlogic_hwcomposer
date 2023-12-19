@@ -150,8 +150,8 @@ public:
     virtual bool captureDisplayScreen(const native_handle_t **outBufferHandle) = 0;
 
     virtual bool getWhiteBoardHanle(const native_handle_t **outBufferHandle, int& fd) = 0;
-    virtual bool setWriteBoardMode(bool mode, int callingPid = 0) = 0;
-    virtual bool getWriteBoardMode(bool& mode) = 0;
+    virtual bool setWhiteBoardMode(bool mode, int callingPid = 0) = 0;
+    virtual bool getWhiteBoardMode(bool& mode) = 0;
     virtual bool setWBDisplayFrame(int x, int y) = 0;
     virtual bool hideVideoLayer(bool hide) = 0;
     virtual bool enableSyncProtection(bool mode) = 0;

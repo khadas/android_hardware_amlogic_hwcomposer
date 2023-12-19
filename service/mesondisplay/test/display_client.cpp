@@ -224,14 +224,14 @@ int main(int argc, char* argv[]) {
                       if (0 == memcmp("true", optarg, sizeof("true"))) {
                             mode =true;
                       }
-                      client->setWriteBoardMode(mode);
+                      client->setWhiteBoardMode(mode);
                       printf("set white board to %s \n", mode ? "true":"false");
                   }
                 break;
             case 'b':
                   {
                       bool mode = false;
-                      client->getWriteBoardMode(mode);
+                      client->getWhiteBoardMode(mode);
                       printf("get current white board %s \n", mode ? "true":"false");
                   }
                 break;

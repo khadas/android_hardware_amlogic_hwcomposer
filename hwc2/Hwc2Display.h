@@ -198,20 +198,21 @@ public:
 
 /*White board*/
 public:
-    virtual void setWriteBoardMode(bool mode);
-    virtual void getWriteBoardMode(bool& mode);
+    virtual void setWhiteBoardMode(bool mode);
+    virtual void getWhiteBoardMode(bool& mode);
     virtual void hideVideoLayer(bool hide);
     virtual void setWBDisplayFrame(int x, int y);
     void enableSyncProtection(bool mode);
 
-    void createVirtualLayer();
-    void destroyVirtualLayer();
+    void createCustomizedBuffer();
+    void destroyCustomizedBuffer();
     virtual void handleWBThread();
     std::shared_ptr<WBDisplayThread> mWBDisplayThread;
     bool mInitWBDisplayThread = false;
     std::shared_ptr<HwcVsync> mWBVsync;
 
     std::shared_ptr<Hwc2Layer> mVirtualLayer;
+    std::shared_ptr<DrmFramebuffer> mCustomizedBuffer;
     uint32_t mVLIdx = -1;
     bool mWhiteBoardMode = false;
     bool mHideVideo = false;

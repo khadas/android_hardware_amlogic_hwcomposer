@@ -1004,7 +1004,7 @@ public:
 
         if (mHwc->mWhiteBoardMode) {
             if (kill(mHwc->mCallingPid, 0) == -1 && errno == ESRCH) {
-                mHwc->setWriteBoardMode(false, mHwc->mCallingPid);
+                mHwc->setWhiteBoardMode(false, mHwc->mCallingPid);
             }
         }
 
@@ -1122,19 +1122,19 @@ int32_t MesonHwc2::captureDisplayScreen(buffer_handle_t hnd) {
 
 int32_t MesonHwc2::getWhiteBoardHanle(native_handle_t** hnd) {
     GET_HWC_DISPLAY(0);
-    if (hwcDisplay->mVirtualLayer == nullptr) {
+    if (!mWhiteBoardMode) {
         MESON_LOGE("Please enable white board first");
         return -1;
     }
-    *hnd = hwcDisplay->mVirtualLayer->mBufferHandle;
+    *hnd = hwcDisplay->mCustomizedBuffer->mBufferHandle;
     return 0;
 }
 
-bool MesonHwc2::setWriteBoardMode(bool mode, int callingPid) {
+bool MesonHwc2::setWhiteBoardMode(bool mode, int callingPid) {
     GET_HWC_DISPLAY(0);
     mCallingPid = callingPid;
     mWhiteBoardMode = mode;
-    hwcDisplay->setWriteBoardMode(mode);
+    hwcDisplay->setWhiteBoardMode(mode);
     return true;
 }
 
@@ -1144,9 +1144,9 @@ bool MesonHwc2::enableSyncProtection(bool mode) {
     return true;
 }
 
-bool MesonHwc2::getWriteBoardMode(bool& mode) {
+bool MesonHwc2::getWhiteBoardMode(bool& mode) {
     GET_HWC_DISPLAY(0);
-    hwcDisplay->getWriteBoardMode(mode);
+    hwcDisplay->getWhiteBoardMode(mode);
     return true;
 }
 

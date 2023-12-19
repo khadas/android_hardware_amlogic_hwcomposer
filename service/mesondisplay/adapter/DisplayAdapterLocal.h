@@ -84,8 +84,8 @@ public:
     bool getDisplayVsyncAndPeriod(int64_t& timestamp, int32_t& vsyncPeriodNanos) override;
     bool dumpDisplayAttribute(Json::Value& json, ConnectorType displayType) override;
     bool getWhiteBoardHanle(const native_handle_t **outBufferHandle,int& fd) override;
-    bool setWriteBoardMode(bool mode, int callingPid) override;
-    bool getWriteBoardMode(bool& mode) override;
+    bool setWhiteBoardMode(bool mode, int callingPid) override;
+    bool getWhiteBoardMode(bool& mode) override;
     bool setWBDisplayFrame(int x, int y) override;
     bool hideVideoLayer(bool hide) override;
     bool enableSyncProtection(bool mode) override;

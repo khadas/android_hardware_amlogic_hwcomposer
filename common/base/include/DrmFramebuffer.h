@@ -11,6 +11,7 @@
 
 #include <stdlib.h>
 #include <cutils/native_handle.h>
+#include <math.h>
 
 #include <BasicTypes.h>
 #include <DrmSync.h>
@@ -58,6 +59,10 @@ public:
 
     drm_rect_t getSourceCrop();
     drm_rect_t getDisplayFrame();
+
+    virtual hwc2_error_t setSourceCrop(hwc_frect_t crop);
+    virtual hwc2_error_t setDisplayFrame(hwc_rect_t frame);
+
 
     // Virtuals for video tunnel
     virtual bool haveValidBuffer() {return true;};

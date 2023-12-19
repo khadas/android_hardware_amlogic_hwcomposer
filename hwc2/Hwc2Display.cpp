@@ -1017,22 +1017,10 @@ void Hwc2Display::outsideChanged(){
     mObserver->refresh();
 }
 
-void Hwc2Display::createVirtualLayer() {
+/************* Customized UI api below*************/
+void Hwc2Display::createCustomizedBuffer() {
     std::lock_guard<std::mutex> lock(mMutex);
-    mVirtualLayer = std::make_shared<Hwc2Layer>(mDisplayId);
-    mVLIdx = createLayerId();
-    mVirtualLayer->setUniqueId(mVLIdx);
-    mVirtualLayer->mIsVirtualLayer = true;
 
-    hwc_frect_t mCrop = {0, 0, static_cast<float>(FB_SIZE_4K_W), static_cast<float>(FB_SIZE_4K_H)};
-    mVirtualLayer->setSourceCrop(mCrop);
-    hwc_rect_t mDisplayFrame = {0, 0, FB_SIZE_4K_W, FB_SIZE_4K_H};
-    mVirtualLayer->setDisplayFrame(mDisplayFrame);
-    mVirtualLayer->setBlendMode(HWC2_BLEND_MODE_NONE);
-    mVirtualLayer->mZorder = MESON_WHITE_BOARD_ZORDER;
-    mVirtualLayer->mCompositionType = MESON_COMPOSITION_UNDETERMINED;
-
-    //Bind the buffer to Virtual Layer
     if (wbHnd == nullptr) {
         wbHnd = gralloc_alloc_dma_buf(FB_SIZE_4K_W, FB_SIZE_4K_H, HAL_PIXEL_FORMAT_RGBA_8888, true, true, RENDER_TEXTURE);
         if (wbHnd == nullptr ) {
@@ -1040,26 +1028,30 @@ void Hwc2Display::createVirtualLayer() {
             return;
         }
     }
+    mCustomizedBuffer = std::make_shared<DrmFramebuffer>(wbHnd, -1);
 
-    mVirtualLayer->setBuffer(wbHnd,-1);
-    mLayers.emplace(mVLIdx, mVirtualLayer);
-    return;
-}
+    hwc_frect_t mCrop = {0, 0, static_cast<float>(FB_SIZE_4K_W), static_cast<float>(FB_SIZE_4K_H)};
+    mCustomizedBuffer->setSourceCrop(mCrop);
+    hwc_rect_t mDisplayFrame = {0, 0, FB_SIZE_4K_W, FB_SIZE_4K_H};
+    mCustomizedBuffer->setDisplayFrame(mDisplayFrame);
+    mCustomizedBuffer->mZorder = MESON_WHITE_BOARD_ZORDER;
+    mCustomizedBuffer->mCompositionType = MESON_COMPOSITION_UNDETERMINED;
 
-void Hwc2Display::destroyVirtualLayer() {
-    std::lock_guard<std::mutex> lock(mMutex);
-    auto layerit = mLayers.find(mVLIdx);
-    if (layerit == mLayers.end()) {
-        MESON_LOGE("The virtual layer is invalid mVLIdx = %d",mVLIdx);
-        return;
+    if (mCompositionStrategy) {
+        mCompositionStrategy->setCustomizedBuffer(mCustomizedBuffer, true);
     }
-    destroyLayerId(mVLIdx);
-    mLayers.erase(mVLIdx);
-    mVLIdx = -1;
     return;
 }
 
-void Hwc2Display::getWriteBoardMode(bool& mode) {
+void Hwc2Display::destroyCustomizedBuffer() {
+    std::lock_guard<std::mutex> lock(mMutex);
+    if (mCompositionStrategy) {
+        mCompositionStrategy->setCustomizedBuffer(mCustomizedBuffer, false);
+    }
+    return;
+}
+
+void Hwc2Display::getWhiteBoardMode(bool& mode) {
     mode = mWhiteBoardMode;
     return;
 }
@@ -1072,19 +1064,19 @@ void Hwc2Display::hideVideoLayer(bool hide) {
 
 void Hwc2Display::setWBDisplayFrame(int x, int y) {
     hwc_rect_t displayFrame = {x, y, (int)mDisplayMode.pixelW, (int)mDisplayMode.pixelH};
-    mVirtualLayer->setDisplayFrame(displayFrame);
+    mCustomizedBuffer->setDisplayFrame(displayFrame);
     return;
 }
 
-void Hwc2Display::setWriteBoardMode(bool mode) {
-    MESON_LOGD("set setWriteBoardMode to %s, mWhiteBoardMode = %d", mode ? "true" : "false", mWhiteBoardMode);
+void Hwc2Display::setWhiteBoardMode(bool mode) {
+    MESON_LOGD("set setWhiteBoardMode to %d", mode);
 
     //First create a Virtual Layer to show White Board content.
     if (mode == true && mode != mWhiteBoardMode) {
-        createVirtualLayer();
+        createCustomizedBuffer();
         mWhiteBoardMode = true;
     } else if (mode == false) {
-        destroyVirtualLayer();
+        destroyCustomizedBuffer();
         mWhiteBoardMode = false;
     }
 

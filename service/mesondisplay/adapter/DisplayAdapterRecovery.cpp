@@ -359,7 +359,7 @@ bool DisplayAdapterLocal::enableSyncProtection(bool mode) {
     return ret;
 }
 
-bool DisplayAdapterLocal::setWriteBoardMode(bool mode, int callingPid) {
+bool DisplayAdapterLocal::setWhiteBoardMode(bool mode, int callingPid) {
     bool ret = false;
     UNUSED(mode);
     UNUSED(callingPid);
@@ -367,7 +367,7 @@ bool DisplayAdapterLocal::setWriteBoardMode(bool mode, int callingPid) {
     return ret;
 }
 
-bool DisplayAdapterLocal::getWriteBoardMode(bool& mode) {
+bool DisplayAdapterLocal::getWhiteBoardMode(bool& mode) {
     bool ret = false;
     UNUSED(mode);
     NOTIMPLEMENTED;

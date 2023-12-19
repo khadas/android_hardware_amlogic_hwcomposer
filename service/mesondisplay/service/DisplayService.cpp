@@ -204,16 +204,16 @@ void DisplayServer::message_handle(Json::Value& in, Json::Value& out) {
             goto OUT;
         int value = mAdapter->setFrameRate(in["frameRate_value"].asFloat());
         ret["value"] = value;
-   } else if (cmd == "setWriteBoardMode") {
+   } else if (cmd == "setWhiteBoardMode") {
         if (!in.isMember("value") || !in.isMember("callingPid"))
             goto OUT;
         bool mode = false;
         if (in["value"].asString() == "true" )
             mode = true;
-        mAdapter->setWriteBoardMode(mode, in["callingPid"].asUInt());
-    } else if (cmd == "getWriteBoardMode") {
+        mAdapter->setWhiteBoardMode(mode, in["callingPid"].asUInt());
+    } else if (cmd == "getWhiteBoardMode") {
         bool mode = false;;
-        mAdapter->getWriteBoardMode(mode);
+        mAdapter->getWhiteBoardMode(mode);
         if (mode ==  true) {
             ret["mode"] = "true";
         } else {

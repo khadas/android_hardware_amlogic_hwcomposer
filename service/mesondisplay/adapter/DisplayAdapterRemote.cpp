@@ -152,20 +152,20 @@ bool DisplayAdapterRemote::getWhiteBoardHanle(const native_handle_t **outBufferH
     return ret;
 }
 
-bool DisplayAdapterRemote::setWriteBoardMode(bool mode, int callingPid __unused) {
+bool DisplayAdapterRemote::setWhiteBoardMode(bool mode, int callingPid __unused) {
     Json::Value cmd;
     IF_SERVER_NOT_READY_RETURN(false);
-    cmd["cmd"] = "setWriteBoardMode";
+    cmd["cmd"] = "setWhiteBoardMode";
     cmd["value"] = mode ? "true":"false";
     cmd["callingPid"] = getpid();
     ipc->send_request(cmd);
     return true;
 }
 
-bool DisplayAdapterRemote::getWriteBoardMode(bool& mode) {
+bool DisplayAdapterRemote::getWhiteBoardMode(bool& mode) {
     Json::Value cmd, ret;
     IF_SERVER_NOT_READY_RETURN(false);
-    cmd["cmd"] = "getWriteBoardMode";
+    cmd["cmd"] = "getWhiteBoardMode";
     ipc->send_request_wait_reply(cmd, ret);
     if (ret.isMember("ret") && ret["ret"]["mode"].isString()) {
         if (ret["ret"]["mode"].asString() == "true") {

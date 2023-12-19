@@ -37,7 +37,7 @@ bool WhiteBoard::setWhiteBoardMode(bool mode) {
         return false;
     }
 
-    return displayAdapter->setWriteBoardMode(mode);
+    return displayAdapter->setWhiteBoardMode(mode);
 }
 
 bool WhiteBoard::setWBDisplayFrame(int x, int y) {
@@ -56,7 +56,7 @@ bool WhiteBoard::getWhiteBoardMode(bool& mode) {
         return false;
     }
 
-    displayAdapter->getWriteBoardMode(mode);
+    displayAdapter->getWhiteBoardMode(mode);
     return true;
 }
 

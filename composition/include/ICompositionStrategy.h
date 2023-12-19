@@ -96,6 +96,7 @@ public:
 
     virtual void setReleaseFence(int32_t fence __unused) {return;};
     virtual void enableSyncProtection(bool mode __unused) {return;};
+    virtual void setCustomizedBuffer(std::shared_ptr<DrmFramebuffer> customizedBuffer __unused, bool mode __unused) {return;};
 
 protected:
     /*common functions for dump.*/

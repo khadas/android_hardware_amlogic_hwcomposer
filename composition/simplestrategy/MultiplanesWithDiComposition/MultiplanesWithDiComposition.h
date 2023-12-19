@@ -39,6 +39,7 @@ public:
     void dump(String8 & dumpstr);
     void setReleaseFence(int32_t fence);
     void enableSyncProtection(bool mode);
+    void setCustomizedBuffer(std::shared_ptr<DrmFramebuffer> customizedBuffer, bool mode);
 
 protected:
     int processVideoFbs();

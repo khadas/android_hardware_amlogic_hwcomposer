@@ -610,19 +610,11 @@ int MultiplanesWithDiComposition::pickoutOsdFbs() {
     std::vector<std::shared_ptr<DrmFramebuffer>> dummyFbs;
     bool bRemove = false;
     bool bClientLayer = false;
-    bool mHaveVirLayer = false;
     auto fbIt = mFramebuffers.begin();
     for (; fbIt != mFramebuffers.end(); ) {
         fb = fbIt->second;
         bRemove = false;
         bClientLayer = false;
-        //get the white board data
-#ifndef ENABLE_VIRTUAL_LAYER
-        if (fb->isVirtualLayer()) {
-            mHaveVirLayer = true;
-            mWhiteBoardData = fb;
-        }
-#endif
 
         checkLayerValidate(fb);
 
@@ -674,32 +666,6 @@ int MultiplanesWithDiComposition::pickoutOsdFbs() {
             fbIt = mFramebuffers.erase(fbIt);
         else
             ++ fbIt;
-    }
-
-    /*add the compositionProcessor in WhiteMode*/
-    if (mHaveVirLayer)  {
-        mWhiteBoardMode = true;
-    } else {
-        mWhiteBoardMode = false;
-        for (auto buf = mWBQueue.begin(); buf != mWBQueue.end(); ++buf) {
-            std::shared_ptr<DrmFramebuffer> temp = *buf;
-            temp->mBufferState = DrmFramebuffer::MODE_BACK;
-        }
-    }
-
-    if (mWhiteBoardMode) {
-        if (!mComProcessor.get()) {
-            createFbProcessor(FB_RENDER_PROCESSOR, mComProcessor);
-            mComProcessor->setup();
-            for (int i = 0;i < WB_BUF_CNT;i ++) {
-                buffer_handle_t hnd;
-                hnd = gralloc_alloc_dma_buf(FB_SIZE_4K_W, FB_SIZE_4K_H, HAL_PIXEL_FORMAT_RGBA_8888, true, true, RENDER_TARGET);
-                auto buf = std::make_shared<DrmFramebuffer>(hnd, -1);
-                buf->setUniqueId(i);
-                buf->mBufferState = DrmFramebuffer::MODE_BACK;
-                mWBQueue.push_back(buf);
-            }
-        }
     }
 
     if (dummyFbs.size() > 0) {
@@ -1485,6 +1451,38 @@ void MultiplanesWithDiComposition::enableSyncProtection(bool mode) {
     if (mWhiteBoardMode && mComProcessor) {
         mComProcessor->enableSyncProtection(mode);
     }
+    return;
+}
+
+void MultiplanesWithDiComposition::setCustomizedBuffer(std::shared_ptr<DrmFramebuffer> customizedBuffer, bool mode) {
+    ATRACE_CALL();
+
+    mWhiteBoardMode = mode;
+    mWhiteBoardData = customizedBuffer;
+
+    //clear all outbuffers status
+    if (mWhiteBoardMode == false) {
+        for (auto buf = mWBQueue.begin(); buf != mWBQueue.end(); ++buf) {
+            std::shared_ptr<DrmFramebuffer> temp = *buf;
+            temp->mBufferState = DrmFramebuffer::MODE_BACK;
+        }
+    }
+
+    if (mWhiteBoardMode) {
+        if (!mComProcessor.get()) {
+            createFbProcessor(FB_RENDER_PROCESSOR, mComProcessor);
+            mComProcessor->setup();
+            for (int i = 0;i < WB_BUF_CNT;i ++) {
+                buffer_handle_t hnd;
+                hnd = gralloc_alloc_dma_buf(FB_SIZE_4K_W, FB_SIZE_4K_H, HAL_PIXEL_FORMAT_RGBA_8888, true, true, RENDER_TARGET);
+                auto buf = std::make_shared<DrmFramebuffer>(hnd, -1);
+                buf->setUniqueId(i);
+                buf->mBufferState = DrmFramebuffer::MODE_BACK;
+                mWBQueue.push_back(buf);
+            }
+        }
+    }
+
     return;
 }
 
