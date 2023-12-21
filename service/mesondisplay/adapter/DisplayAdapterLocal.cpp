@@ -141,8 +141,10 @@ DisplayAdapterLocal::DisplayAdapterLocal() {
     DA_DEFINE(HDR_POLICY, "0", update_sys_node);
     DA_DEFINE(HDR_MODE, "0", update_sys_node);
     DA_DEFINE(SDR_MODE, "0", update_sys_node);
+    DA_DEFINE(HDMI_COLOR_ATTR, "0", update_sys_node);
     DA_DEFINE(HDMI_AVMUTE, "0", update_sys_node);
     DA_DEFINE(FR_HINT, "0", update_sys_node);
+    DA_DEFINE(HDR_PRIORITY, "0", update_sys_node);
     DA_DEFINE(FORCE_HDR_MODE, "0", update_sys_node);
 
 #define DA_SET_NODE(ID, NODE) \
@@ -172,8 +174,10 @@ DisplayAdapterLocal::DisplayAdapterLocal() {
     DA_SET_NODE(DOLBY_VISION_CAP2 ,"/sys/class/amhdmitx/amhdmitx0/dv_cap2");
     DA_SET_NODE(DOLBY_VISION_MODE ,"/sys/class/amdolby_vision/dv_mode");
     DA_SET_NODE(HDR_CAP ,"/sys/class/amhdmitx/amhdmitx0/hdr_cap");
+    DA_SET_NODE(HDMI_COLOR_ATTR ,"/sys/class/amhdmitx/amhdmitx0/attr");
     DA_SET_NODE(HDMI_AVMUTE ,"/sys/devices/virtual/amhdmitx/amhdmitx0/avmute");
     DA_SET_NODE(FR_HINT, "/sys/class/display/fr_hint");
+    DA_SET_NODE(HDR_PRIORITY, "/sys/class/amhdmitx/amhdmitx0/hdr_priority_mode");
     DA_SET_NODE(FORCE_HDR_MODE, "/sys/module/aml_media/parameters/force_output");
 
 #define DA_SET_READ_ONLY(ID) \
@@ -502,7 +506,7 @@ bool DisplayAdapterLocal::setDisplayAttribute(
         return false;
 
     GET_CRTC_BY_CONNECTOR(type);
-    if (connector) {
+    if (access("/dev/dri/card0", R_OK | W_OK) == 0 && connector) {
         if (!name.compare(DISPLAY_HDR_PRIORITY)) {
             uint32_t hdr_priority = static_cast<uint32_t>(atoi(value.c_str()));
             return connector->setHdrPriority(hdr_priority) ? false : true;
@@ -575,7 +579,7 @@ bool DisplayAdapterLocal::getDisplayAttribute(
         return false;
 
     GET_CRTC_BY_CONNECTOR(type);
-    if (connector) {
+    if (access("/dev/dri/card0", R_OK | W_OK) == 0 && connector) {
         if (!name.compare(DISPLAY_HDR_PRIORITY)) {
             uint32_t hdr_priority;
             ret = connector->getHdrPriority(hdr_priority) ? false : true;
