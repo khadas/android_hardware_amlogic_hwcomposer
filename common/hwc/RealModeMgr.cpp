@@ -52,8 +52,8 @@ static const char* DISPLAY_MODE_LIST[] = {
     "1080p50hz",    // MODE_1080P50HZ
     "1080p59hz",    // MODE_1080P59HZ
     "1080p60hz",    // MODE_1080P
-    "1920x1080p100hz",   // MODE_1080P_100HZ
-    "1920x1080p120hz",   // MODE_1080P_120HZ
+    "1920x1080p100hz",   // MODE_1080P100HZ
+    "1920x1080p120hz",   // MODE_1080P120HZ
     "3840x1080p100hz", // MODE_4K1K100HZ
     "3840x1080p119hz", // MODE_4K1K119HZ
     "3840x1080p120hz", // MODE_4K1K120HZ
@@ -70,7 +70,7 @@ static const char* DISPLAY_MODE_LIST[] = {
     "3840x2160p119hz",   // MODE_4K2K119HZ
     "3840x2160p120hz",   // MODE_4K2K120HZ
     "3840x2160p144hz",   // MODE_4K2K144HZ
-    "smpte24hz",    // MODE_4K2KSMPTE
+    "smpte24hz",    // MODE_4K2KSMPTE24HZ
     "smpte30hz",    // MODE_4K2KSMPTE30HZ
     "smpte50hz",    // MODE_4K2KSMPTE50HZ
     "smpte60hz",    // MODE_4K2KSMPTE60HZ
