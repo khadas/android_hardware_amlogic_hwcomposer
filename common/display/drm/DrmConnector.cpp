@@ -230,6 +230,11 @@ bool DrmConnector::isSeamlessMode(const drm_mode_info_t & mode, const drm_mode_i
         }
     }
 
+    //TODO: remove it when TV connector support vrr range
+    if (isTvType()) {
+        return true;
+    }
+
     for (int32_t i = 0; i < mVrrModeGroup.num; i++) {
         if (mVrrModeGroup.gropus[i].width == mode.pixelW && mVrrModeGroup.gropus[i].height == mode.pixelH) {
             if (((mode.refreshRate - mVrrModeGroup.gropus[i].vrr_min) >= 0
