@@ -230,6 +230,7 @@ protected:
 
 private:
     std::mutex mViewPortMutex;
+    bool mSupportBootDisplayConfigs =  false;
 };
 
 #endif/*MESON_HWC2_H*/

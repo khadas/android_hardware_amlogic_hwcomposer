@@ -62,6 +62,11 @@
         return HWC2_ERROR_BAD_LAYER; \
     }
 
+#define CHECK_BOOT_CONFIG_SUPPORT()    \
+if (mSupportBootDisplayConfigs == false) { \
+        return HWC2_ERROR_UNSUPPORTED; \
+}
+
 
 #ifdef GET_REQUEST_FROM_PROP
 static bool m3DMode = false;
@@ -130,18 +135,19 @@ void MesonHwc2::getCapabilities(uint32_t* outCount, int32_t* outCapabilities) {
     *outCount = 2;
 
 #ifdef ENABLE_AIDL
-#if (PLATFORM_SDK_VERSION >= 34)
     auto connectorType = HwcConfig::getConnectorType(0);
+    bool isOtt = (HwcConfig::getDisplayNum() == 1) && (connectorType == HWC_HDMI_CVBS || connectorType == DRM_MODE_CONNECTOR_HDMIA);
+    bool drmBackend = access("/dev/dri/card0", R_OK | W_OK) == 0;
     //TODO: enable boot display config when G support it for dual display
-    if (HwcConfig::getDisplayNum() == 1) {
-        // panel does not support hdr output control
-        if (connectorType == HWC_HDMI_CVBS || connectorType == DRM_MODE_CONNECTOR_HDMIA) {
+    if (isOtt) {
+        if (drmBackend) {
             *outCount = 3;
+        } else {
+            *outCount = 2;
         }
     } else {
         *outCount = 1;
     }
-#endif
 #endif
 
     if (outCapabilities) {
@@ -149,13 +155,14 @@ void MesonHwc2::getCapabilities(uint32_t* outCount, int32_t* outCapabilities) {
         if (*outCount >= 2)
             outCapabilities[1] = HWC2_CAPABILITY_SKIP_VALIDATE;
 #ifdef ENABLE_AIDL
-        if (HwcConfig::getDisplayNum() == 1) {
-            outCapabilities[1] = HWC3_CAPABILITY_BOOT_DISPLAY_CONFIG;
-#if (PLATFORM_SDK_VERSION >= 34)
-            if (connectorType == HWC_HDMI_CVBS || connectorType == DRM_MODE_CONNECTOR_HDMIA) {
+        if (isOtt) {
+            mSupportBootDisplayConfigs = true;
+            if (drmBackend) {
+                outCapabilities[1] = HWC3_CAPABILITY_BOOT_DISPLAY_CONFIG;
                 outCapabilities[2] = HWC3_HDR_OUTPUT_CONVERSION_CONFIG;
+            } else {
+                outCapabilities[1] = HWC3_CAPABILITY_BOOT_DISPLAY_CONFIG;
             }
-#endif
         }
 #endif
     }
@@ -767,17 +774,20 @@ int32_t MesonHwc2::setContentType(hwc2_display_t display, uint32_t contentType) 
 
 /* hwc3 */
 int32_t MesonHwc2::setBootDisplayConfig(hwc2_display_t display, uint32_t config) {
+    CHECK_BOOT_CONFIG_SUPPORT();
     GET_HWC_DISPLAY(display);
     return hwcDisplay->setBootConfig(config);
 }
 
 int32_t MesonHwc2::clearBootDisplayConfig(hwc2_display_t display) {
+    CHECK_BOOT_CONFIG_SUPPORT();
     GET_HWC_DISPLAY(display);
     return hwcDisplay->clearBootConfig();
 }
 
 int32_t MesonHwc2::getPreferredBootDisplayConfig(hwc2_display_t display,
         int32_t* config) {
+    CHECK_BOOT_CONFIG_SUPPORT();
     GET_HWC_DISPLAY(display);
     return hwcDisplay->getPreferredBootConfig(config);
 }
