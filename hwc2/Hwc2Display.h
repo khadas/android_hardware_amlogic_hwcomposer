@@ -276,6 +276,8 @@ protected:
     std::shared_ptr<HwDisplayCrtc> mCrtc;
     std::shared_ptr<HwDisplayConnector> mConnector;
     std::vector<std::shared_ptr<HwDisplayPlane>> mPlanes;
+    bool mConnectorUpdated;
+    drm_connector_type_t mConnectorType;
 
     /*composition related components*/
     std::map<meson_composer_t, std::shared_ptr<IComposer>> mComposers;

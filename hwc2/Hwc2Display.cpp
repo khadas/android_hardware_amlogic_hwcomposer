@@ -85,6 +85,8 @@ Hwc2Display::Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer, uint32_t
     mIsDisablePostProcessor = false;
     memset(&mDisplayMode, 0, sizeof(mDisplayMode));
     memset(&mCalibrateInfo, 0, sizeof(mCalibrateInfo));
+    mConnectorType = DRM_MODE_CONNECTOR_INVALID_TYPE;
+    mConnectorUpdated = false;
 }
 
 Hwc2Display::~Hwc2Display() {
@@ -185,6 +187,7 @@ int32_t Hwc2Display::setDisplayResource(
     mCrtc = crtc;
     mPlanes = planes;
     mConnector = connector;
+    mConnectorUpdated = true;
 
     /*update composition strategy.*/
     uint32_t strategyFlags = 0;
@@ -1118,7 +1121,11 @@ int32_t Hwc2Display::getDisplayIdentificationData(uint32_t &outPort,
 drm_connector_type_t Hwc2Display::getConnectorType() {
     std::lock_guard<std::mutex> lock(mMutex);
     if (mConnector != nullptr) {
-        return mConnector->getType();
+        if (mConnectorUpdated) {
+            mConnectorType = mConnector->getType();
+            mConnectorUpdated = false;
+        }
+        return mConnectorType;
     } else {
         return DRM_MODE_CONNECTOR_INVALID_TYPE;
     }
