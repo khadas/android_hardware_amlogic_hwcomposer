@@ -128,15 +128,6 @@ int MultiplanesComposition::handleVideoComposition() {
         for (int i = 0; i < pairSize; i++) {
             if (fb->mFbType == planeCompPairs[i].srcFb) {
                 uint32_t presentZorder = fb->mZorder;
-
-                if (fb->mFbType == DRM_FB_VIDEO_OMX_PTS ||
-                    fb->mFbType == DRM_FB_VIDEO_OMX_PTS_SECOND ||
-                    fb->mFbType == DRM_FB_VIDEO_UVM_DMA) {
-                    if (fb->mCompositionType == MESON_COMPOSITION_CLIENT) {
-                        continue;
-                    }
-                }
-
                 destComp = planeCompPairs[i].destComp;
                 if (planeCompPairs[i].destPlane == LEGACY_VIDEO_PLANE) {
                     if (mLegacyVideoPlane.get()) {
