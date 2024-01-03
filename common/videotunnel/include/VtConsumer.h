@@ -83,9 +83,6 @@ public:
         virtual void onNeedShowTempBuffer(vt_video_color_t colorType __unused) {};
         virtual void onNeedShowTempBufferWithStatus(
                 vt_video_color_t colorType, vt_video_status_t status);
-
-        virtual void onSetupClient(void* layer __unused) {};
-        virtual void onDisconnectedLocked() {};
     };
 
     /*register VtInstance callback */
@@ -97,21 +94,15 @@ public:
     int32_t onVtFrameDisplayed(int bufferFd, int fenceFd);
     int32_t onFrameAvailable(std::vector<std::shared_ptr<VtBufferItem>> & items);
 
-    void setDestroyFlag();
-    bool getDestroyFlag();
-
     const char * VtSolidColorToString(vt_video_color_t type);
     const char * VtVideoStatusToString(vt_video_status_t type);
 private:
-    bool mFlags;
     int mTunnelId;
     /* VtInstance callback */
     VtReleaseListener* mReleaseListener;
     /* Hwc2Layer callback */
     std::shared_ptr<VtContentListener> mContentListener;
     char mName[64];
-
-    std::mutex mMutex;
 };
 
 #endif  /* MESON_VT_CONSUMER_H */

@@ -14,7 +14,6 @@ VtConsumer::VtConsumer(int tunnelId, uint32_t dispId, uint32_t layerId) {
     mTunnelId = tunnelId;
     mReleaseListener = nullptr;
     mContentListener = nullptr;
-    mFlags = false;
     snprintf(mName, 64, "VtConsumer-%u-%d-%u",
             dispId, tunnelId, layerId);
 }
@@ -145,17 +144,6 @@ int32_t VtConsumer::onFrameAvailable(
     } else {
         return -1;
     }
-}
-
-void VtConsumer::setDestroyFlag() {
-    std::lock_guard<std::mutex> lock(mMutex);
-    /* need destroy this consumer */
-    mFlags = true;
-}
-
-bool VtConsumer::getDestroyFlag() {
-    std::lock_guard<std::mutex> lock(mMutex);
-    return mFlags;
 }
 
 const char * VtConsumer::VtSolidColorToString(vt_video_color_t type) {

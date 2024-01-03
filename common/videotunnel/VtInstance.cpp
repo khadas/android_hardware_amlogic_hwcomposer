@@ -104,15 +104,16 @@ int32_t VtInstance::unregisterVtConsumer(
         return ret;
     }
 
-    auto it = mConsumers.begin();
-    for (; it != mConsumers.end(); it++) {
+    for (auto it = mConsumers.begin(); it != mConsumers.end(); ) {
         std::shared_ptr<VtConsumer> item = (*it);
         if (item.get() == consumer.get()) {
-            MESON_LOGV("[%s] [%s] remove consumer %p", __func__,
-                    mName, consumer.get());
-            item->setDestroyFlag();
+            MESON_LOGD("[%s] [%s] remove consumer", __func__,
+                    mName);
+            it = mConsumers.erase(it);
             ret = 0;
             break;
+        } else {
+            it++;
         }
     }
 
@@ -180,7 +181,7 @@ int32_t VtInstance::acquireBuffer() {
     }
 
     if (!items.empty()) {
-        for (auto it = mConsumers.begin(); it != mConsumers.end(); it++) {
+        for (auto it = mConsumers.begin(); it != mConsumers.end(); ) {
             std::shared_ptr<VtConsumer> consumer = *it;
             std::vector<std::shared_ptr<VtBufferItem>>::iterator item;
 
@@ -191,10 +192,12 @@ int32_t VtInstance::acquireBuffer() {
             if (ret < 0 && ret != -EAGAIN) {
                 MESON_LOGE("[%s] [%s] call consumer(%p) onFrameAvailable failed",
                     __func__, mName, consumer.get());
-                consumer->setDestroyFlag();
+                it = mConsumers.erase(it);
                 for (item = items.begin(); item != items.end(); item++)
                     (*item)->unrefHandle();
                 ret = -EAGAIN;
+            } else {
+                it++;
             }
         }
     }
@@ -248,20 +251,9 @@ int32_t VtInstance::receiveCmds() {
 }
 
 bool VtInstance::needDestroyThisInstance() {
-    auto it = mConsumers.begin();
-    for (; it != mConsumers.end(); ) {
-        if (!(*it).get()) {
-            it = mConsumers.erase(it);
-        } else {
-            if ((*it)->getDestroyFlag())
-                it = mConsumers.erase(it);
-            else
-                it++;
-        }
-    }
-
-    if (mConsumers.empty())
+    if (mConsumers.empty()) {
         return true;
-    else
+    } else {
         return false;
+    }
 }

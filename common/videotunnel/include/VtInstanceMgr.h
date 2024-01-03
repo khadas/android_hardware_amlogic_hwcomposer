@@ -25,21 +25,22 @@ public:
     VtInstanceMgr();
     ~VtInstanceMgr();
 
-    int32_t connectInstance(int tunnelId, std::shared_ptr<VtConsumer> consumer);
-    int32_t disconnectInstance(int tunnelId, std::shared_ptr<VtConsumer> consumer);
-    void clearUpInstancesLocked();
-    void clearUpInstances();
-
+    int32_t connectInstanceLocked(int tunnelId, std::shared_ptr<VtConsumer> consumer);
+    int32_t disconnectInstanceLocked(int tunnelId, std::shared_ptr<VtConsumer> consumer);
     VideoTunnelDev::VtPollStatus pollVtEvents();
     int32_t handleBuffers();
     int32_t handleCmds();
+    void lockInstancesMutex();
+    void unlockInstancesMutex();
 
 protected:
+    void clearUpInstancesLocked();
+    void clearUpInstances();
     const char *vtPollStatusToString(VideoTunnelDev::VtPollStatus status);
 private:
     std::map<int, std::shared_ptr<VtInstance>> mInstances;
     std::shared_ptr<VtHandleEventsThread> mVtHandleEventsThread;
-    std::mutex mMutex;
+    std::mutex mInstanceMutex;
 };
 
 #endif /* MESON_VT_INSTANCE_MGR */

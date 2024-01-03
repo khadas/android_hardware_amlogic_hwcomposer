@@ -27,10 +27,9 @@ VtInstanceMgr::~VtInstanceMgr() {
         mVtHandleEventsThread->stopThread();
 }
 
-/* call from consumer */
-int32_t VtInstanceMgr::connectInstance(int tunnelId,
+/* call from consumer, need hold mInstanceMutex before call*/
+int32_t VtInstanceMgr::connectInstanceLocked(int tunnelId,
         std::shared_ptr<VtConsumer> consumer) {
-    std::lock_guard<std::mutex> lock(mMutex);
     std::shared_ptr<VtInstance> ptrInstance;
     int32_t ret = -1;
     if (tunnelId < 0) {
@@ -69,8 +68,8 @@ int32_t VtInstanceMgr::connectInstance(int tunnelId,
     return ret;
 }
 
-/* call from consumer */
-int32_t VtInstanceMgr::disconnectInstance(int tunnelId,
+/* call from consumer, need hold mInstanceMutex before call */
+int32_t VtInstanceMgr::disconnectInstanceLocked(int tunnelId,
         std::shared_ptr<VtConsumer> consumer) {
     int ret = -1;
     std::shared_ptr<VtInstance> ptrInstance;
@@ -81,29 +80,27 @@ int32_t VtInstanceMgr::disconnectInstance(int tunnelId,
         return ret;
     }
 
-    {
-        std::lock_guard<std::mutex> lock(mMutex);
-        if (mInstances.empty()) {
-            MESON_LOGW("%s, [%d] currently not found instance",
-                __func__, tunnelId);
-            return ret;
-        }
-
-        auto instanceIt = mInstances.find(tunnelId);
-        if (instanceIt != mInstances.end()) {
-            ptrInstance = instanceIt->second;
-            ret = ptrInstance->unregisterVtConsumer(consumer);
-            if (ret < 0)
-                MESON_LOGE("%s, [%d] unregister consumer failed: %d",
-                    __func__, tunnelId, ret);
-        }
+    if (mInstances.empty()) {
+        MESON_LOGW("%s, [%d] currently not found instance",
+            __func__, tunnelId);
+        return ret;
     }
 
+    auto instanceIt = mInstances.find(tunnelId);
+    if (instanceIt != mInstances.end()) {
+        ptrInstance = instanceIt->second;
+        ret = ptrInstance->unregisterVtConsumer(consumer);
+        if (ret < 0)
+            MESON_LOGE("%s, [%d] unregister consumer failed: %d",
+                __func__, tunnelId, ret);
+    }
+
+    clearUpInstancesLocked();
     return ret;
 }
 
 void VtInstanceMgr::clearUpInstances() {
-    std::lock_guard<std::mutex> lock(mMutex);
+    std::lock_guard<std::mutex> lock(mInstanceMutex);
     clearUpInstancesLocked();
 }
 
@@ -121,6 +118,7 @@ void VtInstanceMgr::clearUpInstancesLocked() {
         ptrInstance = it->second;
         bRemove = ptrInstance->needDestroyThisInstance();
         if (bRemove) {
+            ptrInstance->disconnect();
             it = mInstances.erase(it);
             MESON_LOGD("%s, destroy instance %d succeeded",
                     __func__, id);
@@ -169,7 +167,8 @@ int32_t VtInstanceMgr::handleBuffers() {
     int32_t ret = -1;
     std::shared_ptr<VtInstance> ptrInstance;
 
-    clearUpInstances();
+    std::lock_guard<std::mutex> lock(mInstanceMutex);
+    clearUpInstancesLocked();
     if (mInstances.empty()) {
         /* will exit VtHandleEventsThread */
         return ret;
@@ -188,7 +187,8 @@ int32_t VtInstanceMgr::handleCmds() {
     int32_t ret = -1;
     std::shared_ptr<VtInstance> ptrInstance;
 
-    clearUpInstances();
+    std::lock_guard<std::mutex> lock(mInstanceMutex);
+    clearUpInstancesLocked();
     if (mInstances.empty()) {
         /* will exit VtHandleEventsThread */
         return ret;
@@ -201,4 +201,12 @@ int32_t VtInstanceMgr::handleCmds() {
     }
 
     return ret;
+}
+
+void VtInstanceMgr::lockInstancesMutex() {
+    mInstanceMutex.lock();
+}
+
+void VtInstanceMgr::unlockInstancesMutex() {
+    mInstanceMutex.unlock();
 }

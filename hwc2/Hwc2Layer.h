@@ -140,9 +140,6 @@ public:
         void onNeedShowTempBufferWithStatus(
                 vt_video_color_t colorType, vt_video_status_t status);
 
-        void onSetupClient(void* layer);
-        void onDisconnectedLocked();
-        std::mutex mMutex;
     private:
         Hwc2Layer* mLayer;
     };
