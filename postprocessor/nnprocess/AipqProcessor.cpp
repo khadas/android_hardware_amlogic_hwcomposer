@@ -119,6 +119,7 @@ static int get_scenes_buffers(int total, int len, enum data_mode mode)
             ALOGE("mode: %d data_buffer[%d] malloc fail\n", i, mode);
             while (i--)
                 free(data_buffer[i]);
+            free(data_buffer);
             return -1;
         }
         memset(data_buffer[i], 0, len * sizeof(char));
@@ -138,6 +139,9 @@ static int get_scenes_buffers(int total, int len, enum data_mode mode)
         break;
     default: {
             ALOGD("%s unknown mode=%d\n", __func__, mode);
+            for (i = 0; i < total; i++)
+                free(data_buffer[i]);
+            free(data_buffer);
             return -1;
         }
     }
@@ -293,6 +297,7 @@ static void get_vnn_scenes_data()
     file_size = ftell(fp);
     if (!file_size) {
         ALOGE("file size is 0\n");
+        fclose(fp);
         return;
     }
     fseek(fp, 0, SEEK_SET);
@@ -300,6 +305,7 @@ static void get_vnn_scenes_data()
     tmp[file_size * sizeof(char)] = '\0';
     if (!tmp) {
         ALOGE("malloc tmp buffer err\n");
+        fclose(fp);
         return;
     }
     fread(tmp, sizeof(char), file_size, fp);

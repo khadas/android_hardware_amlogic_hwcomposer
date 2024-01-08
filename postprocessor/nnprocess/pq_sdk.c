@@ -72,8 +72,9 @@ void process_top5(float *buf, unsigned int num, img_classify_out_t* cls_out)
 void* process_network(void *qcontext,unsigned char *qrawdata) {
     int ret = 0;
     nn_output *outdata = NULL;
-
     aml_output_config_t outconfig;
+
+    memset(&outconfig, 0, sizeof(aml_output_config_t));
     outconfig.typeSize = sizeof(aml_output_config_t);
     outconfig.mdType = CUSTOM_NETWORK;
     outconfig.format = AML_OUTDATA_FLOAT32;
