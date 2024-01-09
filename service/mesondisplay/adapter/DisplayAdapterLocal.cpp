@@ -474,9 +474,14 @@ bool DisplayAdapterLocal::getUbootenv(
         const string & key,
         string & value) {
 
-    value = meson_mode_get_ubootenv(key.c_str());
-    MESON_LOGD("getUbootenv %s", value.c_str());
-    return true;
+    const char* pValue = meson_mode_get_ubootenv(key.c_str());
+    if (pValue) {
+        value  = std::string(pValue);
+        return true;
+    } else {
+        MESON_LOGD("getUbootenv[%s] is NULL", key.c_str());
+        return false;
+    }
 }
 
 DisplayAttributeInfo* DisplayAdapterLocal::getDisplayAttributeInfo(const string& name, ConnectorType displayType) {
