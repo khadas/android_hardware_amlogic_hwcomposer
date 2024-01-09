@@ -321,16 +321,7 @@ bool HwcConfig::AiPqProcessorEnabled() {
 
 bool HwcConfig::AiColorProcessorEnabled() {
 #ifdef ENABLE_VIDEO_AICOLOR
-    char value[PROPERTY_VALUE_MAX];
-    int ret = 0;
-    const char* str = "vendor.hwc.aicolor_enable";
-
-    if (property_get(str, value, NULL) > 0) {
-        ret = atoi(value);
-        if (ret)
-            return true;
-    }
-    return false;
+    return true;
 #else
     return false;
 #endif
