@@ -134,12 +134,10 @@ void* uninit(void* context) {
     else
         ALOGE("%s:interface don't implement.\n", __FUNCTION__);
 
-#ifndef ENABLE_VIDEO_AIPQ_GPU
     if (mSdkHandle != NULL) {
         dlclose(mSdkHandle);
         mSdkHandle = NULL;
     }
-#endif
 
     return NULL;
 }

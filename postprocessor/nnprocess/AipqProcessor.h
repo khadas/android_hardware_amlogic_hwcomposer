@@ -69,12 +69,10 @@ struct uvm_aipq_info {
     int32_t dw_height;
     int32_t nn_input_frame_width;
     int32_t nn_input_frame_height;
-    int32_t is_nn_doing;   /*0:not 1:yes*/
     int32_t omx_index;
-    int32_t is_start_first_vf;
-    int32_t is_open_first_vf;
     int32_t nn_do_aipq_type;   /*0:hardware 1:gpu*/
-    int32_t reserved[5];
+    int32_t is_sc_change;
+    int32_t reserved[7];
 };
 
 struct uvm_aipq_info_t {
@@ -123,9 +121,12 @@ public:
     mutable std::mutex mMutex_index;
     std::queue<int> mBuf_fd_q;
     static void * threadMain(void * data);
+    static void * threadNnInit(void * data);
     int LoadNNModel();
     pthread_t mThread;
+    pthread_t mThreadNnInit;
     bool mExitThread;
+    bool mExitThreadNnInit;
     bool mInited;
     int32_t ai_pq_process(int input_fd);
     void nn_value_reorder(img_classify_out_t *nn_out, struct nn_value_t *scenes);
@@ -157,8 +158,8 @@ public:
     int mCacheIndex;
     int mBuf_index;
     bool mIsStartFirstVf;
-    bool mIsOpenFirstVf;
     int mPreHist[64];
+    bool mNeedDoAipq;
 };
 
 #endif

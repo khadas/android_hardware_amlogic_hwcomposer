@@ -319,12 +319,32 @@ static void get_vnn_scenes_data()
     fclose(fp);
 }
 
+void * AipqProcessor::threadNnInit(void * data) {
+    AipqProcessor * pThis = (AipqProcessor *) data;
+    struct sched_param param = {0};
+
+    param.sched_priority = 2;
+    if (sched_setscheduler(0, SCHED_FIFO, &param) != 0) {
+        ALOGE("%s: Couldn't set SCHED_FIFO: %d.\n", __FUNCTION__, errno);
+    }
+
+    MESON_ASSERT(data, "AipqProcessor data should not be NULL in threadNnInit.\n");
+
+    if (!pThis->mModelLoaded)
+        pThis->LoadNNModel();
+
+    ALOGD("%s exit.\n", __FUNCTION__);
+    pthread_exit(0);
+    return NULL;
+}
+
 AipqProcessor::AipqProcessor() {
     ATRACE_CALL();
     ALOGD("%s", __FUNCTION__);
     mNnDoing = false;
     mBuf_Alloced = false;
     mExitThread = true;
+    mExitThreadNnInit = true;
     pthread_mutex_init(&m_waitMutex, NULL);
     pthread_cond_init(&m_waitCond, NULL);
 
@@ -346,6 +366,7 @@ AipqProcessor::AipqProcessor() {
 
 #ifdef ENABLE_VIDEO_AIPQ_GPU
     mIsStartFirstVf = true;
+    mNeedDoAipq = false;
 #endif
 
     if (mInstanceID == 0) {
@@ -357,23 +378,35 @@ AipqProcessor::AipqProcessor() {
         mNn_qcontext = NULL;
         mModelLoaded = false;
         isPqInterfaceImplement();
+        mThreadNnInit = false;
     }
 
-#ifndef ENABLE_VIDEO_AIPQ_GPU
-    if (!mModelLoaded)
-        LoadNNModel();
-#endif
+    if (mInstanceID == 0) {
+        if (mExitThreadNnInit == true) {
+            ALOGD("threadNnInit creat");
+            mExitThreadNnInit = false;
+            int ret = pthread_create(&mThreadNnInit,
+                                     NULL,
+                                     AipqProcessor::threadNnInit,
+                                     (void *)this);
+            if (ret != 0) {
+                ALOGE("failed to start AipqProcessor nn init thread: %s",
+                      strerror(ret));
+                mExitThreadNnInit = true;
+            }
+        }
+    }
+
     mUvmHandler = open("/dev/uvm", O_RDWR | O_NONBLOCK);
     if (mUvmHandler < 0) {
         ALOGE("can not open uvm");
+    } else {
+        ALOGE("open uvm");
     }
 
     mInstanceID++;
     mDupCount = 0;
     mCloseCount = 0;
-#ifdef ENABLE_VIDEO_AIPQ_GPU
-    mModelLoaded = false;
-#endif
 
     for (int i = 0; i < AI_PQ_TOP; i++) {
         mLastNnValue[i].maxclass = 0;
@@ -433,17 +466,17 @@ int32_t AipqProcessor::setup() {
     }
 
     if (mExitThread == true) {
-            ALOGD("threadMain creat");
-            mExitThread = false;
-            int ret = pthread_create(&mThread,
-                                     NULL,
-                                     AipqProcessor::threadMain,
-                                     (void *)this);
-            if (ret != 0) {
-                ALOGE("failed to start AipqProcessor main thread: %s",
-                      strerror(ret));
-                mExitThread = true;
-            }
+        ALOGD("threadMain creat");
+        mExitThread = false;
+        int ret = pthread_create(&mThread,
+                                 NULL,
+                                 AipqProcessor::threadMain,
+                                 (void *)this);
+        if (ret != 0) {
+            ALOGE("failed to start AipqProcessor main thread: %s",
+                  strerror(ret));
+            mExitThread = true;
+        }
     }
 
     mInited = true;
@@ -489,15 +522,13 @@ int32_t AipqProcessor::asyncProcess(
         goto bypass;
     }
 
-#ifdef ENABLE_VIDEO_AIPQ_GPU
-    if (!mModelLoaded)
-        goto bypass;
-#endif
-
     if (!mUvmHandler) {
         ALOGD_IF(check_D(), "%s: mUvmHandler is null.", __FUNCTION__);
         goto bypass;
     }
+
+    if (!mModelLoaded)
+        goto bypass;
 
     memset(&hook_data, 0, sizeof(struct uvm_hook_data));
 
@@ -513,12 +544,6 @@ int32_t AipqProcessor::asyncProcess(
     aipq_info->nn_input_frame_width = mNnInputVframeWidth;
 
 #ifdef ENABLE_VIDEO_AIPQ_GPU
-    if (mNnDoing || mIsStartFirstVf)
-        aipq_info->is_nn_doing = true;
-    else
-        aipq_info->is_nn_doing = false;
-    if (mIsStartFirstVf)
-        aipq_info->is_start_first_vf = true;
     aipq_info->nn_do_aipq_type = NN_USE_GPU;
 #else
     aipq_info->nn_do_aipq_type = NN_USE_HARDWARE;
@@ -549,6 +574,17 @@ int32_t AipqProcessor::asyncProcess(
         ALOGD_IF(check_D(), "aipq not need do again");
         goto bypass;
     }
+
+#ifdef ENABLE_VIDEO_AIPQ_GPU
+    if (mNnDoing) {
+        ALOGD_IF(check_D(), "nn is doing, asyncprocess bypass.\n");
+        goto bypass;
+    }
+    if (!mNnDoing && aipq_info->is_sc_change) {
+        ALOGD_IF(check_D(), "nn is not doing, but pq return sc change.\n");
+        mNeedDoAipq = true;
+    }
+#endif
 
     if (!mBuf_Alloced) {
         ret = allocDmaBuffer();
@@ -584,8 +620,6 @@ int32_t AipqProcessor::asyncProcess(
 
 #ifdef ENABLE_VIDEO_AIPQ_GPU
     if (!mNnDoing) {
-        if (aipq_info->is_open_first_vf)
-            mIsOpenFirstVf = true;
         {
             std::lock_guard<std::mutex> lock(mMutex);
             mBuf_fd_q.push(mCacheIndex);
@@ -597,6 +631,8 @@ int32_t AipqProcessor::asyncProcess(
         triggerEvent();
     } else {
         close(dup_fd);
+        mCloseCount++;
+        mTotalCloseCount++;
     }
 #else
     {
@@ -648,6 +684,11 @@ int32_t AipqProcessor::teardown() {
         pthread_join(mThread, NULL);
         mThread = 0;
     }
+    if (mInstanceID == 1 && mThreadNnInit) {
+        pthread_join(mThreadNnInit, NULL);
+        mThreadNnInit = false;
+    }
+
     while (mBuf_fd_q.size() > 0)
     {
         std::lock_guard<std::mutex> lock(mMutex);
@@ -666,9 +707,6 @@ int32_t AipqProcessor::teardown() {
     mBuf_Alloced = false;
     mInited = false;
 
-#ifdef ENABLE_VIDEO_AIPQ_GPU
-    mIsStartFirstVf = false;
-#endif
     return 0;
 }
 
@@ -715,19 +753,11 @@ void * AipqProcessor::threadMain(void * data) {
         ALOGE("%s: Couldn't set SCHED_FIFO: %d.\n", __FUNCTION__, errno);
     }
 
-#ifdef ENABLE_VIDEO_AIPQ_GPU
-    pThis->LoadNNModel();
-#endif
-
     MESON_ASSERT(data, "AipqProcessor data should not be NULL.\n");
 
     while (!pThis->mExitThread) {
         pThis->threadProcess();
     }
-#ifdef ENABLE_VIDEO_AIPQ_GPU
-    uninit(pThis->mNn_qcontext);
-    pThis->mNn_qcontext = NULL;
-#endif
 
     ALOGD("%s exit.\n", __FUNCTION__);
     pthread_exit(0);
@@ -991,7 +1021,6 @@ int32_t AipqProcessor::ai_pq_process(int cache_index) {
 
 #ifdef ENABLE_VIDEO_AIPQ_GPU
     aipq_info->nn_do_aipq_type = NN_USE_GPU;
-    aipq_info->is_nn_doing = false;
     ALOGD_IF(check_D(),"pq thread fd=%d\n", input_fd);
 
     clock_gettime(CLOCK_MONOTONIC, &tm_0);
@@ -1007,15 +1036,10 @@ int32_t AipqProcessor::ai_pq_process(int cache_index) {
         hist[y_data / 4]++;
     }
 
-    if (mIsStartFirstVf || mIsOpenFirstVf) {
-        for (int i = 0; i < sizeof(hist) / sizeof(int); i++)
-            mPreHist[i] = hist[i];
-        mIsStartFirstVf = false;
-        mIsOpenFirstVf = false;
+    if (mIsStartFirstVf)
         do_aipq = true;
-    } else {
+    else
         do_aipq = is_do_aipq(hist, sizeof(hist) / sizeof(int));
-    }
 
     clock_gettime(CLOCK_MONOTONIC, &tm_2);
     mTime_0 = tm_0.tv_sec * 1000000LL + tm_0.tv_nsec / 1000;
@@ -1043,8 +1067,19 @@ int32_t AipqProcessor::ai_pq_process(int cache_index) {
         return -1;
     }
 
+    if (mIsStartFirstVf) {
+        for (int i = 0; i < sizeof(hist) / sizeof(int); i++)
+            mPreHist[i] = hist[i];
+        mIsStartFirstVf = false;
+        do_aipq = true;
+    }
+
+    if (mNeedDoAipq) {
+        do_aipq = true;
+        mNeedDoAipq = false;
+    }
+
     if (do_aipq) {
-        aipq_info->is_nn_doing = true;
         ret = ioctl(mUvmHandler, UVM_IOC_SET_INFO, &hook_data);
 
         if (ret < 0) {
