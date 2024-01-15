@@ -295,6 +295,14 @@ bool HwcConfig::dynamicSwitchViuEnabled() {
 #endif
 }
 
+bool HwcConfig::seamlessSwitchEnabled() {
+#ifdef HWC_ENABLE_SEAMLESS_MODE_SWITCH
+    return true;
+#else
+    return false;
+#endif
+}
+
 float  HwcConfig::getMaxRefreshRate() {
 #ifdef HWC_ENFORCES_MAX_REFRESH_RATE
     return (float)HWC_ENFORCES_MAX_REFRESH_RATE;
@@ -411,6 +419,8 @@ void HwcConfig::dump(String8 & dumpstr) {
             dumpstr.appendFormat("\t DynamicSwitchConnector: %s", dynamicSwitchConnectorEnabled() ? "Y" : "N");
             dumpstr.append("\n");
             dumpstr.appendFormat("\t DynamicSwitchViu: %s", dynamicSwitchViuEnabled() ? "Y" : "N");
+            dumpstr.append("\n");
+            dumpstr.appendFormat("\t SeamlessSwitch: %s", seamlessSwitchEnabled() ? "Y" : "N");
             dumpstr.append("\n");
             dumpstr.appendFormat("\t AiSrProcessor: %s", AiSrProcessorEnabled() ? "Y" : "N");
             dumpstr.append("\n");

@@ -55,6 +55,7 @@ soong_config_module_type {
         "pipe_viu1vdinviu2_always_loopback",
         "dynamic_switch_connector",
         "dynamic_switch_viu",
+        "enable_seamless_mode_switch",
         "enable_vt_hwVsync",
         "enable_video_aicolor",
         "enable_video_aiface",
@@ -123,6 +124,10 @@ soong_config_bool_variable {
 
 soong_config_bool_variable {
     name: "dynamic_switch_viu",
+}
+
+soong_config_bool_variable {
+    name: "enable_seamless_mode_switch",
 }
 
 soong_config_bool_variable {
@@ -258,6 +263,10 @@ meson_common_base_cc_defaults {
 
         dynamic_switch_viu: {
             cflags: ["-DHWC_DYNAMIC_SWITCH_VIU"],
+        },
+
+        enable_seamless_mode_switch: {
+            cflags: ["-DHWC_ENABLE_SEAMLESS_MODE_SWITCH"],
         },
 
         enable_vt_hwVsync: {

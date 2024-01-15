@@ -92,6 +92,10 @@ ifndef HWC_DYNAMIC_SWITCH_VIU
 HWC_DYNAMIC_SWITCH_VIU := false
 endif
 
+ifndef HWC_ENABLE_SEAMLESS_MODE_SWITCH
+HWC_ENABLE_SEAMLESS_MODE_SWITCH := false
+endif
+
 ifndef HWC_VIDEO_AISR
 HWC_VIDEO_AISR := false
 endif
@@ -177,6 +181,7 @@ $(call soong_config_set,meson_hwc,target_use_default_hdr_property,$(HWC_ENABLE_D
 $(call soong_config_set,meson_hwc,pipe_viu1vdinviu2_always_loopback,$(HWC_PIPE_VIU1VDINVIU2_ALWAYS_LOOPBACK))
 $(call soong_config_set,meson_hwc,dynamic_switch_connector,$(HWC_DYNAMIC_SWITCH_CONNECTOR))
 $(call soong_config_set,meson_hwc,dynamic_switch_viu,$(HWC_DYNAMIC_SWITCH_VIU))
+$(call soong_config_set,meson_hwc,enable_seamless_mode_switch,$(HWC_ENABLE_SEAMLESS_MODE_SWITCH))
 $(call soong_config_set,meson_hwc,enable_aidl,$(HWC_ENABLE_AIDL))
 $(call soong_config_set,meson_hwc,enable_vt_hwVsync,$(HWC_VT_HW_VSYNC))
 $(call soong_config_set,meson_hwc,enable_video_aisr,$(HWC_VIDEO_AISR))
