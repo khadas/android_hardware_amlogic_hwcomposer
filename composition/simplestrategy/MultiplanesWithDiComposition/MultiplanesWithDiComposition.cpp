@@ -664,6 +664,27 @@ int MultiplanesWithDiComposition::pickoutOsdFbs() {
         mDummyComposer->addInputs(dummyFbs, dummyOverlayFbs);
     }
 
+/* Only support one legacy video in current times. */
+#if ENABLE_LEGACY_VIDEO
+    if (!mOverlayFbs.empty() && !mFramebuffers.empty()) {
+        auto osdFbIt = mFramebuffers.begin();
+        uint32_t minOsdFbZorder = osdFbIt->second->mZorder;
+
+        /* Current only input one Legacy video fb. */
+        std::shared_ptr<DrmFramebuffer> legacyVideoFb = *(mOverlayFbs.begin());
+        if (legacyVideoFb->mZorder > minOsdFbZorder) {
+            mMinComposerZorder = mFramebuffers.begin()->second->mZorder;
+            /* Legacy video is always on the bottom.
+             * SO, all fbs below legacyVideo zorder need to compose.
+             * Set maxClientZorder = legacyVideoZorder
+             */
+            if (mMaxComposerZorder == INVALID_ZORDER || legacyVideoFb->mZorder > mMaxComposerZorder) {
+                 mMaxComposerZorder = legacyVideoFb->mZorder;
+            }
+        }
+    }
+#else // If only one legacy video in current times, don't need to check inside video flag.
+
     /* 1. check mInsideVideoFbsFlag = false
      * 2. for HDR mode, adjust compose range.
      */
@@ -707,6 +728,7 @@ int MultiplanesWithDiComposition::pickoutOsdFbs() {
             }
         }
     }
+#endif
 
     return 0;
 }
@@ -1158,6 +1180,9 @@ void MultiplanesWithDiComposition::handleDisplayLayerZorder() {
             * */
             if (mDisplayPairs.size() == 1) {
                 it->presentZorder = it->presentZorder + TOP_VIDEO_FB_BEGIN_ZORDER;
+#if ENABLE_LEGACY_VIDEO
+                it->presentZorder -= TOP_VIDEO_FB_BEGIN_ZORDER;
+#endif
             }
         }
     }

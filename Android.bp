@@ -85,6 +85,7 @@ soong_config_module_type {
         "enable_ai_process_120",
         "enable_video_di",
         "enable_hal_virtualdisplay",
+        "enable_legacy_video",
     ],
 
     value_variables: [
@@ -136,6 +137,10 @@ soong_config_bool_variable {
 
 soong_config_bool_variable {
     name: "enable_video_di",
+}
+
+soong_config_bool_variable {
+    name: "enable_legacy_video",
 }
 
 meson_hwc_cc_defaults {
@@ -196,6 +201,10 @@ meson_hwc_cc_defaults {
 
         enable_hal_virtualdisplay: {
             cflags: ["-DENABLE_HAL_VIRTUALDISPLAY"],
+        },
+
+        enable_legacy_video: {
+            cflags: ["-DENABLE_LEGACY_VIDEO"],
         },
     },
 
