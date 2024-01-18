@@ -781,8 +781,8 @@ int32_t Hwc2Display::loadVirtualLayerData(FILE *file, std::shared_ptr<Hwc2Layer>
     int m_width = png_get_image_width(png_ptr, info_ptr);
     int m_height = png_get_image_height(png_ptr, info_ptr);
 
-    hwc_frect_t mCrop = {0, 0, static_cast<float>(m_width), static_cast<float>(m_height)};
-    tempVirtualLayer->setSourceCrop(mCrop);
+    drm_rect_t crop = {0, 0, m_width, m_height};
+    tempVirtualLayer->setSourceCrop(crop);
 
     buffer_handle_t hnd = gralloc_alloc_dma_buf(m_width, m_height,
                                                    HAL_PIXEL_FORMAT_RGBA_8888, false, false);
@@ -855,9 +855,10 @@ hwc2_error_t Hwc2Display::createVirtualLayer(hwc2_layer_t * outLayer) {
 
     mVirtualLayer = std::make_shared<Hwc2Layer>(mDisplayId);
     mVirtualLayer->setBuffer(hnd,-1);
-    hwc_frect_t mCrop = {0, 0, static_cast<float>(width), static_cast<float>(height)};
-    mVirtualLayer->setSourceCrop(mCrop);
-    mVirtualLayer->setBlendMode(HWC2_BLEND_MODE_PREMULTIPLIED);
+    drm_rect_t crop = {0, 0, width, height};
+    mVirtualLayer->setSourceCrop(crop);
+    mVirtualLayer->setBlendMode(
+            (drm_blend_mode_t)HWC2_BLEND_MODE_PREMULTIPLIED);
 
     uint32_t idx = createLayerId();
     *outLayer = idx;
@@ -1091,10 +1092,10 @@ void Hwc2Display::createCustomizedBuffer() {
     }
     mCustomizedBuffer = std::make_shared<DrmFramebuffer>(wbHnd, -1);
 
-    hwc_frect_t mCrop = {0, 0, static_cast<float>(FB_SIZE_4K_W), static_cast<float>(FB_SIZE_4K_H)};
-    mCustomizedBuffer->setSourceCrop(mCrop);
-    hwc_rect_t mDisplayFrame = {0, 0, FB_SIZE_4K_W, FB_SIZE_4K_H};
-    mCustomizedBuffer->setDisplayFrame(mDisplayFrame);
+    drm_rect_t crop = {0, 0, FB_SIZE_4K_W, FB_SIZE_4K_H};
+    mCustomizedBuffer->setSourceCrop(crop);
+    drm_rect_t displayFrame = {0, 0, FB_SIZE_4K_W, FB_SIZE_4K_H};
+    mCustomizedBuffer->setDisplayFrame(displayFrame);
     mCustomizedBuffer->mZorder = MESON_WHITE_BOARD_ZORDER;
     mCustomizedBuffer->mCompositionType = MESON_COMPOSITION_UNDETERMINED;
 
@@ -1125,7 +1126,7 @@ void Hwc2Display::hideVideoLayer(bool hide) {
 
 void Hwc2Display::setWBDisplayFrame([[maybe_unused]] int x, [[maybe_unused]] int y) {
 #ifdef NON_LOW_RAM
-    hwc_rect_t displayFrame = {x, y, (int)mDisplayMode.pixelW, (int)mDisplayMode.pixelH};
+    drm_rect_t displayFrame = {x, y, (int)mDisplayMode.pixelW, (int)mDisplayMode.pixelH};
     mCustomizedBuffer->setDisplayFrame(displayFrame);
     return;
 #endif

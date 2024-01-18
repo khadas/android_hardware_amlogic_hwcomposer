@@ -164,7 +164,7 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
     }
 
     /*
-    * SurfaceFlinger will call setCompositionType() first,then setBuffer().
+    * SurfaceFlinger will call setHwcCompositionType() first,then setBuffer().
     * So it is safe to calc drm_fb_type_t mFbType here.
     */
     clearBufferInfo();
@@ -221,10 +221,13 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
         setReqFlag(FORCE_CLIENT_REQ);
     }
 
-    if (preType != mFbType)
+    if (preType != mFbType) {
         mUpdated = true;
 
-    if (preType != mFbType) {
+        memset(mDebugInfo, 0, 32);
+        snprintf(mDebugInfo, 32, "Id=%" PRIu64 " Type=%s",
+                mId, drmFbTypeToString(mFbType));
+
         // changed from UVM to other type
         if (preType == DRM_FB_VIDEO_UVM_DMA) {
             releaseUvmResourceLock();
@@ -244,6 +247,7 @@ hwc2_error_t Hwc2Layer::setSidebandStream(const native_handle_t* stream,
     ATRACE_CALL();
     VtInstanceMgr::getInstance().lockInstancesMutex();
     std::lock_guard<std::mutex> lock(mMutex);
+    drm_fb_type_t preType = mFbType;
     MESON_LOGV("[%s] [%" PRIu64 "]", __func__, mId);
     clearBufferInfo();
     setBufferInfo(stream, -1, true);
@@ -298,6 +302,13 @@ hwc2_error_t Hwc2Layer::setSidebandStream(const native_handle_t* stream,
 
     mSecure = false;
     mUpdated = true;
+
+    if (preType != mFbType) {
+        memset(mDebugInfo, 0, 32);
+        snprintf(mDebugInfo, 32, "Id=%" PRIu64 " Type=%s",
+                mId, drmFbTypeToString(mFbType));
+    }
+
     return HWC2_ERROR_NONE;
 
 }
@@ -317,17 +328,13 @@ hwc2_error_t Hwc2Layer::setColor(hwc_color_t color) {
     return HWC2_ERROR_NONE;
 }
 
-hwc2_error_t Hwc2Layer::setSourceCrop(hwc_frect_t crop) {
-    mSourceCrop.left = (int) ceilf(crop.left);
-    mSourceCrop.top = (int) ceilf(crop.top);
-    mSourceCrop.right = (int) floorf(crop.right);
-    mSourceCrop.bottom = (int) floorf(crop.bottom);
-    mUpdated = true;
+int32_t Hwc2Layer::setSourceCrop(drm_rect_t crop) {
+    DrmFramebufferBase::setSourceCrop(crop);
     vtRefresh();
     return HWC2_ERROR_NONE;
 }
 
-hwc2_error_t Hwc2Layer::setDisplayFrame(hwc_rect_t frame) {
+int32_t Hwc2Layer::setDisplayFrame(drm_rect_t frame) {
     /*Used for display frame scale*/
     mBackupDisplayFrame.left = frame.left;
     mBackupDisplayFrame.top = frame.top;
@@ -336,24 +343,6 @@ hwc2_error_t Hwc2Layer::setDisplayFrame(hwc_rect_t frame) {
 
     mUpdated = true;
     vtRefresh();
-    return HWC2_ERROR_NONE;
-}
-
-hwc2_error_t Hwc2Layer::setBlendMode(hwc2_blend_mode_t mode) {
-    mBlendMode = (drm_blend_mode_t)mode;
-    mUpdated = true;
-    return HWC2_ERROR_NONE;
-}
-
-hwc2_error_t Hwc2Layer::setPlaneAlpha(float alpha) {
-    mPlaneAlpha = alpha;
-    mUpdated = true;
-    return HWC2_ERROR_NONE;
-}
-
-hwc2_error_t Hwc2Layer::setTransform(hwc_transform_t transform) {
-    mTransform = (int32_t)transform;
-    mUpdated = true;
     return HWC2_ERROR_NONE;
 }
 
@@ -367,7 +356,7 @@ hwc2_error_t Hwc2Layer::setSurfaceDamage(hwc_region_t damage) {
     return HWC2_ERROR_NONE;
 }
 
-hwc2_error_t Hwc2Layer::setCompositionType(int32_t type){
+hwc2_error_t Hwc2Layer::setHwcCompositionType(int32_t type){
     mHwcCompositionType = type;
     mUpdated = true;
     if (type == HWC3_COMPOSITION_DECORATION)
@@ -376,15 +365,9 @@ hwc2_error_t Hwc2Layer::setCompositionType(int32_t type){
     return HWC2_ERROR_NONE;
 }
 
-hwc2_error_t Hwc2Layer::setDataspace(android_dataspace_t dataspace) {
-    mDataSpace = dataspace;
-    mUpdated = true;
-    return HWC2_ERROR_NONE;
-}
-
-hwc2_error_t Hwc2Layer::setZorder(uint32_t z) {
-    mZorder = z;
-    mUpdateZorder = mUpdated = true;
+int32_t Hwc2Layer::setZorder(uint32_t z) {
+    DrmFramebufferBase::setZorder(z);
+    mUpdateZorder = true;
     vtRefresh();
     return HWC2_ERROR_NONE;
 }

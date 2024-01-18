@@ -6,7 +6,6 @@
  *
  * Description:
  */
-
 #include <DrmFramebuffer.h>
 #include <MesonLog.h>
 #include <misc.h>
@@ -209,18 +208,14 @@ bool DrmFramebuffer::isRotated() {
     return mTransform != 0;
 }
 
-drm_fb_type_t DrmFramebuffer::getFbType() {
-    std::lock_guard<std::mutex> lock(mMutex);
-    return mFbType;
-}
-
 drm_rect_t DrmFramebuffer::getSourceCrop() {
     // overrider the source crop if has vtSourceCrop
+    std::lock_guard<std::mutex> lock(mMutex);
     if (mVtSourceCrop.left > 0 || mVtSourceCrop.top > 0 ||
             mVtSourceCrop.right > 0 || mVtSourceCrop.bottom > 0) {
         return mVtSourceCrop;
     } else {
-        if (isVtBuffer()) {
+        if (isVtBufferLocked()) {
             drm_rect_t crop = {0, 0, -1, -1};
             return crop;
         }
@@ -229,22 +224,9 @@ drm_rect_t DrmFramebuffer::getSourceCrop() {
     }
 }
 
-drm_rect_t DrmFramebuffer::getDisplayFrame() {
-    std::lock_guard<std::mutex> lock(mMutex);
-    return mDisplayFrame;
-}
-
-hwc2_error_t DrmFramebuffer::setSourceCrop(hwc_frect_t crop) {
-    mSourceCrop.left = (int) ceilf(crop.left);
-    mSourceCrop.top = (int) ceilf(crop.top);
-    mSourceCrop.right = (int) floorf(crop.right);
-    mSourceCrop.bottom = (int) floorf(crop.bottom);
-    return HWC2_ERROR_NONE;
-}
-hwc2_error_t DrmFramebuffer::setDisplayFrame(hwc_rect_t frame) {
-    mDisplayFrame.left = frame.left;
-    mDisplayFrame.top = frame.top;
-    mDisplayFrame.right = frame.right;
-    mDisplayFrame.bottom = frame.bottom;
-    return HWC2_ERROR_NONE;
+bool DrmFramebuffer::isAfbcBuffer() {
+    if (mBufferHandle)
+        return (am_gralloc_get_vpu_afbc_mask(mBufferHandle) == 0);
+    else
+        return false;
 }
