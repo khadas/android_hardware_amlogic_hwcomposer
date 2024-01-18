@@ -142,6 +142,7 @@ int32_t Hwc2Display::setModeMgr(std::shared_ptr<HwcModeMgr> & mgr) {
         HwcConfig::getFramebufferSize(0, fbW, fbH);
         mScaleValue = (float)fbW/(float)mDisplayMode.pixelW;
         mPowerMode->setConnectorStatus(true);
+        getActiveConfigWidthAndHeight();
     }
     MESON_LOG_FUN_LEAVE();
     return 0;
@@ -635,6 +636,7 @@ void Hwc2Display::onModeChanged(int stage) {
                     MESON_LOGD("Hwc2Display::onModeChanged getDisplayMode [%s]", mDisplayMode.name);
                     mPowerMode->setConnectorStatus(true);
                     mSkipComposition = false;
+                    getActiveConfigWidthAndHeight();
                     mOutsideChanged = true;
                     bSendPlugIn = true;
                     if (mSignalHpd) {
@@ -1160,24 +1162,6 @@ drm_connector_type_t Hwc2Display::getConnectorType() {
 }
 
 int32_t Hwc2Display::loadCalibrateInfo() {
-    hwc2_config_t config;
-    int32_t configWidth;
-    int32_t configHeight;
-    if (mModeMgr->getActiveConfig(&config) != HWC2_ERROR_NONE) {
-        ALOGE("[%s]: getHwcDisplayHeight failed!", __func__);
-        return -ENOENT;
-    }
-    if (mModeMgr->getDisplayAttribute(config,
-            HWC2_ATTRIBUTE_WIDTH, &configWidth) != HWC2_ERROR_NONE) {
-        ALOGE("[%s]: getHwcDisplayHeight failed!", __func__);
-        return -ENOENT;
-    }
-    if (mModeMgr->getDisplayAttribute(config,
-            HWC2_ATTRIBUTE_HEIGHT, &configHeight) != HWC2_ERROR_NONE) {
-        ALOGE("[%s]: getHwcDisplayHeight failed!", __func__);
-        return -ENOENT;
-    }
-
     if (mDisplayMode.pixelW == 0 || mDisplayMode.pixelH == 0) {
         ALOGV("[%s]: Displaymode is invalid(%s, %dx%d)!",
                 __func__, mDisplayMode.name, mDisplayMode.pixelW, mDisplayMode.pixelH);
@@ -1185,8 +1169,8 @@ int32_t Hwc2Display::loadCalibrateInfo() {
     }
 
     /*default info*/
-    mCalibrateInfo.framebuffer_w = configWidth;
-    mCalibrateInfo.framebuffer_h = configHeight;
+    mCalibrateInfo.framebuffer_w = mConfigWidth;
+    mCalibrateInfo.framebuffer_h = mConfigHeight;
     mCalibrateInfo.crtc_display_x = mCalibrateCoordinates[0];
     mCalibrateInfo.crtc_display_y = mCalibrateCoordinates[1];
     mCalibrateInfo.crtc_display_w = mCalibrateCoordinates[2];
@@ -1220,6 +1204,26 @@ int32_t Hwc2Display::adjustDisplayFrame() {
             layer->setLayerUpdate(true);
             layer->vtRefresh();
         }
+    }
+
+    return 0;
+}
+
+int32_t Hwc2Display::getActiveConfigWidthAndHeight() {
+    hwc2_config_t config;
+    if (mModeMgr->getActiveConfig(&config) != HWC2_ERROR_NONE) {
+        ALOGE("[%s]: getHwcDisplayHeight failed!", __func__);
+        return -ENOENT;
+    }
+    if (mModeMgr->getDisplayAttribute(config,
+            HWC2_ATTRIBUTE_WIDTH, &mConfigWidth) != HWC2_ERROR_NONE) {
+        ALOGE("[%s]: getHwcDisplayHeight failed!", __func__);
+        return -ENOENT;
+    }
+    if (mModeMgr->getDisplayAttribute(config,
+            HWC2_ATTRIBUTE_HEIGHT, &mConfigHeight) != HWC2_ERROR_NONE) {
+        ALOGE("[%s]: getHwcDisplayHeight failed!", __func__);
+        return -ENOENT;
     }
 
     return 0;
@@ -1532,8 +1536,7 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
 
     if (mExpectedPresentTime > 0) {
         nsecs_t now = systemTime();
-        hwc2_vsync_period_t period = 0;
-        getDisplayVsyncPeriod(&period);
+        hwc2_vsync_period_t period = 1e9 / mDisplayMode.refreshRate;
         /* not present until the expected time meet */
         if ((mExpectedPresentTime > now + period) &&
                 (mExpectedPresentTime < now + MAX_FRAME_DELAY * period)) {
@@ -1816,7 +1819,11 @@ hwc2_error_t Hwc2Display::setActiveConfig(hwc2_config_t config) {
 
 hwc2_error_t Hwc2Display::setPerferredMode(std::string mode) {
     if (mModeMgr != NULL) {
-        return (hwc2_error_t)mModeMgr->setPerferredMode(mode);
+        int ret = mModeMgr->setPerferredMode(mode);
+        if (mConnector && mConnector->supportVrr()) {
+            mObserver->onHotplug(true);
+        }
+        return (hwc2_error_t) ret;
     } else {
         MESON_LOGE("Hwc2Display (%s) setPerferredMode miss valid DisplayConfigure.",
             getName());

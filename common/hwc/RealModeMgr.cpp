@@ -466,7 +466,8 @@ int32_t RealModeMgr::setPerferredMode(std::string mode) {
     mCrtc->getMode(curMode);
     drm_mode_info_t desiredMode;
     for (auto it : mModes) {
-        if (strcmp(it.second.name, mode.c_str()) == 0) {
+        if (strcmp(it.second.name, mode.c_str()) == 0 &&
+            mConnector->checkFracMode(it.second) == mConnector->checkFracMode(curMode)) {
             desiredMode = it.second;
             break;
         }
@@ -521,7 +522,9 @@ void RealModeMgr::dynamicMapMode(std::string mode) {
                     itmode.pixelH == iterConnector.second.pixelH &&
                     connectorModeName.find(dst) != -1 ) {
                 strcpy(iterMode->second.name, iterConnector.second.name);
-                MESON_LOGD("mode %s map to %s", itmode.name, iterMode->second.name);
+                iterMode->second.groupId = iterConnector.second.groupId;
+                MESON_LOGD("mode %s:%d map to %s:%d", itmode.name, itmode.groupId,
+                        iterMode->second.name, iterMode->second.groupId);
                 break;
             }
         }

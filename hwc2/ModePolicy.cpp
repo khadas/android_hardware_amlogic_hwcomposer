@@ -58,7 +58,9 @@ static const char* DISPLAY_MODE_LIST[] = {
     MODE_1080P24HZ,
     MODE_1080P25HZ,
     MODE_1080P30HZ,
+    MODE_1080I50HZ,
     MODE_1080P50HZ,
+    MODE_1080I,
     MODE_1080P,
     MODE_1080P100HZ,
     MODE_1080P120HZ,
@@ -794,7 +796,13 @@ int32_t ModePolicy::getPreferredBootConfig(std::string &config) {
 int32_t ModePolicy::setBootConfig(drm_mode_info_t & config) {
     MESON_LOGI("set boot display config to %s\n", config.name);
     setBootEnv(UBOOTENV_ISBESTMODE, "false");
-    setBootEnv(UBOOTENV_HDMIMODE, config.name);
+    if (strstr(config.name, "cvbs") != NULL
+        || strstr(config.name, "pal") != NULL
+        || strstr(config.name, "ntsc") != NULL) {
+        setBootEnv(UBOOTENV_CVBSMODE, config.name);
+    } else if (strstr(config.name, "hz") != NULL) {
+        setBootEnv(UBOOTENV_HDMIMODE, config.name);
+    }
     mPolicy = MESON_POLICY_INVALID;
     meson_mode_set_policy(mModeConType, mPolicy);
 
