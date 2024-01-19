@@ -267,6 +267,7 @@ hwc2_error_t Hwc2Layer::setSidebandStream(const native_handle_t* stream,
                 mQueuedFrames = 0;
                 mQueueItems.clear();
                 mTunnelIdUpdate = true;
+                mAMVideoType = -1;
             } else {
                 MESON_LOGE("%s [%" PRId64 "] register consumer for videotunnel %d failed, error %d",
                         __func__, mId, channel_id, ret);
@@ -598,9 +599,9 @@ void Hwc2Layer::updateVtBuffer() {
     mPreviousTimestamp = mTimestamp;
 
     MESON_LOGV("[%s] [%d] [%" PRIu64 "] mVtBufferFd(%d) timestamp (%" PRId64 " us) expectedPresentTime(%"
-            PRId64 " us) diffAdded(%" PRId64 " us) shouldPresent:%d, queueFrameSize:%zu",
+            PRId64 " us) diffAdded(%" PRId64 " us) shouldPresent:%d, queueFrameSize:%zu, isVideoTypeChange:%d",
             __func__, mDisplayId, mId, mVtBufferFd, mTimestamp, mExpectedPresentTime, diffAdded,
-            shouldPresentNow(mTimestamp), mQueueItems.size());
+            shouldPresentNow(mTimestamp), mQueueItems.size(), isVideoTypeChange);
 
     mMutex.unlock();
 
