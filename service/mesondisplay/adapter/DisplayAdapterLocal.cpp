@@ -246,6 +246,8 @@ bool DisplayAdapterLocal::setDisplayMode(const string& mode, ConnectorType displ
     if (crtc && connector) {
         bool valid = false;
         connector->getModes(modes);
+        string currentMode("");
+        crtc->readCurDisplayMode(currentMode);
         for (auto it : modes) {
             if (strncmp(mock.name, it.second.name, DRM_DISPLAY_MODE_LEN) == 0) {
                 valid = true;
@@ -256,8 +258,13 @@ bool DisplayAdapterLocal::setDisplayMode(const string& mode, ConnectorType displ
         if (connector->getType() == LEGACY_NON_DRM_CONNECTOR_PANEL)
             valid = true;
 
+        if (strncmp(mock.name, currentMode.c_str(), DRM_DISPLAY_MODE_LEN) == 0
+            && connector->getType() != DRM_MODE_CONNECTOR_HDMIA) {
+            valid = false;
+        }
+
         if (!valid) {
-            MESON_LOGE("Mode invalid for current pipe [%s]", mode.c_str());
+            MESON_LOGW("desired mode [%s] ,current Mode is [%s]", mode.c_str(), currentMode.c_str());
             return false;
         }
 
