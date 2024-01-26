@@ -100,6 +100,10 @@ ifndef HWC_VIDEO_AIPQ
 HWC_VIDEO_AIPQ := false
 endif
 
+ifndef HWC_VIDEO_AIPQ_GPU
+HWC_VIDEO_AIPQ_GPU := false
+endif
+
 ifndef HWC_VIDEO_AIFACE
 HWC_VIDEO_AIFACE := false
 endif
