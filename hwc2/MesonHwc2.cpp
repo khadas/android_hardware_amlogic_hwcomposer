@@ -27,8 +27,6 @@
 #include <misc.h>
 #include <systemcontrol.h>
 #include <am_gralloc_ext.h>
-#include <cutils/properties.h>
-
 
 #include "MesonHwc2Defs.h"
 #include "MesonHwc2.h"
@@ -841,13 +839,6 @@ int32_t MesonHwc2::getHdrConversionCapabilities(uint32_t* outNumCapability,
 int32_t MesonHwc2::setHdrConversionStrategy(bool passThrough, uint32_t numElements, bool isAuto,
             uint32_t* autoAllowedHdrTypes, uint32_t* preferredHdrOutputType) {
     GET_HWC_DISPLAY(0);
-    /*handle issue b/297477992.when fixed do not need this */
-    const char *llp_prop = "vendor.media.llp";
-    if (passThrough) {
-        property_set(llp_prop,"1");
-    } else {
-        property_set(llp_prop,"0");
-    }
     return hwcDisplay->setHdrConversionStrategy(passThrough, numElements, isAuto,
                                                     autoAllowedHdrTypes, preferredHdrOutputType);
 }
