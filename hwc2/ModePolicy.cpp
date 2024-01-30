@@ -456,7 +456,10 @@ bool ModePolicy::isTvSupportDolbyVision() {
         return false;
     }
 
-    if (strstr(mConData.hdr_info.dv_cap, "DolbyVision RX support list") == NULL) {
+    std::string dv_cap;
+    getDisplayAttribute(DISPLAY_DOLBY_VISION_CAP2, dv_cap);
+
+    if (strstr(dv_cap.c_str(), "DolbyVision RX support list") == NULL) {
         return false;
     }
 
@@ -1929,6 +1932,12 @@ int32_t ModePolicy::getPreferredHdrConversionType(void) {
                     mHdr_priority = MESON_G_SDR;
                     outHdrConversionType = DRM_INVALID;  //force sdr
                 }
+            }
+
+            //need return invalid type when connect sdr TV
+            if (!isTvSupportDolbyVision() &&
+                !isTvSupportHDR()) {
+                outHdrConversionType = DRM_INVALID;  //force sdr
             }
         }
     }
