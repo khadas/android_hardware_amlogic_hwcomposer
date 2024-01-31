@@ -167,11 +167,6 @@ int32_t VdinPostProcessor::stopVdin() {
     }
     mVdinHnds.clear();
 
-    for (auto it = mVoutHnds.begin(); it != mVoutHnds.end(); it ++) {
-        gralloc_free_dma_buf((native_handle_t * )*it);
-    }
-    mVoutHnds.clear();
-
     while (!mVdinQueue.empty()) {
         mVdinQueue.pop();
     }
@@ -188,14 +183,13 @@ int32_t VdinPostProcessor::setFbProcessor(
         reset();
     }
 
-    if (mStat == PROCESSOR_START) {
+    if (!mExitThread) {
         mReqFbProcessor.push(processor);
         mCmdQ.push(PRESENT_UPDATE_PROCESSOR);
         cmdLock.unlock();
         mCmdCond.notify_one();
     } else {
         mFbProcessor = processor;
-        mReqFbProcessor.push(NULL);
     }
 
     return 0;
@@ -304,11 +298,12 @@ int32_t VdinPostProcessor::stop() {
     if (mStat == PROCESSOR_STOP)
         return 0;
 
-    mExitThread = true;
     cmdLock.unlock();
-    mCmdCond.notify_one();
-
-    pthread_join(mThread, NULL);
+    if (!mExitThread) {
+        mExitThread = true;
+        mCmdCond.notify_one();
+        pthread_join(mThread, NULL);
+    }
     mStat = PROCESSOR_STOP;
 
     while (!mCmdQ.empty()) {
@@ -323,6 +318,11 @@ int32_t VdinPostProcessor::stop() {
     while (!mVoutQueue.empty()) {
         mVoutQueue.pop();
     }
+
+    for (auto it = mVoutHnds.begin(); it != mVoutHnds.end(); it ++) {
+        gralloc_free_dma_buf((native_handle_t * )*it);
+    }
+    mVoutHnds.clear();
 
     return 0;
 }
@@ -399,7 +399,6 @@ void * VdinPostProcessor::threadMain(void * data) {
     while (!pThis->mExitThread) {
         pThis->process();
     }
-
 
     /*blank vout, for we will read the buffer on screen.*/
     if (pThis->mType == PROCESSOR_FOR_LOOPBACK) {
