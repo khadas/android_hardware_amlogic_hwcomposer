@@ -1476,6 +1476,7 @@ hwc2_error_t Hwc2Display::acceptDisplayChanges() {
 }
 
 hwc2_error_t Hwc2Display::presentSkipValidateCheck() {
+    ATRACE_CALL();
     if (DebugHelper::getInstance().disableUiHwc()) {
         return HWC2_ERROR_NOT_VALIDATED;
     }
@@ -2577,7 +2578,7 @@ int32_t Hwc2Display::getBootConfig(int32_t & config) {
 }
 
 int32_t Hwc2Display::getFrameRateConfigId(int32_t &config, const float frameRate) {
-    if (frameRate < 0 || frameRate > 120)
+    if (frameRate < 0 || frameRate > 288)
         return HWC2_ERROR_BAD_PARAMETER;
 
     // recovery find the default mode

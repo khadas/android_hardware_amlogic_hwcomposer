@@ -57,6 +57,8 @@ static const char* DISPLAY_MODE_LIST[] = {
     "3840x1080p100hz", // MODE_4K1K100HZ
     "3840x1080p119hz", // MODE_4K1K119HZ
     "3840x1080p120hz", // MODE_4K1K120HZ
+    "3840x1080p200hz", // MODE_4K1K200HZ
+    "3840x1080p239hz", // MODE_4K1K239HZ
     "3840x1080p240hz", // MODE_4K1K240HZ
     "3840x1080p288hz", // MODE_4K1K288HZ
     "2160p24hz",    // MODE_4K2K24HZ
@@ -177,10 +179,15 @@ void RealModeMgr::mapToFakeSizeMode(drm_mode_info_t & mode, drm_mode_info_t & cu
     if (mConnector->getType() == DRM_MODE_CONNECTOR_TV) {
         fakePixelW = CVBS_MODE_W;
         fakePixelH = CVBS_MODE_H;
-    // if mode is DLG mode (4k1k), need map it to 4k mode
+    // if mode is DLG mode (4k1k), <= 120hz map to 4k mode, >120hz map to  1080p
     } else if (mode.pixelW == FB_SIZE_4K_W && mode.pixelH == FB_SIZE_1080P_H) {
-        fakePixelW = FB_SIZE_4K_W;
-        fakePixelH = FB_SIZE_4K_H;
+        if (mode.refreshRate < 200) {
+            fakePixelW = FB_SIZE_4K_W;
+            fakePixelH = FB_SIZE_4K_H;
+        } else {
+            fakePixelW = FB_SIZE_1080P_W;
+            fakePixelH = FB_SIZE_1080P_H;
+        }
     // other map to FB size
     } else {
         HwcConfig::getFramebufferSize(0, fakePixelW, fakePixelH);
