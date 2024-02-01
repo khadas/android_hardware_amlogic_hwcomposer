@@ -1107,8 +1107,8 @@ int32_t Hwc2Layer::getSolidColorBuffer() {
             mSolidColorBufferfd = dup(fd);
     }
 
-    MESON_LOGV("[%s] [%d] [%" PRIu64 "] return fd:%d",
-            __func__, mDisplayId, mId, mSolidColorBufferfd);
+    MESON_LOGV("[%s] [%d] [%" PRIu64 "] return fd:%d, mVtRefreshed:%d, mVideoDisplayStatus:%d",
+            __func__, mDisplayId, mId, mSolidColorBufferfd, mVtRefreshed, mVideoDisplayStatus);
     return mSolidColorBufferfd;
 }
 
@@ -1138,8 +1138,12 @@ bool Hwc2Layer::isVtNeedClearFrameOrShowColorBuffer() {
             releaseVtResourceLocked(false);
             break;
         case VT_VIDEO_STATUS_COLOR_DISABLE:
-            mVideoDisplayStatus = VT_VIDEO_STATUS_SHOW;
-            freeSolidColorBufferLocked();
+            if (getBufferFdLocked() >= 0 || !mQueueItems.empty()) {
+                mVideoDisplayStatus = VT_VIDEO_STATUS_SHOW;
+                freeSolidColorBufferLocked();
+            } else {
+                mVideoDisplayStatus = VT_VIDEO_STATUS_COLOR_ONCE;
+            }
             break;
         case VT_VIDEO_STATUS_HOLD_FRAME:
             releaseVtResourceLocked(false, true);
