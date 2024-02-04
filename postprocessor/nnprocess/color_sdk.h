@@ -15,8 +15,8 @@
 extern "C" {
 #endif
 
-void* color_init(const char *path, int model_type, int inputWidth, int inputHeight);
-void* color_process_network(void *context, unsigned char *rawdata);
+void* color_init(const char *path);
+void* color_process_network(void *context, unsigned char *in_addr);
 void* color_uninit(void* context);
 int isColorInterfaceImplement();
 #ifdef __cplusplus

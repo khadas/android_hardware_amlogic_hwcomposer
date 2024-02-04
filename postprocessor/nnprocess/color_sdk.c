@@ -20,15 +20,13 @@
 #include <utils/Log.h>
 #include "color_sdk.h"
 
-static nn_input inData;
-
 static void *mSdkHandle;
-static int (*func_inputSet)(void *, nn_input *);
+static int (*func_switchInputBuffer)(void *, void *,unsigned int);
 static void* (*func_outputGet)(void* , aml_output_config_t);
 static void* (*func_create)(aml_config*);
 static int (*func_destroy)(void*);
 
-void* color_process_network(void *qcontext,unsigned char *qrawdata) {
+void* color_process_network(void *qcontext, unsigned char *in_addr) {
     int ret = 0;
     nn_output *outdata = NULL;
 
@@ -37,13 +35,11 @@ void* color_process_network(void *qcontext,unsigned char *qrawdata) {
     outconfig.mdType = CUSTOM_NETWORK;
     outconfig.format = AML_OUTDATA_RAW;
 
-    inData.input = qrawdata;
-
-    if ((func_inputSet != NULL)
+    if ((func_switchInputBuffer != NULL)
         && (func_outputGet != NULL)) {
-        ret = func_inputSet(qcontext, &inData);
+        ret = func_switchInputBuffer(qcontext, (void*)in_addr, 0);
         if (ret != 0) {
-            ALOGE("aml_module_input_set error\n");
+            ALOGE("func_switchInputBuffer error\n");
             return NULL;
         }
         outdata = (nn_output *)func_outputGet(qcontext, outconfig);
@@ -58,31 +54,21 @@ void* color_process_network(void *qcontext,unsigned char *qrawdata) {
     }
 }
 
-void* color_init(const char *path, int model_type, int inputWidth, int inputHeight) {
+void* color_init(const char *path) {
+    ALOGD("enter %s.\n", __FUNCTION__);
+    void *qcontext = NULL;
     if (func_create != NULL) {
-        void *qcontext = NULL;
         aml_config config;
-
         memset(&config,0,sizeof(aml_config));
         config.path = path;
         config.nbgType = NN_ADLA_FILE;
-        config.modelType = (amlnn_model_type)model_type;
+        config.modelType = ADLA_LOADABLE;
+
         qcontext = func_create(&config);
-
-        if (qcontext == NULL) {
-            ALOGE("amlnn_init is fail\n");
-            return NULL;
-        }
-
-        inData.input_index = 0;
-        inData.size = inputWidth * inputHeight * 3;
-        inData.input_type = RGB24_RAW_DATA;   // or BINARY_RAW_DATA
-
-        return qcontext;
-    }else {
-        ALOGE("%s:interface don't implement.\n", __FUNCTION__);
-        return NULL;
+    } else {
+        ALOGD("%s: interface don't implement.\n", __FUNCTION__);
     }
+    return qcontext;
 }
 
 void* color_uninit(void* context) {
@@ -124,13 +110,13 @@ int isColorInterfaceImplement() {
         if (func_destroy == NULL)
             ALOGD("func_destroy don't implement.\n");
 
-        func_inputSet = (int(*)(void*, nn_input *))
-                dlsym(mSdkHandle, "aml_module_input_set");
-        if (func_inputSet == NULL)
-            ALOGD("func_inputSet don't implement.\n");
+        func_switchInputBuffer = (int (*)(void *, void *, unsigned int))
+            dlsym(mSdkHandle, "aml_util_switchInputBuffer");
+        if (func_switchInputBuffer == NULL)
+            ALOGD("func_switchInputBuffer don't implement.\n");
 
         if ((func_create == NULL)
-            || (func_inputSet == NULL)
+            || (func_switchInputBuffer == NULL)
             || (func_outputGet == NULL)
             || (func_destroy == NULL)) {
             ALOGE("NN interface don't implement.\n");
