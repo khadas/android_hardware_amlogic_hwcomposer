@@ -520,7 +520,7 @@ bool DisplayAdapterLocal::setDisplayAttribute(
     GET_CRTC_BY_CONNECTOR(type);
     if (access("/dev/dri/card0", R_OK | W_OK) == 0 && connector) {
         if (!name.compare(DISPLAY_HDR_PRIORITY)) {
-            uint32_t hdr_priority = static_cast<uint32_t>(atoi(value.c_str()));
+            uint32_t hdr_priority = static_cast<uint32_t>(strtol(value.c_str(), NULL, 10));
             return connector->setHdrPriority(hdr_priority) ? false : true;
         }
         if (!name.compare(DISPLAY_HDMI_COLOR_ATTR)) {

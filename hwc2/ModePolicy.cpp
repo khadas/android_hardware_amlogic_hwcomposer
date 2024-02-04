@@ -10,6 +10,7 @@
 #include <cutils/properties.h>
 #include <MesonLog.h>
 #include <DebugHelper.h>
+#include <stdlib.h>
 
 #include "Dv.h"
 #include "ModePolicy.h"
@@ -194,7 +195,7 @@ int ModePolicy::getBootenvInt(const char* key, int defaultVal) {
     int value = defaultVal;
     const char* p_value =  meson_mode_get_ubootenv(key);
     if (p_value) {
-        value = atoi(p_value);
+        value = strtol(p_value, NULL, 10);
     }
     return value;
 }
@@ -215,7 +216,7 @@ void ModePolicy::getDvCap(struct meson_hdr_info *data) {
 
     std::string dv_cap;
     getDisplayAttribute(DISPLAY_DOLBY_VISION_CAP2, dv_cap);
-    strcpy(data->dv_cap, dv_cap.c_str());
+    strlcpy(data->dv_cap, dv_cap.c_str(), sizeof(data->dv_cap));
 
     if (strstr(data->dv_cap, "DolbyVision RX support list") != NULL) {
         memset(data->dv_max_mode, 0, sizeof(data->dv_max_mode));
@@ -223,7 +224,7 @@ void ModePolicy::getDvCap(struct meson_hdr_info *data) {
         for (int i = ARRAY_SIZE(DISPLAY_MODE_LIST) - 1; i >= 0; i--) {
             if (strstr(data->dv_cap, DISPLAY_MODE_LIST[i]) != NULL) {
                 if ((strlen(data->dv_max_mode) + strlen(DISPLAY_MODE_LIST[i]) + 1) < sizeof(data->dv_max_mode)) {
-                    strcpy(data->dv_max_mode, DISPLAY_MODE_LIST[i]);
+                    strlcpy(data->dv_max_mode, DISPLAY_MODE_LIST[i], sizeof(data->dv_max_mode));
                 } else {
                     MESON_LOGE("DisplayMode strcat overflow: src=%s, dst=%s\n", DISPLAY_MODE_LIST[i], data->dv_max_mode);
                 }
@@ -234,8 +235,8 @@ void ModePolicy::getDvCap(struct meson_hdr_info *data) {
         for (int i = 0; i < sizeof(DV_MODE_TYPE)/sizeof(DV_MODE_TYPE[0]); i++) {
             if (strstr(data->dv_cap, DV_MODE_TYPE[i])) {
                 if ((strlen(data->dv_deepcolor) + strlen(DV_MODE_TYPE[i]) + 2) < sizeof(data->dv_deepcolor)) {
-                    strcat(data->dv_deepcolor, DV_MODE_TYPE[i]);
-                    strcat(data->dv_deepcolor, ",");
+                    strlcat(data->dv_deepcolor, DV_MODE_TYPE[i], sizeof(data->dv_deepcolor));
+                    strlcat(data->dv_deepcolor, ",", sizeof(data->dv_deepcolor));
                 } else {
                     MESON_LOGE("DisplayMode strcat overflow: src=%s, dst=%s\n", DV_MODE_TYPE[i], data->dv_deepcolor);
                     break;
@@ -365,7 +366,7 @@ int32_t ModePolicy::getHdrPriority() {
     memset(hdr_priority, 0, MESON_MODE_LEN);
     getBootEnv(UBOOTENV_HDR_PRIORITY, hdr_priority);
 
-    value = (meson_hdr_priority_e)atoi(hdr_priority);
+    value = (meson_hdr_priority_e)strtol(hdr_priority, NULL, 10);
     if ((value >= MESON_DOLBY_VISION_PRIORITY && value <= MESON_SDR_PRIORITY)
         || (value >= MESON_G_DV_HDR10_HLG && value <= MESON_G_SDR)) {
         MESON_LOGI("%s is [%s]", __FUNCTION__, meson_hdrPriorityToString(value));
@@ -383,7 +384,7 @@ int32_t ModePolicy::getCurrentHdrPriority(void) {
     std::string cur_hdr_priority;
     getDisplayAttribute(DISPLAY_HDR_PRIORITY, cur_hdr_priority);
 
-    value = (meson_hdr_priority_e)atoi(cur_hdr_priority.c_str());
+    value = (meson_hdr_priority_e)strtol(cur_hdr_priority.c_str(), NULL, 10);
     if ((value >= MESON_DOLBY_VISION_PRIORITY && value <= MESON_SDR_PRIORITY)
         || (value >= MESON_G_DV_HDR10_HLG && value <= MESON_G_SDR)) {
         MESON_LOGI("%s is [%s]", __FUNCTION__, meson_hdrPriorityToString(value));
@@ -420,9 +421,9 @@ bool ModePolicy::isTvDolbyVisionEnable() {
     ret = getBootEnv(UBOOTENV_DV_ENABLE, dv_enable);
     if (!ret) {
         if (isMboxSupportDolbyVision()) {
-            strcpy(dv_enable, "1");
+            strlcpy(dv_enable, "1", sizeof(dv_enable));
         } else {
-            strcpy(dv_enable, "0");
+            strlcpy(dv_enable, "0", sizeof(dv_enable));
         }
     }
     MESON_LOGI("dv_enable:%s\n", dv_enable);
@@ -523,11 +524,11 @@ void ModePolicy::getHdrUserInfo(meson_hdr_info_t *data) {
 
     char hdr_force_mode[MESON_MODE_LEN] = {0};
     gethdrforcemode(hdr_force_mode);
-    data->hdr_force_mode = (meson_hdr_force_mode_e)atoi(hdr_force_mode);
+    data->hdr_force_mode = (meson_hdr_force_mode_e)strtol(hdr_force_mode, NULL, 10);
 
     char hdr_policy[MESON_MODE_LEN] = {0};
     getHdrStrategy(hdr_policy);
-    data->hdr_policy = (meson_hdr_policy_e)atoi(hdr_policy);
+    data->hdr_policy = (meson_hdr_policy_e)strtol(hdr_policy, NULL, 10);
 
     data->hdr_priority = (meson_hdr_priority_e)getHdrPriority();
 
@@ -546,11 +547,11 @@ void ModePolicy::getHdrUserInfo(meson_hdr_info_t *data) {
     char ubootenv_dv_type[MESON_MODE_LEN];
     bool ret = getBootEnv(UBOOTENV_USER_DV_TYPE, ubootenv_dv_type);
     if (ret) {
-        strcpy(data->ubootenv_dv_type, ubootenv_dv_type);
+        strlcpy(data->ubootenv_dv_type, ubootenv_dv_type, sizeof(data->ubootenv_dv_type));
     } else if (isMboxSupportDolbyVision()) {
-        strcpy(data->ubootenv_dv_type, "1");
+        strlcpy(data->ubootenv_dv_type, "1", sizeof(data->ubootenv_dv_type));
     } else {
-        strcpy(data->ubootenv_dv_type, "0");
+        strlcpy(data->ubootenv_dv_type, "0", sizeof(data->ubootenv_dv_type));
     }
     MESON_LOGI("ubootenv_dv_type:%s\n", data->ubootenv_dv_type);
 }
@@ -606,8 +607,8 @@ bool ModePolicy::isFilterEdid() {
 bool ModePolicy::isModeSupportDeepColorAttr(const char *mode, const char * color) {
     char outputmode[MESON_MODE_LEN] = {0};
 
-    strcpy(outputmode, mode);
-    strcat(outputmode, color);
+    strlcpy(outputmode, mode, sizeof(outputmode));
+    strlcat(outputmode, color, sizeof(outputmode));
 
     if (isFilterEdid() && !strstr(color,"8bit")) {
         MESON_LOGI("this mode has been filtered");
@@ -699,7 +700,7 @@ int32_t ModePolicy::getConnectorData(struct meson_policy_in* data, hdmi_dv_info_
         //read hdmi dc_cap
         char dc_cap[MESON_MAX_STR_LEN];
         getHdmiDcCap(dc_cap, MESON_MAX_STR_LEN);
-        strcpy(data->con_info.dc_cap, dc_cap);
+        strlcpy(data->con_info.dc_cap, dc_cap, sizeof(data->con_info.dc_cap));
     }
 
     getDisplayMode(data->cur_displaymode);
@@ -974,7 +975,7 @@ void ModePolicy::initGraphicsPriority() {
  * @params: mode "0":off "1":on "2":auto
  * */
 void ModePolicy::setHdrMode(const char* mode) {
-    if ((atoi(mode) >= 0) && (atoi(mode) <= 2)) {
+    if ((strtol(mode, NULL, 10) >= 0) && (strtol(mode, NULL, 10) <= 2)) {
         MESON_LOGI("setHdrMode state: %s\n", mode);
         setDisplayAttribute(DISPLAY_HDR_MODE, mode);
         sys_set_prop(PROP_HDR_MODE_STATE, mode);
@@ -986,7 +987,7 @@ void ModePolicy::setHdrMode(const char* mode) {
  * @params: mode "0":off "2":auto
  * */
 void ModePolicy::setSdrMode(const char* mode) {
-    if ((atoi(mode) == 0) || atoi(mode) == 2) {
+    if ((strtol(mode, NULL, 10) == 0) || strtol(mode, NULL, 10) == 2) {
         MESON_LOGI("setSdrMode state: %s\n", mode);
         setDisplayAttribute(DISPLAY_SDR_MODE, mode);
         sys_set_prop(PROP_SDR_MODE_STATE, mode);
@@ -1003,9 +1004,9 @@ void ModePolicy::initHdrSdrMode() {
     memset(mode, 0, sizeof(mode));
     bool flag = sys_get_bool_prop(PROP_ENABLE_SDR2HDR, false);
     if (flag & isDolbyVisionEnable()) {
-        strcpy(mode, SDR_MODE_OFF);
+        strlcpy(mode, SDR_MODE_OFF, sizeof(mode));
     } else {
-        strcpy(defVal, flag ? SDR_MODE_AUTO : SDR_MODE_OFF);
+        strlcpy(defVal, flag ? SDR_MODE_AUTO : SDR_MODE_OFF, sizeof(defVal));
         sys_get_string_prop_default(PROP_SDR_MODE_STATE, mode, defVal);
     }
     setSdrMode(mode);
@@ -1059,11 +1060,11 @@ bool ModePolicy::isEdidChange() {
 void ModePolicy::saveDeepColorAttr(const char* mode, const char* dcValue) {
     char ubootvar[256] = {0};
     char outputMode[MESON_MODE_LEN] = {0};
-    strcpy(outputMode, mode);
+    strlcpy(outputMode, mode, sizeof(outputMode));
 
     drm_mode_info_t brrMode;
     if (findBrrMode(mode, brrMode)) {
-        strcpy(outputMode, brrMode.name);
+        strlcpy(outputMode, brrMode.name, sizeof(outputMode));
     }
 
     sprintf(ubootvar, "ubootenv.var.%s_deepcolor", outputMode);
@@ -1099,7 +1100,7 @@ void ModePolicy::saveHdmiParamToEnv() {
         //best color attributes for the selected hdmi mode when TV changed
         char defVal[MESON_MODE_LEN] = {"8"};
         sys_get_string_prop_default(PROP_DEEPCOLOR_CTL, colorDepth, defVal);
-        strcpy(defVal, "auto");
+        strlcpy(defVal, "auto", sizeof(defVal));
         sys_get_string_prop_default(PROP_PIXFMT, colorSpace, defVal);
         setBootEnv(UBOOTENV_HDMICOLORDEPTH, colorDepth);
         setBootEnv(UBOOTENV_HDMICOLORSPACE, colorSpace);
@@ -1138,7 +1139,7 @@ void ModePolicy::enableDolbyVision(int DvMode) {
     }
     MESON_LOGI("DvMode %d", DvMode);
 
-    strcpy(mDvInfo.dv_enable, "1");
+    strlcpy(mDvInfo.dv_enable, "1", sizeof(mDvInfo.dv_enable));
 
     //if TV
     if (DISPLAY_TYPE_TV == mDisplayType) {
@@ -1223,7 +1224,7 @@ void ModePolicy::disableDolbyVision(int DvMode) {
     [[maybe_unused]] int dv_type = DvMode;
 
     MESON_LOGI("dv_type %d", dv_type);
-    strcpy(mDvInfo.dv_enable, "0");
+    strlcpy(mDvInfo.dv_enable, "0", sizeof(mDvInfo.dv_enable));
 
     //2. update sysfs
     char hdr_policy[MESON_MODE_LEN] = {0};
@@ -1282,16 +1283,16 @@ void ModePolicy::getPosition(const char* curMode, int *position) {
         for (auto it = connecterModeList.begin(); it != connecterModeList.end(); it++) {
             if (mConnector->getType() == DRM_MODE_CONNECTOR_TV) {
                 if (strstr(curMode, it->second.name)) {
-                    strcpy(keyValue, curMode);
+                    strlcpy(keyValue, curMode, sizeof(keyValue));
                     mode = it->second;
                     break;
                 }
             } else {
                 if (strstr(curMode, it->second.name)) {
                     if (strstr(it->second.name, MODE_4K2KSMPTE_PREFIX)) {
-                        strcpy(keyValue, "4k2ksmpte");
+                        strlcpy(keyValue, "4k2ksmpte", sizeof(keyValue));
                     } else if (strstr(it->second.name, MODE_PANEL)) {
-                        strcpy(keyValue, MODE_PANEL);
+                        strlcpy(keyValue, MODE_PANEL, sizeof(keyValue));
                     } else if (strchr(curMode,'p')) {
                         strncpy(keyValue, curMode, strchr(curMode,'p') - curMode + 1);
                     } else if (strchr(curMode,'i')){
@@ -1308,7 +1309,7 @@ void ModePolicy::getPosition(const char* curMode, int *position) {
         defaultWidth = mode.pixelW;
         defaultHeight = mode.pixelH;
     } else {
-        strcpy(keyValue, MODE_1080P_PREFIX);
+        strlcpy(keyValue, MODE_1080P_PREFIX, sizeof(keyValue));
         defaultWidth = FULL_WIDTH_1080;
         defaultHeight = FULL_HEIGHT_1080;
     }
@@ -1351,15 +1352,15 @@ void ModePolicy::setPosition(const char* curMode, int left, int top, int width, 
         for (auto it = connecterModeList.begin(); it != connecterModeList.end(); it++) {
             if (mConnector->getType() == DRM_MODE_CONNECTOR_TV) {
                 if (strstr(curMode, it->second.name)) {
-                    strcpy(keyValue, curMode);
+                    strlcpy(keyValue, curMode, sizeof(keyValue));
                     break;
                 }
             } else {
                 if (strstr(curMode, it->second.name)) {
                      if (strstr(it->second.name, MODE_4K2KSMPTE_PREFIX)) {
-                        strcpy(keyValue, "4k2ksmpte");
+                        strlcpy(keyValue, "4k2ksmpte", sizeof(keyValue));
                     } else if (strstr(it->second.name, MODE_PANEL)) {
-                        strcpy(keyValue, MODE_PANEL);
+                        strlcpy(keyValue, MODE_PANEL, sizeof(keyValue));
                     } else if (strchr(curMode,'p')) {
                         strncpy(keyValue, curMode, strchr(curMode,'p') - curMode + 1);
                     } else if (strchr(curMode,'i')){
@@ -1452,7 +1453,7 @@ bool ModePolicy::isMatchMode(char* curmode, const char* outputmode) {
         //check return key
         char *pos = strchr(pCmp, 0x0d);
         if (NULL == pos) {
-            strcpy(tmpMode, pCmp);
+            strlcpy(tmpMode, pCmp, sizeof(tmpMode));
         } else {
             strncpy(tmpMode, pCmp, pos - pCmp);
         }
@@ -1566,14 +1567,14 @@ int32_t ModePolicy::setDvMode(std::string &dv_mode) {
 
     if (DISPLAY_TYPE_TV == mDisplayType) {
         //1. update prop
-        strcpy(mConData.hdr_info.ubootenv_dv_type, dv_mode.c_str());
+        strlcpy(mConData.hdr_info.ubootenv_dv_type, dv_mode.c_str(), sizeof(mConData.hdr_info.ubootenv_dv_type));
 
         //2. apply to driver
         if (strstr(dv_mode.c_str(), "0")) {
-            strcpy(mDvInfo.dv_enable, "0");
+            strlcpy(mDvInfo.dv_enable, "0", sizeof(mDvInfo.dv_enable));
             setTvDolbyVisionDisable();
         } else {
-            strcpy(mDvInfo.dv_enable, "1");
+            strlcpy(mDvInfo.dv_enable, "1", sizeof(mDvInfo.dv_enable));
             setTvDolbyVisionEnable();
         }
 
@@ -1581,12 +1582,12 @@ int32_t ModePolicy::setDvMode(std::string &dv_mode) {
         setBootEnv(UBOOTENV_DV_ENABLE, mDvInfo.dv_enable);
     } else {
         //1. update dv env
-        strcpy(mConData.hdr_info.ubootenv_dv_type, dv_mode.c_str());
+        strlcpy(mConData.hdr_info.ubootenv_dv_type, dv_mode.c_str(), sizeof(mConData.hdr_info.ubootenv_dv_type));
 
         if (strstr(dv_mode.c_str(), "0")) {
-            strcpy(mDvInfo.dv_enable, "0");
+            strlcpy(mDvInfo.dv_enable, "0", sizeof(mDvInfo.dv_enable));
         } else {
-            strcpy(mDvInfo.dv_enable, "1");
+            strlcpy(mDvInfo.dv_enable, "1", sizeof(mDvInfo.dv_enable));
         }
 
         //Save user prefer dv mode only user change dv through UI
@@ -1635,7 +1636,7 @@ void ModePolicy::setALLMMode(int state) {
     int perState = -1;
     char cur_allm_state[MESON_MODE_LEN] = {0};
     sysfs_get_string(AUTO_LOW_LATENCY_MODE, cur_allm_state, MESON_MODE_LEN);
-    perState = atoi(cur_allm_state);
+    perState = strtol(cur_allm_state, NULL, 10);
     if (perState == state) {
         SYS_LOGI("setALLMMode: the ALLM_Mode is not changed :%d\n", state);
         return;
@@ -1809,9 +1810,9 @@ int32_t ModePolicy::getPreferredHdrConversionType(void) {
         char user_hdr_type[MESON_MODE_LEN] = {0};
         memset(user_hdr_type, 0, MESON_MODE_LEN);
         bool ret = getBootEnv(UBOOTENV_USER_PREFERRED_HDR_TYPE, user_hdr_type);
-        int32_t allowedHdrType = atoi(user_hdr_type);
+        int32_t allowedHdrType = strtol(user_hdr_type, NULL, 10);
         if (ret) {
-            allowedHdrType = atoi(user_hdr_type);
+            allowedHdrType = strtol(user_hdr_type, NULL, 10);
         } else {
             allowedHdrType = 0; //all hdr enable as default
         }
@@ -2095,8 +2096,8 @@ bool ModePolicy::applyDisplaySetting(bool force) {
 
     std::string cur_ColorAttribute;
     getDisplayAttribute(DISPLAY_HDMI_COLOR_ATTR, cur_ColorAttribute);
-    strcpy(curColorAttribute, cur_ColorAttribute.c_str());
-    strcpy(final_deepcolor, mSceneOutInfo.deepcolor);
+    strlcpy(curColorAttribute, cur_ColorAttribute.c_str(), sizeof(curColorAttribute));
+    strlcpy(final_deepcolor, mSceneOutInfo.deepcolor, sizeof(final_deepcolor));
     MESON_LOGI("curDeepcolor[%s] final_deepcolor[%s]\n", curColorAttribute, final_deepcolor);
 
     if (strstr(curColorAttribute, final_deepcolor) == NULL) {
@@ -2199,7 +2200,7 @@ bool ModePolicy::applyDisplaySetting(bool force) {
     bool modeChange                  = false;
 
     getDisplayMode(curDisplayMode);
-    strcpy(final_displaymode, mSceneOutInfo.displaymode);
+    strlcpy(final_displaymode, mSceneOutInfo.displaymode, sizeof(final_displaymode));
     MESON_LOGI("curMode:[%s] ,final_displaymode[%s]\n", curDisplayMode, final_displaymode);
 
     if (!isMatchMode(curDisplayMode, final_displaymode)) {
@@ -2694,7 +2695,7 @@ void ModePolicy::setSourceDisplay(output_mode_state state) {
 
         getConnectorData(&mConData, &mDvInfo);
 
-        strcpy(mConData.cur_displaymode, mConData.con_info.ubootenv_hdmimode);
+        strlcpy(mConData.cur_displaymode, mConData.con_info.ubootenv_hdmimode, sizeof(mConData.cur_displaymode));
      }
 
     //3. hdmi edid parse error and hpd = 1
@@ -2735,7 +2736,7 @@ bool ModePolicy::setSourceOutputMode(const char* outputmode, bool force) {
         mState = OUTPUT_MODE_STATE_SWITCH;
         mConData.state = static_cast<meson_mode_state>(mState);
 
-        strcpy(mConData.cur_displaymode, outputmode);
+        strlcpy(mConData.cur_displaymode, outputmode, sizeof(mConData.cur_displaymode));
         meson_mode_set_policy_input(mModeConType, &mConData);
         meson_mode_get_policy_output(mModeConType, &mSceneOutInfo);
 
@@ -2763,7 +2764,7 @@ void ModePolicy::getConnectorUserData(struct meson_policy_in* data, hdmi_dv_info
     ret = getBootEnv(UBOOTENV_HDMIMODE, data->con_info.ubootenv_hdmimode);
     if (!ret) {
         //if env is null,use none as default value
-        strcpy(data->con_info.ubootenv_hdmimode, "none");
+        strlcpy(data->con_info.ubootenv_hdmimode, "none", sizeof(data->con_info.ubootenv_hdmimode));
     }
     getBootEnv(UBOOTENV_CVBSMODE, data->con_info.ubootenv_cvbsmode);
     MESON_LOGI("hdmi_current_mode:%s, ubootenv hdmimode:%s cvbsmode:%s\n",
@@ -2774,7 +2775,7 @@ void ModePolicy::getConnectorUserData(struct meson_policy_in* data, hdmi_dv_info
     ret = getBootEnv(UBOOTENV_USER_COLORATTRIBUTE, data->con_info.ubootenv_colorattr);
     if (!ret) {
         //if env is null,use none as default value
-        strcpy(data->con_info.ubootenv_colorattr, "none");
+        strlcpy(data->con_info.ubootenv_colorattr, "none", sizeof(data->con_info.ubootenv_colorattr));
     }
     MESON_LOGI("ubootenv_colorattribute:%s\n",
             data->con_info.ubootenv_colorattr);
@@ -2784,22 +2785,22 @@ void ModePolicy::getConnectorUserData(struct meson_policy_in* data, hdmi_dv_info
     char dv_enable[MESON_MODE_LEN];
     ret = getBootEnv(UBOOTENV_DV_ENABLE, dv_enable);
     if (ret) {
-        strcpy(dinfo->dv_enable, dv_enable);
+        strlcpy(dinfo->dv_enable, dv_enable, sizeof(dinfo->dv_enable));
     } else if (isMboxSupportDolbyVision()) {
-        strcpy(dinfo->dv_enable, "1");
+        strlcpy(dinfo->dv_enable, "1", sizeof(dinfo->dv_enable));
     } else {
-        strcpy(dinfo->dv_enable, "0");
+        strlcpy(dinfo->dv_enable, "0", sizeof(dinfo->dv_enable));
     }
     MESON_LOGI("dv_enable:%s\n", dinfo->dv_enable);
 
     char ubootenv_dv_type[MESON_MODE_LEN];
     ret = getBootEnv(UBOOTENV_USER_DV_TYPE, ubootenv_dv_type);
     if (ret) {
-        strcpy(dinfo->ubootenv_dv_type, ubootenv_dv_type);
+        strlcpy(dinfo->ubootenv_dv_type, ubootenv_dv_type, sizeof(dinfo->ubootenv_dv_type));
     } else if (isMboxSupportDolbyVision()) {
-        strcpy(dinfo->ubootenv_dv_type, "1");
+        strlcpy(dinfo->ubootenv_dv_type, "1", sizeof(dinfo->ubootenv_dv_type));
     } else {
-        strcpy(dinfo->ubootenv_dv_type, "0");
+        strlcpy(dinfo->ubootenv_dv_type, "0", sizeof(dinfo->ubootenv_dv_type));
     }
     MESON_LOGI("ubootenv_dv_type:%s\n", dinfo->ubootenv_dv_type);
 }

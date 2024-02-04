@@ -531,7 +531,7 @@ void RealModeMgr::dynamicMapMode(std::string mode) {
                     itmode.pixelW == iterConnector.second.pixelW &&
                     itmode.pixelH == iterConnector.second.pixelH &&
                     connectorModeName.find(dst) != -1 ) {
-                strcpy(iterMode->second.name, iterConnector.second.name);
+                strlcpy(iterMode->second.name, iterConnector.second.name, sizeof(iterMode->second.name));
                 iterMode->second.groupId = iterConnector.second.groupId;
                 MESON_LOGD("mode %s:%d map to %s:%d", itmode.name, itmode.groupId,
                         iterMode->second.name, iterMode->second.groupId);

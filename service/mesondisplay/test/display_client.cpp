@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <getopt.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "DisplayAdapter.h"
 
@@ -157,13 +158,13 @@ int main(int argc, char* argv[]) {
                             DEBUG_INFO("miss rect parameter");
                             break;
                         }
-                        rect.x = atoi(argv[optind]);
+                        rect.x = strtol(argv[optind], NULL, 10);
                         optind++;
-                        rect.y = atoi(argv[optind]);
+                        rect.y = strtol(argv[optind], NULL, 10);
                         optind++;
-                        rect.w = atoi(argv[optind]);
+                        rect.w = strtol(argv[optind], NULL, 10);
                         optind++;
-                        rect.h = atoi(argv[optind]);
+                        rect.h = strtol(argv[optind], NULL, 10);
                         DEBUG_INFO("set ui to (%s)", rect.toString().c_str());
                         client->setDisplayRect(rect, type);
                         optind++;
@@ -187,7 +188,7 @@ int main(int argc, char* argv[]) {
                    if (optarg == NULL)
                        break;
 
-                   float framerate = atof(optarg);
+                   float framerate = strtod(optarg, NULL);
                    int ret = client->setFrameRate(framerate);
                    printf("setFrameRate  %.2f ret:%d\n",framerate, ret);
                }
@@ -240,7 +241,7 @@ int main(int argc, char* argv[]) {
             case 'f':
                   {
                       printf("set the white board position (%s %s)\n", optarg, argv[optind]);
-                      client->setWBDisplayFrame(atoi(optarg), atoi(argv[optind]));
+                      client->setWBDisplayFrame(strtol(optarg, NULL, 10), strtol(argv[optind], NULL, 10));
                   }
                 break;
             case 'h':
@@ -271,7 +272,7 @@ int main(int argc, char* argv[]) {
                  if (optarg == NULL)
                      break;
                   {
-                      client->setHdrConversionStrategy(atoi(optarg),atoi(argv[optind]));
+                      client->setHdrConversionStrategy(strtol(optarg, NULL, 10),strtol(argv[optind], NULL, 10));
                       printf("setHdrConversionStrategy %s %s \n", optarg, argv[optind]);
                   }
                 break;
@@ -281,7 +282,7 @@ int main(int argc, char* argv[]) {
                     print_usage(argv[0]);
                     break;
                 }
-                switch (atoi(optarg)) {
+                switch (strtol(optarg, NULL, 10)) {
                     case DisplayAdapter::CONN_TYPE_DUMMY:
                         type = DisplayAdapter::CONN_TYPE_DUMMY;
                         printf("Connector type changed to CONN_TYPE_DUMMY: %d\n", type);
@@ -319,8 +320,8 @@ int main(int argc, char* argv[]) {
                  if (optarg == NULL)
                      break;
                   {
-                      printf("set the reverse type to  (%d)\n", atoi(optarg));
-                      client->setReverseMode(atoi(optarg));
+                      printf("set the reverse type to  (%d)\n", (int)strtol(optarg, NULL, 10));
+                      client->setReverseMode(strtol(optarg, NULL, 10));
                   }
                 break;
             default:

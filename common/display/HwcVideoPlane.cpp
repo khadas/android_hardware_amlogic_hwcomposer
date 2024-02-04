@@ -183,7 +183,7 @@ int32_t HwcVideoPlane::getVideodisableStatus(int& status) {
     if ((ret = read(fd, buf, sizeof(buf))) < 0) {
         MESON_LOGE("get video disable failed, ret=%d error=%s", ret, strerror(errno));
     } else {
-        sscanf(buf, "%d", &status);
+        status = strtol(buf, NULL, 10);
         ret = 0;
     }
 

@@ -54,7 +54,7 @@ int32_t MultiDisplayDrmPipe::init(
                     drm_mode_info_t bootMode = displayMode;
                     std::map<uint32_t, drm_mode_info_t> modes;
                     stat.second->modeConnector->getModes(modes);
-                    strcpy(displayMode.name, modes[0].name);
+                    strlcpy(displayMode.name, modes[0].name, sizeof(displayMode.name));
                     stat.second->modeCrtc->getMode(bootMode);
                     if(strncmp(bootMode.name, displayMode.name,
                          DRM_DISPLAY_MODE_LEN) == 0) {
@@ -157,7 +157,7 @@ void MultiDisplayDrmPipe::handleEvent(drm_display_event event, int val) {
                 drm_mode_info_t displayMode;
                 std::map<uint32_t, drm_mode_info_t> modes;
                 statIt.second->modeConnector->getModes(modes);
-                strcpy(displayMode.name, modes[0].name);
+                strlcpy(displayMode.name, modes[0].name, sizeof(displayMode.name));
                 statIt.second->modeCrtc->setMode(displayMode);
                 MESON_LOGD("%s:update hdmi to mode [%s]", __func__, displayMode.name);
             }

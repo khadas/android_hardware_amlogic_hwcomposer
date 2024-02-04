@@ -14,6 +14,7 @@
 #include <misc.h>
 #include <DrmTypes.h>
 #include "mode_ubootenv.h"
+#include <stdlib.h>
 
 #define UBOOTENV_PRIMARY_CONNECTOR_TYPE "ubootenv.var.connector_type"
 #define UBOOTENV_EXTEND_CONNECTOR_TYPE  "ubootenv.var.connector1_type"
@@ -61,7 +62,7 @@ uint32_t HwcConfig::getDisplayNum() {
     if (displayNum  == -1 ) {
         char prop[PROPERTY_VALUE_MAX] = {0};
         if (sys_get_string_prop("persist.vendor.hwc.display_number", prop) > 0) {
-            displayNum = atoi(prop);
+            displayNum = strtol(prop, NULL, 10);
         } else {
             displayNum = HWC_DISPLAY_NUM;
         }
@@ -372,7 +373,7 @@ int32_t HwcConfig::getSupportDiChannelNumber() {
     const char* str = "vendor.hwc.di_channel_number";
 
     if (property_get(str, value, NULL) > 0)
-        ret = atoi(value);
+        ret = strtol(value, NULL, 10);
 #endif
 
     return ret;

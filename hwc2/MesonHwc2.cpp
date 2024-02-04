@@ -77,7 +77,7 @@ static bool mKeyStoneMode = false;
     std::string h = std::to_string(keystoneH);\
     std::string defaultCord = "0.0,0.0,"+ w +".0,0.0,"+ w +".0," + h + ".0,0.0,"+ h +".0";\
     char keystoneProp[PROP_VALUE_LEN_MAX];\
-    strcpy(keystoneProp, defaultCord.c_str());\
+    strlcpy(keystoneProp, defaultCord.c_str(), sizeof(keystoneProp));\
 
 #endif
 
