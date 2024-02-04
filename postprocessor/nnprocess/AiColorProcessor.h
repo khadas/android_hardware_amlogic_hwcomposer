@@ -48,6 +48,7 @@ struct aicolor_time_info_t {
 struct uvm_aicolor_info {
     int32_t shared_fd;
     int32_t aicolor_fd;
+    int64_t ge2d_out_phy_addr;
     unsigned char nn_value[MAX_AICOLOR_COUNT];
     int32_t aicolor_buf_index;
     int32_t aicolor_value_index;
@@ -60,6 +61,7 @@ struct uvm_aicolor_info {
     int32_t nn_input_frame_height;
     int32_t nn_status;
     int32_t omx_index;
+    int32_t reserved[10];
 };
 
 struct uvm_aicolor_info_t {

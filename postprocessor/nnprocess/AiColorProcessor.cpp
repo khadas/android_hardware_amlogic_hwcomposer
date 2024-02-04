@@ -437,7 +437,7 @@ int AiColorProcessor::LoadNNModel() {
 
     clock_gettime(CLOCK_MONOTONIC, &time1);
 
-    mNn_qcontext = color_init(AICOLOR_NB_PATH, 7, mNnInputWidth, mNnInputHeight);
+    mNn_qcontext = color_init(AICOLOR_NB_PATH);
     if (mNn_qcontext == NULL) {
         ALOGE("%s: load %s failed.\n", __FUNCTION__, AICOLOR_NB_PATH);
         return -1;
@@ -506,7 +506,7 @@ int32_t AiColorProcessor::ai_color_process(int cache_index) {
     clock_gettime(CLOCK_MONOTONIC, &tm_1);
 
     nn_out = (unsigned char *)color_process_network(mNn_qcontext,
-                                                    (unsigned char *)mAiColor_Buf.fd_ptr);
+                                (unsigned char *)aicolor_info->ge2d_out_phy_addr);
 
     clock_gettime(CLOCK_MONOTONIC, &tm_2);
     mNnDoing = false;
