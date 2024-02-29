@@ -231,33 +231,51 @@ bool DrmConnector::isSeamlessMode(const drm_mode_info_t & mode, const drm_mode_i
         }
     }
 
-    //TODO: remove it when TV connector support vrr range
-    if (isTvType()) {
-        return true;
-    }
-
     for (int32_t i = 0; i < mVrrModeGroup.num; i++) {
-        if (mVrrModeGroup.gropus[i].width == mode.pixelW && mVrrModeGroup.gropus[i].height == mode.pixelH) {
-            if (((mode.refreshRate - mVrrModeGroup.gropus[i].vrr_min) >= 0
+        if (mVrrModeGroup.groups[i].width == mode.pixelW
+                && mVrrModeGroup.groups[i].height == mode.pixelH) {
+            if (((mode.refreshRate - mVrrModeGroup.groups[i].vrr_min) >= 0
                     //frac refresh rate
-                    || std::abs(mode.refreshRate - (mVrrModeGroup.gropus[i].vrr_min * 1000) / (float)1001) < 0.001)
-                        && (mode.refreshRate - mVrrModeGroup.gropus[i].vrr_max <= 0))
-                return true;
-            else
-                return false;
+                    || std::abs(mode.refreshRate - (mVrrModeGroup.groups[i].vrr_min * 1000) / (float)1001) < 0.001)
+                        && (mode.refreshRate - mVrrModeGroup.groups[i].vrr_max <= 0)) {
+                if (mVrrModeGroup.groups[i].width == groupMode.pixelW
+                        && mVrrModeGroup.groups[i].height == groupMode.pixelH) {
+                    if (((groupMode.refreshRate - mVrrModeGroup.groups[i].vrr_min) >= 0
+                        //frac refresh rate
+                        || std::abs(groupMode.refreshRate - (mVrrModeGroup.groups[i].vrr_min * 1000) / (float)1001) < 0.001)
+                            && (groupMode.refreshRate - mVrrModeGroup.groups[i].vrr_max <= 0)) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                }
+            }
         }
     }
     return false;
 }
 
 int32_t DrmConnector::loadVrrModeGroups() {
-    if (!supportVrr())
-        return 0;
+    if (!isTvType()) {
+        if (!(mSupportVrr = supportVrr()) || !HwcConfig::seamlessSwitchEnabled()) {
+            return 0;
+        }
+    }
 
+    mVrrModeGroup.conn_id = mId;
     auto ret = ioctl(mDrmFd, DRM_IOCTL_MESON_GET_VRR_RANGE, &mVrrModeGroup);
     if (ret) {
         MESON_LOGE("DRM_IOCTL_MESON_GET_VRR_RANGE error ret %d  %s(%d)", ret, strerror(errno), errno);
         return -EINVAL;
+    }
+
+    for (int32_t i = 0; i < mVrrModeGroup.num; i++) {
+        MESON_LOGD("VrrModeGroup name %s (%dx%d) range [%d - %d]",
+                mVrrModeGroup.groups[i].modename,
+                mVrrModeGroup.groups[i].width,
+                mVrrModeGroup.groups[i].height,
+                mVrrModeGroup.groups[i].vrr_min,
+                mVrrModeGroup.groups[i].vrr_max);
     }
     return 0;
 }
