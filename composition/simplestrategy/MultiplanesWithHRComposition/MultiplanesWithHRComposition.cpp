@@ -920,6 +920,11 @@ int MultiplanesWithHRComposition::confirmComposerRange() {
     if (osdFbsNum == 0 || osdPlanesNum == 0) {
         return 0;
     }
+    /* S5 chip display mode refresh rate over 60hz, Only use one OSD */
+    if (mDisplayMode.refreshRate > DEFAULT_REFRESH_RATE) {
+        osdPlanesNum = 1;
+    }
+
     int ret = countComposerFbs(belowClientNum, upClientNum, insideClientNum);
     UNUSED(ret);
     if (osdFbsNum > osdPlanesNum) { // CASE 1: osdFbsNum > osdPlanesNum , need compose more fbs.*/
