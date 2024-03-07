@@ -130,6 +130,8 @@ endif
 
 ifndef HWC_UVM_DETTACH
 HWC_UVM_DETACH := false
+else
+HWC_UVM_DETACH := $(HWC_UVM_DETTACH)
 endif
 
 ifndef HWC_FILTER_16_9MODE
