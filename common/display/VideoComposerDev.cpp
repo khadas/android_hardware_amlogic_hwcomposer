@@ -156,7 +156,7 @@ int32_t VideoComposerDev::setFrames(
         String8 layerInfo;
         layerInfo.appendFormat("layerInfo(%" PRIu64 " %s %u)",
                 fb->mId, drmFbTypeToString(fbType), fb->getVideoTimestamp());
-        ATRACE_NAME(layerInfo.string());
+        ATRACE_NAME(layerInfo.c_str());
     }
 
     if (mVideoFramesInfo.frame_count == 0) {
