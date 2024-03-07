@@ -997,8 +997,7 @@ int32_t AipqProcessor::ai_pq_process(int cache_index) {
     uint64_t mTime_3;
     uint64_t get_y_time;
     int hist[64];
-    int y_data;
-    unsigned char * vir_addr = (unsigned char *)mAipq_Buf.fd_ptr;
+    unsigned char * vir_addr_y = NULL;
     bool do_aipq = 0;
     int other_catch_index;
 #endif
@@ -1030,11 +1029,10 @@ int32_t AipqProcessor::ai_pq_process(int cache_index) {
         return ret;
     }
 
+    vir_addr_y = (unsigned char *)mAipq_Buf.fd_ptr + mNnInputVframeHeight * mNnInputVframeWidth * 3;
     clock_gettime(CLOCK_MONOTONIC, &tm_1);
-    for (int i = 0; i < mNnInputVframeHeight * mNnInputVframeWidth; i += 3) {
-        y_data = round(vir_addr[i] * 0.299 + vir_addr[i + 1] * 0.587 + vir_addr[i + 2] * 0.114);
-        hist[y_data / 4]++;
-    }
+    for (int i = 0; i < mNnInputVframeHeight * mNnInputVframeWidth; i += 3)
+        hist[vir_addr_y[i] / 4]++;
 
     if (mIsStartFirstVf)
         do_aipq = true;
@@ -1222,6 +1220,9 @@ int32_t AipqProcessor::ai_pq_process(int cache_index) {
 void AipqProcessor::dump_nn_info(int num) {
     char dump_path[32];
     FILE * dump_file = NULL;
+#ifdef ENABLE_VIDEO_AIPQ_GPU
+    char *vaddr_y = (char *)mAipq_Buf.fd_ptr + mNnInputVframeHeight * mNnInputVframeWidth * 3;
+#endif
 
     ALOGD("%s: fd_ptr=%p, size=%d",
         __FUNCTION__,
@@ -1235,6 +1236,17 @@ void AipqProcessor::dump_nn_info(int num) {
         fclose(dump_file);
     } else
         ALOGE("open %s fail.\n", dump_path);
+
+#ifdef ENABLE_VIDEO_AIPQ_GPU
+    memset(dump_path, 0, sizeof(dump_path));
+    snprintf(dump_path, sizeof(dump_path), "/data/nn_in_%d.y", num);
+    dump_file = fopen(dump_path, "wb");
+    if (dump_file != NULL) {
+        fwrite(vaddr_y, mNnInputVframeHeight * mNnInputVframeWidth, 1, dump_file);
+        fclose(dump_file);
+    } else
+        ALOGE("open %s fail.\n", dump_path);
+#endif
 }
 
 int32_t AipqProcessor::waitEvent(int microseconds)
@@ -1262,16 +1274,17 @@ void AipqProcessor::triggerEvent(void) {
 #define ION_FLAG_EXTEND_MESON_HEAP (1 << 30)
 
 int AipqProcessor::allocDmaBuffer() {
-    int buffer_size = mNnInputVframeWidth * mNnInputVframeHeight * 3;
+    //the buffer 0~3/4 for RGB24 + and 3/4~1 for Y8
+    int buffer_size = mNnInputVframeWidth * mNnInputVframeHeight * 4;
     uint32_t stride;
-    int format = 17;
+    int format = 1;
     int gralloc_fd = -1;
     void * cpu_ptr = NULL;
     uint64_t usage = GRALLOC1_PRODUCER_USAGE_CAMERA;
     GraphicBufferAllocator & allocService = GraphicBufferAllocator::get();
 
     if (NO_ERROR != allocService.allocate(
-        mNnInputVframeWidth, mNnInputVframeHeight * 2, format, 1, usage,
+        mNnInputVframeWidth, mNnInputVframeHeight, format, 1, usage,
         &mAipq_Buf.buffer_handle, &stride, 0, "aipq")) {
         ALOGE("alloc buffer failed");
     }
