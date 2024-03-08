@@ -56,6 +56,7 @@ soong_config_module_type {
         "dynamic_switch_connector",
         "dynamic_switch_viu",
         "enable_seamless_mode_switch",
+        "odd_crop_width_need_client_composite",
         "enable_vt_hwVsync",
         "enable_video_aicolor",
         "enable_video_aiface",
@@ -128,6 +129,10 @@ soong_config_bool_variable {
 
 soong_config_bool_variable {
     name: "enable_seamless_mode_switch",
+}
+
+soong_config_bool_variable {
+    name: "odd_crop_width_need_client_composite",
 }
 
 soong_config_bool_variable {
@@ -267,6 +272,10 @@ meson_common_base_cc_defaults {
 
         enable_seamless_mode_switch: {
             cflags: ["-DHWC_ENABLE_SEAMLESS_MODE_SWITCH"],
+        },
+
+        odd_crop_width_need_client_composite: {
+            cflags: ["-DHWC_ODD_CROP_WIDTH_NEED_CLIENT_COMPOSITE"],
         },
 
         enable_vt_hwVsync: {

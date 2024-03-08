@@ -69,6 +69,7 @@ public:
     static bool dynamicSwitchConnectorEnabled();
     static bool dynamicSwitchViuEnabled();
     static bool seamlessSwitchEnabled();
+    static bool oddCropWidthNeedClientComposite();
     static float getMaxRefreshRate();
     static bool AiSrProcessorEnabled();
     static bool AiPqProcessorEnabled();
