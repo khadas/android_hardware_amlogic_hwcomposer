@@ -319,6 +319,19 @@ float  HwcConfig::getMaxRefreshRate() {
 #endif
 }
 
+float HwcConfig::getVsyncScaleFactor() {
+    const char* prop = "persist.vendor.hwc.vsync_scale";
+#ifdef HWC_VSYNC_PERIOD_SCALE_FACTOR
+    if (sys_get_bool_prop(prop, false)) {
+        return (float)HWC_VSYNC_PERIOD_SCALE_FACTOR;
+    } else {
+        return 0.0f;
+    }
+#else
+    return 0.0f;
+#endif
+}
+
 bool HwcConfig::AiSrProcessorEnabled() {
 #ifdef ENABLE_VIDEO_AISR
     return true;
@@ -431,6 +444,8 @@ void HwcConfig::dump(String8 & dumpstr) {
             dumpstr.appendFormat("\t SeamlessSwitch: %s", seamlessSwitchEnabled() ? "Y" : "N");
             dumpstr.append("\n");
             dumpstr.appendFormat("\t oddCropWidthNeedClientComposite: %s", oddCropWidthNeedClientComposite() ? "Y" : "N");
+            dumpstr.append("\n");
+            dumpstr.appendFormat("\t getVsyncScaleFactor: %f", getVsyncScaleFactor());
             dumpstr.append("\n");
             dumpstr.appendFormat("\t AiSrProcessor: %s", AiSrProcessorEnabled() ? "Y" : "N");
             dumpstr.append("\n");

@@ -15,7 +15,6 @@
 
 
 #define DEFAULT_DPI (159)
-#define DEFAULT_REFRESH_RATE (60.0f)
 
 static drm_mode_info_t fakeInitialMode = {
     .name              = "FAKE_INITIAL_MODE",

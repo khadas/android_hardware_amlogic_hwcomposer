@@ -18,7 +18,6 @@
 #include "RealModeMgr.h"
 
 #define DEFAULT_DPI (159)
-#define DEFAULT_REFRESH_RATE (60.0f)
 #define CVBS_MODE_W (1280)
 #define CVBS_MODE_H (720)
 
@@ -391,7 +390,11 @@ int32_t  RealModeMgr::getDisplayAttribute(
                 if (HwcConfig::isHeadlessMode()) {
                     *outValue = 1e9 / HwcConfig::headlessRefreshRate();
                 } else {
-                    *outValue = 1e9 / curMode.refreshRate;
+                    float vsync_scale = 1.0;
+                    if (HwcConfig::getVsyncScaleFactor() > 0.0) {
+                        vsync_scale = HwcConfig::getVsyncScaleFactor();
+                    }
+                    *outValue = vsync_scale * 1e9 / curMode.refreshRate;
                 }
                 break;
             case HWC2_ATTRIBUTE_DPI_X:

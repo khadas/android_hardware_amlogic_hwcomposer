@@ -56,6 +56,10 @@ ifndef HWC_ENFORCES_MAX_REFRESH_RATE
 HWC_ENFORCES_MAX_REFRESH_RATE := 0
 endif
 
+ifndef HWC_VSYNC_PERIOD_SCALE_FACTOR
+HWC_VSYNC_PERIOD_SCALE_FACTOR := 0
+endif
+
 ifndef HWC_ENABLE_FULL_ACTIVE_MODE
 HWC_ENABLE_FULL_ACTIVE_MODE := false
 endif
@@ -165,6 +169,7 @@ $(call soong_config_set,meson_hwc,display_num,$(HWC_DISPLAY_NUM))
 $(call soong_config_set,meson_hwc,primary_fb_width,$(HWC_PRIMARY_FRAMEBUFFER_WIDTH))
 $(call soong_config_set,meson_hwc,primary_fb_height,$(HWC_PRIMARY_FRAMEBUFFER_HEIGHT))
 $(call soong_config_set,meson_hwc,enforces_max_refresh_rate,$(HWC_ENFORCES_MAX_REFRESH_RATE))
+$(call soong_config_set,meson_hwc,vsync_period_scale_factor,$(HWC_VSYNC_PERIOD_SCALE_FACTOR))
 $(call soong_config_set,meson_hwc,extend_fb_width,$(HWC_EXTEND_FRAMEBUFFER_WIDTH))
 $(call soong_config_set,meson_hwc,extend_fb_height,$(HWC_EXTEND_FRAMEBUFFER_HEIGHT))
 $(call soong_config_set,meson_hwc,primary_connector_type,$(HWC_PRIMARY_CONNECTOR_TYPE))

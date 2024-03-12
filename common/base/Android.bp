@@ -39,6 +39,7 @@ soong_config_module_type {
         "primary_connector_type",
         "extend_connector_type",
         "enforces_max_refresh_rate",
+        "vsync_period_scale_factor",
     ],
     bool_variables: [
         "enable_headless_mode",
@@ -215,6 +216,10 @@ meson_common_base_cc_defaults {
 
         enforces_max_refresh_rate: {
             cflags: ["-DHWC_ENFORCES_MAX_REFRESH_RATE=%s"],
+        },
+
+        vsync_period_scale_factor: {
+            cflags: ["-DHWC_VSYNC_PERIOD_SCALE_FACTOR=%s"],
         },
 
         // bool variables

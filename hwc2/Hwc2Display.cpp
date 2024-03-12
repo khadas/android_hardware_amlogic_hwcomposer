@@ -2565,9 +2565,14 @@ int32_t Hwc2Display::getBootConfig(int32_t & config) {
                 != HWC2_ERROR_NONE)
             return HWC2_ERROR_BAD_CONFIG;
 
+        float vsync_scale = 1.0;
+        if (HwcConfig::getVsyncScaleFactor() > 0.0) {
+            vsync_scale = HwcConfig::getVsyncScaleFactor();
+        }
+
         if (mode.pixelW == width && mode.pixelH == height && mode.groupId == groupId) {
             /* compare refresh rate */
-            if (vsyncPeriod == static_cast<int32_t> (1e9/mode.refreshRate)) {
+            if (vsyncPeriod == static_cast<int32_t> (vsync_scale * 1e9 / mode.refreshRate)) {
                 config = *it;
                 return HWC2_ERROR_NONE;
             }
@@ -2630,6 +2635,12 @@ int32_t Hwc2Display::getFrameRateConfigId(int32_t &config, const float frameRate
 // value: 0 means to recovery to default boot Config
 int32_t Hwc2Display::setFrameRate(float value) {
     int32_t config;
+    float vsync_scale = 1.0;
+    if (HwcConfig::getVsyncScaleFactor() > 0.0) {
+        vsync_scale = HwcConfig::getVsyncScaleFactor();
+        value /= vsync_scale;
+    }
+
     int32_t ret = getFrameRateConfigId(config, value);
     if (ret != HWC2_ERROR_NONE) {
         MESON_LOGD("%s could not find config of frameRate :%f", __func__, value);
