@@ -749,14 +749,8 @@ void ModePolicy::onHotplug(bool connected) {
         return;
     }
 
-    //hdmi edid parse error and hpd = 1
-    //set default reolsution and color format
-    if (isHdmiEdidParseOK() == false) {
-        setDefaultMode();
-        return;
-    }
 
-    //hdmi edid parse ok
+    //hdmi connect
     setSourceDisplay(OUTPUT_MODE_STATE_POWER);
 }
 
@@ -2655,15 +2649,7 @@ void ModePolicy::setSourceDisplay(output_mode_state state) {
         return;
     }
 
-    //2. hdmi edid parse error and hpd = 1
-    //set default reolsution and color format
-    if ((isHdmiEdidParseOK() == false) &&
-        (isConnected() == true)) {
-        setDefaultMode();
-        return;
-    }
-
-    //3. update hdmi info when boot and hdmi plug/suspend/resume
+    //2. update hdmi info when boot and hdmi plug/suspend/resume
     if ((state == OUTPUT_MODE_STATE_INIT) ||
         (state == OUTPUT_MODE_STATE_POWER)) {
         memset(&mConData, 0, sizeof(meson_policy_in));
@@ -2694,6 +2680,14 @@ void ModePolicy::setSourceDisplay(output_mode_state state) {
 
         strcpy(mConData.cur_displaymode, mConData.con_info.ubootenv_hdmimode);
      }
+
+    //3. hdmi edid parse error and hpd = 1
+    //set default reolsution and color format
+    if ((isHdmiEdidParseOK() == false) &&
+        (isConnected() == true)) {
+        setDefaultMode();
+        return;
+    }
 
     // TOD sceneProcess
     if (isBestPolicy()) {
