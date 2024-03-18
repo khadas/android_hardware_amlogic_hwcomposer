@@ -1888,9 +1888,13 @@ int32_t ModePolicy::getPreferredHdrConversionType(void) {
                         mHdr_priority = MESON_G_HDR10;
                         outHdrConversionType = static_cast<int32_t>(HAL_HDR_HDR10);
                     } else if (containHLGType) {
-                        mHdr_policy   = MESON_HDR_POLICY_SOURCE;     //follow source due to dv can't HLG output
+                        if (isMboxSupportDolbyVision()) {
+                            mHdr_policy   = MESON_HDR_POLICY_SOURCE;     //follow source due to dv can't HLG output
+                        } else {
+                            mHdr_policy   = MESON_HDR_POLICY_SINK;
+                            outHdrConversionType = static_cast<int32_t>(HAL_HDR_HLG);
+                        }
                         mHdr_priority = MESON_G_HLG;
-                        outHdrConversionType = static_cast<int32_t>(HAL_HDR_HLG);
                     } else {
                         mHdr_policy   = MESON_HDR_POLICY_SINK;
                         mHdr_priority = MESON_G_SDR;
@@ -1920,12 +1924,11 @@ int32_t ModePolicy::getPreferredHdrConversionType(void) {
                     if (hdrCaps.HLGSupported) {
                         if (isMboxSupportDolbyVision()) {
                             mHdr_policy = MESON_HDR_POLICY_SOURCE;     //follow source due to dv can't HLG output
-                            mHdr_priority = MESON_G_HLG;
                         } else {
                             mHdr_policy   = MESON_HDR_POLICY_SINK;
-                            mHdr_priority = MESON_G_HLG;
                             outHdrConversionType = static_cast<int32_t>(HAL_HDR_HLG);
                         }
+                        mHdr_priority = MESON_G_HLG;
                     } else {
                         mHdr_policy   = MESON_HDR_POLICY_SOURCE;  //follow source
                         mHdr_priority = MESON_G_DV_HDR10_HLG;
