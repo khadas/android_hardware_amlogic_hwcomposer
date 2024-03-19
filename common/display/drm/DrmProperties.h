@@ -43,6 +43,7 @@
 #define DRM_PLANE_PROP_ALPHA "alpha"
 #define DRM_PLANE_PROR_IN_FORMATS "IN_FORMATS"
 #define DRM_PLANE_PROP_MAX_FB_SIZE "max_fb_size"
+#define DRM_PLANE_PROP_UNSUPPORT_NONAFBC "unsupport_nonafbc"
 
 #define DRM_PLANE_PROP_BLENDMODE "pixel blend mode"
 #define DRM_PLANE_PROP_BLENDMODE_NONE "None"

@@ -83,6 +83,7 @@ void DrmPlane::loadProperties() {
         {DRM_PLANE_PROP_BLENDMODE, &mBlendMode},
         {DRM_PLANE_PROP_ALPHA, &mAlpha},
         {DRM_PLANE_PROP_MAX_FB_SIZE, &mMaxFbSize},
+        {DRM_PLANE_PROP_UNSUPPORT_NONAFBC, &mUnsupportNonafbc},
         {DRM_PLANE_PROP_OCCUPY, &mMesonOccupy},
         {DRM_PLANE_PROP_SECURE, &mSecureEnable},
         {DRM_PLANE_PROP_REVERSE, &mReverse},
@@ -240,6 +241,9 @@ bool DrmPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
     /*check format*/
     int halFormat = am_gralloc_get_format(fb->mBufferHandle);
     int afbc = am_gralloc_get_vpu_afbc_mask(fb->mBufferHandle);
+    if (mUnsupportNonafbc && mUnsupportNonafbc->getValue() == 1 && afbc == 0)
+        return false;
+
     int drmFormat = covertToDrmFormat(halFormat);
     uint64_t modifier = convertToDrmModifier(afbc);
 
