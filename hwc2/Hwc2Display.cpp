@@ -80,6 +80,7 @@ Hwc2Display::Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer, uint32_t
     mVtVsyncStatus = false;
     mOutsideChanged = false;
     mBootConfig = -1;
+    mDefaultConfig = -1;
     wbHnd = nullptr;
     mExpectedPresentTime = -1;
     mIsDisablePostProcessor = false;
@@ -2013,6 +2014,10 @@ hwc2_error_t Hwc2Display::setActiveConfigWithConstraints(hwc2_config_t config,
         vsyncTimeline.refreshTimeNanos = vsyncTimestamp + vsyncPeriod;
         onVsyncPeriodTimingChanged(&vsyncTimeline);
 
+        if (ret == HWC2_ERROR_NONE) {
+            mDefaultConfig = config;
+        }
+
         return (hwc2_error_t) ret;
     }
 
@@ -2500,6 +2505,11 @@ int32_t Hwc2Display::getBootConfig(int32_t & config) {
     std::lock_guard<std::mutex> lock(mConfigMutex);
     if (mBootConfig != -1) {
         config = mBootConfig;
+        return HWC2_ERROR_NONE;
+    }
+
+    if (mDefaultConfig != -1) {
+        config = mDefaultConfig;
         return HWC2_ERROR_NONE;
     }
 

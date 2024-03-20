@@ -365,6 +365,7 @@ protected:
 
     std::mutex mConfigMutex;
     int32_t mBootConfig = -1;
+    int32_t mDefaultConfig = -1;
     // for mode  policy
     std::shared_ptr<IModePolicy> mModePolicy;
     // for allm
