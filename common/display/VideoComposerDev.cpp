@@ -137,8 +137,8 @@ int32_t VideoComposerDev::setFrames(
         vFrameInfo->zorder = fb->mZorder;
         vFrameInfo->transform = fb->mTransform;
         /*pass aligned buffer width and height to video composer*/
-        vFrameInfo->stride_in_pixel = isSidebandBuffer ? 0 : am_gralloc_get_stride_in_pixel(buf);
-        vFrameInfo->aligned_height = isSidebandBuffer ? 0 : am_gralloc_get_aligned_height(buf);
+        vFrameInfo->stride_in_pixel = (isSidebandBuffer && !isBlackBuffer) ? 0 : am_gralloc_get_stride_in_pixel(buf);
+        vFrameInfo->aligned_height = (isSidebandBuffer && !isBlackBuffer) ? 0 : am_gralloc_get_aligned_height(buf);
         if (isSidebandBuffer) {
             vFrameInfo->buffer_w = isBlackBuffer ? VIDEO_BUFFER_W : 0;
             vFrameInfo->buffer_h = isBlackBuffer ? VIDEO_BUFFER_H : 0;
