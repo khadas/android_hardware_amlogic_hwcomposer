@@ -327,12 +327,6 @@ static void get_vnn_scenes_data()
 
 void * AipqProcessor::threadNnInit(void * data) {
     AipqProcessor * pThis = (AipqProcessor *) data;
-    struct sched_param param = {0};
-
-    param.sched_priority = 2;
-    if (sched_setscheduler(0, SCHED_FIFO, &param) != 0) {
-        ALOGE("%s: Couldn't set SCHED_FIFO: %d.\n", __FUNCTION__, errno);
-    }
 
     MESON_ASSERT(data, "AipqProcessor data should not be NULL in threadNnInit.\n");
 
@@ -391,8 +385,11 @@ AipqProcessor::AipqProcessor() {
         if (mExitThreadNnInit == true) {
             ALOGD("threadNnInit creat");
             mExitThreadNnInit = false;
+            pthread_attr_init(&attr);
+            param.sched_priority = 5;
+            pthread_attr_setschedparam(&attr, &param);
             int ret = pthread_create(&mThreadNnInit,
-                                     NULL,
+                                     &attr,
                                      AipqProcessor::threadNnInit,
                                      (void *)this);
             if (ret != 0) {

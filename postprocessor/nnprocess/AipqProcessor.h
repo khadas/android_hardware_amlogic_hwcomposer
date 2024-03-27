@@ -125,6 +125,8 @@ public:
     int LoadNNModel();
     pthread_t mThread;
     pthread_t mThreadNnInit;
+    pthread_attr_t attr;
+    struct sched_param param;
     bool mExitThread;
     bool mExitThreadNnInit;
     bool mInited;
