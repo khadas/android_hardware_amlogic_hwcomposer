@@ -1252,7 +1252,7 @@ bool Hwc2Layer::getVideoInfoFromUVM(int fd) {
 
     layerInfo.appendFormat("layerInfo(%" PRIu64 " %s %u)",
             mId, drmFbTypeToString(mFbType), mVideoDecTimestamp);
-    ATRACE_NAME(layerInfo.string());
+    ATRACE_NAME(layerInfo.c_str());
     return ret;
 }
 

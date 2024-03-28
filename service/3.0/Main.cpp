@@ -30,11 +30,13 @@ int main(int /*argc*/, char** /*argv*/) {
     ALOGI("meson (HWComposer3) starting up...");
     bool low_ram_device = property_get_bool("ro.config.low_ram", false);
     if (low_ram_device) {
-        /* CAP_IPC_LOCK required */
-        if (mlockall(MCL_CURRENT | MCL_FUTURE | MCL_ONFAULT) && (errno != EINVAL)) {
-            ALOGE("composer service mlockall failed %s", strerror(errno));
-        } else {
-            ALOGD("composer service mlockall successfully %s", strerror(errno));
+        if (property_get_bool("ro.vendor.hwc.mlock", true)) {
+            /* CAP_IPC_LOCK required */
+            if (mlockall(MCL_CURRENT | MCL_FUTURE | MCL_ONFAULT) && (errno != EINVAL)) {
+                ALOGE("composer service mlockall failed %s", strerror(errno));
+            } else {
+                ALOGD("composer service mlockall successfully");
+            }
         }
     }
 

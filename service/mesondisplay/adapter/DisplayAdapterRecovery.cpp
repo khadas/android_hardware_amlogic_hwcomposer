@@ -14,6 +14,7 @@
 #include "DisplayAdapterLocal.h"
 #include <fcntl.h>
 #include <sys/utsname.h>
+#include <assert.h>
 namespace meson{
 //For recovery mode for temporary.
 #define SYSFS_DISPLAY_MODE              "/sys/class/display/mode"

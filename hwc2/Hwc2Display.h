@@ -249,6 +249,7 @@ protected:
     /*for calibrate display frame.*/
     int32_t loadCalibrateInfo();
     int32_t adjustDisplayFrame();
+    int32_t getActiveConfigWidthAndHeight();
 
     /*Layer id sequence no.*/
     void initLayerIdGenerator();
@@ -316,6 +317,8 @@ protected:
     drm_mode_info_t mDisplayMode;
     display_zoom_info_t mCalibrateInfo;
     int mCalibrateCoordinates[4];
+    int32_t mConfigWidth;
+    int32_t mConfigHeight;
 
     std::shared_ptr<HwcPostProcessor> mPostProcessor;
     int32_t mProcessorFlags;
@@ -362,6 +365,7 @@ protected:
 
     std::mutex mConfigMutex;
     int32_t mBootConfig = -1;
+    int32_t mDefaultConfig = -1;
     // for mode  policy
     std::shared_ptr<IModePolicy> mModePolicy;
     // for allm
