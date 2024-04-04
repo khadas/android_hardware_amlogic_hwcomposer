@@ -6,16 +6,21 @@
  *
  * Description:
  */
+#define ATRACE_TAG ATRACE_TAG_GRAPHICS
 
+#include <utils/Trace.h>
 #include <inttypes.h>
 #include <MesonLog.h>
 #include <DebugHelper.h>
 #include <math.h>
+#include <android-base/stringprintf.h>
 
 #include "DrmDevice.h"
 #include "DrmPlane.h"
 #include <drm_fourcc.h>
 #include <HwcConfig.h>
+
+using android::base::StringPrintf;
 
 #define VPU_FREQ (666*pow(10,6))
 #define kValue (1.1)
@@ -223,6 +228,7 @@ bool DrmPlane::isAvailable() {
 #define OSD_INPUT_MIN_WIDTH (128)
 #define OSD_INPUT_MIN_HEIGHT (160)
 bool DrmPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
+    ATRACE_CALL();
     if (fb->isRotated())
          return false;
 
@@ -244,8 +250,9 @@ bool DrmPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
     if (mUnsupportNonafbc && mUnsupportNonafbc->getValue() == 1 && afbc == 0)
         return false;
 
+    int afrc = am_gralloc_get_vpu_afrc_mask(fb->mBufferHandle);
     int drmFormat = covertToDrmFormat(halFormat);
-    uint64_t modifier = convertToDrmModifier(afbc);
+    uint64_t modifier = convertToDrmModifier(afbc, afrc);
 
     if (drmFormat == DRM_FORMAT_INVALID) {
       //  MESON_LOGE("Unknown drm format.\n");
@@ -256,6 +263,8 @@ bool DrmPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
         switch (halFormat) {
             case HAL_PIXEL_FORMAT_RGBA_8888:
             case HAL_PIXEL_FORMAT_RGBX_8888:
+            case HAL_PIXEL_FORMAT_RGBA_1010102:
+            case HAL_PIXEL_FORMAT_RGBA_10101010:
                 break;
             default:
                 //MESON_LOGE("afbc: %d, Layer format %d not support.", afbc, format);
@@ -529,6 +538,7 @@ void DrmPlane::resolveInFormats() {
 }
 
 bool DrmPlane::validateFormat(uint32_t format, uint64_t modifier) {
+    ATRACE_CALL();
     int formatIdx = -1;
     for (int i = 0; i < mFormatCnt; i ++) {
         if (format == mFormats[i]) {
@@ -538,6 +548,8 @@ bool DrmPlane::validateFormat(uint32_t format, uint64_t modifier) {
     }
 
     if (formatIdx == -1) {
+        std::string message = StringPrintf("Not Supported Format %x", format);
+        ATRACE_NAME(message.c_str());
      //   MESON_LOGD("Not Supported Format %x", format);
         return false;
     }
@@ -552,6 +564,9 @@ bool DrmPlane::validateFormat(uint32_t format, uint64_t modifier) {
                 return true;
             } else {
              //   MESON_LOGD("Not supported modifier-format (%lld-%d)", modifier, format);
+                std::string message = StringPrintf("Not Supported modifier-format(%" PRIu64 "-%u)",
+                        modifier, format);
+                ATRACE_NAME(message.c_str());
                 return false;
             }
         }

@@ -11,6 +11,17 @@
 
 #include <DrmFramebuffer.h>
 #include <misc.h>
+#include <drm_fourcc.h>
+#include <aidl/android/hardware/graphics/common/PixelFormat.h>
+using aidl::android::hardware::graphics::common::PixelFormat;
+
+/* 40 bpp RGB */
+/* [39:0] A:B:G:R 10:10:10:10 little endian */
+#define DRM_FORMAT_ABGR10101010	fourcc_code('A', 'B', '4', '0')
+
+#ifndef HAL_PIXEL_FORMAT_RGBA_10101010
+#define HAL_PIXEL_FORMAT_RGBA_10101010  (static_cast<int>(PixelFormat::RGBA_10101010))
+#endif
 
 /*Drm buffer object.
  * TODO:
@@ -58,7 +69,7 @@ protected:
 };
 
 uint32_t covertToDrmFormat(uint32_t format);
-uint64_t convertToDrmModifier(int afbcMask);
+uint64_t convertToDrmModifier(int afbcMask, int afrcMask);
 
 
 #endif

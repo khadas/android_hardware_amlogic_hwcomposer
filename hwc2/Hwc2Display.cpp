@@ -2295,18 +2295,25 @@ int32_t Hwc2Display::adjustVsyncMode() {
 }
 
 void Hwc2Display::dumpPresentLayers(String8 & dumpstr) {
-    dumpstr.append("-----------------------------------------------------------"
+    dumpstr.append("------------------------------------------------------------"
         "-------------------------------------------\n");
     dumpstr.append("|  id  |  z  |    type    |blend| alpha  |t|"
-        "  AFBC  |    Source Crop    |    Display Frame  |tunnelId|\n");
+        "AFBC/AFRC|    Source Crop    |    Display Frame  |tunnelId|\n");
     for (auto it = mPresentLayers.begin(); it != mPresentLayers.end(); it++) {
         Hwc2Layer *layer = (Hwc2Layer*)(it->get());
         drm_rect_t sourceCrop = layer->getSourceCrop();
         drm_rect_t displayFrame = layer->getDisplayFrame();
 
-        dumpstr.append("+------+-----+------------+-----+--------+-+--------+"
+        int compress = 0;
+        if (layer->isSidebandBuffer() == false) {
+            int afrc = am_gralloc_get_vpu_afrc_mask(layer->mBufferHandle);
+            int afbc = am_gralloc_get_vpu_afbc_mask(layer->mBufferHandle);
+            compress = afrc ? afrc : afbc;
+        }
+
+        dumpstr.append("+------+-----+------------+-----+--------+-+---------+"
             "-------------------+-------------------+--------+\n");
-        dumpstr.appendFormat("|%6" PRIu64 "|%5d|%12s|%5d|%8f|%1d|%8x|%4d %4d %4d %4d"
+        dumpstr.appendFormat("|%6" PRIu64 "|%5d|%12s|%5d|%8f|%1d|%9x|%4d %4d %4d %4d"
             "|%4d %4d %4d %4d|%8d|\n",
             layer->getUniqueId(),
             layer->mZorder,
@@ -2314,7 +2321,7 @@ void Hwc2Display::dumpPresentLayers(String8 & dumpstr) {
             layer->mBlendMode,
             layer->mPlaneAlpha,
             layer->mTransform,
-            layer->isSidebandBuffer() ? 0 : am_gralloc_get_vpu_afbc_mask(layer->mBufferHandle),
+            compress,
             sourceCrop.left,
             sourceCrop.top,
             sourceCrop.right,
@@ -2323,11 +2330,10 @@ void Hwc2Display::dumpPresentLayers(String8 & dumpstr) {
             displayFrame.top,
             displayFrame.right,
             displayFrame.bottom,
-            layer->getVideoTunnelId()
-            );
+            layer->getVideoTunnelId());
     }
     dumpstr.append("----------------------------------------------------------"
-        "--------------------------------------------\n");
+        "---------------------------------------------\n");
 }
 
 void Hwc2Display::dumpHwDisplayPlane(String8 &dumpstr) {
@@ -2335,7 +2341,7 @@ void Hwc2Display::dumpHwDisplayPlane(String8 &dumpstr) {
     dumpstr.append("------------------------------------------------------------"
             "-----------------------------------------------------------------\n");
     dumpstr.append("|  ID   |Zorder| type |     source crop     |      dis Frame"
-            "      | fd | fm | b_st | p_st | blend | alpha |  op  | afbc fm  |\n");
+            "      | fd | fm | b_st | p_st | blend | alpha |  op  | modifier |\n");
     dumpstr.append("+-------+------+------+---------------------+-----------------"
             "----+----+----+------+------+-------+-------+------+----------+\n");
 

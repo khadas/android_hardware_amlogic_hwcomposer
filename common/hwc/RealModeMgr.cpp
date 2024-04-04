@@ -691,11 +691,11 @@ int32_t RealModeMgr::setModeLocked(drm_mode_info_t & mode) {
 void RealModeMgr::dump(String8 & dumpstr) {
     dumpstr.appendFormat("RealModeMgr:(%s)\n", mLatestRealMode.name);
     dumpstr.append("-----------------------------------------------------------"
-        "---------------------------------------------------\n");
+        "--------------------------------------------------\n");
     dumpstr.append("|  CONFIG   |   VSYNC_PERIOD   |   WIDTH   |   HEIGHT   |"
-        "   DPI_X   |   DPI_Y   |      NAME      |  GROUP_ID |\n");
+        "   DPI_X   |   DPI_Y   |      NAME      | GROUP_ID |\n");
     dumpstr.append("+-----------+------------------+-----------+------------+"
-        "-----------+-----------+----------------+-----------+\n");
+        "-----------+-----------+----------------+----------+\n");
 
     std::map<uint32_t, drm_mode_info_t>::iterator it =
         mModes.begin();
@@ -704,7 +704,7 @@ void RealModeMgr::dump(String8 & dumpstr) {
         int mode = it->first;
         drm_mode_info_t config = it->second;
         dumpstr.appendFormat("%s %2d     |      %.3f      |   %5d   |   %5d    |"
-            "    %3d    |    %3d    | %14s |    %3d    |\n",
+            "   %5d   |   %5d   | %14s |    %2d    |\n",
             (mode == (int)mActiveConfigId) ? "*   " : "    ",
             mode,
             config.refreshRate,
@@ -716,5 +716,5 @@ void RealModeMgr::dump(String8 & dumpstr) {
             config.groupId);
     }
     dumpstr.append("-----------------------------------------------------------"
-        "---------------------------------------------------\n");
+        "--------------------------------------------------\n");
 }

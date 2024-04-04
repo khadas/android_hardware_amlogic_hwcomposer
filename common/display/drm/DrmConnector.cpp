@@ -600,14 +600,16 @@ void DrmConnector::dump(String8 & dumpstr) {
     //dump display config.
     if (mEdid)
         mEdid->dump(dumpstr);
-    dumpstr.append("   CONFIG   |   VSYNC_PERIOD   |   WIDTH   |   HEIGHT   |"
-        "   DPI_X   |   DPI_Y   | GroupId \n");
-    dumpstr.append("------------+------------------+-----------+------------+"
-        "-----------+-----------\n");
+    dumpstr.append("-------------------------------------------------------------------"
+        "---------------------------------\n");
+    dumpstr.append(" CONFIG |    NAME    |   VSYNC_PERIOD   |   WIDTH   |   HEIGHT   |"
+        "   DPI_X   |   DPI_Y   | GroupId |\n");
+    dumpstr.append("--------+------------+------------------+-----------+-------------+"
+        "-----------+-----------+--------+\n");
 
     for ( auto it = mMesonModes.begin(); it != mMesonModes.end(); ++it) {
-        dumpstr.appendFormat(" %2d     |  %12s  |      %.3f      |   %5d   |   %5d    |"
-            "    %3d    |    %3d    |    %3d   \n",
+        dumpstr.appendFormat("   %2d   |%12s|      %.3f      |   %5d   |   %5d    |"
+            "   %5d   |   %5d   |   %3d   |\n",
                  it->first,
                  it->second.name,
                  it->second.refreshRate,
@@ -628,7 +630,7 @@ void DrmConnector::dump(String8 & dumpstr) {
                  it->second.vdisplay);
     }
 #endif
-    dumpstr.append("---------------------------------------------------------"
+    dumpstr.append("------------------------------------------------------------------"
         "----------------------------------\n");
 }
 
