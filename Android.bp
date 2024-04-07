@@ -143,8 +143,77 @@ soong_config_bool_variable {
     name: "enable_legacy_video",
 }
 
+soong_config_module_type {
+    name: "meson_hwc_virtual_layer_defaults",
+    module_type: "cc_defaults",
+    config_namespace: "meson_hwc",
+
+    bool_variables: [
+        "enable_virtual_layer",
+    ],
+
+    properties: [
+        "cflags",
+        "shared_libs",
+    ],
+}
+
+meson_hwc_virtual_layer_defaults {
+    name: "hwc_virtual_layer_defaults",
+    vendor: true,
+
+    soong_config_variables: {
+        enable_virtual_layer: {
+            cflags: ["-DENABLE_VIRTUAL_LAYER"],
+
+            shared_libs: [
+                "libpng",
+                "libz",
+            ],
+        },
+    },
+}
+
+soong_config_module_type {
+    name: "meson_hwc_wb_ge2d_defaults",
+    module_type: "cc_defaults",
+    config_namespace: "meson_hwc",
+
+    bool_variables: [
+        "non_low_ram",
+    ],
+
+    properties: [
+        "cflags",
+        "shared_libs",
+    ],
+}
+
+meson_hwc_wb_ge2d_defaults {
+    name: "hwc_wb_ge2d_defaults",
+    vendor: true,
+
+    soong_config_variables: {
+        non_low_ram: {
+            cflags: ["-DNON_LOW_RAM"],
+
+            shared_libs: [
+                "libEGL",
+                "libGLESv1_CM",
+                "libGLESv2",
+                "libge2d-2.0",
+            ],
+        },
+    },
+}
+
 meson_hwc_cc_defaults {
     name: "hwcomposer_cc_defaults",
+    defaults: [
+        "hwc_virtual_layer_defaults",
+        "hwc_wb_ge2d_defaults"
+    ],
+
     vendor: true,
 
     soong_config_variables: {
@@ -191,10 +260,6 @@ meson_hwc_cc_defaults {
             cflags: ["-DANDROID_PLATFORM_SDK_EXTENSION_VERSION=%s"],
         },
 
-        enable_virtual_layer: {
-            cflags: ["-DENABLE_VIRTUAL_LAYER"],
-        },
-
         enable_ai_process_120: {
             cflags: ["-DENABLE_AIPROCESS_120"],
         },
@@ -226,16 +291,10 @@ meson_hwc_cc_defaults {
         "libion",
         "libhardware",
         "libhidlbase",
-        "libge2d-2.0",
         "libvideotunnel",
-        "libEGL",
-        "libGLESv1_CM",
-        "libGLESv2",
         "libamgralloc_ext",
         "libmeson_mode_policy",
         "vendor.amlogic.hardware.systemcontrol@1.0",
         "vendor.amlogic.hardware.systemcontrol@1.1",
-        "libpng",
-        "libz",
     ],
 }

@@ -173,9 +173,11 @@ public:
     virtual void getDispMode(drm_mode_info_t & dispMode);
     virtual void cleanupBeforeDestroy();
 
+#ifdef ENABLE_VIRTUAL_LAYER
     /*For round corner.*/
     hwc2_error_t createVirtualLayer(hwc2_layer_t * outLayer);
     int32_t loadVirtualLayerData(FILE *file, std::shared_ptr<Hwc2Layer> tempVirtualLayer);
+#endif
 
     /* dummy connector switch */
     bool needSwitchConnector();

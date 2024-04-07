@@ -162,6 +162,13 @@ ifndef HWC_LEGACY_VIDEO
 HWC_LEGACY_VIDEO := false
 endif
 
+ifndef CONFIG_DEVICE_LOW_RAM
+HWC_NON_LOW_RAM := true
+else
+HWC_NON_LOW_RAM := false
+endif
+
+
 # Setup configuration in Soong namespace
 #
 $(call soong_config_set,meson_hwc,hwc_release,$(HWC_RELEASE))
@@ -210,5 +217,6 @@ $(call soong_config_set,meson_hwc,enable_video_mosaic,$(HWC_VIDEO_MOSAIC))
 $(call soong_config_set,meson_hwc,enable_ai_process_120,$(HWC_VIDEO_AIPROCESS_120))
 $(call soong_config_set,meson_hwc,enable_hal_virtualdisplay,$(HWC_ENABLE_HAL_VIRTUALDISPLAY))
 $(call soong_config_set,meson_hwc,enable_legacy_video,$(HWC_LEGACY_VIDEO))
+$(call soong_config_set,meson_hwc,non_low_ram,$(HWC_NON_LOW_RAM))
 
 #$(warning "the value of aidl: $(HWC_ENABLE_AIDL)")
