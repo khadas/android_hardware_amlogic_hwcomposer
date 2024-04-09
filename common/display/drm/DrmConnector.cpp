@@ -665,20 +665,23 @@ int32_t DrmConnector::setContentType(uint32_t contentType) {
 }
 
 int32_t DrmConnector::setAutoLowLatencyMode(bool on) {
-    if (mType != DRM_MODE_CONNECTOR_HDMIA) {
-        return HWC2_ERROR_UNSUPPORTED;
-    }
-    if (isTvSupportALLM()) {
+    if (mType == DRM_MODE_CONNECTOR_HDMIA || isTvType()) {
+        if (mType == DRM_MODE_CONNECTOR_HDMIA && !isTvSupportALLM())
+            return HWC2_ERROR_UNSUPPORTED;
+
         if (on) {
             sysfs_set_string(LOW_LATENCY, LOW_LATENCY_ENABLE);
         } else {
             sysfs_set_string(LOW_LATENCY, LOW_LATENCY_DISABLE);
         }
 
-        return sc_set_hdmi_allm(on);
-    } else {
-        return HWC2_ERROR_UNSUPPORTED;
+        if (mType == DRM_MODE_CONNECTOR_HDMIA )
+            sc_set_hdmi_allm(on);
+
+        return HWC2_ERROR_NONE;
     }
+
+    return HWC2_ERROR_UNSUPPORTED;
 }
 
 void DrmConnector::updateHdrCaps() {

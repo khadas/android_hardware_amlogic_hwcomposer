@@ -1729,23 +1729,21 @@ bool ModePolicy::isTvConnector() {
 
 int32_t ModePolicy::setAutoLowLatencyMode(bool enabled) {
     auto type = mConnector->getType();
-    if (type == DRM_MODE_CONNECTOR_HDMIA) {
-        if (!isTvSupportALLM()) {
+    if (type == DRM_MODE_CONNECTOR_HDMIA || isTvConnector()) {
+        if (type == DRM_MODE_CONNECTOR_HDMIA && !isTvSupportALLM())
             return HWC2_ERROR_UNSUPPORTED;
-        }
 
         if (enabled) {
             sysfs_set_string(LOW_LATENCY, LOW_LATENCY_ENABLE);
         } else {
             sysfs_set_string(LOW_LATENCY, LOW_LATENCY_DISABLE);
         }
-        setALLMMode(enabled);
+
+        if (type == DRM_MODE_CONNECTOR_HDMIA)
+            setALLMMode(enabled);
+
         return HWC2_ERROR_NONE;
     }
-
-    // do nothing for tv
-    if (isTvConnector())
-        return HWC2_ERROR_NONE;
 
     return HWC2_ERROR_UNSUPPORTED;
 }
