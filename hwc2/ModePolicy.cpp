@@ -537,7 +537,7 @@ void ModePolicy::getHdrUserInfo(meson_hdr_info_t *data) {
             data->hdr_priority, data->hdr_priority,
             data->hdr_force_mode);
 
-    data->is_enable_dv = isDolbyVisionEnable();
+    data->is_amdv_enable = isDolbyVisionEnable();
     data->is_tv_supportDv = isTvSupportDolbyVision();
     data->is_tv_supportHDR = isTvSupportHDR();
     data->is_hdr_resolution_priority = isHdrResolutionPriority();
@@ -878,7 +878,7 @@ void ModePolicy::dump(String8 &dumpstr) {
     /* dump detail policy in info*/
     if (DebugHelper::getInstance().dumpDetailInfo()) {
         dumpstr.append("\nPolicy In :\n    HDR info: \n");
-        dumpstr.appendFormat("\t enable dv: %s \n", mConData.hdr_info.is_enable_dv ? "Y" : "N");
+        dumpstr.appendFormat("\t enable dv: %s \n", mConData.hdr_info.is_amdv_enable ? "Y" : "N");
         dumpstr.appendFormat("\t TV support HDR: %s \n", mConData.hdr_info.is_tv_supportHDR ? "Y" : "N");
         dumpstr.appendFormat("\t TV support Dv: %s \n", mConData.hdr_info.is_tv_supportDv ? "Y" : "N");
         dumpstr.appendFormat("\t HDR Resolution Priority: %s \n", mConData.hdr_info.is_hdr_resolution_priority ? "Y" : "N");
