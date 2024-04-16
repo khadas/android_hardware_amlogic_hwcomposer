@@ -304,14 +304,6 @@ bool HwcConfig::seamlessSwitchEnabled() {
 #endif
 }
 
-bool HwcConfig::oddCropWidthNeedClientComposite() {
-#ifdef HWC_ODD_CROP_WIDTH_NEED_CLIENT_COMPOSITE
-    return true;
-#else
-    return false;
-#endif
-}
-
 float  HwcConfig::getMaxRefreshRate() {
 #ifdef HWC_ENFORCES_MAX_REFRESH_RATE
     return (float)HWC_ENFORCES_MAX_REFRESH_RATE;
@@ -443,8 +435,6 @@ void HwcConfig::dump(String8 & dumpstr) {
             dumpstr.appendFormat("\t DynamicSwitchViu: %s", dynamicSwitchViuEnabled() ? "Y" : "N");
             dumpstr.append("\n");
             dumpstr.appendFormat("\t SeamlessSwitch: %s", seamlessSwitchEnabled() ? "Y" : "N");
-            dumpstr.append("\n");
-            dumpstr.appendFormat("\t oddCropWidthNeedClientComposite: %s", oddCropWidthNeedClientComposite() ? "Y" : "N");
             dumpstr.append("\n");
             dumpstr.appendFormat("\t getVsyncScaleFactor: %f", getVsyncScaleFactor());
             dumpstr.append("\n");

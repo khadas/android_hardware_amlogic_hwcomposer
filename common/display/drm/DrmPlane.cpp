@@ -18,7 +18,6 @@
 #include "DrmDevice.h"
 #include "DrmPlane.h"
 #include <drm_fourcc.h>
-#include <HwcConfig.h>
 
 using android::base::StringPrintf;
 
@@ -276,11 +275,11 @@ bool DrmPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
         return false;
 
     /*check vpu limit: buffer size*/
-    uint32_t sourceHeight = fb->mSourceCrop.bottom - fb->mSourceCrop.top;
-    uint32_t sourceWidth = fb->mSourceCrop.right - fb->mSourceCrop.left;
-    if (sourceHeight > mOsdInputMaxHeight || sourceWidth > mOsdInputMaxWidth)
+    uint32_t sourceWidth = fb->mSourceCrop.bottom - fb->mSourceCrop.top;
+    uint32_t sourceHeight = fb->mSourceCrop.right - fb->mSourceCrop.left;
+    if (sourceWidth > mOsdInputMaxHeight || sourceHeight > mOsdInputMaxWidth)
         return false;
-    if (sourceHeight < OSD_INPUT_MIN_HEIGHT || sourceWidth < OSD_INPUT_MIN_WIDTH)
+    if (sourceWidth < OSD_INPUT_MIN_HEIGHT || sourceHeight < OSD_INPUT_MIN_WIDTH)
         return false;
 
     /*
@@ -300,9 +299,6 @@ bool DrmPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
     }
     float expHeight = (sourceHeight*sourceWidth/VPU_FREQ)*desHeight*freq*kValue;
     if (dispHeight < expHeight)
-        return false;
-
-    if (sourceWidth % 2 != 0 && HwcConfig::oddCropWidthNeedClientComposite())
         return false;
 
     return true;
