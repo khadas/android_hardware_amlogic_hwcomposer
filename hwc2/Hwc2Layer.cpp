@@ -1043,8 +1043,8 @@ void Hwc2Layer::adjustDisplayFrameLocked() {
     bool bNoScale = false;
     drm_rect_t dispFrame;
 
-    if (mCalibrateInfo.framebuffer_w == mCalibrateInfo.crtc_display_w &&
-        mCalibrateInfo.framebuffer_h == mCalibrateInfo.crtc_display_h)
+    if (mCalibrateInfo.framebuffer_w == (mCalibrateInfo.crtc_display_w - mCalibrateInfo.crtc_display_x) &&
+        mCalibrateInfo.framebuffer_h == (mCalibrateInfo.crtc_display_h - mCalibrateInfo.crtc_display_y))
         bNoScale = true;
 
     if (mVtDisplayFrame.left > 0 || mVtDisplayFrame.top > 0 ||
