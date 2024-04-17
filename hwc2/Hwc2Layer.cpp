@@ -218,14 +218,21 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
             mFbType = DRM_FB_SCANOUT;
     } else {
         mFbType = DRM_FB_RENDER;
+        setReqFlag(FORCE_CLIENT_REQ);
     }
 
     if (preType != mFbType)
         mUpdated = true;
 
-    // changed from UVM to other type
-    if (preType != mFbType && preType == DRM_FB_VIDEO_UVM_DMA) {
-        releaseUvmResourceLock();
+    if (preType != mFbType) {
+        // changed from UVM to other type
+        if (preType == DRM_FB_VIDEO_UVM_DMA) {
+            releaseUvmResourceLock();
+        }
+        // changed from UI to UVM
+        if (mFbType == DRM_FB_VIDEO_UVM_DMA) {
+            setReqFlag(0);
+        }
     }
 
     mSecure = am_gralloc_is_secure_buffer(mBufferHandle);

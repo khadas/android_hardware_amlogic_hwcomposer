@@ -15,6 +15,13 @@
 #include <HwDisplayConnector.h>
 #include <HwDisplayPlane.h>
 
+#define MESON_OSD_GFCD_AFBC_EN_ID (0)
+enum class MesonDrmWrId : int32_t {
+    GFCD_ODD_SIZE = 0,
+    GFCD_GLOBAL_ALPHA = 1,
+    HDR_BEFORE_BLEND = 2,
+};
+
 class HwDisplayPlane;
 
 class HwDisplayCrtc {
@@ -60,6 +67,7 @@ public:
 
     virtual void dump(String8 & dumpstr __unused) {}
     virtual void closeLogoDisplay();
+    virtual uint64_t getWrFlag() { return 0; };
 
     /* for hotplug */
     enum class HotplugStatus {

@@ -55,6 +55,7 @@ protected:
     int fillComposerFbs();
     void handleOverlayVideoZorder();
     int checkCommitZorder();
+    void handleVPUOddScaleLimit();
     void handleVPUScaleLimit();
     void handleVPULimit(bool video);
     void handleDisplayLayerZorder();

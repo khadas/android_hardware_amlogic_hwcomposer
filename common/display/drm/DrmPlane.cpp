@@ -274,6 +274,23 @@ bool DrmPlane::isFbSupport(std::shared_ptr<DrmFramebuffer> & fb) {
     if (!validateFormat(drmFormat, modifier))
         return false;
 
+    if (fb->mPlaneAlpha != 1) {
+        if (mCrtc->getWrFlag() & (1 << (int32_t)MesonDrmWrId::GFCD_GLOBAL_ALPHA)) {
+            return false;
+        }
+        if (halFormat == HAL_PIXEL_FORMAT_RGBA_10101010 || afrc != 0) {
+            return false;
+        }
+    }
+
+    if (fb->getReqFlag()) {
+        if (mCrtc->getWrFlag() & (1 << (int32_t)MesonDrmWrId::HDR_BEFORE_BLEND)) {
+            std::string message = StringPrintf("fb %" PRIu64 " request client", fb->getUniqueId());
+            ATRACE_NAME(message.c_str());
+            return false;
+        }
+    }
+
     /*check vpu limit: buffer size*/
     uint32_t sourceWidth = fb->mSourceCrop.bottom - fb->mSourceCrop.top;
     uint32_t sourceHeight = fb->mSourceCrop.right - fb->mSourceCrop.left;
