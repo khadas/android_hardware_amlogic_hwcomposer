@@ -231,33 +231,51 @@ bool DrmConnector::isSeamlessMode(const drm_mode_info_t & mode, const drm_mode_i
         }
     }
 
-    //TODO: remove it when TV connector support vrr range
-    if (isTvType()) {
-        return true;
-    }
-
     for (int32_t i = 0; i < mVrrModeGroup.num; i++) {
-        if (mVrrModeGroup.gropus[i].width == mode.pixelW && mVrrModeGroup.gropus[i].height == mode.pixelH) {
-            if (((mode.refreshRate - mVrrModeGroup.gropus[i].vrr_min) >= 0
+        if (mVrrModeGroup.groups[i].width == mode.pixelW
+                && mVrrModeGroup.groups[i].height == mode.pixelH) {
+            if (((mode.refreshRate - mVrrModeGroup.groups[i].vrr_min) >= 0
                     //frac refresh rate
-                    || std::abs(mode.refreshRate - (mVrrModeGroup.gropus[i].vrr_min * 1000) / (float)1001) < 0.001)
-                        && (mode.refreshRate - mVrrModeGroup.gropus[i].vrr_max <= 0))
-                return true;
-            else
-                return false;
+                    || std::abs(mode.refreshRate - (mVrrModeGroup.groups[i].vrr_min * 1000) / (float)1001) < 0.001)
+                        && (mode.refreshRate - mVrrModeGroup.groups[i].vrr_max <= 0)) {
+                if (mVrrModeGroup.groups[i].width == groupMode.pixelW
+                        && mVrrModeGroup.groups[i].height == groupMode.pixelH) {
+                    if (((groupMode.refreshRate - mVrrModeGroup.groups[i].vrr_min) >= 0
+                        //frac refresh rate
+                        || std::abs(groupMode.refreshRate - (mVrrModeGroup.groups[i].vrr_min * 1000) / (float)1001) < 0.001)
+                            && (groupMode.refreshRate - mVrrModeGroup.groups[i].vrr_max <= 0)) {
+                        return true;
+                    } else {
+                        return false;
+                    }
+                }
+            }
         }
     }
     return false;
 }
 
 int32_t DrmConnector::loadVrrModeGroups() {
-    if (!supportVrr())
-        return 0;
+    if (!isTvType()) {
+        if (!(mSupportVrr = supportVrr()) || !HwcConfig::seamlessSwitchEnabled()) {
+            return 0;
+        }
+    }
 
+    mVrrModeGroup.conn_id = mId;
     auto ret = ioctl(mDrmFd, DRM_IOCTL_MESON_GET_VRR_RANGE, &mVrrModeGroup);
     if (ret) {
         MESON_LOGE("DRM_IOCTL_MESON_GET_VRR_RANGE error ret %d  %s(%d)", ret, strerror(errno), errno);
         return -EINVAL;
+    }
+
+    for (int32_t i = 0; i < mVrrModeGroup.num; i++) {
+        MESON_LOGD("VrrModeGroup name %s (%dx%d) range [%d - %d]",
+                mVrrModeGroup.groups[i].modename,
+                mVrrModeGroup.groups[i].width,
+                mVrrModeGroup.groups[i].height,
+                mVrrModeGroup.groups[i].vrr_min,
+                mVrrModeGroup.groups[i].vrr_max);
     }
     return 0;
 }
@@ -582,14 +600,16 @@ void DrmConnector::dump(String8 & dumpstr) {
     //dump display config.
     if (mEdid)
         mEdid->dump(dumpstr);
-    dumpstr.append("   CONFIG   |   VSYNC_PERIOD   |   WIDTH   |   HEIGHT   |"
-        "   DPI_X   |   DPI_Y   | GroupId \n");
-    dumpstr.append("------------+------------------+-----------+------------+"
-        "-----------+-----------\n");
+    dumpstr.append("-------------------------------------------------------------------"
+        "---------------------------------\n");
+    dumpstr.append(" CONFIG |    NAME    |   VSYNC_PERIOD   |   WIDTH   |   HEIGHT   |"
+        "   DPI_X   |   DPI_Y   | GroupId |\n");
+    dumpstr.append("--------+------------+------------------+-----------+-------------+"
+        "-----------+-----------+--------+\n");
 
     for ( auto it = mMesonModes.begin(); it != mMesonModes.end(); ++it) {
-        dumpstr.appendFormat(" %2d     |  %12s  |      %.3f      |   %5d   |   %5d    |"
-            "    %3d    |    %3d    |    %3d   \n",
+        dumpstr.appendFormat("   %2d   |%12s|      %.3f      |   %5d   |   %5d    |"
+            "   %5d   |   %5d   |   %3d   |\n",
                  it->first,
                  it->second.name,
                  it->second.refreshRate,
@@ -610,7 +630,7 @@ void DrmConnector::dump(String8 & dumpstr) {
                  it->second.vdisplay);
     }
 #endif
-    dumpstr.append("---------------------------------------------------------"
+    dumpstr.append("------------------------------------------------------------------"
         "----------------------------------\n");
 }
 
@@ -647,20 +667,23 @@ int32_t DrmConnector::setContentType(uint32_t contentType) {
 }
 
 int32_t DrmConnector::setAutoLowLatencyMode(bool on) {
-    if (mType != DRM_MODE_CONNECTOR_HDMIA) {
-        return HWC2_ERROR_UNSUPPORTED;
-    }
-    if (isTvSupportALLM()) {
+    if (mType == DRM_MODE_CONNECTOR_HDMIA || isTvType()) {
+        if (mType == DRM_MODE_CONNECTOR_HDMIA && !isTvSupportALLM())
+            return HWC2_ERROR_UNSUPPORTED;
+
         if (on) {
             sysfs_set_string(LOW_LATENCY, LOW_LATENCY_ENABLE);
         } else {
             sysfs_set_string(LOW_LATENCY, LOW_LATENCY_DISABLE);
         }
 
-        return sc_set_hdmi_allm(on);
-    } else {
-        return HWC2_ERROR_UNSUPPORTED;
+        if (mType == DRM_MODE_CONNECTOR_HDMIA )
+            sc_set_hdmi_allm(on);
+
+        return HWC2_ERROR_NONE;
     }
+
+    return HWC2_ERROR_UNSUPPORTED;
 }
 
 void DrmConnector::updateHdrCaps() {

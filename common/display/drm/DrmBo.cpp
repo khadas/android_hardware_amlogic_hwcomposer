@@ -11,8 +11,6 @@
 #include <MesonLog.h>
 
 #include <xf86drm.h>
-#include <drm_fourcc.h>
-
 #include "DrmDevice.h"
 
 std::map<uint32_t, int> DrmBo::mHndRefs;
@@ -29,15 +27,24 @@ uint32_t covertToDrmFormat(uint32_t format) {
             return DRM_FORMAT_BGR888;
         case HAL_PIXEL_FORMAT_RGB_565:
             return DRM_FORMAT_BGR565;
+        case HAL_PIXEL_FORMAT_RGBA_1010102:
+            return DRM_FORMAT_ABGR2101010;
+        case HAL_PIXEL_FORMAT_RGBA_10101010:
+            return DRM_FORMAT_ABGR10101010;
         default:
             //MESON_LOGE("covert format  %u failed.", format);
             return DRM_FORMAT_INVALID;
     }
 }
 
-uint64_t convertToDrmModifier(int afbcMask) {
-    if (afbcMask == 0)
+uint64_t convertToDrmModifier(int afbcMask, int afrcMask) {
+    if (afbcMask == 0 && afrcMask == 0) {
         return 0;
+    }
+
+    if (afrcMask != 0) {
+        return DRM_FORMAT_MOD_ARM_AFRC(afrcMask);
+    }
 
     uint64_t features = 0UL;
 
@@ -122,9 +129,11 @@ int32_t DrmBo::import(
 
     width = am_gralloc_get_width(buf);
     height = am_gralloc_get_height(buf);
+    int afbc = am_gralloc_get_vpu_afbc_mask(buf);
+    int afrc = am_gralloc_get_vpu_afrc_mask(buf);
     pitches[0] = am_gralloc_get_stride_in_byte(buf);
     offsets[0] = 0;
-    modifiers[0] = convertToDrmModifier(am_gralloc_get_vpu_afbc_mask(buf));
+    modifiers[0] = convertToDrmModifier(afbc, afrc);
 
     /*set other elements to invalid.*/
     for (int i = 1; i < BUF_PLANE_NUM; i++) {

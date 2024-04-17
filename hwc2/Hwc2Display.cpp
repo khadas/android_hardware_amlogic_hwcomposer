@@ -22,14 +22,18 @@
 #include "Hwc2Layer.h"
 #include "Hwc2Base.h"
 #include "VtDisplayThread.h"
+#ifdef NON_LOW_RAM
 #include "WBDisplayThread.h"
+#endif
 #include "mode_ubootenv.h"
 
+#ifdef ENABLE_VIRTUAL_LAYER
 /*For round corner*/
 #include <png.h>
 #include <zlib.h>
 #include <misc.h>
 #include <sys/mman.h>
+#endif
 
 #include <DrmTypes.h>
 #include <HwcConfig.h>
@@ -59,7 +63,9 @@ Hwc2Display::Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer, uint32_t
     mScaleValue = 1;
     mPresentFence = -1;
     mVtDisplayThread = nullptr;
+#ifdef NON_LOW_RAM
     mWBDisplayThread = nullptr;
+#endif
     mVsyncTimestamp = 0;
     mFirstPresent = true;
     mDisplayId = display;
@@ -107,10 +113,11 @@ Hwc2Display::~Hwc2Display() {
         mVtDisplayThread.reset();
     }
     mVtVsync.reset();
-
+#ifdef NON_LOW_RAM
     if (mWBDisplayThread) {
         mWBDisplayThread.reset();
     }
+#endif
     mWBVsync.reset();
 
     if (mPostProcessor != NULL)
@@ -119,11 +126,13 @@ Hwc2Display::~Hwc2Display() {
 }
 
 void Hwc2Display::handleWBThread() {
+#ifdef NON_LOW_RAM
     if (mWhiteBoardMode || mEnableCallBack) {
         if (!mWBDisplayThread) {
             mWBDisplayThread = std::make_shared<WBDisplayThread>(this);
         }
     }
+#endif
 }
 
 void Hwc2Display::setKeystoneCorrection(std::string params) {
@@ -598,12 +607,14 @@ void Hwc2Display::onVsync(int64_t timestamp, uint32_t vsyncPeriodNanos, int vsyn
                 mVtDisplayThread->onVtVsync(timestamp, vsyncPeriodNanos);
             }
             break;
+#ifdef NON_LOW_RAM
         case DISPLAY_WHITEBOARD:
             mVsyncTimestamp = timestamp;
             if (mWBDisplayThread) {
                 mWBDisplayThread->onWBVsync(timestamp, vsyncPeriodNanos);
             }
             break;
+#endif
         default:
             MESON_LOGE("onVsync get invalid vsync");
             break;
@@ -757,6 +768,7 @@ hwc2_error_t Hwc2Display::destroyLayer(hwc2_layer_t  inLayer) {
     return HWC2_ERROR_NONE;
 }
 
+#ifdef ENABLE_VIRTUAL_LAYER
 int32_t Hwc2Display::loadVirtualLayerData(FILE *file, std::shared_ptr<Hwc2Layer> tempVirtualLayer) {
 
     //use libpng
@@ -857,6 +869,7 @@ hwc2_error_t Hwc2Display::createVirtualLayer(hwc2_layer_t * outLayer) {
 
     return HWC2_ERROR_NONE;
 }
+#endif
 
 hwc2_error_t Hwc2Display::setCursorPosition(hwc2_layer_t layer __unused,
     int32_t x __unused, int32_t y __unused) {
@@ -1099,13 +1112,16 @@ void Hwc2Display::hideVideoLayer(bool hide) {
     return;
 }
 
-void Hwc2Display::setWBDisplayFrame(int x, int y) {
+void Hwc2Display::setWBDisplayFrame([[maybe_unused]] int x, [[maybe_unused]] int y) {
+#ifdef NON_LOW_RAM
     hwc_rect_t displayFrame = {x, y, (int)mDisplayMode.pixelW, (int)mDisplayMode.pixelH};
     mCustomizedBuffer->setDisplayFrame(displayFrame);
     return;
+#endif
 }
 
-void Hwc2Display::setWhiteBoardMode(bool mode) {
+void Hwc2Display::setWhiteBoardMode([[maybe_unused]] bool mode) {
+#ifdef NON_LOW_RAM
     MESON_LOGD("set setWhiteBoardMode to %d", mode);
 
     //First create a Virtual Layer to show White Board content.
@@ -1131,6 +1147,7 @@ void Hwc2Display::setWhiteBoardMode(bool mode) {
     }
 
     mObserver->refresh();
+#endif
     return;
 }
 
@@ -1476,6 +1493,7 @@ hwc2_error_t Hwc2Display::acceptDisplayChanges() {
 }
 
 hwc2_error_t Hwc2Display::presentSkipValidateCheck() {
+    ATRACE_CALL();
     if (DebugHelper::getInstance().disableUiHwc()) {
         return HWC2_ERROR_NOT_VALIDATED;
     }
@@ -2172,6 +2190,7 @@ hwc2_error_t Hwc2Display::setHdrConversionStrategy(bool passThrough, uint32_t nu
 
     auto outHdrConversionType = -1;
     uint32_t userHdrType = 0;
+    int32_t ret = -1;
     /* DV enable support DV and HDR10
      * DV disable support HDR10 and HLG */
     if (!passThrough && preferredHdrOutputType) {
@@ -2201,11 +2220,17 @@ hwc2_error_t Hwc2Display::setHdrConversionStrategy(bool passThrough, uint32_t nu
 
         if (outHdrConversionType == -1) {
             if (mModePolicy) {
-                mModePolicy->setHdrConversionPolicy(passThrough, outHdrConversionType);
+                std::unique_lock<std::mutex> stateLock(mStateLock);
+                mModeMgr->resetTags(false);
+                ret = mModePolicy->setHdrConversionPolicy(passThrough, outHdrConversionType);
+                if (ret == 0) {
+                    mStateCondition.wait_for(stateLock, std::chrono::seconds(1));
+                }
+                mModeMgr->resetTags(true);
             } else {
                 MESON_LOGD("ModePolicy is NULL");
             }
-            return HWC2_ERROR_UNSUPPORTED;
+            return HWC2_ERROR_NONE;
         }
         *preferredHdrOutputType = outHdrConversionType;
     } else {
@@ -2217,7 +2242,6 @@ hwc2_error_t Hwc2Display::setHdrConversionStrategy(bool passThrough, uint32_t nu
         outHdrConversionType = mModePolicy->getPreferredHdrConversionType();
     }
 
-    int32_t ret = -1;
     if (mModePolicy) {
         std::unique_lock<std::mutex> stateLock(mStateLock);
         mModeMgr->resetTags(false);
@@ -2271,18 +2295,25 @@ int32_t Hwc2Display::adjustVsyncMode() {
 }
 
 void Hwc2Display::dumpPresentLayers(String8 & dumpstr) {
-    dumpstr.append("-----------------------------------------------------------"
+    dumpstr.append("------------------------------------------------------------"
         "-------------------------------------------\n");
     dumpstr.append("|  id  |  z  |    type    |blend| alpha  |t|"
-        "  AFBC  |    Source Crop    |    Display Frame  |tunnelId|\n");
+        "AFBC/AFRC|    Source Crop    |    Display Frame  |tunnelId|\n");
     for (auto it = mPresentLayers.begin(); it != mPresentLayers.end(); it++) {
         Hwc2Layer *layer = (Hwc2Layer*)(it->get());
         drm_rect_t sourceCrop = layer->getSourceCrop();
         drm_rect_t displayFrame = layer->getDisplayFrame();
 
-        dumpstr.append("+------+-----+------------+-----+--------+-+--------+"
+        int compress = 0;
+        if (layer->isSidebandBuffer() == false) {
+            int afrc = am_gralloc_get_vpu_afrc_mask(layer->mBufferHandle);
+            int afbc = am_gralloc_get_vpu_afbc_mask(layer->mBufferHandle);
+            compress = afrc ? afrc : afbc;
+        }
+
+        dumpstr.append("+------+-----+------------+-----+--------+-+---------+"
             "-------------------+-------------------+--------+\n");
-        dumpstr.appendFormat("|%6" PRIu64 "|%5d|%12s|%5d|%8f|%1d|%8x|%4d %4d %4d %4d"
+        dumpstr.appendFormat("|%6" PRIu64 "|%5d|%12s|%5d|%8f|%1d|%9x|%4d %4d %4d %4d"
             "|%4d %4d %4d %4d|%8d|\n",
             layer->getUniqueId(),
             layer->mZorder,
@@ -2290,7 +2321,7 @@ void Hwc2Display::dumpPresentLayers(String8 & dumpstr) {
             layer->mBlendMode,
             layer->mPlaneAlpha,
             layer->mTransform,
-            layer->isSidebandBuffer() ? 0 : am_gralloc_get_vpu_afbc_mask(layer->mBufferHandle),
+            compress,
             sourceCrop.left,
             sourceCrop.top,
             sourceCrop.right,
@@ -2299,11 +2330,10 @@ void Hwc2Display::dumpPresentLayers(String8 & dumpstr) {
             displayFrame.top,
             displayFrame.right,
             displayFrame.bottom,
-            layer->getVideoTunnelId()
-            );
+            layer->getVideoTunnelId());
     }
     dumpstr.append("----------------------------------------------------------"
-        "--------------------------------------------\n");
+        "---------------------------------------------\n");
 }
 
 void Hwc2Display::dumpHwDisplayPlane(String8 &dumpstr) {
@@ -2311,7 +2341,7 @@ void Hwc2Display::dumpHwDisplayPlane(String8 &dumpstr) {
     dumpstr.append("------------------------------------------------------------"
             "-----------------------------------------------------------------\n");
     dumpstr.append("|  ID   |Zorder| type |     source crop     |      dis Frame"
-            "      | fd | fm | b_st | p_st | blend | alpha |  op  | afbc fm  |\n");
+            "      | fd | fm | b_st | p_st | blend | alpha |  op  | modifier |\n");
     dumpstr.append("+-------+------+------+---------------------+-----------------"
             "----+----+----+------+------+-------+-------+------+----------+\n");
 
@@ -2564,9 +2594,14 @@ int32_t Hwc2Display::getBootConfig(int32_t & config) {
                 != HWC2_ERROR_NONE)
             return HWC2_ERROR_BAD_CONFIG;
 
+        float vsync_scale = 1.0;
+        if (HwcConfig::getVsyncScaleFactor() > 0.0) {
+            vsync_scale = HwcConfig::getVsyncScaleFactor();
+        }
+
         if (mode.pixelW == width && mode.pixelH == height && mode.groupId == groupId) {
             /* compare refresh rate */
-            if (vsyncPeriod == static_cast<int32_t> (1e9/mode.refreshRate)) {
+            if (vsyncPeriod == static_cast<int32_t> (vsync_scale * 1e9 / mode.refreshRate)) {
                 config = *it;
                 return HWC2_ERROR_NONE;
             }
@@ -2577,7 +2612,7 @@ int32_t Hwc2Display::getBootConfig(int32_t & config) {
 }
 
 int32_t Hwc2Display::getFrameRateConfigId(int32_t &config, const float frameRate) {
-    if (frameRate < 0 || frameRate > 120)
+    if (frameRate < 0 || frameRate > 288)
         return HWC2_ERROR_BAD_PARAMETER;
 
     // recovery find the default mode
@@ -2629,6 +2664,12 @@ int32_t Hwc2Display::getFrameRateConfigId(int32_t &config, const float frameRate
 // value: 0 means to recovery to default boot Config
 int32_t Hwc2Display::setFrameRate(float value) {
     int32_t config;
+    float vsync_scale = 1.0;
+    if (HwcConfig::getVsyncScaleFactor() > 0.0) {
+        vsync_scale = HwcConfig::getVsyncScaleFactor();
+        value /= vsync_scale;
+    }
+
     int32_t ret = getFrameRateConfigId(config, value);
     if (ret != HWC2_ERROR_NONE) {
         MESON_LOGD("%s could not find config of frameRate :%f", __func__, value);

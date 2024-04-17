@@ -19,6 +19,7 @@
 
 #define UBOOTENV_HDMIMODE               "ubootenv.var.hdmimode"
 #define UBOOTENV_OUTPUTMODE             "ubootenv.var.outputmode"
+#define DEFAULT_REFRESH_RATE (60.0f)
 
 enum {
     CALL_FROM_SF = 0,

@@ -124,19 +124,55 @@ meson_hwc_postprocessor_defaults {
     },
 }
 
+soong_config_module_type {
+    name: "meson_hwc_wb_ge2d_defaults",
+    module_type: "cc_defaults",
+    config_namespace: "meson_hwc",
+
+    bool_variables: [
+        "non_low_ram",
+    ],
+
+    properties: [
+        "srcs",
+        "export_include_dirs",
+    ],
+}
+
+meson_hwc_wb_ge2d_defaults {
+    name: "wb_ge2d_postprocessor_defaults",
+    vendor: true,
+
+    soong_config_variables: {
+        non_low_ram: {
+            srcs: [
+                "fbprocessor/CompositionProcessor.cpp",
+                "common/WBGLHelper.cpp",
+                "common/Ge2dHelper.cpp",
+                "fbprocessor/CopyProcessor.cpp",
+            ],
+
+            export_include_dirs: [
+                "common",
+            ]
+        },
+    },
+}
+
 cc_library_static {
     name: "hwc.postprocessor_static",
-    defaults: ["hwcomposer_cc_defaults", "hwcomposer_postprocessor_defaults"],
+    defaults: [
+        "hwcomposer_cc_defaults",
+        "hwcomposer_postprocessor_defaults",
+        "wb_ge2d_postprocessor_defaults"
+    ],
+
     vendor: true,
 
     srcs: [
         "VdinPostProcessor.cpp",
-        "common/Ge2dHelper.cpp",
         "fbprocessor/FbProcessor.cpp",
         "fbprocessor/DummyProcessor.cpp",
-        "fbprocessor/CopyProcessor.cpp",
-        "fbprocessor/CompositionProcessor.cpp",
-        "common/WBGLHelper.cpp",
     ],
 
     static_libs: [

@@ -18,6 +18,7 @@
 #include "ConnectorHdmi.h"
 #include <sstream>
 #include <string>
+#include <stdlib.h>
 
 #include "Dv.h"
 
@@ -346,7 +347,7 @@ int32_t getLineValue(const char *lineStr, const char *magicStr) {
         len = start - pos;
         strncpy(value, pos, len);
         value[len] = '\0';
-        return atoi(value);
+        return strtol(value, NULL, 10);
     }
 
     return 0;

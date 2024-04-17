@@ -18,7 +18,6 @@
 #include "RealModeMgr.h"
 
 #define DEFAULT_DPI (159)
-#define DEFAULT_REFRESH_RATE (60.0f)
 #define CVBS_MODE_W (1280)
 #define CVBS_MODE_H (720)
 
@@ -57,6 +56,8 @@ static const char* DISPLAY_MODE_LIST[] = {
     "3840x1080p100hz", // MODE_4K1K100HZ
     "3840x1080p119hz", // MODE_4K1K119HZ
     "3840x1080p120hz", // MODE_4K1K120HZ
+    "3840x1080p200hz", // MODE_4K1K200HZ
+    "3840x1080p239hz", // MODE_4K1K239HZ
     "3840x1080p240hz", // MODE_4K1K240HZ
     "3840x1080p288hz", // MODE_4K1K288HZ
     "2160p24hz",    // MODE_4K2K24HZ
@@ -177,10 +178,15 @@ void RealModeMgr::mapToFakeSizeMode(drm_mode_info_t & mode, drm_mode_info_t & cu
     if (mConnector->getType() == DRM_MODE_CONNECTOR_TV) {
         fakePixelW = CVBS_MODE_W;
         fakePixelH = CVBS_MODE_H;
-    // if mode is DLG mode (4k1k), need map it to 4k mode
+    // if mode is DLG mode (4k1k), <= 120hz map to 4k mode, >120hz map to  1080p
     } else if (mode.pixelW == FB_SIZE_4K_W && mode.pixelH == FB_SIZE_1080P_H) {
-        fakePixelW = FB_SIZE_4K_W;
-        fakePixelH = FB_SIZE_4K_H;
+        if (mode.refreshRate < 200) {
+            fakePixelW = FB_SIZE_4K_W;
+            fakePixelH = FB_SIZE_4K_H;
+        } else {
+            fakePixelW = FB_SIZE_1080P_W;
+            fakePixelH = FB_SIZE_1080P_H;
+        }
     // other map to FB size
     } else {
         HwcConfig::getFramebufferSize(0, fakePixelW, fakePixelH);
@@ -384,7 +390,11 @@ int32_t  RealModeMgr::getDisplayAttribute(
                 if (HwcConfig::isHeadlessMode()) {
                     *outValue = 1e9 / HwcConfig::headlessRefreshRate();
                 } else {
-                    *outValue = 1e9 / curMode.refreshRate;
+                    float vsync_scale = 1.0;
+                    if (HwcConfig::getVsyncScaleFactor() > 0.0) {
+                        vsync_scale = HwcConfig::getVsyncScaleFactor();
+                    }
+                    *outValue = vsync_scale * 1e9 / curMode.refreshRate;
                 }
                 break;
             case HWC2_ATTRIBUTE_DPI_X:
@@ -521,7 +531,7 @@ void RealModeMgr::dynamicMapMode(std::string mode) {
                     itmode.pixelW == iterConnector.second.pixelW &&
                     itmode.pixelH == iterConnector.second.pixelH &&
                     connectorModeName.find(dst) != -1 ) {
-                strcpy(iterMode->second.name, iterConnector.second.name);
+                strlcpy(iterMode->second.name, iterConnector.second.name, sizeof(iterMode->second.name));
                 iterMode->second.groupId = iterConnector.second.groupId;
                 MESON_LOGD("mode %s:%d map to %s:%d", itmode.name, itmode.groupId,
                         iterMode->second.name, iterMode->second.groupId);
@@ -681,11 +691,11 @@ int32_t RealModeMgr::setModeLocked(drm_mode_info_t & mode) {
 void RealModeMgr::dump(String8 & dumpstr) {
     dumpstr.appendFormat("RealModeMgr:(%s)\n", mLatestRealMode.name);
     dumpstr.append("-----------------------------------------------------------"
-        "---------------------------------------------------\n");
+        "--------------------------------------------------\n");
     dumpstr.append("|  CONFIG   |   VSYNC_PERIOD   |   WIDTH   |   HEIGHT   |"
-        "   DPI_X   |   DPI_Y   |      NAME      |  GROUP_ID |\n");
+        "   DPI_X   |   DPI_Y   |      NAME      | GROUP_ID |\n");
     dumpstr.append("+-----------+------------------+-----------+------------+"
-        "-----------+-----------+----------------+-----------+\n");
+        "-----------+-----------+----------------+----------+\n");
 
     std::map<uint32_t, drm_mode_info_t>::iterator it =
         mModes.begin();
@@ -694,7 +704,7 @@ void RealModeMgr::dump(String8 & dumpstr) {
         int mode = it->first;
         drm_mode_info_t config = it->second;
         dumpstr.appendFormat("%s %2d     |      %.3f      |   %5d   |   %5d    |"
-            "    %3d    |    %3d    | %14s |    %3d    |\n",
+            "   %5d   |   %5d   | %14s |    %2d    |\n",
             (mode == (int)mActiveConfigId) ? "*   " : "    ",
             mode,
             config.refreshRate,
@@ -706,5 +716,5 @@ void RealModeMgr::dump(String8 & dumpstr) {
             config.groupId);
     }
     dumpstr.append("-----------------------------------------------------------"
-        "---------------------------------------------------\n");
+        "--------------------------------------------------\n");
 }

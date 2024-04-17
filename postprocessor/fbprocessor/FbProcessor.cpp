@@ -10,7 +10,7 @@
 #include <MesonLog.h>
 #include <FbProcessor.h>
 #include "DummyProcessor.h"
-#include "CopyProcessor.h"
+
 #ifdef ENABLE_VIDEO_AISR
 #include "NnProcessor.h"
 #endif
@@ -27,7 +27,10 @@
 #include "DiProcessor.h"
 #endif
 
+#ifdef NON_LOW_RAM
 #include "CompositionProcessor.h"
+#include "CopyProcessor.h"
+#endif
 
 extern int32_t createKeystoneCorrection(
     std::shared_ptr<FbProcessor> & processor);
@@ -40,9 +43,11 @@ int32_t createFbProcessor(
         case FB_DUMMY_PROCESSOR:
             processor = std::make_shared<DummyProcessor>();
             break;
+#ifdef NON_LOW_RAM
         case FB_COPY_PROCESSOR:
             processor = std::make_shared<CopyProcessor>();
             break;
+#endif
 #ifdef HWC_ENABLE_KEYSTONE_CORRECTION
         case FB_KEYSTONE_PROCESSOR:
             ret = createKeystoneCorrection(processor);
@@ -69,9 +74,11 @@ int32_t createFbProcessor(
             processor = std::make_shared<AiColorProcessor>();
             break;
 #endif
+#ifdef NON_LOW_RAM
         case FB_RENDER_PROCESSOR:
             processor = std::make_shared<CompositionProcessor>();
             break;
+#endif
 #ifdef ENABLE_VIDEO_DI
         case FB_DI_PROCESSOR:
             processor = std::make_shared<DiProcessor>();

@@ -56,6 +56,10 @@ ifndef HWC_ENFORCES_MAX_REFRESH_RATE
 HWC_ENFORCES_MAX_REFRESH_RATE := 0
 endif
 
+ifndef HWC_VSYNC_PERIOD_SCALE_FACTOR
+HWC_VSYNC_PERIOD_SCALE_FACTOR := 0
+endif
+
 ifndef HWC_ENABLE_FULL_ACTIVE_MODE
 HWC_ENABLE_FULL_ACTIVE_MODE := false
 endif
@@ -158,6 +162,13 @@ ifndef HWC_LEGACY_VIDEO
 HWC_LEGACY_VIDEO := false
 endif
 
+ifndef CONFIG_DEVICE_LOW_RAM
+HWC_NON_LOW_RAM := true
+else
+HWC_NON_LOW_RAM := false
+endif
+
+
 # Setup configuration in Soong namespace
 #
 $(call soong_config_set,meson_hwc,hwc_release,$(HWC_RELEASE))
@@ -165,6 +176,7 @@ $(call soong_config_set,meson_hwc,display_num,$(HWC_DISPLAY_NUM))
 $(call soong_config_set,meson_hwc,primary_fb_width,$(HWC_PRIMARY_FRAMEBUFFER_WIDTH))
 $(call soong_config_set,meson_hwc,primary_fb_height,$(HWC_PRIMARY_FRAMEBUFFER_HEIGHT))
 $(call soong_config_set,meson_hwc,enforces_max_refresh_rate,$(HWC_ENFORCES_MAX_REFRESH_RATE))
+$(call soong_config_set,meson_hwc,vsync_period_scale_factor,$(HWC_VSYNC_PERIOD_SCALE_FACTOR))
 $(call soong_config_set,meson_hwc,extend_fb_width,$(HWC_EXTEND_FRAMEBUFFER_WIDTH))
 $(call soong_config_set,meson_hwc,extend_fb_height,$(HWC_EXTEND_FRAMEBUFFER_HEIGHT))
 $(call soong_config_set,meson_hwc,primary_connector_type,$(HWC_PRIMARY_CONNECTOR_TYPE))
@@ -205,5 +217,6 @@ $(call soong_config_set,meson_hwc,enable_video_mosaic,$(HWC_VIDEO_MOSAIC))
 $(call soong_config_set,meson_hwc,enable_ai_process_120,$(HWC_VIDEO_AIPROCESS_120))
 $(call soong_config_set,meson_hwc,enable_hal_virtualdisplay,$(HWC_ENABLE_HAL_VIRTUALDISPLAY))
 $(call soong_config_set,meson_hwc,enable_legacy_video,$(HWC_LEGACY_VIDEO))
+$(call soong_config_set,meson_hwc,non_low_ram,$(HWC_NON_LOW_RAM))
 
 #$(warning "the value of aidl: $(HWC_ENABLE_AIDL)")

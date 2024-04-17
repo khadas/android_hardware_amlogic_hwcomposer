@@ -17,6 +17,7 @@
 #include <cutils/properties.h>
 #include <sys/mman.h>
 #include <sched.h>
+#include <stdlib.h>
 
 #define FENCE_TIMEOUT_MS 1000
 
@@ -79,7 +80,7 @@ int DiProcessor::PropGetInt(const char* str, int def) {
     char value[PROPERTY_VALUE_MAX];
     int ret = def;
     if (property_get(str, value, NULL) > 0) {
-        ret = atoi(value);
+        ret = strtol(value, NULL, 10);
         return ret;
     }
     //ALOGD("%s is not set used def=%d\n", str, ret);

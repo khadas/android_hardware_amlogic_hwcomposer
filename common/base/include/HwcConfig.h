@@ -71,6 +71,7 @@ public:
     static bool seamlessSwitchEnabled();
     static bool oddCropWidthNeedClientComposite();
     static float getMaxRefreshRate();
+    static float getVsyncScaleFactor();
     static bool AiSrProcessorEnabled();
     static bool AiPqProcessorEnabled();
     static bool AiColorProcessorEnabled();
