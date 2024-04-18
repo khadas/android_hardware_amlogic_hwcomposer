@@ -606,7 +606,7 @@ int32_t NnProcessor::teardown() {
 
     mBufferAllocDone = false;
 
-    if (mIsModelInterfaceExist)
+    if (mIsModelInterfaceExist && mModelLoaded)
         nn_flushBuffer(mNn_qcontext[mNn_mode_index], NULL, NULL);
 
     freeDmaBuffers();
