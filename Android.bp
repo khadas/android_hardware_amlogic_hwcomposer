@@ -86,6 +86,7 @@ soong_config_module_type {
         "enable_video_di",
         "enable_hal_virtualdisplay",
         "enable_legacy_video",
+        "enable_mirrordisplay_optimize",
     ],
 
     value_variables: [
@@ -141,6 +142,10 @@ soong_config_bool_variable {
 
 soong_config_bool_variable {
     name: "enable_legacy_video",
+}
+
+soong_config_bool_variable {
+    name: "enable_mirrordisplay_optimize",
 }
 
 soong_config_module_type {
@@ -270,6 +275,10 @@ meson_hwc_cc_defaults {
 
         enable_legacy_video: {
             cflags: ["-DENABLE_LEGACY_VIDEO"],
+        },
+
+        enable_mirrordisplay_optimize: {
+            cflags: ["-DENABLE_MIRRORDISPLAY_OPTIMIZE"],
         },
     },
 

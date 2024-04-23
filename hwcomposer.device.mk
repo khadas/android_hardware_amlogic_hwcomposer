@@ -164,6 +164,9 @@ else
 HWC_NON_LOW_RAM := false
 endif
 
+ifndef HWC_ENABLE_MIRRORDISPLAY_OPTIMIZE
+HWC_ENABLE_MIRRORDISPLAY_OPTIMIZE := false
+endif
 
 # Setup configuration in Soong namespace
 #
@@ -213,5 +216,6 @@ $(call soong_config_set,meson_hwc,enable_ai_process_120,$(HWC_VIDEO_AIPROCESS_12
 $(call soong_config_set,meson_hwc,enable_hal_virtualdisplay,$(HWC_ENABLE_HAL_VIRTUALDISPLAY))
 $(call soong_config_set,meson_hwc,enable_legacy_video,$(HWC_LEGACY_VIDEO))
 $(call soong_config_set,meson_hwc,non_low_ram,$(HWC_NON_LOW_RAM))
+$(call soong_config_set,meson_hwc,enable_mirrordisplay_optimize,$(HWC_ENABLE_MIRRORDISPLAY_OPTIMIZE))
 
 #$(warning "the value of aidl: $(HWC_ENABLE_AIDL)")

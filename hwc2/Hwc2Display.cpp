@@ -1018,6 +1018,17 @@ hwc2_error_t Hwc2Display::collectLayersForPresent() {
 hwc2_error_t Hwc2Display::collectPlanesForPresent() {
     mPresentPlanes = mPlanes;
 
+#ifdef ENABLE_MIRRORDISPLAY_OPTIMIZE
+    //when MirrorDisplayMode enable, remove the osd plane for external display
+    if (mMirrorDisplayMode && mDisplayId == DISPLAY_TYPE_EXTERNAL) {
+        for (auto it = mPresentPlanes.begin(); it != mPresentPlanes.end(); ++ it) {
+            if ((*it)->getType() == OSD_PLANE && (*it)->getCapabilities() & PLANE_PRIMARY) {
+                mPresentPlanes.erase(it);
+            }
+        }
+    }
+#endif
+
     if (DebugHelper::getInstance().debugPlanes()) {
         std::map<int, int> planeFlags;
         DebugHelper::getInstance().getPlaneDebugFlags(planeFlags);
@@ -1290,6 +1301,19 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
     if (mIsDisablePostProcessor) {
         compositionFlags |= COMPOSE_DISABLE_POSTPROCESSOR;
     }
+
+#ifdef ENABLE_MIRRORDISPLAY_OPTIMIZE
+    //With mMirrorDisplayMode enable will set all osd layer to dummy for external display
+    if (mMirrorDisplayMode && mDisplayId == DISPLAY_TYPE_EXTERNAL) {
+        Hwc2Layer *layer;
+        for (auto it = mPresentLayers.begin() ; it != mPresentLayers.end(); it++) {
+            layer = (Hwc2Layer*)(it->get());
+            if (layer->mFbType <= DRM_FB_CURSOR) {
+                layer->mCompositionType = MESON_COMPOSITION_DUMMY;
+            }
+        }
+    }
+#endif
 
     /*check power mode*/
     if (mPowerMode->needBlankScreen(mPresentLayers.size())) {
@@ -1732,6 +1756,11 @@ hwc2_error_t Hwc2Display::setClientTarget(buffer_handle_t target,
     mClientTarget->mPlaneAlpha = 1.0f;
     mClientTarget->mTransform = 0;
     mClientTarget->mDataspace = dataspace;
+
+#ifdef ENABLE_MIRRORDISPLAY_OPTIMIZE
+    //if MirrorDisplayMode enable, no need to set framebuffer to client composer
+    if (mMirrorDisplayMode && mDisplayId == DISPLAY_TYPE_EXTERNAL) return HWC2_ERROR_NONE;
+#endif
 
     /*set framebuffer to client composer.*/
     std::shared_ptr<IComposer> clientComposer =
@@ -2926,3 +2955,80 @@ void Hwc2Display::setReverseMode(int type) {
     return;
 }
 
+#ifdef ENABLE_MIRRORDISPLAY_OPTIMIZE
+#define OSD_PLANE_FIXED_ZORDER 128
+/*mirror display optimize*/
+
+std::shared_ptr<DrmFramebuffer> Hwc2Display::getMirrorClientTarget() {
+    return mClientTarget;
+}
+
+hwc2_error_t Hwc2Display::setMirrorClientTarget(std::shared_ptr<DrmFramebuffer> mirrorClientTarget) {
+    mClientTarget = mirrorClientTarget;
+    return HWC2_ERROR_NONE;
+}
+
+void Hwc2Display::setMirrorDisplayMode(bool mode) {
+    mMirrorDisplayMode = mode;
+    return;
+}
+
+int32_t Hwc2Display::commitMirrorDisplay(bool needBlank) {
+    ATRACE_CALL();
+    if (mDisplayId == DISPLAY_TYPE_INTERNAL) {
+        MESON_LOGE("No need %s: displayId: %d", __func__, mDisplayId);
+        return -1;
+    }
+    //get the osd plane for external display
+    std::shared_ptr<HwDisplayPlane> primaryPlane;
+    for (auto it = mPlanes.begin(); it != mPlanes.end(); ++ it) {
+        if ((*it)->getType() == OSD_PLANE && (*it)->getCapabilities() & PLANE_PRIMARY) {
+            primaryPlane = *it;
+        }
+    }
+
+    uint32_t z  = OSD_PLANE_FIXED_ZORDER;
+    uint32_t compositionFlags = 0;
+    if (HwcConfig::secureLayerProcessEnabled()) {
+        if (!mConnector->isSecure()) {
+            compositionFlags |= COMPOSE_HIDE_SECURE_FB;
+        }
+    }
+
+    drm_plane_blank_t blankFlag = (compositionFlags && mClientTarget->mSecure) ?  BLANK_FOR_SECURE_CONTENT : UNBLANK;
+
+    /*start new pageflip, and prepare.*/
+    if (mCrtc->prePageFlip() != 0 ) {
+        return HWC2_ERROR_NO_RESOURCES;
+    }
+
+    if (!needBlank) {
+        primaryPlane->setPlane(mClientTarget, z, blankFlag);
+    } else {
+        primaryPlane->setPlane(NULL, HWC_PLANE_FAKE_ZORDER, BLANK_FOR_NO_CONTENT);
+    }
+
+    if (mPresentFence >= 0)
+        close(mPresentFence);
+    mPresentFence = -1;
+
+    /* Page flip */
+    if (mCrtc->pageFlip(mPresentFence) < 0) {
+        return HWC2_ERROR_UNSUPPORTED;
+    }
+
+    return ::dup(mPresentFence);
+}
+
+bool Hwc2Display::checkLayerList() {
+    bool hasOsd = false;
+    Hwc2Layer *layer;
+    for (auto it = mPresentLayers.begin() ; it != mPresentLayers.end(); it++) {
+        layer = (Hwc2Layer*)(it->get());
+        if (layer->mFbType <= DRM_FB_CURSOR) {
+            hasOsd = true;
+        }
+    }
+    return hasOsd ? false : true;
+}
+#endif

@@ -182,6 +182,16 @@ public:
     /* dummy connector switch */
     bool needSwitchConnector();
 
+#ifdef ENABLE_MIRRORDISPLAY_OPTIMIZE
+    /*mirror display optimize*/
+    hwc2_error_t setMirrorClientTarget(std::shared_ptr<DrmFramebuffer> mirrorClientTarget);
+    std::shared_ptr<DrmFramebuffer> getMirrorClientTarget();
+    void setMirrorDisplayMode(bool mode);
+    int32_t commitMirrorDisplay(bool needBlank);
+    bool checkLayerList();
+    bool mMirrorDisplayMode = false;
+#endif
+
 /* video tunnel api*/
 public:
     virtual void updateVtBuffers();

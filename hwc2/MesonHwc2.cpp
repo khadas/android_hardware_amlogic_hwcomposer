@@ -27,6 +27,7 @@
 #include <misc.h>
 #include <systemcontrol.h>
 #include <am_gralloc_ext.h>
+#include <cutils/properties.h>
 
 #include "MesonHwc2Defs.h"
 #include "MesonHwc2.h"
@@ -490,8 +491,23 @@ int32_t MesonHwc2::setClientTarget(hwc2_display_t display,
     buffer_handle_t target, int32_t acquireFence,
     int32_t dataspace, hwc_region_t damage) {
     GET_HWC_DISPLAY(display);
-    return hwcDisplay->setClientTarget(target, acquireFence,
+
+#ifdef ENABLE_MIRRORDISPLAY_OPTIMIZE
+    hwc2_error_t status = hwcDisplay->setClientTarget(target, acquireFence,
         dataspace, damage);
+
+    //when mirror display is enable, get internal data to external
+    if (mMirrorDisplayMode) {
+        std::shared_ptr<DrmFramebuffer> mirrorClientTarget = hwcDisplay->getMirrorClientTarget();
+        GET_HWC_DISPLAY(DISPLAY_TYPE_EXTERNAL);
+        hwcDisplay->setMirrorClientTarget(mirrorClientTarget);
+    }
+
+    return status;
+#else
+    return hwcDisplay->setClientTarget(target, acquireFence,
+       dataspace, damage);
+#endif
 }
 
 int32_t MesonHwc2::getReleaseFences(hwc2_display_t display,
@@ -506,8 +522,29 @@ int32_t MesonHwc2::validateDisplay(hwc2_display_t display,
     GET_HWC_DISPLAY(display);
     setCalibrateInfo(display);
 
+#ifdef ENABLE_MIRRORDISPLAY_OPTIMIZE
+    //TODO hardcode to identify the mirror display
+    if (hwcDisplay->getDisplayId() == DISPLAY_TYPE_INTERNAL) {
+        if (property_get_bool("vendor.hwc.mirror_display", false)) {
+            mMirrorDisplayMode = true;
+        } else {
+            mMirrorDisplayMode = false;
+        }
+    }
+
+    //internal or external all need get MirrorDisplayMode
+    hwcDisplay->setMirrorDisplayMode(mMirrorDisplayMode);
+    hwc2_error_t status = hwcDisplay->validateDisplay(outNumTypes,
+        outNumRequests);
+
+    if (mMirrorDisplayMode && hwcDisplay->getDisplayId() == DISPLAY_TYPE_INTERNAL) {
+        mNeedBlank = hwcDisplay->checkLayerList();
+    }
+    return status;
+#else
     return hwcDisplay->validateDisplay(outNumTypes,
         outNumRequests);
+#endif
 }
 
 int32_t MesonHwc2::presentDisplay(hwc2_display_t display,
@@ -519,7 +556,23 @@ int32_t MesonHwc2::presentDisplay(hwc2_display_t display,
     if (request != 0) {
         hwcDisplay->outsideChanged();
     }
+
+#ifdef ENABLE_MIRRORDISPLAY_OPTIMIZE
+    hwc2_error_t status = hwcDisplay->presentDisplay(outPresentFence);
+    //represent to EXTERNAL when mMirrorDisplayMode enable
+    int32_t outExternalPresentFence = -1;
+    if (mMirrorDisplayMode && hwcDisplay->getDisplayId() == DISPLAY_TYPE_INTERNAL && status != HWC2_ERROR_NOT_VALIDATED) {
+        GET_HWC_DISPLAY(DISPLAY_TYPE_EXTERNAL);
+        hwcDisplay->setMirrorDisplayMode(mMirrorDisplayMode);
+        outExternalPresentFence = hwcDisplay->commitMirrorDisplay(mNeedBlank);
+        std::shared_ptr<DrmFence> mMirrorReleaseFence = DrmFence::merge("Mirror Fence",std::make_shared<DrmFence>(outExternalPresentFence), std::make_shared<DrmFence>(*outPresentFence));
+        *outPresentFence = (mMirrorReleaseFence->getFd() >= 0) ? ::dup(mMirrorReleaseFence->getFd()) : -1;
+    }
+
+    return status;
+#else
     return hwcDisplay->presentDisplay(outPresentFence);
+#endif
 }
 
 /*************Layer api below*************/

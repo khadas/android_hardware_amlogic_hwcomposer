@@ -198,6 +198,12 @@ public:
     int mCallingPid = -1;
     bool mWhiteBoardMode = false;
 
+#ifdef ENABLE_MIRRORDISPLAY_OPTIMIZE
+    /*mirror display optimize*/
+    bool mMirrorDisplayMode = false;
+    bool mNeedBlank = false;
+#endif
+
 protected:
     int32_t initialize();
     bool isDisplayValid(hwc2_display_t display);
