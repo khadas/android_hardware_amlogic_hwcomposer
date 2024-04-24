@@ -89,10 +89,29 @@ public:
         DISPLAY_TYPE_MAX,
     } BackendType;
     typedef enum {
+        CONN_TYPE_UNKNOWN = -1,
         CONN_TYPE_DUMMY = 0,
         CONN_TYPE_HDMI = 1,
         CONN_TYPE_PANEL = 2,
         CONN_TYPE_CVBS = 3,
+        CONN_TYPE_HDMIA =  4,
+        CONN_TYPE_TV =  5,
+        CONN_TYPE_LVDS =  6,
+        CONN_TYPE_LVDS_A =  7,
+        CONN_TYPE_LVDS_B =  8,
+        CONN_TYPE_LVDS_C =  9,
+        CONN_TYPE_VBYONE_A =  10,
+        CONN_TYPE_VBYONE_B =  11,
+        CONN_TYPE_MIPI_A =  12,
+        CONN_TYPE_MIPI_B =  13,
+        CONN_TYPE_EDP_A =  14,
+        CONN_TYPE_EDP_B =  15,
+        CONN_TYPE_HDMIA_A = 16,
+        CONN_TYPE_HDMIA_B = 17,
+        CONN_TYPE_HDMIA_C = 18,
+        CONN_TYPE_HDMIB_A = 19,
+        CONN_TYPE_HDMIB_B = 20,
+        CONN_TYPE_HDMIB_C = 21,
     } ConnectorType;
     virtual AdapterType type() = 0;
     virtual BackendType displayType() = 0;
@@ -105,6 +124,20 @@ public:
         NOTIMPLEMENTED;
         return false;
     };
+
+    virtual bool getDisplayIds(vector<int>& displayIdList) {
+        UNUSED(displayIdList);
+        NOTIMPLEMENTED;
+        return false;
+    };
+
+    virtual bool getConnectorType (uint32_t displayId, ConnectorType & outDisplayType) {
+        UNUSED(displayId);
+        UNUSED(outDisplayType);
+        NOTIMPLEMENTED;
+        return false;
+    };
+
     virtual bool getDisplayMode(string& mode, ConnectorType displayType) {
         UNUSED(mode);
         UNUSED(displayType);

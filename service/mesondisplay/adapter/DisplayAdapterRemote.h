@@ -53,6 +53,9 @@ public:
     bool setKeystoneCorrection(const string& params) override;
     bool setReverseMode(int type) override;
 
+    bool getDisplayIds(vector<int>& displayIdList) override;
+    bool getConnectorType (uint32_t displayId, ConnectorType & outDisplayType) override;
+
     static std::unique_ptr<DisplayAdapter> create();
     DisplayAdapterRemote();
     ~DisplayAdapterRemote() = default;

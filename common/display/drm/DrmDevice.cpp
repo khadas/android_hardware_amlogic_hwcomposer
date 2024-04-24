@@ -88,7 +88,7 @@ int32_t DrmDevice::getConnector(
         std::shared_ptr<HwDisplayConnector> & connector,
         drm_connector_type_t type) {
     for (const auto & it : mConnectors) {
-        if (it.second->getType() == type) {
+        if (it.second->getType(type >= DRM_MODE_CONNECTOR_MESON_START) == type) {
             connector = it.second;
             return 0;
         }

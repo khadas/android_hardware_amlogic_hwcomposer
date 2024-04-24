@@ -16,6 +16,7 @@
 #include "mode_ubootenv.h"
 #include <stdlib.h>
 
+#define UBOOTENV_PRIMARY_CONNECTOR0_TYPE "ubootenv.var.connector0_type"
 #define UBOOTENV_PRIMARY_CONNECTOR_TYPE "ubootenv.var.connector_type"
 #define UBOOTENV_EXTEND_CONNECTOR_TYPE  "ubootenv.var.connector1_type"
 #define UBOOTENV_EXTEND2_CONNECTOR_TYPE "ubootenv.var.connector2_type"
@@ -82,9 +83,12 @@ uint32_t HwcConfig::getConnectorType(int disp) {
 
     if (disp == 0) {
         if (isDrmBackend) {
-            connectorstr = meson_mode_get_ubootenv(UBOOTENV_PRIMARY_CONNECTOR_TYPE);
+            connectorstr = ([]() -> const char* {
+                const char* str = meson_mode_get_ubootenv(UBOOTENV_PRIMARY_CONNECTOR_TYPE);
+                return str ? str : meson_mode_get_ubootenv(UBOOTENV_PRIMARY_CONNECTOR0_TYPE);
+            })();
             MESON_LOGD("%s, get %s from uboot env, return %s",
-                    __func__, UBOOTENV_PRIMARY_CONNECTOR_TYPE, connectorstr);
+                    __func__, UBOOTENV_PRIMARY_CONNECTOR0_TYPE, connectorstr);
         }
 
         if (connectorstr == NULL) {
@@ -101,7 +105,7 @@ uint32_t HwcConfig::getConnectorType(int disp) {
         if (isDrmBackend) {
             connectorstr = meson_mode_get_ubootenv(UBOOTENV_EXTEND_CONNECTOR_TYPE);
             MESON_LOGD("%s, get %s from uboot env, return %s",
-                    __func__, UBOOTENV_PRIMARY_CONNECTOR_TYPE, connectorstr);
+                    __func__, UBOOTENV_EXTEND_CONNECTOR_TYPE, connectorstr);
         }
 
         if (connectorstr == NULL) {
@@ -118,7 +122,7 @@ uint32_t HwcConfig::getConnectorType(int disp) {
         if (isDrmBackend) {
             connectorstr = meson_mode_get_ubootenv(UBOOTENV_EXTEND2_CONNECTOR_TYPE);
             MESON_LOGD("%s, get %s from uboot env, return %s",
-                    __func__, UBOOTENV_PRIMARY_CONNECTOR_TYPE, connectorstr);
+                    __func__, UBOOTENV_EXTEND2_CONNECTOR_TYPE, connectorstr);
         }
 
         if (connectorstr == NULL) {
@@ -138,7 +142,17 @@ uint32_t HwcConfig::getConnectorType(int disp) {
         } else {
             std::string con_str(connectorstr);
             std::replace(con_str.begin(), con_str.end(), '_', '-');
-            connector_type = drmStringToConnType(con_str.c_str());
+            // If the connector type is not in standard HDMI DRM type, convert it to standard
+            uint32_t extend_connector_type = drmStringToConnType(con_str.c_str());
+            if (extend_connector_type >= DRM_MODE_CONNECTOR_MESON_HDMIA_A &&
+                extend_connector_type >= DRM_MODE_CONNECTOR_MESON_HDMIA_C) {
+                connector_type = DRM_MODE_CONNECTOR_HDMIA;
+            } else if (extend_connector_type >= DRM_MODE_CONNECTOR_MESON_HDMIB_A &&
+                       extend_connector_type >= DRM_MODE_CONNECTOR_MESON_HDMIB_C) {
+                connector_type = DRM_MODE_CONNECTOR_HDMIB;
+            } else {
+                connector_type = extend_connector_type;
+            }
         }
 
         MESON_ASSERT(connector_type != DRM_MODE_CONNECTOR_INVALID_TYPE,

@@ -98,6 +98,8 @@ public:
     bool setDvMode(const string& dv_mode, ConnectorType displayType) override;
     bool setKeystoneCorrection(const string& params) override;
     bool setReverseMode(int type) override;
+    bool getDisplayIds(vector<int> &displayIdList) override;
+    bool getConnectorType(uint32_t displayId, ConnectorType &outDisplayType) override;
 
     static std::shared_ptr<DisplayAdapter> create(DisplayAdapter::BackendType type);
     DisplayAdapterLocal();

@@ -41,7 +41,7 @@ const char * ConnectorDummy::getName() {
     return "dummy_panel";
 }
 
-drm_connector_type_t ConnectorDummy::getType() {
+drm_connector_type_t ConnectorDummy::getType(bool extend_connector_type __unused) {
     return DRM_MODE_CONNECTOR_VIRTUAL;
 }
 

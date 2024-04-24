@@ -21,7 +21,7 @@
 using meson::DisplayAdapter;
 using std::unique_ptr;
 
-static const char* short_option = "lc:g:s:r:G:S:F:dDvw:bf:h:P:p:R:t:m:";
+static const char* short_option = "lic:g:s:r:G:S:F:dDvw:bf:h:P:p:R:t:m:n:";
 static const struct option long_option[] = {
     {"list-modes", no_argument, 0, 'l'},
     {"chang-mode", required_argument, 0, 'c'},
@@ -37,6 +37,8 @@ static const struct option long_option[] = {
     {"keystone-configs",required_argument,0,'k'},
     {"reverse-display",required_argument,0,'V'},
     {"get-supported-deepcolor",required_argument,0,'D'},
+    {"list-display-ids",no_argument,0,'i'},
+    {"get-connector-type",required_argument,0,'n'},
     {0, 0, 0, 0}
 };
 
@@ -70,6 +72,8 @@ static void print_usage(const char* name) {
             "       -m,--perferred-mode MODE\tchange perferred mode, MODE format like:%%dx%%d@%%d width,height,refresh\n"
             "       -k,--set-Keystone Correction \t  params is the position\n "
             "       -V,--enable kesytone reverse  \t  params is the reverse type\n "
+            "       -i,--list-display-ids   \t  show the display ids\n "
+            "       -n,--get-connector-type \t  get connector type by display id\n "
             "       -r,--raw-cmd           \tsend raw cmd\n", name);
 }
 
@@ -88,9 +92,10 @@ int main(int argc, char* argv[]) {
     DEBUG_INFO("Start recovery client");
 #endif
     DisplayAdapter::ConnectorType type = DisplayAdapter::CONN_TYPE_HDMI;
-
+    std::vector<int> displayIdList;
 
     int opt;
+
     while ((opt = getopt_long(argc, argv, short_option, long_option, NULL)) != -1) {
         switch (opt) {
             case 'l':
@@ -98,6 +103,23 @@ int main(int argc, char* argv[]) {
                     for (auto mode : displayModeList) {
                         printf("%s %u %u %u %u %f \n", mode.name.c_str(), mode.dpiX, mode.dpiY, mode.pixelW, mode.pixelH, mode.refreshRate);
                     }
+                }
+                break;
+            case 'i':
+                if (client->getDisplayIds(displayIdList)) {
+                    for (auto id : displayIdList) {
+                        printf("display id: %d \n", id);
+                    }
+                }
+                break;
+            case 'n':
+                if (optarg == NULL)
+                    break;
+                DisplayAdapter::ConnectorType result;
+                if (client->getConnectorType(std::stoi(optarg), result)) {
+                    printf("display id %d ConnectorType %d\n", std::stoi(optarg), result);
+                } else {
+                    printf("get connectorType failed\n");
                 }
                 break;
             case 'c':
@@ -282,27 +304,9 @@ int main(int argc, char* argv[]) {
                     print_usage(argv[0]);
                     break;
                 }
-                switch (strtol(optarg, NULL, 10)) {
-                    case DisplayAdapter::CONN_TYPE_DUMMY:
-                        type = DisplayAdapter::CONN_TYPE_DUMMY;
-                        printf("Connector type changed to CONN_TYPE_DUMMY: %d\n", type);
-                        break;
-                    case DisplayAdapter::CONN_TYPE_HDMI:
-                        type = DisplayAdapter::CONN_TYPE_HDMI;
-                        printf("Connector type changed to CONN_TYPE_HDMI: %d\n", type);
-                        break;
-                    case DisplayAdapter::CONN_TYPE_PANEL:
-                        type = DisplayAdapter::CONN_TYPE_PANEL;
-                        printf("Connector type changed to CONN_TYPE_PANEL: %d\n", type);
-                        break;
-                    case DisplayAdapter::CONN_TYPE_CVBS:
-                        type = DisplayAdapter::CONN_TYPE_CVBS;
-                        printf("Connector type changed to CONN_TYPE_CVBS: %d\n", type);
-                        break;
-                    default:
-                        print_usage(argv[0]);
-                        break;
-                }
+                type = static_cast<DisplayAdapter::ConnectorType>(strtol(optarg, NULL, 10));
+                // ref DisplayAdapter::ConnectorType
+                printf("Connector type changed to %d\n", type);
                 break;
             case 'm':
                 client->setPerferredMode(optarg, type);

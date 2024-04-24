@@ -380,6 +380,40 @@ bool DisplayAdapterRemote::setReverseMode(int type) {
     return true;
 }
 
+bool DisplayAdapterRemote::getDisplayIds(vector<int>& displayIdList) {
+    Json::Value cmd, ret;
+    IF_SERVER_NOT_READY_RETURN(false);
+    cmd["cmd"] = "getDisplayIds";
+    ipc->send_request_wait_reply(cmd, ret);
+    if (ret.isMember("ret") && ret["ret"].isMember("displayIdList")) {
+        Json::Value& list = ret["ret"]["displayIdList"];
+        displayIdList.clear();
+        for (unsigned int i = 0; i < list.size(); i++) {
+            displayIdList.push_back(list[i].asInt());
+        }
+        return true;
+    } else {
+        MESON_LOGE("Get Wrong DisplayIds info");
+        return false;
+    }
+}
+
+bool DisplayAdapterRemote::getConnectorType(uint32_t displayId, meson::DisplayAdapter::ConnectorType &outDisplayType) {
+    Json::Value cmd, ret;
+    IF_SERVER_NOT_READY_RETURN(false);
+    cmd["cmd"] = "getConnectorType";
+    cmd["p_displayId"] = displayId;
+    ipc->send_request_wait_reply(cmd, ret);
+    if (ret.isMember("ret") && ret["ret"].isMember("connectorType")) {
+        Json::Value& value = ret["ret"]["connectorType"];
+        outDisplayType = static_cast<ConnectorType>(value.asUInt());
+        return true;
+    } else {
+        MESON_LOGE("Get Wrong DisplayIds info");
+        return false;
+    }
+}
+
 std::unique_ptr<DisplayAdapter> DisplayAdapterRemote::create() {
     return static_cast<std::unique_ptr<DisplayAdapter>>(std::make_unique<DisplayAdapterRemote>());
 }

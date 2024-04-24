@@ -85,7 +85,7 @@ const char * ConnectorHdmi::getName() {
     return mName;
 }
 
-drm_connector_type_t ConnectorHdmi::getType() {
+drm_connector_type_t ConnectorHdmi::getType(bool extend_connector_type __unused) {
     return DRM_MODE_CONNECTOR_HDMIA;
 }
 

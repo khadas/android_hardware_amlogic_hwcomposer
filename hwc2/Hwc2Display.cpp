@@ -197,7 +197,7 @@ int32_t Hwc2Display::setDisplayResource(
     mCrtc = crtc;
     mPlanes = planes;
     mConnector = connector;
-    mConnectorType = mConnector->getType();
+    mConnectorType = mConnector->getType(true);
 
     /*update composition strategy.*/
     uint32_t strategyFlags = 0;
@@ -1171,7 +1171,7 @@ int32_t Hwc2Display::getDisplayIdentificationData(uint32_t &outPort,
         std::vector<uint8_t> &outData) {
     int32_t ret = mConnector->getIdentificationData(outData);
     if (ret == 0)
-        outPort = mConnector->getType();
+        outPort = mConnector->getType(true);
     ALOGE("getPort %d",mConnector->getType());
     return ret;
 }
