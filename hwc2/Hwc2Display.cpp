@@ -1935,13 +1935,18 @@ hwc2_error_t Hwc2Display::getDisplayCapabilities(
         else
             *outNumCapabilities = 1;
     } else {
-        if ((mConnector->isConnected() && mConnector->isTvSupportALLM()) && pipe == HWC_PIPE_DEFAULT) {
-            outCapabilities[0] = HWC2_DISPLAY_CAPABILITY_SKIP_CLIENT_COLOR_TRANSFORM;
-            outCapabilities[1] = HWC2_DISPLAY_CAPABILITY_AUTO_LOW_LATENCY_MODE;
-        } else if (!mConnector->isConnected() || pipe != HWC_PIPE_DEFAULT) {
-            outCapabilities[0] = HWC2_DISPLAY_CAPABILITY_INVALID;
+        if (mConnector->isConnected()) {
+            if (mConnector->isTvSupportALLM()) {
+                outCapabilities[0] = HWC2_DISPLAY_CAPABILITY_AUTO_LOW_LATENCY_MODE;
+                if (pipe == HWC_PIPE_DEFAULT)
+                    outCapabilities[1] = HWC2_DISPLAY_CAPABILITY_SKIP_CLIENT_COLOR_TRANSFORM;
+             } else if (pipe != HWC_PIPE_DEFAULT) {
+                outCapabilities[0] = HWC2_DISPLAY_CAPABILITY_INVALID;
+             } else {
+                outCapabilities[0] = HWC2_DISPLAY_CAPABILITY_SKIP_CLIENT_COLOR_TRANSFORM;
+             }
         } else {
-            outCapabilities[0] = HWC2_DISPLAY_CAPABILITY_SKIP_CLIENT_COLOR_TRANSFORM;
+            outCapabilities[0] = HWC2_DISPLAY_CAPABILITY_INVALID;
         }
     }
     return HWC2_ERROR_NONE;
