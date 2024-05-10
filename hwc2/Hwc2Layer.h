@@ -115,6 +115,7 @@ public:
     void adjustDisplayFrameLocked();
     void setNeedAskRefresh(bool needRefresh);
 
+    int32_t uvmDetachEnable(bool enable);
 public:
     android_dataspace_t mDataSpace;
     int32_t mHwcCompositionType;

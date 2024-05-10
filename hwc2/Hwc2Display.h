@@ -283,6 +283,8 @@ protected:
     bool isLayerHideForDebug(hwc2_layer_t id);
     void dumpHwDisplayPlane(String8 &dumpstr);
 
+    void setLayerUvmDetachEnableLocked(bool enable);
+
 protected:
     std::unordered_map<hwc2_layer_t, std::shared_ptr<Hwc2Layer>> mLayers;
     drm_hdr_capabilities_t mHdrCaps;

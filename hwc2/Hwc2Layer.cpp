@@ -420,6 +420,15 @@ void Hwc2Layer::clearUpdateFlag() {
 }
 
 /* ========================== Uvm Attach =================================== */
+int32_t Hwc2Layer::uvmDetachEnable(bool enable) {
+    std::lock_guard<std::mutex> lock(mMutex);
+    releaseUvmResourceLock();
+    if (mUvmDetach)
+        return mUvmDetach->setEnable(enable);
+
+    return 0;
+}
+
 int32_t Hwc2Layer::attachUvmBuffer(const int bufferFd) {
     if (!mUvmDetach)
         mUvmDetach = std::make_shared<UvmDetach>(mId);

@@ -343,6 +343,8 @@ int32_t Hwc2Display::blankDisplayLocked(bool blockMode) {
     ATRACE_CALL();
     MESON_LOGD("displayId:%d, blank all display planes", mDisplayId);
 
+    setLayerUvmDetachEnableLocked(false);
+
     if (!mCrtc)
         return 0;
 
@@ -691,6 +693,8 @@ void Hwc2Display::onModeChanged(int stage) {
 
     /*last call refresh*/
     mObserver->refresh();
+
+    setLayerUvmDetachEnableLocked(true);
 }
 
 /*
@@ -954,6 +958,10 @@ hwc2_error_t Hwc2Display::setPowerMode(int32_t mode) {
         blankDisplayLocked();
         refreshVtLayersLocked(true);
     }
+
+    if (mode == HWC2_POWER_MODE_ON)
+        setLayerUvmDetachEnableLocked(true);
+
     return (hwc2_error_t) ret;
 }
 
@@ -3068,3 +3076,11 @@ bool Hwc2Display::checkLayerList() {
     return hasOsd ? false : true;
 }
 #endif
+
+/* need disable UVM detach before blank video plane */
+void Hwc2Display::setLayerUvmDetachEnableLocked(bool enable) {
+    for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
+        std::shared_ptr<Hwc2Layer> layer = it->second;
+        layer->uvmDetachEnable(enable);
+    }
+}
