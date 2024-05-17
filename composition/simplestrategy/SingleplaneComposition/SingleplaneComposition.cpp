@@ -232,7 +232,7 @@ int SingleplaneComposition::processFbsOfExplicitComposition() {
                     fb->mCompositionType = destComp;
                     break;
                 } else if (planeCompPairs[i].destPlane == HWC_VIDEO_PLANE) {
-                    if (mHwcVideoPlane.get()) {
+                    if (mHwcVideoPlane.get() && fb->haveValidBuffer()) {
                         mDisplayPairs.push_back(DisplayPair{fb, mHwcVideoPlane});
                         mHwcVideoPlane.reset();
                     } else {
@@ -368,7 +368,7 @@ int SingleplaneComposition::buildOsdComposition() {
 
         if (mFramebuffers.size() == 1 &&
             fb->mCompositionType == MESON_COMPOSITION_UNDETERMINED &&
-            mOsdPlane->isFbSupport(fb)) {
+            mOsdPlane.get() && mOsdPlane->isFbSupport(fb)) {
             fb->mCompositionType = MESON_COMPOSITION_PLANE_OSD;
             mDisplayPairs.push_back(DisplayPair{fb, mOsdPlane});
             mOsdPlane.reset();
