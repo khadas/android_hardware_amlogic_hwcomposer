@@ -52,33 +52,6 @@ meson_hwc_keystone_defaults {
     },
 }
 
-soong_config_module_type {
-    name: "meson_hwc_wb_defaults",
-    module_type: "cc_defaults",
-    config_namespace: "meson_hwc",
-
-    bool_variables: [
-        "non_low_ram",
-    ],
-
-    properties: [
-         "srcs"
-    ],
-}
-
-meson_hwc_wb_defaults {
-    name: "hwcomposer_wb_defaults",
-    vendor: true,
-
-    soong_config_variables: {
-        non_low_ram: {
-            srcs: [
-                "WBDisplayThread.cpp",
-            ],
-        },
-    },
-}
-
 cc_library_static {
     name: "hwc.composer_static",
     defaults: ["hwcomposer_cc_defaults"],
@@ -90,6 +63,7 @@ cc_library_static {
         "Hwc2Layer.cpp",
         "MesonHwc2.cpp",
         "VtDisplayThread.cpp",
+        "WBDisplayThread.cpp",
         "VirtualDisplay.cpp",
     ],
 
@@ -119,7 +93,6 @@ cc_library_shared {
     defaults: [
         "hwcomposer_cc_defaults",
         "hwcomposer_keystone_defaults",
-        "hwcomposer_wb_defaults"
     ],
 
     vendor: true,
