@@ -158,10 +158,8 @@ ifndef HWC_LEGACY_VIDEO
 HWC_LEGACY_VIDEO := false
 endif
 
-ifndef CONFIG_DEVICE_LOW_RAM
-HWC_NON_LOW_RAM := true
-else
-HWC_NON_LOW_RAM := false
+ifndef HWC_ENABLE_WHITEBOARD_API
+HWC_ENABLE_WHITEBOARD_API := false
 endif
 
 ifndef HWC_ENABLE_MIRRORDISPLAY_OPTIMIZE
@@ -215,7 +213,7 @@ $(call soong_config_set,meson_hwc,enable_video_mosaic,$(HWC_VIDEO_MOSAIC))
 $(call soong_config_set,meson_hwc,enable_ai_process_120,$(HWC_VIDEO_AIPROCESS_120))
 $(call soong_config_set,meson_hwc,enable_hal_virtualdisplay,$(HWC_ENABLE_HAL_VIRTUALDISPLAY))
 $(call soong_config_set,meson_hwc,enable_legacy_video,$(HWC_LEGACY_VIDEO))
-$(call soong_config_set,meson_hwc,non_low_ram,$(HWC_NON_LOW_RAM))
 $(call soong_config_set,meson_hwc,enable_mirrordisplay_optimize,$(HWC_ENABLE_MIRRORDISPLAY_OPTIMIZE))
+$(call soong_config_set,meson_hwc,enable_whiteboard_api,$(HWC_ENABLE_WHITEBOARD_API))
 
 #$(warning "the value of aidl: $(HWC_ENABLE_AIDL)")
