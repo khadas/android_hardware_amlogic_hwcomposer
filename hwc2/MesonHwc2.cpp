@@ -880,6 +880,7 @@ int32_t MesonHwc2::setAidlClientPid(int32_t pid) {
         }
         fclose(f);
     }
+    HwcConfig::setClientIsSf(mAidlCilentIsSF);
     return hwcDisplay->setAidlClientPid(pid);
 }
 

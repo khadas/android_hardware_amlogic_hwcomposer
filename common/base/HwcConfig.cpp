@@ -21,6 +21,7 @@
 #define UBOOTENV_EXTEND_CONNECTOR_TYPE  "ubootenv.var.connector1_type"
 #define UBOOTENV_EXTEND2_CONNECTOR_TYPE "ubootenv.var.connector2_type"
 
+bool HwcConfig::mClientIsSf = true;
 int32_t HwcConfig::getFramebufferSize(int disp, uint32_t & width, uint32_t & height) {
     char uiMode[PROPERTY_VALUE_MAX] = {0};
     if (disp == 0) {
@@ -242,7 +243,11 @@ bool HwcConfig::softwareVsyncEnabled() {
 #ifdef HWC_ENABLE_SOFTWARE_VSYNC
     return true;
 #else
-    return false;
+    if (getVsyncScaleFactor() > 0.0) {
+        return true;
+    } else {
+        return false;
+    }
 #endif
 }
 
@@ -329,7 +334,7 @@ float  HwcConfig::getMaxRefreshRate() {
 float HwcConfig::getVsyncScaleFactor() {
     const char* prop = "persist.vendor.hwc.vsync_scale";
 #ifdef HWC_VSYNC_PERIOD_SCALE_FACTOR
-    if (sys_get_bool_prop(prop, false)) {
+    if (sys_get_bool_prop(prop, false) && mClientIsSf) {
         return (float)HWC_VSYNC_PERIOD_SCALE_FACTOR;
     } else {
         return 0.0f;

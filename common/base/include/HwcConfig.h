@@ -81,7 +81,9 @@ public:
     static int32_t getSupportAiSrChannelNumber();
     static int32_t getSupportAiPqChannelNumber();
     static int32_t getSupportAiColorChannelNumber();
-
+    static void setClientIsSf(const bool clientIsSF) { mClientIsSf = clientIsSF; };
     static void dump(String8 & dumpstr);
+public:
+    static bool mClientIsSf;
 };
 #endif/*HWC_CONFIG_H*/
