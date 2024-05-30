@@ -36,8 +36,6 @@ soong_config_module_type {
         "enable_video_aiface",
         "enable_video_aicolor",
         "enable_video_di",
-        "enable_hal_virtualdisplay",
-        "enable_whiteboard_api",
     ],
 
     properties: [
@@ -123,19 +121,40 @@ meson_hwc_postprocessor_defaults {
                 "nnprocess",
             ]
         },
+    },
+}
 
-        enable_hal_virtualdisplay: {
-            srcs: [
-                "fbprocessor/CopyProcessor.cpp",
-                "common/Ge2dHelper.cpp",
-            ],
-        },
+soong_config_module_type {
+    name: "meson_hwc_wb_ge2d_defaults",
+    module_type: "cc_defaults",
+    config_namespace: "meson_hwc",
 
-        enable_whiteboard_api: {
+    bool_variables: [
+        "non_low_ram",
+    ],
+
+    properties: [
+        "srcs",
+        "export_include_dirs",
+    ],
+}
+
+meson_hwc_wb_ge2d_defaults {
+    name: "wb_ge2d_postprocessor_defaults",
+    vendor: true,
+
+    soong_config_variables: {
+        non_low_ram: {
             srcs: [
                 "fbprocessor/CompositionProcessor.cpp",
                 "common/WBGLHelper.cpp",
+                "common/Ge2dHelper.cpp",
+                "fbprocessor/CopyProcessor.cpp",
             ],
+
+            export_include_dirs: [
+                "common",
+            ]
         },
     },
 }
@@ -145,6 +164,7 @@ cc_library_static {
     defaults: [
         "hwcomposer_cc_defaults",
         "hwcomposer_postprocessor_defaults",
+        "wb_ge2d_postprocessor_defaults"
     ],
 
     vendor: true,

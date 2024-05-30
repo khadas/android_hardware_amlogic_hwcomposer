@@ -27,10 +27,8 @@
 #include "DiProcessor.h"
 #endif
 
-#ifdef ENABLE_WHITEBOARD_API
+#ifdef NON_LOW_RAM
 #include "CompositionProcessor.h"
-#endif
-#ifdef ENABLE_HAL_VIRTUALDISPLAY
 #include "CopyProcessor.h"
 #endif
 
@@ -45,7 +43,7 @@ int32_t createFbProcessor(
         case FB_DUMMY_PROCESSOR:
             processor = std::make_shared<DummyProcessor>();
             break;
-#ifdef ENABLE_HAL_VIRTUALDISPLAY
+#ifdef NON_LOW_RAM
         case FB_COPY_PROCESSOR:
             processor = std::make_shared<CopyProcessor>();
             break;
@@ -76,7 +74,7 @@ int32_t createFbProcessor(
             processor = std::make_shared<AiColorProcessor>();
             break;
 #endif
-#ifdef ENABLE_WHITEBOARD_API
+#ifdef NON_LOW_RAM
         case FB_RENDER_PROCESSOR:
             processor = std::make_shared<CompositionProcessor>();
             break;

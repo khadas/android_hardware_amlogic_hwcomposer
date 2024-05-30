@@ -14,6 +14,7 @@
 #include <pthread.h>
 #include <utils/threads.h>
 #include <condition_variable>
+#include "CompositionProcessor.h"
 #include "Hwc2Display.h"
 
 class WBDisplayThread {
