@@ -41,12 +41,17 @@ public:
     hwc2_error_t setSidebandStream(const native_handle_t* stream,
             std::shared_ptr<VtDisplayObserver> observer);
     hwc2_error_t setColor(hwc_color_t color);
+
+    hwc2_error_t setSourceCrop(hwc_frect_t crop);
+    hwc2_error_t setDisplayFrame(hwc_rect_t frame);
+    hwc2_error_t setBlendMode(hwc2_blend_mode_t mode);
+    hwc2_error_t setPlaneAlpha(float alpha);
+    hwc2_error_t setTransform(hwc_transform_t transform);
     hwc2_error_t setVisibleRegion(hwc_region_t visible);
     hwc2_error_t setSurfaceDamage(hwc_region_t damage);
-    hwc2_error_t setHwcCompositionType(int32_t type);
-    int32_t setSourceCrop(drm_rect_t crop) override;
-    int32_t setDisplayFrame(drm_rect_t frame) override;
-    int32_t setZorder(uint32_t z) override;
+    hwc2_error_t setCompositionType(int32_t type);
+    hwc2_error_t setDataspace(android_dataspace_t dataspace);
+    hwc2_error_t setZorder(uint32_t z);
     int32_t setPerFrameMetadata(
             uint32_t numElements, const int32_t* /*hw2_per_frame_metadata_key_t*/ keys,
             const float* metadata);

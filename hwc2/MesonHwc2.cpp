@@ -615,7 +615,7 @@ int32_t MesonHwc2::setLayerBlendMode(hwc2_display_t display,
     hwc2_layer_t layer, int32_t mode) {
     GET_HWC_DISPLAY(display);
     GET_HWC_LAYER(hwcDisplay, layer);
-    return hwcLayer->setBlendMode((drm_blend_mode_t)mode);
+    return hwcLayer->setBlendMode((hwc2_blend_mode_t)mode);
 }
 
 int32_t MesonHwc2::setLayerColor(hwc2_display_t display,
@@ -629,7 +629,7 @@ int32_t MesonHwc2::setLayerCompositionType(hwc2_display_t display,
     hwc2_layer_t layer, int32_t type) {
     GET_HWC_DISPLAY(display);
     GET_HWC_LAYER(hwcDisplay, layer);
-    return hwcLayer->setHwcCompositionType(type);
+    return hwcLayer->setCompositionType(type);
 }
 
 int32_t MesonHwc2::setLayerDataspace(hwc2_display_t display,
@@ -643,12 +643,7 @@ int32_t MesonHwc2::setLayerDisplayFrame(hwc2_display_t display,
     hwc2_layer_t layer, hwc_rect_t frame) {
     GET_HWC_DISPLAY(display);
     GET_HWC_LAYER(hwcDisplay, layer);
-    drm_rect_t frameRect;
-    frameRect.top = frame.top;
-    frameRect.left = frame.left;
-    frameRect.bottom = frame.bottom;
-    frameRect.right = frame.right;
-    return hwcLayer->setDisplayFrame(frameRect);
+    return hwcLayer->setDisplayFrame(frame);
 }
 
 int32_t MesonHwc2::setLayerPlaneAlpha(hwc2_display_t display,
@@ -688,13 +683,7 @@ int32_t MesonHwc2::setLayerSourceCrop(hwc2_display_t display,
     hwc2_layer_t layer, hwc_frect_t crop) {
     GET_HWC_DISPLAY(display);
     GET_HWC_LAYER(hwcDisplay, layer);
-    drm_rect_t cropRect;
-    cropRect.left = (int) ceilf(crop.left);
-    cropRect.top = (int) ceilf(crop.top);
-    cropRect.right = (int) floorf(crop.right);
-    cropRect.bottom = (int) floorf(crop.bottom);
-
-    return hwcLayer->setSourceCrop(cropRect);
+    return hwcLayer->setSourceCrop(crop);
 }
 
 int32_t MesonHwc2::setLayerTransform(hwc2_display_t display,

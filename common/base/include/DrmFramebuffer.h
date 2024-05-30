@@ -16,7 +16,6 @@
 #include <BasicTypes.h>
 #include <DrmSync.h>
 #include <DrmTypes.h>
-#include <DrmFrameBufferBase.h>
 #include <hardware/hwcomposer2.h>
 
 #include <am_gralloc_ext.h>
@@ -24,26 +23,17 @@
 #define FORCE_CLIENT_REQ (1)
 
 /*buffer for display or render.*/
-class DrmFramebuffer : public DrmFramebufferBase {
+class DrmFramebuffer {
 public:
     DrmFramebuffer();
     DrmFramebuffer(const native_handle_t * bufferhnd, int32_t acquireFence);
     virtual ~DrmFramebuffer();
 
-    virtual drm_rect_t getSourceCrop() override;
-    virtual int32_t setAcquireFence(int32_t fenceFd) override;
-
-    /* overloaded virtual function setBufferInfo */
-    using DrmFramebufferBase::setBufferInfo;
-    void setBufferInfo(const native_handle_t * bufferhnd, int32_t acquireFence, bool isSidebandBuffer=false);
-    void clearBufferInfo();
-
-    virtual bool isAfbcBuffer() override;
-
-    std::shared_ptr<DrmFence> getAcquireFence();
-
     virtual void setUniqueId(hwc2_layer_t id);
     virtual hwc2_layer_t getUniqueId();
+
+    int32_t setAcquireFence(int32_t fenceFd);
+    std::shared_ptr<DrmFence> getAcquireFence();
 
     /*set release fence for last present loop.*/
     int32_t setPrevReleaseFence(int32_t fenceFd);
@@ -60,11 +50,21 @@ public:
 
     bool isRotated();
     bool isSidebandBuffer() {return mIsSidebandBuffer;}
+    virtual int getVideoType() {return 0;};
     virtual uint32_t getVideoTimestamp() {return 0;}
 
     virtual bool isFbUpdated() {return (mUpdated || mFbHandleUpdated);}
     bool isUpdated() {return mUpdated;}
     void clearFbHandleFlag();
+    drm_fb_type_t getFbType();
+
+
+    drm_rect_t getSourceCrop();
+    drm_rect_t getDisplayFrame();
+
+    virtual hwc2_error_t setSourceCrop(hwc_frect_t crop);
+    virtual hwc2_error_t setDisplayFrame(hwc_rect_t frame);
+
 
     // Virtuals for video tunnel
     virtual bool haveValidBuffer() {return true;};
@@ -81,6 +81,8 @@ public:
     int32_t setProcessFence(int32_t fenceFd);
     int32_t getProcessFence();
     virtual bool isVirtualLayer() { return false;}
+    void setBufferInfo(const native_handle_t * bufferhnd, int32_t acquireFence, bool isSidebandBuffer=false);
+    void clearBufferInfo();
 
     void setReqFlag(uint32_t flag) { mReqFlag = flag; };
     int32_t getReqFlag() { return mReqFlag; };
@@ -93,12 +95,23 @@ protected:
 public:
     native_handle_t * mBufferHandle;
     drm_color_t mColor;
+    drm_fb_type_t mFbType;
 
+    drm_rect_t mSourceCrop;
     drm_rect_t mVtSourceCrop;
+    drm_rect_t mDisplayFrame;
     drm_rect_t mVtDisplayFrame;
+    drm_blend_mode_t mBlendMode;
+    float mPlaneAlpha;
+    int32_t mTransform;
+    uint32_t mZorder;
+    int32_t mDataspace;
+    bool mSecure;
+    bool mUpdated;
     bool mFbHandleUpdated;
     bool mIsSidebandBuffer;
 
+    int32_t mCompositionType;
     hwc2_layer_t mId;
 
     std::map<drm_hdr_metadata_t, float> mHdrMetaData;
