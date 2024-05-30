@@ -56,7 +56,6 @@ public:
 
     int32_t setPendingMode();
     void closeLogoDisplay();
-    uint64_t getWrFlag() override;
 
     int32_t getConversionCaps(std::vector<drm_hdr_conversion_capability>&
                     hdrconversionCaps);
@@ -95,7 +94,6 @@ protected:
     std::shared_ptr<DrmProperty> mOsdPixelFormat;
     std::shared_ptr<DrmProperty> mHdrConversionCaps;
     std::shared_ptr<DrmProperty> mBrrUpdate;
-    std::shared_ptr<DrmProperty> mWrFlag;
 
     drmModeAtomicReqPtr mReq;
 

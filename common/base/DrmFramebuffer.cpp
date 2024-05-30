@@ -116,7 +116,6 @@ void DrmFramebuffer::reset() {
     mZorder          = 0xFFFFFFFF; //set to special value for debug.
     mDataspace       = 0;
     mCompositionType = 0;
-    mReqFlag         = 0;
 
     mDisplayFrame.left   = mSourceCrop.left   = 0;
     mDisplayFrame.top    = mSourceCrop.top    = 0;

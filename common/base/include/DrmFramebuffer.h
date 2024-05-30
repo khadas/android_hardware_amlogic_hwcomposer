@@ -20,8 +20,6 @@
 
 #include <am_gralloc_ext.h>
 
-#define FORCE_CLIENT_REQ (1)
-
 /*buffer for display or render.*/
 class DrmFramebuffer {
 public:
@@ -84,9 +82,6 @@ public:
     void setBufferInfo(const native_handle_t * bufferhnd, int32_t acquireFence, bool isSidebandBuffer=false);
     void clearBufferInfo();
 
-    void setReqFlag(uint32_t flag) { mReqFlag = flag; };
-    int32_t getReqFlag() { return mReqFlag; };
-
 protected:
     virtual bool isVtBufferLocked() {return false;}
 
@@ -131,7 +126,6 @@ protected:
     void * mMapBase;
     std::mutex mMutex;
     std::mutex mPFenceMutex;
-    uint32_t mReqFlag = 0;
 };
 
 #endif/*DRM_FRAMEBUFFER_H*/

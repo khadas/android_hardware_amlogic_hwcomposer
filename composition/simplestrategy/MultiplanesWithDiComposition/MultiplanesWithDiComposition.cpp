@@ -48,7 +48,6 @@ MultiplanesWithDiComposition::MultiplanesWithDiComposition() {
     mVsyncRefreshRate = 0;
     mScaleValue = 0;
     mVideoProcessorsMgr = nullptr;
-    memset(&mOsdDisplayFrame, 0, sizeof(mOsdDisplayFrame));
 }
 
 /* Deconstructor function */
@@ -68,7 +67,7 @@ void MultiplanesWithDiComposition::init() {
 
     /*crtc scale info.*/
     mDisplayRefFb.reset();
-    //memset(&mOsdDisplayFrame, 0, sizeof(mOsdDisplayFrame));
+    memset(&mOsdDisplayFrame, 0, sizeof(mOsdDisplayFrame));
     mCrtc.reset();
 
     /* Clean FrameBuffer */
@@ -999,81 +998,6 @@ void MultiplanesWithDiComposition::handleOverlayVideoZorder() {
     }
 }
 
-void MultiplanesWithDiComposition::handleVPUOddScaleLimit() {
-    if (!(mCrtc->getWrFlag() & (1 << (int32_t) MesonDrmWrId::GFCD_ODD_SIZE))) {
-        return;
-    }
-
-    if (mFramebuffers.size() <= 1) {
-        return;
-    }
-
-    int deviceNum = 0;
-    int clientNum  = 0;
-    bool oddInput = false;
-    std::shared_ptr<DrmFramebuffer> scaleFb;
-    for (auto fbIt = mFramebuffers.begin(); fbIt != mFramebuffers.end(); ++fbIt) {
-        auto fb = fbIt->second;
-        if ((fb->mSourceCrop.right - fb->mSourceCrop.left) % 2 != 0) {
-            oddInput = true;
-        }
-
-        // osdComposed layers
-        if (fb->mZorder < mMinComposerZorder || fb->mZorder > mMaxComposerZorder) {
-            scaleFb = fb;
-            deviceNum++;
-        } else {
-            clientNum++;
-        }
-    }
-
-    // no device Composition or no odd input , no need check
-    if (deviceNum == 0 || !oddInput) {
-        return;
-    }
-
-    drm_rect_t scaleInput = {0,0,0,0};
-    drm_rect_t scaleOutput = {0, 0, 0,0};
-    // has Client composition
-    if (clientNum != 0) {
-       // input width is not odd
-       if (!scaleFb || ((scaleFb->mSourceCrop.right - scaleFb->mSourceCrop.left) % 2 == 0)) {
-            return;
-        }
-
-        scaleInput = {0, 0, mOsdDisplayFrame.framebuffer_w, mOsdDisplayFrame.framebuffer_h};
-        scaleOutput = {mOsdDisplayFrame.crtc_display_x, mOsdDisplayFrame.crtc_display_y,
-            mOsdDisplayFrame.crtc_display_w, mOsdDisplayFrame.crtc_display_h};
-    // all device compostion
-    } else {
-        auto firstIt = mFramebuffers.begin();
-        auto secondIt = std::next(firstIt);
-        if (secondIt == mFramebuffers.end()) {
-            return;
-        }
-        scaleInput = secondIt->second->mSourceCrop;
-        scaleOutput = secondIt->second->getDisplayFrame();
-        scaleFb = firstIt->second;
-    }
-
-    // need check the scale limit
-    drm_rect_t scaleDispFrame = scaleFb->getDisplayFrame();
-    auto scaleRet = compareFbScale(scaleFb->mSourceCrop, scaleDispFrame, scaleInput, scaleOutput);
-
-    // force to Client compose
-    if (scaleRet != 0) {
-        for (auto fbIt = mFramebuffers.begin(); fbIt != mFramebuffers.end(); ++fbIt) {
-            auto fb = fbIt->second;
-            if (mMinComposerZorder == INVALID_ZORDER || mMinComposerZorder > fb->mZorder) {
-                mMinComposerZorder = fb->mZorder;
-            }
-            if (mMaxComposerZorder == INVALID_ZORDER || mMaxComposerZorder < fb->mZorder) {
-                mMaxComposerZorder = fb->mZorder;
-            }
-        }
-    }
-}
-
 /*
  * Scale Limitation:
  * 1. VPU only support composed 2 non afbc osd layers
@@ -1154,7 +1078,6 @@ void MultiplanesWithDiComposition::handleVPULimit(bool video) {
         return ;
 
     handleVPUScaleLimit();
-    handleVPUOddScaleLimit();
 
     if (mMaxComposerZorder != INVALID_ZORDER &&
         mMinComposerZorder != INVALID_ZORDER) {

@@ -66,7 +66,6 @@ int32_t DrmCrtc::loadProperties() {
         {DRM_CRTC_PROP_OSD_PIXEL_FORMAT, &mOsdPixelFormat},
         {DRM_CRTC_PROP_HDR_CONVERSION_CAP, &mHdrConversionCaps},
         {DRM_CRTC_PROP_BRR_UPDATE, &mBrrUpdate},
-        {DRM_CRTC_PROP_WR_FLAG, &mWrFlag},
     };
     const int crtcPropsNum = sizeof(crtcProps)/sizeof(crtcProps[0]);
     int initedProps = 0;
@@ -518,20 +517,11 @@ void DrmCrtc::closeLogoDisplay() {
     sysfs_set_string(DISPLAY_FB0_FREE_FB_MEM_DRM, "1");
 }
 
-uint64_t DrmCrtc::getWrFlag() {
-    if (mWrFlag) {
-        return mWrFlag->getValue();
-    }
-
-    return 0;
-}
-
 void DrmCrtc::dump(String8 & dumpstr) {
     dumpstr.appendFormat("Crtc mPipeId(%d) - mId(%d):\n", mPipe, mId);
-    dumpstr.appendFormat("\t Active (%" PRIu64 "), ModeId (%" PRIu64 ")"
-                        " mMode (%s) mWrFlag(%" PRIu64 ")\n",
+    dumpstr.appendFormat("\t Active (%" PRIu64 "), ModeId (%" PRIu64 ") mMode (%s)\n",
                         mActive->getValue(), mModeBlobId->getValue(),
-                        mDrmMode.name, getWrFlag());
+                        mDrmMode.name);
 
     auto connector = getDrmDevice()->getConnectorById(mConnectorId);
     const char *name = connector ? connector->getName() : "invalid";
