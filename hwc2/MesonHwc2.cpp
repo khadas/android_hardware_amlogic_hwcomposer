@@ -1183,17 +1183,25 @@ int32_t MesonHwc2::captureDisplayScreen(buffer_handle_t hnd) {
     return hwcDisplay->captureDisplayScreen(hnd);
 }
 
-int32_t MesonHwc2::getWhiteBoardHanle(native_handle_t** hnd) {
+int32_t MesonHwc2::getWhiteBoardHanle(native_handle_t** hnd __unused) {
+#ifndef ENABLE_WHITEBOARD_API
+    return HWC2_ERROR_UNSUPPORTED;
+#endif
+
     GET_HWC_DISPLAY(0);
     if (!mWhiteBoardMode) {
         MESON_LOGE("Please enable white board first");
         return -1;
     }
     *hnd = hwcDisplay->mCustomizedBuffer->mBufferHandle;
-    return 0;
+    return HWC2_ERROR_NONE;
 }
 
-bool MesonHwc2::setWhiteBoardMode(bool mode, int callingPid) {
+bool MesonHwc2::setWhiteBoardMode(bool mode __unused, int callingPid __unused) {
+#ifndef ENABLE_WHITEBOARD_API
+    return false;
+#endif
+
     GET_HWC_DISPLAY(0);
     mCallingPid = callingPid;
     mWhiteBoardMode = mode;
@@ -1201,19 +1209,31 @@ bool MesonHwc2::setWhiteBoardMode(bool mode, int callingPid) {
     return true;
 }
 
-bool MesonHwc2::enableSyncProtection(bool mode) {
+bool MesonHwc2::enableSyncProtection(bool mode __unused) {
+#ifndef ENABLE_WHITEBOARD_API
+    return false;
+#endif
+
     GET_HWC_DISPLAY(0);
     hwcDisplay->enableSyncProtection(mode);
     return true;
 }
 
-bool MesonHwc2::getWhiteBoardMode(bool& mode) {
+bool MesonHwc2::getWhiteBoardMode(bool& mode __unused) {
+#ifndef ENABLE_WHITEBOARD_API
+    return false;
+#endif
+
     GET_HWC_DISPLAY(0);
     hwcDisplay->getWhiteBoardMode(mode);
     return true;
 }
 
-bool MesonHwc2::setWBDisplayFrame(int x, int y) {
+bool MesonHwc2::setWBDisplayFrame(int x __unused, int y __unused) {
+#ifndef ENABLE_WHITEBOARD_API
+    return false;
+#endif
+
     GET_HWC_DISPLAY(0);
     if (x < 0 || y < 0 || x > FB_SIZE_4K_W || y > FB_SIZE_4K_H) {
         MESON_LOGE("setWBDisplayFrame the position is invalid");

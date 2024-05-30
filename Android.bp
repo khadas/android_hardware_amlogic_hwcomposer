@@ -84,9 +84,10 @@ soong_config_module_type {
         "enable_virtual_layer",
         "enable_ai_process_120",
         "enable_video_di",
-        "enable_hal_virtualdisplay",
         "enable_legacy_video",
         "enable_mirrordisplay_optimize",
+        "enable_hal_virtualdisplay",
+        "enable_whiteboard_api",
     ],
 
     value_variables: [
@@ -148,6 +149,14 @@ soong_config_bool_variable {
     name: "enable_mirrordisplay_optimize",
 }
 
+soong_config_bool_variable {
+    name: "enable_hal_virtualdisplay",
+}
+
+soong_config_bool_variable {
+    name: "enable_whiteboard_api",
+}
+
 soong_config_module_type {
     name: "meson_hwc_virtual_layer_defaults",
     module_type: "cc_defaults",
@@ -179,44 +188,10 @@ meson_hwc_virtual_layer_defaults {
     },
 }
 
-soong_config_module_type {
-    name: "meson_hwc_wb_ge2d_defaults",
-    module_type: "cc_defaults",
-    config_namespace: "meson_hwc",
-
-    bool_variables: [
-        "non_low_ram",
-    ],
-
-    properties: [
-        "cflags",
-        "shared_libs",
-    ],
-}
-
-meson_hwc_wb_ge2d_defaults {
-    name: "hwc_wb_ge2d_defaults",
-    vendor: true,
-
-    soong_config_variables: {
-        non_low_ram: {
-            cflags: ["-DNON_LOW_RAM"],
-
-            shared_libs: [
-                "libEGL",
-                "libGLESv1_CM",
-                "libGLESv2",
-                "libge2d-2.0",
-            ],
-        },
-    },
-}
-
 meson_hwc_cc_defaults {
     name: "hwcomposer_cc_defaults",
     defaults: [
         "hwc_virtual_layer_defaults",
-        "hwc_wb_ge2d_defaults"
     ],
 
     vendor: true,
@@ -269,16 +244,30 @@ meson_hwc_cc_defaults {
             cflags: ["-DENABLE_AIPROCESS_120"],
         },
 
-        enable_hal_virtualdisplay: {
-            cflags: ["-DENABLE_HAL_VIRTUALDISPLAY"],
-        },
-
         enable_legacy_video: {
             cflags: ["-DENABLE_LEGACY_VIDEO"],
         },
 
         enable_mirrordisplay_optimize: {
             cflags: ["-DENABLE_MIRRORDISPLAY_OPTIMIZE"],
+        },
+
+        enable_hal_virtualdisplay: {
+            cflags: ["-DENABLE_HAL_VIRTUALDISPLAY"],
+
+            shared_libs: [
+                "libge2d-2.0",
+            ],
+        },
+
+        enable_whiteboard_api: {
+            cflags: ["-DENABLE_WHITEBOARD_API"],
+
+            shared_libs: [
+                "libEGL",
+                "libGLESv1_CM",
+                "libGLESv2",
+            ],
         },
     },
 
