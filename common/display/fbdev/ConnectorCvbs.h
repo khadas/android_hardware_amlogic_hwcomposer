@@ -19,7 +19,7 @@ public:
     virtual int32_t update();
 
     virtual const char * getName();
-    virtual drm_connector_type_t getType();
+    virtual drm_connector_type_t getType(bool extend_connector_type= false);
     virtual bool isSecure();
     virtual bool isConnected();
 

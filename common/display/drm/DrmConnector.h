@@ -26,7 +26,7 @@ public:
 
     uint32_t getId();
     const char * getName();
-    drm_connector_type_t getType();
+    drm_connector_type_t getType(bool extend_connector_type = false);
     int32_t getModes(std::map<uint32_t, drm_mode_info_t> & modes);
 
     bool isSecure();
@@ -82,6 +82,7 @@ public:
 
     int DrmMode2Mode(drmModeModeInfo & drmmode, drm_mode_info_t & mode);
     bool isTvType();
+    bool isHDMIType();
 
     std::mutex mMutex;
     bool getHdrType(std::string & hdrType);

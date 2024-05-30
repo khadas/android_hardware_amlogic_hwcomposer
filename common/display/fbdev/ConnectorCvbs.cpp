@@ -39,7 +39,7 @@ const char * ConnectorCvbs::getName() {
     return mName;
 }
 
-drm_connector_type_t ConnectorCvbs::getType() {
+drm_connector_type_t ConnectorCvbs::getType(bool extend_connector_type __unused) {
     return DRM_MODE_CONNECTOR_TV;
 }
 

@@ -19,7 +19,7 @@ public:
 
     int32_t getModes(std::map<uint32_t, drm_mode_info_t> & modes);
     const char * getName();
-    drm_connector_type_t getType();
+    drm_connector_type_t getType(bool extend_connector_type= false);
     bool isConnected();
     bool isSecure();
 

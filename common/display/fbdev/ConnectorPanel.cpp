@@ -46,7 +46,7 @@ const char * ConnectorPanel::getName() {
     return mName;
 }
 
-drm_connector_type_t ConnectorPanel::getType() {
+drm_connector_type_t ConnectorPanel::getType(bool extend_connector_type __unused) {
     return LEGACY_NON_DRM_CONNECTOR_PANEL;
 }
 

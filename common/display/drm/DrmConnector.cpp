@@ -207,6 +207,10 @@ bool DrmConnector::isTvType() {
     return false;
 }
 
+bool DrmConnector::isHDMIType(){
+    return mType == DRM_MODE_CONNECTOR_HDMIA || mType == DRM_MODE_CONNECTOR_HDMIB;
+}
+
 bool DrmConnector::supportVrr() {
     if (mVrrCap && mVrrCap->getValue() == 1)
         return true;
@@ -412,21 +416,25 @@ uint32_t DrmConnector::getId() {
 }
 
 const char * DrmConnector::getName() {
-    const char *name = drmConnTypeToString(getType());
+    const char *name = drmConnTypeToString(getType(true));
     MESON_ASSERT(name, "%s: get name for %d fail.",
         __func__, getType());
     return name;
 }
 
-drm_connector_type_t DrmConnector::getType() {
-    /*check extend type first*/
-    if (mMesonConnectorType.get()) {
-        int meson_type = mMesonConnectorType->getValue();
-        MESON_LOGD("%s get connector %x", __func__, meson_type);
-        return meson_type;
+drm_connector_type_t DrmConnector::getType(bool extend_connector_type) {
+    // return the standard DRM connector type by default
+    int connector_type = mType;
+    if (extend_connector_type) {
+        if (mMesonConnectorType.get()) {
+            connector_type = mMesonConnectorType->getValue();
+            MESON_LOGD("%s get connector %x", __func__, connector_type);
+        } else {
+            MESON_LOGE("%s no aml connector_type is configured, return the "
+                       "standard DRM connector type  %x", __func__, mType);
+        }
     }
-
-    return mType;
+    return connector_type;
 }
 
 int32_t DrmConnector::update() {
@@ -592,7 +600,7 @@ int DrmConnector::DrmMode2Mode(drmModeModeInfo & drmmode, drm_mode_info_t & mode
 void DrmConnector::dump(String8 & dumpstr) {
     dumpstr.appendFormat("Connector (%s, %d, %d x %d, %s, %s) mId(%d)"
         " mCrtcId(%d) mFracMode(%d) vrrCap(%d)\n",
-        getName(), getType(), mPhyWidth, mPhyHeight,
+        getName(), getType(true), mPhyWidth, mPhyHeight,
         isSecure() ? "secure" : "unsecure",
         isConnected() ? "Connected" : "Removed",
         mId, getCrtcId(), mFracMode, supportVrr());

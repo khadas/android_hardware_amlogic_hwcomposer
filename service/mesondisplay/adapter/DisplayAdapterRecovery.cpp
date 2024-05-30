@@ -514,6 +514,19 @@ bool DisplayAdapterLocal::dumpDisplayAttribute(Json::Value& json, ConnectorType 
     return true;
 };
 
+bool DisplayAdapterLocal::getDisplayIds(vector<int>& displayIdList) {
+    UNUSED(displayIdList);
+    NOTIMPLEMENTED;
+    return false;
+};
+
+bool DisplayAdapterLocal::getConnectorType(uint32_t displayId, meson::DisplayAdapter::ConnectorType &outDisplayType) {
+    UNUSED(displayId);
+    UNUSED(outDisplayType);
+    NOTIMPLEMENTED;
+    return false;
+}
+
 bool DisplayAdapterLocal::setKeystoneCorrection(const string& params) {
     UNUSED(params);
     NOTIMPLEMENTED;

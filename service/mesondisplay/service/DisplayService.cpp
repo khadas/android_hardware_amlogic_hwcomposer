@@ -167,6 +167,24 @@ void DisplayServer::message_handle(Json::Value& in, Json::Value& out) {
         if (!in.isMember("p_displayType") || !in.isMember("p_mode"))
             goto OUT;
         mAdapter->setDisplayMode(in["p_mode"].asString(), (ConnectorType)in["p_displayType"].asUInt());
+    }
+    else if (cmd == "getDisplayIds") {
+        vector<int> displayIdList;
+        Json::Value list;
+        mAdapter->getDisplayIds(displayIdList);
+        int index = 0;
+        for (auto it = displayIdList.begin(); it != displayIdList.end(); it++) {
+            list[index++] = *it;
+        }
+        ret["displayIdList"] = list;
+    }
+    else if (cmd == "getConnectorType") {
+        if (!in.isMember("p_displayId"))
+            goto OUT;
+        ConnectorType result;
+        ALOGE("call getConnectorType %d", in["p_displayId"].asUInt());
+        mAdapter->getConnectorType(in["p_displayId"].asUInt(), result);
+        ret["connectorType"] = static_cast<uint32_t>(result);
     } else if (cmd == "setDisplayViewPort") {
         if (!in.isMember("p_displayType") || !in.isMember("rect"))
             goto OUT;
@@ -289,7 +307,7 @@ void DisplayServer::message_handle(Json::Value& in, Json::Value& out) {
             goto OUT;
         mAdapter->setReverseMode(in["value"].asUInt());
     } else {
-        MESON_LOGE("CMD not implement!");
+        MESON_LOGE("CMD not implement! %s", cmd.c_str());
     }
 OUT:
     out["ret"] = ret;

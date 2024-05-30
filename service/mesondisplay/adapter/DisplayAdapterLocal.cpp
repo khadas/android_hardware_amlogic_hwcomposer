@@ -82,25 +82,66 @@ bool update_sys_node(DisplayAttributeInfo& info, const string& in, string& out, 
     return ret;
 }
 
-void DisplayTypeConv(drm_connector_type_t& type, ConnectorType displayType) {
-    switch (displayType) {
-        case DisplayAdapter::CONN_TYPE_HDMI:
-            type = DRM_MODE_CONNECTOR_HDMIA;
+
+struct conn_type_cov_name_list {
+    ConnectorType connectorType;
+    drm_connector_type_t drmConnectorType;
+};
+
+const conn_type_cov_name_list* getDisplayTypeConvList() {
+    static const struct conn_type_cov_name_list conn_type_cov_array[] = {
+            {DisplayAdapter::CONN_TYPE_DUMMY,DRM_MODE_CONNECTOR_VIRTUAL},
+            {DisplayAdapter::CONN_TYPE_CVBS,DRM_MODE_CONNECTOR_VIRTUAL},
+            {DisplayAdapter::CONN_TYPE_HDMIA,DRM_MODE_CONNECTOR_HDMIA},
+            {DisplayAdapter::CONN_TYPE_LVDS_A,DRM_MODE_CONNECTOR_MESON_LVDS_A},
+            {DisplayAdapter::CONN_TYPE_LVDS_B,DRM_MODE_CONNECTOR_MESON_LVDS_B},
+            {DisplayAdapter::CONN_TYPE_LVDS_C,DRM_MODE_CONNECTOR_MESON_LVDS_C},
+            {DisplayAdapter::CONN_TYPE_VBYONE_A,DRM_MODE_CONNECTOR_MESON_VBYONE_A},
+            {DisplayAdapter::CONN_TYPE_VBYONE_B,DRM_MODE_CONNECTOR_MESON_VBYONE_B},
+            {DisplayAdapter::CONN_TYPE_MIPI_A,DRM_MODE_CONNECTOR_MESON_MIPI_A},
+            {DisplayAdapter::CONN_TYPE_MIPI_B,DRM_MODE_CONNECTOR_MESON_MIPI_B},
+            {DisplayAdapter::CONN_TYPE_EDP_A,DRM_MODE_CONNECTOR_MESON_EDP_A},
+            {DisplayAdapter::CONN_TYPE_EDP_B,DRM_MODE_CONNECTOR_MESON_EDP_B},
+            {DisplayAdapter::CONN_TYPE_HDMIA_A, DRM_MODE_CONNECTOR_MESON_HDMIA_A},
+            {DisplayAdapter::CONN_TYPE_HDMIA_B, DRM_MODE_CONNECTOR_MESON_HDMIA_B},
+            {DisplayAdapter::CONN_TYPE_HDMIA_C, DRM_MODE_CONNECTOR_MESON_HDMIA_C},
+            {DisplayAdapter::CONN_TYPE_HDMIB_A, DRM_MODE_CONNECTOR_MESON_HDMIB_A},
+            {DisplayAdapter::CONN_TYPE_HDMIB_B, DRM_MODE_CONNECTOR_MESON_HDMIB_B},
+            {DisplayAdapter::CONN_TYPE_HDMIB_C, DRM_MODE_CONNECTOR_MESON_HDMIB_C},
+
+            {DisplayAdapter::CONN_TYPE_HDMI,DRM_MODE_CONNECTOR_HDMIA},
+            {DisplayAdapter::CONN_TYPE_PANEL,HwcConfig::getConnectorType(0)},
+            {DisplayAdapter::CONN_TYPE_UNKNOWN, DRM_MODE_CONNECTOR_Unknown},
+    };
+    return conn_type_cov_array;
+}
+
+void DisplayTypeConv(drm_connector_type_t& type, ConnectorType connectorType) {
+    type = DRM_MODE_CONNECTOR_INVALID_TYPE;
+    const conn_type_cov_name_list* displayTypeMap  = getDisplayTypeConvList();
+    int i = 0;
+    do {
+        if (displayTypeMap[i].connectorType == connectorType) {
+            type = displayTypeMap[i].drmConnectorType;
             break;
-        case DisplayAdapter::CONN_TYPE_PANEL:
-            // for drm backend we need load it from hwc config
-            type = HwcConfig::getConnectorType(0);
+        } else {
+            i++;
+        }
+    } while (displayTypeMap[i].connectorType != DisplayAdapter::CONN_TYPE_UNKNOWN);
+}
+
+void DrmConnctorTypeToDisplayType(ConnectorType &connectorType, drm_connector_type_t drmConnectorType) {
+    connectorType = ConnectorType::CONN_TYPE_UNKNOWN;
+    const conn_type_cov_name_list* displayTypeMap  = getDisplayTypeConvList();
+    int i = 0;
+    do {
+        if (displayTypeMap[i].drmConnectorType == drmConnectorType) {
+            connectorType = displayTypeMap[i].connectorType;
             break;
-        case DisplayAdapter::CONN_TYPE_DUMMY:
-            type = DRM_MODE_CONNECTOR_VIRTUAL;
-            break;
-        case DisplayAdapter::CONN_TYPE_CVBS:
-            type = DRM_MODE_CONNECTOR_TV;
-            break;
-        default:
-            type = DRM_MODE_CONNECTOR_INVALID_TYPE;
-            break;
-    }
+        } else {
+            i++;
+        }
+    } while (displayTypeMap[i].connectorType != DisplayAdapter::CONN_TYPE_UNKNOWN);
 }
 
 void DisplayModeConv(DisplayModeInfo& mode, drm_mode_info_t& mode_in) {
@@ -239,8 +280,7 @@ bool DisplayAdapterLocal::setDisplayMode(const string& mode, ConnectorType displ
     if (DRM_MODE_CONNECTOR_INVALID_TYPE == type)
         return false;
 
-    MESON_LOGD("SetDisplay[%s] Mode to \"%s\"", displayType == DisplayAdapter::CONN_TYPE_HDMI ? "HDMI" :
-            (displayType == DisplayAdapter::CONN_TYPE_PANEL ? "TV":"CVBS"), mode.c_str());
+    MESON_LOGD("SetDisplay[%d] Mode to \"%s\"", displayType, mode.c_str());
 
     GET_CRTC_BY_CONNECTOR(type);
     if (crtc && connector) {
@@ -428,7 +468,7 @@ bool DisplayAdapterLocal::getDisplayRect(Rect& rect, ConnectorType displayType) 
         rect.y = drm_rect.y;
         rect.h = drm_rect.h;
         rect.w = drm_rect.w;
-        MesonHwc2::getInstance().setViewPort(drm_rect, displayType);
+        MesonHwc2::getInstance().setViewPort(drm_rect, type);
         ret = true;
     }
     MESON_LOGV("SetDisplayViewPort %s", ret ? "doen" : "failed");
@@ -630,6 +670,21 @@ bool DisplayAdapterLocal::getDisplayVsyncAndPeriod(int64_t& timestamp, int32_t& 
     //        timestamp, vsyncPeriodNanos);
 
     return true;
+}
+
+bool DisplayAdapterLocal::getDisplayIds(vector<int>& displayIdList) {
+    return MesonHwc2::getInstance().getDisplayIds(displayIdList);
+};
+
+bool DisplayAdapterLocal::getConnectorType(uint32_t displayId, meson::DisplayAdapter::ConnectorType &outDisplayType) {
+    drm_connector_type_t drmType;
+    if (MesonHwc2::getInstance().getConnectorType(displayId, drmType)) {
+        DrmConnctorTypeToDisplayType(outDisplayType, drmType);
+        return true;
+    } else {
+        outDisplayType = CONN_TYPE_UNKNOWN;
+        return false;
+    }
 }
 
 bool DisplayAdapterLocal::setKeystoneCorrection(const string& params) {
