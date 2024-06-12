@@ -89,6 +89,7 @@ Hwc2Display::Hwc2Display(std::shared_ptr<Hwc2DisplayObserver> observer, uint32_t
     memset(&mDisplayMode, 0, sizeof(mDisplayMode));
     memset(&mCalibrateInfo, 0, sizeof(mCalibrateInfo));
     mConnectorType = DRM_MODE_CONNECTOR_INVALID_TYPE;
+    mMesonConnectorType = DRM_MODE_CONNECTOR_INVALID_TYPE;
 }
 
 Hwc2Display::~Hwc2Display() {
@@ -189,7 +190,8 @@ int32_t Hwc2Display::setDisplayResource(
     mCrtc = crtc;
     mPlanes = planes;
     mConnector = connector;
-    mConnectorType = mConnector->getType(true);
+    mMesonConnectorType = mConnector->getType(true);
+    mConnectorType = mConnector->getType();
 
     /*update composition strategy.*/
     uint32_t strategyFlags = 0;
@@ -1162,8 +1164,8 @@ int32_t Hwc2Display::getDisplayIdentificationData(uint32_t &outPort,
     return ret;
 }
 
-drm_connector_type_t Hwc2Display::getConnectorType() {
-    return mConnectorType;
+drm_connector_type_t Hwc2Display::getConnectorType(bool extendType) {
+    return extendType ? mMesonConnectorType : mConnectorType;
 }
 
 int32_t Hwc2Display::loadCalibrateInfo() {

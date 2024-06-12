@@ -1026,7 +1026,9 @@ int32_t MesonHwc2::getCurrentSupportDeepColor(std::string& color, drm_connector_
     int ret = 0;
     std::map<hwc2_display_t, std::shared_ptr<Hwc2Display>>::iterator it;
     for (it = mDisplays.begin(); it != mDisplays.end(); it++) {
-        if (it->second->getConnectorType() == type) {
+        auto mesonType = it->second->getConnectorType();
+        auto connectorType = it->second->getConnectorType(false);
+        if (mesonType == type || connectorType == type) {
             ret = it->second->getCurrentSupportDeepColor(color);
             MESON_LOGD("get current mode support deep color:%s", color.c_str());
         }
@@ -1254,7 +1256,17 @@ bool MesonHwc2::hideVideoLayer(bool hide) {
 bool MesonHwc2::setViewPort(const drm_rect_wh_t viewPort, drm_connector_type_t type) {
     std::lock_guard<std::mutex> lock(mViewPortMutex);
     GET_HWC_DISPLAY(0);
-    mViewPorts.insert_or_assign(type, viewPort);
+
+    auto mesonType = it->second->getConnectorType();
+    auto connectorType = it->second->getConnectorType(false);
+
+    if (mesonType == type || connectorType == type) {
+        // need set mesonType as key
+        mViewPorts.insert_or_assign(mesonType, viewPort);
+    } else {
+        MESON_LOGE("%s invalid connector type: %x", __func__, type);
+    }
+
     hwcDisplay->outsideChanged();
     return true;
 }
@@ -1288,10 +1300,13 @@ int32_t MesonHwc2::getDisplays(std::map<hwc2_display_t, shared_ptr<Hwc2Display>>
     return 0;
 }
 
-int32_t MesonHwc2::blankDisplay(drm_connector_type_t connectorType) {
+int32_t MesonHwc2::blankDisplay(drm_connector_type_t type) {
     std::map<hwc2_display_t, std::shared_ptr<Hwc2Display>>::iterator it;
     for (it = mDisplays.begin(); it != mDisplays.end(); it++) {
-        if (it->second->getConnectorType() == connectorType) {
+        auto mesonType = it->second->getConnectorType();
+        auto connectorType = it->second->getConnectorType(false);
+
+        if (mesonType == type || connectorType == type) {
             MESON_LOGD("blankDisplay connectorType:%d", connectorType);
             it->second->blankDisplay();
         }

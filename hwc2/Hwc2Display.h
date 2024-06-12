@@ -75,7 +75,7 @@ public:
     virtual hwc2_error_t getFrameMetadataKeys (
         uint32_t* outNumKeys, int32_t* outKeys);
 
-    virtual drm_connector_type_t getConnectorType();
+    virtual drm_connector_type_t getConnectorType(bool extendType = true);
     /*Vsync*/
     virtual hwc2_error_t setVsyncEnable(hwc2_vsync_t enabled);
 
@@ -290,6 +290,7 @@ protected:
     std::shared_ptr<HwDisplayConnector> mConnector;
     std::vector<std::shared_ptr<HwDisplayPlane>> mPlanes;
     drm_connector_type_t mConnectorType;
+    drm_connector_type_t mMesonConnectorType;
 
     /*composition related components*/
     std::map<meson_composer_t, std::shared_ptr<IComposer>> mComposers;
