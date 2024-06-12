@@ -146,10 +146,10 @@ uint32_t HwcConfig::getConnectorType(int disp) {
             // If the connector type is not in standard HDMI DRM type, convert it to standard
             uint32_t extend_connector_type = drmStringToConnType(con_str.c_str());
             if (extend_connector_type >= DRM_MODE_CONNECTOR_MESON_HDMIA_A &&
-                extend_connector_type >= DRM_MODE_CONNECTOR_MESON_HDMIA_C) {
+                extend_connector_type <= DRM_MODE_CONNECTOR_MESON_HDMIA_C) {
                 connector_type = DRM_MODE_CONNECTOR_HDMIA;
             } else if (extend_connector_type >= DRM_MODE_CONNECTOR_MESON_HDMIB_A &&
-                       extend_connector_type >= DRM_MODE_CONNECTOR_MESON_HDMIB_C) {
+                       extend_connector_type <= DRM_MODE_CONNECTOR_MESON_HDMIB_C) {
                 connector_type = DRM_MODE_CONNECTOR_HDMIB;
             } else {
                 connector_type = extend_connector_type;
