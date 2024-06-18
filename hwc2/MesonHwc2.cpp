@@ -1255,20 +1255,19 @@ bool MesonHwc2::hideVideoLayer(bool hide) {
 
 bool MesonHwc2::setViewPort(const drm_rect_wh_t viewPort, drm_connector_type_t type) {
     std::lock_guard<std::mutex> lock(mViewPortMutex);
-    GET_HWC_DISPLAY(0);
-
-    auto mesonType = it->second->getConnectorType();
-    auto connectorType = it->second->getConnectorType(false);
-
-    if (mesonType == type || connectorType == type) {
-        // need set mesonType as key
-        mViewPorts.insert_or_assign(mesonType, viewPort);
-    } else {
-        MESON_LOGE("%s invalid connector type: %x", __func__, type);
+    std::map<hwc2_display_t, std::shared_ptr<Hwc2Display>>::iterator it;
+    for (it = mDisplays.begin(); it != mDisplays.end(); it++) {
+        auto mesonType = it->second->getConnectorType();
+        auto connectorType = it->second->getConnectorType(false);
+        if (mesonType == type || connectorType == type) {
+            MESON_LOGD("%s for connector type:%d %d",__func__, mesonType, connectorType);
+            mViewPorts.insert_or_assign(mesonType, viewPort);
+            it->second->outsideChanged();
+            return true;
+        }
     }
-
-    hwcDisplay->outsideChanged();
-    return true;
+    MESON_LOGE("%s invalid connector type: %x", __func__, type);
+    return false;
 }
 
 bool MesonHwc2::getViewPort(drm_rect_wh_t & viewPort, drm_connector_type_t type) {
