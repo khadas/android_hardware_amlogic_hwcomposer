@@ -215,6 +215,7 @@ public:
     virtual void hideVideoLayer(bool hide);
     virtual void setWBDisplayFrame(int x, int y);
     void enableSyncProtection(bool mode);
+    void setOutputFbReleaseFence(int fence);
 
     void createCustomizedBuffer();
     void destroyCustomizedBuffer();
