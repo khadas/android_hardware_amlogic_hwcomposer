@@ -1202,9 +1202,16 @@ void Hwc2Display::disableSideband(bool isDisable){
 int32_t Hwc2Display::getDisplayIdentificationData(uint32_t &outPort,
         std::vector<uint8_t> &outData) {
     int32_t ret = mConnector->getIdentificationData(outData);
-    if (ret == 0)
-        outPort = mConnector->getType(true);
-    ALOGE("getPort %d",mConnector->getType());
+    if (ret == 0) {
+        drm_connector_type_t extend_connector_type = mConnector->getType(true);
+        // TODO: This conditional check is for automotive HDMI compatibility.
+        //       It should be removed in the future as a temporary compatibility safeguard.
+        if (extend_connector_type >= DRM_MODE_CONNECTOR_MESON_HDMIA_A &&
+            extend_connector_type <= DRM_MODE_CONNECTOR_MESON_HDMIA_C)
+            extend_connector_type = DRM_MODE_CONNECTOR_HDMIA;
+        outPort = extend_connector_type;
+    }
+    MESON_LOGD("getPort %d", outPort);
     return ret;
 }
 
