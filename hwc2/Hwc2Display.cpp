@@ -1641,9 +1641,9 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
             return HWC2_ERROR_UNSUPPORTED;
         }
 
-        if (mWhiteBoardMode) {
-            int32_t fence = ::dup(mPresentFence);
-            mPresentCompositionStg->setReleaseFence(fence);
+        //white board enable and mirror display is disable,set internal present fence to output buffers
+        if (mWhiteBoardMode && !mMirrorDisplayMode && mDisplayId == DISPLAY_TYPE_INTERNAL) {
+            mPresentCompositionStg->setReleaseFence(::dup(mPresentFence));
         }
 
         if (mPostProcessor != NULL) {
@@ -2903,6 +2903,14 @@ void Hwc2Display::createCallbackThread(bool mode) {
     mWBVsync->setEnabled(mode);
     mObserver->refresh();
     return;
+}
+
+void Hwc2Display::setOutputFbReleaseFence(int fence) {
+    //white board and mirror display both enable,set merged present fence to output buffers
+    if (mWhiteBoardMode && mMirrorDisplayMode && mDisplayId == DISPLAY_TYPE_INTERNAL) {
+        mPresentCompositionStg->setReleaseFence(::dup(fence));
+    }
+    close(fence);
 }
 
 void Hwc2Display::setReverseMode(int type) {

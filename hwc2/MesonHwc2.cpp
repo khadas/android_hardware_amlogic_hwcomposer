@@ -567,8 +567,11 @@ int32_t MesonHwc2::presentDisplay(hwc2_display_t display,
         outExternalPresentFence = hwcDisplay->commitMirrorDisplay(mNeedBlank);
         std::shared_ptr<DrmFence> mMirrorReleaseFence = DrmFence::merge("Mirror Fence",std::make_shared<DrmFence>(outExternalPresentFence), std::make_shared<DrmFence>(*outPresentFence));
         *outPresentFence = (mMirrorReleaseFence->getFd() >= 0) ? ::dup(mMirrorReleaseFence->getFd()) : -1;
+        {
+            GET_HWC_DISPLAY(DISPLAY_TYPE_INTERNAL);
+            hwcDisplay->setOutputFbReleaseFence(mMirrorReleaseFence->getFd() >= 0 ? ::dup(mMirrorReleaseFence->getFd()) : -1);
+        }
     }
-
     return status;
 #else
     return hwcDisplay->presentDisplay(outPresentFence);
