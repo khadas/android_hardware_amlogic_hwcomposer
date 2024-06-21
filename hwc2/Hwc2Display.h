@@ -189,8 +189,8 @@ public:
     void setMirrorDisplayMode(bool mode);
     int32_t commitMirrorDisplay(bool needBlank);
     bool checkLayerList();
-    bool mMirrorDisplayMode = false;
 #endif
+    bool mMirrorDisplayMode = false;
 
 /* video tunnel api*/
 public:
