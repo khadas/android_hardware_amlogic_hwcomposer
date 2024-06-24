@@ -46,9 +46,9 @@ int32_t HwcConfig::getFramebufferSize(int disp, uint32_t & width, uint32_t & hei
             if (atoi(value) == 1) {
                width = HWC_PRIMARY_FRAMEBUFFER_HEIGHT;
                height = HWC_PRIMARY_FRAMEBUFFER_WIDTH;
-            } else if(atoi(value) == 2) {
-               width = 1920*2;
-               height = 1200*2;
+            } else if (atoi(value) == 2) {
+               width = 1920;
+               height = 1200;
             } else {
                width  = HWC_PRIMARY_FRAMEBUFFER_WIDTH;
                height = HWC_PRIMARY_FRAMEBUFFER_HEIGHT;
