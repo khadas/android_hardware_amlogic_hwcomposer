@@ -753,11 +753,46 @@ hwc2_error_t Hwc2Display::destroyLayer(hwc2_layer_t  inLayer) {
             __func__, mDisplayId, inLayer);
     mLayers.erase(inLayer);
 
+    if (layer != NULL
+            && (layer->mCompositionType == MESON_COMPOSITION_DI)
+            && !layer->isSidebandBuffer()) {
+        bool needTriggerRefresh = false;
+
+        for (auto it = mLayers.begin(); it != mLayers.end(); it++) {
+            if (it->second->mCompositionType == MESON_COMPOSITION_DI &&
+                    it->second->isVtBuffer()) {
+                needTriggerRefresh = true;
+            }
+        }
+
+        if (needTriggerRefresh) {
+            refreshVtLayersLocked();
+            onFrameAvailable();
+        }
+    }
+
     handleVtThread();
     if (layer && layer->isVtBuffer())
         layer->releaseVtResource();
     destroyLayerId(inLayer);
+
     return HWC2_ERROR_NONE;
+}
+
+hwc2_error_t Hwc2Display::setLayerBuffer(hwc2_layer_t id,
+        buffer_handle_t buffer,
+        int32_t acquireFence) {
+    ATRACE_CALL();
+    std::lock_guard<std::mutex> vtLock(mVtMutex);
+    std::shared_ptr<Hwc2Layer> hwcLayer = getLayerById(id);
+
+    if (hwcLayer.get() == NULL) {
+        MESON_LOGE("%s met invalid layer id %" PRIu64 " in display %d",
+                __func__, id, mDisplayId);
+        return HWC2_ERROR_BAD_LAYER;
+    }
+
+    return hwcLayer->setBuffer(buffer, acquireFence);
 }
 
 #ifdef ENABLE_VIRTUAL_LAYER
@@ -1333,7 +1368,6 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
             mScaleValue, mDisplayMode);
         if (mPresentCompositionStg->decideComposition() < 0)
             return HWC2_ERROR_NO_RESOURCES;
-
     } else {
         /* skip Composition */
         auto composerIt = mComposers.find(MESON_CLIENT_COMPOSER);

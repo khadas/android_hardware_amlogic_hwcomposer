@@ -599,8 +599,7 @@ int32_t MesonHwc2::setLayerBuffer(hwc2_display_t display, hwc2_layer_t layer,
     buffer_handle_t buffer, int32_t acquireFence) {
     int32_t ret;
     GET_HWC_DISPLAY(display);
-    GET_HWC_LAYER(hwcDisplay, layer);
-    ret = hwcLayer->setBuffer(buffer, acquireFence);
+    ret = hwcDisplay->setLayerBuffer(layer, buffer, acquireFence);
     if (ret == HWC2_ERROR_NONE)
         hwcDisplay->handleVtThread();
 

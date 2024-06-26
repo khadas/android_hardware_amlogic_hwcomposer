@@ -83,6 +83,8 @@ public:
     virtual std::shared_ptr<Hwc2Layer> getLayerById(hwc2_layer_t id);
     virtual hwc2_error_t createLayer(hwc2_layer_t * outLayer);
     virtual hwc2_error_t destroyLayer(hwc2_layer_t  inLayer);
+    virtual hwc2_error_t setLayerBuffer(hwc2_layer_t id,
+            buffer_handle_t buffer, int32_t acquireFence);
     virtual hwc2_error_t setCursorPosition(hwc2_layer_t layer,
         int32_t x, int32_t y);
 

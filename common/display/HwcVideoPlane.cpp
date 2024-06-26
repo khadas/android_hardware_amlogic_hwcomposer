@@ -23,7 +23,8 @@
 inline bool isSidebandVideo(drm_fb_type_t fbtype) {
     if (fbtype == DRM_FB_VIDEO_SIDEBAND ||
         fbtype == DRM_FB_VIDEO_SIDEBAND_TV ||
-        fbtype == DRM_FB_VIDEO_SIDEBAND_SECOND) {
+        fbtype == DRM_FB_VIDEO_SIDEBAND_SECOND ||
+        fbtype == DRM_FB_VIDEO_TUNNEL_SIDEBAND) {
         return true;
     }
 
