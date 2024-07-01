@@ -481,7 +481,6 @@ int32_t NnProcessor::asyncProcess(
     mSrBuf[mBuf_index].fence_fd_last = mSrBuf[mBuf_index].fence_fd;
     mSrBuf[mBuf_index].fence_fd = -1;
     mSrBuf[mBuf_index].status = BUF_NN_START;
-    mSrBuf[mBuf_index].outFb = outfb;
     mSrBuf[mBuf_index].shared_fd = dup_fd;
 
     ALOGD_IF(nn_check_D(),

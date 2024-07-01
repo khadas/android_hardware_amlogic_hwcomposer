@@ -34,7 +34,6 @@ struct sr_buffer_t {
     int fence_fd_last;
     int64_t phy;
     int size;
-    std::shared_ptr<DrmFramebuffer> outFb;
     int shared_fd;
     int status;
     buffer_handle_t buffer_handle;
