@@ -621,7 +621,8 @@ void Hwc2Display::onModeChanged(int stage) {
 
     {
         std::lock_guard<std::mutex> lock(mMutex);
-        MESON_LOGD("On mode change state: [%s]", stage == 1 ? "Complete" : "Begin to change");
+        MESON_LOGD("Display %d on mode change state: [%s]", mDisplayId,
+                   stage == 1 ? "Complete" : "Begin to change");
         if (stage == 1) {
             if (mObserver != NULL) {
                 /*plug in and set displaymode ok, update information.*/

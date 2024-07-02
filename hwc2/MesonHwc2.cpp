@@ -523,9 +523,19 @@ int32_t MesonHwc2::validateDisplay(hwc2_display_t display,
     setCalibrateInfo(display);
 
 #ifdef ENABLE_MIRRORDISPLAY_OPTIMIZE
+    // Mirror display should work on the same display mode
+    drm_mode_info_t internalDisplayMode;
+    drm_mode_info_t secondDisplayMode;
+    if (mDisplays.size() == 2) {
+        mDisplays[0]->getDispMode(internalDisplayMode);
+        mDisplays[1]->getDispMode(secondDisplayMode);
+    }
+
     //TODO hardcode to identify the mirror display
     if (hwcDisplay->getDisplayId() == DISPLAY_TYPE_INTERNAL) {
-        if (property_get_bool("vendor.hwc.mirror_display", false)) {
+        if (internalDisplayMode.pixelW== secondDisplayMode.pixelW &&
+            internalDisplayMode.pixelH == secondDisplayMode.pixelH &&
+            property_get_bool("vendor.hwc.mirror_display", false)) {
             mMirrorDisplayMode = true;
         } else {
             mMirrorDisplayMode = false;
