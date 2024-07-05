@@ -788,8 +788,14 @@ hwc2_error_t Hwc2Display::setLayerBuffer(hwc2_layer_t id,
         buffer_handle_t buffer,
         int32_t acquireFence) {
     ATRACE_CALL();
+    std::lock_guard<std::mutex> lock(mMutex);
     std::lock_guard<std::mutex> vtLock(mVtMutex);
-    std::shared_ptr<Hwc2Layer> hwcLayer = getLayerById(id);
+    std::shared_ptr<Hwc2Layer> hwcLayer = nullptr;
+    std::unordered_map<hwc2_layer_t, std::shared_ptr<Hwc2Layer>>::iterator it =
+        mLayers.find(id);
+
+    if (it != mLayers.end())
+        hwcLayer = it->second;
 
     if (hwcLayer.get() == NULL) {
         MESON_LOGE("%s met invalid layer id %" PRIu64 " in display %d",
