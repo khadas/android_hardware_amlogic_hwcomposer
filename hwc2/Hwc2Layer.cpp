@@ -49,6 +49,7 @@ Hwc2Layer::Hwc2Layer(uint32_t dispId) : DrmFramebuffer(){
     mQueueItems.clear();
 
     mPreUvmBufferFd = -1;
+    mPreBufferIno = 0;
 
     mDisplayObserver = nullptr;
     mContentListener = nullptr;
@@ -175,10 +176,6 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
     * As the buffer will was update already
     */
     detachUvmBuffer();
-    if (preType == DRM_FB_VIDEO_UVM_DMA && mPreUvmBufferFd >= 0) {
-        collectUvmBuffer(mPreUvmBufferFd, getPrevReleaseFence());
-        mPreUvmBufferFd = -1;
-    }
 
     if (buffer == NULL || mBufferHandle == NULL) {
         MESON_LOGE("Receive null buffer, it is impossible.");
@@ -193,9 +190,28 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
         mFbType = DRM_FB_VIDEO_UVM_DMA;
         int bufFd = am_gralloc_get_buffer_fd(mBufferHandle);
         if (bufFd >= 0) {
-            mPreUvmBufferFd = dup(bufFd);
-            attachUvmBuffer(mPreUvmBufferFd);
-            getVideoInfoFromUVM(bufFd);
+            uint64_t bufIno = 0;
+            struct stat st;
+            int ret = fstat(bufFd, &st);
+            if (ret == 0) {
+                bufIno = st.st_ino;
+                if (bufIno != mPreBufferIno) {
+                    mPreBufferIno = bufIno;
+                    if (preType == DRM_FB_VIDEO_UVM_DMA && mPreUvmBufferFd > 0) {
+                        collectUvmBuffer(mPreUvmBufferFd, getPrevReleaseFence());
+                        mPreUvmBufferFd = -1;
+                    }
+
+                    if (mPreUvmBufferFd > 0)
+                        close(mPreUvmBufferFd);
+
+                    mPreUvmBufferFd = dup(bufFd);
+                    attachUvmBuffer(mPreUvmBufferFd);
+                    getVideoInfoFromUVM(bufFd);
+                }
+            } else {
+                MESON_LOGE("%s, fstat get buffer inode with error %s", __func__, strerror(errno));
+            }
         }
     } else if (am_gralloc_is_omx_metadata_buffer(mBufferHandle)) {
         int tunnel = 0;
@@ -225,6 +241,7 @@ hwc2_error_t Hwc2Layer::setBuffer(buffer_handle_t buffer, int32_t acquireFence) 
 
     // changed from UVM to other type
     if (preType != mFbType && preType == DRM_FB_VIDEO_UVM_DMA) {
+        mPreBufferIno = 0;
         releaseUvmResourceLock();
     }
 
@@ -243,6 +260,7 @@ hwc2_error_t Hwc2Layer::setSidebandStream(const native_handle_t* stream,
 
     int type = AM_INVALID_SIDEBAND;
     int channel_id = 0;
+    mPreBufferIno = 0;
     am_gralloc_get_sideband_type(stream, &type);
     am_gralloc_get_sideband_channel(stream, &channel_id);
     if (type == AM_TV_SIDEBAND) {

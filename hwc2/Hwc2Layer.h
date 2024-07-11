@@ -19,6 +19,7 @@
 #include <VtConsumer.h>
 #include <VtAllocSolidColorBuffer.h>
 
+#include <sys/stat.h>
 #define VT_CMD_DISABLE_VIDEO     0x01
 #define VT_CMD_GAME_MODE_ENABLE  0x02
 #define VT_CMD_GAME_MODE_DISABLE 0x04
@@ -200,6 +201,7 @@ protected:
     float mBrightness;
 
     display_zoom_info_t mCalibrateInfo;
+    uint64_t mPreBufferIno;
     bool mNeedAskRefresh;
 };
 
