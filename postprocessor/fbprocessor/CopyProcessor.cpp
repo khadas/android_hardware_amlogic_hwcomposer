@@ -16,6 +16,8 @@
 
 CopyProcessor::CopyProcessor() {
     mGe2dHelper = std::make_shared<Ge2dHelper>();
+    mRotation = (Rotation) HwcConfig::getVirtualDisplayRotation();
+    MESON_LOGV("CopyProcessor: mRotation = %d", mRotation);
 }
 
 CopyProcessor::~CopyProcessor() {
@@ -41,16 +43,26 @@ int32_t CopyProcessor::onBufferDisplayed(
 int32_t CopyProcessor::process(
     std::shared_ptr<DrmFramebuffer> & inputfb,
     std::shared_ptr<DrmFramebuffer> & outfb) {
-    int infmt = am_gralloc_get_format (inputfb->mBufferHandle);
-    int outfmt = am_gralloc_get_format (outfb->mBufferHandle);
-    int w = am_gralloc_get_width(inputfb->mBufferHandle);
-    int h = am_gralloc_get_height(inputfb->mBufferHandle);
-    int srcFd = am_gralloc_get_buffer_fd(inputfb->mBufferHandle);
-    int dstFd = am_gralloc_get_buffer_fd(outfb->mBufferHandle);
-    MESON_LOGV("CopyProcessor %dx%d, fmt %d, %d", w, h, infmt, outfmt);
+    Ge2dBufferInfo srcInfo, dstInfo;
+
+    srcInfo.fmt = am_gralloc_get_format (inputfb->mBufferHandle);
+    srcInfo.w = am_gralloc_get_width(inputfb->mBufferHandle);
+    srcInfo.h = am_gralloc_get_height(inputfb->mBufferHandle);
+    srcInfo.fd = am_gralloc_get_buffer_fd(inputfb->mBufferHandle);
+    srcInfo.stride = am_gralloc_get_stride_in_pixel(inputfb->mBufferHandle);
+    dstInfo.fmt = am_gralloc_get_format (outfb->mBufferHandle);
+    dstInfo.fd = am_gralloc_get_buffer_fd(outfb->mBufferHandle);
+    dstInfo.w = am_gralloc_get_width(outfb->mBufferHandle);
+    dstInfo.h = am_gralloc_get_height(outfb->mBufferHandle);
+    dstInfo.stride = am_gralloc_get_stride_in_pixel(outfb->mBufferHandle);
+
+    MESON_LOGV("CopyProcessor %dx%d -> %dx%d, fmt %d -> %d, Stride in pixel %d -> %d",
+            srcInfo.w, srcInfo.h, dstInfo.w, dstInfo.h, srcInfo.fmt,
+            dstInfo.fmt, srcInfo.stride, dstInfo.stride);
+
     {
         ATRACE_BEGIN("CopyProcessor::copy");
-        mGe2dHelper->ge2DFmtConvert(dstFd, outfmt, w, h, srcFd, infmt, w, h);
+        mGe2dHelper->ge2DFmtConvert(srcInfo, dstInfo, mRotation);
         ATRACE_END();
     }
     return 0;

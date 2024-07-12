@@ -424,6 +424,15 @@ bool HwcConfig::UvmDetachEnabled() {
 #endif
 }
 
+int32_t HwcConfig::getVirtualDisplayRotation() {
+    char rotationStr[PROPERTY_VALUE_MAX] = {0};
+    int32_t rotation = ROTATION_0;
+    if (sys_get_string_prop("vendor.hwc.rotation", rotationStr)) {
+        rotation = atoi(rotationStr) / 90;
+    }
+    return rotation;
+}
+
 void HwcConfig::dump(String8 & dumpstr) {
     if (isHeadlessMode()) {
         dumpstr.appendFormat("\t HeadlessMode refreshrate: %d", headlessRefreshRate());
