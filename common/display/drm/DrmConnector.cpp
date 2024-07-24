@@ -428,10 +428,10 @@ drm_connector_type_t DrmConnector::getType(bool extend_connector_type) {
     if (extend_connector_type) {
         if (mMesonConnectorType.get()) {
             connector_type = mMesonConnectorType->getValue();
-            MESON_LOGD("%s get connector %x", __func__, connector_type);
+            MESON_LOGD("%s get connector %d", __func__, connector_type);
         } else {
-            MESON_LOGE("%s no aml connector_type is configured, return the "
-                       "standard DRM connector type  %x", __func__, mType);
+            MESON_LOGD("%s no aml connector_type is configured, return the "
+                       "standard DRM connector type  %d", __func__, mType);
         }
     }
     return connector_type;
