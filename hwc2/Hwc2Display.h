@@ -279,7 +279,7 @@ protected:
     bool hasVideoLayerPresent();
 
     /*For debug*/
-    void dumpPresentLayers(String8 & dumpstr);
+    void dumpPresentLayers(String8 & dumpstr, const bool forDebug);
     bool isLayerHideForDebug(hwc2_layer_t id);
     void dumpHwDisplayPlane(String8 &dumpstr);
 
