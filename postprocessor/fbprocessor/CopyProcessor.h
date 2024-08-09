@@ -12,6 +12,7 @@
 
 #include <FbProcessor.h>
 #include "common/Ge2dHelper.h"
+#include "HwcConfig.h"
 
 class CopyProcessor : public FbProcessor {
 public:
@@ -36,6 +37,7 @@ public:
 
 private:
     std::shared_ptr<Ge2dHelper> mGe2dHelper;
+    Rotation mRotation = ROTATION_0;
 };
 
 #endif

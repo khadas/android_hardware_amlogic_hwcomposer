@@ -66,7 +66,7 @@ public:
     virtual void dump(String8 & dumpstr);
     virtual void lateInit(){};
     bool hasDummyConnector();
-    virtual void addVirtualDisplay(std::shared_ptr<HwcDisplay> disp __unused);
+    virtual void addVirtualDisplay(const std::shared_ptr<HwcDisplay> & disp __unused);
     std::shared_ptr<VdinPostProcessor> mVdinPostProcessor;
 
 protected:

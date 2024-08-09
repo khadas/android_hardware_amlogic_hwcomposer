@@ -497,7 +497,7 @@ std::shared_ptr<HwcDisplayPipe> createDisplayPipe(hwc_pipe_policy_t pipet) {
     return NULL;
 }
 
-void HwcDisplayPipe::addVirtualDisplay(std::shared_ptr<HwcDisplay> disp __unused) {
+void HwcDisplayPipe::addVirtualDisplay(const std::shared_ptr<HwcDisplay>& disp __unused) {
     std::lock_guard<std::mutex> lock(mMutex);
     for (auto statIt : mPipeStats) {
         if (statIt.second->hwcId == 0) {

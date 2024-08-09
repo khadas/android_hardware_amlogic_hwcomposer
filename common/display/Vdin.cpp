@@ -22,7 +22,7 @@
 #include <HwDisplayCrtc.h>
 #include <MesonLog.h>
 #include <Vdin.h>
-
+#include "HwcConfig.h"
 
 ANDROID_SINGLETON_STATIC_INSTANCE(Vdin)
 
@@ -85,7 +85,13 @@ int32_t Vdin::getStreamInfo(int & width, int & height, int & format) {
     drm_mode_info_t modeInfo;
     uint32_t pipeIdx = mVdinType == PROCESSOR_FOR_SCREENRECORD ? DRM_PIPE_VOUT1 : DRM_PIPE_VOUT2;
     auto crtc = getHwDisplayManager()->getCrtcByPipe(pipeIdx);
-    if (crtc->getMode(modeInfo) != 0) {
+    int ret = crtc->getMode(modeInfo);
+    bool needGe2dProcess = false;
+    Rotation rotation = (Rotation) HwcConfig::getVirtualDisplayRotation();
+    // vdin can't support rotation and scale up, need ge2d to process
+    needGe2dProcess = (rotation == ROTATION_90) || (rotation == ROTATION_270)
+        || (mRecordWidth > modeInfo.pixelW);
+    if (ret != 0) {
         MESON_LOGE("getStreamInfo failed.");
         mCapParams.width = 1920;
         mCapParams.height = 1080;
@@ -97,8 +103,8 @@ int32_t Vdin::getStreamInfo(int & width, int & height, int & format) {
         mCapParams.height = modeInfo.pixelH;
         mCapParams.bit_dep = 8;
         if (mVdinType == PROCESSOR_FOR_SCREENRECORD) {
-            mCapParams.dst_width = mRecordWidth;
-            mCapParams.dst_height = mRecordHeight;
+            mCapParams.dst_width = needGe2dProcess ? modeInfo.pixelW : mRecordWidth;
+            mCapParams.dst_height = needGe2dProcess ? modeInfo.pixelH : mRecordHeight;
         }
         mCapParams.fps = (int)modeInfo.refreshRate;
         /*force use RGB888*/
@@ -109,9 +115,11 @@ int32_t Vdin::getStreamInfo(int & width, int & height, int & format) {
         width = mCapParams.width;
         height = mCapParams.height;
     } else if (mVdinType == PROCESSOR_FOR_SCREENRECORD) {
-        width = mRecordWidth;
-        height = mRecordHeight;
+        width = mCapParams.dst_width;
+        height = mCapParams.dst_height;
     }
+    MESON_LOGD("%s: mCapParams width = %d, height = %d, dst_width = %d, dst_height = %d", __func__,
+            mCapParams.width, mCapParams.height, mCapParams.dst_width, mCapParams.dst_height);
 
     mCapParams.bit_order = 1;
     format = mDefFormat;

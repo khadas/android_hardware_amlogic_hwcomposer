@@ -14,6 +14,14 @@
 #include <ge2d_port.h>
 #include <MesonLog.h>
 
+struct Ge2dBufferInfo {
+    int fd = -1;
+    int fmt = 0;
+    int w = 0;
+    int h = 0;
+    int stride = 0;
+};
+
 class Ge2dHelper {
 
 public:
@@ -21,8 +29,7 @@ public:
 
     ~Ge2dHelper();
 
-    int ge2DFmtConvert(int dst_fd, unsigned int dst_fmt, size_t dst_w, size_t dst_h, int src_fd,
-                         unsigned int src_fmt, size_t src_w, size_t src_h);
+    int ge2DFmtConvert(Ge2dBufferInfo srcInfo, Ge2dBufferInfo dstInfo, int32_t rotation = 0);
 
 private:
     inline void clearGe2DInfo();
