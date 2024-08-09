@@ -1408,7 +1408,7 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
     /*dump at end of validate, for we need check by some composition info.*/
     bool dumpLayers = false;
     if (DebugHelper::getInstance().logCompositionDetail()) {
-        MESON_LOGE("***CompositionFlow (%s):\n", __func__);
+        MESON_LOGE("***CompositionFlow (%s) displayID %d\n", __func__, mDisplayId);
         dumpLayers = true;
     } else if (mFailedDeviceComp) {
         MESON_LOGE("***MonitorFailedDeviceComposition: \n");
@@ -1416,7 +1416,7 @@ hwc2_error_t Hwc2Display::validateDisplay(uint32_t* outNumTypes,
     }
     if (dumpLayers) {
         String8 layersDump;
-        dumpPresentLayers(layersDump);
+        dumpPresentLayers(layersDump, true);
         MESON_LOGE("%s", layersDump.c_str());
     }
     return ret;
@@ -1636,7 +1636,7 @@ hwc2_error_t Hwc2Display::presentDisplay(int32_t* outPresentFence) {
         }
         if (dumpLayers) {
             String8 layersDump;
-            dumpPresentLayers(layersDump);
+            dumpPresentLayers(layersDump, true);
             MESON_LOGE("%s", layersDump.c_str());
         }
     }
@@ -2366,7 +2366,7 @@ int32_t Hwc2Display::adjustVsyncMode() {
     return 0;
 }
 
-void Hwc2Display::dumpPresentLayers(String8 & dumpstr) {
+void Hwc2Display::dumpPresentLayers(String8 & dumpstr, const bool forDebug) {
     dumpstr.append("------------------------------------------------------------"
         "-------------------------------------------\n");
     dumpstr.append("|  id  |  z  |    type    |blend| alpha  |t|"
@@ -2382,9 +2382,10 @@ void Hwc2Display::dumpPresentLayers(String8 & dumpstr) {
             int afbc = am_gralloc_get_vpu_afbc_mask(layer->mBufferHandle);
             compress = afrc ? afrc : afbc;
         }
-
-        dumpstr.append("+------+-----+------------+-----+--------+-+---------+"
-            "-------------------+-------------------+--------+\n");
+        if (!forDebug) {
+            dumpstr.append("+------+-----+------------+-----+--------+-+---------+"
+                           "-------------------+-------------------+--------+\n");
+        }
         dumpstr.appendFormat("|%6" PRIu64 "|%5d|%12s|%5d|%8f|%1d|%9x|%4d %4d %4d %4d"
             "|%4d %4d %4d %4d|%8d|\n",
             layer->getUniqueId(),
@@ -2498,7 +2499,7 @@ void Hwc2Display::dump(String8 & dumpstr) {
 
     /* dump present layers info*/
     dumpstr.append("Present layers:\n");
-    dumpPresentLayers(dumpstr);
+    dumpPresentLayers(dumpstr, false);
     dumpstr.append("\n");
 
     /* dump composition stragegy.*/
