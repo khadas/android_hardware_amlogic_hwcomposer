@@ -713,7 +713,7 @@ void DrmConnector::updateHdrCaps() {
         mHdrCapabilities.DolbyVisionSupported = mSupportDv;
         mHdrCapabilities.HLGSupported = true;
         mHdrCapabilities.HDR10Supported = true;
-        mHdrCapabilities.HDR10PlusSupported = true;
+        mHdrCapabilities.HDR10PlusSupported = sys_get_bool_prop("ro.vendor.hdr10plus.enable", false);
         mHdrCapabilities.maxLuminance = sDefaultMaxLumiance;
         mHdrCapabilities.avgLuminance = sDefaultMaxLumiance;
         mHdrCapabilities.minLuminance = sDefaultMinLumiance;
