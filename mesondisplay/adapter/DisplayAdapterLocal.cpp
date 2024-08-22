@@ -20,6 +20,7 @@
 #include <limits>
 
 #define SYSFS_DISPLAY_MODE              "/sys/class/display/mode"
+#define SYSFS_DISPLAY2_MODE              "/sys/class/display2/mode"
 #define MAX_TRY_COUNT                   5
 
 #define GET_CRTC_BY_CONNECTOR(type) \
@@ -218,9 +219,16 @@ bool DisplayAdapterLocal::getDisplayMode(string& mode, ConnectorType displayType
     return true;
 }
 
-bool DisplayAdapterLocal::setDisplayMode(const string& mode, ConnectorType displayType) {
+bool DisplayAdapterLocal::setDisplayMode(const string& in_mode, ConnectorType displayType) {
     drm_connector_type_t type;
     drm_mode_info_t mock;
+    string mode = in_mode;
+    if (mode == "dummy_l"){
+        mode = "null";
+    } else {
+        strncpy(mock.name, mode.c_str(), DRM_DISPLAY_MODE_LEN);
+    }
+
     strncpy(mock.name, mode.c_str(), DRM_DISPLAY_MODE_LEN);
     DisplayTypeConv(type, displayType);
 
@@ -231,7 +239,7 @@ bool DisplayAdapterLocal::setDisplayMode(const string& mode, ConnectorType displ
     if (crtc) {
         crtc->setMode(mock);
     } else {
-        sysfs_set_string(SYSFS_DISPLAY_MODE, mode.c_str());
+        sysfs_set_string(SYSFS_DISPLAY2_MODE, mode.c_str());
         MESON_LOGE("SetDisplayMode %s , no crtc", mode.c_str());
     }
 

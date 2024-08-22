@@ -305,10 +305,10 @@ void HwcDisplayPipe::handleEvent(drm_display_event event, int val) {
         case DRM_EVENT_VOUT2_MODE_CHANGED:
             {
                 MESON_LOGD("ModeChange state: [%s]", val == 1 ? "Complete" : "Begin to change");
+                int pipeIdx = DRM_PIPE_VOUT1;
+                if (event == DRM_EVENT_VOUT2_MODE_CHANGED)
+                    pipeIdx = DRM_PIPE_VOUT2;
                 if (val == 1) {
-                    int pipeIdx = DRM_PIPE_VOUT1;
-                    if (event == DRM_EVENT_VOUT2_MODE_CHANGED)
-                        pipeIdx = DRM_PIPE_VOUT2;
                     for (auto statIt : mPipeStats) {
                         if (statIt.second->modeCrtc->getPipe() == pipeIdx) {
                             statIt.second->modeConnector->update();
@@ -339,7 +339,9 @@ void HwcDisplayPipe::handleEvent(drm_display_event event, int val) {
                     }
                 } else {
                     for (auto statIt : mPipeStats) {
-                        statIt.second->hwcDisplay->onModeChanged(val);
+                        if (statIt.second->modeCrtc->getPipe() == pipeIdx) {
+                            statIt.second->hwcDisplay->onModeChanged(val);
+                        }
                     }
                 }
             }

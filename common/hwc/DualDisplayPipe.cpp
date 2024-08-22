@@ -63,7 +63,8 @@ int32_t DualDisplayPipe::init(
     };
     /*reset dual pipeline displaymode to NULL*/
     for (auto stat : mPipeStats) {
-        stat.second->modeCrtc->setMode(displayMode);
+        if (stat.second->cfg.modeConnectorType == DRM_MODE_CONNECTOR_HDMIA)
+            stat.second->modeCrtc->setMode(displayMode);
     }
     /*set vout displaymode*/
     for (auto stat : mPipeStats) {
@@ -156,9 +157,7 @@ int32_t DualDisplayPipe::getPipeCfg(uint32_t hwcid, PipeCfg & cfg) {
 }
 
 void DualDisplayPipe::handleEvent(drm_display_event event, int val) {
-    if (event == DRM_EVENT_HDMITX_HOTPLUG &&
-        (HwcConfig::dynamicSwitchViuEnabled() == true ||
-        HwcConfig::dynamicSwitchConnectorEnabled() == true)) {
+    if (event == DRM_EVENT_HDMITX_HOTPLUG ) {
         std::lock_guard<std::mutex> lock(mMutex);
         MESON_LOGD("Hotplug handle value %d.",val);
         bool connected = (val == 0) ? false : true;
@@ -170,19 +169,6 @@ void DualDisplayPipe::handleEvent(drm_display_event event, int val) {
             60.0,
             0
         };
-
-        MESON_LOGD("SET display mode null.");
-        /*reset vout displaymode, for we need do pipeline switch*/
-        for (auto statIt : mPipeStats) {
-            //TODO: need disable vsycn before setmode to null.
-            std::string curMode;
-            statIt.second->modeCrtc->readCurDisplayMode(curMode);
-            if (strcmp(curMode.c_str(), "panel") == 0) {
-                statIt.second->modeCrtc->setMode(displayMode);
-                MESON_LOGE("set panel to NULL  displaymode ");
-            }
-        }
-
         if (connected == false) {
             for (auto statIt : mPipeStats) {
                 if (statIt.second->modeConnector->getType() == DRM_MODE_CONNECTOR_HDMIA) {
@@ -226,7 +212,7 @@ void DualDisplayPipe::handleEvent(drm_display_event event, int val) {
                 }
 
                 MESON_LOGD("HDMI SET display mode %s.", prefdisplayMode.c_str());
-                sc_set_display_mode(prefdisplayMode);
+                statIt.second->modeCrtc->setMode(displayMode);
 
                 if (connected) {
                     statIt.second->modeConnector->update();
@@ -234,21 +220,6 @@ void DualDisplayPipe::handleEvent(drm_display_event event, int val) {
                 }
             }
         }
-
-        for (auto statIt : mPipeStats) {
-            MESON_LOGD("Update display mode for PANEL");
-            if (statIt.second->modeConnector->getType() == DRM_MODE_CONNECTOR_LVDS) {
-                std::string lcd_mute("8");
-                sc_write_sysfs(LCD_MUTE, lcd_mute);
-                strcpy(displayMode.name, DRM_DISPLAY_MODE_PANEL);
-                statIt.second->modeCrtc->setMode(displayMode);
-                usleep(20000);
-                std::string lcd_unmute("0");
-                sc_write_sysfs(LCD_MUTE, lcd_unmute);
-                MESON_LOGD("HwcDisplayPipe::handleEvent lcd unmute");
-            }
-        }
-
     } else {
         HwcDisplayPipe::handleEvent(event, val);
     }
