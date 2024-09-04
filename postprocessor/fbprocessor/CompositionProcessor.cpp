@@ -264,6 +264,7 @@ int32_t CompositionProcessor::composite(
             am_gralloc_get_consumer_usage(outfb->mBufferHandle),
             am_gralloc_get_stride_in_pixel(outfb->mBufferHandle));
         outbuffer[outfbId] = outbuf[outfbId]->getNativeBuffer();
+        outbuffer[outfbId]->incStrong(outbuffer[outfbId]);
         mWBHelper.createImage (outbuffer[outfbId], &outImg[outfbId], false);
 
         glGenTextures(1,&outTex[outfbId]);
@@ -327,25 +328,27 @@ int32_t CompositionProcessor::composite(
             am_gralloc_get_consumer_usage(inputWBfb->mBufferHandle),
             am_gralloc_get_stride_in_pixel(inputWBfb->mBufferHandle));
         wbbuffer = wbbuf->getNativeBuffer();
+        wbbuffer->incStrong(wbbuffer);
         mWBHelper.createImage (wbbuffer, &inWBImg, false);
         mWBHelper.createExternalTexture(inWBImg, &inWBTex);
-
-        uibuf = new GraphicBuffer(inputUIfb->mBufferHandle,
-            GraphicBuffer:: WRAP_HANDLE,
-            am_gralloc_get_width(inputUIfb->mBufferHandle),
-            am_gralloc_get_height(inputUIfb->mBufferHandle),
-            am_gralloc_get_format(inputUIfb->mBufferHandle),
-               1,
-            am_gralloc_get_consumer_usage(inputUIfb->mBufferHandle),
-            am_gralloc_get_stride_in_pixel(inputUIfb->mBufferHandle));
-        uibuffer = uibuf->getNativeBuffer();
-        mWBHelper.createImage (uibuffer, &inUIImg, false);
-        mWBHelper.createExternalTexture(inUIImg, &inUITex);
 
         mFirst = false;
     }
 
     mThreadChanged = false;
+
+    uibuf = new GraphicBuffer(inputUIfb->mBufferHandle,
+        GraphicBuffer:: WRAP_HANDLE,
+        am_gralloc_get_width(inputUIfb->mBufferHandle),
+        am_gralloc_get_height(inputUIfb->mBufferHandle),
+        am_gralloc_get_format(inputUIfb->mBufferHandle),
+           1,
+        am_gralloc_get_consumer_usage(inputUIfb->mBufferHandle),
+        am_gralloc_get_stride_in_pixel(inputUIfb->mBufferHandle));
+    uibuffer = uibuf->getNativeBuffer();
+    uibuffer->incStrong(uibuffer);
+    mWBHelper.createImage (uibuffer, &inUIImg, false);
+    mWBHelper.createExternalTexture(inUIImg, &inUITex);
 
     float width = am_gralloc_get_width(outfb->mBufferHandle);
     float height = am_gralloc_get_height(outfb->mBufferHandle);
@@ -405,6 +408,10 @@ int32_t CompositionProcessor::composite(
     glUseProgram(0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+    mWBHelper.destroyExternalTexture (inUITex);
+    mWBHelper.destroyImage(inUIImg);
+    mWBHelper.destroyNativeBuffer(uibuffer);
+
     return 0;
 }
 
@@ -421,15 +428,12 @@ int32_t CompositionProcessor::teardown() {
     if (mInitialized) {
         mWBHelper.destroyEglContext();
         glDeleteProgram(mProgramId);
+        mWBHelper.destroyImage(outImg[0]);
         mWBHelper.destroyImage(outImg[1]);
         mWBHelper.destroyExternalTexture (inWBTex);
         mWBHelper.destroyImage(inWBImg);
 
-        mWBHelper.destroyExternalTexture (inUITex);
-        mWBHelper.destroyImage(inUIImg);
-
         mWBHelper.destroyNativeBuffer(wbbuffer);
-        mWBHelper.destroyNativeBuffer(uibuffer);
         mWBHelper.destroyNativeBuffer(outbuffer[0]);
         mWBHelper.destroyNativeBuffer(outbuffer[1]);
         glDeleteFramebuffers(1, &outFBO[0]);
