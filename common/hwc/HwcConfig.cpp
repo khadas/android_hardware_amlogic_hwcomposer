@@ -13,15 +13,12 @@
 #include <systemcontrol.h>
 #include <misc.h>
 
-//#defined HWC_PRIMARY_FRAMEBUFFER_WIDTH 2160
-//#defined HWC_PRIMARY_FRAMEBUFFER_HEIGHT 3840
-//int32_t HwcConfig::isLcdExist() {
-//
-//    char value[PROPERTY_VALUE_MAX];
-//    property_get("sys.lcd.exist", value, "0");
-//    int32_t exist = atoi(value);
-//    return exist;
-//}
+int32_t HwcConfig::isLcdExist() {
+    char value[PROPERTY_VALUE_MAX];
+    property_get("sys.lcd.exist", value, "0");
+    int32_t exist = atoi(value);
+    return exist;
+}
 
 int32_t HwcConfig::getFramebufferSize(int disp, uint32_t & width, uint32_t & height) {
     char uiMode[PROPERTY_VALUE_MAX] = {0};
@@ -29,67 +26,86 @@ int32_t HwcConfig::getFramebufferSize(int disp, uint32_t & width, uint32_t & hei
 
     if (disp == 0) {
         /*primary display*/
-        if (sys_get_string_prop("vendor.ui_mode", uiMode) > 0) {
-            if (!strncmp(uiMode, "720", 3)) {
+        if (sys_get_string_prop("persist.sys.builtin.ui_mode", uiMode) > 0) {
+            if (!strncmp(uiMode, "1280x720", 8)) {
                 width  = 1280;
                 height = 720;
-            } else if (!strncmp(uiMode, "1080", 4)) {
+            } else if (!strncmp(uiMode, "1920x1080", 9)) {
                 width  = 1920;
                 height = 1080;
-            } else {
+            }else if (!strncmp(uiMode, "1080x1920", 9)) {
+                width  = 1080;
+                height = 1920;
+            }else if (!strncmp(uiMode, "720x1280", 8)) {
+                width  = 720;
+                height = 1280;
+            }else if (!strncmp(uiMode, "1024x768", 8)) {
+                width  = 1024;
+                height = 768;
+            }else if (!strncmp(uiMode, "768x1024", 8)) {
+                width  = 768;
+                height = 1024;
+            }else if (!strncmp(uiMode, "1024x600", 8)) {
+                width  = 1024;
+                height = 600;
+            }else if (!strncmp(uiMode, "600x1024", 8)) {
+                width  = 600;
+                height = 1024;
+            }else if (!strncmp(uiMode, "1280x800", 8)) {
+                width  = 1280;
+                height = 800;
+            }else if (!strncmp(uiMode, "800x1280", 8)) {
+                width  = 800;
+                height = 1280;
+            }
+			else {
                 MESON_ASSERT(0, "%s: get not support mode [%s] from vendor.ui_mode",
                     __func__, uiMode);
             }
         } else {
-        #ifdef HWC_PRIMARY_FRAMEBUFFER_WIDTH
+        if (isLcdExist() == 1) {
             property_get("sys.lcd.reverse", value, "0");
-            if (atoi(value) == 1) {
-               width = HWC_PRIMARY_FRAMEBUFFER_HEIGHT;
-               height = HWC_PRIMARY_FRAMEBUFFER_WIDTH;
-            } else if (atoi(value) == 2) {
-               width = 1920;
-               height = 1200;
-            } else {
-               width  = HWC_PRIMARY_FRAMEBUFFER_WIDTH;
-               height = HWC_PRIMARY_FRAMEBUFFER_HEIGHT;
+            if(atoi(value) == 2) {//TS101 UI resolution size
+                width = 1920;
+                height = 1200;
+            } else {//old_TS050 or new_TS050 UI resolution size
+                width = HWC_LCD_PRIMARY_FRAMEBUFFER_WIDTH;
+                height = HWC_LCD_PRIMARY_FRAMEBUFFER_HEIGHT;
             }
-        #else
-            MESON_ASSERT(0, "HWC_PRIMARY_FRAMEBUFFER_WIDTH not set.");
-        #endif
+            } else {
+                width  = HWC_PRIMARY_FRAMEBUFFER_WIDTH;
+                height = HWC_PRIMARY_FRAMEBUFFER_HEIGHT;
+            }
         }
     } else {
     /*extend display*/
-    #ifdef HWC_EXTEND_FRAMEBUFFER_WIDTH
+    if (isLcdExist() == 1) {
         width = HWC_EXTEND_FRAMEBUFFER_WIDTH;
         height = HWC_EXTEND_FRAMEBUFFER_HEIGHT;
-    #else
-        MESON_ASSERT(0, "HWC_EXTEND_FRAMEBUFFER_WIDTH not set.");
-    #endif
+        }
     }
-
     MESON_LOGI("HwcConfig::default frame buffer size (%d x %d)", width, height);
     return 0;
 }
 
 uint32_t HwcConfig::getDisplayNum() {
-    return HWC_DISPLAY_NUM;
+    if (isLcdExist() == 1)
+       return HWC_LCD_DISPLAY_NUM;
+    else
+       return HWC_DISPLAY_NUM;
 }
 
 hwc_connector_t HwcConfig::getConnectorType(int disp) {
     hwc_connector_t connector_type = HWC_CONNECTOR_NULL;
     const char * connectorstr = NULL;
     if (disp == 0) {
-        #ifdef HWC_PRIMARY_CONNECTOR_TYPE
-            connectorstr = HWC_PRIMARY_CONNECTOR_TYPE;
-        #else
-            MESON_ASSERT(0, "HWC_PRIMARY_CONNECTOR_TYPE not set.");
-        #endif
+            if (isLcdExist() == 1)
+                connectorstr = HWC_LCD_PRIMARY_CONNECTOR_TYPE;
+            else
+                connectorstr = HWC_PRIMARY_CONNECTOR_TYPE;
     } else {
-        #ifdef HWC_EXTEND_CONNECTOR_TYPE
-            connectorstr = HWC_EXTEND_CONNECTOR_TYPE;
-        #else
-            MESON_ASSERT(0, "HWC_EXTEND_CONNECTOR_TYPE not set.");
-        #endif
+            if (isLcdExist() == 1)
+                connectorstr = HWC_EXTEND_CONNECTOR_TYPE;
     }
 
     if (connectorstr != NULL) {
@@ -113,9 +129,8 @@ hwc_connector_t HwcConfig::getConnectorType(int disp) {
 
 hwc_pipe_policy_t HwcConfig::getPipeline() {
     const char * pipeStr = "default";
-#ifdef HWC_PIPELINE
+    if (isLcdExist() == 1)
     pipeStr = HWC_PIPELINE;
-#endif
 
     if (strcasecmp(pipeStr, "default") == 0) {
         return HWC_PIPE_DEFAULT;
@@ -169,11 +184,10 @@ bool HwcConfig::softwareVsyncEnabled() {
 }
 
 bool HwcConfig::preDisplayCalibrateEnabled() {
-#ifdef HWC_ENABLE_PRE_DISPLAY_CALIBRATE
-    return true;
-#else
-    return false;
-#endif
+    if (isLcdExist() == 1)
+       return true;
+    else
+       return false;
 }
 
 bool HwcConfig::primaryHotplugEnabled() {
@@ -233,11 +247,10 @@ bool HwcConfig::dynamicSwitchConnectorEnabled() {
 }
 
 bool HwcConfig::dynamicSwitchViuEnabled() {
-#ifdef HWC_DYNAMIC_SWITCH_VIU
-    return true;
-#else
-    return false;
-#endif
+    if (isLcdExist() == 1)
+       return true;
+    else
+       return false;
 }
 
 void HwcConfig::dump(String8 & dumpstr) {

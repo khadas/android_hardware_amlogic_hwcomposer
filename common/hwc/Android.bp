@@ -19,13 +19,17 @@ soong_config_module_type {
     config_namespace: "meson_hwc",
     value_variables: [
         "display_num",
+        "lcd_display_num",
         "hwc_pipeline",
         "vdin_fbprocessor",
         "primary_fb_width",
         "primary_fb_height",
+        "lcd_primary_fb_width",
+        "lcd_primary_fb_height",
         "extend_fb_width",
         "extend_fb_height",
         "primary_connector_type",
+        "lcd_primary_connector_type",
         "extend_connector_type",
     ],
     bool_variables: [
@@ -112,6 +116,10 @@ meson_hwc_hwc_cc_defaults {
             cflags: ["-DHWC_DISPLAY_NUM=%s"],
         },
 
+        lcd_display_num: {
+            cflags: ["-DHWC_LCD_DISPLAY_NUM=%s"],
+        },
+
         hwc_pipeline: {
             cflags: ["-DHWC_PIPELINE=\"%s\""],
         },
@@ -128,6 +136,14 @@ meson_hwc_hwc_cc_defaults {
             cflags: ["-DHWC_PRIMARY_FRAMEBUFFER_HEIGHT=%s"],
         },
 
+        lcd_primary_fb_width: {
+            cflags: ["-DHWC_LCD_PRIMARY_FRAMEBUFFER_WIDTH=%s"],
+        },
+
+        lcd_primary_fb_height: {
+            cflags: ["-DHWC_LCD_PRIMARY_FRAMEBUFFER_HEIGHT=%s"],
+        },
+
         extend_fb_width: {
             cflags: ["-DHWC_EXTEND_FRAMEBUFFER_WIDTH=%s"],
         },
@@ -138,6 +154,10 @@ meson_hwc_hwc_cc_defaults {
 
         primary_connector_type: {
             cflags: ["-DHWC_PRIMARY_CONNECTOR_TYPE=\"%s\""],
+        },
+
+        lcd_primary_connector_type: {
+            cflags: ["-DHWC_LCD_PRIMARY_CONNECTOR_TYPE=\"%s\""],
         },
 
         extend_connector_type: {

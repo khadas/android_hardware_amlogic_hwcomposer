@@ -39,11 +39,15 @@ SOONG_CONFIG_meson_hwc += \
     hwc_release \
     hwc_backend \
     display_num \
+    lcd_display_num \
     primary_fb_width \
     primary_fb_height \
+    lcd_primary_fb_width \
+    lcd_primary_fb_height \
     extend_fb_width \
     extend_fb_height \
     primary_connector_type \
+    lcd_primary_connector_type \
     extend_connector_type \
     enable_headless_mode \
     enable_software_vsync \
@@ -68,11 +72,15 @@ SOONG_CONFIG_meson_hwc += \
 SOONG_CONFIG_meson_hwc_hwc_release := $(HWC_RELEASE)
 SOONG_CONFIG_meson_hwc_hwc_backend := $(HWC_BACKEND)
 SOONG_CONFIG_meson_hwc_display_num := $(HWC_DISPLAY_NUM)
+SOONG_CONFIG_meson_hwc_lcd_display_num := $(HWC_LCD_DISPLAY_NUM)
 SOONG_CONFIG_meson_hwc_primary_fb_width := $(HWC_PRIMARY_FRAMEBUFFER_WIDTH)
 SOONG_CONFIG_meson_hwc_primary_fb_height := $(HWC_PRIMARY_FRAMEBUFFER_HEIGHT)
+SOONG_CONFIG_meson_hwc_lcd_primary_fb_width := $(HWC_LCD_PRIMARY_FRAMEBUFFER_WIDTH)
+SOONG_CONFIG_meson_hwc_lcd_primary_fb_height := $(HWC_LCD_PRIMARY_FRAMEBUFFER_HEIGHT)
 SOONG_CONFIG_meson_hwc_extend_fb_width := $(HWC_EXTEND_FRAMEBUFFER_WIDTH)
 SOONG_CONFIG_meson_hwc_extend_fb_height := $(HWC_EXTEND_FRAMEBUFFER_HEIGHT)
 SOONG_CONFIG_meson_hwc_primary_connector_type := $(HWC_PRIMARY_CONNECTOR_TYPE)
+SOONG_CONFIG_meson_hwc_lcd_primary_connector_type := $(HWC_LCD_PRIMARY_CONNECTOR_TYPE)
 SOONG_CONFIG_meson_hwc_extend_connector_type := $(HWC_EXTEND_CONNECTOR_TYPE)
 SOONG_CONFIG_meson_hwc_enable_headless_mode := $(HWC_ENABLE_HEADLESS_MODE)
 SOONG_CONFIG_meson_hwc_enable_software_vsync := $(HWC_ENABLE_SOFTWARE_VSYNC)
