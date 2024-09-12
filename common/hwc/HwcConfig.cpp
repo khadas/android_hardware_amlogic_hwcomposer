@@ -184,10 +184,11 @@ bool HwcConfig::softwareVsyncEnabled() {
 }
 
 bool HwcConfig::preDisplayCalibrateEnabled() {
-    if (isLcdExist() == 1)
-       return true;
-    else
-       return false;
+#ifdef HWC_ENABLE_PRE_DISPLAY_CALIBRATE
+    return true;
+#else
+    return false;
+#endif
 }
 
 bool HwcConfig::primaryHotplugEnabled() {
@@ -247,10 +248,11 @@ bool HwcConfig::dynamicSwitchConnectorEnabled() {
 }
 
 bool HwcConfig::dynamicSwitchViuEnabled() {
-    if (isLcdExist() == 1)
-       return true;
-    else
-       return false;
+#ifdef HWC_DYNAMIC_SWITCH_VIU
+    return true;
+#else
+    return false;
+#endif
 }
 
 void HwcConfig::dump(String8 & dumpstr) {
