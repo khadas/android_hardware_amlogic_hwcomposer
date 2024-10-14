@@ -12,7 +12,7 @@
 #include <HwcConfig.h>
 #include <systemcontrol.h>
 #include <hardware/hwcomposer2.h>
-
+#include <cutils/properties.h>
 
 #define DEFAULT_DPI (159)
 
@@ -61,18 +61,25 @@ int32_t FixedSizeModeMgr::update() {
     bool useFakeMode = true;
     drm_mode_info_t realMode;
     bool need_reset_density = false;
+	char value[PROPERTY_VALUE_MAX];
 
     if (mConnector->isConnected() && 0 == mCrtc->getMode(realMode)) {
         if (realMode.name[0] != 0) {
             mCurMode.refreshRate = realMode.refreshRate;
-
             if ((mFbWidth >= FB_SIZE_4K_W || mFbHeight >= FB_SIZE_4K_H) &&
                 strncmp(realMode.name, "dummy_l", DRM_DISPLAY_MODE_LEN)) {
-                if (realMode.pixelW <= FB_SIZE_1080P_W || realMode.pixelH <= FB_SIZE_1080P_H) {
-                    /* hardware limitations: display is not clear when
+                //if (realMode.pixelW <= FB_SIZE_1080P_W || realMode.pixelH <= FB_SIZE_1080P_H) {
+                if ((realMode.pixelW * realMode.pixelH) <= (FB_SIZE_1080P_W * FB_SIZE_1080P_H)) {
+		    /* hardware limitations: display is not clear when
                      * the dispMode is less than 720P and framebuffer size is 4K */
-                    mCurMode.pixelW = FB_SIZE_1080P_W;
-                    mCurMode.pixelH = FB_SIZE_1080P_H;
+					property_get("sys.lcd.reverse", value, "0");
+					if (realMode.pixelW < realMode.pixelH && atoi(value) == 1) {
+						mCurMode.pixelW = FB_SIZE_1080P_H;
+						mCurMode.pixelH = FB_SIZE_1080P_W;
+					}else {
+						mCurMode.pixelW = FB_SIZE_1080P_W;
+						mCurMode.pixelH = FB_SIZE_1080P_H;
+					}
                     need_reset_density = true;
                 } else if (mCurMode.pixelW != mFbWidth || mCurMode.pixelH != mFbHeight) {
                     mCurMode.pixelW = mFbWidth;
